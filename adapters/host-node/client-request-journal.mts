@@ -42,6 +42,7 @@ type RunRecords = ReturnType<typeof createJournalRunRecords>;
 type RunAdmission = Parameters<RunRecords['acceptRecord']>[1];
 type RequestControl = Parameters<RunRecords['acceptRecord']>[2];
 type RequestKey = Parameters<RunRecords['lookupRecord']>[0];
+type OwnedDefinitionKey = RequestKey & Partial<Pick<WireRunRef, 'runDefinitionCid'>>;
 type RequestReader = Parameters<RunRecords['lookupRecord']>[1];
 type DefinitionControl = Parameters<typeof checkedRunDefinition>[1];
 type RunDefinition = ReturnType<typeof checkedRunDefinition>;
@@ -50,7 +51,9 @@ type DefinitionAdmission = Omit<RunAdmission, 'runDefinitionCid' | 'runDefinitio
   Readonly<{runDefinition: unknown; runAdmissionEvidence?: AdmissionEvidence;
     originalPlan?: unknown; originalExplanation?: unknown; originalInferRun?: unknown}>;
 type AdmittedDefinition = Omit<ReturnType<RunRecords['acceptRecord']>, 'runDefinitionWire' | 'epochRejected'> &
-  Readonly<{runDefinition: RunDefinition | undefined}>;
+  Readonly<{runDefinition: RunDefinition | undefined;
+    physicalStartReserved?: never; observedTerminalOutcome?: never; cancellationRequested?: never;
+  }>;
 type AdmissionPublication = DefinitionControl & Readonly<{
   originalRunPlanAdmissionEvidence?(original: unknown, definition: RunDefinition, programCid: unknown, evidence: AdmissionEvidence): unknown;
   originalRunExplanationAdmissionEvidence?(original: unknown, definition: RunDefinition, programCid: unknown, evidence: AdmissionEvidence): unknown;
@@ -702,7 +705,7 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
     observeRunCancellation,
     // Recover identity and Definition from one physical journal observation.
     // This internal owner must not be projected as a Client wire response.
-    lookupOwnedDefinition(key: RequestKey, requestControl: RequestReader, publicationControl: DefinitionControl) {
+    lookupOwnedDefinition(key: OwnedDefinitionKey, requestControl: RequestReader, publicationControl: DefinitionControl) {
       const retained = lookupRecord(key, requestControl);
       if (retained === undefined) return undefined;
       return Object.freeze({...retained.found,
@@ -781,7 +784,7 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
     // own the same cancellation. Pending custody and uncertain COMMIT never
     // produce this certificate. The durable original remains unchanged.
     recordCancellationAttempt(ref: Parameters<CancelRecord>[0], {attemptRef, ...options}: CancelAttemptOptions,
-      requestControl: Parameters<CancelRecord>[2], publicationControl: Parameters<CancelRecord>[3]): ReturnType<Attempts['cancellationAttempt']> {
+      requestControl: Parameters<CancelRecord>[2], publicationControl: Parameters<CancelRecord>[3]) {
       return cancellationAttempt(journal, ref, attemptRef, options, requestControl, publicationControl);
     },
     lookupCancellationOperation,

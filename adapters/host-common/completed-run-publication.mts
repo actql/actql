@@ -33,13 +33,19 @@ type HoldingStore = Parameters<typeof preparePrivatePublicationHolding>[0];
 type HoldingRecord = Readonly<Omit<Parameters<HoldingStore['commitPhysicalHolding']>[0], 'namespace'> & {
   namespace: 'publication-private' | 'effect-capture' | 'effect-source';
 }>;
+// The Store selects the file by its holding CID. Namespace and manifest
+// checks belong to the consuming recovery or retirement operation.
+type InspectedHolding = Readonly<Pick<HoldingRecord, 'version' | 'holding_cid'> & {
+  namespace: string; manifest_cid: unknown;
+  objects: readonly Readonly<{cid: unknown; byte_count: number}>[];
+}>;
 type PrivateHolding = ReturnType<typeof preparePrivatePublicationHolding>;
 type WireBinding = Parameters<NonNullable<HoldingStore['confirmPrivateEvidence']>>[0];
 type PrivateRead = Readonly<{
   releaseBytes(): string;
-  confirm(binding: WireBinding): Awaitable<HoldingRecord | undefined>;
+  confirm(binding: WireBinding): Awaitable<InspectedHolding | undefined>;
 }>;
-type BeforeRead = ((bytes: number) => SynchronousRuntimeData) & Readonly<{
+type BeforeRead = ((bytes: number) => undefined) & Readonly<{
   reserveEnvelope?: (wire: string) => undefined;
 }>;
 type RecoveryResources = NonNullable<EffectPublication['recoveryResources']> & Readonly<{
@@ -55,9 +61,9 @@ type Extent = {bytes: number | undefined};
 type CaptureStore = HoldingStore & Readonly<{
   storeAuthorityCid: string;
   confirmPrivateEvidence: NonNullable<HoldingStore['confirmPrivateEvidence']>;
-  inspectPhysicalHolding(cid: string): Awaitable<HoldingRecord | undefined>;
-  inspectPhysicalHoldingForRetirement(cid: string): Awaitable<HoldingRecord | undefined>;
-  commitPhysicalHolding(record: HoldingRecord, prepared: readonly Prepared[], borrowed?: readonly string[]): Awaitable<unknown>;
+  inspectPhysicalHolding(cid: string): Awaitable<InspectedHolding | undefined>;
+  inspectPhysicalHoldingForRetirement(cid: string): Awaitable<InspectedHolding | undefined>;
+  commitPhysicalHolding(record: InspectedHolding, prepared: readonly Prepared[], borrowed?: readonly string[]): Awaitable<unknown>;
   retirePhysicalHolding(cid: string): Awaitable<Readonly<{cleanup: Cleanup}>>;
   retainEffectCaptureCustody(run: Contract, holdings: readonly HoldingRecord[]): Awaitable<unknown>;
   retireEffectCaptureCustody(run: Contract): Awaitable<boolean>;
@@ -198,7 +204,7 @@ type RetainedResult = {
   runDefinition: Contract; retentions: readonly Contract[];
   releaseComplete: boolean; releaseFlight?: Promise<boolean>;
   cleanupFailure?: CompletedRunPublicationError;
-  captureHolding?: HoldingRecord; captureRecordOwner?: PrivateHolding;
+  captureHolding?: InspectedHolding; captureRecordOwner?: PrivateHolding;
   captureRecordWire?: string; capturePublished: boolean; retainCapture?: boolean;
   privateEffectOwner?: PrivateHolding; publicationFailure?: Readonly<{error: unknown}>;
   effectDependencyPayloads?: readonly (DependencyPayload & Readonly<{binding: DependencyBinding}>)[];
@@ -208,7 +214,7 @@ type RetainedResult = {
 };
 type RetainedEffect = Readonly<{
   execution: Execution | null; store: CaptureStore; storedResults: StoredResults; control: CaptureControl;
-  preview: Preview; runDefinition: Contract; invocation: Contract; captureHolding: HoldingRecord;
+  preview: Preview; runDefinition: Contract; invocation: Contract; captureHolding: InspectedHolding;
   effectSourceHoldings: readonly (Pick<SourceMember, 'artifact'> & Readonly<{source: Source; memberIndex?: number}>)[];
   recoveryResources?: RecoveryResources;
 }>;
@@ -1090,8 +1096,9 @@ async function retireCompletedEffectfulCaptureOwned({store, control,
   }
   let consuming = false, holdingCids: readonly string[];
   try {
+    // The selected Store reader authenticates the manifest CID before lending bytes.
     holdingCids = await store.readPrivateEvidence('effect_capture',
-      record.manifest_cid, recordCid, (_plaintext, read) => {
+      record.manifest_cid as string, recordCid, (_plaintext, read) => {
         if (consuming) fail('InvalidCompletedEffectfulCaptureRecord');
         consuming = true;
         return prepareCompletedEffectfulCaptureRetirement(store, control, run,
@@ -1119,7 +1126,7 @@ async function retireCompletedEffectfulCaptureOwned({store, control,
 // Validate the complete remaining original inventory while its encrypted
 // record is still protected. Deletion starts only after this reader returns.
 async function prepareCompletedEffectfulCaptureRetirement(store: CaptureStore, control: CaptureControl, run: Contract,
-  contractLimits: Limits, record: HoldingRecord, recordCid: string, captureCid: string, wire: string, recoveryResources?: RecoveryResources) {
+  contractLimits: Limits, record: InspectedHolding, recordCid: string, captureCid: string, wire: string, recoveryResources?: RecoveryResources) {
   recoveryResources?.reserveDecoded?.(wire);
   let body: CaptureRecord;
   try { body = JSON.parse(wire) as CaptureRecord; }
@@ -1335,7 +1342,8 @@ async function recoverCompletedEffectfulComputationOwned(options: RecoveryOption
   }
   let consuming = false;
   try {
-    const recovered = await store.readPrivateEvidence('effect_capture', record.manifest_cid,
+    // The selected Store reader authenticates the manifest CID before lending bytes.
+    const recovered = await store.readPrivateEvidence('effect_capture', record.manifest_cid as string,
       recordHoldingCid, (_plaintext, read) => {
         if (consuming) fail('InvalidCompletedEffectfulCaptureRecord');
         consuming = true;
@@ -1355,7 +1363,7 @@ async function recoverCompletedEffectfulComputationOwned(options: RecoveryOption
 // One trusted consumer of the same temporary decrypted backing. The Store's
 // original reader spans the complete typed/schema construction and its awaits.
 async function recoverCompletedEffectfulPlaintext(store: CaptureStore, control: CaptureControl, contractLimits: Limits,
-  admittedRun: Contract, captureHoldingCid: string, recordHoldingCid: string, record: HoldingRecord, read: PrivateRead,
+  admittedRun: Contract, captureHoldingCid: string, recordHoldingCid: string, record: InspectedHolding, read: PrivateRead,
   recoveryResources: RecoveryResources | undefined, extent: Extent | undefined) {
   if (extent !== undefined) {
     // The acquired original must agree with the inspected immutable holding.

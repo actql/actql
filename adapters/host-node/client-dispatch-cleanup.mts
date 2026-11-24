@@ -75,23 +75,29 @@ type BudgetControl = Readonly<{
   runDefinitionRunId: (definition: unknown) => string;
   executionFailureExplanation?: Parameters<typeof publicBudgetFailureMessage>[1];
 }>;
-type CleanupMoon = Parameters<typeof issueInstalledUnpublishedRunState>[0] & Readonly<{
+type CleanupJournal = ReturnType<typeof import('./client-request-journal.mjs').openClientRequestJournal>;
+type CleanupMoon = Parameters<typeof issueInstalledUnpublishedRunState>[0] &
+  Parameters<CleanupJournal['publishRunState']>[2] &
+  Parameters<ReturnType<typeof import('./client-request-journal.mjs').openClientRequestJournal>['lookupRunDefinition']>[1] &
+  Readonly<{
   strategyHostStop: (setup: unknown) => void;
   strategyHostCloseOutputs: (setup: unknown) => void;
   strategyHostUsage: (setup: unknown) => unknown;
   strategyHostRun: (setup: unknown) => unknown;
   clientProgramPreparationBorrowUsageIsolated?: (holder: unknown, run: unknown) => boolean;
 }>;
+type CleanupJournalControl = BudgetControl & Parameters<CleanupJournal['publishRunState']>[3] &
+  Parameters<ReturnType<typeof import('./client-request-journal.mjs').openClientRequestJournal>['lookupRunDefinition']>[2];
 type CleanupPorts<Ref, Frame extends BudgetFrame> = Readonly<{
   entries: Map<string, CleanupEntry<Ref>>;
   keyOf: (ref: Ref) => string;
   moon: CleanupMoon;
   journal: Readonly<{
     markPreDispatchFailure: (ref: Ref) => void;
-    lookupRunDefinition: (ref: Ref, moon: CleanupMoon, control: BudgetControl) => Frame | undefined;
-    publishRunState: (frame: Frame, state: PublishedState, moon: CleanupMoon, control: BudgetControl) => void;
+    lookupRunDefinition: (ref: Ref, moon: CleanupMoon, control: CleanupJournalControl) => Frame | undefined;
+    publishRunState: (frame: Frame, state: PublishedState, moon: CleanupMoon, control: CleanupJournalControl) => void;
   }>;
-  control: BudgetControl;
+  control: CleanupJournalControl;
   now: () => string;
   checkpoints?: Readonly<{releaseAcquisition: (requestId: string) => void}>;
   observation?: Readonly<{emit: (phase: 'cleanup', kind: 'cleanup_completed', detail: Readonly<{

@@ -43,6 +43,8 @@ export function captureSourceAliasConstruction(configurationReader: undefined, m
   <Result>(geometry: Geometry | undefined, project: () => Result) => Result;
 export function captureSourceAliasConstruction(configurationReader: ConfigurationReader, moon: unknown):
   <Result extends SourceValue>(geometry: Geometry, project: () => Result) => Result;
+export function captureSourceAliasConstruction(configurationReader: ConfigurationReader | undefined, moon: unknown):
+  <Result extends SourceValue>(geometry: Geometry, project: () => Result) => Result;
 export function captureSourceAliasConstruction(configurationReader: ConfigurationReader | undefined, moon: unknown) {
   if (configurationReader === undefined) return (_geometry: Geometry | undefined, project: () => unknown) => project();
   const prepare = ownMethod(configurationReader, 'prepareNativeInput') as ConfigurationReader['prepareNativeInput'];

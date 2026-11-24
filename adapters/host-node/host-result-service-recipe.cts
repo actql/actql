@@ -112,6 +112,6 @@ const facilityFields = record({
 });
 // Preserve the direct assignment for Node's CommonJS named-export detection.
 const recipe = module.exports = {declareHostResultServiceRecipe, facilityFields, validOriginalResultPublicationExtent,
-  hostResultStorePolicy: store};
+  hostResultStorePolicy: store} as const;
 freeze(module.exports);
-export = recipe as Readonly<typeof recipe>;
+export = recipe;

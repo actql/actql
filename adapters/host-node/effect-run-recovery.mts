@@ -8,7 +8,7 @@ import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
 type RecoveryPublication = Parameters<typeof recoverCompletedEffectfulComputation>[0];
 type RecoveryResources = NonNullable<Parameters<typeof recoverCompletedEffectfulComputation>[1]> &
-  Readonly<{close(): unknown}>;
+  Readonly<{close(): unknown; status(): Readonly<{pending: boolean}>}>;
 type Journal = ReturnType<typeof openClientRequestJournal>;
 type Lookup = Journal['lookupOwnedDefinition'];
 type RetainedDefinition = NonNullable<ReturnType<Lookup>>;
@@ -30,7 +30,7 @@ type RecoveryInputs = Readonly<{
   requestIdentity: RetainedDefinition['requestIdentity'];
   runDefinition: RecoveryPublication['runDefinition'];
   contractLimits: RecoveryPublication['contractLimits'];
-  assertOriginalCurrent(): void;
+  assertOriginalCurrent(): undefined;
   retain(original: RecoveryResources): void;
 }>;
 type RecoveryOptions = Readonly<{
@@ -128,7 +128,7 @@ export async function recoverAdmittedEffectRun({
   if (!originalMatches) {
     fail('EffectRecoveryOriginalSelectionUnavailable');
   }
-  const assertOriginalCurrent = () => {
+  const assertOriginalCurrent = (): undefined => {
     const current = original.assertUpdateSelectionCurrent?.();
     if (typeof (current as ThenField | undefined)?.then === 'function') {
       void Promise.resolve(current).catch(() => {});

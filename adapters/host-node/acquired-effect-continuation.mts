@@ -9,6 +9,8 @@ import {refusedEffectPreparation} from '../host-common/effect-preparation-result
 import {validInstallationBinding} from './ordinary-source-binding.mjs';
 
 import type {createAuthorizationGate} from '../host-common/authorization-gate.mjs';
+import type {CapturedOccurrence} from './client-checkpoint-admission-inputs.mjs';
+import type {openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
 type Awaitable<Value> = Value | PromiseLike<Value>;
@@ -17,28 +19,22 @@ type Scope = Parameters<Authorization['authorize']>[1];
 type Decision = Awaited<ReturnType<Authorization['authorize']>>;
 type AuthorizationOptions = Parameters<Authorization['authorize']>[2];
 type ResumeOptions = Parameters<Authorization['resume']>[2];
-type Journal = NonNullable<NonNullable<Parameters<typeof createAuthorizationGate>[0]>['deferral']>['journal'];
+type Journal = ReturnType<typeof openSqliteCheckpointJournal>;
 type Admission = NonNullable<Decision['admission']>;
 type Claim = Readonly<Pick<Admission, 'intentId' | 'claimant' | 'generation'> & {
   runId: string; prepareAttemptId?: string | null;
 }>;
 type Checkpoint = Parameters<Journal['persistCheckpoint']>[0];
-type ResolutionSubmission = Readonly<{
-  checkpointCid: string; resolutionWire: string; approvalEvidenceWire?: string; unknownEffects?: readonly string[];
-}>;
-type SourceJournal = Omit<Journal, 'submitResolution'> & Readonly<{
-  submitResolution(item: ResolutionSubmission): Awaitable<unknown>;
-  committedApprovalAt(checkpointCid: string): Readonly<{current: boolean}>;
-  completeResume(claim: Claim, outcome: Readonly<{checkpoint: Checkpoint}>): Awaited<ReturnType<Journal['persistCheckpoint']>>;
-}>;
+type ResolutionSubmission = Parameters<Journal['submitResolution']>[0];
+type SourceJournal = Pick<Journal, 'persistCheckpoint' | 'committedApprovalAt' | 'completeResume' | 'submitResolution'>;
 type Occurrence = Readonly<{stage: number; input: number; task: number; computeTask?: number}>;
 type InstallationBinding = typeof validInstallationBinding extends (value: unknown) => value is infer Binding ? Binding : never;
 type SourceScope = Occurrence & Readonly<{
-  checkedSource: unknown; readTuple: Scope; physicalBinding: unknown; physicalPolicy?: unknown;
+  checkedSource: CapturedOccurrence['checkedSource']; readTuple: Scope; physicalBinding: unknown; physicalPolicy?: unknown;
   installationBinding?: InstallationBinding;
 }>;
 type PreparedSource = Readonly<{
-  occurrence: Occurrence; checkedSource: unknown; readTuple: Scope; physicalBinding: unknown; physicalPolicy?: unknown;
+  occurrence: Occurrence; checkedSource: CapturedOccurrence['checkedSource']; readTuple: Scope; physicalBinding: unknown; physicalPolicy?: unknown;
 }>;
 type Preparation = Readonly<{checkedOwner: unknown; requestIdentity: unknown}>;
 type Retention = Readonly<{requirement?: unknown; capacity: unknown; referenceIssuer?: unknown; wholeInput?: boolean}>;
@@ -265,7 +261,8 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
   const nextJournal = resume === undefined ? undefined : {
     ...checkpoints.journal,
     persistCheckpoint: (checkpoint: Checkpoint) => resume.active
-      ? checkpoints.journal.completeResume(resume.claim, {checkpoint})
+      ? checkpoints.journal.completeResume(resume.claim as Parameters<Journal['completeResume']>[0],
+          {checkpoint}) as ReturnType<Journal['persistCheckpoint']>
       : checkpoints.journal.persistCheckpoint(checkpoint),
     submitResolution: (item: ResolutionSubmission) => checkpoints.journal.submitResolution(item),
   };

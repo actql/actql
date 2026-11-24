@@ -77,7 +77,7 @@ type RecoveredRead<PreviewView extends object> = Readonly<{
   maxBytes: number; signal?: AbortSignal; assertAvailable(): void;
 }>;
 type ReadOptions = Readonly<{
-  store: ReadStore; holdingCid: string; physicalCid: string; physicalBytes: number;
+  store: ReadStore; holdingCid: string; physicalCid: unknown; physicalBytes: number;
   logicalCid: string; rowCount: number; maxBytes: number; signal?: AbortSignal;
 }>;
 // The recovered typed view must retain this exact source token. Captured

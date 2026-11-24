@@ -26,11 +26,13 @@ type ShutdownHost = {
   prepareShutdown?: ShutdownInput['stop']; stopModelRuntime?: SynchronousAction;
   runAcceptance?: CheckpointOwner; checkpoints?: CheckpointOwner;
   dispatchOwner?: {drain: ShutdownInput['drain']}; retireTerminalEffects?: ShutdownInput['retire'];
-  journal: CloseOwner; store: CloseOwner; sourceProfile?: CloseOwner; installedEffect?: CloseOwner;
-  closePublicationStore?: ShutdownInput['store']; closeRequestJournal?: ShutdownInput['journal'];
+  sourceProfile?: CloseOwner; installedEffect?: CloseOwner;
   closePublicationOwnership?: ShutdownInput['publicationOwnership']; diagnostic?: CloseOwner;
   observation?: CloseOwner; ownerViews?: CloseOwner;
-};
+} & (Readonly<{journal: CloseOwner; closeRequestJournal?: ShutdownInput['journal']}> |
+  Readonly<{journal?: CloseOwner; closeRequestJournal: ShutdownInput['journal']}>) &
+  (Readonly<{store: CloseOwner; closePublicationStore?: ShutdownInput['store']}> |
+  Readonly<{store?: CloseOwner; closePublicationStore: ShutdownInput['store']}>);
 type EmbeddedHost = ShutdownHost & {port: HostPort};
 type RequestRecord = {
   request?: object; pending?: Promise<unknown>; owner?: RegistryEntry; generation?: object;
@@ -51,11 +53,11 @@ type ObservedFailure = {
 type ManagedRun = {
   value?: unknown; runtime?: {clientProgramInstalledManagedRunAccounting?: unknown};
   usage?: unknown; retire?: (value: unknown) => unknown; original?: unknown;
-  manager?: {retireSeveredPreparation(original: unknown): ReturnType<SynchronousAction>};
+  manager?: {retireSeveredPreparation?(original: object): ReturnType<SynchronousAction>};
   closed?: boolean; finalAccounting?: readonly bigint[];
 };
 type ComputeRegistry = {
-  computeLiveRuns: Set<ManagedRun>; computeRuns?: WeakMap<object, ManagedRun>;
+  computeRuns?: Pick<WeakMap<object, ManagedRun>, 'get'>;
   computeRunObservations?: Map<string, ManagedRun>;
 };
 
@@ -84,11 +86,11 @@ export function installedHostShutdown(host: ShutdownHost) {
     retire: () => prepareShutdown === undefined
       ? host.retireTerminalEffects!() : host.retireTerminalEffects?.(),
     checkpoint: () => (host.runAcceptance ?? host.checkpoints)?.close(),
-    journal: closeRequestJournal === undefined ? () => host.journal.close() :
+    journal: closeRequestJournal === undefined ? () => host.journal!.close() :
       () => Reflect.apply(closeRequestJournal, host, []),
     source: () => host.sourceProfile?.close(),
     effect: () => host.installedEffect?.close(),
-    store: closePublicationStore === undefined ? () => host.store.close() :
+    store: closePublicationStore === undefined ? () => host.store!.close() :
       () => Reflect.apply(closePublicationStore,host,[]),
     ...(closePublicationOwnership === undefined ? {} : {publicationOwnership:
       () => Reflect.apply(closePublicationOwnership, host, [])}),
@@ -163,7 +165,7 @@ export function createEmbeddedHostRegistry(sameInstallation: (original: unknown,
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined ||
         request === null || typeof request !== 'object') preparationChanged();
-    return originalRequestRecord(entry, request).request;
+    return originalRequestRecord(entry, request).request!;
   }
   return Object.freeze({
   // A candidate belongs to this SAME registry, before Project discovery. It
@@ -581,7 +583,8 @@ export function createEmbeddedHostRegistry(sameInstallation: (original: unknown,
 // Resource owner, and retirement publishes only inert final Ledger scalars.
 // Separate lexical scope: this continuation retains only the same run, record
 // and two scalar-state slots; it cannot capture a retiring method's Request.
-export function managedPreparationRetirementContinuation(run: ManagedRun, record: ComputeRegistry) {
+export function managedPreparationRetirementContinuation(run: ManagedRun,
+    record: Readonly<{computeLiveRuns?: Pick<Set<ManagedRun>, 'delete'>}>) {
   let retired = false, finalAccounting: readonly bigint[] | undefined;
   return () => {
     if (!retired) {
@@ -610,8 +613,8 @@ export function managedPreparationRetirementContinuation(run: ManagedRun, record
       finalAccounting = observed;
       retired = true;
     }
-    run.manager!.retireSeveredPreparation(run.original);
-    record.computeLiveRuns.delete(run);
+    run.manager!.retireSeveredPreparation!(run.original as object);
+    record.computeLiveRuns!.delete(run);
     for(const key of Object.keys(run)) (run as Record<string, unknown>)[key]=undefined;
     run.closed=true;
     if (finalAccounting !== undefined) run.finalAccounting = finalAccounting;

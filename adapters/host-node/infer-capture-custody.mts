@@ -6,6 +6,7 @@ import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {fundInferCaptureInventory, fundedInferCaptureInventoryCount, fundedInferStoppedAttemptCount} from './infer-operation.mjs';
 import type {openNodeComposedInferProvider} from './infer-operation.mjs';
+import type {runtimeCore} from '../host-common/runtime-core.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
 
@@ -16,7 +17,9 @@ type Store = Parameters<typeof preparePrivatePublicationHolding>[0] & Readonly<{
   privateEvidenceWireLimit?(): number;
 }>;
 type Evidence = Readonly<{wire: string; identity: string}>;
-type ModelEntry = Readonly<{ordinal: number; scopeCid: string; attemptCid: string}>;
+type HoldingControl = ReturnType<typeof runtimeCore>['publicationControl'];
+type ModelEntry = Parameters<HoldingControl['modelScopedPrivateHoldingCid']>[2] &
+  Parameters<Awaited<ReturnType<typeof import('./installed-model-continuation.mjs').installNodeModelContinuation>>['observe']>[0];
 type EntryObservation = Readonly<{state: string}>;
 type ObserveEntry = (entry: ModelEntry) => Awaitable<EntryObservation | undefined>;
 type ReadEntry = (slot: number) => ModelEntry | undefined;

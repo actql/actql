@@ -31,12 +31,15 @@ export {cancelNodeRunContinuation, confirmNodeRunCancellation, observeNodeRestor
 
 import type {WireRunRef} from '../../packages/client-wire/index.js';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+import type {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import type {openClientRequestJournal} from './client-request-journal.mjs';
 
 type Awaitable<Value> = Value | PromiseLike<Value>;
 type Ref = WireRunRef;
 type Journal = ReturnType<typeof openClientRequestJournal>;
 type Stop = Parameters<typeof observeNodeRunStop>[0];
+type InferAdmission = ReturnType<typeof runtimeCore>['publicationControl']['admitInferCapturedInput'];
 type CleanupPorts = Parameters<typeof createClientDispatchCleanup<Ref, Accepted>>[0];
 type TrackingPorts = Parameters<typeof createClientDispatchTracking<Ref>>[0];
 type Acquisition = ReturnType<typeof createClientDispatchSourceAcquisition<Ref>>;
@@ -95,13 +98,14 @@ type Held = {
   preparedSources?: readonly PreparedMember[]; managedRun?: unknown;
   keyedSource?: Readonly<{acquisition: unknown; prepared: Prepared; occurrence: Occurrence; requestIdentity: unknown}>;
 };
-type Accepted = Omit<NonNullable<ReturnType<Journal['lookupRunDefinition']>>, 'runDefinition'> &
-  Readonly<{runDefinition: PreparedPlan['runDefinition']}>;
+type Accepted = NonNullable<ReturnType<Journal['lookupRunDefinition']>>;
 type Submission = Readonly<{requestId: string; principalId: string; connection: object; preparedProgram: unknown;
   kind?: unknown; input?: unknown; parameters?: unknown}>;
 type RequestGate = Readonly<{beforePhysicalStart(): unknown; started(): unknown}>;
 type DispatchStart = 'started' | 'not_started' | Readonly<{refused: unknown}>;
-type Start = (submission: Submission, requested: unknown, accepted: Accepted,
+type DispatchAdmission = Pick<Accepted, 'ref'> & Partial<Pick<Accepted,
+  'runDefinition' | 'dispatchReserved' | 'physicalStartReserved' | 'preDispatchFailureConfirmed' | 'cancellationRequested'>>;
+type Start = (submission: Submission, requested: unknown, accepted: DispatchAdmission,
   held: Held, finished?: () => unknown, gate?: RequestGate) => Promise<DispatchStart>;
 type FailureFields = Partial<Record<typeof dispatchFailureFields[number], unknown>>;
 type Entry = FailureFields & Parameters<typeof releaseDispatchPreparationHost>[0] & {
@@ -128,7 +132,7 @@ type CheckpointPort = NonNullable<Stop['checkpoints']> & NonNullable<CleanupPort
   acquisitionAccess(requestId: string, access: SourceAccess | undefined, scope?: unknown): SourceAccess | undefined;
   journal: NonNullable<NonNullable<Stop['checkpoints']>['journal']> & Readonly<{
     inspect(checkpointCid: string | undefined): Readonly<{kind: string; prepareAttemptId: string | null;
-      runId: string; runDefinitionCid: string; checkpointCid: string}> | undefined;
+      runId: string | null; runDefinitionCid: string | null; checkpointCid: string}> | undefined;
   }>;
 }>;
 type PhysicalDispatch = Readonly<{preparedProgram: unknown; plan: Plan; store: Options['store'];
@@ -149,8 +153,7 @@ type Control = Parameters<Journal['reservePhysicalStart']>[3] & Stop['control'] 
   Omit<KeyedPorts['control'], 'takeSourceEvidenceOriginal'> & Direct['control'] & Logical[1] &
   Readonly<{
     takeSourceEvidenceOriginal(capture: unknown): Readonly<{wire: string; identity: string; name: string}>;
-    admitInferCapturedInput(prepared: unknown, captured: Capture, evidence: unknown, authorityScopeCid: string,
-      policy: string, captureStartedAt: string, captureCompletedAt: string): unknown;
+    admitInferCapturedInput: InferAdmission;
   }>;
 type Part = KeyedPorts['fragment'];
 type Values = KeyedPorts['values'];
@@ -195,7 +198,8 @@ type SourceProfile = Parameters<typeof installedSourceFor<Adapter>>[0] & Readonl
 }>;
 type Options = Pick<KeyedPorts, 'registry' | 'values' | 'fragment' | 'ordered' | 'namespaceId' | 'authorityScopeCid' | 'storeAuthorityCid' | 'now'> &
   Readonly<{
-    moon: Moon; control: Control; journal: JournalPort; store: Stop['store'] & object;
+    moon: Moon; control: Control; journal: JournalPort;
+    store: Stop['store'] & Awaited<ReturnType<typeof openLocalPublicationStore>>;
     checkpoints?: CheckpointPort;
     startRun(input: Readonly<{identity: unknown; namespaceId: string; principalId: string; connection: object}>):
       Awaitable<Readonly<{kind: string; ref: Ref}>>;
@@ -321,7 +325,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     resourceUsage, diagnostic,
   });
 
-  const start: Start = (submission: Submission | undefined, requested: unknown, accepted: Accepted | undefined,
+  const start: Start = (submission: Submission | undefined, requested: unknown, accepted: DispatchAdmission | undefined,
     held: Held | undefined, finished?: () => unknown, gate?: RequestGate) => {
     const {principalId: actual, connection} = submission!;
     const unstarted = accepted!.dispatchReserved !== true ||
@@ -402,7 +406,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       if (beforeDispatch !== undefined) await beforeDispatch(claim.ref);
       if (entry.abort.signal.aborted) return;
       if (held!.plan === undefined) {
-        held!.plan = planFor(submission!, accepted!.runDefinition.wire, requested);
+        held!.plan = planFor(submission!, accepted!.runDefinition!.wire, requested);
       }
       const acquiring = sourceProfile !== undefined &&
         moon.clientProgramAcquisitionCount(preparedProgram) > 0;
@@ -721,7 +725,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         if (entry.logicalObservation !== undefined) {
           entry.logicalObservation.attach(Reflect.apply(capturedRun!, moon, [setup]),
             accepted!.ref, actual, operation => authorizeLogicalObservation!(operation, connection),
-            control.runDefinitionRunId(accepted!.runDefinition));
+            control.runDefinitionRunId(accepted!.runDefinition!));
         }
       }
       // The resumed admission and physical start reservation are adjacent.
@@ -888,7 +892,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         } else if (inferring) {
           const captured = entry.sourceCapture as Capture;
           const input = requestModelAcquired || captured.composedInfer ? undefined : control.admitInferCapturedInput(
-            preparedProgram, captured, sourceEvidence, authorityScopeCid,
+            preparedProgram, captured as Capture & Parameters<InferAdmission>[1], sourceEvidence, authorityScopeCid,
             captured.checkedSource.sourceDataPolicyCid, captureStartedAt, captureCompletedAt);
           acquiredInfer = {input, captured, adapter: installedSource, preparedSource: held!.preparedSource, sourceAccess,
             occurrence: runInfer!.sourceOccurrence?.(preparedProgram, 0),
@@ -984,7 +988,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           if (entry.cleanupOwner === undefined || checkpoint?.kind !== 'model_invocation' ||
               checkpoint.prepareAttemptId !== null ||
               checkpoint.runDefinitionCid !== accepted!.ref.runDefinitionCid ||
-              checkpoint.runId !== control.runDefinitionRunId(accepted!.runDefinition)) {
+              checkpoint.runId !== control.runDefinitionRunId(accepted!.runDefinition!)) {
             throw new Error('InstalledInferWaitingNotCommitted');
           }
           // The fixed input and continuation have reached durable custody.
@@ -999,7 +1003,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           return;
         }
         if (result?.status === 'needs_reconciliation') {
-          const runId = control.runDefinitionRunId(accepted!.runDefinition);
+          const runId = control.runDefinitionRunId(accepted!.runDefinition!);
           if (entry.cleanupOwner === undefined ||
               checkpoints?.journal.hasUnresolvedModelCalls(runId) !== true) {
             throw new Error('InstalledInferUnknownNotRecorded');

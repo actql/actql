@@ -1,6 +1,8 @@
 import {createRequire} from 'node:module';
 import {prepareOrdinaryHostJournal, type HostJournalOriginals} from './ordinary-host-journal.mjs';
 
+type JournalInstallation = Awaited<ReturnType<typeof prepareOrdinaryHostJournal>>;
+
 type SelectedJournal = {
   original: unknown;
   originals: HostJournalOriginals | undefined;
@@ -88,7 +90,7 @@ export async function prepareHostJournalInstallation(sameOriginals: HostJournalO
   return freeze({assertCurrent() { current(state); }, close() { return close(state); },
     admitRootFormat(root: string) {
       current(state);
-      return invoke(5, [state.original, state.originals, root]);
+      return invoke(5, [state.original, state.originals, root]) as ReturnType<JournalInstallation['admitRootFormat']>;
     },
     publicationOwnership() {
       current(state);
@@ -100,6 +102,6 @@ export async function prepareHostJournalInstallation(sameOriginals: HostJournalO
       // before any post-constructor current check. Only it can select the
       // native facility/limits or carry a partially opened child on failure.
       // This adapter neither enumerates caller options nor issues admission.
-      return invoke(3, [state.original, state.originals, directory, options]);
+      return invoke(3, [state.original, state.originals, directory, options]) as ReturnType<JournalInstallation['openRequestJournal']>;
     }});
 }

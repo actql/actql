@@ -14,17 +14,19 @@ type Options = NonNullable<Parameters<typeof installGate>[0]>;
 type Gate = Awaited<ReturnType<typeof installGate>>;
 type Configuration = Pick<Options, 'accountConfiguration' | 'context'> & Readonly<{sourceRef?: string}>;
 type Source = Readonly<{configuration: Configuration; gate: Pick<Gate, 'configurationCid' | 'contextCid'>}>;
-type View = NonNullable<ReturnType<ReturnType<typeof openSqliteCheckpointJournal>['inspect']>>;
+type Journal = ReturnType<typeof openSqliteCheckpointJournal>;
+type View = NonNullable<ReturnType<Journal['inspect']>>;
+type SourceCaptureView = Pick<View, 'prepareAttemptId' | 'runId' | 'runDefinitionCid'> & Readonly<{kind: string}>;
 type Deferral = NonNullable<Options['deferral']>;
 type AuthorizationInput = Readonly<{
   runId: string; runDefinitionCid: string; unitId: string; occurrence: CapturedOccurrence;
   declaredResults: readonly string[]; continuation(): Promise<string> | string; beforeDefer(): unknown;
-  journalPort?: Deferral['journal'];
+  journalPort?: Pick<Journal, 'persistCheckpoint' | 'submitResolution'>;
 }>;
 type Ports = Readonly<{
   installedSource: ReturnType<typeof createCheckpointSourceSelection>;
   createLocalAuthorizationGate: typeof installGate;
-  journal: Deferral['journal'];
+  journal: NonNullable<AuthorizationInput['journalPort']>;
   evidence: Pick<ReturnType<typeof openContinuationEvidence>, 'hold' | 'abandon' | 'settle' | 'open'>;
   accountConstruction: Options['accountConstruction'];
   decisionOptions: Pick<Options, 'decisionBudget' | 'decisionTimeoutMs'>;
@@ -89,7 +91,7 @@ export function createCheckpointComputationSource({installedSource, createLocalA
         accountConfiguration: configuration.accountConfiguration,
         context: configuration.context, ...decisionOptions, decide,
         answeringAuthorities: answeringAuthorities ?? authorities.map(item => item.reviewerId),
-        deferral: {journal: journalPort, authorities, binding,
+        deferral: {journal: journalPort as typeof journalPort & Deferral['journal'], authorities, binding,
           async describe(view) {
             if (view.boundary !== 'acquisition' ||
                 view.subject.subject_cid !== scopeCid) {
@@ -154,7 +156,7 @@ export function createCheckpointComputationSource({installedSource, createLocalA
       await evidence.abandon(`effect-${runId}`);
       return evidence.settle();
     },
-    async readComputationSource(view: View, semanticCid: string, maxBytes?: number) {
+    async readComputationSource(view: SourceCaptureView, semanticCid: string, maxBytes?: number) {
       if (view?.prepareAttemptId !== null ||
           !['read_access', 'model_invocation'].includes(view.kind)) {
         fail('InvalidComputationSourceContinuation');
@@ -163,7 +165,7 @@ export function createCheckpointComputationSource({installedSource, createLocalA
       if (held.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
       return held.bytes('source_capture', semanticCid, {maxBytes});
     },
-    async computationSourceReferences(view: View) {
+    async computationSourceReferences(view: SourceCaptureView) {
       if (view?.prepareAttemptId !== null ||
           !['read_access', 'model_invocation'].includes(view.kind)) {
         fail('InvalidComputationSourceContinuation');

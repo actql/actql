@@ -22,7 +22,7 @@ type SubmissionAttemptResult = Readonly<{requestId?: unknown; observation?: unkn
 type CancellationCandidate = Readonly<Partial<Record<keyof WireCancellationRef, unknown>>>;
 type CancellationTarget = Pick<CancellationCandidate, 'namespaceId' | 'authorityScopeCid' | 'runDefinitionCid'>;
 type CancellationOptions = Readonly<{cancelId?: unknown; expectedRevision?: unknown; currentAuthorization?: unknown}>;
-type RecordedCancellation = Readonly<{cancellation: Readonly<{kind: string}>; recorded: boolean; then?: never}>;
+type RecordedCancellation = Readonly<{cancellation: WireCancellation; recorded: boolean; then?: never}>;
 
 export const validCancellationRef = (ref: CancellationCandidate | null | undefined): ref is WireCancellationRef =>
   text(ref?.namespaceId) && cid(ref?.authorityScopeCid) && cid(ref?.runDefinitionCid) &&

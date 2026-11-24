@@ -23,7 +23,7 @@ type ResolutionResult = Readonly<{
 type CheckpointList = Readonly<{principalId: string; after: string; limit: number; checkpointId?: string}>;
 type SigningContext = Readonly<{
   principalId: string; summary?: Readonly<{checkpointCid: string}>;
-  signingResource: string; signal?: AbortSignal;
+  signingResource?: string; signal?: AbortSignal;
 }>;
 type ReviewInput = Readonly<{principalId: string; checkpointCid: string; maxBytes: number; signal?: AbortSignal}>;
 type ErrorCode = Readonly<{code?: string}> | null | undefined;

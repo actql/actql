@@ -69,11 +69,14 @@ type Read = {
 type Run = {
   prepared?: object; request?: unknown; runtime?: object; preparationKind?: string;
   value?: unknown; original?: unknown; admission?: unknown; requestOwned?: boolean; preparationFunded?: boolean;
-  model?: Model; managed?: Run; closed?: boolean; reads: (Read | undefined)[]; failure?: unknown;
+  model?: Model; managed?: HostRun; closed?: boolean; reads?: (Read | undefined)[]; failure?: unknown;
   effectful?: boolean; retired?: boolean; aliasesReleased?: boolean; retiringModel?: boolean; retiringContent?: boolean;
   retiringMockSources?: boolean; mockSourceReads?: (Read | undefined)[]; mockKeyedReads?: Read[];
   releaseMockSourceAliases?(this: Run, prepared: object, request: unknown): void;
 };
+// The Host-owned Run lends the same identity and closure cells. The
+// Connector's local wrapper alone initially owns its independent read array.
+type HostRun = Omit<Run, 'model'> & {model?: unknown};
 type ManagedSourceFacts = Readonly<{preparedProgram: object; requestIdentity: unknown; prepareInvocation?: unknown; effectful?: unknown}>;
 type AcquireCapacity = Readonly<{managedRun: unknown; wholeInput?: boolean; capacity: unknown; transferBytes: bigint; executionBytes: bigint}>;
 type SavedCapture = Readonly<{capture: Readonly<{source(): unknown}>}>;
@@ -121,9 +124,9 @@ type SourceInstallOptions = Readonly<{
   baseEnvironmentWire: EnvironmentArgs[2]; installationServices: EnvironmentArgs[0];
   authorizationFor(connection: string): Authorization | PromiseLike<Authorization>;
   readAsset: (input: unknown) => unknown;
-  prepareManagedModelRun?: (prepared: object, request: unknown, model: Model) => Run;
-  prepareManagedSourceRun: (facts: ManagedSourceFacts) => Run;
-  effectManagedRun?: (prepared: object, request: unknown) => Run;
+  prepareManagedModelRun?: (prepared: object, request: unknown, model: Model) => HostRun;
+  prepareManagedSourceRun: (facts: ManagedSourceFacts) => HostRun;
+  effectManagedRun?: (prepared: object, request: unknown) => HostRun;
 }>;
 type Declared = Readonly<{views: readonly Readonly<{
   resource: string; source_ref: string; view_cid: string; carrier_schema_cid: string;
@@ -350,9 +353,9 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   let closing = false;
   const prepareRequestModel = prepareManagedModelRun;
   const prepareRequestSource = prepareManagedSourceRun;
-  const records = new Map<object, Run>(), originalReads = new WeakMap<object, {run: Run; read: Read}>();
+  const records = new Map<object, Run>(), originalReads = new WeakMap<object, {run: HostRun; read: Read}>();
   // Weak provenance for Source and Effect Runs already owned by this Host.
-  const effectRuns = new WeakMap<object, WeakRef<Run>>(), effectReads = new Set<Read>(), keyedReads = new Set<Read>();
+  const effectRuns = new WeakMap<object, WeakRef<HostRun>>(), effectReads = new Set<Read>(), keyedReads = new Set<Read>();
   const sources: InstalledSource[] = [], closedSources = new Set<InstalledSource>();
   const current = () => {
     if (closing) fail('InstalledMockSourceClosed');
@@ -381,7 +384,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     if (typeof prepareRequestSource !== 'function') fail('NodeManagedRunAdmissionUnavailable');
     // The Host retains partial construction and the adopted original before
     // this callback returns. This weak index adds no Root or retirement owner.
-    const record: Run = Reflect.apply(prepareRequestSource, undefined,
+    const record: HostRun = Reflect.apply(prepareRequestSource, undefined,
       [Object.freeze({preparedProgram: prepared, requestIdentity: request, prepareInvocation})]);
     if (record?.prepared !== prepared || record.request !== request ||
         record.runtime !== moon || record.closed || record.value === undefined) {
@@ -419,12 +422,12 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         if (this !== model) fail('ForeignInstalledModelPreparation');
         if (record!.aliasesReleased) return;
         if (model.scope !== undefined && model.scopeFinished !== true || model.read !== undefined ||
-            record!.reads.some(read => read !== undefined && !read.closed)) fail('InstalledMockModelCleanupPending');
+            record!.reads!.some(read => read !== undefined && !read.closed)) fail('InstalledMockModelCleanupPending');
         records.delete(record!.prepared!);
         for (const key of Object.keys(model)) model[key as keyof Model] = undefined;
         model.closed = true;
         record!.prepared = record!.request = record!.original = record!.value = record!.model = record!.managed = record!.failure = undefined;
-        record!.reads.length = 0; record!.aliasesReleased = true; record!.retired = true;
+        record!.reads!.length = 0; record!.aliasesReleased = true; record!.retired = true;
       }};
     record = {prepared, request, model, requestOwned: true, effectful: false, original: undefined,
       value: undefined, reads: [], failure: undefined};
@@ -432,7 +435,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     try {
       // The original Host owns module/Scope/partial failure on this Request.
       // Local retains this SAME model carrier before either can be issued.
-      const run: Run = Reflect.apply(prepareRequestModel, undefined, [prepared, request, model]);
+      const run: HostRun = Reflect.apply(prepareRequestModel, undefined, [prepared, request, model]);
       // The mutable Host record owns the real Run and cuts its heavyweight
       // fields at retirement. Do not copy its opaque Run into another owner.
       record.managed = run;
@@ -442,7 +445,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     } catch (cause) {record.failure = cause; throw cause;}
   }
   function modelPreparation(prepared: object, plan: Plan) {
-    const run = sameRun(prepared), model = run.model;
+    const run = sameRun(prepared), model = run.model as Model | undefined;
     if (model === undefined || model.compiled !== plan.compiled || model.runDefinition !== plan.runDefinition ||
         model.scope === undefined) fail('ForeignInstalledModelPreparation');
     const publicationCapacity = () => {
@@ -559,7 +562,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         // Source capture can still be borrowed by the Local DAG. Its own
         // retirement/FD checks, not Model completion, decide when each read
         // is closed. The same scope then checks the whole original census.
-        for (const read of run.reads) await closeRead(read);
+        for (const read of run.reads!) await closeRead(read);
         retireModelRead(model);
         if (model.control!.finishCheckedClientInferOriginalReadScope(model.compiled,
           model.runDefinition, model.graph, model.scope, true) !== true) return false;
@@ -579,10 +582,10 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     retireNodeInferOriginalRead(model as Parameters<typeof retireNodeInferOriginalRead>[0]);
     model.read = undefined;
   }
-  function retireRunRecord(record: Run) {
+  function retireRunRecord(record: HostRun) {
     if (record.retired) return;
     if (record.requestOwned) {
-      if (!record.model?.closed) fail('InstalledMockModelCleanupPending');
+      if (!(record.model as Model | undefined)?.closed) fail('InstalledMockModelCleanupPending');
       return;
     }
     if (record.value !== undefined) checked(moon.clientProgramInstalledManagedRunRetire(record.value));
@@ -627,7 +630,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       effectReads.delete(read);
     }
     for (const record of records.values()) {
-      for (const read of record.reads) if (read?.source === index) await closeRead(read);
+      for (const read of record.reads!) if (read?.source === index) await closeRead(read);
     }
   }
   async function closeRead(read: Read | undefined) {
@@ -697,7 +700,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       }
       record.prepared = record.request = record.original = record.admission = record.value = undefined;
       record.model = record.failure = undefined;
-      record.reads.length = 0;
+      record.reads!.length = 0;
     }
     records.clear();
   };
@@ -713,7 +716,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       const {declared, environment} = preparedSource as unknown as Readonly<{declared: Declared; environment: Readonly<{wire: string}>}>;
       const authorization = await authorizationFor(entry.connection);
       current();
-      const preparedReads = new WeakMap<object, Run>();
+      const preparedReads = new WeakMap<object, HostRun>();
       const knownResources = new Map<string, {binding: FileBinding; identity: string}>();
       const referenceIssuer = original.fileBindings.length === 0 ? undefined
         : moon.clientProgramResourceReferenceIssuer((kind, wire) => kind === 'file' && knownResources.has(wire),
@@ -731,7 +734,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         const bytes: Buffer = await Reflect.apply(read.bytes!, read.raw, []);
         options.signal?.throwIfAborted(); sameRun(run.prepared);
         await options.verifyRead(); options.signal?.throwIfAborted(); sameRun(run.prepared);
-        const siblings = [...(run.mockSourceReads ?? run.reads), ...(run.mockKeyedReads ?? [])];
+        const siblings = [...(run.mockSourceReads ?? run.reads!), ...(run.mockKeyedReads ?? [])];
         for (const sibling of siblings) if (sibling?.observedBytes !== undefined &&
             !bytes.equals(sibling.observedBytes)) fail('InstalledMockSourceChanged');
         read.observedBytes = bytes;
@@ -826,7 +829,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
             : moon.clientProgramAcquisitionCount(checkedOwner);
           const shared = effectRuns.get(checkedOwner)?.deref() === run;
           const planned = shared || run.requestOwned;
-          const reads = shared ? run.mockSourceReads ??= [] : run.reads;
+          const reads = shared ? run.mockSourceReads ??= [] : run.reads!;
           if (effectful !== (run.preparationKind === 'effect-plan' || run.effectful === true) || selected !== declaration ||
               !(['stage', 'input', 'task'] as const).every(name => Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0) ||
               reads.length >= count || reads.some(read => read !== undefined &&

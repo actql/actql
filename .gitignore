@@ -3274,3 +3274,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/ordinary-source-model-materials.d.mts
 /adapters/host-node/ordinary-source-managed.mjs
 /adapters/host-node/ordinary-source-managed.d.mts
+/adapters/host-node/embedded-local.mjs
+/adapters/host-node/embedded-local.d.mts

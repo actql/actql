@@ -389,7 +389,7 @@ export function installNodeClientProgramPreparation<Request extends object, Poli
         fail('ClientProgramRejected');
       }
     },
-    assertOwned(prepared: object) {
+    assertOwned(prepared: object): undefined {
       if (!owned.has(prepared) && !effectOwned.has(prepared)) {
         throw new TypeError('Foreign Client preparation');
       }

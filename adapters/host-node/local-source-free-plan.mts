@@ -14,7 +14,7 @@ type Evidence = Readonly<{wire: string}>;
 type Contract = Evidence & Readonly<{identity: string}>;
 type CompiledRun = Readonly<{
   kind: CompilationKind; admission: unknown; compiledPlan: Contract;
-  preparedEvidence: Evidence; authorization: Evidence;
+  preparedEvidence: Contract; authorization: Evidence;
 }>;
 type InvocationOriginal = Parameters<typeof checkedOriginalQueryInvocation>[0] & {
   compiled: CompiledRun; runDefinition: Contract; createdAt: string; validUntil: string;
@@ -29,7 +29,7 @@ type RetainedPlan = {
 type QueryTime = ReturnType<typeof bindQueryInvocation>;
 type PublicationOriginal = Readonly<{
   kind: 'preparation' | 'installed_run'; value: unknown; authoringContext?: unknown;
-}>;
+}> | Readonly<{kind?: never; value?: never; authoringContext: unknown}>;
 type DefinitionTimes = {created_at?: string; valid_until?: string};
 type PlanCaptureControl = {
   captureOriginalClientRunPlan(compiled: CompiledRun, original: unknown,
@@ -75,10 +75,10 @@ type PublicationBindings = {
   clientProgramInstalledManagedPublicationLimits(original: unknown, prepared: unknown, storeBytes: number): unknown;
 };
 type PublicationOptions<Retention> = AdmissionOptions<PublicationControl<Retention>> & {
-  moon: PublicationBindings; storeAuthorityCid: string; publicationOriginal: PublicationOriginal;
+  moon: PublicationBindings; storeAuthorityCid: string;
 };
 type ProjectOutputLimits = (moon: PublicationBindings, prepared: unknown,
-  original: PublicationOriginal) => ReturnType<typeof checkedLocalOutputLimits>;
+  original: PublicationOriginal | undefined) => ReturnType<typeof checkedLocalOutputLimits>;
 
 const valuesAdmissions = new WeakMap<object, Readonly<{prepared: string; authorization: string}>>();
 const originalPlans = new WeakMap<object, Readonly<RetainedPlan> | undefined>();

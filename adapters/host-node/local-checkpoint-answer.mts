@@ -15,7 +15,7 @@ type ProofRole = 'approval' | 'resolution';
 type Summary = CheckpointSummary & Readonly<{
   subject: Readonly<{runDefinitionCid: string; runId: string}>;
 }>;
-type SigningView = Readonly<{runDefinitionCid: string; requiredArtifact: Readonly<{cid: string}>}>;
+type SigningView = Readonly<{runDefinitionCid: string | null; requiredArtifact: Readonly<{cid: string}> | null}>;
 type Ref = Readonly<{namespaceId: string; authorityScopeCid: string; runDefinitionCid: string}>;
 type Observation = Readonly<{cancellationRequested: boolean}>;
 type SubmittedIntent = Readonly<{referenceWire: string; assertCurrent(): unknown}>;
@@ -25,26 +25,28 @@ type Recovery = Readonly<{
   computation: Readonly<{preview: unknown; invocation: Invocation}>;
   assertUpdateSelectionCurrent?(): unknown;
 }>;
-type Restored = Readonly<{managedEffect: unknown; original?: unknown}>;
+type Restored<Managed, Original> = Readonly<{managedEffect: Managed; original?: Original}>;
 type Borrowed = Readonly<{
   materials: unknown; requestIdentity: unknown; referenceWire: string; invocation: Invocation;
   assertCurrent(): unknown;
 }>;
 type LoadOriginal = <Result>(view: SigningView, signal: AbortSignal | undefined,
   consume: (original: Borrowed) => Result) => Promise<Awaited<Result>>;
-type ReaderOptions = Readonly<{
-  namespaceId: string; authorityScopeCid: string; moon: unknown;
-  control: Readonly<{effectComputationPreviewSemanticCid(preview: unknown): unknown}>;
+type SigningReaderControl = Readonly<{effectComputationPreviewSemanticCid(preview: unknown): unknown}>;
+type ReaderOptions<Managed, Original, Runtime, Control extends SigningReaderControl,
+  Frame extends Observation, Recovered extends Recovery> = Readonly<{
+  namespaceId: string; authorityScopeCid: string; moon: Runtime; control: Control;
   journal: Readonly<{
-    lookupRunDefinition(ref: Ref, moon: unknown, control: unknown, previous?: Observation): Observation | undefined;
-    canReinspectRunForSigning(previous: Observation, next: Observation): boolean;
+    lookupRunDefinition(ref: Ref, moon: Runtime, control: Control, previous?: Frame): Frame | undefined;
+    canReinspectRunForSigning(previous: Frame, next: Frame): boolean;
   }>;
-  restoreEffectManagedPreparation(ref: Ref, signal?: AbortSignal): Restored | PromiseLike<Restored>;
-  recoverEffectCapture(ref: Ref, signal: AbortSignal | undefined, managedEffect: unknown,
-    preparation: undefined, original: unknown): Recovery | PromiseLike<Recovery>;
-  localSigningRecoveries: Set<Recovery>;
+  restoreEffectManagedPreparation(ref: Ref, signal?: AbortSignal):
+    Restored<Managed, Original> | PromiseLike<Restored<Managed, Original>>;
+  recoverEffectCapture(ref: Ref, signal: AbortSignal | undefined, managedEffect: Managed,
+    preparation: undefined, original: Original | undefined): Recovered | PromiseLike<Recovered>;
+  localSigningRecoveries: Set<Recovered>;
   assertCurrent(): unknown;
-  releaseLocalSigningRecovery(original: Recovery): unknown;
+  releaseLocalSigningRecovery(original: Recovered): unknown;
   clientOperationError(code: string): unknown;
 }>;
 type ProofRuntime = Readonly<{
@@ -61,7 +63,7 @@ type Runtime = ProofRuntime & Readonly<{
 type MockAccount = Pick<NonNullable<Awaited<ReturnType<typeof initializeOrdinaryMockAccount>>>, 'reviewer' | 'signingOriginal' | 'assertSigningCurrent'>;
 type Store = Parameters<MockAccount['signingOriginal']>[0];
 type Key = ReturnType<MockAccount['signingOriginal']> & Readonly<{sampledAt: bigint; expiresAt: bigint}>;
-type SigningContext = Readonly<{view: SigningView; wire: string; configurationCid: string; assertCurrent(): unknown}>;
+type SigningContext = Readonly<{view: SigningView; wire: string; configurationCid: string | undefined; assertCurrent(): unknown}>;
 type SigningJournal = Readonly<{
   localSigningRecord(key: string): string | undefined;
   transitionLocalSigningRecord(key: string, previous: string | undefined, nextWire: string): string;
@@ -97,24 +99,25 @@ const names = ['clientLocalCheckpointProofPrepare', 'clientLocalCheckpointProofP
 // The existing Host signing reader borrows its restored parent through the
 // consumer and releases it once. Only the Journal may recognize its own
 // one-way physical-stop/status progressions; no signing original is reconstructed.
-export function createLocalSigningOriginalReader({namespaceId, authorityScopeCid, moon, control, journal,
+export function createLocalSigningOriginalReader<Managed, Original, Runtime,
+  Control extends SigningReaderControl, Frame extends Observation, Recovered extends Recovery>({namespaceId, authorityScopeCid, moon, control, journal,
   restoreEffectManagedPreparation, recoverEffectCapture, localSigningRecoveries,
-  assertCurrent, releaseLocalSigningRecovery, clientOperationError}: ReaderOptions) {
+  assertCurrent, releaseLocalSigningRecovery, clientOperationError}: ReaderOptions<Managed, Original, Runtime, Control, Frame, Recovered>) {
   return async function loadRunOriginal<Result>(view: SigningView, signal: AbortSignal | undefined,
-    consume: (original: Borrowed) => Result) {
+    consume: (original: Borrowed) => Result): Promise<Awaited<Result>> {
     if (typeof consume !== 'function') throw clientOperationError('LocalSigningOriginalConflict');
-    const ref = {namespaceId, authorityScopeCid, runDefinitionCid: view.runDefinitionCid};
+    const ref = {namespaceId, authorityScopeCid, runDefinitionCid: view.runDefinitionCid!};
     let retained = journal.lookupRunDefinition(ref, moon, control);
     if (retained === undefined || retained.cancellationRequested) {
       throw clientOperationError('LocalSigningOriginalConflict');
     }
-    let restored: Restored | undefined = await restoreEffectManagedPreparation(ref, signal);
-    let recovered: Recovery | undefined = await recoverEffectCapture(ref, signal, restored.managedEffect, undefined, restored.original);
+    let restored: Restored<Managed, Original> | undefined = await restoreEffectManagedPreparation(ref, signal);
+    let recovered: Recovered | undefined = await recoverEffectCapture(ref, signal, restored.managedEffect, undefined, restored.original);
     localSigningRecoveries.add(recovered);
     let originalFailure: unknown, failed = false;
     try {
       if (recovered.materials === undefined || recovered.originalSubmittedIntent === undefined ||
-          control.effectComputationPreviewSemanticCid(recovered.computation.preview) !== view.requiredArtifact.cid) {
+          control.effectComputationPreviewSemanticCid(recovered.computation.preview) !== view.requiredArtifact!.cid) {
         throw clientOperationError('LocalSigningOriginalConflict');
       }
       const current = () => {
@@ -133,10 +136,10 @@ export function createLocalSigningOriginalReader({namespaceId, authorityScopeCid
       return await Reflect.apply(consume, undefined, [Object.freeze({materials: recovered.materials,
         requestIdentity: recovered.requestIdentity,
         referenceWire: recovered.originalSubmittedIntent.referenceWire,
-        invocation: recovered.computation.invocation, assertCurrent: current})]);
+        invocation: recovered.computation.invocation, assertCurrent: current})]) as Awaited<Result>;
     } catch (cause) {originalFailure = cause; failed = true; throw cause;}
     finally {
-      let original: Recovery | undefined = recovered;
+      let original: Recovered | undefined = recovered;
       recovered = restored = undefined;
       try {
         const release = releaseLocalSigningRecovery(original!);
@@ -173,11 +176,12 @@ export function createLocalCheckpointAnswer({moon, checkpoints, mockAccount, sto
   const move = (key: string, previous: string | undefined, next: Record) => Reflect.apply(transition, journal,
     [key, previous, canonicalJson(next)]);
 
-  async function answer(summary: Summary, decision: Decision, signal?: AbortSignal) {
+  async function answer(summary: CheckpointSummary, decision: Decision, signal?: AbortSignal) {
     if (!['approved', 'rejected'].includes(decision) || !cid(summary?.checkpointCid)) {
       fail('InvalidCheckpointAnswer');
     }
-    const selected = own(summary);
+    // Signing context checks the owned effect_set checkpoint before its Run subject is read.
+    const selected = own(summary) as Summary;
     assertCurrent(); signal?.throwIfAborted();
     const context = await Reflect.apply(contextOriginal, checkpoints,
       [{principalId, summary: selected, signingResource, signal}]);
@@ -335,7 +339,7 @@ export function createLocalCheckpointAnswer({moon, checkpoints, mockAccount, sto
     }
   }
 
-  return function answerCheckpoint(summary: Summary, decision: Decision, signal?: AbortSignal) {
+  return function answerCheckpoint(summary: CheckpointSummary, decision: Decision, signal?: AbortSignal) {
     const selected = own(summary);
     const key = selected?.checkpointCid;
     if (flights.has(key)) fail('LocalSigningAlreadyPending');

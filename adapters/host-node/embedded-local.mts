@@ -28,6 +28,13 @@ import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs
 import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy, snapshotRequestMemory,
   selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment, localFilesLookupExecutionPolicy, localResourceLookupExecutionPolicy, localResourceResultReadLimits} from './installed-host-policy.mjs';
 import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
+import type {BinaryLike} from 'node:crypto';
+import type {InstalledRemoteHostOptions} from '../../packages/local-node/http-host.d.ts';
+import type {HostInstallation} from '../../packages/local-node/index.d.ts';
+import type {HostJournalOriginals} from './ordinary-host-journal.mjs';
+import type {createClientDispatchSourceAcquisition} from './client-dispatch-source-acquisition.mjs';
+import type {prepareOrdinarySourceManagedInstallation} from './ordinary-source-managed.mjs';
+import type {WireClientBodyByOperation, WireConnection, WireRunRef, WireRunState} from '../../packages/client-wire/index.d.ts';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
@@ -67,11 +74,813 @@ import {capturedDuckDBConfiguration} from './captured-duckdb-source.mjs';
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {prepareEffectCaptureResources} from './effect-capture-resources.mjs';
 
+type ManagedRunRouteInput = Readonly<{
+  preparedProgram: object; requestIdentity: object;
+  acquisitionCount: number; model?: unknown; serializationCount: number;
+}>;
+type RetainedQueryInvocation = Parameters<typeof prepareTimedClientInvocation>[0]['retainedInvocation'];
+type ManagedRunInvocation = (prepared: object, request: object, artifact: unknown,
+  retained: RetainedQueryInvocation) => ReturnType<typeof prepareTimedClientInvocation>;
+type ManagedRunProfile = Readonly<{prepareManagedRun?(originals: Readonly<{
+  preparedProgram: object; requestIdentity: object; prepareInvocation: ManagedRunInvocation;
+}>): unknown}>;
+type ManagedRunRouteOriginals = Readonly<{
+  sourceProfile?: ManagedRunProfile;
+  preparation?: Partial<Pick<EmbeddedHostPreparation, 'prepareManagedSourceRun' | 'prepareManagedComputeRun'>>;
+  moon: unknown; prepareInvocation: ManagedRunInvocation;
+}>;
+type HostStartupRuntime = Readonly<{
+  clientProgramResultCount(prepared: object): number;
+  clientProgramValuesMaxRows(prepared: object): number;
+  clientProgramEffectResultCount(prepared: object): number;
+  clientPrepareInstalledCompilationManifests?(): unknown;
+  clientPrepareInstalledSequenceContracts?(registry: string, values: string, fragment: string, ordered: string): unknown;
+}>;
+type EffectCaptureOptions = Parameters<typeof prepareEffectCaptureResources>[0];
+type EffectCaptureView = Parameters<EffectCaptureOptions['retain']>[0];
+type PreparedEffectCapture = EffectPlanRun;
+type EffectDefinition = Readonly<{identity: string}>;
+type EffectCaptureFrame = {preparationKind: 'effect-capture-recovery'; resources?: EffectCaptureView;
+  selecting: boolean; closed: boolean};
+type InferOriginalRuntime = Parameters<typeof import('./installed-infer-model-preparation.mjs').sourceFreeModelPreparation>[0];
+type PreparationRuntime = Parameters<typeof prepareInstalledEffectManagedPlanRun>[0]['runtime'] &
+  EffectCaptureOptions['moon'] & InferOriginalRuntime & Readonly<{
+  clientProgramAcquisitionCount(prepared: object): number;
+  clientProgramEffectAcquisitionCount(prepared: object): number;
+  clientProgramInstalledManagedRunBegin(admission: unknown, prepared: object, request: object): unknown;
+  clientProgramInstalledManagedRunCheck(run: unknown, prepared: object, request: object): unknown;
+  clientProgramInstalledManagedRunAccounting?(run: unknown): unknown;
+  clientProgramInstalledManagedRunRetire(run: unknown): unknown;
+  clientProgramInstalledManagedSourceFreeBegin(admission: unknown, prepared: object, request: object, original: unknown): unknown;
+  clientProgramInstalledPreparationPayloadSevered(run: unknown, request: unknown): boolean;
+  clientProgramMatchesRequestIdentity(prepared: object, request: object): boolean;
+  clientProgramNodeManagedRunCleanup(admission: unknown): unknown;
+  clientProgramNodeManagedRunPrepare(original: unknown, prepared: object): unknown;
+  clientRequestRelation(request: unknown, retained: unknown): number;
+  strategyPublicationContractIdentity(contract: unknown): string;
+}>;
+type ManagedRunContracts = Readonly<{
+  initialControl: unknown; values: string; expression: string; ordered: string;
+}>;
+type InstalledContractArgs = [admission: unknown, values: string, fragment: string | undefined, ordered: string | undefined];
+type WholeSourcePlanArgs<Amount> = [prepared: object, request: unknown, capacities: unknown,
+  transfer: Amount, execution: Amount, ...contracts: InstalledContractArgs, retainedOutput: boolean];
+type OriginalQueryRuntime = Parameters<typeof import('./original-query-preparation.mjs').prepareOriginalSourceQuery>[0]['moon'];
+type InstalledSequenceAdmission = Parameters<NonNullable<OriginalQueryRuntime['clientProgramPrepareLocalQueryRequirement']>>[3];
+type ManagedRequirementsRuntime = PreparationRuntime & HostStartupRuntime & OriginalQueryRuntime & Readonly<{
+  clientProgramDirectSourceCoordinates?(prepared: object): unknown;
+  clientProgramInstalledEffectManagedPlanRequirements?(plan: unknown): unknown;
+  clientProgramInstalledManagedRunRequirements?(prepared: object, declarations: readonly unknown[],
+    queryContract: string, evidenceContract: string, transfers: readonly bigint[], executions: readonly bigint[],
+    ...contracts: InstalledContractArgs): unknown;
+  clientProgramInstalledManagedCaptureRunRequirements?(prepared: object, capacities: readonly unknown[],
+    transfers: readonly bigint[], executions: readonly bigint[], ...contracts: InstalledContractArgs): unknown;
+  clientProgramPrepareInstalledManagedSourceFreeWithContracts?(prepared: object,
+    ...args: [...InstalledContractArgs, retainedOutput: boolean]): unknown;
+  clientProgramInstalledManagedRunIssueIsUnsupported?(issue: unknown): boolean;
+  clientProgramPreparedInstalledManagedSourceFreeRequirements?(original: unknown): unknown;
+  clientProgramPrepareInstalledManagedWholeSourcePlan?(...args: WholeSourcePlanArgs<bigint>): unknown;
+  clientProgramPrepareInstalledManagedWholeSourcesPlan?(...args: WholeSourcePlanArgs<readonly bigint[]>): unknown;
+  clientProgramPrepareInstalledManagedWholeSourcePlanAtQueryTime?(...args: [...WholeSourcePlanArgs<bigint>, invocation: unknown]): unknown;
+  clientProgramPrepareInstalledManagedWholeSourcesPlanAtQueryTime?(...args: [...WholeSourcePlanArgs<readonly bigint[]>, invocation: unknown]): unknown;
+  clientProgramInstalledManagedCapturePlanPrepare?(prepared: object, request: unknown, capacities: readonly unknown[],
+    transfers: readonly bigint[], executions: readonly bigint[],
+    ...args: [...InstalledContractArgs, retainedOutput: boolean, queryTime: unknown]): unknown;
+  clientProgramInstalledManagedKeyedContentCheckPreparation?(value: unknown, prepared: object): unknown;
+  clientProgramInstalledManagedKeyedContentRequirements?(value: unknown): unknown;
+  clientSubmittedIntent(wire: string, maxBytes: number, maxNodes: number, maxDepth: number): unknown;
+  clientSubmittedIntentCid(intent: unknown): string;
+}>;
+type SequenceContractOriginal = Readonly<{
+  moon: HostStartupRuntime; control: unknown; registry: string; contracts: ManagedRunContracts; admission: InstalledSequenceAdmission;
+}>;
+type HostStartupInstallation = {
+  projectRuntime: HostStartupRuntime; initialControl: unknown;
+  managedRunContracts?: ManagedRunContracts; sequenceContractOriginal?: SequenceContractOriginal;
+  effectInstallation?: Readonly<{privateEvidenceKey?: Buffer}>;
+  mockAccount?: Readonly<{evidenceKey: Readonly<{key: Buffer}>}>;
+};
+type HostStartupOriginals = Readonly<{
+  host: object; installation: object; generation: unknown; supplier: unknown; moduleLifetime: unknown;
+}>;
+// The retained Host originals are projected only after the existing current
+// checks. Direct and query routes borrow the same installed Core namespace.
+type RequirementsInstallation = EmbeddedInstallation & Readonly<{projectRuntime: ManagedRequirementsRuntime}>;
+type RequirementsOriginals = HostStartupOriginals & Readonly<{installation: RequirementsInstallation}>;
+type SourceCapacity = Readonly<{capacity?: unknown; transferBytes?: bigint; executionBytes?: bigint; wholeInput?: boolean}>;
+type CaptureAdapter = Readonly<{
+  admitsSource(ref: string): boolean;
+  managedCaptureCapacity(requirement: unknown): SourceCapacity | undefined;
+  managedWholeSourceCapacity?(facts: Readonly<{preparedProgram: object; sourceSelection: unknown;
+    installedContracts: unknown}>): SourceCapacity | undefined;
+}>;
+type DirectSourceCoordinates = readonly [stage: number, input: number, task: number, computeTask: number];
+type JournalPreparationOriginal = Readonly<{
+  root: string; principalId: string; journalDirectory: string; assertCurrent(): void;
+}>;
+type ClientJournal = ReturnType<typeof openClientRequestJournal>;
+type HostRequest<Operation extends keyof WireClientBodyByOperation> = WireClientBodyByOperation[Operation] &
+  Readonly<{principalId: string; signal?: AbortSignal}>;
+type RunObservationInput = Readonly<{ref: WireRunRef; principalId: string}>;
+type JournalObservationFrame = Parameters<ClientJournal['lookupRunDefinition']>[3];
+type CancellationDecision = ReturnType<ClientJournal['requestCancellation']>;
+type AcceptedCancellationAttempt = Extract<ReturnType<ClientJournal['recordCancellationAttempt']>, {recorded: boolean}>;
+type RunObservationProjection = Pick<WireRunState, 'status' | 'terminal_error'> & Readonly<{cleanupPending?: boolean}>;
+type WaitWork = {pending: boolean; listeners: Set<() => void>};
+type InstalledPublicationStore = Awaited<ReturnType<typeof openLocalPublicationStore>>;
+type RunAcceptance = Awaited<ReturnType<typeof installHostRunAcceptance>>;
+type CheckpointServices = NonNullable<RunAcceptance['checkpoints']>;
+type CheckpointJournal = CheckpointServices['journal'];
+type CheckpointHostPort = Parameters<CheckpointServices['start']>[0];
+type CheckpointResumeResult = Awaited<ReturnType<CheckpointHostPort['resume']>>;
+type SubmissionPort = Parameters<typeof installNodeClientSubmission>[0];
+type EmbeddedSubmission = Parameters<SubmissionPort['submit']>[0] & Readonly<{
+  preparedProgram: object; updateTargetPreparedOriginal?: Parameters<ReturnType<typeof installUpdateTargetOriginals>['restorePrepared']>[0]; executionProfile?: unknown;
+}>;
+type HeldCapturedRequest = Parameters<CheckpointHostPort['inspect']>[0] &
+  Pick<EmbeddedSubmission, 'connection' | 'updateTargetPreparedOriginal'>;
+type DispatchInstallation = Parameters<typeof installNodeClientDispatchOwner>[0];
+type AcquireSource = DispatchInstallation['prepareAcquisition'];
+type AcquisitionOccurrence = NonNullable<Parameters<AcquireSource>[2]>;
+type AcquisitionReceipt = Awaited<ReturnType<ReturnType<typeof createClientDispatchSourceAcquisition<WireRunRef>>>>;
+type InferSource = Awaited<ReturnType<NonNullable<InferRunInstall['prepareAcquisition']>>>;
+type PreparedAcquisition = Awaited<ReturnType<AcquireSource>> & InferSource & Readonly<{
+  selection?: unknown;
+  checkedSource: Readonly<{sourceRef: string}>;
+}>;
+type SourceAccess = Parameters<AcquireSource>[1];
+type DispatchHeldSource = NonNullable<Parameters<ReturnType<typeof installNodeClientDispatchOwner>['start']>[3]>;
+type DispatchSourceAdapter = NonNullable<DispatchHeldSource['preparedSources']>[number]['adapter'];
+type BoundAcquisitionAdapter = Pick<DispatchSourceAdapter, 'admitsSource' | 'open'> & Readonly<{
+  connectorBindings: readonly Readonly<{connectorId: string; bindingCid: string}>[];
+  connectorRegistration: string; connectorRevision: string;
+  ordinaryRecoveryBinding?: (prepared: PreparedAcquisition) => unknown;
+}>;
+type SourceInventoryMember = import('./installed-source-inventory.mjs').InventoryMember;
+type SourceCheckAccess = NonNullable<Parameters<typeof installNodeClientCheck>[0]['sourceAccesses']>[number];
+type InstalledHostSourceAccess = NonNullable<SourceAccess> & SourceCheckAccess;
+type InstalledHostSourceMember = SourceInventoryMember & Omit<DispatchSourceAdapter, 'prepareKeyed'> &
+  Pick<NonNullable<EffectComputationInput['sourceSelection']>[number]['adapter'], 'open' | 'ledgerCapacity'> &
+  Readonly<{
+    sourceAccess: InstalledHostSourceAccess;
+    sourceReadAccesses?: readonly InstalledHostSourceAccess[];
+    prepareKeyed?(input: Omit<Parameters<NonNullable<DispatchSourceAdapter['prepareKeyed']>>[0], 'sourceAccess'> &
+      Partial<Pick<Parameters<NonNullable<DispatchSourceAdapter['prepareKeyed']>>[0], 'sourceAccess'>>):
+      ReturnType<NonNullable<DispatchSourceAdapter['prepareKeyed']>>;
+    retainedCapture: NonNullable<EffectComputationInput['sourceSelection']>[number]['adapter']['retainedCapture'];
+    managedCaptureCapacity?: CaptureAdapter['managedCaptureCapacity'];
+    prepare(inputs: object): PreparedAcquisition | PromiseLike<PreparedAcquisition>;
+    prepareRetained?(inputs: object): unknown;
+    prepareRetainedCapture?(inputs: object): unknown;
+    managedWholeSourceCapacity?: CaptureAdapter['managedWholeSourceCapacity'];
+  }>;
+type ProjectContentSource = Awaited<ReturnType<typeof installPreparedProjectLocalFiles>>;
+type InstalledHostSourceProfile = Readonly<{
+  close(): unknown;
+  realizationKey: string;
+  environmentWire?: string;
+  environmentOriginal?: SourceInventoryMember['environmentOriginal'];
+  connectorBindings: NonNullable<SourceInventoryMember['connectorBindings']>;
+  queryAliases: SourceInventoryMember['queryAliases'];
+  discovery?: object;
+}> & ManagedRunProfile & Partial<Pick<InstalledMockSourceProfile, 'modelPreparation' | 'prepareManagedMockModelRun'>> &
+  Partial<Pick<ProjectContentSource, 'prepareManagedContentRun' | 'managedContentLedger'>> &
+  ((InstalledHostSourceMember & {sources?: undefined}) | Readonly<{
+    sources: readonly InstalledHostSourceMember[];
+    sourceAccess?: undefined;
+    readAuthorization?: undefined;
+  }>);
+type PreparedAcquisitionMember = Readonly<{
+  occurrence: AcquisitionOccurrence; prepared: PreparedAcquisition;
+  adapter: BoundAcquisitionAdapter; sourceAccess?: SourceAccess;
+}>;
+type ContentKeyedSource = Parameters<ReturnType<typeof installNodeContentRun>['recoverKeyed']>[0]['keyedSource'];
+type InferKeyedLedger = Parameters<ReturnType<typeof installNodeInferRun>['prepareKeyedLedger']>[0];
+type PreparedKeyedSource = ContentKeyedSource & Readonly<{
+  directOccurrence: AcquisitionOccurrence; occurrence: AcquisitionOccurrence;
+  directAdapter: BoundAcquisitionAdapter & Readonly<{ledgerCapacity(prepared: PreparedAcquisition): InferKeyedLedger['direct']}>;
+  adapter: BoundAcquisitionAdapter & ContentKeyedSource['adapter'];
+  prepared: PreparedAcquisition; sourceAccess?: SourceAccess;
+  requestIdentity: unknown; acquisition: unknown;
+}>;
+type SourceRefusal = Readonly<{code?: unknown; cause?: unknown; selection?: Readonly<{status?: string}>}>;
+type EffectSelectionRefusal = Readonly<{
+  error: unknown;
+  selection: Parameters<NonNullable<Parameters<typeof selectAcquiredEffectSources>[0]['onUnsupportedSelection']>>[1];
+}>;
+type WholeSourceRefusal = Readonly<{cause: Error; sourceRef: string; adapter: unknown}>;
+type HostConnectionInput = Readonly<{
+  principalId: string; connection: unknown; ref?: Pick<WireRunRef, 'namespaceId' | 'authorityScopeCid'>;
+}>;
+type CheckpointClaim = Extract<ReturnType<CheckpointJournal['claimResume']>, {action: 'claimed'}>['claim'];
+type ModelResumeCut = 'begin-model-journal-cut' | 'end-model-journal-cut';
+type ModelResumeToken = Awaited<ReturnType<ConfiguredModelContinuation['prime']>>;
+type ConfiguredModelContinuation = Awaited<ReturnType<typeof installNodeModelContinuation>>;
+type RequestInputRetention = Readonly<{finish(terminal: 'failed' | 'returned'): void}>;
+type SourceReadResume = {
+  claim: CheckpointClaim;
+  view: ReturnType<CheckpointJournal['listRunCheckpoints']>[number];
+  continuation: Awaited<ReturnType<CheckpointServices['runUnitReadContinuation']>>;
+  active: boolean;
+  assertCurrent(): ReturnType<CheckpointJournal['admitResume']>;
+  observedTerminalOutcome?: Parameters<typeof recordNodeRunPhysicalStop>[1];
+};
+type ContinuationFailure = Readonly<{
+  code?: string; message?: string; url?: unknown;
+  authorization?: Readonly<{detail?: string; error?: Readonly<{code?: string}>}>;
+}> | null | undefined;
+type DiagnosticDelivery = ReturnType<typeof createDiagnosticObserver>;
+type DiagnosticCheckOutcome = Readonly<{report?: Readonly<{verdict?: string}>}>;
+type HostInitialControl = Awaited<ReturnType<typeof beginInitialControlInstallation>>;
+type SelectedHostJournal = Awaited<ReturnType<typeof prepareHostJournalInstallation>>;
+type SelectedHostResult = Awaited<ReturnType<typeof prepareHostResultPublicationInstallation>> &
+  Partial<Pick<ReturnType<typeof prepareOrdinaryHostResult>,
+    'admitEffectRun' | 'assertContentCurrent' | 'modelPublicationCapacity'>>;
+type OrdinarySourceInstallation = Awaited<ReturnType<typeof prepareProjectSourceManagedInstallation>>;
+type PreloadedSourceInstallation = Exclude<Awaited<ReturnType<typeof prepareSourceManagedInstallation>>,
+  OrdinarySourceInstallation>;
+// The fixed preload view omits the ordinary-only preparation operations.
+// Existing capability tests narrow the same selected view before invocation.
+type SourcePreparationInstallation = OrdinarySourceInstallation | (PreloadedSourceInstallation &
+  Partial<Record<Exclude<keyof OrdinarySourceInstallation, keyof PreloadedSourceInstallation>, never>>);
+type ManagedSourceInstallation = SourcePreparationInstallation;
+type ManagedComputeInstallation = SourcePreparationInstallation;
+type OrdinarySourceArgs<Method extends keyof OrdinarySourceInstallation> =
+  Parameters<Extract<OrdinarySourceInstallation[Method], (...args: never[]) => unknown>>;
+type OrdinaryFundedArgs = OrdinarySourceArgs<'fundedPreparation'>;
+type OrdinaryStaticEffectArgs = OrdinarySourceArgs<'withOriginalStaticEffectExplanation'>;
+type OrdinaryEffectExplanationArgs = OrdinarySourceArgs<'captureEffectRunExplanation'>;
+type OrdinaryEffectMaterialArgs = OrdinarySourceArgs<'admitEffectMaterials'>;
+type OrdinaryModelMaterialArgs = OrdinarySourceArgs<'prepareModelMaterials'>;
+type OrdinaryModelBindingArgs = OrdinarySourceArgs<'prepareModelBinding'>;
+type EffectPlanOptions = Parameters<typeof prepareInstalledEffectManagedPlanRun<SourcePreparationInstallation, PreparationRuntime>>[0];
+type UpdateOriginalInstallation = Parameters<typeof installUpdateTargetOriginals>[0];
+type EffectRunInstallation = Parameters<typeof installNodeClientEffectRun>[0];
+type EffectDefinitionPreparation = NonNullable<EffectRunInstallation['prepareDefinition']>;
+type EffectDefinitionExplanation = NonNullable<EffectRunInstallation['captureDefinitionExplanation']>;
+type FundedSubmitPreparation = NonNullable<Parameters<typeof installNodeClientProgramPreparation>[0]['getFundedPreparation']>;
+type EffectPlanRun = ReturnType<typeof readInstalledEffectManagedPlanRun<SourcePreparationInstallation, PreparationRuntime>>;
+type EffectComputationInput = Parameters<typeof openAcquiredEffectComputation>[0];
+type EffectRecoveryOptions = Parameters<typeof recoverAdmittedEffectRun>[0];
+type RecoveredEffect = Awaited<ReturnType<typeof recoverAdmittedEffectRun>>;
+type LocalCheckpointAnswer = ReturnType<typeof createLocalCheckpointAnswer>;
+type EffectRunOwner = ReturnType<typeof installNodeClientEffectRun>;
+type EffectExecute = EffectRunInstallation['execute'];
+type EffectExecutionFacts = Parameters<EffectExecute>[0] &
+  Readonly<{retained?: ReturnType<ClientJournal['lookupRunDefinition']>}>;
+type TargetReadOptions = Parameters<typeof effectTargetReadContinuation>[0];
+type TargetReadFacts = Pick<EffectExecutionFacts,
+  'prepared' | 'compilation' | 'ref' | 'runDefinition' | 'updateTargetSelections' | 'assertUpdateSelectionCurrent'>;
+type InstalledEffectSite = ReturnType<typeof createInstalledEffectSite>;
+type ResumeEffectSite = Parameters<InstalledEffectSite['resume']>[0];
+type EffectAuthorization = NonNullable<Parameters<InstalledEffectSite['execute']>[0]['effectAuthorization']>;
+type CheckpointEffectAuthorization = Parameters<CheckpointServices['effectAuthorization']>[0];
+type SavedReadContinuation = Readonly<{version: string; submission: Omit<EmbeddedSubmission, 'preparedProgram'>}>;
+type SavedEffectContinuation = NonNullable<ResumeEffectSite['continuation']> & Readonly<{
+  target_read_binding?: Readonly<{submission: Omit<EmbeddedSubmission, 'preparedProgram'>}>;
+}>;
+type DispatchResultStatus = Readonly<{status?: string}> | null | undefined;
+type SourceContinuationOptions = Parameters<typeof acquiredEffectContinuation>[0];
+type SourceContinuationResume = NonNullable<SourceContinuationOptions['resume']>;
+type CheckpointPersist = Parameters<CheckpointJournal['persistCheckpoint']>[0];
+type ModelEffectRestoration = Readonly<{
+  record: ReturnType<ConfiguredModelContinuation['discover']>[number]; token: ModelResumeToken;
+  view: SourceReadResume['view'] | NonNullable<SourceContinuationOptions['restore']>['view'] | undefined;
+}>;
+type ModelEffectResume = ModelEffectRestoration & {
+  claim?: CheckpointClaim; active: boolean; parentResume?: Readonly<{claim?: CheckpointClaim; checkpointCid: string}>;
+  assertCurrent(): void; observeStopped?(): void;
+  observedTerminalOutcome?: SourceReadResume['observedTerminalOutcome'];
+};
+type EffectTargetReadOriginals = Pick<TargetReadOptions, 'signal' | 'allowDefer' | 'journalPort'> & Readonly<{
+  resume?: SourceReadResume; activeResume?: Pick<SourceReadResume, 'assertCurrent'> | Pick<ModelEffectResume, 'assertCurrent'>;
+  observeCancellation?: ReturnType<ClientJournal['observeRunCancellation']>;
+}>;
+type RestoredEffectOriginal = Awaited<ReturnType<EffectRunOwner['restoreRetainedPreparation']>>;
+type EffectRestoration = Partial<ReturnType<ReturnType<typeof installUpdateTargetOriginals>['restoreRun']>>;
+type EffectRetirementResult = Awaited<ReturnType<typeof retireCompletedEffectfulCapture>>;
+type LoadedEffect = NonNullable<Awaited<ReturnType<typeof loadInstalledEffects>> |
+  Awaited<ReturnType<typeof installPreparedProjectLocalFileEffects>> |
+  Awaited<ReturnType<typeof installPreparedProjectMockEffects>>>;
+type EffectMember = (Exclude<LoadedEffect, Readonly<{effects: readonly object[]}>> |
+  Extract<LoadedEffect, Readonly<{effects: readonly object[]}>>['effects'][number]) &
+  Partial<Pick<ReturnType<typeof createInstalledEffectSite>, 'targetReadAuthorization'>>;
+type EffectComposition = Awaited<ReturnType<typeof composeInstalledEffects<EffectMember,
+  Parameters<typeof composeInstalledEffects>[1], EffectMember>>>;
+type EffectInventory = (EffectMember & {effects?: undefined} | EffectComposition) &
+  Partial<Pick<EffectComposition, 'queryTableBindings' | 'queryTableWriteAccesses'>> & Readonly<{
+    environmentOriginal?: Parameters<typeof composeInstalledSourceEnvironment>[4];
+    close(): unknown;
+    queryUpdateTargets?: Parameters<typeof installedUpdateTargets>[1];
+    queryStoreTargets?: readonly unknown[];
+  }>;
+type EffectRoute = Parameters<typeof createInstalledEffectSite>[0];
+type RoutableEffect = Parameters<typeof installedEffectFor<EffectMember>>[0];
+type OriginalEffectSelection = Parameters<ReturnType<typeof installUpdateTargetOriginals>['validateRecoveredSelectionMembers']>[0];
+type ContentRunOptions = Parameters<typeof installNodeContentRun>[0];
+type ContentManagedRun = NonNullable<ReturnType<NonNullable<ContentRunOptions['prepareModelManagedRun']>>>;
+type KeyedContentArgs = Parameters<NonNullable<ContentRunOptions['prepareKeyedManagedRun']>>;
+type SerializationArgs = Parameters<NonNullable<ContentRunOptions['prepareSerializationManagedRun']>>;
+type OutputDemandArgs = Parameters<NonNullable<ContentRunOptions['prepareSerializationOutputDemand']>>;
+type ModelRecoveryInputArgs = OrdinarySourceArgs<'retainModelRecovery'>;
+type InstalledModelRestoreArgs = OrdinarySourceArgs<'restoreModelOriginal'>;
+type RetainEffectInputArgs = OrdinarySourceArgs<'retainRequestInput'>;
+type OriginalReadGroup = Parameters<typeof finishNodeInferOriginalReadScopes>[0];
+type InferRunInstall = Parameters<typeof installNodeInferRun>[0];
+type InstalledInferPlan = Parameters<NonNullable<InferRunInstall['prepareModelRecoveryPlan']>>[1];
+type InstalledInferSelection = NonNullable<ReturnType<InferRunInstall['selections']['get']>>;
+type InstalledModelRecoveryArgs = OrdinarySourceArgs<'prepareModelRecoveryPlan'>;
+type InstalledModelRecoveryView = ReturnType<OrdinarySourceInstallation['prepareModelRecoveryPlan']>;
+type InstalledInferRecovery = ReturnType<NonNullable<InferRunInstall['prepareModelRecoveryPlan']>>;
+type ModelBudgetCensus = Pick<NonNullable<InstalledModelRecoveryArgs[4]['budget']>,
+  'maxReservations' | 'maxHoldings' | 'maxDelegations'>;
+type ModelReadBudget = ModelBudgetCensus & Readonly<{
+  bootstrapRetainedBytes: bigint; bootstrapExecutionBytes: bigint;
+  readRetainedBytes: bigint; readExecutionBytes: bigint; modelRetainedBytes: bigint; modelExecutionBytes: bigint;
+}>;
+type EarlyModelOriginal = {
+  recovery?: true; prepared?: object; requestId?: string; requested?: unknown;
+  restored?: RestoredInferOriginal; plan?: InstalledInferPlan; model?: LocalModelPlan;
+  view?: InstalledModelRecoveryView; managed?: EmbeddedComputeRun;
+  selecting?: boolean; aliasesReleased?: boolean; failure?: unknown;
+};
+type ContentPlan = SerializationArgs[2];
+type ContentControl = SerializationArgs[5]['contentControl'];
+type ContentGraphArgs = Parameters<ReturnType<typeof runtimeCore>['publicationControl']['prepareCheckedClientRequestSerializationGraph']>;
+type RetainedContentSelection = OrdinarySourceArgs<'retainContentPreparation'>[2] &
+  Pick<Parameters<NonNullable<ContentRunOptions['retainPreparation']>>[1], 'releaseSelection'>;
+type ContentPreparation = Omit<OrdinarySourceArgs<'retainContentPreparation'>[2], 'releaseAliases'> &
+  Pick<Parameters<NonNullable<ContentRunOptions['retainPreparation']>>[1], 'prefixLimits' | 'workspace'> & {
+  releaseAliases(managed: EmbeddedComputeRun | undefined, inputHolder?: unknown): undefined;
+  managed?: EmbeddedComputeRun; localPreparation?: {hostRun?: EmbeddedComputeRun};
+  contentControl?: ContentControl; plan?: ContentPlan;
+};
+type LocalModelPlan = OrdinarySourceArgs<'prepareModelRun'>[3] & {
+  control: ReturnType<typeof runtimeCore>['publicationControl'];
+  compiled: unknown; runDefinition: unknown; queryTimePreparation?: unknown; occurrence?: unknown;
+  prepared?: object; selection?: EmbeddedInferSelection;
+  originalReadInstallation?: ModelReadInstallation; serializationGraph?: unknown; contentPreparation?: ContentPreparation;
+  components?: readonly LocalModelPlan[]; group?: LocalModelPlan;
+  component?: ReturnType<typeof openNodeComposedInferProvider>; runtimeBorrow?: unknown;
+  managed?: EmbeddedComputeRun; read?: unknown; taken?: boolean; scopeFinished?: boolean;
+  closed?: boolean; selectedBounds?: unknown; budget?: ModelBudgetCensus | ModelReadBudget;
+  publicationCapacity?: () => unknown; releaseAliases?: () => void;
+};
+type CaptureCapacity = Readonly<{
+  kind: 'query' | 'whole-input'; selection: unknown; adapter: unknown; requirement: unknown;
+  capacity: unknown; transferBytes: bigint; executionBytes: bigint;
+}>;
+type MockModelSourceSelection = Readonly<{
+  nativeSource?: Readonly<{
+    sourceRef: string; schema: string; table: string; contracts: readonly [string, string, string];
+  }>;
+  declaration?: unknown; provider?: unknown; transferBytes: bigint; executionBytes: bigint;
+}>;
+type MockModelSourceAdapter = Readonly<{
+  admitsSource(ref: string): boolean;
+  managedEffectPlanSelection?(): MockModelSourceSelection | undefined;
+}>;
+type MockModelPlanRuntime = ManagedRequirementsRuntime &
+  Parameters<typeof openNodeComposedInferProvider>[0]['moon'] & Readonly<{
+  clientProgramRequestModelDirectSourceCoordinates?(parent: unknown, input: unknown): unknown;
+  clientProgramSelectInstalledSourceInput(prepared: object, request: unknown, stage: number, input: number): unknown;
+  clientProgramSelectedSourceInputKind(input: unknown): unknown;
+  clientProgramSelectedSourceInputRef(input: unknown): string;
+  clientProgramPreparedComposedInferBounds(occurrence: unknown, graph: unknown): unknown;
+  clientProgramComposedInferRetainedLimits(bounds: unknown): readonly bigint[];
+  clientProgramPrepareRequestModelsDuckDBComponentCaptureModule?: unknown;
+  clientProgramPrepareRequestModelDuckDBComponentCaptureModule?: unknown;
+  clientProgramPrepareRequestModelProviderComponentCaptureModule?: unknown;
+  clientProgramPrepareRequestModelProviderCaptureModule?: unknown;
+  clientProgramPrepareRequestModelSourceFreeModule?: unknown;
+  clientProgramPrepareRequestModelSourceFreeComponentModule?: unknown;
+  clientProgramPrepareRequestModelWholeInputsComponentCaptureModule?: unknown;
+  clientProgramPrepareRequestModelComponentCaptureModule?: unknown;
+}>;
+type ModelComponentConstructor = Parameters<LocalModelPlan['control']['prepareCheckedClientRequestModelSourceFreeComponentModule']>[9];
+type ModelGroupConstructor = Parameters<LocalModelPlan['control']['prepareCheckedClientRequestModelsSourceFreeComponentModule']>[9];
+type LocalPlanRun = Partial<Omit<EffectPlanRun, 'preparationKind' | 'model' | 'sourceProfile' | 'runtime' | 'manager' | 'closed' | 'prepared' | 'request'>> & {
+  preparationKind?: 'keyed-content-plan' | 'serialization-plan' | 'model-plan';
+  runtime: PreparationRuntime; manager: SourcePreparationInstallation; sourceProfile?: ManagedProfile;
+  prepared: object | undefined; request: unknown; model?: LocalModelPlan; closed: boolean;
+};
+type ComputeRunRetention = {
+  prepared?: object;
+  check?: PreparationRuntime['clientProgramInstalledManagedRunCheck'];
+  cleanup?: PreparationRuntime['clientProgramNodeManagedRunCleanup'];
+  prepare?: PreparationRuntime['clientProgramNodeManagedRunPrepare'];
+  begin?: PreparationRuntime['clientProgramInstalledManagedSourceFreeBegin'];
+  sourceCapacities?: readonly CaptureCapacity[];
+  preparedSequences?: unknown; queryInvocation?: RetainedQueryInvocation; queryTimePreparation?: unknown;
+  content?: ContentControl; contentPreparation?: ContentPreparation; contentPlan?: ContentPlan;
+  contentLimits?: SerializationArgs[3]; contentWorkspace?: SerializationArgs[4];
+  contentGraph?: KeyedContentArgs[2]; contentRecipe?: KeyedContentArgs[3];
+  selectedKeyed?: unknown; contentCompilation?: unknown; serialization?: ReturnType<ContentControl['prepareRequestPrefix']>;
+  cleanupSerialization?: ContentControl['cleanupRequestPrefix']; serializationCleaned?: boolean;
+  releaseContentAliases?: ContentPreparation['releaseAliases']; contentAliasesReleased?: boolean;
+  modelPlan?: unknown; modelSourceSelection?: MockModelSourceSelection;
+  modelSourceSelections?: readonly MockModelSourceSelection[];
+  releaseModelAliases?: () => void; releaseModelSelection?: (prepared: object) => void; modelAliasesReleased?: boolean;
+  retiringContent?: boolean; retiringModel?: boolean; retiringMockSources?: boolean; retiringEffect?: boolean;
+  preAdmissionRefusal?: Readonly<{error: unknown; prepared: object; request: unknown; control: unknown}>;
+  usage?: unknown; finalAccounting?: readonly bigint[]; finishRetirement?: () => void;
+} & Pick<MockSourceRun, 'mockSourceReads' | 'mockKeyedReads' | 'releaseMockSourceAliases'>;
+type EmbeddedComputeRun = (EffectPlanRun | LocalPlanRun) & ComputeRunRetention;
+type LiveComputeRun = EmbeddedComputeRun | EffectCaptureFrame;
+type InitialClose = ReturnType<typeof originalInitialControlClose>;
+type HttpOperations = Parameters<typeof createClientHttpHandler>[0];
+type HttpTransportOptions = Pick<HttpOperations, 'authenticate' | 'loopbackHttp' | 'maxRequestBytes'>;
+type HttpRequestHandler = ReturnType<typeof createClientHttpHandler>;
+type HttpHost = Readonly<{
+  hostOperations: Omit<HttpOperations, keyof HttpTransportOptions | 'prepareRequest'>;
+  observation?: ReturnType<typeof installHostObservation>;
+  inspectAcquisition: unknown; diagnostic: DiagnosticDelivery;
+}>;
+type ActivatedEmbeddedHost = HttpHost & Parameters<typeof installedHostShutdown>[0] & Readonly<{
+  port: BootstrapPort; journal: ClientJournal; store: InstalledPublicationStore;
+}>;
+type HostEntry = 'connect' | 'open' | 'remote';
+type EmbeddedClient = import('@actql/sdk').Client;
+type OpenedEmbeddedClient = EmbeddedClient & Readonly<{info: Readonly<{stateDir: string}>}>;
+type InstalledRemoteHost = ReturnType<typeof installedRemoteHttpTransport>;
+type PublishSourceOptions = NonNullable<Parameters<typeof import('../../packages/local-node/index.d.ts').publishSource>[0]>;
+type PublishEffectOptions = NonNullable<Parameters<typeof import('../../packages/local-node/index.d.ts').publishEffect>[0]>;
+type ProjectOriginal = Awaited<ReturnType<typeof loadInstalledProjectConfiguration>>;
+type ProjectSourceOriginal = Awaited<ReturnType<typeof prepareInstalledProjectLocalFiles>>;
+type ProjectMockOriginal = Awaited<ReturnType<typeof prepareInstalledProjectMock>>;
+type ProjectMockRetention = {
+  runtime: BootstrapRuntime; sourceInstallation: unknown; view?: ProjectMockOriginal; flight?: Promise<void>;
+};
+type OrdinaryPreparationContext = NonNullable<ReturnType<
+  NonNullable<Parameters<typeof prepareOrdinarySourceManagedInstallation>[1]['preparationContext']>
+>>;
+type ClosedValuesPreparationContext = OrdinaryPreparationContext & Readonly<{control: unknown}>;
+type SourceIdentityReader = NonNullable<Parameters<typeof installedSourceIdentity>[1]>['configurationReader'];
+type InstalledKey = Parameters<typeof createPublicKey>[0];
+type InstallationAuthorization = Readonly<{
+  accountConfiguration?: string; accountConfig?: string;
+  hostKey?: Readonly<{keyId: string; privateKey: InstalledKey}>;
+  reviewers?: readonly Readonly<{keyId: string; reviewerId: string; principalId: string; publicKey: InstalledKey}>[];
+  decide?: unknown; observe?: unknown; faultInjection?: unknown;
+}>;
+type InstallationIdentityInput = Omit<LocalInstallationSnapshot, 'calendarArtifact' | 'authorization'> &
+  Readonly<{authorization?: InstallationAuthorization; calendarArtifact?: CalendarSnapshot}>;
+type SourceInitializationSelection = {
+  runtime: PreparationRuntime; root: string; principalId: string; projectOriginal: unknown;
+  hostCurrent?: () => void;
+};
+type ManagedProfile = NonNullable<Parameters<typeof bindInstalledManagedSources>[0]> &
+  Readonly<{fileReadDeclarations?: readonly unknown[]}>;
+type ProjectSourceInstallation = Parameters<typeof installPreparedProjectLocalFiles>[0];
+type ProjectEffectInstallation = Parameters<typeof installPreparedProjectLocalFileEffects>[0];
+type MockSourceInstallation = Parameters<typeof installPreparedProjectMockSources>[0];
+type MockEffectInstallation = Parameters<typeof installPreparedProjectMockEffects>[0];
+type MockSourceRun = ReturnType<MockSourceInstallation['prepareManagedSourceRun']>;
+type InstalledMockSourceProfile = Awaited<ReturnType<typeof installPreparedProjectMockSources>>;
+type EmbeddedInstallation = Partial<HostStartupInstallation> & {
+  projectRuntime?: BootstrapRuntime; retainedRelationOutput?: boolean;
+  root?: string; requestMemory?: ReturnType<typeof snapshotRequestMemory>;
+  valuesMaxRows?: number; sourceFreeMaxWork?: number;
+  hostCapacityPolicy?: ReturnType<typeof snapshotHostCapacityPolicy>;
+  hostLookupExecutionPolicy?: ReturnType<typeof snapshotHostLookupExecutionPolicy>;
+  declaredFileInstallationInventory?: ReturnType<typeof createDeclaredFileInstallationInventory>;
+  declaredFileBaseEnvironmentWire?: string;
+  sourceCheckpointInventory?: ReturnType<typeof prepareInstalledSourceCheckpointInventory>;
+  sourceProfilePath?: string; sourceProfilePaths?: readonly string[];
+  projectSourcePreparation?: ProjectSourceOriginal;
+  closedValuesPreparationContext?: ClosedValuesPreparationContext;
+  managedSourceProfile?: ManagedProfile;
+  computeRuns?: WeakMap<object, EmbeddedComputeRun>;
+  retireInitialPreparation?: ReturnType<typeof installLocalPreparationRegistry>['retireRetiringOriginal'];
+  releaseRequestDomainAliases?: (prepared: object) => void;
+  borrowSourceInitializationMaterial?: () => ReturnType<typeof borrowInstalledSourceInitialization>;
+};
+type HostInitialization = Parameters<typeof openHostInitializationPreparation>[0];
+type BootstrapRuntime = ManagedRequirementsRuntime & ClosedValuesPreparationContext['runtime'] &
+  ProjectSourceInstallation['moon'] & ProjectEffectInstallation['moon'] &
+  MockSourceInstallation['moon'] & MockEffectInstallation['moon'] &
+  Parameters<typeof openHostInitializationPreparation>[1] &
+  NonNullable<Parameters<typeof loadInstalledProjectConfiguration>[0]> &
+  Parameters<typeof createInstalledHostServices>[0]['moon'] &
+  Parameters<typeof createLocalResultReadWorkspace>[0]['runtime'] &
+  Parameters<typeof selectInstalledLocalMaterializationEnvironment>[0] &
+  MockAccountOptions['moon'] & Parameters<typeof loadInstalledProjectMockAnswers>[0] &
+  NonNullable<Parameters<typeof selectInstalledProjectProfile>[0]> &
+  NonNullable<Parameters<typeof prepareInstalledProjectLocalFiles>[0]> &
+  Parameters<typeof createDeclaredFileInstallationInventory>[0]['moon'] & Readonly<{
+    clientProgramInstallMockProfile?(maxBytes: number, maxNodes: number, maxDepth: number,
+      maxMembers: number, contractNodes: number, contractDepth: number, contractTextBytes: number,
+      maxWork: number): unknown;
+    clientProgramRetireMockProfile?(profile: unknown): boolean;
+  }>;
+type LocalConnectInput = Omit<Parameters<typeof import('../../packages/local-node/index.d.ts').connect>[0], 'installation'> &
+  Readonly<{installation?: HostInstallation & Readonly<{valuesMaxRows?: number}>}>;
+type CalendarSnapshot = ReturnType<typeof snapshotInstalledCalendar>;
+type RemoteHostInput = Omit<InstalledRemoteHostOptions, 'calendarArtifact'> & Readonly<{
+  valuesMaxRows?: number; calendarArtifact?: InstalledRemoteHostOptions['calendarArtifact'] | CalendarSnapshot;
+}>;
+type LocalInstallationInput = NonNullable<LocalConnectInput['installation']>;
+type LocalInstallationSnapshot = Omit<LocalInstallationInput, 'calendarArtifact' | 'effectProfilePaths'> & {
+  calendarArtifact?: LocalInstallationInput['calendarArtifact'] | CalendarSnapshot;
+  effectProfilePaths?: LocalInstallationInput['effectProfilePaths'];
+};
+type SnapshotLeaseFactory = Parameters<typeof installLocalSnapshotStore>[0];
+type EmbeddedHostFault = NonNullable<Parameters<typeof installHostRunAcceptance>[0]['authorization']>['faultInjection'] &
+  Readonly<{
+    localSnapshotStoreFactory?(input: Readonly<{
+      key: string; bytes: number; frame: number; parentDirectory: string; signal?: AbortSignal;
+    }>): ReturnType<SnapshotLeaseFactory>;
+    submissionEpochTtlMs?: NonNullable<Parameters<typeof openClientRequestJournal>[1]>['submissionEpochTtlMs'];
+    submissionEpochNow?: NonNullable<Parameters<typeof openClientRequestJournal>[1]>['submissionEpochNow'];
+  }>;
+type EmbeddedHostAuthorization = Omit<NonNullable<Parameters<typeof installHostRunAcceptance>[0]['authorization']>, 'faultInjection'> &
+  Readonly<{siteKey?: string; faultInjection?: EmbeddedHostFault}>;
+type EmbeddedEffectSite = Omit<ReturnType<typeof createInstalledEffectSite>, 'queryTableBindings' | 'queryTableWriteAccesses'> &
+  Readonly<{
+    effects?: readonly EffectMember[];
+    queryTableBindings?: Parameters<typeof sourceAliasPublication>[3];
+    queryTableWriteAccesses?: Parameters<typeof installNodeClientCheck>[0]['tableWriteAccesses'];
+  }>;
+type ReadyEmbeddedInstallation = Omit<EmbeddedInstallation, 'root' | 'effectInstallation'> &
+  Pick<LocalInstallationSnapshot, 'connectorTable' | 'sourceNamespace' | 'sourceSelectorNamespace' |
+    'effectProfilePath' | 'effectProfilePaths' | 'resolveSourceSecret' | 'resolveEffectSecret' |
+    'registerModelProviders' |
+    'inferEvidence' | 'verifyRequestValuePolicy' | 'observation'> &
+  Readonly<{
+    root: string; mode?: 'local' | 'remote'; workspaceId?: RemoteHostInput['workspaceId'];
+    beforeDispatch?: DispatchInstallation['beforeDispatch'];
+    authorization?: EmbeddedHostAuthorization | null;
+    effectInstallation?: EmbeddedEffectSite;
+    calendarArtifact?: CalendarSnapshot;
+    modelInstallation?: Parameters<typeof installedModelEnvironment>[3];
+    resultDataPolicy?: Parameters<ReturnType<typeof runtimeCore>['publicationControl']['admitSourceFreeResultPolicy']>[0];
+    project?: ProjectOriginal;
+    projectProfile?: ReturnType<typeof selectInstalledProjectProfile>;
+  }>;
+// The installed Host borrows these capabilities from its current preparation.
+// The same preparation remains responsible for initialization and retirement.
+type EmbeddedHostPreparation = Readonly<{
+  host: object;
+  initialControl: Readonly<{close(): Promise<Readonly<{pending: boolean}>>}>;
+  modelSdkInstallation: () => Partial<Parameters<typeof installConfiguredModelProviders>[0]> | undefined;
+  selectSourceProfilePaths: (options: Parameters<typeof installedSourcePaths>[0],
+    fallback: Parameters<typeof installedSourcePaths>[1],
+    root: string, principalId: string) => readonly string[];
+  sourceInitializationServices: (runtime: BootstrapRuntime,
+    root: string,
+    principalId: string, hostCurrent?: () => void) => ReturnType<typeof createInstalledHostServices>;
+  retainHostJournalPreparation: (root: string, principalId: string, journalDirectory: string) => void;
+  prepareHostJournal: () => Promise<SelectedHostJournal>;
+  admitRootFormat: SelectedHostJournal['admitRootFormat'];
+  openRequestJournal: SelectedHostJournal['openRequestJournal'];
+  prepareResultPublication: () => Promise<SelectedHostResult>;
+  resultReadWorkspace: (runtime: BootstrapRuntime) => ReturnType<typeof createLocalResultReadWorkspace>;
+  assertResultPublicationCurrent: () => undefined;
+  beforeResultPublicationOperation: (operation: string) => void;
+  openResultPublicationStore: SelectedHostResult['openStore'];
+  admitResultPublicationRun: (prepared: object) => void;
+  admitEffectResultPublicationRun: (prepared: object) => void;
+  assertContentRunCurrent: () => undefined;
+  modelPublicationCapacity: (prepared: object) => Readonly<{ retainedBytes: bigint; workspaceBytes: bigint; }>;
+  bindSourceRequest: (parent: object, derived: object) => undefined;
+  prepareManagedCompute: () => Promise<SourcePreparationInstallation>;
+  requestPreparation: () => SourcePreparationInstallation;
+  submittedIntentOriginal: (request: object) => unknown;
+  retainModelRecoveryInput: (runtime: PreparationRuntime,
+    request: object,
+    identity: ModelRecoveryInputArgs[1], definition: ModelRecoveryInputArgs[2], assertCurrent: ModelRecoveryInputArgs[3], childrenPending: ModelRecoveryInputArgs[4]) => RequestInputRetention;
+  restoreManagedModelOriginal: (runtime: PreparationRuntime, request: object, original: InstalledModelRestoreArgs[1],
+    definition: InstalledModelRestoreArgs[2], identity: InstalledModelRestoreArgs[3],
+    construct: InstalledModelRestoreArgs[4]) => ReturnType<OrdinarySourceInstallation['restoreModelOriginal']>;
+  prepareManagedModelRecoveryPlan: (runtime: PreparationRuntime,
+    prepared: object,
+    request: object, plan: InstalledModelRecoveryArgs[2], selected: InstalledModelRecoveryArgs[3], model: InstalledModelRecoveryArgs[4]) => InstalledModelRecoveryView;
+  retainEffectRequestInput: (runtime: PreparationRuntime,
+    request: object,
+    intent: RetainEffectInputArgs[1], captured: RetainEffectInputArgs[2], materialWire?: RetainEffectInputArgs[3]) => RequestInputRetention & Readonly<{body: unknown}>;
+  retainedEffectManagedPlan: (runtime: PreparationRuntime, request: unknown, definition: EffectDefinition) => EffectPlanRun | undefined;
+  readStaticPlan: (request: NonNullable<OrdinaryFundedArgs[5]>, environment: OrdinaryFundedArgs[1],
+    originalVerifier: OrdinaryFundedArgs[2], signal: AbortSignal | undefined, modelInstallation: OrdinaryFundedArgs[6]) =>
+    Promise<Awaited<ReturnType<OrdinarySourceInstallation['fundedPreparation']>>>;
+  assertStaticEffectExplanationOriginal: (request: object) => void;
+  readStaticEffectExplanation: <Value>(request: OrdinaryStaticEffectArgs[4],
+    environment: OrdinaryStaticEffectArgs[1],
+    originalVerifier: OrdinaryStaticEffectArgs[2], signal: AbortSignal | undefined,
+    visit: (wires: Parameters<OrdinaryStaticEffectArgs[6]>[0], current: () => void) => Value,
+    modelInstallation: OrdinaryStaticEffectArgs[7]) => Promise<Awaited<Value>>;
+  fundedPreparation: (request: object, environment: OrdinaryFundedArgs[1], originalVerifier: OrdinaryFundedArgs[2],
+    signal: AbortSignal | undefined, journal: OrdinaryFundedArgs[4]) =>
+    ReturnType<OrdinarySourceInstallation['fundedPreparation']> | undefined;
+  observeOriginalCheckOutcome: <Value>(request: object,
+    failure: unknown,
+    visit: (read: (metadata: readonly unknown[]) => string | undefined) => Value) => Value | undefined;
+  borrowManagedPreparation: (prepared: object, request: object) => unknown;
+  bindManagedSources: (runtime: PreparationRuntime, profile: InstalledHostSourceProfile | undefined) => InstalledHostSourceProfile | undefined;
+  managesInstalledSources: () => boolean;
+  prepareManagedSourceRun(runtime: PreparationRuntime, prepared: object, request: object,
+    profile: ManagedProfile | undefined, prepareInvocation: ManagedRunInvocation | undefined): unknown;
+  prepareManagedComputeRun(runtime: PreparationRuntime, prepared: object, request: object,
+    profile: ManagedProfile | undefined, prepareInvocation: ManagedRunInvocation | undefined): unknown;
+  managedModelSourceCoordinates: (runtime: PreparationRuntime,
+    prepared: object) => readonly (readonly [stage: number,
+    input: number, task: number])[] | undefined;
+  selectManagedDomainSourceInput: (runtime: PreparationRuntime, prepared: object, identity: unknown, stage: number, sourceIndex: number) => unknown;
+  captureEffectRunExplanation: (runtime: PreparationRuntime,
+    facts: OrdinaryEffectExplanationArgs[2],
+    readEvidence: Parameters<EffectDefinitionExplanation>[1], journal: OrdinaryEffectExplanationArgs[4], hasIntent: OrdinaryEffectExplanationArgs[5]) => ReturnType<EffectDefinitionExplanation>;
+  prepareManagedEffectPlanRun: (runtime: PreparationRuntime,
+    facts: EffectPlanOptions["facts"],
+    selection: EffectPlanOptions['selection'], inputs: EffectPlanOptions['inputs'] & {sourceProfile?: EffectPlanOptions['sourceProfile']},
+    modelSelection?: EffectPlanOptions['modelSelection'], prepareContent?: EffectPlanOptions['prepareContent']) => ReturnType<EffectDefinitionPreparation>;
+  prepareEffectCaptureRecovery: (runtime: PreparationRuntime, request: EffectCaptureOptions['request'], definition: EffectDefinition,
+    limits: EffectCaptureOptions['contractLimits'], managed: PreparedEffectCapture | undefined,
+    current: EffectCaptureOptions['assertCurrent'], retain: EffectCaptureOptions['retain']) => EffectCaptureView;
+  prepareEffectCaptureRetirement: (runtime: PreparationRuntime, request: EffectCaptureOptions['request'], definition: EffectDefinition,
+    limits: EffectCaptureOptions['contractLimits'], current: EffectCaptureOptions['assertCurrent'],
+    retain: EffectCaptureOptions['retain']) => EffectCaptureView;
+  effectManagedPlanRun: (runtime: PreparationRuntime, prepared: object, request: unknown) => EffectPlanRun;
+  retainManagedContentPreparation: (runtime: PreparationRuntime, prepared: object, contentPreparation: RetainedContentSelection) => void;
+  prepareManagedSerializationOutputDemand: (runtime: PreparationRuntime, prepared: object,
+    compiled: OutputDemandArgs[1], selection: OutputDemandArgs[2], generation: OutputDemandArgs[3],
+    reference: OutputDemandArgs[4], contract: OutputDemandArgs[5], output: OutputDemandArgs[6], identitySlots: OutputDemandArgs[7]) => ReturnType<NonNullable<ContentRunOptions['prepareSerializationOutputDemand']>>;
+  prepareManagedSerializationRun: (runtime: PreparationRuntime, prepared: object, request: object,
+    plan: ContentPlan, limits: SerializationArgs[3], workspace: SerializationArgs[4],
+    contentPreparation: ContentPreparation) => EmbeddedComputeRun;
+  prepareManagedModelRun: (runtime: PreparationRuntime, prepared: object, request: object, model: LocalModelPlan) => EmbeddedComputeRun;
+  canRetireManagedPreparation: () => boolean;
+  retireManagedComputeRun: (prepared: object) => (() => void) | undefined;
+  assertUnadmittedSourceRequest: (runtime: PreparationRuntime, prepared: object, request: object) => void;
+  managedComputePublicationPreparation: (runtime: PreparationRuntime, prepared: object) => {} | null | undefined;
+  managedComputeExplanationPreparation: (runtime: PreparationRuntime, prepared: object) => ReturnType<OrdinarySourceInstallation['originalExplanationPreparation']> | undefined;
+  managedComputeReservePublication: (runtime: PreparationRuntime, prepared: object) =>
+    ReturnType<NonNullable<DispatchInstallation['beforePublication']>>;
+  managedComputeInvocationOriginal: (runtime: PreparationRuntime,
+    prepared: object) => Parameters<typeof inferTaskRunAdmission>[0]['invocationOriginal'];
+  prepareManagedContentGraph: (runtime: PreparationRuntime,
+    prepared: object,
+    options: ContentGraphArgs[4], intermediate: ContentGraphArgs[5], modelOccurrence?: ContentGraphArgs[6]) => unknown;
+  prepareManagedContentCompilation: (runtime: PreparationRuntime, prepared: object, graph: unknown) => unknown;
+  issueManagedEffectMaterials: (runtime: PreparationRuntime,
+    prepared: object,
+    allowed: unknown, definition: unknown, identity: unknown, compilation: unknown) => ReturnType<NonNullable<UpdateOriginalInstallation['issueMaterials']>>;
+  admitManagedEffectMaterials: (runtime: PreparationRuntime,
+    prepared: object,
+    wire: string, runDefinitionCid: string, compilation: OrdinaryEffectMaterialArgs[4], identity: OrdinaryEffectMaterialArgs[5], features: OrdinaryEffectMaterialArgs[6]) => ReturnType<NonNullable<UpdateOriginalInstallation['admitMaterials']>>;
+  reserveManagedEffectOriginal: (runtime: PreparationRuntime,
+    prepared: object,
+    material: string, installations: OrdinarySourceArgs<"reserveEffectOriginal">[3]) => void;
+  captureManagedModelOriginal: <Value>(runtime: PreparationRuntime, prepared: object, construct: (parent: unknown, receipt: object) => Value) => Value;
+  prepareManagedModelMaterials: (runtime: PreparationRuntime,
+    prepared: object,
+    count: OrdinaryModelMaterialArgs[2], wireAt: OrdinaryModelMaterialArgs[3], containers: OrdinaryModelMaterialArgs[4]) => void;
+  prepareManagedModelBinding: (runtime: PreparationRuntime,
+    prepared: object,
+    providerId: string, installation: OrdinaryModelBindingArgs[3], contract: OrdinaryModelBindingArgs[4], configuration: OrdinaryModelBindingArgs[5]) => unknown;
+  prepareManagedModelGraph: (runtime: PreparationRuntime,
+    prepared: object,
+    occurrence: unknown, execution: unknown, serializationGraph: unknown, admittedProvider?: unknown) => unknown;
+  prepareManagedModelCompilation: (runtime: PreparationRuntime, prepared: object, graph: unknown) => unknown;
+  managedComputeCompilationOriginal: (runtime: PreparationRuntime, prepared: object) => {} | null | undefined;
+  managedComputePublicationOriginal: (runtime: PreparationRuntime, prepared: object) => Readonly<{authoringContext: unknown}> | undefined;
+  bindManagedComputeRunObservation: (prepared: object, ref: WireRunRef) => void;
+  managedComputeUsageReader: (ref: WireRunRef) => (() => readonly bigint[] | undefined) | undefined;
+  sourcePreparation: () => SourcePreparationInstallation | undefined;
+  localFilesLookupExecutionPolicy: (runtime: PreparationRuntime) => Readonly<{ version: "actql-lookup-execution-policy/0.1"; max_network_attempts_per_request: number; max_request_bytes_per_attempt: number; max_total_request_bytes: number; max_total_response_bytes: number; max_total_decoded_response_bytes: number; max_total_duration_ms: number; }> | undefined;
+  installProjectSources: (runtime: PreparationRuntime, baseEnvironmentWire: string,
+    authorizationFor: ProjectSourceInstallation['authorizationFor']) => ReturnType<typeof installPreparedProjectLocalFiles>;
+  localFilesEffectLimits: (runtime: PreparationRuntime) => Readonly<{
+    maxFileBytes: number; maxRows: number; maxRequestBytes: number; maxResponseBytes: number; maxEffects: number;
+  }>;
+  installProjectEffects: (runtime: PreparationRuntime, baseEnvironmentWire: string,
+    authorizationFor: ProjectEffectInstallation['authorizationFor'], principalId: string,
+    effectResources: ProjectEffectInstallation['effectResources'], sourceBindings: ProjectEffectInstallation['sourceBindings'],
+    installationServices: ProjectEffectInstallation['installationServices'],
+    sourceProfile: ProjectEffectInstallation['sourceProfile']) => ReturnType<typeof installPreparedProjectLocalFileEffects>;
+  installMockSources: (runtime: PreparationRuntime, baseEnvironmentWire: string,
+    authorizationFor: MockSourceInstallation['authorizationFor'],
+    installationServices: MockSourceInstallation['installationServices']) => Promise<InstalledMockSourceProfile>;
+  installMockEffects: (runtime: PreparationRuntime, baseEnvironmentWire: string,
+    authorizationFor: MockEffectInstallation['authorizationFor'], principalId: string,
+    effectResources: MockEffectInstallation['effectResources'], sourceProfile: InstalledMockSourceProfile | undefined,
+    observeWrite: MockEffectInstallation['observeWrite'],
+    installationServices: MockEffectInstallation['installationServices']) => ReturnType<typeof installPreparedProjectMockEffects>;
+  prepareStandardAccount: (principal: string, operatorAuthorization: StandardAccountOptions['operatorAuthorization'],
+    rootCreation: StandardAccountOptions['rootCreation']) => ReturnType<typeof prepareOrdinaryLocalAccount>;
+  initializeMockAccount: (runtime: PreparationRuntime, principal: string,
+    operatorAuthorization: MockAccountOptions['operatorAuthorization'], models: InstalledMockModels) => Promise<MockAccountBinding>;
+  installMockModels: (runtime: PreparationRuntime) => Promise<InstalledMockModels>;
+  readEnvironmentSource: () => string;
+  readSequenceContracts: () => SequenceContractOriginal;
+  readAsset: (path: string) => string;
+  retainUndispatchedRetirement: (original: ReturnType<typeof installLocalPreparationRegistry>["retireQuiescentUndispatched"],
+    initial: ReturnType<typeof installLocalPreparationRegistry>["retireRetiringOriginal"],
+    releaseModelSelection: NonNullable<EmbeddedInstallation["releaseRequestDomainAliases"]>) => void;
+  retainReferenceRetirement: (original: () => void) => void;
+}>;
+type InstalledMockAnswers = Awaited<ReturnType<typeof loadInstalledProjectMockAnswers>>;
+type InstalledMockModels = ReturnType<InstalledMockAnswers['bindModelsForRuntime']>;
+type ConfiguredModelProviders = Awaited<ReturnType<typeof installConfiguredModelProviders>>;
+type InstalledModelProvider = NonNullable<ReturnType<ConfiguredModelProviders['providers']['get']>>;
+type RestoredInferOriginal = Parameters<typeof selectRestoredInferOccurrence>[0]['restored'];
+type ModelSourceCoordinates = NonNullable<ReturnType<OrdinarySourceInstallation['modelSourceCoordinates']>>;
+type ModelFault = Readonly<{code?: string; cause?: unknown}>;
+type ModelProviderSelection = Parameters<typeof openNodeComposedInferProvider>[0]['selected'];
+type ModelPreflight = NonNullable<ModelProviderSelection['physicalPreflight']>;
+type ModelReadInstallation = ReturnType<typeof bindInferOriginalReadRecipe> | InstalledModelProvider['originalReadInstallation'];
+type ModelRuntimeBorrow = ReturnType<typeof issueInferTrustedRuntimeView>;
+type ModelRuntimeScope = Readonly<{
+  view: ModelRuntimeBorrow; compiled: unknown; definition: unknown; graph: unknown; physical: InstalledModelProvider;
+}>;
+type EmbeddedInferMember = Omit<ModelProviderSelection, 'originalReadInstallation'> & Readonly<{
+  components?: never;
+  step: number; sourceCoordinates?: ModelSourceCoordinates; restoredRun?: RestoredInferOriginal;
+  localMock?: boolean; originalMockInstallation?: unknown; deferredRestoredSegments?: boolean;
+  serializationGraph?: unknown; selectedBounds?: unknown; egressFailure?: unknown;
+  physicalOriginal?: InstalledModelProvider;
+  providerBinding?: ReturnType<typeof admitInstalledModelProviderBinding>;
+  originalReadInstallation?: ModelReadInstallation;
+  requireEagerSdkStartup?: InstalledModelProvider['requireEagerSdkStartup'];
+  originalStorageDimensions?: ReturnType<typeof selectedInferTrustedStoreDimensions>;
+  rawCaptureSelection?: InstalledModelProvider['rawCaptureSelection'];
+  reconcileResponse?: InstalledModelProvider['reconcileResponse'];
+  currentProvider(): boolean;
+  assertTrustedRuntime?: InstalledModelProvider['assertTrustedRuntime'];
+  assertNewTrustedRuntime?(): void;
+  bindTrustedRuntimeScope?(scope: unknown, compiled: unknown, definition: unknown, graph: unknown): ModelRuntimeBorrow;
+  assertTrustedRuntimeScope?(scope: unknown, view: unknown, compiled: unknown, definition: unknown, graph: unknown): void;
+  finishTrustedRuntimeScope?(scope: unknown, view: unknown, compiled: unknown, definition: unknown, graph: unknown): boolean;
+}>;
+type EmbeddedInferGroupMember = EmbeddedInferMember & Required<Pick<EmbeddedInferMember, 'finishTrustedRuntimeScope'>>;
+type EmbeddedInferSelection = EmbeddedInferMember | (Partial<Omit<EmbeddedInferMember, 'components' | 'graph'>> &
+  Readonly<{components: readonly EmbeddedInferGroupMember[]; graph: readonly unknown[]}>);
+type MockAccountBinding = Awaited<ReturnType<typeof initializeOrdinaryMockAccount>>;
+type StandardAccountOptions = Parameters<typeof prepareOrdinaryLocalAccount>[0];
+// The standard Account is selected only outside the Mock installation branch.
+type ModelAccountTask = ReturnType<Awaited<ReturnType<typeof loadInstalledProjectModelTasks>>['originalsForRuntime']>[number];
+type MockAccountOptions = Parameters<typeof initializeOrdinaryMockAccount>[0];
+type MockEffectObservation = ReturnType<typeof observeInstalledMockEffectResources>;
+type EffectResourceOriginal = Readonly<{
+  prepared?: unknown; compilation?: unknown; allowed?: unknown; definition?: unknown; identity?: unknown;
+  requestIdentity?: unknown; runDefinition?: Readonly<{identity: string}>;
+}>;
+type EffectResourceInput = EffectResourceOriginal & Readonly<{
+  recovered?: EffectResourceOriginal; managedEffect?: EffectPlanRun;
+}>;
+type MockEffectRun = EffectResourceOriginal & {
+  original: object; checkedRun: unknown; limits?: ReturnType<MockEffectObservation['limits']>;
+  failure?: unknown; readmittedAllowed?: unknown; readmittedDefinition?: unknown;
+};
+type LocalFileEffectRun = Readonly<{
+  prepared: unknown; requestId: string; definitionWire: string; original: object;
+  limits: Readonly<Record<string, number>>;
+}> & {checkedRun: unknown};
+type UnselectedJournalFailure = {
+  cause: unknown; observed: boolean; statusObserved: boolean; pending?: boolean;
+  cleanup?: Readonly<{status?: unknown}>; status?: unknown;
+};
+type BootstrapPort = ReturnType<typeof createNodeInProcessClientHost> &
+  Readonly<{answerCheckpoint?: LocalCheckpointAnswer}>;
+type InProcessInstall = Parameters<typeof createNodeInProcessClientHost>[0];
+type RestoreInferArguments = Parameters<ReturnType<typeof runtimeCore>['publicationControl']['admitStoredClientInferRunOriginal']>;
+type NegotiationInput = Parameters<NonNullable<InProcessInstall['negotiate']>>[0];
+type PerformRequest = Parameters<BootstrapPort['perform']>;
+type RunDefinitionProjection = NonNullable<ReturnType<ClientJournal['lookupRunDefinition']>>['runDefinition'];
+type RunAdmissionReference = Readonly<{ref: WireRunRef; runDefinition?: RunDefinitionProjection}>;
+type AcquisitionInspection = Readonly<{state: 'not_started'} |
+  {state: 'completed_retained'; ref: WireRunRef; resultNames: readonly string[]} |
+  {state: 'started_unknown'; ref: WireRunRef}>;
+type EmbeddedPreparationRecord = {
+  runtime?: PreparationRuntime; installation?: EmbeddedInstallation;
+  input?: unknown; openOptions?: unknown; connectOptions?: unknown;
+  openPathFailure?: Readonly<{cause: unknown}>; openWorkingDirectory?: string; openStateDirectory?: string;
+  explicitMockSelection?: boolean; retireUndispatched?: () => void;
+  project?: ProjectOriginal; projectProfile?: ReturnType<typeof selectInstalledProjectProfile>;
+  mockPreparation?: Awaited<ReturnType<typeof prepareInstalledProjectMock>>;
+  mockAnswers?: InstalledMockAnswers; mockModelProfile?: unknown; mockModels?: InstalledMockModels;
+  projectSourcePreparation?: ProjectSourceOriginal;
+  sourceManaged?: ManagedSourceInstallation; computeManaged?: ManagedComputeInstallation;
+  hostJournal?: SelectedHostJournal; resultPublication?: SelectedHostResult;
+  hostInitialization?: HostInitialization;
+  sourceInitializationServices?: ReturnType<typeof createInstalledHostServices>;
+  mockAccount?: MockAccountBinding;
+  sourceInitializationSelection?: SourceInitializationSelection;
+  declaredFileInstallationInventory?: ReturnType<typeof createDeclaredFileInstallationInventory>;
+  managedSourceProfile?: ManagedProfile; mockSourceProfile?: InstalledMockSourceProfile;
+  computeRuns?: WeakMap<object, EmbeddedComputeRun>;
+  computeLiveRuns?: Set<LiveComputeRun>;
+  computeRunObservations?: Map<string, EmbeddedComputeRun>;
+};
+type ActivationFailure = {
+  cause: unknown; cleanupObserved: boolean; statusObserved: boolean; retryObserved: boolean;
+  cleanup?: Readonly<{status?: unknown; retry?: unknown}>; status?: unknown; retry?: unknown;
+};
+
 // Keep this retirement callback outside the construction/current closure.
 // Its binding retains only the existing Host bag and fixed frame; it must
 // not prolong captured Request/Definition or restored material aliases across
 // a consuming resource return after the current callback has been severed.
-function retireEffectCaptureResourceFrame(record, liveRuns, entry, view) {
+function retireEffectCaptureResourceFrame(record: EmbeddedPreparationRecord,
+    liveRuns: Set<LiveComputeRun>, entry: EffectCaptureFrame, view: EffectCaptureView) {
   if (record.computeLiveRuns !== liveRuns || !liveRuns.has(entry) ||
       entry.resources !== view || entry.closed) {
     throw clientOperationError('ForeignEffectCaptureResources');
@@ -223,41 +1032,44 @@ const require = createRequire(import.meta.url);
 const runtimeUrl = new URL('../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 const now = () => new Date().toISOString();
-const cid = value => `sha256:${createHash('sha256')
+const cid = (value: unknown) => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
-const plus = (date, milliseconds) => new Date(Date.parse(date) +
+const plus = (date: string, milliseconds: number) => new Date(Date.parse(date) +
   milliseconds).toISOString();
-const clientOperationError = (code, cause) => Object.assign(
+const clientOperationError = (code: string, cause?: unknown) => Object.assign(
   new Error(code, cause === undefined ? undefined : {cause}), {code});
 const profiles = createEmbeddedHostRegistry(sameEmbeddedInstallation);
 
 // Only the actual selected startup may retain this original module operation.
 // It checks the existing registry's original candidate/Host, not a caller
 // callback, DATA/CID, eight-reference view or capacity/authority declaration.
-export function assertInitialControlHostPreparation(originals) {
-  if (originals?.supplier !== openPreparedInstalledHost ||
-      originals?.moduleLifetime !== import.meta) {
+export function assertInitialControlHostPreparation(originals: unknown): asserts originals is HostStartupOriginals {
+  if ((originals as HostStartupOriginals | undefined)?.supplier !== openPreparedInstalledHost ||
+      (originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta) {
     throw clientOperationError('InstalledHostPreparationChanged');
   }
-  profiles.assertPreparation(originals.host, originals.installation, originals.generation);
+  profiles.assertPreparation((originals as HostStartupOriginals).host, (originals as HostStartupOriginals).installation,
+    (originals as HostStartupOriginals).generation);
 }
 
 // Retained Run Resource currentness is distinct from new preparation. The
 // manager must establish its exact adopted Run before using this identity
 // projection; closing ingress does not retire that original Host generation.
-export function assertRetainedSourceManagedHost(originals) {
-  if (originals?.supplier !== openPreparedInstalledHost ||
-      originals?.moduleLifetime !== import.meta) {
+export function assertRetainedSourceManagedHost(originals: unknown): undefined {
+  if ((originals as HostStartupOriginals | undefined)?.supplier !== openPreparedInstalledHost ||
+      (originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta) {
     throw clientOperationError('InstalledHostPreparationChanged');
   }
-  profiles.assertRetainedPreparation(originals.host, originals.installation, originals.generation);
+  profiles.assertRetainedPreparation((originals as HostStartupOriginals).host,
+    (originals as HostStartupOriginals).installation, (originals as HostStartupOriginals).generation);
 }
 
 // The actual selected startup captures this fixed operation, not a caller
 // predicate. Its installation phase may check the original Host before a
 // request exists. A request phase additionally requires that SAME pending
 // in-process request; neither check issues Source capacity or authority.
-export function assertSourceManagedHostPreparation(originals, originalOwnedRequest) {
+export function assertSourceManagedHostPreparation(originals: unknown,
+    originalOwnedRequest?: object) {
   assertInitialControlHostPreparation(originals);
   if (originalOwnedRequest !== undefined) {
     profiles.assertSourceRequest(originals.host, originals.installation,
@@ -268,30 +1080,30 @@ export function assertSourceManagedHostPreparation(originals, originalOwnedReque
 // Fixed namespace projection for the actual selected Host/Journal supplier.
 // The same registry entry retained these originals before root-format I/O;
 // copied paths, matching CIDs or this record alone cannot issue a facility.
-export function readHostJournalPreparation(originals) {
+export function readHostJournalPreparation(originals: unknown) {
   assertInitialControlHostPreparation(originals);
   return profiles.hostJournalPreparation(originals.host, originals.installation,
-    originals.generation);
+    originals.generation) as JournalPreparationOriginal;
 }
 
 // Original Common/control and authority correspondence, not a factory for a
 // resource service. The actual Root must already hold its separate purpose.
-export function readHostResultPublicationPreparation(originals) {
+export function readHostResultPublicationPreparation(originals: HostJournalOriginals) {
   const journal = readHostJournalPreparation(originals);
-  const runtime = originals.installation.projectRuntime;
+  const runtime = (originals.installation as HostStartupInstallation).projectRuntime;
   const control = runtimeCore(runtime).publicationControl;
   return Object.freeze({runtime, control, root: journal.root, principalId: journal.principalId,
-    privateEvidenceKey: originals.installation.effectInstallation?.privateEvidenceKey ??
-      originals.installation.mockAccount?.evidenceKey.key,
+    privateEvidenceKey: (originals.installation as HostStartupInstallation).effectInstallation?.privateEvidenceKey ??
+      (originals.installation as HostStartupInstallation).mockAccount?.evidenceKey.key,
     storeAuthorityCid: localPublicationStoreAuthorityCid(journal.root, journal.principalId)});
 }
 
 // Only the fixed startup calls this after the same pending SDK request has
 // produced its opaque checked Program. Bounds DATA cannot issue its service.
-export function readHostResultPublicationRunRequirements(originals, prepared) {
+export function readHostResultPublicationRunRequirements(originals: unknown, prepared: object) {
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, prepared);
-  const moon = originals.installation.projectRuntime;
+  const moon = ((originals as HostStartupOriginals).installation as HostStartupInstallation).projectRuntime;
   const resultCount = moon.clientProgramResultCount(prepared);
   const maxRows = moon.clientProgramValuesMaxRows(prepared);
   assertSourceManagedHostPreparation(originals);
@@ -299,10 +1111,10 @@ export function readHostResultPublicationRunRequirements(originals, prepared) {
   return Object.freeze({resultCount, maxRows, maxContractBytes: localContractLimits.maxWireBytes});
 }
 
-export function readHostEffectResultPublicationRunRequirements(originals, prepared) {
+export function readHostEffectResultPublicationRunRequirements(originals: unknown, prepared: object) {
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, prepared);
-  const moon = originals.installation.projectRuntime;
+  const moon = ((originals as HostStartupOriginals).installation as HostStartupInstallation).projectRuntime;
   const resultCount = moon.clientProgramEffectResultCount(prepared);
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, prepared);
@@ -312,19 +1124,19 @@ export function readHostEffectResultPublicationRunRequirements(originals, prepar
 
 // Same live ingress lineage only. Copies, CIDs and retained cold DATA cannot
 // recreate a pending request or issue its Source installation/child.
-export function originalSourceManagedHostRequest(originals, derivedRequest) {
+export function originalSourceManagedHostRequest(originals: unknown, derivedRequest: object) {
   assertSourceManagedHostPreparation(originals);
-  return profiles.originalSourceRequest(originals.host, originals.installation,
-    originals.generation, derivedRequest);
+  return profiles.originalSourceRequest((originals as HostStartupOriginals).host,
+    (originals as HostStartupOriginals).installation, (originals as HostStartupOriginals).generation, derivedRequest);
 }
 
 // The selected Source Root captures this fixed original projection. A copied
 // packet, equal configuration or public view cannot reconstruct the private
 // registry's same Host/installation/generation association.
-export function readInstalledMockPreparation(originals) {
+export function readInstalledMockPreparation(originals: HostStartupOriginals) {
   assertSourceManagedHostPreparation(originals);
   const retained = profiles.mockPreparation(originals.host, originals.installation,
-    originals.generation);
+    originals.generation) as ProjectMockRetention;
   if (retained.view === undefined) throw clientOperationError('InstalledMockPreparationUnavailable');
   return retained.view.originalsForRuntime(retained.runtime);
 }
@@ -332,9 +1144,10 @@ export function readInstalledMockPreparation(originals) {
 // This exact Connector factory result is retained by the existing Host before
 // preparing its service. Equal connection text or a caller's view cannot
 // replace the same issued Project/runtime association.
-export function readInstalledProjectSourcePreparation(originals) {
+export function readInstalledProjectSourcePreparation(originals: HostStartupOriginals) {
   assertSourceManagedHostPreparation(originals);
-  const {projectSourcePreparation, projectRuntime, project} = originals.installation;
+  const {projectSourcePreparation, projectRuntime, project} = originals.installation as EmbeddedInstallation &
+    {project?: ProjectOriginal; projectRuntime: BootstrapRuntime};
   if (projectSourcePreparation === undefined || project === undefined) {
     throw clientOperationError('InstalledProjectSourcePreparationUnavailable');
   }
@@ -347,8 +1160,8 @@ export function readInstalledProjectSourcePreparation(originals) {
 
 // Static contract strings belong to the same installed Host, not each Run.
 // The private installation bag is cut only after successful final retirement.
-function installedManagedRunContracts(originals) {
-  const installation = originals.installation;
+function installedManagedRunContracts(originals: HostStartupOriginals) {
+  const installation = originals.installation as HostStartupInstallation;
   const retained = installation.managedRunContracts;
   if (retained !== undefined) {
     if (retained.initialControl !== installation.initialControl) {
@@ -369,9 +1182,9 @@ function installedManagedRunContracts(originals) {
 // Installed Root owns the exact interpreted sequence contracts. The funded
 // preparation route requires this retained nominal admission, not a mutable
 // process cache hit or re-interpretation under a per-request borrowed quote.
-export function prepareInstalledSequenceContractOriginal(originals) {
+export function prepareInstalledSequenceContractOriginal(originals: unknown) {
   assertSourceManagedHostPreparation(originals);
-  const installation = originals.installation;
+  const installation = (originals as HostStartupOriginals).installation as HostStartupInstallation;
   const moon = installation.projectRuntime;
   const old = installation.sequenceContractOriginal;
   if (old !== undefined) {
@@ -389,9 +1202,9 @@ export function prepareInstalledSequenceContractOriginal(originals) {
   checked(moon.clientPrepareInstalledCompilationManifests());
   const registry = readInitialControlInstallationAsset(installation.initialControl,
     originals, 'spec/dependencies/aoa-pipeline-registry.json');
-  const contracts = installedManagedRunContracts(originals);
+  const contracts = installedManagedRunContracts(originals as HostStartupOriginals);
   const admission = checked(moon.clientPrepareInstalledSequenceContracts(registry,
-    contracts.values, contracts.expression, contracts.ordered));
+    contracts.values, contracts.expression, contracts.ordered)) as InstalledSequenceAdmission;
   const original = Object.freeze({moon, control: installation.initialControl,
     registry, contracts, admission});
   installation.sequenceContractOriginal = original;
@@ -401,16 +1214,16 @@ export function prepareInstalledSequenceContractOriginal(originals) {
 // The real Root already retained the separate managed-Compute premise before
 // the packet snapshot. This exact checked original supplies only the existing
 // Core inventory for its bounds check, never a replacement issuer or Ledger.
-export function readSourceManagedRunRequirements(originals, checkedPrepared) {
+export function readSourceManagedRunRequirements(originals: HostStartupOriginals, checkedPrepared: object) {
   return readSourceManagedRunRequirementsOwned(originals, checkedPrepared);
 }
 
 // Project the SAME plan retained before the Node supplier acquires its parent.
 // A six-number match cannot upgrade the former Compute-only Effect route.
-export function readSourceManagedEffectRunRequirements(originals, checkedPrepared, operationPlan) {
+export function readSourceManagedEffectRunRequirements(originals: HostStartupOriginals, checkedPrepared: object, operationPlan: unknown) {
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, checkedPrepared);
-  const installation = originals.installation, moon = installation.projectRuntime;
+  const installation = (originals as RequirementsOriginals).installation, moon = installation.projectRuntime;
   const run = installation.computeRuns?.get(checkedPrepared);
   if (run === undefined || run.runtime !== moon || run.prepared !== checkedPrepared || run.closed ||
       run.preparationKind !== 'effect-plan' || run.operationPlan !== operationPlan ||
@@ -430,27 +1243,27 @@ export function readSourceManagedEffectRunRequirements(originals, checkedPrepare
     holdings: Number(limits[2]), transferBytes: limits[3], retainedBytes: limits[4], executionBytes: limits[5]});
 }
 
-function readSourceManagedRunRequirementsOwned(originals, checkedPrepared) {
+function readSourceManagedRunRequirementsOwned(originals: HostStartupOriginals, checkedPrepared: object) {
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, checkedPrepared);
-  const {initialControl, projectRuntime: moon} = originals.installation;
+  const {initialControl, projectRuntime: moon} = (originals as RequirementsOriginals).installation;
   if (moon.clientProgramAcquisitionCount(checkedPrepared) === 0) {
     // A Source installation also owns its joint Compute purpose. The exact
     // checked zero-capture graph, not the configured Source count, selects
     // empty acquisition inputs on that same original parent.
     return readManagedComputeRunRequirements(originals, checkedPrepared);
   }
-  const projectSources = originals.installation.projectSourcePreparation === undefined ? undefined :
+  const projectSources = (originals as RequirementsOriginals).installation.projectSourcePreparation === undefined ? undefined :
     readInstalledProjectSourcePreparation(originals);
   const retained = projectSources === undefined ? profiles.mockPreparation(originals.host,
-    originals.installation, originals.generation) : undefined;
+    (originals as RequirementsOriginals).installation, originals.generation) as ProjectMockRetention | undefined : undefined;
   const requirements = moon.clientProgramInstalledManagedRunRequirements;
-  if ((projectSources === undefined && retained.runtime !== moon) || initialControl === undefined ||
+  if ((projectSources === undefined && retained!.runtime !== moon) || initialControl === undefined ||
       typeof requirements !== 'function') {
     throw clientOperationError('NodeManagedRunAdmissionUnavailable');
   }
-  const bundle = projectSources ?? retained.view.originalsForRuntime(moon);
-  const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
+  const bundle = projectSources ?? retained!.view!.originalsForRuntime(moon);
+  const asset = (path: string) => readInitialControlInstallationAsset(initialControl, originals, path);
   const contracts = installedManagedRunContracts(originals);
   // Each selected physical child reads its original complete bounded file
   // once. Its original raw bytes remain charged alongside decoded/captured
@@ -466,18 +1279,19 @@ function readSourceManagedRunRequirementsOwned(originals, checkedPrepared) {
   for (let stage = 0; stage < count; stage++) {
     // Both Mock and configured Sources follow the checked capture inventory,
     // not installation order. Repeated views retain separate occurrence slots.
-    const requirement = checked(Reflect.apply(prepareRequirement, moon,
+    const requirement = checked(Reflect.apply(prepareRequirement!, moon,
       [checkedPrepared, stage, 0, registry, contracts.values, contracts.expression, contracts.ordered]));
     const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
     const matches = bundle.sources.filter(source =>
-      JSON.parse(source.wire).views.some(view => view.source_ref === sourceRef));
+      JSON.parse(source.wire).views.some((view: {source_ref?: unknown}) => view.source_ref === sourceRef));
     if (matches.length !== 1) throw clientOperationError('InstalledSourcePreparationMismatch');
     const source = matches[0];
     declarations.push(source.declaration);
     transferBytes.push(projectSources === undefined ? documentBytes
-      : BigInt(source.limits.maxPages) * BigInt(source.limits.maxPageBytes));
+      : BigInt((source as NonNullable<typeof projectSources>['sources'][number]).limits.maxPages) *
+        BigInt((source as NonNullable<typeof projectSources>['sources'][number]).limits.maxPageBytes));
     executionBytes.push(projectSources === undefined ? documentBytes
-      : BigInt(source.limits.maxPageBytes));
+      : BigInt((source as NonNullable<typeof projectSources>['sources'][number]).limits.maxPageBytes));
   }
   const limits = checked(Reflect.apply(requirements, moon, [
     checkedPrepared, declarations,
@@ -493,7 +1307,7 @@ function readSourceManagedRunRequirementsOwned(originals, checkedPrepared) {
   }
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, checkedPrepared);
-  if (projectSources === undefined) retained.view.originalsForRuntime(moon);
+  if (projectSources === undefined) retained!.view!.originalsForRuntime(moon);
   else if (readInstalledProjectSourcePreparation(originals) !== projectSources) {
     throw clientOperationError('ForeignInstalledProjectSourcePreparation');
   }
@@ -504,16 +1318,17 @@ function readSourceManagedRunRequirementsOwned(originals, checkedPrepared) {
 
 // Original immutable installed context for the funded ordinary preparation
 // driver. Shared catalog/contracts remain this installation's dependencies.
-export function retireSourceManagedInitialPreparation(originals, prepared) {
+export function retireSourceManagedInitialPreparation(originals: unknown, prepared: unknown): undefined {
   assertSourceManagedHostPreparation(originals);
-  const retire = originals.installation.retireInitialPreparation;
+  const retire = ((originals as HostStartupOriginals).installation as
+    Readonly<{retireInitialPreparation?: (value: unknown) => void}>).retireInitialPreparation;
   if (typeof retire !== 'function') throw clientOperationError('InstalledSourcePreparationCleanupPending');
   retire(prepared);
 }
 
-export function readLocalPreparationContext(originals) {
+export function readLocalPreparationContext(originals: HostStartupOriginals) {
   assertSourceManagedHostPreparation(originals);
-  const installation = originals.installation;
+  const installation = originals.installation as EmbeddedInstallation;
   const context = installation.closedValuesPreparationContext;
   if (context === undefined || context.runtime !== installation.projectRuntime ||
       context.control !== installation.initialControl ||
@@ -543,7 +1358,8 @@ export function readLocalPreparationContext(originals) {
 
 // Checked Source-slot coordinates are DATA from the original Core inventory.
 // A slot indexes Source custody; its Compute task remains a separate field.
-function installedDirectSourceCoordinates(moon, prepared) {
+function installedDirectSourceCoordinates(moon: Pick<ManagedRequirementsRuntime,
+    'clientProgramDirectSourceCoordinates' | 'clientProgramAcquisitionCount'>, prepared: object) {
   if (typeof moon.clientProgramDirectSourceCoordinates !== 'function') {
     throw clientOperationError('NodeManagedRunRuntimeUnavailable');
   }
@@ -553,17 +1369,17 @@ function installedDirectSourceCoordinates(moon, prepared) {
         value.some(item => !Number.isSafeInteger(item) || item < 0))) {
     throw clientOperationError('InstalledSourcePreparationMismatch');
   }
-  return coordinates;
+  return coordinates as readonly DirectSourceCoordinates[];
 }
 
 // Same original Source inventory serves its retained Plan and legacy purpose
 // quote. A Source capacity is immutable DATA; it grants neither a read nor a
 // second Resource Run. Actual source readers retain their existing authority.
-function retainedManagedCaptureInventory(originals, run, contracts) {
-  const moon = originals.installation.projectRuntime, checkedPrepared = run.prepared;
+function retainedManagedCaptureInventory(originals: HostStartupOriginals, run: EmbeddedComputeRun, contracts: ManagedRunContracts) {
+  const moon = (originals as RequirementsOriginals).installation.projectRuntime, checkedPrepared = run.prepared!;
   if (run.runtime !== moon || run.closed || Object.hasOwn(run, 'failure') ||
-      originals.installation.computeRuns?.get(checkedPrepared) !== run ||
-      run.sourceProfile !== originals.installation.managedSourceProfile) {
+      (originals as RequirementsOriginals).installation.computeRuns?.get(checkedPrepared) !== run ||
+      run.sourceProfile !== (originals as RequirementsOriginals).installation.managedSourceProfile) {
     throw clientOperationError('ForeignInstalledComputeRun');
   }
   if (run.sourceCapacities === undefined) {
@@ -571,7 +1387,7 @@ function retainedManagedCaptureInventory(originals, run, contracts) {
     if (!Number.isSafeInteger(count) || count < 1) {
       throw clientOperationError('InstalledSourcePreparationMismatch');
     }
-    const inventory = [];
+    const inventory: CaptureCapacity[] = [];
     const installed = prepareInstalledSequenceContractOriginal(originals);
     const coordinates = installedDirectSourceCoordinates(moon, checkedPrepared);
     for (const [stage, input] of coordinates) {
@@ -586,8 +1402,8 @@ function retainedManagedCaptureInventory(originals, run, contracts) {
       if (kind !== 'query' && kind !== 'whole-input') {
         throw clientOperationError('InstalledSourcePreparationMismatch');
       }
-      const adapter = installedSourceFor(run.sourceProfile,
-        moon.clientProgramSelectedSourceInputRef(selection));
+      const adapter = installedSourceFor(run.sourceProfile as Parameters<typeof installedSourceFor<CaptureAdapter>>[0],
+        moon.clientProgramSelectedSourceInputRef(selection)!);
       let requirement, selected;
       if (kind === 'whole-input') {
         if (typeof adapter.managedWholeSourceCapacity !== 'function') {
@@ -598,10 +1414,10 @@ function retainedManagedCaptureInventory(originals, run, contracts) {
         if (selected?.wholeInput !== true) throw clientOperationError('InstalledSourceCapacityUnavailable');
       } else {
         requirement = checked(run.queryTimePreparation === undefined
-          ? moon.clientProgramPrepareLocalQueryRequirement(
+          ? moon.clientProgramPrepareLocalQueryRequirement!(
             checkedPrepared, stage, input, installed.admission,
             contracts.values, contracts.expression, contracts.ordered)
-          : moon.clientProgramPrepareLocalQueryRequirementAtQueryTime(
+          : moon.clientProgramPrepareLocalQueryRequirementAtQueryTime!(
             checkedPrepared, stage, input, run.queryTimePreparation, run.request,
             installed.admission, contracts.values, contracts.expression, contracts.ordered));
         selected = adapter.managedCaptureCapacity(requirement);
@@ -617,18 +1433,18 @@ function retainedManagedCaptureInventory(originals, run, contracts) {
     run.sourceCapacities = Object.freeze(inventory);
   }
   if (run.closed || Object.hasOwn(run, 'failure') ||
-      originals.installation.computeRuns?.get(checkedPrepared) !== run ||
-      run.sourceProfile !== originals.installation.managedSourceProfile) {
+      (originals as RequirementsOriginals).installation.computeRuns?.get(checkedPrepared) !== run ||
+      run.sourceProfile !== (originals as RequirementsOriginals).installation.managedSourceProfile) {
     throw clientOperationError('ForeignInstalledComputeRun');
   }
-  return run.sourceCapacities;
+  return run.sourceCapacities!;
 }
 
 // The Request manager invokes this only while its original constructor input
 // remains borrowed. Complete/adopt retains this exact Plan; no Run quote or
 // sequence preparation is substituted after an original refusal.
-function prepareManagedComputeCapturePlan(originals, run, invocationOriginal) {
-  const {projectRuntime: moon, retainedRelationOutput} = originals.installation;
+function prepareManagedComputeCapturePlan(originals: HostStartupOriginals, run: EmbeddedComputeRun, invocationOriginal: unknown) {
+  const {projectRuntime: moon, retainedRelationOutput} = (originals as RequirementsOriginals).installation;
   if (typeof retainedRelationOutput !== 'boolean') {
     throw clientOperationError('NodeManagedRunRuntimeUnavailable');
   }
@@ -646,7 +1462,7 @@ function prepareManagedComputeCapturePlan(originals, run, invocationOriginal) {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     }
     const args = [
-      run.prepared, run.request,
+      run.prepared!, run.request,
       plural ? inventory.map(value => value.capacity) : inventory[0].capacity,
       plural ? inventory.map(value => value.transferBytes) : inventory[0].transferBytes,
       plural ? inventory.map(value => value.executionBytes) : inventory[0].executionBytes,
@@ -660,13 +1476,13 @@ function prepareManagedComputeCapturePlan(originals, run, invocationOriginal) {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     }
     plan = checked(moon.clientProgramInstalledManagedCapturePlanPrepare(
-      run.prepared, run.request, inventory.map(value => value.capacity),
+      run.prepared!, run.request, inventory.map(value => value.capacity),
       inventory.map(value => value.transferBytes), inventory.map(value => value.executionBytes),
       installed.admission, contracts.values, contracts.expression, contracts.ordered,
       retainedRelationOutput, run.queryTimePreparation));
   }
   if (run.closed || Object.hasOwn(run, 'failure') ||
-      originals.installation.computeRuns?.get(run.prepared) !== run) {
+      (originals as RequirementsOriginals).installation.computeRuns?.get(run.prepared!) !== run) {
     throw clientOperationError('ForeignInstalledComputeRun');
   }
   return plan;
@@ -674,7 +1490,10 @@ function prepareManagedComputeCapturePlan(originals, run, invocationOriginal) {
 
 // Reuse the same checked per-graph projection for fresh and restored inputs.
 // These quantities do not issue a reservation, current authority or a Run.
-function retainRequestModelBoundsAndBudget(moon, count, model) {
+function retainRequestModelBoundsAndBudget(moon: Readonly<{
+  clientProgramPreparedComposedInferBounds(occurrence: unknown, graph: unknown): unknown;
+  clientProgramComposedInferRetainedLimits(bounds: unknown): unknown;
+}>, count: number, model: LocalModelPlan) {
   // Retain the actual selected opaque Limits before the module/Plan frame.
   // The nine fixed DATA fields are the existing consumer suffix, not the
   // Model Ledger totals and not a repeat of the old fifteen-number quote.
@@ -706,35 +1525,39 @@ function retainRequestModelBoundsAndBudget(moon, count, model) {
 // The same Request invokes this while its Model construction input is live.
 // Complete physical backing belongs before this call; the retained Bounds,
 // capacities and module below are originals, not an allocation permission.
-function prepareRequestMockModelPlan(originals, run, model, compilation, parent, input) {
-  const {projectRuntime: moon, initialControl, retainedRelationOutput} = originals.installation;
+function prepareRequestMockModelPlan(originals: HostStartupOriginals | undefined, run: EmbeddedComputeRun,
+    model: LocalModelPlan, compilation: unknown, parent: unknown, input: unknown) {
+  const {projectRuntime: moon, initialControl, retainedRelationOutput} = originals!.installation as
+    RequirementsInstallation & Readonly<{projectRuntime: MockModelPlanRuntime}>;
   const current = () => {
     assertSourceManagedHostPreparation(originals);
     if (parent === undefined || input === undefined || run.runtime !== moon || run.closed ||
         Object.hasOwn(run, 'failure') || run.model !== model ||
-        originals.installation.computeRuns?.get(run.prepared) !== run) {
+        (originals!.installation as EmbeddedInstallation).computeRuns?.get(run.prepared!) !== run) {
       throw clientOperationError('ForeignInstalledModelPreparation');
     }
-    originalSourceManagedHostRequest(originals, run.prepared);
+    originalSourceManagedHostRequest(originals!, run.prepared!);
   };
   current();
-  const installed = prepareInstalledSequenceContractOriginal(originals), contracts = installed.contracts;
+  const installed = prepareInstalledSequenceContractOriginal(originals!), contracts = installed.contracts;
   if (installed.moon !== moon || installed.control !== initialControl ||
       typeof retainedRelationOutput !== 'boolean' || model.control !== runtimeCore(moon).publicationControl ||
       typeof moon.clientProgramPreparedComposedInferBounds !== 'function' ||
       typeof moon.clientProgramComposedInferRetainedLimits !== 'function') {
     throw clientOperationError('NodeManagedRunRuntimeUnavailable');
   }
-  const count = moon.clientProgramAcquisitionCount(run.prepared);
+  const count = moon.clientProgramAcquisitionCount(run.prepared!);
   if (count !== 0 && count !== 1 && count !== 2) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
   if (model.components !== undefined) {
     const members = model.components, selected = model.selection?.components;
-    let moduleName = count === 0 ? 'prepareCheckedClientRequestModelsSourceFreeComponentModule'
+    let moduleName: 'prepareCheckedClientRequestModelsSourceFreeComponentModule' |
+      'prepareCheckedClientRequestModelsProviderComponentCaptureModule' |
+      'prepareCheckedClientRequestModelsDuckDBComponentCaptureModule' = count === 0 ? 'prepareCheckedClientRequestModelsSourceFreeComponentModule'
       : 'prepareCheckedClientRequestModelsProviderComponentCaptureModule';
     if (!Array.isArray(members) || !Object.isFrozen(members) || members.length < 2 ||
         !Array.isArray(selected) || selected.length !== members.length || !Array.isArray(model.graph) ||
         model.graph.length !== members.length || members.some((member, index) =>
-          member.group !== model || member.selection !== selected[index] || member.graph !== model.graph[index] ||
+          member.group !== model || member.selection !== selected[index] || member.graph !== (model.graph as readonly unknown[])[index] ||
           member.occurrence !== selected[index].occurrence || member.serializationGraph !== undefined ||
           member.originalReadInstallation !== selected[index].originalReadInstallation || member.component !== undefined) ||
         count === 0 && typeof model.control[moduleName] !== 'function') {
@@ -752,35 +1575,35 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     }
     for (const member of members) retainRequestModelBoundsAndBudget(moon, count, member);
     current();
-    let sourceArguments = [];
+    let sourceArguments: unknown[] = [];
     if (count > 0) {
-      if (run.sourceProfile !== originals.installation.managedSourceProfile ||
+      if (run.sourceProfile !== (originals!.installation as EmbeddedInstallation).managedSourceProfile ||
           typeof moon.clientProgramRequestModelDirectSourceCoordinates !== 'function') {
         throw clientOperationError('InstalledModelSourcePreparationUnavailable');
       }
       const coordinates = checked(moon.clientProgramRequestModelDirectSourceCoordinates(parent, input));
       if (!Array.isArray(coordinates) || coordinates.length !== count) throw clientOperationError('InstalledSourcePreparationMismatch');
-      const sources = [];
+      const sources: MockModelSourceSelection[] = [];
       for (const coordinate of coordinates) {
-        const selected = checked(moon.clientProgramSelectInstalledSourceInput(run.prepared, run.request, coordinate[0], coordinate[1]));
+        const selected = checked(moon.clientProgramSelectInstalledSourceInput(run.prepared!, run.request, coordinate[0], coordinate[1]));
         if (moon.clientProgramSelectedSourceInputKind(selected) !== 'query') throw clientOperationError('InstalledModelSourcePreparationUnavailable');
         const sourceRef = moon.clientProgramSelectedSourceInputRef(selected);
-        const adapter = installedSourceFor(run.sourceProfile, sourceRef);
+        const adapter = installedSourceFor(run.sourceProfile as Parameters<typeof installedSourceFor<MockModelSourceAdapter>>[0], sourceRef!);
         if (typeof adapter?.managedEffectPlanSelection !== 'function') throw clientOperationError('InstalledModelSourcePreparationUnavailable');
         const source = adapter.managedEffectPlanSelection(); current();
         const native = source?.nativeSource;
         if ((source?.declaration === undefined) === (native === undefined) ||
-            native === undefined && source.provider === undefined ||
-            typeof source.transferBytes !== 'bigint' || source.transferBytes < 0n ||
-            typeof source.executionBytes !== 'bigint' || source.executionBytes < 0n ||
+            native === undefined && source!.provider === undefined ||
+            typeof source!.transferBytes !== 'bigint' || source!.transferBytes < 0n ||
+            typeof source!.executionBytes !== 'bigint' || source!.executionBytes < 0n ||
             native !== undefined && (count !== 1 || native === null || !Object.isFrozen(native) ||
-              native.sourceRef !== sourceRef || source.provider !== undefined ||
+              native.sourceRef !== sourceRef || source!.provider !== undefined ||
               ![native.sourceRef, native.schema, native.table].every(value => typeof value === 'string' && value.length > 0) ||
               !Array.isArray(native.contracts) || !Object.isFrozen(native.contracts) || native.contracts.length !== 3 ||
               native.contracts.some(value => typeof value !== 'string' || value.length === 0))) {
           throw clientOperationError('InstalledModelSourcePreparationUnavailable');
         }
-        sources.push(source);
+        sources.push(source!);
       }
       const native = sources[0].nativeSource;
       if (native !== undefined) {
@@ -798,22 +1621,23 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         sourceArguments = [sources.map(source => source.declaration), sources.map(source => source.provider),
           readInitialControlInstallationAsset(initialControl, originals, 'spec/contracts/actql-query-acquisition.json'),
           readInitialControlInstallationAsset(initialControl, originals, 'spec/contracts/actql-query-process-evidence.json'),
-          sources.map(source => source.transferBytes), sources.map(source => source.executionBytes)];
+          sources.map(source => source!.transferBytes), sources.map(source => source!.executionBytes)];
       }
       run.modelSourceSelections = Object.freeze(sources);
     }
     run.preparedSequences = Reflect.apply(model.control[moduleName], model.control, [
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
-      ...sourceArguments, installed.admission, true, run.queryTimePreparation, (index, _capacity, prefix, bindSuffix) => {
+      ...sourceArguments, installed.admission, true, run.queryTimePreparation, (index: Parameters<ModelGroupConstructor>[0], _capacity: Parameters<ModelGroupConstructor>[1],
+          prefix: Parameters<ModelGroupConstructor>[2], bindSuffix: Parameters<ModelGroupConstructor>[3]) => {
         current();
         const member = members[index];
         if (member === undefined || member.component !== undefined || typeof bindSuffix !== 'function') {
           throw clientOperationError('ForeignInstalledModelPreparation');
         }
-        const component = openNodeComposedInferProvider({moon, selected: member.selection,
+        const component = openNodeComposedInferProvider({moon, selected: member.selection as EmbeddedInferMember,
           inputPrefix: prefix, bindComputeSuffix: bindSuffix, deferred: true, managedIo: nodePhysicalGroup});
         if (run.closed || Object.hasOwn(run, 'failure') || run.model !== model ||
-            originals.installation.computeRuns?.get(run.prepared) !== run) {
+            (originals!.installation as EmbeddedInstallation).computeRuns?.get(run.prepared!) !== run) {
           throw clientOperationError('ForeignInstalledModelPreparation');
         }
         member.component = component;
@@ -824,18 +1648,18 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     const planArguments = [parent, input, run.preparedSequences, run.request, model.compiled, model.runDefinition,
       Object.freeze(members.map(member => member.occurrence)), model.graph,
       Object.freeze(members.map(member => member.selectedBounds))];
-    if (nodePhysicalGroup) planArguments.push(index => {
+    if (nodePhysicalGroup) planArguments.push((index: number) => {
       current();
       const member = members[index], installation = member?.originalReadInstallation;
       if (installation === undefined || member.selection !== selected[index] ||
-          member.graph !== model.graph[index] || member.selection.originalReadInstallation !== installation ||
-          member.selection.quantityCapacity?.limits === undefined || member.selection.currentProvider() !== true) {
+          member.graph !== (model.graph as readonly unknown[])[index] || (member.selection as EmbeddedInferMember).originalReadInstallation !== installation ||
+          (member.selection as EmbeddedInferMember).quantityCapacity?.limits === undefined || (member.selection as EmbeddedInferMember).currentProvider() !== true) {
         throw clientOperationError('ForeignInstalledModelPreparation');
       }
-      member.selection.assertNewTrustedRuntime?.();
+      (member.selection as EmbeddedInferMember).assertNewTrustedRuntime?.();
       current();
       if (member.originalReadInstallation !== installation || member.selection !== selected[index] ||
-          member.selection.currentProvider() !== true) {
+          (member.selection as EmbeddedInferMember).currentProvider() !== true) {
         throw clientOperationError('ForeignInstalledModelPreparation');
       }
       return member;
@@ -856,7 +1680,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         plain && (model.selection?.graph !== model.graph || model.selection?.occurrence !== model.occurrence ||
           Object.getOwnPropertyDescriptor(model, 'component')?.value !== undefined ||
           Object.getOwnPropertyDescriptor(model, 'component')?.writable !== true) ||
-        run.sourceProfile !== originals.installation.managedSourceProfile || typeof construct !== 'function' ||
+        run.sourceProfile !== (originals!.installation as EmbeddedInstallation).managedSourceProfile || typeof construct !== 'function' ||
         typeof model.control[plain ? 'prepareCheckedClientRequestModelProviderComponentCaptureModule'
           : 'prepareCheckedClientRequestModelProviderCaptureModule'] !== 'function') {
       throw clientOperationError('InstalledModelSourcePreparationUnavailable');
@@ -866,7 +1690,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         typeof moon.clientProgramSelectedSourceInputRef !== 'function') {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     }
-    const selected = checked(moon.clientProgramSelectInstalledSourceInput(run.prepared, run.request, 0, 0));
+    const selected = checked(moon.clientProgramSelectInstalledSourceInput(run.prepared!, run.request, 0, 0));
     if (moon.clientProgramSelectedSourceInputKind(selected) !== 'query') {
       throw clientOperationError('InstalledModelSourcePreparationUnavailable');
     }
@@ -874,7 +1698,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     if (typeof sourceRef !== 'string' || sourceRef.length === 0) {
       throw clientOperationError('InstalledModelSourcePreparationUnavailable');
     }
-    const adapter = installedSourceFor(run.sourceProfile, sourceRef);
+    const adapter = installedSourceFor(run.sourceProfile as Parameters<typeof installedSourceFor<MockModelSourceAdapter>>[0], sourceRef!);
     if (typeof adapter?.managedEffectPlanSelection !== 'function') {
       throw clientOperationError('InstalledModelSourcePreparationUnavailable');
     }
@@ -884,11 +1708,11 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     current();
     const native = original?.nativeSource;
     if ((original?.declaration === undefined) === (native === undefined) ||
-        native === undefined && original.provider === undefined ||
-        typeof original.transferBytes !== 'bigint' || original.transferBytes < 0n ||
-        typeof original.executionBytes !== 'bigint' || original.executionBytes < 0n ||
+        native === undefined && original!.provider === undefined ||
+        typeof original!.transferBytes !== 'bigint' || original!.transferBytes < 0n ||
+        typeof original!.executionBytes !== 'bigint' || original!.executionBytes < 0n ||
         native !== undefined && (!plain || native === null || !Object.isFrozen(native) ||
-          native.sourceRef !== sourceRef || original.provider !== undefined ||
+          native.sourceRef !== sourceRef || original!.provider !== undefined ||
           ![native.sourceRef, native.schema, native.table].every(value => typeof value === 'string' && value.length > 0) ||
           !Array.isArray(native.contracts) || !Object.isFrozen(native.contracts) || native.contracts.length !== 3 ||
           native.contracts.some(value => typeof value !== 'string' || value.length === 0) ||
@@ -905,15 +1729,15 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
   if (model.serializationGraph !== undefined) {
     const content = run.contentPreparation;
     if (content === undefined || content.prepared !== run.prepared || content.managed !== run ||
-        content.plan.compiled !== model.compiled || content.plan.runDefinition !== model.runDefinition ||
-        content.plan.serializationGraph !== model.serializationGraph ||
+        content.plan!.compiled !== model.compiled || content.plan!.runDefinition !== model.runDefinition ||
+        content.plan!.serializationGraph !== model.serializationGraph ||
         typeof content.contentControl?.prepareModelRequestPrefix !== 'function') {
       throw clientOperationError('InstalledContentRunPreparationUnavailable');
     }
     // Retain the prefix before module/Scope/adoption or another current
     // callback. This is the same Request compiler and original workspace.
     run.serialization = content.contentControl.prepareModelRequestPrefix(parent, input,
-      run.request, model.compiled, model.runDefinition, content.prefixLimits,
+      run.request, model.compiled, model.runDefinition, content.prefixLimits!,
       content.workspace, run.queryTimePreparation);
     current();
   }
@@ -933,15 +1757,16 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
       }
       run.preparedSequences = model.control.prepareCheckedClientRequestModelSourceFreeComponentModule(
         parent, input, run.request, model.compiled, model.runDefinition, compilation,
-        installed.admission, retainedModelOutput, run.queryTimePreparation, (_capacity, prefix, bindSuffix) => {
+        installed.admission, retainedModelOutput, run.queryTimePreparation, (_capacity: Parameters<ModelComponentConstructor>[0], prefix: Parameters<ModelComponentConstructor>[1],
+          bindSuffix: Parameters<ModelComponentConstructor>[2]) => {
           current();
           if (model.component !== undefined || typeof bindSuffix !== 'function') {
             throw clientOperationError('ForeignInstalledModelPreparation');
           }
-          const component = openNodeComposedInferProvider({moon, selected: model.selection,
+          const component = openNodeComposedInferProvider({moon, selected: model.selection as EmbeddedInferMember,
             inputPrefix: prefix, bindComputeSuffix: bindSuffix, deferred: true});
           if (run.closed || Object.hasOwn(run, 'failure') || run.model !== model ||
-              originals.installation.computeRuns?.get(run.prepared) !== run) {
+              (originals!.installation as EmbeddedInstallation).computeRuns?.get(run.prepared!) !== run) {
             throw clientOperationError('ForeignInstalledModelPreparation');
           }
           model.component = component;
@@ -962,7 +1787,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         run.preparedSequences, run.request, model.compiled, model.runDefinition,
         model.occurrence, model.graph, model.selectedBounds, physical);
   } else if (count === 1) {
-    const original = run.modelSourceSelection;
+    const original = run.modelSourceSelection!;
     const native = original.nativeSource;
     const query = native === undefined ? readInitialControlInstallationAsset(initialControl, originals,
       'spec/contracts/actql-query-acquisition.json') : native.contracts[0];
@@ -977,18 +1802,19 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         : [native.sourceRef, native.schema, native.table, query, evidence, native.contracts[2]]),
       original.transferBytes, original.executionBytes, installed.admission,
       retainedRelationOutput, run.queryTimePreparation];
-    if (plain) args.push((_capacity, prefix, bindSuffix) => {
+    if (plain) args.push((_capacity: Parameters<ModelComponentConstructor>[0], prefix: Parameters<ModelComponentConstructor>[1],
+          bindSuffix: Parameters<ModelComponentConstructor>[2]) => {
       current();
       if (model.component !== undefined || typeof bindSuffix !== 'function') {
         throw clientOperationError('ForeignInstalledModelPreparation');
       }
-      const component = openNodeComposedInferProvider({moon, selected: model.selection,
+      const component = openNodeComposedInferProvider({moon, selected: model.selection as EmbeddedInferMember,
         inputPrefix: prefix, bindComputeSuffix: bindSuffix, deferred: true});
       // The deferred constructor has entered no physical read. Fence the
       // original bag without a callback before retaining this same output;
       // then keep it through any fallible current observation or Plan step.
       if (run.closed || Object.hasOwn(run, 'failure') || run.model !== model ||
-          originals.installation.computeRuns?.get(run.prepared) !== run) {
+          (originals!.installation as EmbeddedInstallation).computeRuns?.get(run.prepared!) !== run) {
         throw clientOperationError('ForeignInstalledModelPreparation');
       }
       model.component = component;
@@ -1005,7 +1831,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         run.preparedSequences, run.request, model.compiled, model.runDefinition,
         model.occurrence, model.graph, model.selectedBounds, physical);
   } else {
-    if (run.sourceProfile !== originals.installation.managedSourceProfile ||
+    if (run.sourceProfile !== (originals!.installation as EmbeddedInstallation).managedSourceProfile ||
         typeof moon.clientProgramRequestModelDirectSourceCoordinates !== 'function' ||
         typeof moon.clientProgramSelectInstalledSourceInput !== 'function' ||
         typeof moon.clientProgramSelectedSourceInputKind !== 'function') {
@@ -1020,7 +1846,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     }
     const kinds = coordinates.map(coordinate => {
       const selected = checked(moon.clientProgramSelectInstalledSourceInput(
-        run.prepared, run.request, coordinate[0], coordinate[1]));
+        run.prepared!, run.request, coordinate[0], coordinate[1]));
       const kind = moon.clientProgramSelectedSourceInputKind(selected);
       current();
       return kind;
@@ -1029,12 +1855,12 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     if (!whole && kinds.some(kind => kind !== 'query')) {
       throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
     }
-    const inventory = whole ? retainedManagedCaptureInventory(originals, run, contracts) : undefined;
+    const inventory = whole ? retainedManagedCaptureInventory(originals!, run, contracts) : undefined;
     if (whole && (!Array.isArray(inventory) || inventory.length !== count ||
         inventory.some(value => value.kind !== 'whole-input'))) {
       throw clientOperationError('InstalledSourcePreparationMismatch');
     }
-    const sources = whole ? inventory : readInstalledMockPreparation(originals).sources;
+    const sources = whole ? inventory! : readInstalledMockPreparation(originals!).sources;
     const construct = whole ? model.control.prepareCheckedClientRequestModelWholeInputsComponentCaptureModule
       : model.control.prepareCheckedClientRequestModelComponentCaptureModule;
     if (sources.length !== 2 || model.selection?.graph !== model.graph || model.component !== undefined ||
@@ -1052,18 +1878,20 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     const documentBytes = Object.freeze([1048576n, 1048576n]);
     run.preparedSequences = Reflect.apply(construct, model.control, [
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
-      sources.map(value => whole ? value.capacity : value.declaration), query, evidence,
-      whole ? inventory.map(value => value.transferBytes) : documentBytes,
-      whole ? inventory.map(value => value.executionBytes) : documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation,
-      (_capacity, prefix, bindSuffix) => {
+      sources.map(value => whole ? (value as CaptureCapacity).capacity
+        : (value as ReturnType<typeof readInstalledMockPreparation>['sources'][number]).declaration), query, evidence,
+      whole ? inventory!.map(value => value.transferBytes) : documentBytes,
+      whole ? inventory!.map(value => value.executionBytes) : documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation,
+      (_capacity: Parameters<ModelComponentConstructor>[0], prefix: Parameters<ModelComponentConstructor>[1],
+          bindSuffix: Parameters<ModelComponentConstructor>[2]) => {
         current();
         if (model.component !== undefined || typeof bindSuffix !== 'function') {
           throw clientOperationError('ForeignInstalledModelPreparation');
         }
-        const component = openNodeComposedInferProvider({moon, selected: model.selection,
+        const component = openNodeComposedInferProvider({moon, selected: model.selection as EmbeddedInferMember,
           inputPrefix: prefix, bindComputeSuffix: bindSuffix, deferred: true});
         if (run.closed || Object.hasOwn(run, 'failure') || run.model !== model ||
-            originals.installation.computeRuns?.get(run.prepared) !== run) {
+            (originals!.installation as EmbeddedInstallation).computeRuns?.get(run.prepared!) !== run) {
           throw clientOperationError('ForeignInstalledModelPreparation');
         }
         model.component = component;
@@ -1081,38 +1909,38 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
 // The separate selected Compute original covers this projection. An empty
 // declaration inventory is not a Source installation or a scalar admission:
 // Common still checks the same nominal preparation and its complete graph.
-export function readManagedComputeRunRequirements(originals, checkedPrepared) {
+export function readManagedComputeRunRequirements(originals: HostStartupOriginals, checkedPrepared: object) {
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, checkedPrepared);
-  const {initialControl, projectRuntime: moon} = originals.installation;
+  const {initialControl, projectRuntime: moon} = (originals as RequirementsOriginals).installation;
   if (initialControl === undefined || moon === undefined ||
       typeof moon.clientProgramInstalledManagedRunRequirements !== 'function') {
     throw clientOperationError('NodeManagedRunAdmissionUnavailable');
   }
-  const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
+  const asset = (path: string) => readInitialControlInstallationAsset(initialControl, originals, path);
   const contracts = installedManagedRunContracts(originals);
-  const run = originals.installation.computeRuns?.get(checkedPrepared);
+  const run = (originals as RequirementsOriginals).installation.computeRuns?.get(checkedPrepared);
   let limits;
   if (run?.sourceProfile !== undefined) {
     if (run.runtime !== moon || run.prepared !== checkedPrepared || run.closed ||
-        run.sourceProfile !== originals.installation.managedSourceProfile ||
+        run.sourceProfile !== (originals as RequirementsOriginals).installation.managedSourceProfile ||
         typeof moon.clientProgramInstalledManagedCaptureRunRequirements !== 'function') {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     }
     retainedManagedCaptureInventory(originals, run, contracts);
-    if (run.sourceCapacities.some(value => value.kind !== 'query')) {
+    if (run.sourceCapacities!.some(value => value.kind !== 'query')) {
       // Whole input must complete the original Request Plan constructor. The
       // legacy independent quote cannot cast its capacity into Query arrays.
       throw clientOperationError('InstalledWholeSourceRequestPreparationRequired');
     }
     limits = checked(moon.clientProgramInstalledManagedCaptureRunRequirements(
-      checkedPrepared, run.sourceCapacities.map(value => value.capacity),
-      run.sourceCapacities.map(value => value.transferBytes),
-      run.sourceCapacities.map(value => value.executionBytes),
+      checkedPrepared, run.sourceCapacities!.map(value => value.capacity),
+      run.sourceCapacities!.map(value => value.transferBytes),
+      run.sourceCapacities!.map(value => value.executionBytes),
       prepareInstalledSequenceContractOriginal(originals).admission,
       contracts.values, contracts.expression, contracts.ordered));
   } else if (run !== undefined) {
-    const retainedRelationOutput = originals.installation.retainedRelationOutput;
+    const retainedRelationOutput = (originals as RequirementsOriginals).installation.retainedRelationOutput;
     if (typeof retainedRelationOutput !== 'boolean' ||
         run.runtime !== moon || run.prepared !== checkedPrepared || run.closed ||
         typeof moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts !== 'function' ||
@@ -1168,11 +1996,11 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
 
 // Only the same Host's nominal checked Content preparation can project these
 // managed limits. This DATA does not issue its separate Resource original.
-export function readLocalContentRunRequirements(originals, prepared, selected) {
+export function readLocalContentRunRequirements(originals: HostStartupOriginals, prepared: object, selected: unknown) {
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, prepared);
-  const moon = originals.installation.projectRuntime;
-  if (originals.installation.projectSourcePreparation === undefined ||
+  const moon = (originals as RequirementsOriginals).installation.projectRuntime;
+  if ((originals as RequirementsOriginals).installation.projectSourcePreparation === undefined ||
       typeof moon?.clientProgramInstalledManagedKeyedContentCheckPreparation !== 'function' ||
       typeof moon?.clientProgramInstalledManagedKeyedContentRequirements !== 'function') {
     throw clientOperationError('InstalledContentRunPreparationUnavailable');
@@ -1191,12 +2019,13 @@ export function readLocalContentRunRequirements(originals, prepared, selected) {
 }
 
 // Mock preparation remains a distinct operational purpose on the same Host.
-export function readLocalMockModelRunRequirements(originals, prepared, model) {
+export function readLocalMockModelRunRequirements(originals: HostStartupOriginals, prepared: object,
+    model: LocalModelPlan & Readonly<{compilation?: unknown}>) {
   if (model?.compilation !== undefined) throw clientOperationError('InstalledEffectPlanUnavailable');
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, prepared);
-  const {initialControl, projectRuntime: moon} = originals.installation;
-  const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
+  const {initialControl, projectRuntime: moon} = (originals as RequirementsOriginals).installation;
+  const asset = (path: string) => readInitialControlInstallationAsset(initialControl, originals, path);
   const contracts = installedManagedRunContracts(originals);
   const declarations = moon.clientProgramAcquisitionCount(prepared) === 0 ? []
     : readInstalledMockPreparation(originals).sources.map(source => source.declaration);
@@ -1231,20 +2060,24 @@ export function readLocalMockModelRunRequirements(originals, prepared, model) {
 // after its original managed preparation holding exists, but before that Root
 // acquires the fixture FD and completes the same Source installation. The
 // opaque original is checked by the fixed Root receiver, never by its shape.
-export function prepareInstalledMockSourcePreparation(originals, originalSourceInstallation) {
+export function prepareInstalledMockSourcePreparation(originals: HostStartupOriginals, originalSourceInstallation: object) {
   assertSourceManagedHostPreparation(originals);
   assertSourceManagedPreparationCurrent(originalSourceInstallation, originals);
   const previous = profiles.mockPreparation(originals.host, originals.installation,
-    originals.generation, true);
+    originals.generation, true) as ProjectMockRetention | undefined;
   if (previous !== undefined) {
     if (previous.sourceInstallation !== originalSourceInstallation) {
       throw clientOperationError('ForeignInstalledMockPreparation');
     }
     return previous.flight;
   }
-  const {project, projectProfile, projectRuntime, declaredFileInstallationInventory: installationInventory} = originals.installation;
+  const {project, projectProfile, projectRuntime, declaredFileInstallationInventory: installationInventory} =
+    originals.installation as EmbeddedInstallation & Readonly<{
+      project: NonNullable<ProjectOriginal>; projectProfile: ReturnType<typeof selectInstalledProjectProfile>;
+      projectRuntime: BootstrapRuntime;
+    }>;
   if (installationInventory === undefined) throw clientOperationError('DeclaredFileInstallationUnavailable');
-  const retained = {runtime: projectRuntime, sourceInstallation: originalSourceInstallation,
+  const retained: ProjectMockRetention = {runtime: projectRuntime, sourceInstallation: originalSourceInstallation,
     view: undefined, flight: undefined};
   profiles.retainMockPreparation(originals.host, originals.installation,
     originals.generation, retained);
@@ -1270,10 +2103,11 @@ export function prepareInstalledMockSourcePreparation(originals, originalSourceI
 // Same existing Common intent admission/identity as the receiving Host. This
 // selected Source path avoids creating a separate native WebCrypto operation;
 // its Root checks the original receipt and registered frozen body first.
-export function sourceManagedSubmittedIntentCid(originals, originalSourceInstallation, body) {
+export function sourceManagedSubmittedIntentCid(originals: HostStartupOriginals, originalSourceInstallation: unknown,
+    body: WireClientBodyByOperation['submit'] & Readonly<{stopBefore?: unknown; readOnly?: unknown}>) {
   assertSourceManagedHostPreparation(originals);
   assertSourceManagedPreparationCurrent(originalSourceInstallation, originals);
-  const moon = originals.installation.projectRuntime;
+  const moon = (originals as RequirementsOriginals).installation.projectRuntime;
   const wire = canonicalValueJson({kind: body.kind, input: body.input,
     parameters: body.parameters,
     ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
@@ -1292,10 +2126,11 @@ export function sourceManagedSubmittedIntentCid(originals, originalSourceInstall
 
 // Same existing submitted-intent Owner, under the distinct actual Compute
 // installation. No Source original, copied packet or equal CID can replace it.
-export function managedComputeSubmittedIntentCid(originals, originalComputeInstallation, body) {
+export function managedComputeSubmittedIntentCid(originals: HostStartupOriginals, originalComputeInstallation: unknown,
+    body: WireClientBodyByOperation['submit'] & Readonly<{stopBefore?: unknown; readOnly?: unknown}>) {
   assertSourceManagedHostPreparation(originals);
   assertManagedComputePreparationCurrent(originalComputeInstallation, originals);
-  const moon = originals.installation.projectRuntime;
+  const moon = (originals as RequirementsOriginals).installation.projectRuntime;
   const wire = canonicalValueJson({kind: body.kind, input: body.input,
     parameters: body.parameters,
     ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
@@ -1312,18 +2147,21 @@ export function managedComputeSubmittedIntentCid(originals, originalComputeInsta
   return cid;
 }
 
-const bytesCid = bytes => `sha256:${createHash('sha256')
+const bytesCid = (bytes: BinaryLike) => `sha256:${createHash('sha256')
   .update(bytes).digest('hex')}`;
-const publicKeyCid = value => bytesCid(createPublicKey(value).export({
+const publicKeyCid = (value: Parameters<typeof createPublicKey>[0]) => bytesCid(createPublicKey(value).export({
   type: 'spki', format: 'der'}));
 
-async function embeddedInstallationIdentity(root, installation, project, moon, projectSources, configurationReader, accountConstruction) {
+async function embeddedInstallationIdentity(root: string, installation: InstallationIdentityInput | undefined,
+    project: ProjectOriginal, moon: Parameters<typeof installedProjectOriginalsForRuntime>[1],
+    projectSources: ProjectSourceOriginal | undefined, configurationReader: SourceIdentityReader,
+    accountConstruction: ReturnType<typeof createAccountConstruction> | undefined) {
   validateSourceNamespace(installation?.sourceNamespace);
   validateSourceNamespace(installation?.sourceSelectorNamespace);
   const connectorTable = installation?.connectorTable;
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   const sourcePaths = installedSourcePaths(installation, process.env.ACTQL_LOCAL_SOURCE_PROFILE,
-    captureSourceAliasConstruction(configurationReader, moon));
+    captureSourceAliasConstruction(configurationReader!, moon));
   const effectPaths = installedEffectPaths(installation);
   const identities = await Promise.all(sourcePaths.map(path =>
     installedSourceIdentity(path, {connectorTable, configurationReader, moon})));
@@ -1339,9 +2177,9 @@ async function embeddedInstallationIdentity(root, installation, project, moon, p
   const authorization = installation?.authorization;
   let accountIdentity = null;
   if (authorization?.accountConfiguration !== undefined || authorization?.accountConfig !== undefined) {
-    const frame = accountConstruction.begin();
+    const frame = accountConstruction!.begin();
     try {
-      const wire = authorization.accountConfiguration ?? await readAccountOriginal(authorization.accountConfig, frame);
+      const wire = authorization.accountConfiguration ?? await readAccountOriginal(authorization.accountConfig!, frame);
       frame.nativeJson(wire);
       accountIdentity = bytesCid(canonicalJson(JSON.parse(wire)));
       frame.finish(false);
@@ -1355,17 +2193,17 @@ async function embeddedInstallationIdentity(root, installation, project, moon, p
     version: 'actql-embedded-installation/0.1', root,
     ...(project === undefined ? {} : {project: {
       directory: project.directory,
-      configuration: bytesCid(Buffer.from(installedProjectOriginalsForRuntime(project, moon).configurationWire, 'utf8')),
+      configuration: bytesCid(Buffer.from(installedProjectOriginalsForRuntime(project, moon).configurationWire!, 'utf8')),
       registry: installedProjectOriginalsForRuntime(project, moon).modelRegistryWire === undefined ? null :
-        bytesCid(Buffer.from(installedProjectOriginalsForRuntime(project, moon).modelRegistryWire, 'utf8')),
+        bytesCid(Buffer.from(installedProjectOriginalsForRuntime(project, moon).modelRegistryWire!, 'utf8')),
       ...(projectSources === undefined ? {} : {connections:
-        bytesCid(Buffer.from(projectSources.originalsForRuntime(moon).connections.wire, 'utf8'))}),
+        bytesCid(Buffer.from(projectSources.originalsForRuntime(moon).connections.wire!, 'utf8'))}),
     }}),
     source, effect, accountIdentity, ordinary,
     ...(installation?.sourceSelectorNamespace === undefined ? {} : {
       sourceSelectorNamespace: installation.sourceSelectorNamespace}),
     ...(installation?.sourceNamespace === undefined ? {} : {
-      sourceNamespace: bytesCid(Buffer.from(installation.sourceNamespace, 'utf8'))}),
+      sourceNamespace: bytesCid(Buffer.from(installation!.sourceNamespace!, 'utf8'))}),
     ...(installation?.hostCapacityPolicy === undefined ? {} : {
       hostCapacityPolicy: installation.hostCapacityPolicy}),
     ...(installation?.hostLookupExecutionPolicy === undefined ? {} : {
@@ -1401,10 +2239,13 @@ async function embeddedInstallationIdentity(root, installation, project, moon, p
     faultInjection: authorization?.faultInjection})});
 }
 
-function sameEmbeddedInstallation(left, right) {
-  return left.identity === right.identity && left.connectorTable === right.connectorTable &&
-    Object.keys(left.callbacks).every(key =>
-      left.callbacks[key] === right.callbacks[key]);
+type EmbeddedInstallationIdentity = Awaited<ReturnType<typeof embeddedInstallationIdentity>>;
+function sameEmbeddedInstallation(left: unknown, right: unknown) {
+  return (left as EmbeddedInstallationIdentity).identity === (right as EmbeddedInstallationIdentity).identity &&
+    (left as EmbeddedInstallationIdentity).connectorTable === (right as EmbeddedInstallationIdentity).connectorTable &&
+    Object.keys((left as EmbeddedInstallationIdentity).callbacks).every(key =>
+      (left as EmbeddedInstallationIdentity).callbacks[key as keyof EmbeddedInstallationIdentity['callbacks']] ===
+        (right as EmbeddedInstallationIdentity).callbacks[key as keyof EmbeddedInstallationIdentity['callbacks']]);
 }
 
 function localStateRoot() {
@@ -1420,21 +2261,21 @@ function localStateRoot() {
 // decides the tuple (Site key, this realization, write) for each request.
 const REALIZATION_KEY = 'source-free-values';
 
-function validateValuesMaxRows(value) {
-  if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 2147483647)) {
+function validateValuesMaxRows(value: unknown) {
+  if (value !== undefined && (!Number.isSafeInteger(value) || (value as number) < 1 || (value as number) > 2147483647)) {
     throw new TypeError('InvalidLocalValuesRowLimit');
   }
 }
 
 // Only the JS/Int representation boundary lives here. Core selects its
 // unchanged default and enforces the actual cumulative fragment counters.
-function validateSourceFreeMaxWork(value) {
-  if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 2147483647)) {
+function validateSourceFreeMaxWork(value: unknown) {
+  if (value !== undefined && (!Number.isSafeInteger(value) || (value as number) < 1 || (value as number) > 2147483647)) {
     throw new TypeError('InvalidLocalSourceFreeWorkLimit');
   }
 }
 
-function validateSourceNamespace(value) {
+function validateSourceNamespace(value: unknown) {
   if (value !== undefined && (typeof value !== 'string' || !value || !value.isWellFormed() || Buffer.byteLength(value) > 256)) {
     throw new TypeError('InvalidSourceNamespaceDeclaration');
   }
@@ -1443,14 +2284,14 @@ function validateSourceNamespace(value) {
 // Capture implementation methods and their original receivers once. Both
 // admission and dispatch use this same ordinary route; Model and Content keep
 // their existing typed constructors, never the ordinary Pure fallback.
-function captureInstalledManagedRunRoute({sourceProfile, preparation, moon, prepareInvocation}) {
+function captureInstalledManagedRunRoute({sourceProfile, preparation, moon, prepareInvocation}: ManagedRunRouteOriginals) {
   const profilePrepare = sourceProfile?.prepareManagedRun;
   const sourcePrepare = preparation?.prepareManagedSourceRun;
   const computePrepare = preparation?.prepareManagedComputeRun;
   if (profilePrepare !== undefined && typeof profilePrepare !== 'function') {
     throw clientOperationError('InstalledManagedSourceUnavailable');
   }
-  return ({preparedProgram, requestIdentity, acquisitionCount, model, serializationCount}) => {
+  return ({preparedProgram, requestIdentity, acquisitionCount, model, serializationCount}: ManagedRunRouteInput) => {
     if (model !== undefined || serializationCount !== 0) {
       throw clientOperationError('InstalledManagedDomainPreparationRequired');
     }
@@ -1472,7 +2313,8 @@ function captureInstalledManagedRunRoute({sourceProfile, preparation, moon, prep
   };
 }
 
-async function openInstalledHost(originalInstallation, preparation) {
+async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation | undefined,
+    preparation: EmbeddedHostPreparation) {
   // Both installed Local and HTTP entrances supply this same fixed owner.
   // Standalone compiler callers use their separate adapter, never this Host.
   if (preparation === undefined || typeof preparation.fundedPreparation !== 'function' ||
@@ -1485,42 +2327,50 @@ async function openInstalledHost(originalInstallation, preparation) {
   modelInstallation, registerModelProviders, project, projectProfile, projectRuntime,
   calendarArtifact, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy,
-  retainedRelationOutput = false, valuesMaxRows, sourceFreeMaxWork, requestMemory, observation: observationConnection} = originalInstallation;
+  retainedRelationOutput = false, valuesMaxRows, sourceFreeMaxWork, requestMemory, observation: observationConnection} = originalInstallation!;
   // This is the actual returned Host generation, not a CID/configuration
   // stand-in or another resource Owner. The installer covers native/process
   // domains as trusted implementation responsibility, NOT zero bytes or RSS.
   const host = preparation?.host ?? {};
   let modelRuntimeClosing = false;
-  let preparedSourceEnvironment;
-  let clientProgramPreparationReferences;
-  let modelRuntimeView;
-  let modelRuntimeStartupView;
-  let modelSdkStaticOriginals;
-  let modelProviders;
-  let projectTasks;
-  let persistModelOriginals;
-  let configuredModelInstallation;
-  let mockModels;
-  let mockAccount;
-  let standardAccountPreparation;
-  let localCheckpointAnswer, localSigningMetadata;
-  const localSigningRecoveries = new Set();
-  let store;
-  let mockEffectObservation;
-  let mockEffectObservationMethods;
+  let preparedSourceEnvironment: Readonly<{
+    moon: Parameters<typeof retireSourceAliasPublicationOriginal>[0];
+    environment: Parameters<typeof retireSourceAliasPublicationOriginal>[1];
+    publication: Parameters<typeof retireSourceAliasPublicationOriginal>[2];
+  }> | undefined;
+  let clientProgramPreparationReferences: Readonly<{
+    owner: object; retire: ReturnType<typeof installNodeClientProgramPreparation>['retireReferences'];
+  }> | undefined;
+  let modelRuntimeView: ReturnType<typeof issueInferTrustedRuntimeView> | undefined;
+  let modelRuntimeStartupView: ReturnType<typeof associateInferTrustedStartupView>;
+  let modelSdkStaticOriginals: Parameters<typeof bindInferTrustedSdkStaticModules>[2];
+  let modelProviders: ConfiguredModelProviders['providers'];
+  let projectTasks: ConfiguredModelProviders['projectTasks'] | InstalledMockModels |
+    Awaited<ReturnType<typeof loadInstalledProjectModelTasks>>;
+  let persistModelOriginals: ConfiguredModelProviders['persistOriginals'];
+  let configuredModelInstallation: ConfiguredModelProviders['modelInstallationForRuntime'];
+  let mockModels: InstalledMockModels | undefined;
+  let mockAccount: MockAccountBinding | undefined;
+  let standardAccountPreparation: Awaited<ReturnType<typeof prepareOrdinaryLocalAccount>> | undefined;
+  let localCheckpointAnswer: LocalCheckpointAnswer | undefined;
+  let localSigningMetadata: ReturnType<ReturnType<typeof runtimeCore>['localSigningMetadata']> | undefined;
+  const localSigningRecoveries = new Set<RecoveredEffect>();
+  let store: InstalledPublicationStore | undefined;
+  let mockEffectObservation: MockEffectObservation | undefined;
+  let mockEffectObservationMethods: Pick<MockEffectObservation, 'limits' | 'statusFor' | 'closeFor'> | undefined;
   let localFileEffectInstallation;
-  const mockEffectRuns = new Map();
-  let mockEffectOriginals = new WeakMap();
-  const localFileEffectRuns = new Map();
-  let localFileEffectOriginals = new WeakMap();
+  const mockEffectRuns = new Map<unknown, MockEffectRun>();
+  let mockEffectOriginals = new WeakMap<object, MockEffectRun>();
+  const localFileEffectRuns = new Map<unknown, LocalFileEffectRun>();
+  let localFileEffectOriginals = new WeakMap<object, LocalFileEffectRun>();
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
   // A key is an actual Common-issued Scope; its value is retired only after
   // that Scope's original Common cleanup succeeds.
-  const modelRuntimeScopes = new WeakMap();
+  const modelRuntimeScopes = new WeakMap<object, ModelRuntimeScope>();
   const runtimeTarget = () => `${process.version}/${process.platform}/${process.arch}` +
     `/openssl:${process.versions.openssl}/v8:${process.versions.v8}`;
   const runtimeOriginals = () => ({host, supplier: openInstalledHost,
-    installation: originalInstallation, generation: host, runtime: process,
+    installation: originalInstallation!, generation: host, runtime: process,
     moduleLifetime: import.meta, transport: registerModelProviders, target: runtimeTarget()});
   function assertModelRuntime() {
     checkInferTrustedRuntimeView(modelRuntimeView, runtimeOriginals());
@@ -1538,7 +2388,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
     assertModelRuntime();
   }
-  function bindModelSdkStaticOriginals(originals) {
+  function bindModelSdkStaticOriginals(originals: Parameters<typeof bindInferTrustedSdkStaticModules>[2]) {
     // Existing borrow/current rechecks remain legal while cleanup is pending;
     // this check is not new-allocation or send admission during Host closing.
     assertModelRuntime();
@@ -1664,7 +2514,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // setup can fail. A current marker with no reference is not permission
     // to recreate a missing Account; only this same intent can resume it.
     standardAccountPreparation = await preparation.prepareStandardAccount(
-      principalId, authorization, rootCreation);
+      principalId, authorization as StandardAccountOptions['operatorAuthorization'], rootCreation);
   }
   if (!mockSourceInstallation && registerModelProviders !== undefined) {
     // The normal Host trusts its supported platform and embedding application.
@@ -1702,13 +2552,13 @@ async function openInstalledHost(originalInstallation, preparation) {
   const accountConstruction = preparation === undefined ? undefined
     : installedAccountConstruction(installationServices);
   const control = runtimeCore(moon).publicationControl;
-  async function releaseLocalSigningRecovery(recovered) {
+  async function releaseLocalSigningRecovery(recovered: RecoveredEffect | undefined) {
     // Recovery acquired real prepared-schema owners. Signing only borrows the
     // authenticated metadata, so relinquish those temporary owners without
     // retiring the original durable capture or requiring current authority.
-    const recoveryResources = recovered.recoveryResources;
-    await suspendCompletedEffectfulComputation({store, control, ...recovered.computation});
-    localSigningRecoveries.delete(recovered);
+    const recoveryResources = recovered!.recoveryResources;
+    await suspendCompletedEffectfulComputation({store: store!, control, ...recovered!.computation});
+    localSigningRecoveries.delete(recovered!);
     recovered = undefined;
     if (recoveryResources !== undefined && await recoveryResources.close() !== true) {
       throw clientOperationError('EffectCaptureResourceCleanupPending');
@@ -1736,10 +2586,10 @@ async function openInstalledHost(originalInstallation, preparation) {
     persistModelOriginals = configured.persistOriginals;
     configuredModelInstallation = configured.modelInstallationForRuntime;
   } else modelProviders = new Map();
-  const inferSelections = new WeakMap();
-  const earlyMockInferPlans = new WeakMap();
+  const inferSelections = new WeakMap<object, EmbeddedInferSelection>();
+  const earlyMockInferPlans = new WeakMap<object, EarlyModelOriginal>();
   const earlyContentPlans = new WeakMap();
-  function releaseRequestModelAliases(prepared) {
+  function releaseRequestModelAliases(prepared: object) {
     // The existing registry/Run retirement calls this fixed Host alias cut.
     // A retained Prepared key must not retain its Model graph/provider/Plan.
     // Physical Model and Effect selections keep their separate owners.
@@ -1748,11 +2598,11 @@ async function openInstalledHost(originalInstallation, preparation) {
     inferSelections.delete(prepared);
     earlyMockInferPlans.delete(prepared);
   }
-  function releaseRequestDomainAliases(prepared) {
-    releaseRequestModelAliases(prepared);
+  function releaseRequestDomainAliases(prepared: object | undefined) {
+    releaseRequestModelAliases(prepared as object);
     // Content calls this only from its same-record alias retirement, after
     // checked Run retirement or the original Request's abort/holder fence.
-    earlyContentPlans.delete(prepared);
+    earlyContentPlans.delete(prepared as object);
   }
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
@@ -1769,21 +2619,21 @@ async function openInstalledHost(originalInstallation, preparation) {
   const selectBaseEnvironment = (mode === 'remote' && effectInstallation !== undefined) ||
       selectedSourcePaths.length !== 0 || selectedEffectPaths.length !== 0
     ? selectInstalledHostEnvironment : selectInstalledLocalMaterializationEnvironment;
-  const baseEnvironmentWire = originalInstallation.declaredFileBaseEnvironmentWire ?? selectBaseEnvironment(
+  const baseEnvironmentWire = originalInstallation!.declaredFileBaseEnvironmentWire ?? selectBaseEnvironment(
     moon, environmentSource.trimEnd(), hostCapacityPolicy, selectedLookupPolicy, requestMemory,
     selectBaseEnvironment === selectInstalledLocalMaterializationEnvironment &&
       calendarArtifact === undefined && modelInstallation === undefined && mockModels === undefined &&
       (project === undefined || installedProjectOriginalsForRuntime(project, moon).modelRegistry === undefined));
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
-  let sourceProfile;
-  let sourcePublicationSources;
-  let sourceCheckpointInventory;
-  let installedEffect;
-  let environmentWire, effectiveHostCapacityPolicyCid;
+  let sourceProfile: InstalledHostSourceProfile | undefined;
+  let sourcePublicationSources: readonly SourceInventoryMember[] | undefined;
+  let sourceCheckpointInventory: EmbeddedInstallation['sourceCheckpointInventory'];
+  let installedEffect: EffectInventory | undefined;
+  let environmentWire: string, effectiveHostCapacityPolicyCid;
   let environmentBody, environmentEvidenceCid, composedEnvironment, finalEnvironmentOriginal;
-  let updateTargetOriginals;
-  function assertMockEffectRunOriginal(original) {
+  let updateTargetOriginals: ReturnType<typeof installUpdateTargetOriginals>;
+  function assertMockEffectRunOriginal(original: object) {
     assertProjectRuntime();
     preparation.assertResultPublicationCurrent();
     const retained = mockEffectOriginals.get(original);
@@ -1796,7 +2646,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // requests. Its authorization/claims remain the existing Effect owners'.
     return retained;
   }
-  function retainMockEffectRunOriginal(facts) {
+  function retainMockEffectRunOriginal(facts: EffectResourceOriginal) {
     assertProjectRuntime();
     if (mockEffectObservationMethods === undefined || facts.prepared === undefined ||
         facts.compilation === undefined || facts.allowed === undefined ||
@@ -1831,12 +2681,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     } catch (cause) {retained.failure = cause; throw cause;}
   }
   const mockEffectResources = Object.freeze({
-    bindRunOriginal(facts) {
+    bindRunOriginal(facts: EffectResourceInput) {
       const recovered = facts.recovered;
       if (recovered !== undefined) {
         // Recovery supplies newly validated local handles for the saved Run,
         // not an old process pointer or a fresh Source/Compute admission.
-        const retained = journal.lookupOwnedDefinition({namespaceId, authorityScopeCid,
+        const retained = journal!.lookupOwnedDefinition({namespaceId, authorityScopeCid,
           requestId: moon.clientRequestCallerId(recovered.requestIdentity),
           runDefinitionCid: recovered.runDefinition?.identity}, moon, control);
         if (retained === undefined || retained.runDefinition.identity !== recovered.runDefinition?.identity) {
@@ -1882,7 +2732,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         // original: authenticate the same request/record, its exact saved
         // evidence and the new typed Common binding, without reissuing any
         // physical Run/Scope or replacing its retained file-owner original.
-        const saved = journal.resolveDefinition(retained.identity,
+        const saved = journal!.resolveDefinition(retained.identity,
           {namespaceId}, moon, control);
         const evidence = saved?.runAdmissionEvidence;
         if (facts.allowed === undefined || saved?.runDefinition?.wire === undefined ||
@@ -1903,14 +2753,14 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       return retained.original;
     },
-    assertCurrent(original) {assertMockEffectRunOriginal(original);},
-    limits(original) {
+    assertCurrent(original: object) {assertMockEffectRunOriginal(original);},
+    limits(original: object) {
       const retained = assertMockEffectRunOriginal(original);
       if (retained.limits === undefined) throw clientOperationError('InstalledMockEffectResourcesUnavailable');
       return retained.limits;
     },
   });
-  function assertLocalFileEffectRunOriginal(original) {
+  function assertLocalFileEffectRunOriginal(original: object) {
     assertProjectRuntime();
     preparation.assertResultPublicationCurrent();
     const retained = localFileEffectOriginals.get(original);
@@ -1920,7 +2770,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     return retained;
   }
   const localFileEffectResources = Object.freeze({
-    bindRunOriginal(facts) {
+    bindRunOriginal(facts: EffectResourceInput) {
       assertProjectRuntime();
       preparation.assertResultPublicationCurrent();
       const actual = facts.recovered ?? facts;
@@ -1935,12 +2785,12 @@ async function openInstalledHost(originalInstallation, preparation) {
       const requestId = moon.clientRequestCallerId(identity);
       const definitionCid = moon.strategyPublicationContractIdentity(definition);
       const definitionWire = moon.strategyPublicationContractJson(definition);
-      const saved = journal.lookupOwnedDefinition({namespaceId, authorityScopeCid,
+      const saved = journal!.lookupOwnedDefinition({namespaceId, authorityScopeCid,
         requestId, runDefinitionCid: definitionCid}, moon, control);
       const evidence = saved?.runAdmissionEvidence;
       if (moon.clientRequestAuthorityScopeCid(identity) !== authorityScopeCid ||
           saved?.runDefinition?.identity !== definitionCid ||
-          saved.runDefinition.wire !== definitionWire ||
+          saved!.runDefinition.wire !== definitionWire ||
           evidence?.prepared !== moon.strategyRunEvidenceJson(
             moon.clientProgramAllowedEffectRunPrepared(allowed)) ||
           evidence?.authorization !== moon.strategyRunEvidenceJson(
@@ -1953,7 +2803,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       const checkedRun = checked(moon.clientProgramBindCompiledEffectRun(prepared, allowed, definition));
       const baseLimits = preparation.localFilesEffectLimits(moon);
       const managed = facts.managedEffect;
-      let limits = baseLimits;
+      let limits: LocalFileEffectRun['limits'] = baseLimits;
       if (managed !== undefined) {
         if (managed.runtime !== moon || managed.prepared !== prepared || managed.request !== identity ||
             managed.closed || typeof managed.controlConstruction !== 'function' ||
@@ -1964,7 +2814,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         // recovery still fund actual rows on this Run's existing controls.
         const shape = managed.controlConstruction(moon,
           moon.clientProgramInstalledEffectManagedPlanShape, [managed.operationPlan]);
-        const rows = runtimeField(shape, 0), members = runtimeField(shape, 1);
+        const rows = runtimeField(shape, 0) as number, members = runtimeField(shape, 1) as number;
         if (!Number.isSafeInteger(rows) || rows < 0 || rows > 2147483647 ||
             !Number.isSafeInteger(members) || members < 1 || members > 2147483647) {
           throw clientOperationError('InstalledLocalFileEffectResourcesUnavailable');
@@ -1982,7 +2832,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       } else if (retained.requestId !== requestId || retained.definitionWire !== definitionWire) {
         throw clientOperationError('ForeignInstalledLocalFileEffectRun');
       } else {
-        if (Object.keys(limits).some(key => limits[key] !== retained.limits[key])) {
+        if (Object.keys(limits).some(key => limits[key] !== retained!.limits[key])) {
           throw clientOperationError('ForeignInstalledLocalFileEffectRun');
         }
         retained.checkedRun = checkedRun;
@@ -1990,37 +2840,42 @@ async function openInstalledHost(originalInstallation, preparation) {
       assertLocalFileEffectRunOriginal(retained.original);
       return retained.original;
     },
-    assertCurrent(original) {assertLocalFileEffectRunOriginal(original);},
-    limits(original) {return assertLocalFileEffectRunOriginal(original).limits;},
+    assertCurrent(original: object) {assertLocalFileEffectRunOriginal(original);},
+    limits(original: object) {return assertLocalFileEffectRunOriginal(original).limits;},
   });
-  function selectedInstalledEffect({prepared, compilation, updateTargetSelections}) {
+  function selectedInstalledEffect({prepared, compilation, updateTargetSelections}:
+    Partial<Pick<EffectExecutionFacts, 'compilation' | 'updateTargetSelections'>> & Readonly<{prepared?: unknown}>) {
     const selections = updateTargetSelections ?? updateTargetOriginals?.selectionsOf(prepared);
     const implementation = installedEffect ?? effectInstallation;
     if (implementation?.effects === undefined) {
       validateInstalledUpdateOwnerSelections(implementation, selections, prepared);
       return implementation;
     }
-    let selected = effectSelections.get(prepared);
+    let selected = effectSelections.get(prepared as object);
     if (selected === undefined) {
-      selected = installedEffectFor(installedEffect,
+      selected = installedEffectFor<EffectMember>(installedEffect as RoutableEffect,
         installedRowEffectDescriptors(moon, prepared, compilation));
       selected.assertPrepared?.({moon, prepared, compilation});
-      effectSelections.set(prepared, selected);
+      effectSelections.set(prepared as object, selected);
     }
     validateInstalledUpdateOwnerSelections(selected, selections, prepared);
     return selected;
   }
-  function recoveredInstalledEffect(facts) {
-    const selections = facts.recovered.updateTargetSelections;
+  function recoveredInstalledEffect(facts: Parameters<NonNullable<Parameters<typeof createInstalledEffectSite>[0]['validateRecoveredInstallation']>>[0]) {
+    // This selection is supplied by recoverEffectCapture's restoreOriginal
+    // callback and checked again below against the retained Preview.
+    const selections = facts.recovered.updateTargetSelections as OriginalEffectSelection['selections'];
     facts.recovered.assertUpdateSelectionCurrent?.();
-    const provider = facts.continuation?.provider ?? facts.continuation;
+    const provider = (facts.continuation as (NonNullable<typeof facts.continuation> &
+      Readonly<{provider?: Readonly<{stage_index?: number}>; stage_index?: number}>) | undefined)?.provider ??
+      (facts.continuation as Readonly<{stage_index?: number}> | undefined);
     if (selections !== undefined || Object.hasOwn(provider ?? {}, 'stage_index')) {
       const preview = JSON.parse(facts.control.effectComputationPreviewWire(
         facts.recovered.computation.preview));
       try {
         updateTargetOriginals.validateRecoveredSelectionMembers({
-          selections, prepared: facts.recovered.prepared,
-          compilation: facts.recovered.compilation, preview, stageIndex: provider?.stage_index});
+          selections, prepared: (facts.recovered as RecoveredEffect & Partial<OriginalEffectSelection>).prepared,
+          compilation: (facts.recovered as RecoveredEffect & Partial<OriginalEffectSelection>).compilation, preview, stageIndex: provider?.stage_index!});
       } catch {
         throw refusedEffectPreparation(clientOperationError('InstalledEffectOriginalSelectionChanged'));
       }
@@ -2032,7 +2887,10 @@ async function openInstalledHost(originalInstallation, preparation) {
     // The capture owner has already authenticated and admitted this Preview.
     // Select its original contract inventory; never infer a new Program or Run.
     const preview = facts.recovered.computation.preview;
-    const body = JSON.parse(facts.control.effectComputationPreviewWire(preview));
+    const body = JSON.parse(facts.control.effectComputationPreviewWire(preview)) as Readonly<{
+      effects: readonly (Parameters<typeof updateTargetOriginals.validateRecoveredSelectionMembers>[0]['preview']['effects'][number] &
+        Readonly<{source_table_input?: unknown; capability_evidence_cid?: string}>)[];
+    }>;
     const descriptors = body.effects.map(member => member.effect_kind === 'command'
       ? {effectId: member.effect_id, kind: 'command', target: member.target,
         commandRef: member.contract, commandCid: member.resolved_command_contract_cid}
@@ -2041,7 +2899,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       mappingCid: member.resolved_mapping_contract_cid,
       ...(member.source_table_input === undefined ? {} : {capabilityCid: member.capability_evidence_cid})}));
     try {
-      const selected = installedEffectFor(installedEffect, descriptors);
+      const selected = installedEffectFor<EffectMember>(installedEffect as RoutableEffect, descriptors);
       validateInstalledUpdateOwnerSelections(selected, selections);
       return selected;
     }
@@ -2061,7 +2919,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       mockAccount = await preparation.initializeMockAccount(moon, principalId, authorization, mockModels);
       if (mockAccount !== undefined) authorization = mockAccount.authorization;
       sourceProfile = await preparation.installMockSources(moon, baseEnvironmentWire,
-        () => createLocalAuthorizationGate({...authorization, principal: principalId, accountConstruction}), installationServices);
+        () => createLocalAuthorizationGate({...authorization, principal: principalId, accountConstruction}) as ReturnType<MockSourceInstallation['authorizationFor']>,
+        installationServices) as InstalledMockSourceProfile & InstalledHostSourceProfile;
       if (preparation.sourcePreparation() !== installationSourcePreparation) {
         throw clientOperationError('InstalledSourcePreparationChanged');
       }
@@ -2071,14 +2930,14 @@ async function openInstalledHost(originalInstallation, preparation) {
         throw clientOperationError('InstalledProjectSourceCompositionUnavailable');
       }
       sourceProfile = await preparation.installProjectSources(moon, baseEnvironmentWire,
-        () => createLocalAuthorizationGate({...authorization, principal: principalId, accountConstruction}));
+        () => createLocalAuthorizationGate({...authorization, principal: principalId, accountConstruction}) as ReturnType<ProjectSourceInstallation['authorizationFor']>) as ProjectContentSource & InstalledHostSourceProfile;
       if (preparation.sourcePreparation() !== installationSourcePreparation) {
         throw clientOperationError('InstalledSourcePreparationChanged');
       }
     } else {
       sourceProfile = await loadInstalledSources(selectedSourcePaths,
         {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
-          resolveSecret: resolveSourceSecret, connectorTable, installationServices});
+          resolveSecret: resolveSourceSecret, connectorTable, installationServices}) as InstalledHostSourceProfile | undefined;
       // Namespace closure belongs to these loader originals. Managed views
       // retain execution custody but do not carry the loader's metadata proof.
       sourcePublicationSources = sourceProfile?.sources ??
@@ -2090,19 +2949,19 @@ async function openInstalledHost(originalInstallation, preparation) {
         runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret, connectorTable, installationServices});
       if (installationSourcePreparation !== undefined) {
         const projectEffects = await preparation.installProjectEffects(moon, baseEnvironmentWire,
-          () => createLocalAuthorizationGate({...authorization, principal: principalId, accountConstruction}),
-          principalId, localFileEffectResources, sourceProfile.connectorBindings, installationServices, sourceProfile);
+          () => createLocalAuthorizationGate({...authorization, principal: principalId, accountConstruction}) as ReturnType<ProjectEffectInstallation['authorizationFor']>,
+          principalId, localFileEffectResources, sourceProfile!.connectorBindings, installationServices, sourceProfile as ProjectEffectInstallation['sourceProfile']);
         localFileEffectInstallation = projectEffects;
-        if (installedEffect === undefined) installedEffect = projectEffects;
+        if (installedEffect === undefined) installedEffect = projectEffects as typeof projectEffects & EffectInventory;
         else {
           // Both returned inventories own their original installations. Reuse
           // the existing composition/cleanup path without loading profiles or
           // reconstructing another Site from matching selector DATA.
           const inventories = [installedEffect, projectEffects];
-          const combined = await composeInstalledEffects(
-            inventories.flatMap(effect => effect.effects ?? [effect]),
+          const combined = await composeInstalledEffects<EffectMember, Parameters<typeof composeInstalledEffects>[1], EffectMember>(
+            inventories.flatMap<EffectMember>(effect => effect.effects ?? [effect]),
             {moon, baseEnvironmentWire, installationServices}, async (effect, _options, retain) => {
-              retain(effect); return effect;
+              retain(effect as EffectMember & Readonly<{close(): unknown}>); return effect;
             });
           installedEffect = Object.freeze({...combined, queryStoreTargets: Object.freeze(
             inventories.flatMap(effect => effect.queryStoreTargets ?? []))});
@@ -2112,24 +2971,24 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (selectedEffectPaths.length !== 0 || effectInstallation !== undefined) {
         throw clientOperationError('InstalledMockEffectProfileConflict');
       }
-      const observeMockEffectWrite = original => {
-          const retained = mockEffectOriginals.get(original);
+      const observeMockEffectWrite = (original: unknown) => {
+          const retained = mockEffectOriginals.get(original as object);
           let ref;
           if (retained?.original === original) try {
             ref = {namespaceId, authorityScopeCid,
-              runDefinitionCid: moon.strategyPublicationContractIdentity(retained.definition)};
+              runDefinitionCid: moon.strategyPublicationContractIdentity(retained!.definition)};
           } catch { /* The returned write stays observable but unbound. */ }
           // An unreadable physical original must not borrow an ambient
           // caller's Run correlation as a substitute identity.
           diagnostic?.('effect_write_observed', {ref: ref ?? {}});
       };
       installedEffect = await preparation.installMockEffects(moon, baseEnvironmentWire,
-        () => createLocalAuthorizationGate({...authorization, principal: principalId, accountConstruction}),
-        principalId, mockEffectResources, sourceProfile,
-        observeMockEffectWrite, installationServices);
+        () => createLocalAuthorizationGate({...authorization, principal: principalId, accountConstruction}) as ReturnType<MockEffectInstallation['authorizationFor']>,
+        principalId, mockEffectResources, sourceProfile as InstalledMockSourceProfile & InstalledHostSourceProfile,
+        observeMockEffectWrite, installationServices) as Awaited<ReturnType<typeof installPreparedProjectMockEffects>> & EffectInventory;
       // Retain the actual factory result before a fallible observation/current
       // read, so the existing initialization carrier still owns its file child.
-      mockEffectObservation = observeInstalledMockEffectResources(installedEffect);
+      mockEffectObservation = observeInstalledMockEffectResources(installedEffect!);
       mockEffectObservationMethods = Object.freeze({limits: mockEffectObservation.limits,
         statusFor: mockEffectObservation.statusFor, closeFor: mockEffectObservation.closeFor});
       if (!Object.values(mockEffectObservationMethods).every(value => typeof value === 'function')) {
@@ -2145,13 +3004,13 @@ async function openInstalledHost(originalInstallation, preparation) {
       // still pending; no protected dispatch precedes its actual adoption.
       effectInstallation = createInstalledEffectSite({
         ...(installedEffect.effects === undefined ? installedEffect : {}),
-        environmentWire: installedEffect.environmentWire,
+        environmentWire: installedEffect.environmentWire!,
         prepareCaptured: facts => selectedInstalledEffect(facts).prepareCaptured(facts),
         validateRecoveredInstallation: facts => recoveredInstalledEffect(facts),
-        prepareRecovered: facts => recoveredInstalledEffect(facts).prepareRecovered({...facts,
+        prepareRecovered: facts => (recoveredInstalledEffect(facts) as Pick<EffectRoute, 'prepareRecovered'>).prepareRecovered({...facts,
           updateTargetSelections: facts.recovered.updateTargetSelections,
-          assertUpdateSelectionCurrent: facts.recovered.assertUpdateSelectionCurrent}),
-      });
+          assertUpdateSelectionCurrent: facts.recovered.assertUpdateSelectionCurrent} as Parameters<EffectRoute['prepareRecovered']>[0]),
+      }) as EmbeddedEffectSite;
     }
     if (effectInstallation !== undefined &&
         (typeof effectInstallation.environmentWire !== 'string' ||
@@ -2245,8 +3104,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         environmentBody = environmentEvidenceCid = undefined;
       }
     }
-    verifyInstalledConnectorBindings(sourceProfile,
-      installedEffect ?? effectInstallation);
+    verifyInstalledConnectorBindings(sourceProfile as Parameters<typeof verifyInstalledConnectorBindings>[0],
+      (installedEffect ?? effectInstallation) as Parameters<typeof verifyInstalledConnectorBindings>[1]);
   } catch (cause) {
     // An adapter that failed before returning its owner must clean up its
     // own partial acquisition. Preserve its original public failure when the
@@ -2259,7 +3118,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   }
   let environment;
   let evidenceCid;
-  let sourcePublication;
+  let sourcePublication: ReturnType<typeof sourceAliasPublication> | undefined;
   let textTimeEnabled;
   try {
     if (environmentBody === undefined) {
@@ -2306,12 +3165,14 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,
         sourceProfile?.queryAliases ?? [],
-        installedEffect?.queryTableBindings ?? effectInstallation?.queryTableBindings ?? [],
+        (installedEffect?.queryTableBindings ?? effectInstallation?.queryTableBindings ?? []) as Parameters<typeof sourceAliasPublication>[3],
         {construct: captureSourceAliasConstruction(installedSourceConfigurationReader(installationServices), moon),
-          readEnvironment: wire => readInstalledSourceEnvironment(installationServices, moon, wire),
+          readEnvironment: wire => readInstalledSourceEnvironment(installationServices, moon,
+            wire as Parameters<typeof readInstalledSourceEnvironment>[2]),
           updateTargets: installedEffect === undefined ? [] :
-          installedUpdateTargets(installedEffect, installedEffect.queryUpdateTargets ?? [], environmentWire),
-          storeTargets: installedEffect?.queryStoreTargets ?? [],
+          installedUpdateTargets(installedEffect as Parameters<typeof installedUpdateTargets>[0],
+            installedEffect.queryUpdateTargets ?? [], environmentWire),
+          storeTargets: (installedEffect?.queryStoreTargets ?? []) as NonNullable<Parameters<typeof sourceAliasPublication>[4]>['storeTargets'],
           namespace: sourceNamespace === undefined ? undefined : {
           name: sourceNamespace, profilePaths: selectedSourcePaths},
           selectorNamespace: sourceSelectorNamespace === undefined ? undefined : {
@@ -2324,7 +3185,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           captureSourceAliasConstruction(installedSourceConfigurationReader(installationServices), moon));
         // Retain before completing or borrowing: a later constructor failure
         // still belongs to this same initial Host's cleanup continuation.
-        if (preparation !== undefined) originalInstallation.sourceCheckpointInventory = sourceCheckpointInventory;
+        if (preparation !== undefined) originalInstallation!.sourceCheckpointInventory = sourceCheckpointInventory;
         completeInstalledSourceInitialization(installationServices, originalInstallation,
           sourceEnvironmentOriginal.preparedEnvironment, environmentWire,
           finalEnvironmentOriginal ?? (environment === composedEnvironment.admitted ? composedEnvironment : undefined));
@@ -2335,12 +3196,12 @@ async function openInstalledHost(originalInstallation, preparation) {
         preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,
           preparedEnvironment:sourceEnvironmentOriginal.preparedEnvironment});
         if (preparation !== undefined) {
-          originalInstallation.closedValuesPreparationContext = Object.freeze({runtime: moon,
-            control: originalInstallation.initialControl, environment,
+          originalInstallation!.closedValuesPreparationContext = Object.freeze({runtime: moon,
+            control: originalInstallation!.initialControl, environment,
             preparedEnvironment: sourceEnvironmentOriginal.preparedEnvironment, retainedRelationOutput,
-            valuesMaxRows: originalInstallation.valuesMaxRows,
-            sourceFreeMaxWork: originalInstallation.sourceFreeMaxWork,
-            requestMemory: originalInstallation.requestMemory});
+            valuesMaxRows: originalInstallation!.valuesMaxRows,
+            sourceFreeMaxWork: originalInstallation!.sourceFreeMaxWork,
+            requestMemory: originalInstallation!.requestMemory});
         }
       }
     }
@@ -2353,10 +3214,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       new Error('InvalidInstalledLocalEnvironment'),
       {sourceProfile, installedEffect});
   }
-  let registry;
-  let values;
-  let fragment;
-  let ordered;
+  let registry: DispatchInstallation['registry'];
+  let values: string;
+  let fragment: string;
+  let ordered: string;
   const namespaceId = 'local';
   const authorityScopeCid = cid({version: 'actql-local-owner-scope/0.1',
     root, principalId, ...(hostCapacityPolicy === undefined ? {} :
@@ -2364,9 +3225,10 @@ async function openInstalledHost(originalInstallation, preparation) {
     ...(hostLookupExecutionPolicy === undefined ? {} :
       {hostLookupExecutionPolicyCid: contentCid(hostLookupExecutionPolicy)})});
   const storeAuthorityCid = localPublicationStoreAuthorityCid(root, principalId);
-  let journal;
-  let originalJournalClose, publicationOwnership;
-  let unselectedJournalAttempted = false, unselectedJournalFailure;
+  let journal: ClientJournal | undefined;
+  let originalJournalClose: ClientJournal['close'] | undefined;
+  let publicationOwnership: Awaited<ReturnType<typeof prepareLocalPublicationStoreOwnership>> | undefined;
+  let unselectedJournalAttempted = false, unselectedJournalFailure: UnselectedJournalFailure | undefined;
   const publicationDirectory = join(root, 'publication');
   function hostJournalExclusion() {
     if (journal !== undefined) {
@@ -2379,8 +3241,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     const failure = unselectedJournalFailure;
     try {
       if (!failure.observed) {
-        failure.cleanup = failure.cause?.cleanupHandle;
-        failure.pending = failure.cause?.cleanupPending === true;
+        failure.cleanup = (failure.cause as {cleanupHandle?: UnselectedJournalFailure['cleanup']} | undefined)?.cleanupHandle;
+        failure.pending = (failure.cause as {cleanupPending?: unknown} | undefined)?.cleanupPending === true;
         failure.observed = true;
       }
       if (failure.cleanup === undefined) return Object.freeze({pending: failure.pending});
@@ -2425,7 +3287,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     publicationOwnership = undefined;
     unselectedJournalFailure = undefined;
   }
-  async function openHostRequestJournal(journalOptions) {
+  async function openHostRequestJournal(journalOptions: NonNullable<Parameters<typeof openClientRequestJournal>[1]>) {
     if (preparation === undefined) {
       // Every same-root writable Host route acquires the existing Store
       // exclusion before touching the Journal, not merely when Store opens.
@@ -2441,7 +3303,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         ? openClientRequestJournal(journalDirectory, journalOptions, publicationOwnership)
         : await preparation.openRequestJournal(journalDirectory, journalOptions);
       // Retain the acquired Journal before this fallible callback capture.
-      originalJournalClose = journal.close;
+      originalJournalClose = journal!.close;
       return journal;
     } catch (cause) {
       if (preparation === undefined && journal === undefined) {
@@ -2452,19 +3314,22 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
   }
   let effectEvidenceKey = mockAccount?.evidenceKey;
-  let checkpoints;
-  let runAcceptance;
-  let modelController;
-  let dispatchOwner;
-  let diagnostic;
-  let observation;
-  let localSnapshotConfiguration;
-  let ownerViews;
-  let activationFlight, activationFailure, publicationOpeningFailure;
+  let checkpoints: CheckpointServices | undefined;
+  let runAcceptance: RunAcceptance['runAcceptance'] | undefined;
+  let modelController: ConfiguredModelContinuation | undefined;
+  let dispatchOwner: ReturnType<typeof installNodeClientDispatchOwner> | undefined;
+  let diagnostic!: DiagnosticDelivery;
+  let observation: ReturnType<typeof installHostObservation>;
+  let localSnapshotConfiguration: ReturnType<typeof installLocalRetainedStore | typeof installLocalSnapshotStore> | undefined;
+  let ownerViews: ReturnType<typeof installClientEffectObservations> | undefined;
+  let activationFlight: Promise<ActivatedEmbeddedHost> | undefined;
+  let activationFailure: ActivationFailure | undefined;
+  let publicationOpeningFailure: Readonly<{cause: unknown}> | undefined;
   try {
     const delivery = createDiagnosticObserver(authorization?.observe);
-    diagnostic = Object.assign((event, detail) => {
-      observation?.diagnostic(event, detail);
+    diagnostic = Object.assign((event: unknown, detail: unknown) => {
+      observation?.diagnostic(event as Parameters<NonNullable<ReturnType<typeof installHostObservation>>['diagnostic']>[0],
+        detail as Parameters<NonNullable<ReturnType<typeof installHostObservation>>['diagnostic']>[1]);
       delivery(event, detail);
     }, {close: delivery.close, status: delivery.status});
     const sequenceContracts = preparation.readSequenceContracts();
@@ -2485,7 +3350,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // anything it created until a lease is transferred to the existing driver.
     const snapshotFactory = authorization?.faultInjection?.localSnapshotStoreFactory;
     if (snapshotFactory !== undefined &&
-        (typeof authorization.faultInjection !== 'function' ||
+        (typeof authorization!.faultInjection !== 'function' ||
           typeof snapshotFactory !== 'function')) {
       throw new TypeError('InvalidLocalSnapshotStoreFactory');
     }
@@ -2528,31 +3393,31 @@ async function openInstalledHost(originalInstallation, preparation) {
     const originalRequestPreparation = preparation.requestPreparation();
     observation = installHostObservation(observationConnection, {journal,
       runId: ref => {
-        const retained = journal.lookupRunDefinition(ref, moon, control);
+        const retained = journal!.lookupRunDefinition(ref, moon, control);
         return retained === undefined ? undefined :
           control.runDefinitionRunId(retained.runDefinition);
       }});
-    if (observation !== undefined) journal.installObservationProjection(observation);
-    const hostConnection = ({principalId: actual, connection, ref}) =>
+    if (observation !== undefined) journal!.installObservationProjection(observation);
+    const hostConnection = ({principalId: actual, connection, ref}: HostConnectionInput) =>
       actual === principalId &&
-      connection.mode === mode && connection.owner === mode &&
+      (connection as WireConnection).mode === mode && (connection as WireConnection).owner === mode &&
       (ref === undefined || ref.namespaceId === namespaceId &&
         ref.authorityScopeCid === authorityScopeCid);
-    const authorizedScope = ({principalId: actual}) =>
+    const authorizedScope = ({principalId: actual}: Pick<HostConnectionInput, 'principalId'>) =>
       actual === principalId ? {namespaceId, authorityScopeCid} : undefined;
     // One installed read policy supplies negotiation and the authorized
     // delivery grant. Publication output bounds are a separate purpose.
     const resultReadLimits = localResourceResultReadLimits(moon, requestMemory);
-    const negotiate = async value => ({version: 'actql-client-host/0.1',
+    const negotiate = async (value: NegotiationInput) => ({version: 'actql-client-host/0.1',
       mode, owner: mode, durability: 'durable',
       ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),
       scopeRef: authorityScopeCid,
       ...(hostConnection(value) ? {submissionEpoch: await issueNodeClientSubmissionEpoch({
-        journal,moon,authorizedScope: request => hostConnection(request)
+        journal: journal!,moon,authorizedScope: request => hostConnection(request)
           ? authorizedScope(request) : undefined},value)} : {}),
       capabilities: preparation !== undefined && typeof moon.clientSubmittedIntentRequestsDebug === 'function'
         ? ['result-jsonl', 'debug-operation-boundaries'] : ['result-jsonl'], limits: resultReadLimits});
-    const initializePublicationServices = async () => {
+    const initializePublicationServices = async (): Promise<ActivatedEmbeddedHost> => {
     try {
     if (preparation !== undefined) {
       // This separate original precedes Store/key/payload work; neither the
@@ -2566,10 +3431,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       try {
         effectEvidenceKey = await loadPrivateEvidenceKey(keyDirectory);
       } catch (error) {
-        if (error?.code !== 'PrivateEvidenceKeyUnavailable') throw error;
+        if ((error as SourceRefusal | undefined)?.code !== 'PrivateEvidenceKeyUnavailable') throw error;
         let existing = false;
         try { existing = (await stat(keyDirectory)).isDirectory(); }
-        catch (missing) { if (missing?.code !== 'ENOENT') throw missing; }
+        catch (missing) { if ((missing as SourceRefusal | undefined)?.code !== 'ENOENT') throw missing; }
         if (existing) throw error;
         await createPrivateEvidenceKey(keyDirectory);
         effectEvidenceKey = await loadPrivateEvidenceKey(keyDirectory);
@@ -2589,8 +3454,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       bindInferTrustedStore(modelRuntimeView, runtimeOriginals(), store, publicationStoreModule);
       assertModelRuntime();
     }
-    await persistModelOriginals?.(store);
-    if (mockAccount !== undefined) await mockAccount.adoptStore(store);
+    await persistModelOriginals?.(store!);
+    if (mockAccount !== undefined) await mockAccount.adoptStore(store!);
     if (standardAccountPreparation !== undefined) {
       const subjectFrame = accountConstruction?.begin();
       try {
@@ -2598,9 +3463,12 @@ async function openInstalledHost(originalInstallation, preparation) {
         let units = 0n, count = 0n;
         // Observe borrowed installed strings before flatMap/Set/sort/tuple lists.
         if (sourceCheckpointInventory !== undefined) {
-          for (const connection of sourceCheckpointInventory.connections) {units += BigInt(connection.length); count++;}
+          for (const connection of sourceCheckpointInventory.connections) {units += BigInt(connection!.length); count++;}
         } else {
-          const add = source => {
+          const add = (source: Readonly<{
+            sourceReadAccesses?: readonly Readonly<{connection: string}>[];
+            sourceAccess: Readonly<{connection: string}>;
+          }>) => {
             const accesses = source.sourceReadAccesses;
             if (accesses === undefined) {units += BigInt(source.sourceAccess.connection.length); count++;}
             else for (const access of accesses) {units += BigInt(access.connection.length); count++;}
@@ -2608,23 +3476,24 @@ async function openInstalledHost(originalInstallation, preparation) {
           if (sourceProfile?.sources !== undefined) {for (const source of sourceProfile.sources) add(source);}
           else if (sourceProfile !== undefined) add(sourceProfile);
         }
-        for (const entry of projectTasks?.originalsForRuntime(moon) ?? []) {
+        for (const entry of (projectTasks?.originalsForRuntime(moon) ?? []) as readonly ModelAccountTask[]) {
           units += BigInt(entry.providerId.length + entry.taskCid.length); count++;
         }
         subjectFrame.record(units + 512n, 64n + 16n * count, 4n);
       }
-      const configuredConnections = sourceCheckpointInventory?.connections ?? [...new Set((sourceProfile?.sources ??
+      const configuredConnections = (sourceCheckpointInventory?.connections ?? [...new Set((sourceProfile?.sources ??
         (sourceProfile === undefined ? [] : [sourceProfile]))
-        .flatMap(source => installedSourceReadAccesses(source).map(access => access.connection)))].sort();
-      const modelTasks = (projectTasks?.originalsForRuntime(moon) ?? [])
-        .map(entry => [entry.providerId, entry.taskCid])
+        .flatMap((source: Parameters<typeof installedSourceReadAccesses>[0]) =>
+          installedSourceReadAccesses(source).map(access => access.connection)))].sort()) as readonly string[];
+      const modelTasks = ((projectTasks?.originalsForRuntime(moon) ?? []) as readonly ModelAccountTask[])
+        .map(entry => [entry.providerId, entry.taskCid] as const)
         .sort((left, right) => left[0] < right[0] ? -1 : left[0] > right[0] ? 1
           : left[1] < right[1] ? -1 : left[1] > right[1] ? 1 : 0);
       const controlConnection = authorization?.siteKey ?? 'actql-remote-host';
       authorization = await standardAccountPreparation.adopt(moon, {
         controlConnection, configuredConnections, modelTasks,
         requestTarget: [controlConnection, sourceProfile?.realizationKey ?? REALIZATION_KEY],
-      }, store);
+      }, store!);
       subjectFrame?.hold(); subjectFrame?.finish(true);
       } catch (cause) {subjectFrame?.failure(cause); subjectFrame?.finish(false); throw cause;}
     }
@@ -2640,9 +3509,9 @@ async function openInstalledHost(originalInstallation, preparation) {
       throw cause;
     }
     effectEvidenceKey?.key.fill(0);
-  const lookupRequest = installNodeClientRequestLookup({journal,
+  const lookupRequest = installNodeClientRequestLookup({journal: journal!,
     control: moon, authorizedScope});
-  const startRun = installNodeClientRunStart({journal,
+  const startRun = installNodeClientRunStart({journal: journal!,
     requestControl: moon, publicationControl: control,
     authorizeRunStart: ({principalId: actual, connection, ref}) =>
       hostConnection({principalId: actual, connection, ref})});
@@ -2691,28 +3560,29 @@ async function openInstalledHost(originalInstallation, preparation) {
     maxNodes: resultReadLimits.maxRowWireBytes,
     maxDepth: localContractLimits.maxDepth,
   });
-  const resultService = installNodeResultAccessService({store, control,
+  const resultService = installNodeResultAccessService({store: store!, control,
     authority: resultAuthority, now, limits: resultDeliveryLimits,
     ...(preparation === undefined ? {} : {readWorkspace: preparation.resultReadWorkspace(moon)}),
     frameLimits: {maxRowBytes: resultReadLimits.maxRowWireBytes, maxDepth: 64,
       maxFrameBytes: 1024 * 1024}});
-  const stateService = installRunStateService({store, control,
+  const stateService = installRunStateService({store: store!, control,
     authority: installRunStateAuthority({
       authorizeRunState: ({principalId: actual}) => actual === principalId,
       resultPolicyAvailable: () => true,
     }), now, limits: localContractLimits});
-  const attach = installNodeClientRunAttach({journal,
+  const attach = installNodeClientRunAttach({journal: journal!,
     requestControl: moon, publicationControl: control, authorizedScope,
     authorizeRun: ({ref, principalId: actual}) =>
       actual === principalId && ref.namespaceId === namespaceId &&
       ref.authorityScopeCid === authorityScopeCid});
-  const checkingPublicationOriginal = sourceAliasPublicationOriginal(moon, environment, sourcePublication);
+  const checkingPublicationOriginal = sourceAliasPublicationOriginal(moon, environment, sourcePublication!);
   const checkSource = installNodeClientCheck({moon, environment,
     publication: sourcePublication,
-    updateTargetDisclosure: installedUpdateTargetDisclosure(installedEffect,
+    updateTargetDisclosure: installedUpdateTargetDisclosure(
+      installedEffect as Parameters<typeof installedUpdateTargetDisclosure>[0],
       sourcePublication?.updateTargets ?? [], principalId, () => {
         if (checkingPublicationOriginal === undefined ||
-            sourceAliasPublicationOriginal(moon, environment, sourcePublication) !== checkingPublicationOriginal) {
+            sourceAliasPublicationOriginal(moon, environment, sourcePublication!) !== checkingPublicationOriginal) {
           throw clientOperationError('ForeignInstalledCheckPublication');
         }
       }),
@@ -2723,14 +3593,15 @@ async function openInstalledHost(originalInstallation, preparation) {
         ...authorization, principal: actual, deferral: undefined, accountConstruction,
       }),
     }),
-    tableWriteAccesses: installedEffect?.queryTableWriteAccesses ??
-      effectInstallation?.queryTableWriteAccesses ?? [],
-    sourceAccesses: sourceCheckpointInventory?.accesses ?? (sourceProfile?.sources ??
+    tableWriteAccesses: (installedEffect?.queryTableWriteAccesses ??
+      effectInstallation?.queryTableWriteAccesses ?? []) as Parameters<typeof installNodeClientCheck>[0]['tableWriteAccesses'],
+    sourceAccesses: (sourceCheckpointInventory?.accesses ?? (sourceProfile?.sources ??
       (sourceProfile === undefined ? [] : [sourceProfile]))
-      .flatMap(installedSourceReadAccesses)});
+      .flatMap(installedSourceReadAccesses)) as Parameters<typeof installNodeClientCheck>[0]['sourceAccesses']});
   // Checking dispatches nothing and reads no source rows; the audience is
   // the authenticated caller this connection admits.
-  const check = async ({principalId: actual, connection, ...request}) => {
+  const check = async ({principalId: actual, connection, ...request}:
+      Parameters<typeof checkSource>[0] & HostConnectionInput) => {
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
@@ -2739,9 +3610,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     const result = await checkSource({principalId: actual, ...request});
     // The verdict belongs to the common checker. No diagnostic text, source
     // location, authored name, source bytes or hypothetical Run is projected.
-    observation?.emit('check', 'check_completed', {checkVerdict: result.report?.verdict,
-      outcome: result.report?.verdict === 'invalid' || result.outcome === 'failed'
-        ? 'failed' : result.report?.verdict === 'verified' ? 'succeeded' : 'unknown'});
+    observation?.emit('check', 'check_completed', {checkVerdict: (result as DiagnosticCheckOutcome).report?.verdict,
+      outcome: (result as DiagnosticCheckOutcome).report?.verdict === 'invalid' || result.outcome === 'failed'
+        ? 'failed' : (result as DiagnosticCheckOutcome).report?.verdict === 'verified' ? 'succeeded' : 'unknown'});
     return result;
   };
   Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
@@ -2750,20 +3621,22 @@ async function openInstalledHost(originalInstallation, preparation) {
     // Environment; a generic inverse default cannot replace its profiles.
     features: [textTimeEnabled, true, true, true, true, calendarArtifact !== undefined, false],
     limits: localContractLimits,
-    issueMaterials: facts => preparation.issueManagedEffectMaterials(moon, facts.prepared,
+    issueMaterials: facts => preparation.issueManagedEffectMaterials(moon, facts.prepared as object,
       facts.allowed, facts.definition, facts.identity, facts.compilation),
-    admitMaterials: facts => preparation.admitManagedEffectMaterials(moon, facts.prepared,
+    admitMaterials: facts => preparation.admitManagedEffectMaterials(moon, facts.prepared as object,
       facts.wire, facts.runDefinitionCid, facts.compilation, facts.identity, facts.features)});
-  const prepareSubmit = installNodeClientProgramPreparation({moon,
+  const prepareSubmit = installNodeClientProgramPreparation<object, OrdinaryFundedArgs[2]>({moon,
     environment, valuesMaxRows,
     getFundedPreparation: (request, selectedEnvironment, originalVerifier, signal) =>
-      preparation.fundedPreparation(request, selectedEnvironment, originalVerifier, signal, journal),
-    verifyRequestValuePolicy, restoreEffectOriginal: updateTargetOriginals.restorePrepared,
+      preparation.fundedPreparation(request, selectedEnvironment, originalVerifier, signal, journal) as ReturnType<FundedSubmitPreparation>,
+    verifyRequestValuePolicy: verifyRequestValuePolicy as OrdinaryFundedArgs[2],
+    restoreEffectOriginal: updateTargetOriginals.restorePrepared as NonNullable<Parameters<typeof installNodeClientProgramPreparation>[0]['restoreEffectOriginal']>,
     restoreInferOriginal: (original, definition, request, evidence, restorationRequest) =>
-      preparation.restoreManagedModelOriginal(moon, restorationRequest, original, definition, request,
-        (parent, input) => control.admitStoredClientInferRunOriginal(original, definition, request, evidence,
+      preparation.restoreManagedModelOriginal(moon, restorationRequest as object, original as InstalledModelRestoreArgs[1], definition as InstalledModelRestoreArgs[2], request as InstalledModelRestoreArgs[3],
+        (parent: unknown, input: object) => control.admitStoredClientInferRunOriginal(
+          original as RestoreInferArguments[0], definition as RestoreInferArguments[1], request, evidence as RestoreInferArguments[3],
           [false, true, true, true, true, calendarArtifact !== undefined, false], localContractLimits,
-          {parent, input})),
+          {parent, input}) as ReturnType<InstalledModelRestoreArgs[4]> & ReturnType<typeof control.admitStoredClientInferRunOriginal>),
     allowEffects: effectInstallation !== undefined});
   // The same complete dispatch retirement predicate covers installed ordinary
   // Sources using this Host's managed parent. Other purposes keep their owner.
@@ -2773,7 +3646,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     const serializations = moon.clientProgramSerializationOccurrences(prepared);
     const inventory = moon.clientProgramComposedInferOccurrences(prepared);
     if (!runtimeIsOk(inventory)) return false;
-    const count = runtimeField(inventory, 0).length;
+    const count = (runtimeField(inventory, 0) as readonly unknown[]).length;
     if (serializations.length !== 0) return serializations.length === 1 && count === 0 &&
       (moon.clientProgramAcquisitionCount(prepared) === 0 ||
         moon.clientProgramAcquisitionCount(prepared) === 2 && preparation.managesInstalledSources?.() === true) &&
@@ -2784,19 +3657,20 @@ async function openInstalledHost(originalInstallation, preparation) {
     return moon.clientProgramAcquisitionCount(prepared) === 0 ||
       preparation.managesInstalledSources?.() === true;
   }, prepared => {
-    const finish = preparation?.retireManagedComputeRun(prepared);
-    releaseRequestModelAliases(prepared);
-    prepareSubmit.retireOriginal(prepared);
+    const finish = preparation?.retireManagedComputeRun(prepared!);
+    releaseRequestModelAliases(prepared!);
+    prepareSubmit.retireOriginal(prepared!);
     return finish;
   }, typeof moon.clientProgramPreparationBorrowSibling !== 'function' ? undefined : {
-    runtime: moon, borrow: (prepared, request) => preparation?.borrowManagedPreparation?.(prepared, request),
+    runtime: moon, borrow: (prepared, request) => preparation?.borrowManagedPreparation?.(prepared, request!) as ReturnType<NonNullable<Parameters<typeof installLocalPreparationRegistry>[2]>['borrow']>,
   }, releaseRequestDomainAliases);
   preparation?.retainUndispatchedRetirement(localPreparationCustody.retireQuiescentUndispatched,
     localPreparationCustody.retireRetiringOriginal, releaseRequestDomainAliases);
   clientProgramPreparationReferences = Object.freeze({owner: prepareSubmit,
     retire: prepareSubmit.retireReferences});
-  const prepareCapturedSubmission = async (submission, ref) => {
-    const retained = ref === undefined ? undefined : journal.lookupRunDefinition(ref, moon, control);
+  const prepareCapturedSubmission = async (submission: object & Pick<EmbeddedSubmission, 'updateTargetPreparedOriginal'>,
+      ref?: WireRunRef) => {
+    const retained = ref === undefined ? undefined : journal!.lookupRunDefinition(ref, moon, control);
     if (retained !== undefined &&
         runUpdateSelectionCid(retained.runDefinition, moon) !== undefined &&
         submission.updateTargetPreparedOriginal === undefined) {
@@ -2805,22 +3679,22 @@ async function openInstalledHost(originalInstallation, preparation) {
     return submission.updateTargetPreparedOriginal === undefined ? prepareSubmit(submission)
       : prepareSubmit.restoreOriginal(submission.updateTargetPreparedOriginal);
   };
-  const capturedUpdateOriginal = submission => {
+  const capturedUpdateOriginal = (submission: Pick<EmbeddedSubmission, 'preparedProgram' | 'updateTargetPreparedOriginal'>) => {
     if (prepareSubmit.kindOf(submission.preparedProgram) !== 'effectful') return {};
-    const original = effectRun.capturePreparedOriginal(submission.preparedProgram,
+    const original = effectRun!.capturePreparedOriginal(submission.preparedProgram,
       submission.updateTargetPreparedOriginal);
     return original === undefined ? {} : {updateTargetPreparedOriginal: original};
   };
-  const plan = installClientStaticPlan({moon, control, prepare: prepareSubmit,
+  const plan = installClientStaticPlan<HostRequest<'plan'>, ReturnType<typeof prepareSubmit>>({moon, control, prepare: prepareSubmit,
     authorize: hostConnection,
     readOriginal: request => preparation.readStaticPlan(request, environment,
-      verifyRequestValuePolicy, request.signal, modelInstallation)});
+      verifyRequestValuePolicy as OrdinaryFundedArgs[2], request.signal, modelInstallation)});
   const staticEffectExplanation = preparation !== undefined &&
     ['clientProgramReadRequestCheckedStaticEffectExplanation',
       'clientProgramStaticEffectExplanationPlanWire', 'clientProgramStaticEffectExplanationFactsWire',
       'clientProgramStaticEffectExplanationContextWire'].every(function hasStaticExplanationPort(name) {
       return typeof Object.getOwnPropertyDescriptor(moon, name)?.value === 'function';
-    }) ? installClientStaticEffectExplanation({
+    }) ? installClientStaticEffectExplanation<HostRequest<'static-explanation'>>({
       authorize: hostConnection,
       authorizeEgress(request) {
         if (!hostConnection(request)) return false;
@@ -2829,13 +3703,13 @@ async function openInstalledHost(originalInstallation, preparation) {
       },
       withOriginal(request, visit) {
         return preparation.readStaticEffectExplanation(request, environment,
-          verifyRequestValuePolicy, request.signal, visit, modelInstallation);
+          verifyRequestValuePolicy as OrdinaryStaticEffectArgs[2], request.signal, visit, modelInstallation);
       },
     }) : undefined;
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
-        store, storeAuthorityCid, authorityScopeCid, namespaceId, now, observe: diagnostic,
+        store: store!, storeAuthorityCid, authorityScopeCid, namespaceId, now, observe: diagnostic,
         observation, inferEvidence: evidenceConfiguration,
         getCheckpoints: () => checkpoints});
     }
@@ -2850,7 +3724,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         ? {effectTarget: effectInstallation?.targetReadAuthorization}
         : {effectTargets: installedEffect.effects.filter(effect =>
           effect.targetReadAuthorization !== undefined).map(effect => ({
-          selectors: effect.effectSelectors, authorization: effect.targetReadAuthorization}))}),
+          selectors: effect.effectSelectors as NonNullable<Parameters<typeof installHostRunAcceptance>[0]['effectTargets']>[number]['selectors'], authorization: effect.targetReadAuthorization!}))}),
       authorization: authorization == null ? authorization :
         {...authorization, observe: diagnostic},
       ...(sourceCheckpointInventory !== undefined
@@ -2861,10 +3735,11 @@ async function openInstalledHost(originalInstallation, preparation) {
         ? {source: sourceProfile === undefined ? undefined : {
           ...sourceProfile.readAuthorization,
           sourceRef: installedSourceReadAccesses(sourceProfile)[0].sourceRef}}
-        : {sources: (sourceProfile?.sources ?? [sourceProfile]).flatMap(source =>
+        : {sources: (sourceProfile?.sources ?? [sourceProfile]).flatMap((source: Parameters<typeof installedSourceReadAccesses>[0]) =>
           installedSourceReadAccesses(source).map(access => ({
             sourceRef: access.sourceRef, ...source.readAuthorization})))})}));
-  const projectRunObservation = (ref, state, retained) => {
+  const projectRunObservation = (ref: WireRunRef, state: Readonly<{status: string; cleanupPending?: boolean}>,
+      retained: NonNullable<JournalObservationFrame>) => {
     if (observation === undefined) return;
     try {
       // MoonBit fixes the projection equivalence. SQLite only retains this
@@ -2881,7 +3756,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         cleanupPending: state.cleanupPending}, {ownerFactKey});
     } catch { observation.noteLoss(); }
   };
-  const observeRun = async ({ref, principalId: actual}, originalFrame, retainFrame) => {
+  const observeRun = async ({ref, principalId: actual}: RunObservationInput,
+      originalFrame?: JournalObservationFrame, retainFrame?: (frame: JournalObservationFrame) => void) => {
     if (actual !== principalId || ref.namespaceId !== namespaceId ||
         ref.authorityScopeCid !== authorityScopeCid) {
       throw clientOperationError('RunStateAccessDenied');
@@ -2889,20 +3765,20 @@ async function openInstalledHost(originalInstallation, preparation) {
     // Recheck the journal revision after asynchronous Store observation so
     // control facts never combine observations from two journal revisions.
     for (let attempt = 0; attempt < 8; attempt++) {
-      const retained = journal.lookupRunDefinition(ref, moon, control, originalFrame);
+      const retained = journal!.lookupRunDefinition(ref, moon, control, originalFrame);
       if (retained === undefined) {
         throw clientOperationError('RunStateAccessDenied');
       }
-      const observeControl = journal.observeRunCancellation(ref, moon, control,
+      const observeControl = journal!.observeRunCancellation(ref, moon, control,
         retained);
       const runId = control.runDefinitionRunId(retained.runDefinition);
-      let state;
+      let state: RunObservationProjection;
       let continuation;
       const committedState = await observeAuthorizedRunState(stateService, {
         indexKey: ref, principalId: actual, purpose: 'inspect',
       });
       if (committedState !== undefined) {
-        state = committedState;
+        state = committedState as RunObservationProjection;
       } else {
         if (!Array.isArray(retained.resultNames)) {
           throw new Error('RunStateInventoryUnknown');
@@ -2915,22 +3791,22 @@ async function openInstalledHost(originalInstallation, preparation) {
           // the Checkpoint lifecycle alone.
           continue;
         }
-        if (!dispatchOwner.live(ref) && !modelResumeFlights.has(ref.runDefinitionCid) &&
+        if (!dispatchOwner!.live(ref) && !modelResumeFlights.has(ref.runDefinitionCid) &&
             (checkpoints?.journal.hasUnresolvedModelCalls(runId) === true ||
             continuation?.status === 'resuming' &&
-            (checkpoints.hasUnresolvedSourceStart(runId, ref.runDefinitionCid) ||
-             checkpoints.hasUnresolvedEffectTargetStart(runId, ref.runDefinitionCid) ||
-             checkpoints.hasUnresolvedModelStart(runId, ref.runDefinitionCid)))) {
+            (checkpoints!.hasUnresolvedSourceStart(runId, ref.runDefinitionCid) ||
+             checkpoints!.hasUnresolvedEffectTargetStart(runId, ref.runDefinitionCid) ||
+             checkpoints!.hasUnresolvedModelStart(runId, ref.runDefinitionCid)))) {
           state = issueInstalledUnpublishedRunState(moon, {runId,
             observedAt: now(), resultNames: retained.resultNames,
             dispatchReserved: true, preDispatchFailureConfirmed: false,
             cancelledBeforeStart: false, observedTerminalOutcome: 'none',
-            executionUnknown: true});
+            executionUnknown: true}) as RunObservationProjection;
         } else if (continuation !== undefined &&
             continuation.status !== 'running') {
-          state = continuation.runState;
+          state = continuation.runState as RunObservationProjection;
         } else {
-          const liveExecution = dispatchOwner.live(ref);
+          const liveExecution = dispatchOwner!.live(ref);
           // A definite pre-Entry refusal can have a settled execution promise
           // while its original stop/cleanup is still being confirmed. Only
           // this exact retained failure uses the pending path. A durable
@@ -2939,7 +3815,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             !retained.preDispatchFailureConfirmed &&
             retained.physicalStartReserved !== false &&
             retained.observedTerminalOutcome === null && !liveExecution &&
-            !dispatchOwner.credentialRefusalPending(ref);
+            !dispatchOwner!.credentialRefusalPending(ref);
           state = issueInstalledUnpublishedRunState(moon, {
             runId, observedAt: now(), resultNames: retained.resultNames,
             dispatchReserved: retained.dispatchReserved,
@@ -2950,18 +3826,18 @@ async function openInstalledHost(originalInstallation, preparation) {
             observedTerminalOutcome:
               retained.observedTerminalOutcome ?? 'none',
             executionUnknown,
-          });
+          }) as RunObservationProjection;
         }
       }
       const after = observeControl();
       if (after?.revision !== retained.revision) continue;
       if (continuation !== undefined) {
-        const afterContinuation = checkpoints.effectRunState(runId,
+        const afterContinuation = checkpoints!.effectRunState(runId,
           ref.runDefinitionCid);
         if (afterContinuation?.version !== continuation.version) continue;
       }
-      if (state.status === 'running' && !dispatchOwner.live(ref) &&
-          retained.physicalStartReserved === true && !dispatchOwner.credentialRefusalPending(ref)) {
+      if (state.status === 'running' && !dispatchOwner!.live(ref) &&
+          retained.physicalStartReserved === true && !dispatchOwner!.credentialRefusalPending(ref)) {
         continue;
       }
       // Only this revision-stable common Owner projection supplies status.
@@ -2971,51 +3847,51 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (state.status === 'failed' && retained.physicalCloseConfirmed === true &&
           retained.observedTerminalOutcome === 'failed' &&
           state.terminal_error?.code === 'ACTQL_E_UNPUBLISHED_RUN') {
-        const message = dispatchOwner.failureMessage?.(ref);
+        const message = dispatchOwner!.failureMessage?.(ref);
         if (message !== undefined) state = {...state,
           terminal_error: {...state.terminal_error, message}};
       }
       projectRunObservation(ref, state, retained);
       try {
-        const observed = JSON.parse(journal.publishRunState(retained, state,
-          moon, control));
+        const observed = JSON.parse(journal!.publishRunState(retained, state,
+          moon, control)) as WireRunState;
         retainFrame?.(retained);
         return observed;
       } catch (cause) {
-        if (cause?.code === 'RunStateObservationChanged') continue;
+        if ((cause as SourceRefusal | undefined)?.code === 'RunStateObservationChanged') continue;
         throw cause;
       }
     }
     throw new Error('RunStateObservationUnstable');
   };
-  const cancelEffectContinuation = async ref => {
+  const cancelEffectContinuation = async (ref: WireRunRef) => {
     if (checkpoints === undefined) return false;
-    const retained = journal.lookupRunDefinition(ref, moon, control);
+    const retained = journal!.lookupRunDefinition(ref, moon, control);
     if (retained === undefined || !retained.cancellationRequested) {
       return false;
     }
-    return cancelNodeRunContinuation({ref, journal, store, checkpoints, moon, control,
-      currentDispatchIdle: () => dispatchOwner.operation(ref) === undefined &&
+    return cancelNodeRunContinuation({ref, journal: journal!, store: store!, checkpoints, moon, control,
+      currentDispatchIdle: () => dispatchOwner!.operation(ref) === undefined &&
         !effectResumeFlights.has(ref.runDefinitionCid) &&
         !modelResumeFlights.has(ref.runDefinitionCid)});
   };
-  const continueAcceptedCancellation = async (ref, accepted) => {
+  const continueAcceptedCancellation = async (ref: WireRunRef, accepted: CancellationDecision) => {
     if (accepted.kind === 'already_terminal') return;
-    dispatchOwner.cancel(ref);
+    dispatchOwner!.cancel(ref);
     try { await cancelEffectContinuation(ref); }
     finally { void checkpoints?.sweep(); }
   };
   // Request-level cancellation already owns its own pre-Run receipt. Its
   // transfer to a defined Run remains separate from a Client cancel operation.
-  const cancelRequestRun = async ({ref, principalId: actual, connection}) => {
+  const cancelRequestRun = async ({ref, principalId: actual, connection}: HostRequest<'status'>) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
       throw clientOperationError('ClientRunCancellationDenied');
     }
     // Authorization precedes existence queries. A late publication remains a
     // successful Run even if cancellation was accepted while it committed.
     const publicationCommitted =
-      await store.confirmCommittedIndex(ref) !== undefined;
-    const retained = journal.lookupRunDefinition(ref, moon, control);
+      await store!.confirmCommittedIndex(ref) !== undefined;
+    const retained = journal!.lookupRunDefinition(ref, moon, control);
     if (retained === undefined) throw clientOperationError('ClientRunCancellationDenied');
     const originalRunWire = retained.runAdmissionEvidence?.modelOriginalRunWire;
     if (!publicationCommitted && originalRunWire !== undefined) {
@@ -3025,29 +3901,29 @@ async function openInstalledHost(originalInstallation, preparation) {
       // sticky fence; no acknowledgement precedes both durable writes.
       checkpoints.journal.fenceRunCancellation({originalRunWire});
     }
-    const accepted = journal.requestCancellation(ref, {
+    const accepted = journal!.requestCancellation(ref, {
       currentAuthorization: true, publicationCommitted,
     }, moon, control);
     await continueAcceptedCancellation(ref, accepted);
     observation?.emit('run', 'cancellation_requested', {ref,
-      revision: accepted.revision, outcome: accepted.outcome});
+      revision: accepted.revision, outcome: (accepted as CancellationDecision & Readonly<{outcome?: string}>).outcome});
     return accepted;
   };
-  const cancel = async ({ref, cancelId, expectedRevision, attemptRef, principalId: actual, connection}) => {
+  const cancel = async ({ref, cancelId, expectedRevision, attemptRef, principalId: actual, connection}: HostRequest<'cancel'>) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
-      return journal.recordCancellationAttempt(ref, {attemptRef, cancelId, expectedRevision,
+      return journal!.recordCancellationAttempt(ref, {attemptRef, cancelId, expectedRevision,
         currentAuthorization: false, publicationCommitted: false}, moon, control);
     }
-    const publicationCommitted = await store.confirmCommittedIndex(ref) !== undefined;
+    const publicationCommitted = await store!.confirmCommittedIndex(ref) !== undefined;
     // Recheck current connection authority after the publication observation.
     // The journal then compares the original revision under its write lock.
     if (!hostConnection({principalId: actual, connection, ref})) {
-      return journal.recordCancellationAttempt(ref, {attemptRef, cancelId, expectedRevision,
+      return journal!.recordCancellationAttempt(ref, {attemptRef, cancelId, expectedRevision,
         currentAuthorization: false, publicationCommitted: false}, moon, control);
     }
     let recorded;
     try {
-      recorded = journal.recordCancellationAttempt(ref, {
+      recorded = journal!.recordCancellationAttempt(ref, {
         attemptRef, cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
         modelCancellationOwner: checkpoints?.journal,
       }, moon, control);
@@ -3058,7 +3934,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       // to advance cancellation, and the lost reply remains unknown to the SDK.
       let retained;
       try {
-        retained = journal.lookupCancellationOperation({...ref, cancelId, expectedRevision},
+        retained = journal!.lookupCancellationOperation({...ref, cancelId, expectedRevision},
           {currentAuthorization: hostConnection({principalId: actual, connection, ref})},
           moon, control);
       } catch { /* Recovery remains with the durable journal and its existing sweep. */ }
@@ -3069,18 +3945,19 @@ async function openInstalledHost(originalInstallation, preparation) {
       throw cause;
     }
     if (recorded.kind === 'refused' || recorded.kind === 'conflict') return recorded;
-    const accepted = recorded.cancellation;
-    if (recorded.recorded) await continueAcceptedCancellation(ref, accepted);
+    const accepted = (recorded as AcceptedCancellationAttempt).cancellation;
+    if ((recorded as AcceptedCancellationAttempt).recorded) await continueAcceptedCancellation(ref, accepted);
     observation?.emit('run', 'cancellation_requested', {ref,
-      revision: accepted.revision, outcome: accepted.outcome});
-    const {recorded: _recorded, ...outcome} = recorded;
+      revision: accepted.revision, outcome: (accepted as typeof accepted & Readonly<{outcome?: string}>).outcome});
+    const {recorded: _recorded, ...outcome} = recorded as AcceptedCancellationAttempt;
     return Object.freeze(outcome);
   };
-  const lookupCancellation = ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
+  const lookupCancellation = ({ref, cancelId, expectedRevision, principalId: actual,
+      connection}: HostRequest<'lookup-cancellation'>) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
       throw clientOperationError('ClientCancellationDenied');
     }
-    return journal.lookupCancellationOperation({...ref, cancelId, expectedRevision},
+    return journal!.lookupCancellationOperation({...ref, cancelId, expectedRevision},
       {currentAuthorization: true}, moon, control);
   };
   // Cancel a request by its ID. For a request this Host held, the
@@ -3090,13 +3967,13 @@ async function openInstalledHost(originalInstallation, preparation) {
   // cancellation is then applied to that Run through its own cancellation,
   // which the physical start reservation observes atomically.
   const cancelRequest = async ({principalId: actual, connection,
-    requestId}) => {
+    requestId}: HostRequest<'cancel-request'>) => {
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientRequestCancellationDenied');
     }
     const held = checkpoints?.heldOrigin(requestId)
       ? checkpoints.cancelHeld(requestId) : undefined;
-    const existing = journal.lookupDefinition({namespaceId, authorityScopeCid,
+    const existing = journal!.lookupDefinition({namespaceId, authorityScopeCid,
       requestId}, moon, control);
     if (existing !== undefined) {
       const run = await cancelRequestRun({ref: existing.ref, principalId: actual,
@@ -3109,30 +3986,30 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (held === undefined) {
       throw clientOperationError('ClientRequestNotFound');
     }
-    void checkpoints.sweep();
+    void checkpoints!.sweep();
     return {requestId, kind: held.outcome};
   };
   // Share one settlement reaction per original work Promise. A timed-out
   // waiter removes its own listener without abandoning or retaining the
   // original physical operation. Settlement is only a hint to read again.
-  const waitWork = new WeakMap();
-  const subscribeWaitWork = (promise, wake) => {
+  const waitWork = new WeakMap<Promise<unknown>, WaitWork>();
+  const subscribeWaitWork = (promise: Promise<unknown> | undefined, wake: () => void) => {
     if (promise === undefined) return () => {};
     let work = waitWork.get(promise);
     if (work === undefined) {
       work = {pending: true, listeners: new Set()};
       waitWork.set(promise, work);
       const settled = () => {
-        work.pending = false;
-        for (const listener of work.listeners) listener();
-        work.listeners.clear();
+        work!.pending = false;
+        for (const listener of work!.listeners) listener();
+        work!.listeners.clear();
       };
       promise.then(settled, settled);
     }
     if (work.pending) work.listeners.add(wake);
-    return () => work.listeners.delete(wake);
+    return () => work!.listeners.delete(wake);
   };
-  const wait = async ({ref, principalId: actual, until, since, signal}) => {
+  const wait = async ({ref, principalId: actual, until, since, signal}: HostRequest<'wait'>) => {
     if (until !== null && until !== 'terminal') {
       throw clientOperationError('InvalidWaitCondition');
     }
@@ -3142,31 +4019,32 @@ async function openInstalledHost(originalInstallation, preparation) {
     const interruption = () => clientOperationError(
       signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted');
     if (signal?.aborted) throw interruption();
-    const observeStep = async promise => {
-      let abort;
-      const interrupted = new Promise((_, reject) => {
+    const observeStep = async <Value,>(promise: PromiseLike<Value>) => {
+      let abort: (() => void) | undefined;
+      const interrupted = new Promise<never>((_, reject) => {
         abort = () => reject(interruption());
         signal?.addEventListener('abort', abort, {once:true});
         if (signal?.aborted) abort();
       });
       try { return await Promise.race([promise, interrupted]); }
-      finally { signal?.removeEventListener('abort', abort); }
+      finally { signal?.removeEventListener('abort', abort!); }
     };
     // Borrow only the last completed observation of this same wait. Journal
     // still reads current SQL and compares the complete original row on use.
-    let originalFrame;
-    const retainFrame = frame => { originalFrame = frame; };
+    let originalFrame: JournalObservationFrame;
+    const retainFrame = (frame: JournalObservationFrame) => { originalFrame = frame; };
     for (;;) {
       if (signal?.aborted) throw interruption();
-      let wake, timer;
-      const changed = new Promise(resolve => { wake = resolve; });
-      const subscriptions = new Map();
+      let wake: (() => void) | undefined;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const changed = new Promise<void>(resolve => { wake = resolve; });
+      const subscriptions = new Map<Promise<unknown>, () => void>();
       const captureWork = () => {
-        for (const promise of [dispatchOwner.credentialRefusalPending(ref) ? undefined : dispatchOwner.operation(ref),
+        for (const promise of [dispatchOwner!.credentialRefusalPending(ref) ? undefined : dispatchOwner!.operation(ref),
           effectResumeFlights.get(ref.runDefinitionCid),
           modelResumeFlights.get(ref.runDefinitionCid)]) {
           if (promise !== undefined && !subscriptions.has(promise)) {
-            subscriptions.set(promise, subscribeWaitWork(promise, wake));
+            subscriptions.set(promise, subscribeWaitWork(promise, wake!));
           }
         }
       };
@@ -3184,10 +4062,10 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (decision !== 'pending') throw clientOperationError(decision);
         // Only after the original authorized observation may this wait join
         // the same failed dispatch's cleanup. Abort only ends observation.
-        const cleanup = dispatchOwner.settleCredentialRefusal(ref);
+        const cleanup = dispatchOwner!.settleCredentialRefusal(ref);
         if (cleanup !== undefined) {
-          await observeStep(cleanup);
-          if (!dispatchOwner.credentialRefusalPending(ref)) continue;
+          await observeStep(cleanup as PromiseLike<unknown>);
+          if (!dispatchOwner!.credentialRefusalPending(ref)) continue;
         }
         // Also retain work that started during observation. The unchanged
         // fallback observes other-process changes and later local work; neither
@@ -3202,25 +4080,26 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
   };
   const missingModelExecutionRefusals = new WeakSet();
-  const prepareInferSelection = (preparedProgram, occurrence, retain = true, sourceCoordinates) => {
+  const prepareInferSelection = (preparedProgram: object, occurrence?: unknown, retain = true,
+      sourceCoordinates?: ModelSourceCoordinates): EmbeddedInferMember | undefined => {
     // The Effect compiler retains this exact graph for the saved admission.
     // Current account/egress callbacks are checked again by physical dispatch.
     if (retain && occurrence !== undefined && inferSelections.has(preparedProgram)) {
-      if (sourceCoordinates !== undefined && inferSelections.get(preparedProgram).sourceCoordinates !== sourceCoordinates) {
+      if (sourceCoordinates !== undefined && inferSelections.get(preparedProgram)!.sourceCoordinates !== sourceCoordinates) {
         throw clientOperationError('ForeignInstalledModelSourceCoordinates');
       }
       return;
     }
-    const restoredRun = prepareSubmit.originalInferRun(preparedProgram);
+    const restoredRun = prepareSubmit.originalInferRun(preparedProgram) as RestoredInferOriginal | undefined;
     const restoredInfer = restoredRun === undefined ? undefined
       : selectRestoredInferOccurrence({moon, control, preparedProgram, restored: restoredRun, occurrence});
     const originalCompilation = updateTargetOriginals?.compilationFor(preparedProgram);
-    let originalInfer;
+    let originalInfer: unknown;
     if (originalCompilation !== undefined) {
       try {
         if (typeof moon.clientProgramEffectCompilationInferOriginals === 'function') {
           const option = moon.clientProgramEffectCompilationInferOriginals(originalCompilation);
-          const originals = runtimeIsBoxedSome(option) ? runtimeField(option, 0) : undefined;
+          const originals = runtimeIsBoxedSome(option) ? runtimeField(option, 0) as readonly unknown[] : undefined;
           const coordinates = moon.clientProgramInferOccurrenceCoordinates(occurrence);
           originalInfer = originals?.find(original => {
             const actual = moon.clientProgramInferOccurrenceCoordinates(runtimeField(original, 1));
@@ -3228,7 +4107,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           });
         } else originalInfer = typeof moon.clientProgramEffectCompilationInferOriginal === 'function'
           ? moon.clientProgramEffectCompilationInferOriginal(originalCompilation) : undefined;
-        if (typeof originalInfer?.then === 'function') {
+        if (typeof (originalInfer as {then?: unknown} | undefined)?.then === 'function') {
           void Promise.resolve(originalInfer).catch(() => {});
           throw new Error('InstalledInferOriginalCompilationUnavailable');
         }
@@ -3242,7 +4121,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         occurrence = runtimeField(originalInfer, 1);
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'original_model_compilation',
-          code: cause.code, cause});
+          code: (cause as ModelFault).code, cause});
         throw clientOperationError('ClientProgramUnsupported', cause);
       }
     }
@@ -3250,7 +4129,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       ? moon.clientProgramSelectedInferStep(preparedProgram)
       : runtimeField(moon.clientProgramInferOccurrenceCoordinates(occurrence), 2);
     if (selectedStep !== undefined) {
-      const requestModelMaterials = preparation !== undefined
+      const requestModelMaterials: Parameters<typeof readInstalledModelExecution>[4] = preparation !== undefined
         ? (count, wireAt, containers) => preparation.prepareManagedModelMaterials(
           moon, preparedProgram, count, wireAt, containers) : undefined;
       let execution;
@@ -3258,15 +4137,15 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (restoredInfer !== undefined) execution = restoredInfer.execution;
         else if (originalInfer === undefined) {
           ({execution} = readInstalledModelExecution(moon, preparedProgram,
-            modelInstallation, occurrence, requestModelMaterials));
+            modelInstallation, occurrence, requestModelMaterials)!);
         } else execution = runtimeField(originalInfer, 2);
       } catch (cause) {
         const absent = consumeInstalledModelPreparationRefusal(cause,
           preparedProgram, modelInstallation, occurrence, requestModelMaterials);
         diagnostic('infer_preparation_rejected', {boundary: 'model_execution',
-          code: cause.code, cause: cause.cause ?? cause,
-          typedCause: cause.code === 'MoonBitHostFailure' ?
-            moon.clientProgramInferModelExecutionIssueKind(cause.cause) :
+          code: (cause as ModelFault).code, cause: (cause as ModelFault).cause ?? cause,
+          typedCause: (cause as ModelFault).code === 'MoonBitHostFailure' ?
+            moon.clientProgramInferModelExecutionIssueKind((cause as ModelFault).cause) :
             undefined});
         const error = clientOperationError('ClientProgramUnsupported', cause);
         if (absent) missingModelExecutionRefusals.add(error);
@@ -3287,14 +4166,14 @@ async function openInstalledHost(originalInstallation, preparation) {
           originalMockInstallation = original.installation;
         }
         dependencies = readInstalledModelDependencies(moon, execution,
-          modelInstallation, requestModelMaterials, preparedProgram, occurrence, originalMockInstallation);
+          modelInstallation!, requestModelMaterials, preparedProgram, occurrence, originalMockInstallation);
       } catch (cause) {
         const original = consumeInstalledModelPreparationRefusal(cause,
           preparedProgram, modelInstallation, occurrence, requestModelMaterials, execution);
         diagnostic('infer_preparation_rejected', {boundary: 'model_dependencies',
-          code: cause.code, cause: cause.cause ?? cause,
-          typedCause: cause.code === 'MoonBitHostFailure' ?
-            moon.clientProgramInferModelDependencyIssueKind(cause.cause) :
+          code: (cause as ModelFault).code, cause: (cause as ModelFault).cause ?? cause,
+          typedCause: (cause as ModelFault).code === 'MoonBitHostFailure' ?
+            moon.clientProgramInferModelDependencyIssueKind((cause as ModelFault).cause) :
             undefined});
         const error = clientOperationError('ClientProgramUnsupported', cause);
         if (original) missingModelExecutionRefusals.add(error);
@@ -3315,9 +4194,9 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'model_provider',
-          code: cause.code, cause: cause.cause ?? cause,
-          typedCause: cause.code === 'MoonBitHostFailure' ?
-            moon.clientProgramModelProviderAdmissionIssueKind(cause.cause) :
+          code: (cause as ModelFault).code, cause: (cause as ModelFault).cause ?? cause,
+          typedCause: (cause as ModelFault).code === 'MoonBitHostFailure' ?
+            moon.clientProgramModelProviderAdmissionIssueKind((cause as ModelFault).cause) :
             undefined});
         throw clientOperationError('ClientProgramUnsupported', cause);
       }
@@ -3356,14 +4235,14 @@ async function openInstalledHost(originalInstallation, preparation) {
         preparation !== undefined
           ? (providerId, installation, contract, configuration) => preparation.prepareManagedModelBinding(
             moon, preparedProgram, providerId, installation, contract, configuration) : undefined);
-        const selection = Object.freeze({localMock: true, originalMockInstallation, step: selectedStep, sourceCoordinates,
+        const selection: EmbeddedInferMember = Object.freeze({localMock: true, originalMockInstallation, step: selectedStep as number, sourceCoordinates,
           occurrence, graph, computePrefix: segments === undefined ? undefined
             : effectful ? runtimeField(segments, 0) : runtimeOptionalField(segments, 0),
           computeSuffix: segments === undefined ? undefined
             : effectful ? runtimeOptionalField(segments, 1) : runtimeField(segments, 1),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           account, observeAccount, providerBinding,
-          currentProvider() {mockModels.originalsForRuntime(moon); return true;}});
+          currentProvider() {mockModels!.originalsForRuntime(moon); return true;}});
         if (retain) inferSelections.set(preparedProgram, selection);
         return selection;
       }
@@ -3400,7 +4279,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
         admissionBoundary = 'compute_suffix';
         const durableModel = modelController !== undefined && checkpoints?.configured === true;
-        const step = selectedStep;
+        const step = selectedStep as number;
         // Intermediate Content owns its physical prefix separately from the
         // ordinary pure-Compute prefix. Select the common checked component
         // before admission, without inventing public Result roots.
@@ -3505,7 +4384,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           }
           const modelLedgerBytes = Reflect.apply(projectModelLedger, moon, [selectedBounds]);
           originalReadInstallation = bindInferOriginalReadRecipe(moon, physical.originalReadRecipe, graph,
-            moon.clientProgramComposedInferRetainedLimits(selectedBounds), modelLedgerBytes);
+            moon.clientProgramComposedInferRetainedLimits(selectedBounds) as readonly bigint[], modelLedgerBytes as readonly bigint[]);
         }
         admissionBoundary = 'provider_binding';
         const providerId = moon.clientProgramInferProviderId(execution);
@@ -3514,7 +4393,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             preparation !== undefined
               ? (id, installation, contract, configuration) => preparation.prepareManagedModelBinding(
                 moon, preparedProgram, id, installation, contract, configuration) : undefined) : undefined;
-        const selection = Object.freeze({step, graph, computeSuffix, serializationGraph, selectedBounds, sourceCoordinates,
+        const selection: EmbeddedInferMember = Object.freeze({step, graph, computeSuffix, serializationGraph, selectedBounds, sourceCoordinates,
           physicalOriginal: physical,
           deferredRestoredSegments,
           ...(restoredRun === undefined ? {} : {restoredRun}),
@@ -3522,8 +4401,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physicalBase &&
-            (physicalBase.selectTaskOriginals === undefined ? physicalBase === physical
-              : physicalBase.selectTaskOriginals(physicalTaskCid) === physical),
+            (physicalBase!.selectTaskOriginals === undefined ? physicalBase === physical
+              : physicalBase!.selectTaskOriginals(physicalTaskCid) === physical),
           assertTrustedRuntime: physical.assertTrustedRuntime,
           assertNewTrustedRuntime() {
             physical.assertNewTrustedRuntime?.();
@@ -3531,26 +4410,26 @@ async function openInstalledHost(originalInstallation, preparation) {
               requireInferTrustedStartupView(modelRuntimeView, runtimeOriginals());
             }
           },
-          bindTrustedRuntimeScope(scope, compiled, definition, graph) {
+          bindTrustedRuntimeScope(scope: unknown, compiled: unknown, definition: unknown, graph: unknown) {
             physical.assertTrustedRuntime?.();
-            if (modelRuntimeView === undefined || modelRuntimeScopes.has(scope) ||
+            if (modelRuntimeView === undefined || modelRuntimeScopes.has(scope as object) ||
                 typeof control.checkedClientInferOriginalReadScopeLive !== 'function' ||
                 !control.checkedClientInferOriginalReadScopeLive(compiled, definition, graph, scope)) {
               throw clientOperationError('InferTrustedRuntimeScopeUnavailable');
             }
             // The caller records the actual issuer's Scope in its existing
             // cleanup custody BEFORE this fallible private association.
-            const originals = {...runtimeOriginals(), installation: scope,
+            const originals = {...runtimeOriginals(), installation: scope as object,
               transport: physical.provider};
             const view = issueInferTrustedRuntimeView(originals);
             if (modelRuntimeStartupView !== undefined) {
-              borrowInferTrustedStartupView(modelRuntimeView, view, runtimeOriginals(), originals);
+              borrowInferTrustedStartupView(modelRuntimeView, view, runtimeOriginals() as Parameters<typeof borrowInferTrustedStartupView>[2], originals as Parameters<typeof borrowInferTrustedStartupView>[3]);
             }
-            modelRuntimeScopes.set(scope, {view, compiled, definition, graph, physical});
+            modelRuntimeScopes.set(scope as object, {view, compiled, definition, graph, physical});
             return view;
           },
-          assertTrustedRuntimeScope(scope, view, compiled, definition, graph) {
-            const borrowed = modelRuntimeScopes.get(scope);
+          assertTrustedRuntimeScope(scope: unknown, view: unknown, compiled: unknown, definition: unknown, graph: unknown) {
+            const borrowed = modelRuntimeScopes.get(scope as object);
             if (borrowed === undefined || borrowed.view !== view || borrowed.compiled !== compiled ||
                 borrowed.definition !== definition || borrowed.graph !== graph ||
                 borrowed.physical !== physical) {
@@ -3558,7 +4437,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             }
             // Graceful Host closing forbids NEW Scopes, not this original
             // live/parked Run's existing borrow. Authority stays in Core.
-            physical.assertTrustedRuntime();
+            physical.assertTrustedRuntime!();
             checkInferTrustedRuntimeView(view, {...runtimeOriginals(),
               installation: scope, transport: physical.provider});
             if (modelRuntimeStartupView !== undefined) {
@@ -3569,8 +4448,8 @@ async function openInstalledHost(originalInstallation, preparation) {
               throw clientOperationError('InferTrustedRuntimeScopeUnavailable');
             }
           },
-          finishTrustedRuntimeScope(scope, view, compiled, definition, graph) {
-            const borrowed = modelRuntimeScopes.get(scope);
+          finishTrustedRuntimeScope(scope: unknown, view: unknown, compiled: unknown, definition: unknown, graph: unknown) {
+            const borrowed = modelRuntimeScopes.get(scope as object);
             if (borrowed === undefined || borrowed.view !== view || borrowed.compiled !== compiled ||
                 borrowed.definition !== definition || borrowed.graph !== graph ||
                 borrowed.physical !== physical) {
@@ -3584,16 +4463,16 @@ async function openInstalledHost(originalInstallation, preparation) {
               compiled, definition, graph, scope, true);
             if (finished !== true) return false;
             if (modelRuntimeStartupView !== undefined) forgetInferTrustedStartupView(view, host, host);
-            forgetInferTrustedRuntimeView(view, host, host);
-            modelRuntimeScopes.delete(scope);
+            forgetInferTrustedRuntimeView(view as ModelRuntimeBorrow, host, host);
+            modelRuntimeScopes.delete(scope as object);
             return true;
           },
           physicalPreflight: physical.physicalPreflight === undefined ? undefined
-            : (request, ioNotification, rawCaptureBinder) => {
+            : (request: unknown, ioNotification?: unknown, rawCaptureBinder?: Parameters<ModelPreflight>[2]) => {
               physical.assertTrustedRuntime?.();
               // Never throw a post-factory current refusal before Common has
               // registered this returned cursor's cleanup responsibility.
-              return physical.physicalPreflight(request, ioNotification,
+              return physical.physicalPreflight!(request, ioNotification,
                 rawCaptureBinder, admittedProvider);
             },
           originalReadInstallation,
@@ -3605,7 +4484,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           // The normal supplier/current resource admission is still separate.
           originalStorageDimensions: originalReadInstallation === undefined
             ? undefined : selectedInferTrustedStoreDimensions(modelRuntimeView,
-              runtimeOriginals(), store, publicationStoreModule),
+              runtimeOriginals(), store!, publicationStoreModule),
           rawCaptureSelection: physical.rawCaptureSelection,
           entryPersistence: physical.entryPersistence,
           reconcileResponse: physical.reconcileResponse,
@@ -3614,42 +4493,42 @@ async function openInstalledHost(originalInstallation, preparation) {
         return selection;
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: `model_admission.${admissionBoundary}`,
-          code: cause.code, cause: cause.cause ?? cause});
+          code: (cause as ModelFault).code, cause: (cause as ModelFault).cause ?? cause});
         throw clientOperationError('ClientProgramUnsupported', cause);
       }
     }
   };
   // LIVE Model preparation only, after its original managed Run is retained.
   // Stored outcome/review/approval paths never call this physical input hook.
-  const prepareMockModelInputs = async selection => {
+  const prepareMockModelInputs = async (selection: EmbeddedInferSelection | undefined) => {
     for(const member of selection?.components??(selection===undefined?[]:[selection])){
       if(member.localMock!==true)continue;
-      await mockModels.prepareAnswersForRuntime(moon,member.originalMockInstallation);
-      member.currentProvider();
+      await mockModels!.prepareAnswersForRuntime(moon,member.originalMockInstallation);
+      member.currentProvider!();
     }
   };
   // Preadmission and submission revisit the same Prepared through different
   // packet wrappers. Retain its original Request identity, not an equivalent
   // reconstruction that the live Run's exact-original fence must refuse.
   // Weak ownership neither keeps the Prepared alive nor grants another Run.
-  const sourceFreeRequestIdentities = new WeakMap();
-  const retainRestoredSourceFreeRequest = (preparedProgram, requestId, requested) => {
+  const sourceFreeRequestIdentities = new WeakMap<object, Readonly<{requestId: string; requested: object}>>();
+  const retainRestoredSourceFreeRequest = (preparedProgram: object, requestId: string, requested: unknown) => {
     const original = sourceFreeRequestIdentities.get(preparedProgram);
     if (requested === undefined || !moon.clientProgramMatchesRequestIdentity(preparedProgram, requested) ||
         original !== undefined && (original.requestId !== requestId || original.requested !== requested)) {
       throw clientOperationError('ForeignInstalledComputeRun');
     }
     if (original === undefined) sourceFreeRequestIdentities.set(preparedProgram,
-      Object.freeze({requestId, requested}));
-    return requested;
+      Object.freeze({requestId, requested: requested as object}));
+    return requested as object;
   };
-  const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {
+  const originalSourceFreeRequest = (preparedProgram: object, requestId: string, effectful = false) => {
     let original = sourceFreeRequestIdentities.get(preparedProgram);
     if (original === undefined) {
       const requested = (effectful ? moon.clientProgramEffectRequestIdentity : moon.clientProgramRequestIdentity)(preparedProgram,
         authorityScopeCid, requestId, moon.clientProgramSourceFreeInputIntentCid());
       if (requested === undefined) throw clientOperationError('ClientProgramNeedsInputs');
-      original = Object.freeze({requestId, requested});
+      original = Object.freeze({requestId, requested: requested as object});
       sourceFreeRequestIdentities.set(preparedProgram, original);
     } else if (original.requestId !== requestId) {
       throw clientOperationError('ForeignInstalledComputeRun');
@@ -3658,10 +4537,11 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   // Both entry families retain the same complete ordered Model inventory.
   // The existing selection map owns it; quantities alone grant no execution.
-  const prepareComposedInferSelection = (preparedProgram, occurrences, modelCoordinates) => {
+  const prepareComposedInferSelection = (preparedProgram: object, occurrences: readonly unknown[],
+      modelCoordinates?: ModelSourceCoordinates) => {
     if (inferSelections.has(preparedProgram)) return;
     const components = Object.freeze(occurrences.map(occurrence =>
-      prepareInferSelection(preparedProgram, occurrence, false)));
+      prepareInferSelection(preparedProgram, occurrence, false)!)) as readonly EmbeddedInferGroupMember[];
     // Retain only one SAME installed declaration. Equal amounts from
     // different registrations do not establish one original quantity scope.
     let quantityCapacity = components[0].quantityCapacity;
@@ -3671,7 +4551,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         break;
       }
     }
-    const restoredRun = prepareSubmit.originalInferRun(preparedProgram);
+    const restoredRun = prepareSubmit.originalInferRun(preparedProgram) as RestoredInferOriginal | undefined;
     const graph = restoredRun?.graph ?? Object.freeze(components.map(component => component.graph));
     if (!Array.isArray(graph) || graph.length !== components.length ||
         components.some((component, index) => component.graph !== graph[index] ||
@@ -3682,14 +4562,15 @@ async function openInstalledHost(originalInstallation, preparation) {
       ...(restoredRun === undefined ? {} : {restoredRun}), graph,
       egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
   };
-  const prepareEffectInferSelection = prepared => {
+  const prepareEffectInferSelection = (prepared: object) => {
     const occurrences = typeof moon.clientProgramEffectInferOccurrences === 'function'
-      ? checked(moon.clientProgramEffectInferOccurrences(prepared))
+      ? checked(moon.clientProgramEffectInferOccurrences(prepared)) as readonly unknown[]
       : [moon.clientProgramEffectInferOccurrence(prepared)].filter(value => value !== undefined);
     if (occurrences.length > 1) prepareComposedInferSelection(prepared, occurrences);
     else if (occurrences.length === 1) prepareInferSelection(prepared, occurrences[0]);
   };
-  const requestOf = ({preparedProgram, requestId}, retainSourceRefusal) => {
+  const requestOf = ({preparedProgram, requestId}: Readonly<{preparedProgram: object; requestId: string}>,
+      retainSourceRefusal?: (error: unknown, request: unknown, adapter: unknown, sourceRef: string, selection?: EffectSelectionRefusal['selection']) => void) => {
     prepareSubmit.assertOwned(preparedProgram);
     if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
       const count = moon.clientProgramEffectAcquisitionCount(preparedProgram);
@@ -3697,19 +4578,20 @@ async function openInstalledHost(originalInstallation, preparation) {
       const requested = originalSourceFreeRequest(preparedProgram, requestId, true);
       if (count > 0) {
         if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
-        let unsupportedSelection;
+        let unsupportedSelection: EffectSelectionRefusal | undefined;
         try {
           selectAcquiredEffectSources({moon, preparedEffect: preparedProgram,
-            requestIdentity: requested, sourceProfile, registry, values, fragment, ordered,
+            requestIdentity: requested, sourceProfile,
+            registry: registry as Parameters<typeof selectAcquiredEffectSources>[0]['registry'], values, fragment, ordered,
             onUnsupportedSelection(error, selection) {unsupportedSelection = {error, selection};}});
         } catch (cause) {
           const error = clientOperationError('ClientProgramUnsupported', cause);
           // Only the exact inert selector's observed implementation refusal
           // reaches this existing same-candidate receipt. A current/getter or
           // arbitrary provider throw cannot certify pre-I/O nonadmission.
-          if (unsupportedSelection?.error === cause) retainSourceRefusal?.(error,
-            requested, unsupportedSelection.selection.adapter,
-            unsupportedSelection.selection.sourceRef, unsupportedSelection.selection);
+          if ((unsupportedSelection as EffectSelectionRefusal | undefined)?.error === cause) retainSourceRefusal?.(error,
+            requested, unsupportedSelection!.selection.adapter,
+            unsupportedSelection!.selection.sourceRef!, unsupportedSelection!.selection);
           throw error;
         }
       }
@@ -3749,7 +4631,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       const directCoordinates = installedDirectSourceCoordinates(moon, preparedProgram);
       // Every occurrence is selected by its checked requirement before any I/O.
       for (let task = 0; task < acquisitionCount; task++) {
-        let unsupportedWholeSource;
+        let unsupportedWholeSource: WholeSourceRefusal | undefined;
         try {
           const coordinates = keyedAcquisition === undefined ? undefined
             : moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
@@ -3791,8 +4673,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           // Report only the boundary and typed discriminants: acquisition
           // bodies and authenticated source materials are not diagnostics.
           diagnostic('acquisition_preparation_rejected', {boundary: 'query_requirement',
-            task, code: cause.code, issueTag: runtimeTag(cause.cause),
-            requirementTag: runtimeTag(runtimeOptionalField(cause.cause, 0))});
+            task, code: (cause as SourceRefusal).code, issueTag: runtimeTag((cause as SourceRefusal).cause),
+            requirementTag: runtimeTag(runtimeOptionalField((cause as SourceRefusal).cause, 0))});
           const error = clientOperationError('ClientProgramUnsupported', cause);
           // Only this original static implementation selection can issue the
           // same-candidate refusal. No reader, Model/Content or Run has begun.
@@ -3800,13 +4682,13 @@ async function openInstalledHost(originalInstallation, preparation) {
               !inferSelections.has(preparedProgram) &&
               moon.clientProgramSerializationOccurrences(preparedProgram).length === 0) {
             retainSourceRefusal?.(error, requested,
-              unsupportedWholeSource.adapter, unsupportedWholeSource.sourceRef);
+              unsupportedWholeSource!.adapter, unsupportedWholeSource!.sourceRef);
           }
           throw error;
         }
       }
       if (keyedAcquisition !== undefined) {
-        const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
+        const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition)) as readonly [string, ...unknown[]];
         if (typeof installedSourceFor(sourceProfile, facts[0]).prepareKeyed !== 'function') {
           throw clientOperationError('ClientProgramUnsupported');
         }
@@ -3819,7 +4701,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // refuse. The failed path must not issue a replacement identity later.
     const requested = originalSourceFreeRequest(preparedProgram, requestId);
     const inventory = moon.clientProgramComposedInferOccurrences(preparedProgram);
-    const occurrences = runtimeIsOkRequired(inventory) ? runtimeField(inventory, 0) : [];
+    const occurrences = runtimeIsOkRequired(inventory) ? runtimeField(inventory, 0) as readonly unknown[] : [];
     if (occurrences.length > 1) {
       // Funded preparation already retained this SAME Program's ordered
       // components. Submit consumes them after adoption without re-reading
@@ -3838,20 +4720,21 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     return {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful: false};
   };
-  const modelSourceOccurrence = (prepared, index) => {
+  const modelSourceOccurrence = (prepared: object, index: number) => {
     const coordinates = inferSelections.get(prepared)?.sourceCoordinates?.[index];
     return coordinates === undefined ? undefined
       : Object.freeze({stage: coordinates[0], input: coordinates[1], task: coordinates[2]});
   };
-  const directSourceOccurrence = (prepared, index) => {
+  const directSourceOccurrence = (prepared: object, index: number) => {
     const value = installedDirectSourceCoordinates(moon, prepared)[index];
     if (value === undefined) throw clientOperationError('InstalledSourcePreparationMismatch');
     const [stage, input, task, computeTask] = value;
     return Object.freeze({stage, input, task, ...(computeTask === task ? {} : {computeTask})});
   };
-  const prepareAcquisition = async (preparedProgram, sourceAccess, occurrence, preparedSource) => {
-    occurrence ??= modelSourceOccurrence(preparedProgram, 0) ?? directSourceOccurrence(preparedProgram, 0);
-    const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram)?.requested;
+  const prepareAcquisition = async (preparedProgram: unknown, sourceAccess?: SourceAccess,
+      occurrence?: AcquisitionOccurrence, preparedSource?: Parameters<AcquireSource>[3]): Promise<PreparedAcquisition> => {
+    occurrence ??= modelSourceOccurrence(preparedProgram as object, 0) ?? directSourceOccurrence(preparedProgram as object, 0);
+    const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram as object)?.requested;
     if (requestIdentity === undefined) throw clientOperationError('ClientProgramNeedsInputs');
     const selected = checked(moon.clientProgramSelectInstalledSourceInput(
       preparedProgram, requestIdentity, occurrence.stage, occurrence.input));
@@ -3873,15 +4756,15 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (cause instanceof ExecutionAuthorizationError) {
         throw clientOperationError(cause.runtimeCode ?? 'ACTQL_E_DELEGATION_UNAVAILABLE', cause);
       }
-      if (cause?.selection !== undefined) {
-        diagnostic('acquisition_selection', {task: occurrence.task, selection: cause.selection});
-        throw clientOperationError(cause.selection.status === 'deferred'
+      if ((cause as SourceRefusal | undefined)?.selection !== undefined) {
+        diagnostic('acquisition_selection', {task: occurrence.task, selection: (cause as SourceRefusal).selection});
+        throw clientOperationError((cause as SourceRefusal).selection!.status === 'deferred'
           ? 'ClientProgramRejected' : 'ClientProgramUnsupported', cause);
       }
       throw cause;
     }
   };
-  const prepareAcquisitions = async preparedProgram => {
+  const prepareAcquisitions = async (preparedProgram: object): Promise<readonly PreparedAcquisitionMember[]> => {
     const result = [];
     for (let task = 0; task < moon.clientProgramAcquisitionCount(preparedProgram); task++) {
       const occurrence = modelSourceOccurrence(preparedProgram, task) ?? directSourceOccurrence(preparedProgram, task);
@@ -3898,8 +4781,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     return Object.freeze(result);
   };
-  const prepareRetainedAcquisition = (preparedProgram, occurrence, selectedSource) => {
-    const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram)?.requested;
+  const prepareRetainedAcquisition = (preparedProgram: unknown, occurrence: AcquisitionOccurrence, selectedSource: unknown) => {
+    const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram as object)?.requested;
     if (requestIdentity === undefined || moon.clientProgramSelectedSourceInputKind(selectedSource) !== 'query') {
       throw clientOperationError('InstalledSourcePreparationMismatch');
     }
@@ -3909,8 +4792,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     return Reflect.apply(construct, adapter, [{preparedProgram, requestIdentity, occurrence,
       registry, values, fragment, ordered, sourceAccess: adapter.sourceAccess}]);
   };
-  const prepareRetainedCaptureAcquisition = (preparedProgram, occurrence, selectedSource) => {
-    const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram)?.requested;
+  const prepareRetainedCaptureAcquisition = (preparedProgram: unknown, occurrence: AcquisitionOccurrence, selectedSource: unknown) => {
+    const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram as object)?.requested;
     if (requestIdentity === undefined || moon.clientProgramSelectedSourceInputKind(selectedSource) !== 'query') {
       throw clientOperationError('InstalledSourcePreparationMismatch');
     }
@@ -3920,34 +4803,37 @@ async function openInstalledHost(originalInstallation, preparation) {
     return Reflect.apply(construct, adapter, [{preparedProgram, requestIdentity, occurrence,
       registry, values, fragment, ordered, sourceAccess: adapter.sourceAccess}]);
   };
-  const acquisitionDescriptor = prepared => ({checkedSource: prepared.checkedSource,
+  const acquisitionDescriptor = (prepared: PreparedAcquisition) => ({checkedSource: prepared.checkedSource,
     readTuple: prepared.readTuple, physicalBinding: prepared.physicalBinding});
-  const sourceDescriptors = ordinarySourceDescriptors;
-  const installationBinding = adapter => ({connectorId: adapter.connectorBindings[0].connectorId,
+  const sourceDescriptors = ordinarySourceDescriptors<AcquisitionOccurrence, PreparedAcquisition>;
+  const installationBinding = (adapter: BoundAcquisitionAdapter) => ({connectorId: adapter.connectorBindings[0].connectorId,
     connectorRegistration: adapter.connectorRegistration, connectorRevision: adapter.connectorRevision,
     bindingCid: adapter.connectorBindings[0].bindingCid});
-  const keyedDescriptors = (preparedSource, keyedSource) => [
+  const keyedDescriptors = (preparedSource: PreparedAcquisition, keyedSource: PreparedKeyedSource) => [
     {...keyedSource.directOccurrence, ...acquisitionDescriptor(preparedSource),
       installationBinding: installationBinding(keyedSource.directAdapter)},
     {...keyedSource.occurrence, ...acquisitionDescriptor(keyedSource.prepared),
       installationBinding: installationBinding(keyedSource.adapter)},
   ];
-  const prepareKeyedSources = async (preparedProgram, keyedAcquisition, requestIdentity) => {
+  const prepareKeyedSources = async (preparedProgram: object, keyedAcquisition: unknown, requestIdentity: unknown):
+      Promise<{preparedSource: PreparedAcquisition; keyedSource: PreparedKeyedSource}> => {
     const coordinates = moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
     if (coordinates === undefined) throw clientOperationError('ClientProgramUnsupported');
-    const directOccurrence = Object.freeze({stage: runtimeField(coordinates, 0), input: runtimeField(coordinates, 1), task: runtimeField(coordinates, 2)});
+    const directOccurrence = Object.freeze({stage: runtimeField(coordinates, 0) as number, input: runtimeField(coordinates, 1) as number, task: runtimeField(coordinates, 2) as number});
     const preparedSource = await prepareAcquisition(preparedProgram, undefined, directOccurrence);
     const directAdapter = installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef);
-    const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
+    const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition)) as readonly [string, ...unknown[]];
     const adapter = installedSourceFor(sourceProfile, facts[0]);
-    const selected = await adapter.prepareKeyed({preparedProgram, keyedAcquisition, requestIdentity});
-    return {preparedSource, keyedSource: Object.freeze({...selected, adapter,
+    const selected = await adapter.prepareKeyed!({preparedProgram, keyedAcquisition, requestIdentity}) as Awaited<
+      ReturnType<NonNullable<InstalledHostSourceMember['prepareKeyed']>>> & Pick<PreparedKeyedSource, 'prepared' | 'occurrence'>;
+    return {preparedSource, keyedSource: Object.freeze({...selected, adapter: adapter as InstalledHostSourceMember & ContentKeyedSource['adapter'],
       sourceAccess: adapter.sourceAccess, acquisition: keyedAcquisition, requestIdentity,
-      directOccurrence, directAdapter})};
+      directOccurrence, directAdapter: directAdapter as PreparedKeyedSource['directAdapter']})};
   };
-  const sourceInventory = (sources, preparedSource, keyedSource) => keyedSource !== undefined
+  const sourceInventory = (sources: readonly PreparedAcquisitionMember[] | undefined,
+      preparedSource: PreparedAcquisition | undefined, keyedSource: PreparedKeyedSource | undefined) => keyedSource !== undefined
     ? canonicalValueJson({version: 'actql-client-keyed-source-inventory/0.1', environmentCid: evidenceCid,
-      acquisitions: keyedDescriptors(preparedSource, keyedSource)}, {dataKeys: true})
+      acquisitions: keyedDescriptors(preparedSource!, keyedSource)}, {dataKeys: true})
     : sources?.length === 2 ? (() => {
       const acquisitions = sourceDescriptors(sources);
       const bound = acquisitions.every(item => item.installationBinding !== undefined);
@@ -3955,7 +4841,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         : 'actql-client-source-inventory/0.1', environmentCid: evidenceCid, acquisitions};
       return bound ? canonicalValueJson(value, {dataKeys: true}) : canonicalJson(value);
     })() : undefined;
-  const captureSubmission = (submission, resultNames, preparedSource, preparedSources, keyedSource) => ({
+  const captureSubmission = (submission: EmbeddedSubmission, resultNames: readonly string[], preparedSource?: PreparedAcquisition,
+      preparedSources?: readonly PreparedAcquisitionMember[], keyedSource?: PreparedKeyedSource) => ({
     version: keyedSource !== undefined ? 'actql-remote-keyed-source-submission/0.1'
       : preparedSources?.length === 2
       ? (sourceDescriptors(preparedSources).every(item => item.installationBinding !== undefined)
@@ -3966,12 +4853,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     parameters: submission.parameters, resultNames,
     ...capturedUpdateOriginal(submission),
     ...(submission.submission === undefined ? {} : {submission: submission.submission}),
-    ...(keyedSource !== undefined ? {acquisitions: keyedDescriptors(preparedSource, keyedSource)}
+    ...(keyedSource !== undefined ? {acquisitions: keyedDescriptors(preparedSource!, keyedSource)}
       : preparedSources?.length === 2 ? {acquisitions: sourceDescriptors(preparedSources)}
       : preparedSource === undefined ? {} : {acquisition: acquisitionDescriptor(preparedSource)}),
-  });
-  const planFor = ({preparedProgram, requestId},
-    retainedDefinitionWire, requestIdentity, keyedOriginal, constructingModel,
+  } as HeldCapturedRequest);
+  const planFor = ({preparedProgram, requestId}: Readonly<{preparedProgram: object; requestId: string}>,
+    retainedDefinitionWire?: string, requestIdentity?: unknown, keyedOriginal?: unknown, constructingModel?: EarlyModelOriginal,
     retainInferMaterials = false) => {
     prepareSubmit.assertOwned(preparedProgram);
     const earlyMock = earlyMockInferPlans.get(preparedProgram);
@@ -3995,11 +4882,13 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       return earlyContent.plan;
     }
-    const restored = prepareSubmit.originalInferRun(preparedProgram);
+    const restored = prepareSubmit.originalInferRun(preparedProgram) as RestoredInferOriginal | undefined;
     if (restored !== undefined) {
       return restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity});
     }
-    const common = {moon, control, preparedProgram,
+    const common: Parameters<typeof inferTaskRunAdmission>[0] & Parameters<typeof sourceFreeValuesPlan>[0] &
+        Parameters<typeof selectInstalledSerializationGraph>[0] & Readonly<{requestId: string}> = {
+      moon, control, preparedProgram,
       publicationOriginal: preparation?.managedComputePublicationOriginal?.(moon, preparedProgram),
       compilationOriginal: preparation?.managedComputeCompilationOriginal?.(moon, preparedProgram),
       publicationPreparation: preparation?.managedComputePublicationPreparation?.(moon, preparedProgram),
@@ -4027,7 +4916,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         // journal callback may only borrow this pre-funded original ticket.
         const originalInferRun = retainInferMaterials && infer.serializationGraph === undefined
           ? preparation.captureManagedModelOriginal(moon, preparedProgram,
-            (parent, input) => control.captureOriginalClientInferRun(admitted.compiled,
+            (parent: unknown, input: object) => control.captureOriginalClientInferRun(admitted.compiled,
               preparedProgram, admitted.runDefinition, requestIdentity,
               undefined, undefined, {parent, input}))
           : undefined;
@@ -4037,7 +4926,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'task_compilation',
-          code: cause.code, cause: cause.cause ?? cause});
+          code: (cause as SourceRefusal).code, cause: (cause as SourceRefusal).cause ?? cause});
         throw cause;
       }
     }
@@ -4053,12 +4942,14 @@ async function openInstalledHost(originalInstallation, preparation) {
         const compilationOriginal = moon.clientProgramAcquisitionCount(preparedProgram) === 0
           ? preparation?.prepareManagedContentCompilation?.(moon, preparedProgram, serializationGraph)
           : preparation === undefined ? undefined : runContent.prepareManagedKeyedCompilation({
-            preparedProgram, request: requestIdentity, serializationGraph, keyedAcquisition: keyedOriginal});
+            preparedProgram, request: requestIdentity,
+            serializationGraph: serializationGraph as Parameters<ReturnType<typeof installNodeContentRun>['prepareManagedKeyedCompilation']>[0]['serializationGraph'],
+            keyedAcquisition: keyedOriginal});
         return serializationTaskRunAdmission({...common,
           serializationGraph, compilationOriginal, resultDataPolicy: installedResultDataPolicy});
       } catch (cause) {
         diagnostic('content_preparation_rejected', {boundary: 'task_compilation',
-          code: cause.code, cause: cause.cause ?? cause});
+          code: (cause as SourceRefusal).code, cause: (cause as SourceRefusal).cause ?? cause});
         throw clientOperationError('ClientProgramUnsupported', cause);
       }
     }
@@ -4070,9 +4961,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         : sourceFreeValuesPlan(common);
   };
   // Admit (or look up) the request's Run Definition: the durable Run.
-  const admitDefinition = async (submission, requested, resultNames,
-    held) => {
-    const accepted = await journal.admitOrLookupDefinition(requested, {
+  type HeldAdmission = {plan?: ReturnType<typeof planFor>; preparedSource?: PreparedAcquisition;
+    preparedSources?: readonly PreparedAcquisitionMember[]; keyedSource?: PreparedKeyedSource};
+  type IssuedAdmission = Awaited<ReturnType<Parameters<ClientJournal['admitOrLookupDefinition']>[1]['issueDefinition']>>;
+  type IssuedAdmissionDraft = {-readonly [Key in keyof IssuedAdmission]: IssuedAdmission[Key]};
+  const admitDefinition = async (submission: EmbeddedSubmission, requested: unknown,
+    resultNames: readonly string[], held: HeldAdmission) => {
+    const accepted = await journal!.admitOrLookupDefinition(requested, {
       namespaceId, lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
       submission: submission.submission,
       resultNames, sourceInventory: sourceInventory(held.preparedSources, held.preparedSource, held.keyedSource),
@@ -4106,7 +5001,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               sourceInventory: sourceInventory(held.preparedSources, held.preparedSource, held.keyedSource),
             } : {})}};
         if (held.preparedSources?.length === 2 || held.keyedSource !== undefined) {
-          const issued = {
+          const issued: IssuedAdmissionDraft = {
             runDefinition: held.plan.runDefinition,
             runAdmissionEvidence: {prepared: held.plan.preparedEvidence.wire,
               authorization: held.plan.authorization.wire,
@@ -4118,7 +5013,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
         const valuesEvidence = sourceFreeValuesAdmissionEvidence(held.plan);
         if (valuesEvidence !== undefined) {
-          const issued = {
+          const issued: IssuedAdmissionDraft = {
             runDefinition: held.plan.runDefinition,
             runAdmissionEvidence: valuesEvidence,
             originalPlan: sourceFreePlanOriginal(held.plan)};
@@ -4148,28 +5043,33 @@ async function openInstalledHost(originalInstallation, preparation) {
     preparedRunRequired: true,
     assertRunCurrent: preparation.assertContentRunCurrent.bind(preparation),
     retainPreparation: (prepared, original) => preparation.retainManagedContentPreparation(moon, prepared, original),
-    prepareModelManagedRun: (prepared, request, model) => preparation.prepareManagedModelRun(moon, prepared, request, model),
+    prepareModelManagedRun: (prepared, request, model) => preparation.prepareManagedModelRun(
+      moon, prepared, request as object, model as LocalModelPlan) as ContentManagedRun,
     prepareSerializationOutputDemand: (prepared, compiled, selection, generation, reference, contract, output, identitySlots) =>
       preparation.prepareManagedSerializationOutputDemand(moon, prepared, compiled, selection,
         generation, reference, contract, output, identitySlots),
     prepareSerializationManagedRun: (prepared, request, plan, limits, workspace, original) => preparation.prepareManagedSerializationRun(
-      moon, prepared, request, plan, limits, workspace, original),
+      moon, prepared, request as object, plan, limits, workspace, original as ContentPreparation) as ContentManagedRun,
     prepareKeyedManagedRun: (prepared, request, graph, recipe, original) => {
       if (typeof sourceProfile?.prepareManagedContentRun !== 'function') {
         throw clientOperationError('InstalledContentRunPreparationUnavailable');
       }
-      return sourceProfile.prepareManagedContentRun(prepared, request, recipe, graph, original);
+      return sourceProfile.prepareManagedContentRun(prepared, request,
+        recipe as Parameters<NonNullable<InstalledHostSourceProfile['prepareManagedContentRun']>>[2], graph,
+        original as Parameters<NonNullable<InstalledHostSourceProfile['prepareManagedContentRun']>>[4]) as ContentManagedRun;
     },
     borrowKeyedManagedLedger: (prepared, request, recipe,
       direct, keyed, capacity) => {
       if (typeof sourceProfile?.managedContentLedger !== 'function') {
         throw clientOperationError('InstalledContentRunPreparationUnavailable');
       }
-      return sourceProfile.managedContentLedger(prepared, request, recipe, direct, keyed, capacity);
+      return sourceProfile.managedContentLedger(prepared, request,
+        recipe as Parameters<NonNullable<InstalledHostSourceProfile['managedContentLedger']>>[2], direct, keyed, capacity) as
+        ReturnType<NonNullable<ContentRunOptions['borrowKeyedManagedLedger']>>;
     },
     faultInjection: authorization?.faultInjection});
-  function prepareInstalledModelRecovery(prepared, plan, selection) {
-    const restored = prepareSubmit.originalInferRun(prepared);
+  function prepareInstalledModelRecovery(prepared: object, plan: InstalledInferPlan, selection: EmbeddedInferSelection) {
+    const restored = prepareSubmit.originalInferRun(prepared) as RestoredInferOriginal | undefined;
     const requested = sourceFreeRequestIdentities.get(prepared)?.requested;
     if (restored === undefined || selection.restoredRun !== restored ||
         selection.graph !== restored.graph || plan.inferGraph !== restored.graph ||
@@ -4187,14 +5087,14 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (early !== undefined) {
       if (Object.hasOwn(early, 'failure')) throw early.failure;
       if (!early.recovery || early.selecting || early.plan !== plan || early.restored !== restored ||
-          early.requested !== requested || early.model?.selection !== selection || early.model.closed ||
+          early.requested !== requested || early.model?.selection !== selection || early.model!.closed ||
           early.view === undefined) throw clientOperationError('ForeignInstalledModelRecovery');
       early.view.assertRuntimeCurrent();
-      return early.view;
+      return early.view as InstalledModelRecoveryView & InstalledInferRecovery;
     }
     early = {recovery: true, prepared, requested, restored, plan,
       model: undefined, view: undefined, selecting: true, aliasesReleased: false};
-    const model = {prepared, control, compiled: plan.compiled, runDefinition: plan.runDefinition,
+    const model: LocalModelPlan & Pick<InstalledModelRecoveryArgs[4], 'prepared'> = {prepared, control, compiled: plan.compiled, runDefinition: plan.runDefinition,
       graph: selection.graph, occurrence: selection.occurrence, selection,
       scope: undefined, read: undefined,
       publicationCapacity: () => preparation.modelPublicationCapacity(prepared),
@@ -4207,18 +5107,18 @@ async function openInstalledHost(originalInstallation, preparation) {
               member.scope !== undefined && member.scopeFinished !== true)) {
           throw clientOperationError('InstalledModelCleanupPending');
         }
-        if (model.components !== undefined) for (const member of model.components) {
-          for (const key of Object.keys(member)) member[key] = undefined;
+        if (model.components !== undefined) for (const member of model.components!) {
+          for (const key of Object.keys(member)) (member as Record<string, unknown>)[key] = undefined;
           member.closed = true;
         }
-        for (const key of Object.keys(model)) model[key] = undefined;
+        for (const key of Object.keys(model)) (model as Record<string, unknown>)[key] = undefined;
         model.closed = true;
         early.prepared = early.requested = early.restored = early.plan = early.view = undefined;
         early.aliasesReleased = true;
       }};
     if (selection.components !== undefined) {
       model.scopes = undefined;
-      model.components = Object.freeze(selection.components.map(member => ({prepared, control,
+      model.components = Object.freeze(selection.components!.map(member => ({prepared, control,
         compiled: plan.compiled, runDefinition: plan.runDefinition, graph: member.graph,
         occurrence: member.occurrence, selection: member, group: model, scope: undefined, read: undefined,
         originalReadInstallation: member.originalReadInstallation,
@@ -4231,12 +5131,12 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (model.components === undefined) retainRequestModelBoundsAndBudget(moon, count, model);
       else {
         const census = {maxReservations: 0, maxHoldings: 0, maxDelegations: 0};
-        for (const member of model.components) {
+        for (const member of model.components!) {
           retainRequestModelBoundsAndBudget(moon, count, member);
           // Same whole-group census fold as the existing native Model Plan.
           // These are coexisting original members, not future row estimates.
-          for (const name of Object.keys(census)) {
-            const next = census[name] + member.budget[name];
+          for (const name of Object.keys(census) as (keyof ModelBudgetCensus)[]) {
+            const next = census[name] + member.budget![name];
             if (!Number.isSafeInteger(next) || next > 2147483647) {
               throw clientOperationError('InstalledModelRecoveryCapacityUnavailable');
             }
@@ -4245,12 +5145,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
         model.budget = Object.freeze(census);
       }
-      early.view = preparation.prepareManagedModelRecoveryPlan(moon, prepared, requested, plan, selection, model);
-      return early.view;
+      early.view = preparation.prepareManagedModelRecoveryPlan(moon, prepared, requested, plan, selection as InstalledModelRecoveryArgs[3], model as InstalledModelRecoveryArgs[4]);
+      return early.view as InstalledModelRecoveryView & InstalledInferRecovery;
     } catch (cause) {early.failure = cause; throw cause;}
     finally {early.selecting = false;}
   }
-  function prepareInstalledRequestModelRun(submission, requested, selection) {
+  function prepareInstalledRequestModelRun(submission: Readonly<{preparedProgram: object; requestId: string}>,
+      requested: unknown, selection: EmbeddedInferSelection) {
     const prepared = submission.preparedProgram;
     const acquisitionCount = moon.clientProgramAcquisitionCount(prepared);
     const group = selection.components !== undefined;
@@ -4262,7 +5163,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         (group && (!Array.isArray(selection.components) || !Object.isFrozen(selection.components) ||
           selection.components.length < 2 || !Array.isArray(selection.graph) ||
           selection.graph.length !== selection.components.length ||
-          selection.components.some((member, index) => member.occurrence === undefined || member.graph !== selection.graph[index]))) ||
+          selection.components!.some((member, index) => member.occurrence === undefined || member.graph !== (selection.graph as readonly unknown[])[index]))) ||
         acquisitionCount > (group ? 2 : 1)) {
       throw clientOperationError('HostResultPublicationPurposeUnavailable');
     }
@@ -4273,14 +5174,14 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (early.requestId !== submission.requestId || early.requested !== requested ||
           early.model?.graph !== selection.graph || early.model?.originalReadInstallation !== selection.originalReadInstallation ||
           early.model?.closed || early.managed === undefined) throw clientOperationError('ForeignInstalledModelPreparation');
-      if (preparation.prepareManagedModelRun(moon, prepared, requested, early.model) !== early.managed) {
+      if (preparation.prepareManagedModelRun(moon, prepared, requested as object, early.model!) !== early.managed) {
         throw clientOperationError('ForeignInstalledModelPreparation');
       }
-      return early.model;
+      return early.model!;
     }
     early = {prepared, requestId: submission.requestId, requested, plan: undefined, model: undefined,
       managed: undefined, selecting: true, aliasesReleased: false};
-    const model = {prepared, control, compiled: undefined, runDefinition: undefined,
+    const model: LocalModelPlan = {prepared, control, compiled: undefined, runDefinition: undefined,
       graph: selection.graph, occurrence: selection.occurrence, serializationGraph: selection.serializationGraph,
       originalReadInstallation: selection.originalReadInstallation, selection, component: undefined,
       scope: undefined, read: undefined,
@@ -4288,29 +5189,29 @@ async function openInstalledHost(originalInstallation, preparation) {
       releaseAliases() {
         if (this !== model) throw clientOperationError('ForeignInstalledModelPreparation');
         if (early.aliasesReleased) return;
-        if (earlyMockInferPlans.get(early.prepared) !== early || early.model !== model ||
+        if (earlyMockInferPlans.get(early.prepared!) !== early || early.model !== model ||
             model.scope !== undefined && model.scopeFinished !== true || model.read !== undefined) {
           throw clientOperationError('InstalledModelCleanupPending');
         }
-        if (group && (model.components.some(member => member.read !== undefined ||
+        if (group && (model.components!.some(member => member.read !== undefined ||
             member.scope !== undefined && member.scopeFinished !== true) ||
             model.scopes !== undefined && model.scopeFinished !== true)) {
           throw clientOperationError('InstalledModelCleanupPending');
         }
-        if (group) for (const member of model.components) {
-          for (const key of Object.keys(member)) member[key] = undefined;
+        if (group) for (const member of model.components!) {
+          for (const key of Object.keys(member)) (member as Record<string, unknown>)[key] = undefined;
           member.closed = true;
         }
         // Called only after checked same-Run retirement, or original failed
         // Request cleanup. No physical child or Scope is released by this cut.
-        for (const key of Object.keys(model)) model[key] = undefined;
+        for (const key of Object.keys(model)) (model as Record<string, unknown>)[key] = undefined;
         model.closed = true;
         early.prepared = early.requestId = early.requested = early.plan = early.managed = early.failure = undefined;
         early.aliasesReleased = true;
       }};
     if (group) {
       model.scopes = undefined;
-      model.components = Object.freeze(selection.components.map(member => ({prepared, control,
+      model.components = Object.freeze(selection.components!.map(member => ({prepared, control,
         compiled: undefined, runDefinition: undefined, graph: member.graph, occurrence: member.occurrence,
         serializationGraph: member.serializationGraph, originalReadInstallation: member.originalReadInstallation,
         selection: member, group: model, scope: undefined, read: undefined, component: undefined,
@@ -4320,19 +5221,19 @@ async function openInstalledHost(originalInstallation, preparation) {
     early.model = model;
     earlyMockInferPlans.set(prepared, early); // Retain before compiler/Definition/Plan can fail.
     try {
-      early.plan = planFor(submission, undefined, requested, undefined, early, true);
+      early.plan = planFor(submission, undefined, requested, undefined, early, true) as InstalledInferPlan;
       model.compiled = early.plan.compiled; model.runDefinition = early.plan.runDefinition;
       model.queryTimePreparation = early.plan.queryTimePreparation;
-      if (group) for (const member of model.components) {
+      if (group) for (const member of model.components!) {
         member.compiled = model.compiled; member.runDefinition = model.runDefinition;
       }
       if (model.serializationGraph !== undefined) {
-        runContent.prepareModelRun({preparedProgram: prepared, plan: early.plan, request: requested, model});
+        runContent.prepareModelRun({preparedProgram: prepared, plan: early.plan, request: requested, model: model as Parameters<typeof runContent.prepareModelRun>[0]['model']});
         early.managed = model.contentPreparation?.managed;
-      } else early.managed = preparation.prepareManagedModelRun(moon, prepared, requested, model);
+      } else early.managed = preparation.prepareManagedModelRun(moon, prepared, requested as object, model);
       if (early.managed === undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
       model.managed = early.managed;
-      if (group) for (const member of model.components) member.managed = early.managed;
+      if (group) for (const member of model.components!) member.managed = early.managed;
       return model;
     } catch (cause) {early.failure = cause; throw cause;}
     finally {early.selecting = false;}
@@ -4341,22 +5242,23 @@ async function openInstalledHost(originalInstallation, preparation) {
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
     checkpoints, prepareAcquisition, prepareRetainedAcquisition, prepareRetainedCaptureAcquisition, runContent,
-    prepareModelRecoveryPlan: prepareInstalledModelRecovery,
+    prepareModelRecoveryPlan: prepareInstalledModelRecovery as NonNullable<InferRunInstall['prepareModelRecoveryPlan']>,
     prepareOriginalModelRun(prepared, plan, selection) {
-      const early = earlyMockInferPlans.get(prepared);
+      const early = earlyMockInferPlans.get(prepared as object);
       if (early === undefined || early.plan !== plan || early.model === undefined) {
         throw clientOperationError('InstalledModelOperationalAdmissionUnavailable');
       }
-      return prepareInstalledRequestModelRun({preparedProgram: prepared, requestId: early.requestId},
-        early.requested, selection);
+      return prepareInstalledRequestModelRun({preparedProgram: prepared as object, requestId: early.requestId!},
+        early.requested, selection as EmbeddedInferSelection) as LocalModelPlan & ReturnType<NonNullable<InferRunInstall['prepareOriginalModelRun']>>;
     },
     prepareOriginalMockRun(prepared, plan) {
-      const early = earlyMockInferPlans.get(prepared);
+      const early = earlyMockInferPlans.get(prepared as object);
       if (early === undefined || early.plan !== plan ||
           typeof sourceProfile?.modelPreparation !== 'function') {
         throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
       }
-      return sourceProfile.modelPreparation(prepared, plan);
+      return sourceProfile.modelPreparation(prepared as object, plan as Parameters<NonNullable<InstalledHostSourceProfile['modelPreparation']>>[1]) as
+        ReturnType<NonNullable<InferRunInstall['prepareOriginalMockRun']>> & ReturnType<NonNullable<InstalledHostSourceProfile['modelPreparation']>>;
     },
     prepareKeyedRecovery: async ({preparedProgram, plan, submission}) => {
       // Reuse the declared pre-acquisition Run envelope; reopening input does
@@ -4365,7 +5267,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       // Content prefix each derive their own checked finite envelope.
       const acquisition = checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram));
       const requestIdentity = moon.clientProgramRequestIdentity(preparedProgram,
-        authorityScopeCid, submission.requestId, moon.clientProgramSourceFreeInputIntentCid());
+        authorityScopeCid, (submission as EmbeddedSubmission).requestId, moon.clientProgramSourceFreeInputIntentCid());
       if (acquisition === undefined || requestIdentity === undefined) {
         throw new Error('InstalledCapturedContentSelectionUnavailable');
       }
@@ -4378,32 +5280,34 @@ async function openInstalledHost(originalInstallation, preparation) {
         capacity, capturedContent: true});
       return {keyedSource, ledger};
     },
-    sourceAccessFor: prepared => installedSourceFor(sourceProfile, prepared.checkedSource.sourceRef).sourceAccess,
-    sourceAdapterFor: prepared => installedSourceFor(sourceProfile, prepared.checkedSource.sourceRef),
+    sourceAccessFor: prepared => installedSourceFor(sourceProfile, (prepared as PreparedAcquisition).checkedSource.sourceRef).sourceAccess,
+    sourceAdapterFor: prepared => installedSourceFor(sourceProfile, (prepared as PreparedAcquisition).checkedSource.sourceRef),
     faultInjection: authorization?.faultInjection,
     computeConfigurations: {local: localSnapshotConfiguration}});
-  dispatchOwner = installNodeClientDispatchOwner({moon, control,
-    journal, store, checkpoints, startRun, hostConnection, beforeDispatch,
-    observed, prepareAcquisition, planFor, sourceProfile, registry, values,
+  dispatchOwner = installNodeClientDispatchOwner({moon, control: control as DispatchInstallation['control'],
+    journal: journal!, store: store!, checkpoints, startRun, hostConnection, beforeDispatch,
+    observed, prepareAcquisition, planFor: planFor as DispatchInstallation['planFor'],
+    sourceProfile: sourceProfile as DispatchInstallation['sourceProfile'], registry, values,
     faultInjection: authorization?.faultInjection,
     fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
-    runInfer, runContent, retainedRelationOutput, observation,
+    runInfer: runInfer as DispatchInstallation['runInfer'], runContent: runContent as DispatchInstallation['runContent'], retainedRelationOutput, observation,
     preparationCustody: localPreparationCustody,
-    beforePublication: prepared => preparation.managedComputeReservePublication(moon, prepared),
+    beforePublication: prepared => preparation.managedComputeReservePublication(moon, prepared as object),
     authorizeLogicalObservation: (operation, connection) => {
-      const selected = {principalId: operation.principalId, connection, ref: operation.indexKey};
-      if (!hostConnection(selected) || authorizeLocalRunImmediate(operation, operation) !== true) return false;
+      const selected = {principalId: operation.principalId!, connection, ref: operation.indexKey};
+      if (!hostConnection(selected) || authorizeLocalRunImmediate(operation as Parameters<typeof authorizeLocalRunImmediate>[0], operation as Parameters<typeof authorizeLocalRunImmediate>[1]) !== true) return false;
       return hostConnection(selected);
     },
     managedComputeRequired: true,
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
-  const restoreEffectManagedPreparation = async (ref, signal) => {
-    const retained = journal.lookupRunDefinition(ref, moon, control);
+  const restoreEffectManagedPreparation = async (ref: WireRunRef, signal?: AbortSignal):
+      Promise<Readonly<{managedEffect: EffectPlanRun; original?: RestoredEffectOriginal}>> => {
+    const retained = journal!.lookupRunDefinition(ref, moon, control);
     if (retained === undefined || typeof retained.requestId !== 'string') {
       throw clientOperationError('EffectRecoveryRequestMismatch');
     }
-    const owned = journal.lookupOwnedDefinition({namespaceId, authorityScopeCid,
+    const owned = journal!.lookupOwnedDefinition({namespaceId, authorityScopeCid,
       requestId: retained.requestId, runDefinitionCid: ref.runDefinitionCid}, moon, control);
     if (owned?.runDefinition?.identity !== ref.runDefinitionCid) throw clientOperationError('EffectRecoveryRequestMismatch');
     const selected = preparation.retainedEffectManagedPlan(moon, owned.requestIdentity, owned.runDefinition);
@@ -4412,7 +5316,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         typeof owned.runAdmissionEvidence?.effectOriginalRunWire !== 'string') {
       throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
     }
-    const originalSubmittedIntent = journal.originalSubmittedIntent(owned.requestIdentity,
+    const originalSubmittedIntent = journal!.originalSubmittedIntent(owned.requestIdentity,
       {namespaceId}, moon, control);
     if (originalSubmittedIntent === undefined) throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
     originalSubmittedIntent.assertCurrent();
@@ -4425,14 +5329,14 @@ async function openInstalledHost(originalInstallation, preparation) {
       owned.runAdmissionEvidence.effectOriginalRunWire;
     const input = preparation.retainEffectRequestInput(moon, request,
       originalSubmittedIntent.intent, undefined, materialWire);
-    let terminal = 'failed';
+    let terminal: Parameters<RequestInputRetention['finish']>[0] = 'failed';
     try {
       const prepared = await prepareSubmit(request);
       preparation.bindSourceRequest(request, prepared);
       prepareSubmit.assertSubmittedIntent(prepared, originalSubmittedIntent.intent);
       if (prepareSubmit.kindOf(prepared) !== 'effectful') throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
       prepareEffectInferSelection(prepared);
-      const original = await effectRun.restoreRetainedPreparation({prepared, identity: owned.requestIdentity,
+      const original = await effectRun!.restoreRetainedPreparation({prepared, identity: owned.requestIdentity,
         namespaceId, ref, originalSubmittedIntent});
       const managed = preparation.effectManagedPlanRun(moon, prepared, owned.requestIdentity);
       signal?.throwIfAborted();
@@ -4443,7 +5347,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       catch (cause) {if (terminal !== 'failed') throw cause;}
     }
   };
-  const recoverEffectCapture = (ref, signal, managed, retainRecoveryResources, boundOriginal) => {
+  const recoverEffectCapture = (ref: WireRunRef, signal: AbortSignal | undefined, managed?: EffectPlanRun,
+      retainRecoveryResources?: EffectRecoveryOptions['retainRecoveryResources'], boundOriginal?: RestoredEffectOriginal) => {
     // An existing live Request already owns this exact compiler. Its saved
     // material admission must bind that original instead of compiling again.
     // A wire-only cold restoration still needs its own funded continuation.
@@ -4451,12 +5356,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (managed !== undefined && originalCompilation === undefined) {
       throw clientOperationError('ForeignInstalledEffectManagedRun');
     }
-    const retained = journal.lookupRunDefinition(ref, moon, control);
+    const retained = journal!.lookupRunDefinition(ref, moon, control);
     if (retained === undefined || typeof retained.requestId !== 'string') {
       throw new Error('EffectRecoveryRequestMismatch');
     }
     const requestId = retained.requestId;
-    return recoverAdmittedEffectRun({requests: journal, store,
+    return recoverAdmittedEffectRun({requests: journal!, store: store!,
       key: {namespaceId, authorityScopeCid, requestId,
         runDefinitionCid: ref.runDefinitionCid}, principalId,
       contractLimits: localContractLimits, signal,
@@ -4476,19 +5381,19 @@ async function openInstalledHost(originalInstallation, preparation) {
           // parser/codec/compiler pass. Fresh Journal/current fences remain.
           if (managed === undefined || boundOriginal.prepared !== managed.prepared ||
               boundOriginal.compilation !== originalCompilation ||
-              boundOriginal.allowed !== managed.definitionOriginal.allowed ||
-              boundOriginal.definition !== managed.definitionOriginal.definition ||
+              boundOriginal.allowed !== managed.definitionOriginal!.allowed ||
+              boundOriginal.definition !== managed.definitionOriginal!.definition ||
               moon.clientRequestRelation(boundOriginal.identity, requestIdentity) !== 1 ||
               boundOriginal.runDefinition.identity !== saved.runDefinition.identity ||
-              moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(boundOriginal.allowed)) !== saved.runAdmissionEvidence.prepared ||
-              moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(boundOriginal.allowed)) !== saved.runAdmissionEvidence.authorization) {
+              moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(boundOriginal.allowed)) !== saved.runAdmissionEvidence!.prepared ||
+              moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(boundOriginal.allowed)) !== saved.runAdmissionEvidence!.authorization) {
             throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
           }
           boundOriginal.originalSubmittedIntent.assertCurrent();
           return boundOriginal;
         }
         const original = saved.runAdmissionEvidence?.updateTargetRunOriginal;
-        let restored = original === undefined ? {} : updateTargetOriginals.restoreRun(
+        let restored: EffectRestoration = original === undefined ? {} : updateTargetOriginals!.restoreRun(
           original, saved.runDefinition, requestIdentity, originalCompilation, managed?.prepared);
         if (original === undefined && managed?.definitionOriginal !== undefined) {
           // The live Request already owns these admitted materials. Ordinary
@@ -4500,14 +5405,14 @@ async function openInstalledHost(originalInstallation, preparation) {
               moon.clientRequestRelation(current.identity, requestIdentity) !== 1 ||
               moon.strategyPublicationContractIdentity(current.definition) !== saved.runDefinition.identity ||
               moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(current.allowed)) !==
-                saved.runAdmissionEvidence.prepared ||
+                saved.runAdmissionEvidence!.prepared ||
               moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(current.allowed)) !==
-                saved.runAdmissionEvidence.authorization) {
+                saved.runAdmissionEvidence!.authorization) {
             throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
           }
           restored = current;
         }
-        const originalSubmittedIntent = journal.originalSubmittedIntent(requestIdentity,
+        const originalSubmittedIntent = journal!.originalSubmittedIntent(requestIdentity,
           {namespaceId}, moon, control);
         if (originalSubmittedIntent !== undefined &&
             moon.clientSubmittedIntentRequestsCommitStop(originalSubmittedIntent.intent)) {
@@ -4520,9 +5425,9 @@ async function openInstalledHost(originalInstallation, preparation) {
               saved.runDefinition, requestIdentity, originalCompilation, managed?.prepared);
           }
           if (moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(restored.allowed)) !==
-                saved.runAdmissionEvidence.prepared ||
+                saved.runAdmissionEvidence!.prepared ||
               moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(restored.allowed)) !==
-                saved.runAdmissionEvidence.authorization) {
+                saved.runAdmissionEvidence!.authorization) {
             throw new Error('EffectRecoveryOriginalSelectionUnavailable');
           }
         }
@@ -4549,7 +5454,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         binding.storeAuthorityCid === storeAuthorityCid},
     async () => moon);
   };
-  const answerLocalCheckpoint = (summary, decision, signal) => {
+  const answerLocalCheckpoint: LocalCheckpointAnswer = (summary, decision, signal) => {
     assertProjectRuntime();
     if (mode !== 'local' || mockAccount === undefined ||
         mockAccount.reviewer === undefined || checkpoints === undefined) {
@@ -4558,21 +5463,24 @@ async function openInstalledHost(originalInstallation, preparation) {
     preparation.assertResultPublicationCurrent();
     if (localCheckpointAnswer === undefined) {
       localSigningMetadata ??= runtimeCore(moon).localSigningMetadata();
-      localCheckpointAnswer = createLocalCheckpointAnswer({moon, checkpoints, mockAccount, store,
+      localCheckpointAnswer = createLocalCheckpointAnswer({moon, checkpoints, mockAccount, store: store!,
         authorityScopeCid, principalId, metadata: localSigningMetadata,
         assertCurrent() {
           assertProjectRuntime(); preparation.assertResultPublicationCurrent();
         },
-        loadRunOriginal: createLocalSigningOriginalReader({namespaceId, authorityScopeCid, moon, control, journal,
+        loadRunOriginal: createLocalSigningOriginalReader<EffectPlanRun, RestoredEffectOriginal,
+          Parameters<ClientJournal['lookupRunDefinition']>[1], typeof control,
+          NonNullable<ReturnType<ClientJournal['lookupRunDefinition']>>, RecoveredEffect>({
+          namespaceId, authorityScopeCid, moon, control, journal: journal!,
           restoreEffectManagedPreparation, recoverEffectCapture, localSigningRecoveries,
           assertCurrent() {assertProjectRuntime(); preparation.assertResultPublicationCurrent();},
           releaseLocalSigningRecovery, clientOperationError})});
     }
     return localCheckpointAnswer(summary, decision, signal);
   };
-  const openEffectTargetReads = async (facts, {signal, resume, activeResume, journalPort,
+  const openEffectTargetReads = async (facts: TargetReadFacts, {signal, resume, activeResume, journalPort,
     allowDefer = true,
-    observeCancellation = journal.observeRunCancellation(facts.ref, moon, control)} = {}) => {
+    observeCancellation = journal!.observeRunCancellation(facts.ref, moon, control)}: EffectTargetReadOriginals = {}) => {
     const selected = installedEffect === undefined ? effectInstallation : selectedInstalledEffect(facts);
     const assertCurrent = () => {
       facts.assertUpdateSelectionCurrent?.();
@@ -4594,32 +5502,33 @@ async function openInstalledHost(originalInstallation, preparation) {
       submission: effectSubmissions.get(facts.prepared),
       inventory: selected.targetReadInventory({...facts, moon,
         ...(facts.updateTargetSelections === undefined ? {} : {assertUpdateSelectionCurrent: assertCurrent})}), principalId,
-      signal, resume, allowDefer, journalPort,
+      signal, resume: resume as TargetReadOptions['resume'], allowDefer, journalPort,
       ...(facts.updateTargetSelections === undefined ? {} : {
         assertOriginalCurrent: assertCurrent,
       }),
       assertCurrent,
     });
   };
-  const executeEffectComputation = (facts, sourceResume, targetResume, modelResume) => {
+  const executeEffectComputation = (facts: EffectExecutionFacts, sourceResume?: SourceReadResume,
+      targetResume?: SourceReadResume, modelResume?: ModelEffectResume): ReturnType<EffectExecute> => {
     const activeResume = sourceResume ?? targetResume ?? modelResume;
     // This original continuation shares only immutable row admission. Every
     // probe still selects current storage; target and resume gates stay live.
-    const observeCancellation = journal.observeRunCancellation(facts.ref, moon, control);
+    const observeCancellation = journal!.observeRunCancellation(facts.ref, moon, control);
     const assertRunNotCancelled = () => {
       if (observeCancellation()?.cancellationRequested !== false) {
         throw clientOperationError('ClientRunCancellationRequested');
       }
     };
-    let assertOriginalUpdateSelectionCurrent;
+    let assertOriginalUpdateSelectionCurrent: (() => void) | undefined;
     if (facts.updateTargetSelections !== undefined) {
       const original = facts.assertUpdateSelectionCurrent;
       assertOriginalUpdateSelectionCurrent = () => {
-        original();
+        original!();
         assertRunNotCancelled();
       };
       facts = Object.freeze({...facts, assertUpdateSelectionCurrent() {
-        assertOriginalUpdateSelectionCurrent();
+        assertOriginalUpdateSelectionCurrent!();
         activeResume?.assertCurrent();
       }});
     }
@@ -4635,24 +5544,24 @@ async function openInstalledHost(originalInstallation, preparation) {
       ? {claim: readResume.claim, checkpointCid: readResume.view.checkpointCid}
       : modelResume?.parentResume;
     const nextJournal = activeResume?.active !== true ? undefined : {
-      ...checkpoints.journal,
-      persistCheckpoint: checkpoint => checkpoints.journal.completeResume(
-        activeResume.claim, {checkpoint}),
+      ...checkpoints!.journal,
+      persistCheckpoint: (checkpoint: CheckpointPersist) => checkpoints!.journal.completeResume(
+        activeResume.claim!, {checkpoint}) as ReturnType<CheckpointJournal['persistCheckpoint']>,
       ...(parentResume === undefined ? {} : {
         modelParentResume: parentResume,
-        attachModelCallSetCheckpoint: checkpoint => checkpoints.journal.completeResume(
-          parentResume.claim, {checkpoint, attachImmediateModelCallSet: true}),
+        attachModelCallSetCheckpoint: (checkpoint: CheckpointPersist) => checkpoints!.journal.completeResume(
+          parentResume.claim!, {checkpoint, attachImmediateModelCallSet: true}) as ReturnType<CheckpointJournal['attachModelCallSetCheckpoint']>,
       }),
     };
     const sourceCheckpoints = targetResume === undefined && modelResume === undefined ? checkpoints : {
-      ...checkpoints,
-      computationSourceAuthorization: options => checkpoints.computationSourceAuthorization({
+      ...checkpoints!,
+      computationSourceAuthorization: (options: Parameters<CheckpointServices['computationSourceAuthorization']>[0]) => checkpoints!.computationSourceAuthorization({
         ...options, journalPort: nextJournal}),
     };
-    return dispatchOwner.track(facts.ref, {
+    return dispatchOwner!.track(facts.ref, {
         run: async ({signal, retainExecution, beginPhysicalWork,
           observePreEffectFailure}) => {
-          const managedEffect = preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity);
+          const managedEffect: EffectPlanRun = preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity);
           const managedRun = managedEffect.value;
           let targetReads;
           try {
@@ -4661,25 +5570,26 @@ async function openInstalledHost(originalInstallation, preparation) {
               journalPort: modelResume === undefined ? undefined : nextJournal,
               observeCancellation});
           } catch (error) { observePreEffectFailure(); throw error; }
-          return effectInstallation.execute(
+          return effectInstallation!.execute(
           Object.freeze({...facts, signal, retainExecution, targetReads, observation, managedEffect,
             beginPhysicalWork, observePreEffectFailure, moon, control,
             assertContinuationCurrent,
             publicationPlan: facts.preparedExecution,
-            store, storeAuthorityCid, authorityScopeCid,
-            observeRun: ({ref}) => observeRun({ref, principalId}),
-            openComputation: async ({retainComputationOwner} = {}) => {
+            store: store!, storeAuthorityCid, authorityScopeCid,
+            observeRun: ({ref}: Pick<RunObservationInput, 'ref'>) => observeRun({ref, principalId}),
+            openComputation: async ({retainComputationOwner}: Partial<Pick<
+              Parameters<typeof openAcquiredEffectComputation>[0], 'retainComputationOwner'>> = {}) => {
               facts.assertUpdateSelectionCurrent?.();
               if (inferSelections.has(facts.prepared) ||
                   moon.clientProgramEffectSerializationOccurrences(facts.prepared).length > 0 ||
                   moon.clientProgramEffectAcquisitionCount(facts.prepared) > 0) {
                 let ownedModelToken;
                 try {
-                  let retainedModel = modelResume;
+                  let retainedModel: ModelEffectRestoration | undefined = modelResume;
                   if (retainedModel === undefined && targetResume !== undefined &&
                       inferSelections.has(facts.prepared) && modelController !== undefined) {
-                    activeResume.assertCurrent();
-                    const graphs = inferSelections.get(facts.prepared).graph;
+                    activeResume!.assertCurrent();
+                    const graphs = inferSelections.get(facts.prepared)!.graph;
                     const taskIndices = (Array.isArray(graphs) ? graphs : [graphs]).map(graph =>
                       runtimeField(moon.clientProgramInferPlanBoundary(graph), 0));
                     const records = modelController.discover(
@@ -4691,12 +5601,13 @@ async function openInstalledHost(originalInstallation, preparation) {
                       const token = ownedModelToken = await modelController.prime(record);
                       facts.assertUpdateSelectionCurrent?.();
                       modelController.state(record.inventory);
-                      activeResume.assertCurrent();
+                      activeResume!.assertCurrent();
                       retainedModel = {record, token, view: targetResume.view};
                     }
                   }
                   const sourceSelectionPlan = checked(moon.clientProgramInstalledEffectManagedOperationPlan(
-                    managedRun, facts.prepared, facts.identity));
+                    managedRun, facts.prepared, facts.identity)) as
+                    Parameters<typeof selectAcquiredEffectSources>[0]['managedPlan'];
                   const selectedSources = selectAcquiredEffectSources({moon,
                     preparedEffect: facts.prepared, sourceProfile,
                     registry, values, fragment, ordered,
@@ -4706,57 +5617,59 @@ async function openInstalledHost(originalInstallation, preparation) {
                     checkpoints: (selectedSources.length === 0 ||
                       selectedSources.every(({adapter}) => typeof adapter.retainedCapture === 'function'))
                       ? sourceCheckpoints : undefined,
-                    moon, acquired: facts.preparedExecution,
+                    moon, acquired: facts.preparedExecution as Parameters<typeof acquiredEffectContinuation>[0]['acquired'],
                     submission: effectSubmissions.get(facts.prepared),
                     declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
                     unitId: moon.clientProgramEffectCompilationUnitId(facts.compilation),
-                    principalId, signal, resume: sourceResume,
+                    principalId, signal, resume: sourceResume as SourceContinuationResume | undefined,
                     assertUpdateSelectionCurrent: assertOriginalUpdateSelectionCurrent,
                     assertContinuationCurrent: activeResume?.assertCurrent,
-                    ...(retainedModel?.token.snapshot.sourceContinuation === undefined ? {} : {
-                      restore: {view: retainedModel.view,
-                        continuation: retainedModel.token.snapshot.sourceContinuation},
+                    ...(retainedModel?.token.snapshot!.sourceContinuation === undefined ? {} : {
+                      restore: {view: retainedModel.view as NonNullable<SourceContinuationOptions['restore']>['view'],
+                        continuation: retainedModel.token.snapshot!.sourceContinuation as
+                          NonNullable<SourceContinuationOptions['restore']>['continuation']},
                     }),
                     currentRun: () => observeCancellation()
                       ?.cancellationRequested === false});
                   if (retainedModel !== undefined &&
                       moon.clientProgramEffectAcquisitionCount(facts.prepared) > 0 &&
-                      retainedModel.token.snapshot.sourceContinuation === undefined) {
+                      retainedModel.token.snapshot!.sourceContinuation === undefined) {
                     throw new Error('ModelSourceClosureCustodyUnavailable');
                   }
                   if(retainedModel===undefined){
                     assertContinuationCurrent();
-                    await prepareMockModelInputs(managedEffect.modelSelection);
+                    await prepareMockModelInputs(managedEffect.modelSelection as EmbeddedInferSelection | undefined);
                     assertContinuationCurrent();
                   }
                   return await openAcquiredEffectComputation({moon,
-                    owner: facts.owner, acquired: facts.preparedExecution, managedRun,
+                    owner: facts.owner, acquired: facts.preparedExecution as Parameters<typeof openAcquiredEffectComputation>[0]['acquired'], managedRun,
                     sourceSelection: selectedSources, sourceSelectionPlan,
-                    sourceKeyedPreparation: managedEffect.keyedPreparation,
+                    sourceKeyedPreparation: managedEffect.keyedPreparation as EffectComputationInput['sourceKeyedPreparation'],
                     requestJournal: journal, runRef: facts.ref,
-                    originalContent: managedEffect.contentOriginal,
+                    originalContent: managedEffect.contentOriginal as EffectComputationInput['originalContent'],
                     originalModelComponent: managedEffect.modelComponent,
                     originalModelComponents: managedEffect.modelMembers === undefined ? undefined
-                      : managedEffect.modelMembers.map(member => member.modelComponent),
-                    originalModelSelection: managedEffect.modelSelection,
-                    sourceProfile, registry, values, fragment, ordered,
+                      : managedEffect.modelMembers.map(member => member.modelComponent!),
+                    originalModelSelection: managedEffect.modelSelection as EffectComputationInput['originalModelSelection'],
+                    sourceProfile: sourceProfile as EffectComputationInput['sourceProfile'], registry, values, fragment, ordered,
                     sourceAccess: sourceProfile?.sourceAccess, signal, now,
                     assertUpdateSelectionCurrent: assertOriginalUpdateSelectionCurrent,
                     assertContinuationCurrent: activeResume?.assertCurrent,
-                    retainComputationOwner, infer: inferSelections.get(facts.prepared),
+                    retainComputationOwner: retainComputationOwner!, infer: inferSelections.get(facts.prepared) as EffectComputationInput['infer'],
                     ...(managedEffect.model === undefined ? {} : {
-                      originalModelPlan: {compiled: managedEffect.model.compiled, runDefinition: managedEffect.modelRunDefinition},
+                      originalModelPlan: {compiled: managedEffect.model.compiled,
+                        runDefinition: managedEffect.modelRunDefinition as NonNullable<EffectComputationInput['originalModelPlan']>['runDefinition']},
                       originalPreparation: installedEffectModelPreparation(managedEffect,
                         () => preparation.modelPublicationCapacity(facts.prepared),
-                        () => preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity)),
+                        () => preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity)) as (ReturnType<typeof installedEffectModelPreparation> & NonNullable<EffectComputationInput['originalPreparation']>),
                     }),
                     computeConfigurations: {local: localSnapshotConfiguration},
                     withComputePauseHandler: (configurations, handlePause, beforePrepare) => ({
                       ...configurations,
-                      local: withLocalExecutionPauseHandler(configurations.local, handlePause, beforePrepare),
+                      local: withLocalExecutionPauseHandler(configurations.local as object | undefined, handlePause, beforePrepare),
                     }),
-                    store, principalId, contentRun: runContent, faultInjection: authorization?.faultInjection,
-                    observe: (event, detail) => diagnostic(event,
+                    store: store!, principalId, contentRun: runContent as EffectComputationInput['contentRun'], faultInjection: authorization?.faultInjection,
+                    observe: (event: string, detail: Readonly<Record<string, unknown>>) => diagnostic(event,
                       {...detail, ref: facts.ref}), sourceContinuation,
                     modelController, inferEvidence: evidenceConfiguration,
                     submission: effectSubmissions.get(facts.prepared),
@@ -4770,19 +5683,22 @@ async function openInstalledHost(originalInstallation, preparation) {
                 throw new Error('InstalledEffectProgramUnsupported');
               }
               return runCapturedEffectComputation(setup, {}, signal).then(
-                execution => Object.freeze({execution, checkedHost: setup}));
+                execution => Object.freeze({execution, checkedHost: setup as object}));
             },
-            recoverCapture: ({signal: recoverySignal, retainRecoveryResources} = {}) =>
+            recoverCapture: ({signal: recoverySignal, retainRecoveryResources}:
+                Pick<EffectRecoveryOptions, 'signal' | 'retainRecoveryResources'> = {}) =>
               recoverEffectCapture(facts.ref, recoverySignal, managedEffect, retainRecoveryResources),
-            effectAuthorization: checkpoints === undefined ? undefined : options =>
-              checkpoints.effectAuthorization({...options,
+            effectAuthorization: checkpoints === undefined ? undefined :
+              (options: Parameters<EffectAuthorization>[0]) =>
+              checkpoints!.effectAuthorization({...options,
                 runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,
-                ...(nextJournal === undefined ? {} : {journalPort: nextJournal})}),
-            recordReconciliation: (...args) =>
-              effectRun.recordReconciliation(...args)}));
+                ...(nextJournal === undefined ? {} : {journalPort: nextJournal})} as CheckpointEffectAuthorization) as
+                ReturnType<EffectAuthorization>,
+            recordReconciliation: (...args: Parameters<EffectRunOwner['recordReconciliation']>) =>
+              effectRun!.recordReconciliation(...args)}));
         },
         observeStopped: terminalOutcome => {
-          recordNodeRunPhysicalStop({ref: facts.ref, journal, moon, control},
+          recordNodeRunPhysicalStop({ref: facts.ref, journal: journal!, moon, control},
             activeResume === undefined ? terminalOutcome : null);
           modelResume?.observeStopped?.();
           if (activeResume !== undefined) activeResume.observedTerminalOutcome = terminalOutcome;
@@ -4790,13 +5706,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         barrierFailureOutcome: 'failed',
       });
   };
-  const effectRun = effectInstallation === undefined ? undefined :
-    installNodeClientEffectRun({moon, publicationControl: control, journal,
+  const effectRun: EffectRunOwner | undefined = effectInstallation === undefined ? undefined :
+    installNodeClientEffectRun({moon, publicationControl: control, journal: journal!,
       reserveOriginal: (prepared, material, installations) =>
-        preparation.reserveManagedEffectOriginal(moon, prepared, material, installations),
+        preparation.reserveManagedEffectOriginal(moon, prepared as object, material, installations),
       requestIdentityFor({prepared, authorityScopeCid: scope, requestId}) {
         if (scope !== authorityScopeCid) throw clientOperationError('ClientProgramNeedsInputs');
-        return originalSourceFreeRequest(prepared, requestId, true);
+        return originalSourceFreeRequest(prepared as object, requestId, true);
       },
       assertRequestedStopAvailable() {
         if (checkpoints === undefined) {
@@ -4804,18 +5720,20 @@ async function openInstalledHost(originalInstallation, preparation) {
             clientOperationError('RequestedEffectStopUnavailable'));
         }
       },
-      now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
+      now, inferPlanFor: prepared => inferSelections.get(prepared as object)?.graph,
       captureDefinitionExplanation: function captureDefinitionExplanation(facts, readEvidence, hasIntent) {
-        return preparation.captureEffectRunExplanation(moon, facts, readEvidence, journal, hasIntent);
+        return preparation.captureEffectRunExplanation(moon, facts as OrdinaryEffectExplanationArgs[2], readEvidence, journal!, hasIntent);
       },
       prepareDefinition: facts => {
-        preparation.admitEffectResultPublicationRun(facts.prepared);
+        preparation.admitEffectResultPublicationRun(facts.prepared as object);
         const selected = selectedInstalledEffect(facts);
         selected.assertPrepared?.({moon, prepared: facts.prepared, compilation: facts.compilation});
-        const original = preparation.prepareManagedEffectPlanRun(moon, facts, selected,
-          {registry, values, fragment, ordered, sourceProfile}, inferSelections.get(facts.prepared),
+        const original = preparation.prepareManagedEffectPlanRun(moon, facts as EffectPlanOptions['facts'], selected,
+          {registry, values, fragment, ordered, sourceProfile},
+          inferSelections.get(facts.prepared as object) as EffectPlanOptions['modelSelection'],
           moon.clientProgramEffectSerializationOccurrences(facts.prepared).length === 0 ? undefined
-            : retainCleanup => runContent.prepareEffectFamily({facts, store, principalId, retainCleanup}));
+            : (retainCleanup: Parameters<typeof runContent.prepareEffectFamily>[0]['retainCleanup']) =>
+              runContent.prepareEffectFamily({facts, store: store!, principalId, retainCleanup}));
         if (mockEffectObservation !== undefined) retainMockEffectRunOriginal(facts);
         return original;
       },
@@ -4826,7 +5744,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       },
       resultPolicyOriginalFor: prepared => {
         if (moon.clientProgramEffectAcquisitionCount(prepared) !== 0 ||
-            !inferSelections.has(prepared) &&
+            !inferSelections.has(prepared as object) &&
               moon.clientProgramEffectSerializationOccurrences(prepared).length === 0) {
           return undefined;
         }
@@ -4852,17 +5770,18 @@ async function openInstalledHost(originalInstallation, preparation) {
         hostConnection({principalId: actual, connection, ref}),
       prepareExecution: ({prepared, compilation, allowed, definition,
         resultPolicyOriginal, queryTimePreparation, queryTime, identity}) => {
-        const sourceFreeInfer = inferSelections.has(prepared) &&
+        const sourceFreeInfer = inferSelections.has(prepared as object) &&
           moon.clientProgramEffectAcquisitionCount(prepared) === 0;
         const retainedResultDataPolicy = sourceFreeInfer
           ? control.admitSourceFreeResultPolicy(
-            resultPolicyOriginal, localContractLimits)
+            resultPolicyOriginal!, localContractLimits)
           : undefined;
         const options = {moon, control, prepared,
-          compilation, allowed, definition, authorityScopeCid, namespaceId,
+          compilation: compilation as Parameters<typeof sourceFreeEffectPublicationPlanOriginal>[0]['compilation'],
+          allowed, definition, authorityScopeCid, namespaceId,
           storeAuthorityCid, now, resultDataPolicy: retainedResultDataPolicy,
           queryTimePreparation, queryTime, identity};
-        if (inferSelections.has(prepared) ||
+        if (inferSelections.has(prepared as object) ||
           moon.clientProgramEffectSerializationOccurrences(prepared).length > 0 ||
           moon.clientProgramEffectAcquisitionCount(prepared) > 0) {
           return acquiredEffectPublicationAdmission(options);
@@ -4873,17 +5792,17 @@ async function openInstalledHost(originalInstallation, preparation) {
       },
       execute: executeEffectComputation,
     });
-  const runIdOf = accepted => control.runDefinitionRunId(
+  const runIdOf = (accepted: RunAdmissionReference) => control.runDefinitionRunId(
     accepted.runDefinition?.wire === undefined
-      ? journal.lookupRunDefinition(accepted.ref, moon, control).runDefinition
+      ? journal!.lookupRunDefinition(accepted.ref, moon, control)!.runDefinition
       : accepted.runDefinition);
-  const admitEffectDefinition = submission => {
+  const admitEffectDefinition = (submission: EmbeddedSubmission) => {
     const {requestId, principalId, connection, kind, input, parameters} = submission;
     effectSubmissions.set(submission.preparedProgram, JSON.parse(canonicalValueJson({
       requestId, principalId, connection, kind, input, parameters,
       ...capturedUpdateOriginal(submission),
       ...(submission.submission === undefined ? {} : {submission: submission.submission})}, {dataKeys: true})));
-    return effectRun.accept({
+    return effectRun!.accept({
     prepared: submission.preparedProgram, authorityScopeCid,
     requestId: submission.requestId, namespaceId,
     principalId: submission.principalId, connection: submission.connection,
@@ -4891,14 +5810,14 @@ async function openInstalledHost(originalInstallation, preparation) {
     lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
     });
   };
-  const submitEffect = async (submission, requested, resultNames) => {
+  const submitEffect = async (submission: EmbeddedSubmission, requested: unknown, resultNames: readonly string[]) => {
     const {requestId, principalId: actual, connection, kind, input,
       parameters, preparedProgram} = submission;
     // A deferred approval must be answerable by this installed profile.
     // Reject unsupported checked shapes before retaining a Checkpoint.
-    effectRun.checkSupported(preparedProgram);
+    effectRun!.checkSupported(preparedProgram);
     if (checkpoints?.heldOrigin(requestId)) {
-      const existing = journal.resolveDefinition(requested, {namespaceId}, moon,
+      const existing = journal!.resolveDefinition(requested, {namespaceId}, moon,
         control);
       if (existing !== undefined) {
         void checkpoints.sweep();
@@ -4908,7 +5827,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     if (runAcceptance !== undefined &&
         (checkpoints?.heldOrigin(requestId) ||
-         journal.lookup({namespaceId, authorityScopeCid, requestId}, moon) ===
+         journal!.lookup({namespaceId, authorityScopeCid, requestId}, moon) ===
            undefined)) {
       const requestedFacts = {
         logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
@@ -4920,11 +5839,11 @@ async function openInstalledHost(originalInstallation, preparation) {
         ...capturedUpdateOriginal(submission),
         ...(submission.submission === undefined ? {} : {submission: submission.submission})};
       const decided = await runAcceptance.acceptRun({requested: requestedFacts,
-        captured});
+        captured: captured as Parameters<NonNullable<RunAcceptance['runAcceptance']>['acceptRun']>[0]['captured']});
       if (decided.kind !== 'dispatch') {
-        const existing = journal.lookupDefinition({namespaceId,
+        const existing = journal!.lookupDefinition({namespaceId,
           authorityScopeCid, requestId}, moon, control);
-        void checkpoints.sweep();
+        void checkpoints!.sweep();
         if (existing !== undefined) {
           return {ref: existing.ref, durability: existing.durability,
             revision: existing.revision};
@@ -4938,7 +5857,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     const accepted = await admitEffectDefinition(submission);
     // The durable accepted Ref is returned before physical work settles.
     // Its start claim cannot be reset by a lost response or a second submit.
-    const settlement = effectRun.start(accepted).catch(error => {
+    const settlement = effectRun!.start(accepted).catch(error => {
       diagnostic('effect_start_failed', {ref: accepted.ref,
         code: error?.code ?? error?.message, cause: error?.cause});
     }).finally(() => settleHeldRun(accepted, runIdOf(accepted)))
@@ -4948,8 +5867,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     return {ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision};
   };
-  const prepareTimedRunInvocation = (preparedProgram, requestIdentity, compilationOriginal, retainedInvocation) => {
-    const retained = journal.resolveDefinition(requestIdentity, {namespaceId}, moon, control);
+  const prepareTimedRunInvocation: ManagedRunInvocation = (preparedProgram, requestIdentity, compilationOriginal, retainedInvocation) => {
+    const retained = journal!.resolveDefinition(requestIdentity, {namespaceId}, moon, control);
     const kind = moon.clientProgramAcquisitionCount(preparedProgram) > 0 ||
       moon.clientProgramRequiresTaskCompilation(preparedProgram) ? 'tasks' : 'values';
     return prepareTimedClientInvocation({control, preparedProgram, requestIdentity,
@@ -4958,7 +5877,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const prepareOrdinaryManagedRun = captureInstalledManagedRunRoute({
     sourceProfile, preparation, moon, prepareInvocation: prepareTimedRunInvocation});
-  const submit = async submission => {
+  const submit = async (submission: EmbeddedSubmission) => {
     const {requestId, principalId: actual, connection, kind, input,
       parameters} = submission;
     if (!hostConnection({principalId: actual, connection})) {
@@ -4978,9 +5897,9 @@ async function openInstalledHost(originalInstallation, preparation) {
       requestOf(submission);
     const selectedModel = inferSelections.get(submission.preparedProgram);
     if (selectedModel?.egressFailure !== undefined &&
-        journal.resolveDefinition(requested, {namespaceId}, moon, control) === undefined) {
+        journal!.resolveDefinition(requested, {namespaceId}, moon, control) === undefined) {
       diagnostic('infer_preparation_rejected', {boundary: 'model_admission',
-        code: selectedModel.egressFailure.code, cause: selectedModel.egressFailure.cause});
+        code: (selectedModel.egressFailure as ModelFault).code, cause: (selectedModel.egressFailure as ModelFault).cause});
       throw clientOperationError('ClientProgramUnsupported', selectedModel.egressFailure);
     }
     if (effectful) {
@@ -4990,7 +5909,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // A reserved physical start can only be reconciled from its original
     // durable Run. Do this before rebuilding physical source preparations.
     // INFER continues to its existing saved-capture replay owner below.
-    const retainedStart = journal.resolveDefinition(requested, {namespaceId}, moon, control);
+    const retainedStart = journal!.resolveDefinition(requested, {namespaceId}, moon, control);
     if (retainedStart?.physicalStartReserved === true &&
         retainedStart.runAdmissionEvidence?.modelOriginalRunWire !== undefined) {
       // The durable Model owner reopens its original fixed input. Missing
@@ -5010,13 +5929,13 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (selectedModel?.localMock) {
       const early = earlyMockInferPlans.get(submission.preparedProgram);
       if (early === undefined) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
-      managedSourceRun = sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
-        control, early.plan, selectedModel,
+      managedSourceRun = sourceProfile!.prepareManagedMockModelRun!(submission.preparedProgram, requested,
+        control, early.plan!, selectedModel as Parameters<NonNullable<InstalledHostSourceProfile['prepareManagedMockModelRun']>>[4],
         () => preparation.modelPublicationCapacity(submission.preparedProgram));
     } else if (selectedModel !== undefined) {
       const model = prepareInstalledRequestModelRun(submission, requested, selectedModel);
-      const managed = earlyMockInferPlans.get(submission.preparedProgram).managed;
-      if (managed.model !== model || managed.value === undefined || model.managed !== managed) {
+      const managed = earlyMockInferPlans.get(submission.preparedProgram)!.managed!;
+      if (managed.model !== model || managed.value === undefined || model!.managed !== managed) {
         throw clientOperationError('ForeignInstalledModelPreparation');
       }
       // Dispatch and the original Source wrapper consume the same nominal
@@ -5031,7 +5950,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
     } else {
       managedSourceRun = prepareOrdinaryManagedRun({preparedProgram: submission.preparedProgram,
-        requestIdentity: requested, acquisitionCount, model: selectedModel, serializationCount});
+        requestIdentity: requested as object, acquisitionCount, model: selectedModel, serializationCount});
     }
     await prepareMockModelInputs(selectedModel);
     const managedRun = managedSourceRun;
@@ -5052,7 +5971,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // journal's own identity (no side effect): another intent conflicts,
     // whatever the state of the held evidence.
     if (checkpoints?.heldOrigin(requestId)) {
-      const existing = journal.resolveDefinition(requested, {namespaceId}, moon,
+      const existing = journal!.resolveDefinition(requested, {namespaceId}, moon,
         control);
       if (existing !== undefined) {
         if (existing.physicalStartReserved !== true &&
@@ -5067,7 +5986,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     if (runAcceptance !== undefined &&
         (checkpoints?.heldOrigin(requestId) ||
-         journal.lookup({namespaceId, authorityScopeCid, requestId}, moon) ===
+         journal!.lookup({namespaceId, authorityScopeCid, requestId}, moon) ===
            undefined)) {
       const requestedFacts = {
         logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
@@ -5083,9 +6002,9 @@ async function openInstalledHost(originalInstallation, preparation) {
           requested: requestedFacts, captured});
       }
       if (decided.kind !== 'dispatch') {
-        const existing = journal.lookupDefinition({namespaceId,
+        const existing = journal!.lookupDefinition({namespaceId,
           authorityScopeCid, requestId}, moon, control);
-        void checkpoints.sweep();
+        void checkpoints!.sweep();
         if (existing === undefined) {
           if (decided.held === undefined) {
             throw new Error('HeldRunDefinitionMissing');
@@ -5109,14 +6028,14 @@ async function openInstalledHost(originalInstallation, preparation) {
         accepted.physicalStartReserved === true &&
         accepted.observedTerminalOutcome === null &&
         !accepted.cancellationRequested &&
-        dispatchOwner.operation(accepted.ref) === undefined &&
-        await store.confirmCommittedIndex(accepted.ref) === undefined) {
+        dispatchOwner!.operation(accepted.ref) === undefined &&
+        await store!.confirmCommittedIndex(accepted.ref) === undefined) {
       // Re-submission of the exact accepted request may reopen its saved
       // evidence, never reserve another provider dispatch. Missing evidence
       // leaves the original unknown Run intact.
-      const flight = dispatchOwner.track(accepted.ref, {
+      const flight = dispatchOwner!.track(accepted.ref, {
         run: async ({signal, retainExecution, beginPhysicalWork, acquireSource}) => {
-          const current = journal.lookupRunDefinition(accepted.ref, moon, control);
+          const current = journal!.lookupRunDefinition(accepted.ref, moon, control);
           if (current === undefined || current.cancellationRequested ||
               current.observedTerminalOutcome !== null) return;
           const plan = planFor(submission, current.runDefinition.wire, requested);
@@ -5126,37 +6045,39 @@ async function openInstalledHost(originalInstallation, preparation) {
             // grants no permission to dispatch the model again; saved slot
             // replay separately binds the original evidence and actual input.
             const sourceAccess = checkpoints?.acquisitionAccess(
-              submission.requestId, sourceProfile.sourceAccess) ?? sourceProfile.sourceAccess;
+              submission.requestId, sourceProfile!.sourceAccess!) ?? sourceProfile!.sourceAccess;
             const preparedSource = await prepareAcquisition(submission.preparedProgram,
               sourceAccess);
             const {captured, sourceEvidence, captureStartedAt, captureCompletedAt} =
               await acquireSource({preparedProgram: submission.preparedProgram,
-                preparedSource, sourceAccess});
+                preparedSource, sourceAccess}) as AcquisitionReceipt;
             const input = control.admitInferCapturedInput(
-              submission.preparedProgram, captured, sourceEvidence, authorityScopeCid,
+              submission.preparedProgram, captured as AcquisitionReceipt['captured'] & Parameters<typeof control.admitInferCapturedInput>[1],
+              sourceEvidence, authorityScopeCid,
               captured.checkedSource.sourceDataPolicyCid, captureStartedAt, captureCompletedAt);
-            acquiredInfer = {input, sourceEvidence};
+            acquiredInfer = {input, sourceEvidence: sourceEvidence as
+              NonNullable<Parameters<typeof runInfer>[0]['acquiredInfer']>['sourceEvidence']};
           }
           await runInfer({preparedProgram: submission.preparedProgram, plan,
-            store, principalId: actual, signal, retainExecution,
+            store: store!, principalId: actual, signal, retainExecution,
             beginPhysicalWork, acquiredInfer, replay: true});
         },
         observeStopped: async () => {
           // Only the existing publication owner can make recovery successful.
           // A reader refusal does not resolve the original physical outcome.
-          if (await store.confirmCommittedIndex(accepted.ref) !== undefined) {
-            recordNodeRunPhysicalStop({ref: accepted.ref, journal, moon, control}, null);
+          if (await store!.confirmCommittedIndex(accepted.ref) !== undefined) {
+            recordNodeRunPhysicalStop({ref: accepted.ref, journal: journal!, moon, control}, null);
           }
         },
       });
-      void flight.catch(error => diagnostic('infer_replay_failed', {
+      void flight!.catch(error => diagnostic('infer_replay_failed', {
         ref: accepted.ref, code: error?.code ?? error?.message}));
       return {ref: accepted.ref, durability: accepted.durability,
         revision: accepted.revision};
     }
     // A resumed request's journal Run (if any) ends with its dispatch.
     startDispatch(submission, requested, accepted, held,
-      checkpoints === undefined ? undefined : status =>
+      checkpoints === undefined ? undefined : (status?: unknown) =>
         settleHeldRun(accepted, runIdOf(accepted)));
     return {ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision};
@@ -5165,14 +6086,14 @@ async function openInstalledHost(originalInstallation, preparation) {
   // the captured submission and the claim's admission). The admission is
   // entered synchronously immediately before the Run Definition is
   // admitted; the resume intent completes with the created Run.
-  const heldSubmission = async captured => {
+  const heldSubmission = async (captured: HeldCapturedRequest) => {
     const submission = {principalId: captured.principalId,
       connection: captured.connection, requestId: captured.requestId,
       kind: captured.kind, input: captured.input,
       parameters: captured.parameters,
       ...(captured.updateTargetPreparedOriginal === undefined ? {} :
         {updateTargetPreparedOriginal: captured.updateTargetPreparedOriginal}),
-      ...(captured.submission === undefined ? {} : {submission: captured.submission})};
+      ...(captured.submission === undefined ? {} : {submission: captured.submission})} as EmbeddedSubmission;
     // This is an actual pending Checkpoint restoration, not an SDK ingress or
     // authority inferred from equal DATA. Keep its original captured input and
     // Request parent through the existing Run admission/start handoff.
@@ -5187,7 +6108,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // A restored non-Effect request needs the SAME pre-admitted Plan as a
     // fresh submission before Source preparation or publication reads it.
     // Effect definitions retain their existing constructor below.
-    if (!effectful) admitPreparedSubmission(submission, resolved);
+    if (!effectful) admitPreparedSubmission!(submission, resolved);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :
@@ -5211,20 +6132,20 @@ async function openInstalledHost(originalInstallation, preparation) {
       throw retainInstalledHostRuntimeFailure(cause, () => requestInput.finish('failed'));
     }
   };
-  const definitionOf = captured => journal.lookupDefinition({namespaceId,
+  const definitionOf = (captured: Pick<HeldCapturedRequest, 'requestId'>) => journal!.lookupDefinition({namespaceId,
     authorityScopeCid, requestId: captured.requestId}, moon, control);
-  const terminal = status => ['succeeded', 'failed', 'cancelled']
-    .includes(status);
+  const terminal = (status: string | undefined): status is 'succeeded' | 'failed' | 'cancelled' =>
+    ['succeeded', 'failed', 'cancelled'].includes(status!);
   // Recover only from the accepted Run and the committed publication owner.
   // A reserved start without an available publication cannot be treated as
   // an unstarted read or reconstructed by fetching the source again.
   const inspectAcquisition = async ({requestId, principalId: actual,
-    connection}) => {
+    connection}: HostConnectionInput & Readonly<{requestId: string}>): Promise<AcquisitionInspection> => {
     if (sourceProfile === undefined ||
         !hostConnection({principalId: actual, connection})) {
       throw new Error('AcquisitionInspectionDenied');
     }
-    const accepted = journal.lookupDefinition({namespaceId,
+    const accepted = journal!.lookupDefinition({namespaceId,
       authorityScopeCid, requestId}, moon, control);
     if (accepted === undefined || accepted.physicalStartReserved !== true) {
       return {state: 'not_started'};
@@ -5244,10 +6165,10 @@ async function openInstalledHost(originalInstallation, preparation) {
   // (cancelled before any physical start), `abandoned` (failed before
   // dispatch), `started` (reserved: running, or unknown after a crash) or
   // `terminal`.
-  const inspectHeld = async captured => {
+  const inspectHeld: CheckpointHostPort['inspect'] = async captured => {
     const acquisition = captured.acquisition === undefined && captured.acquisitions === undefined ? undefined :
       await inspectAcquisition({requestId: captured.requestId,
-        principalId: captured.principalId, connection: captured.connection});
+        principalId: captured.principalId, connection: (captured as HeldCapturedRequest).connection});
     const accepted = definitionOf(captured);
     if (accepted === undefined) return {state: 'absent', acquisition};
     const runId = runIdOf(accepted);
@@ -5274,7 +6195,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   // Run's observed terminal state; a Run whose physical stop is unknown (for
   // example after a cancel) stays with its owners and is observed again by
   // the sweep. Nothing is inferred from how the dispatch returned.
-  const settleHeldRun = async (accepted, runId) => {
+  const settleHeldRun = async (accepted: Pick<RunAdmissionReference, 'ref'>, runId: string) => {
     // Account-only acceptance has no held Checkpoint Run to settle. The
     // original request Journal still owns its actual Run and physical stop.
     if (checkpoints === undefined) return;
@@ -5292,28 +6213,28 @@ async function openInstalledHost(originalInstallation, preparation) {
   // Run right after it. Resolves with 'started', {refused} or 'not_started'.
   // The Run cancellation of a held request's defined Run (the Host itself
   // applies a durable request cancellation to its Run).
-  const cancelHeldRun = async captured => {
+  const cancelHeldRun: CheckpointHostPort['cancelRun'] = async captured => {
     const accepted = definitionOf(captured);
     if (accepted === undefined) return;
     const publicationCommitted =
-      await store.confirmCommittedIndex(accepted.ref) !== undefined;
-    const result = journal.requestCancellation(accepted.ref, {
+      await store!.confirmCommittedIndex(accepted.ref) !== undefined;
+    const result = journal!.requestCancellation(accepted.ref, {
       currentAuthorization: true, publicationCommitted}, moon, control);
     if (result.kind !== 'already_terminal') {
-      dispatchOwner.cancel(accepted.ref);
+      dispatchOwner!.cancel(accepted.ref);
     }
   };
-  const resumeHeld = async ({captured, beforePhysicalStart, started,
+  const resumeHeld: CheckpointHostPort['resume'] = async ({captured, beforePhysicalStart, started,
     step, renew, preparationCancelled}) => {
     // A request whose physical target or result inventory differs from the
     // one held is refused before anything is admitted or read: the earlier
     // approval does not cover it.
     let resolved;
-    try { resolved = await heldSubmission(captured); }
+    try { resolved = await heldSubmission(captured as HeldCapturedRequest); }
     catch (error) {
       if (['HeldAcquisitionChanged', 'HeldRequestChanged']
-        .includes(error?.message)) {
-        return {refused: Object.assign(error, {code: error.message})};
+        .includes((error as ContinuationFailure)?.message!)) {
+        return {refused: Object.assign(error as Error, {code: (error as Error).message})};
       }
       throw error;
     }
@@ -5322,7 +6243,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     let failed = false;
     try {
     if (effectful) {
-      effectRun.checkSupported(submission.preparedProgram);
+      effectRun!.checkSupported(submission.preparedProgram);
       const accepted = await admitEffectDefinition(submission);
       await step('definition_admitted', {ref: accepted.ref});
       try { renew(); }
@@ -5335,23 +6256,23 @@ async function openInstalledHost(originalInstallation, preparation) {
         return 'not_started';
       }
       const runId = runIdOf(accepted);
-      let settle;
-      const observedStart = new Promise(resolve => { settle = resolve; });
+      let settle: ((value: CheckpointResumeResult) => void) | undefined;
+      const observedStart = new Promise<CheckpointResumeResult>(resolve => { settle = resolve; });
       let startObserved = false;
-      const flight = effectRun.start(accepted, {
+      const flight = effectRun!.start(accepted, {
         beforePhysicalStart,
         started() {
           startObserved = true;
           try { started(runId); }
-          finally { settle('started'); }
+          finally { settle!('started'); }
         },
       });
       const settlement = flight.then(result => {
         if (!startObserved) {
-          settle(result.kind === 'started' ? 'started' : 'not_started');
+          settle!(result.kind === 'started' ? 'started' : 'not_started');
         }
       }, error => {
-        if (!startObserved) settle({refused: error});
+        if (!startObserved) settle!({refused: error});
         diagnostic('effect_start_failed', {ref: accepted.ref,
           code: error?.code ?? error?.message, cause: error?.cause});
       }).finally(() => settleHeldRun(accepted, runId))
@@ -5397,16 +6318,16 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   // A held request whose authorization no longer holds before any physical
   // start: its Run (if already defined) fails before dispatch; nothing runs.
-  const abandonHeld = async captured => {
+  const abandonHeld: CheckpointHostPort['abandon'] = async captured => {
     const accepted = definitionOf(captured);
     if (accepted === undefined || accepted.physicalStartReserved === true ||
         accepted.preDispatchFailureConfirmed) return;
     if (accepted.dispatchReserved !== true) {
-      const restored = await heldSubmission(captured);
+      const restored = await heldSubmission(captured as HeldCapturedRequest);
       let start;
       try {
         start = await startRun({identity: restored.requested,
-          namespaceId, principalId: captured.principalId, connection: captured.connection});
+          namespaceId, principalId: captured.principalId, connection: (captured as HeldCapturedRequest).connection});
       } catch (cause) {
         // A failed admission (even `throw undefined`) remains the primary.
         // Input cleanup belongs to its original retry, not another startRun.
@@ -5418,22 +6339,22 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       if (start.kind !== 'reserved' && start.kind !== 'reconcile') return;
     }
-    journal.markPreDispatchFailure(accepted.ref);
+    journal!.markPreDispatchFailure(accepted.ref);
   };
   // A Run whose physical start is reserved is only observed: a terminal Run
   // ends its journal Run; an unknown one is never sent again.
-  const observeHeldRun = async ({captured}) => {
+  const observeHeldRun: CheckpointHostPort['observe'] = async ({captured}) => {
     const accepted = definitionOf(captured);
     if (accepted === undefined) throw new Error('HeldRunDefinitionMissing');
     return (await observeRun({ref: accepted.ref, principalId})).status;
   };
   // A held request is looked up through the Checkpoint journal until its Run
   // exists; then the request journal answers with its RunRef.
-  const lookupHeld = async value => {
+  const lookupHeld: SubmissionPort['lookupRequest'] = async value => {
     const found = await lookupRequest(value);
     if (checkpoints === undefined || found.kind !== 'not_found') return found;
     if (authorizedScope(value) === undefined) return found;
-    return checkpoints.heldLookup(value.requestId) ?? found;
+    return (checkpoints.heldLookup(value.requestId) ?? found) as Awaited<ReturnType<SubmissionPort['lookupRequest']>>;
   };
   const selectedRequestPreparation = preparation?.requestPreparation();
   // An unselected installed Host must supply no callback, not a no-op that
@@ -5442,12 +6363,18 @@ async function openInstalledHost(originalInstallation, preparation) {
     preparation.bindSourceRequest;
   // The existing Host operation retains only a failed callback's original
   // requested identity until its paired reader consumes that same candidate.
-  const admissionFailures = new WeakMap();
+  type SourceAdmissionRefusal = Readonly<{
+    error: unknown; request: unknown; adapter: unknown; sourceRef: string;
+    profile: unknown; requestId: string; selection?: EffectSelectionRefusal['selection'];
+  }>;
+  type PreparedAdmissionFailure = Parameters<typeof retainPreparedSubmissionFailure<EmbeddedSubmission, unknown, SourceAdmissionRefusal | undefined>>[0];
+  type PreparationFailure = Readonly<{cleanupPending?: unknown; cleanupHandle?: unknown}>;
+  const admissionFailures = new WeakMap<EmbeddedSubmission, Parameters<PreparedAdmissionFailure['set']>[1]>();
   const holderRefusal = preparation === undefined ? undefined :
     Object.getOwnPropertyDescriptor(preparation, 'isOriginalManagedComputePreparationRefusal')?.value;
   const admitPreparedSubmission = preparation === undefined ? undefined : Object.freeze(Object.assign(
-    function(submission, held) {
-      let requested, sourceRefusal;
+    function(submission: EmbeddedSubmission, held?: {managedRun?: unknown}) {
+      let requested: unknown, sourceRefusal: SourceAdmissionRefusal | undefined;
       try {
         const selected = requestOf(submission, (error, request, adapter, sourceRef, selection) => {
           sourceRefusal = Object.freeze({error, request, adapter, sourceRef,
@@ -5466,14 +6393,14 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
         if (selection !== undefined && !selection.localMock) {
           preparation.admitResultPublicationRun(submission.preparedProgram);
-          const retained = journal.resolveDefinition(requested, {namespaceId}, moon, control);
+          const retained = journal!.resolveDefinition(requested, {namespaceId}, moon, control);
           // Saved physical work keeps its original recovery owner. Do not
           // allocate another Model Scope for a previously started Run.
           if (retained?.physicalStartReserved === true) return;
           const model = prepareInstalledRequestModelRun(submission, requested, selection);
           // A historical Source continuation dispatches this SAME adopted
           // Model Run and its input borrow, just as fresh admission does.
-          if (held !== undefined) held.managedRun = model.managed.value;
+          if (held !== undefined) held.managedRun = model!.managed!.value;
           return;
         }
         const serializationCount = moon.clientProgramSerializationOccurrences(submission.preparedProgram).length;
@@ -5486,7 +6413,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             throw clientOperationError('InstalledContentRunPreparationUnsupported');
           }
           preparation.admitResultPublicationRun(submission.preparedProgram);
-          const retained = journal.resolveDefinition(requested, {namespaceId}, moon, control);
+          const retained = journal!.resolveDefinition(requested, {namespaceId}, moon, control);
           // A prior physical start is observed through its saved Run. Resource
           // preparation cannot regenerate Content or replace an uncertain write.
           if (retained?.physicalStartReserved === true) return;
@@ -5515,54 +6442,54 @@ async function openInstalledHost(originalInstallation, preparation) {
             earlyMockInferPlans.set(submission.preparedProgram, early);
           }
           sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
-            control, early.plan, selection,
+            control, early.plan!, selection as Parameters<NonNullable<InstalledHostSourceProfile['prepareManagedMockModelRun']>>[4],
             () => preparation.modelPublicationCapacity(submission.preparedProgram));
         } else {
           const managedRun = prepareOrdinaryManagedRun({preparedProgram: submission.preparedProgram,
-            requestIdentity: requested, acquisitionCount, model: selection, serializationCount});
+            requestIdentity: requested as object, acquisitionCount, model: selection, serializationCount});
           // Resume consumes the Run issued by this SAME admission. Its local
           // handoff is not the SDK callback's return value or another Plan.
           if (held !== undefined) held.managedRun = managedRun;
         }
       } catch (error) {
-        if (missingModelExecutionRefusals.has(error)) {
+        if (missingModelExecutionRefusals.has(error as object)) {
           requested = sourceFreeRequestIdentities.get(submission.preparedProgram)?.requested;
         }
         retainPreparedSubmissionFailure(admissionFailures, submission, error,
           requested, sourceRefusal, diagnostic);
       }
-    }, {isOriginalPreparationRefusal(error, submission) {
+    }, {isOriginalPreparationRefusal(error: unknown, submission: EmbeddedSubmission) {
       if (this !== admitPreparedSubmission) return false;
       const original = admissionFailures.get(submission);
       admissionFailures.delete(submission);
       if (original === undefined || original.error !== error ||
           original.prepared !== submission.preparedProgram) return false;
-      if (missingModelExecutionRefusals.has(error)) {
-        missingModelExecutionRefusals.delete(error);
+      if (missingModelExecutionRefusals.has(error as object)) {
+        missingModelExecutionRefusals.delete(error as object);
         const input = sourceFreeRequestIdentities.get(original.prepared);
         if (input?.requested !== original.requested || input?.requestId !== submission.requestId ||
             original.requested === undefined || inferSelections.has(original.prepared) ||
-            error.cleanupPending === true || error.cleanupHandle !== undefined) return false;
+            (error as PreparationFailure).cleanupPending === true || (error as PreparationFailure).cleanupHandle !== undefined) return false;
         prepareSubmit.assertOwned(original.prepared);
         if (prepareSubmit.kindOf(original.prepared) !== 'effect_free' ||
             moon.clientProgramAcquisitionCount(original.prepared) !== 0 ||
             moon.clientProgramSerializationOccurrences(original.prepared).length !== 0) return false;
-        preparation.assertUnadmittedSourceRequest(moon, original.prepared, original.requested);
-        if (journal.resolveDefinition(original.requested, {namespaceId}, moon, control) !== undefined) return false;
-        preparation.assertUnadmittedSourceRequest(moon, original.prepared, original.requested);
+        preparation.assertUnadmittedSourceRequest(moon, original.prepared, original.requested as object);
+        if (journal!.resolveDefinition(original.requested, {namespaceId}, moon, control) !== undefined) return false;
+        preparation.assertUnadmittedSourceRequest(moon, original.prepared, original.requested as object);
         return true;
       }
       const source = original.sourceRefusal;
       if (source !== undefined) {
         if (source.error !== error || source.requestId !== submission.requestId ||
             source.profile !== sourceProfile || source.request === undefined ||
-            error.cleanupPending === true || error.cleanupHandle !== undefined ||
+            (error as PreparationFailure).cleanupPending === true || (error as PreparationFailure).cleanupHandle !== undefined ||
             sourceFreeRequestIdentities.get(original.prepared)?.requested !== source.request ||
             sourceFreeRequestIdentities.get(original.prepared)?.requestId !== source.requestId) return false;
         preparation.assertUnadmittedSourceRequest(moon, original.prepared, source.request);
         prepareSubmit.assertOwned(original.prepared);
         if (source.selection !== undefined) {
-          const selected = source.selection;
+          const selected = source.selection as Omit<EffectSelectionRefusal['selection'], 'reason'> & Readonly<{reason: string}>;
           if (prepareSubmit.kindOf(original.prepared) !== 'effectful' ||
               selected.count !== 2 || moon.clientProgramEffectAcquisitionCount(original.prepared) !== selected.count ||
               selected.adapter !== source.adapter ||
@@ -5570,12 +6497,12 @@ async function openInstalledHost(originalInstallation, preparation) {
               installedSourceFor(sourceProfile, selected.sourceRef) !== selected.adapter ||
               selected.adapter.realizationKey !== selected.realization ||
               selected.previousAdapter !== undefined &&
-                installedSourceFor(sourceProfile, selected.previousRef) !== selected.previousAdapter ||
+                installedSourceFor(sourceProfile, selected.previousRef!) !== selected.previousAdapter ||
               (selected.reason === 'duplicate-owner'
                 ? selected.adapter !== selected.previousAdapter
                 : selected.reason !== 'unsupported-realization' ||
                   ['duckdb-acquired', 'row-source-acquired'].includes(selected.realization)) ||
-              journal.resolveDefinition(source.request, {namespaceId}, moon, control) !== undefined) return false;
+              journal!.resolveDefinition(source.request, {namespaceId}, moon, control) !== undefined) return false;
           preparation.assertUnadmittedSourceRequest(moon, original.prepared, source.request);
           return true;
         }
@@ -5583,8 +6510,8 @@ async function openInstalledHost(originalInstallation, preparation) {
             inferSelections.has(original.prepared) ||
             moon.clientProgramSerializationOccurrences(original.prepared).length !== 0 ||
             installedSourceFor(sourceProfile, source.sourceRef) !== source.adapter ||
-            typeof source.adapter.managedWholeSourceCapacity === 'function' ||
-            journal.resolveDefinition(source.request, {namespaceId}, moon, control) !== undefined) return false;
+            typeof (source.adapter as Pick<CaptureAdapter, 'managedWholeSourceCapacity'>).managedWholeSourceCapacity === 'function' ||
+            journal!.resolveDefinition(source.request, {namespaceId}, moon, control) !== undefined) return false;
         preparation.assertUnadmittedSourceRequest(moon, original.prepared, source.request);
         return true;
       }
@@ -5592,37 +6519,40 @@ async function openInstalledHost(originalInstallation, preparation) {
       return Reflect.apply(holderRefusal, preparation,
         [error, original.prepared, original.requested]);
     }}));
-  const submissionService = installNodeClientSubmission({journal, moon,
+  const submissionService = installNodeClientSubmission({journal: journal!, moon,
     authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
-    prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check,
+    prepareSubmit, submit: submit as SubmissionPort['submit'], lookupRequest: lookupHeld,
+    checkSubmissionInput: check as NonNullable<SubmissionPort['checkSubmissionInput']>,
     observeOriginalPreparationFailure: preparation === undefined ? undefined : async (failure, value) => {
       if (!hostConnection(value)) throw clientOperationError('ClientConnectionDenied');
-      const outcome = await preparation.observeOriginalCheckOutcome(value, failure, project =>
+      const outcome = await preparation.observeOriginalCheckOutcome(value, failure, (project: Parameters<typeof checkSource.projectOriginal>[1]) =>
         checkSource.projectOriginal({principalId: value.principalId,
           connection: value.connection, kind: value.kind === 'program' ? 'program' : 'text',
-          scope: 'bound_input', input: value.input, parameters: value.parameters, signal: value.signal}, project));
+          scope: 'bound_input', input: value.input, parameters: value.parameters,
+          signal: (value as typeof value & Readonly<{signal?: AbortSignal}>).signal} as
+          Parameters<typeof checkSource.projectOriginal>[0], project));
       if (!hostConnection(value)) throw clientOperationError('ClientConnectionDenied');
       return outcome;
     },
     bindOwnedRequest,
     preparationCustody: localPreparationCustody,
     submittedIntentOriginal: value => preparation?.submittedIntentOriginal?.(value),
-    admitPreparedSubmission});
+    admitPreparedSubmission: admitPreparedSubmission as SubmissionPort['admitPreparedSubmission']});
   const checkpointOperations = checkpoints === undefined ? {} : {
-    checkpoints: value => checkpoints.listCheckpoints({principalId: value.principalId,
+    checkpoints: (value: HostRequest<'checkpoints'>) => checkpoints!.listCheckpoints({principalId: value.principalId,
       after: value.after, limit: value.limit,
       ...(Object.hasOwn(value, 'checkpointId') ? {checkpointId: value.checkpointId} : {})}),
     checkpointReview: ({principalId: actual, checkpointCid, maxBytes,
-      signal}) => checkpoints.reviewCheckpoint({principalId: actual,
+      signal}: HostRequest<'checkpoint-review'>) => checkpoints!.reviewCheckpoint({principalId: actual,
       checkpointCid, maxBytes, signal}),
-    async resolve({principalId: actual, items}) {
-      const result = await checkpoints.resolve({principalId: actual, items});
+    async resolve({principalId: actual, items}: HostRequest<'resolve'>) {
+      const result = await checkpoints!.resolve({principalId: actual, items});
       try { if (observation !== undefined) for (const item of result.results) {
         if (item.status !== 'committed') continue;
-        const view = checkpoints.journal.inspect(item.checkpointCid);
+        const view = checkpoints!.journal.inspect(item.checkpointCid);
         if (view?.runDefinitionCid === undefined) continue;
         observation?.emit('approval', 'checkpoint_resolved', {ref: {
-          namespaceId, authorityScopeCid, runDefinitionCid: view.runDefinitionCid},
+          namespaceId, authorityScopeCid, runDefinitionCid: view.runDefinitionCid!},
           outcome: 'committed'});
       } } catch { observation?.noteLoss(); }
       return result;
@@ -5632,49 +6562,49 @@ async function openInstalledHost(originalInstallation, preparation) {
     'resolve']);
   // Reviewers and review readers may connect and use only the Checkpoint
   // operations; every Run operation still requires the owner.
-  const checkpointConnection = value => checkpoints !== undefined &&
-    value.ref === undefined && value.connection.mode === mode &&
-    value.connection.owner === mode &&
+  const checkpointConnection = (value: HostConnectionInput) => checkpoints !== undefined &&
+    value.ref === undefined && (value.connection as WireConnection).mode === mode &&
+    (value.connection as WireConnection).owner === mode &&
     checkpoints.admitsCheckpointPrincipal(value.principalId);
-  const effectResumeFlights = new Map();
-  const effectRetirementFlights = new Map();
-  const retiredEffectCaptures = new Set();
-  const retireEffectCapture = ref => {
+  const effectResumeFlights = new Map<string, Promise<unknown>>();
+  const effectRetirementFlights = new Map<string, Promise<EffectRetirementResult | false>>();
+  const retiredEffectCaptures = new Set<string>();
+  const retireEffectCapture = (ref: WireRunRef) => {
     const key = ref.runDefinitionCid;
     if (retiredEffectCaptures.has(key)) return Promise.resolve(false);
     const existing = effectRetirementFlights.get(key);
     if (existing !== undefined) return existing;
     const flight = (async () => {
-      if (dispatchOwner.operation(ref) !== undefined) {
+      if (dispatchOwner!.operation(ref) !== undefined) {
         throw new Error('EffectCaptureExecutionStillOwned');
       }
-      if (await store.confirmCommittedIndex(ref) !== undefined) {
+      if (await store!.confirmCommittedIndex(ref) !== undefined) {
         retiredEffectCaptures.add(key);
         return false;
       }
-      const retained = journal.lookupRunDefinition(ref, moon, control);
+      const retained = journal!.lookupRunDefinition(ref, moon, control);
       if (retained?.runDefinition?.identity !== key) {
         throw new Error('EffectRetirementRunDefinitionMissing');
       }
-      const owned = journal.lookupOwnedDefinition({namespaceId, authorityScopeCid,
+      const owned = journal!.lookupOwnedDefinition({namespaceId, authorityScopeCid,
         requestId:retained.requestId, runDefinitionCid:key}, moon, control);
       if (owned?.runDefinition?.identity !== key ||
           typeof preparation?.prepareEffectCaptureRetirement !== 'function') {
         throw clientOperationError('EffectRetirementResourcesUnavailable');
       }
-      let resources, result;
+      let resources: EffectCaptureView | undefined, result: EffectRetirementResult;
       try {
         const selected = preparation.prepareEffectCaptureRetirement(moon, owned.requestIdentity,
           owned.runDefinition, localContractLimits,
-          () => preparation.assertResultPublicationCurrent(), original => {resources = original;});
+          () => preparation.assertResultPublicationCurrent(), (original: EffectCaptureView) => {resources = original;});
         if (selected !== resources) throw clientOperationError('EffectRetirementResourcesUnavailable');
-        result = await retireCompletedEffectfulCapture({store, control,
+        result = await retireCompletedEffectfulCapture({store: store!, control,
           runDefinition: owned.runDefinition, contractLimits: localContractLimits}, resources);
       } catch (cause) {
         try {await resources?.close();} catch { /* Same Host bag retains original cleanup. */ }
         throw cause;
       }
-      if (await resources.close() !== true) throw clientOperationError('EffectCaptureResourceCleanupPending');
+      if (await resources!.close() !== true) throw clientOperationError('EffectCaptureResourceCleanupPending');
       retiredEffectCaptures.add(key);
       return result;
     })().finally(() => {
@@ -5689,16 +6619,16 @@ async function openInstalledHost(originalInstallation, preparation) {
     const failures = [];
     let after = '';
     for (;;) {
-      const page = await store.listEffectCaptureCustodies({after, limit: 100});
+      const page = await store!.listEffectCaptureCustodies({after, limit: 100});
       for (const run of page) {
         const ref = Object.freeze({namespaceId, authorityScopeCid,
           runDefinitionCid: run.identity});
         try {
           // Cleanup discovery is not a new start claim. A live invocation
           // still owns its preparation; only absent local owners are eligible.
-          if (dispatchOwner.operation(ref) !== undefined ||
+          if (dispatchOwner!.operation(ref) !== undefined ||
               effectResumeFlights.has(run.identity)) continue;
-          const retained = journal.lookupRunDefinition(ref, moon, control);
+          const retained = journal!.lookupRunDefinition(ref, moon, control);
           if (retained === undefined) continue; // Another authority scope.
           if (retained.runDefinition.wire !== run.wire) {
             throw new Error('EffectCaptureCustodyRunMismatch');
@@ -5707,14 +6637,14 @@ async function openInstalledHost(originalInstallation, preparation) {
           // Durable custody still exists only before transfer to a Checkpoint
           // or physical dispatch. A complete private record is not sufficient
           // to establish that transfer. The original unknown Run stays intact.
-          if (checkpoints.effectRunState(runId, ref.runDefinitionCid) !== undefined) {
+          if (checkpoints!.effectRunState(runId, ref.runDefinitionCid) !== undefined) {
             continue;
           }
           await retireEffectCapture(ref);
         } catch (error) { failures.push(error); }
       }
       if (page.length < 100) break;
-      after = page.at(-1).identity;
+      after = page.at(-1)!.identity;
     }
     if (failures.length > 0) {
       throw new AggregateError(failures, 'EffectCaptureCleanupPending');
@@ -5731,20 +6661,20 @@ async function openInstalledHost(originalInstallation, preparation) {
       for (const view of page) {
         if (!['effect_set', 'read_access'].includes(view.kind) || view.prepareAttemptId !== null ||
             !['failed', 'cancelled'].includes(
-              checkpoints.journal.getRunState(view.runId)?.status)) continue;
+              checkpoints.journal.getRunState(view.runId!)?.status!)) continue;
         const ref = Object.freeze({namespaceId, authorityScopeCid,
-          runDefinitionCid: view.runDefinitionCid});
+          runDefinitionCid: view.runDefinitionCid!});
         try { await retireEffectCapture(ref); }
         catch (error) { failures.push(error); }
       }
       if (page.length < 100) break;
-      after = page.at(-1).checkpointCid;
+      after = page.at(-1)!.checkpointCid;
     }
     if (failures.length > 0) {
       throw new AggregateError(failures, 'EffectCaptureCleanupPending');
     }
   };
-  const sweepEffectRuns = async ({reconcileRef} = {}) => {
+  const sweepEffectRuns = async ({reconcileRef}: Readonly<{reconcileRef?: WireRunRef}> = {}) => {
     if (effectRun === undefined || checkpoints === undefined) return false;
     let busy = false;
     // A requested observation owns only its original Run. Global capture
@@ -5753,7 +6683,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     catch (error) {
       busy = true;
       diagnostic('effect_capture_retirement_failed', {
-        code: error?.code ?? error?.message});
+        code: (error as ContinuationFailure)?.code ?? (error as ContinuationFailure)?.message});
     }
     let after = '';
     for (;;) {
@@ -5765,19 +6695,19 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (!['effect_set', 'read_access'].includes(view.kind) || view.prepareAttemptId !== null) {
           continue;
         }
-        const key = view.runDefinitionCid;
+        const key = view.runDefinitionCid!;
         const ref = Object.freeze({namespaceId, authorityScopeCid,
           runDefinitionCid: key});
         if (await cancelEffectContinuation(ref)) {
           busy = true;
         }
-        const runStatus = checkpoints.journal.getRunState(view.runId)?.status;
+        const runStatus = checkpoints.journal.getRunState(view.runId!)?.status;
         if (runStatus === 'failed' || runStatus === 'cancelled') {
           try { await retireEffectCapture(ref); }
           catch (error) {
             busy = true;
             diagnostic('effect_capture_retirement_failed', {ref,
-              code: error?.code ?? error?.message});
+              code: (error as ContinuationFailure)?.code ?? (error as ContinuationFailure)?.message});
           }
           continue;
         }
@@ -5785,7 +6715,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (runStatus !== 'resuming' && !observing) continue;
         if (!observing && checkpoints.journal.currentResume(view.checkpointCid)?.state === 'completed') continue;
         if (effectResumeFlights.has(key) ||
-            dispatchOwner.operation(ref) !== undefined) {
+            dispatchOwner!.operation(ref) !== undefined) {
           busy = true;
           if (observing && effectResumeFlights.has(key)) {
             await effectResumeFlights.get(key);
@@ -5793,7 +6723,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           continue;
         }
         try {
-          const retained = journal.lookupRunDefinition(ref, moon, control);
+          const retained = journal!.lookupRunDefinition(ref, moon, control);
           if (retained === undefined ||
               retained.runDefinition.identity !== key) {
             throw new Error('EffectResumeRunDefinitionMissing');
@@ -5812,7 +6742,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                   ref.runDefinitionCid, JSON.stringify(reconciliation));
                 continue;
               }
-              if (await store.confirmCommittedIndex(ref) !== undefined) {
+              if (await store!.confirmCommittedIndex(ref) !== undefined) {
                 const published = await inspectAuthorizedRunState(stateService,
                   {indexKey: ref, principalId, purpose: 'inspect'});
                 if (published.status === 'succeeded') {
@@ -5823,7 +6753,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               }
               continue;
             }
-            const claimed = checkpoints.journal.claimResume(view.runId, {
+            const claimed = checkpoints.journal.claimResume(view.runId!, {
               claimant: `source-host-${process.pid}-${randomUUID()}`,
               leaseMs: authorization?.leaseMs ?? 60000,
               binding: checkpoints.binding, preserveStarted: true,
@@ -5834,25 +6764,25 @@ async function openInstalledHost(originalInstallation, preparation) {
             }
             if (claimed.checkpointCid !== view.checkpointCid) continue;
             const flight = (async () => {
-              let sourceResume;
+              let sourceResume: SourceReadResume | undefined;
               let targetResumption = false;
-              let leaseFailure;
-              let requestInput, inputFailed = false;
+              let leaseFailure: unknown;
+              let requestInput: RequestInputRetention | undefined, inputFailed = false;
               const leaseMs = authorization?.leaseMs ?? 60000;
               const renewal = setInterval(() => {
                 try {
-                  if (checkpoints.journal.currentResume(view.checkpointCid)?.state ===
+                  if (checkpoints!.journal.currentResume(view.checkpointCid)?.state ===
                       'completed') return;
-                  checkpoints.journal.renewResume(claimed.claim, leaseMs);
+                  checkpoints!.journal.renewResume(claimed.claim, leaseMs);
                 }
                 catch (error) { leaseFailure = error; }
               }, Math.max(1, Math.min(1000, Math.floor(leaseMs / 3))));
               renewal.unref?.();
               try {
               try {
-                const continuation = await checkpoints.runUnitReadContinuation(view);
+                const continuation = await checkpoints.runUnitReadContinuation(view) as SavedReadContinuation;
                 targetResumption = continuation.version === EFFECT_TARGET_CONTINUATION;
-                const submission = {...continuation.submission};
+                const submission = {...continuation.submission} as EmbeddedSubmission;
                 // This is the independently admitted Checkpoint's pending
                 // restoration, not a new SDK request. Retain its same captured
                 // input before preparation, as on the existing held-request path.
@@ -5870,7 +6800,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                   throw new Error('EffectContinuationRunMismatch');
                 }
                 const facts = await effectRun.restoreComputation(accepted);
-                const observeCancellation = journal.observeRunCancellation(ref, moon, control, retained);
+                const observeCancellation = journal!.observeRunCancellation(ref, moon, control, retained);
                 sourceResume = {claim: claimed.claim, view, continuation, active: true,
                   assertCurrent() {
                     if (leaseFailure !== undefined) throw leaseFailure;
@@ -5878,7 +6808,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                       throw Object.assign(new Error('ClientRunCancellationRequested'),
                         {code: 'ClientRunCancellationRequested'});
                     }
-                    return checkpoints.journal.admitResume(claimed.claim,
+                    return checkpoints!.journal.admitResume(claimed.claim,
                       {checkpointCid: view.checkpointCid});
                   }};
                 const result = await executeEffectComputation(facts,
@@ -5887,56 +6817,56 @@ async function openInstalledHost(originalInstallation, preparation) {
                 // Resume exits only through the existing terminal outcome
                 // or atomic next-Checkpoint transition, never a fabricated
                 // resuming-to-running intermediate public state.
-                if (checkpoints.journal.getRunState(view.runId)?.status === 'resuming') {
+                if (checkpoints.journal.getRunState(view.runId!)?.status === 'resuming') {
                   const ended = effectRun.reconciliation(ref) ?? await observeRun({ref, principalId});
                   if (terminal(ended.status) || ended.status === 'needs_reconciliation') {
                     const {control: _control, ...state} = ended;
                     checkpoints.journal.completeResume(claimed.claim, {
                       runStateWire: JSON.stringify(state)});
                   } else if (['failed_without_effect_dispatch', 'failed_effect_set']
-                    .includes(result?.status)) {
+                    .includes((result as DispatchResultStatus)?.status!)) {
                     checkpoints.journal.completeResume(claimed.claim, {status: 'failed'});
                   }
                 }
               } catch (error) {
-                if (['ResumeClaimStale', 'PriorAdmissionUnresolved'].includes(error?.code) ||
-                    error?.authorization?.detail === 'ResumeClaimStale') throw error;
+                if (['ResumeClaimStale', 'PriorAdmissionUnresolved'].includes((error as ContinuationFailure)?.code!) ||
+                    (error as ContinuationFailure)?.authorization?.detail === 'ResumeClaimStale') throw error;
                 const refusal = (targetResumption
                   ? checkpoints.journal.refuseUnsentReadResume
                   : checkpoints.journal.refuseUnsentSourceResume)(
-                  view.checkpointCid, view.runDefinitionCid, claimed.claim);
+                  view.checkpointCid, view.runDefinitionCid!, claimed.claim);
                 // A started source with an unresolved physical owner stays
                 // with its original claim and custody. Never reacquire it.
                 if (refusal.outcome === 'admitted' &&
-                    ['failed', 'cancelled'].includes(sourceResume?.observedTerminalOutcome)) {
+                    ['failed', 'cancelled'].includes(sourceResume?.observedTerminalOutcome!)) {
                   checkpoints.journal.completeResume(claimed.claim, {
-                    status: sourceResume.observedTerminalOutcome});
+                    status: sourceResume!.observedTerminalOutcome as 'failed' | 'cancelled'});
                 }
                 throw error;
               }
               } catch (cause) {
                 inputFailed = true;
                 if (requestInput === undefined) throw cause;
-                throw retainInstalledHostRuntimeFailure(cause, () => requestInput.finish('failed'));
+                throw retainInstalledHostRuntimeFailure(cause, () => requestInput!.finish('failed'));
               } finally {
                 clearInterval(renewal);
                 if (requestInput !== undefined && !inputFailed) {
                   try {requestInput.finish('returned');}
                   catch (cause) {
-                    throw retainInstalledHostRuntimeFailure(cause, () => requestInput.finish('returned'));
+                    throw retainInstalledHostRuntimeFailure(cause, () => requestInput!.finish('returned'));
                   }
                 }
               }
             })();
             effectResumeFlights.set(key, flight);
             const settlement = flight.catch(error => diagnostic('source_resume_failed', {
-              ref, code: error?.code ?? error?.message,
+              ref, code: (error as ContinuationFailure)?.code ?? (error as ContinuationFailure)?.message,
               detail: error?.authorization?.detail,
               cause: error?.authorization?.error?.code,
               missingModule: error?.code === 'ERR_MODULE_NOT_FOUND' ? error.url : undefined})).finally(() => {
               effectResumeFlights.delete(key);
-              if (checkpoints.journal.getRunState(view.runId)?.status !== 'resuming') {
-                void checkpoints.sweep();
+              if (checkpoints!.journal.getRunState(view.runId!)?.status !== 'resuming') {
+                void checkpoints!.sweep();
               }
             });
             try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
@@ -5946,39 +6876,42 @@ async function openInstalledHost(originalInstallation, preparation) {
           // The continuation borrows this Journal's already admitted Run.
           // Every probe still reads committed storage and compares the full
           // row, including cancellation; unchanged DATA needs no readmission.
-          const observeContinuationCancellation = journal.observeRunCancellation(
+          const observeContinuationCancellation = journal!.observeRunCancellation(
             ref, moon, control, retained);
-          const continuation = await checkpoints.effectContinuation(view);
-          const flight = dispatchOwner.track(ref, {
+          const continuation = await checkpoints.effectContinuation(view) as SavedEffectContinuation;
+          const flight = dispatchOwner!.track(ref, {
             run: async ({signal, retainExecution, beginPhysicalWork}) => {
-              let restored = await restoreEffectManagedPreparation(ref, signal);
+              let restored: Awaited<ReturnType<typeof restoreEffectManagedPreparation>> | undefined =
+                await restoreEffectManagedPreparation(ref, signal);
               const managedEffect = restored.managedEffect;
               try {
-              return await effectInstallation.resume(Object.freeze({ref, view, observation, managedEffect,
+              return await effectInstallation!.resume(Object.freeze({ref, view: view as ResumeEffectSite['view'], observation, managedEffect,
                 reconciliationOnly: observing,
                 assertContinuationCurrent() {
                   if (observeContinuationCancellation()?.cancellationRequested !== false) {
                     throw clientOperationError('ClientRunCancellationRequested');
                   }
                 },
-                continuation, retained, moon, control, store, principalId, contentRun: runContent,
+                continuation, retained, moon, control, store: store!, principalId, contentRun: runContent,
                 storeAuthorityCid, authorityScopeCid, signal,
                 retainExecution, beginPhysicalWork,
-                observeRun: ({ref}) => observeRun({ref, principalId}),
-                recoverCapture: ({signal: recoverySignal, retainRecoveryResources} = {}) =>
-                  recoverEffectCapture(ref, recoverySignal, managedEffect, retainRecoveryResources, restored.original),
-                checkpointJournal: checkpoints.journal,
-                checkpointBinding: checkpoints.binding,
-                effectAuthorization: checkpoints.effectAuthorization,
-                prepareTargetReads: async claimed => {
-                  const records = await checkpoints.inspectEffectTargetApprovals(
-                    view.runId, ref.runDefinitionCid);
+                observeRun: ({ref}: Pick<RunObservationInput, 'ref'>) => observeRun({ref, principalId}),
+                recoverCapture: ({signal: recoverySignal, retainRecoveryResources}:
+                    Pick<EffectRecoveryOptions, 'signal' | 'retainRecoveryResources'> = {}) =>
+                  recoverEffectCapture(ref, recoverySignal, managedEffect, retainRecoveryResources, restored!.original),
+                checkpointJournal: checkpoints!.journal,
+                checkpointBinding: checkpoints!.binding,
+                effectAuthorization: checkpoints!.effectAuthorization as EffectAuthorization,
+                prepareTargetReads: async (claimed: Parameters<NonNullable<ResumeEffectSite['prepareTargetReads']>>[0]) => {
+                  const records = await checkpoints!.inspectEffectTargetApprovals(
+                    view.runId!, ref.runDefinitionCid);
                   const capturedTarget = continuation.target_read_binding;
                   if (records.length === 0 && capturedTarget === undefined) return undefined;
                   if (capturedTarget !== undefined) assertEffectTargetReadBinding(capturedTarget);
-                  const submission = {...(capturedTarget?.submission ?? records[0].continuation.submission)};
+                  const submission = {...(capturedTarget?.submission ??
+                    records[0].continuation.submission as Omit<EmbeddedSubmission, 'preparedProgram'>)};
                   if (submission.requestId !== retained.requestId) throw new Error('EffectContinuationRunMismatch');
-                  const {prepared, compilation, identity} = managedEffect.definitionOriginal;
+                  const {prepared, compilation, identity} = managedEffect.definitionOriginal!;
                   if (submission.updateTargetPreparedOriginal !== undefined) {
                     updateTargetOriginals.validatePreparedOriginal(prepared, compilation, submission.updateTargetPreparedOriginal);
                   } else if (updateTargetOriginals.selectionsOf(prepared) !== undefined) {
@@ -5986,15 +6919,15 @@ async function openInstalledHost(originalInstallation, preparation) {
                   }
                   // Apply refresh is another consumer of this SAME original
                   // Plan, not a new submission or compiler/Execution Owner.
-                  const facts = restored.original ?? Object.freeze({ref,
-                    ...managedEffect.definitionOriginal, identity,
+                  const facts = restored!.original ?? Object.freeze({ref,
+                    ...managedEffect.definitionOriginal!, identity,
                     runDefinition: retained.runDefinition,
                     ...updateTargetOriginals.validateRun({prepared, compilation, identity,
-                      evidence: retained.runAdmissionEvidence, runDefinition: retained.runDefinition})});
+                      evidence: retained.runAdmissionEvidence!, runDefinition: retained.runDefinition})});
                   effectSubmissions.set(prepared, submission);
                   const reads = await openEffectTargetReads(facts, {signal, allowDefer: false,
                     activeResume: {assertCurrent() {
-                      return checkpoints.journal.admitResume(claimed.claim,
+                      return checkpoints!.journal.admitResume(claimed.claim,
                         {checkpointCid: view.checkpointCid});
                     }}});
                   try {
@@ -6004,7 +6937,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                   } catch (error) { reads?.close(); throw error; }
                   return reads;
                 },
-                recordReconciliation: (...args) =>
+                recordReconciliation: (...args: Parameters<EffectRunOwner['recordReconciliation']>) =>
                   effectRun.recordReconciliation(...args)}));
               } finally {
                 // This operation's admitted-material alias is no longer a
@@ -6015,34 +6948,34 @@ async function openInstalledHost(originalInstallation, preparation) {
             // The original Compute stopped before the Effect Checkpoint.
             // Its nonterminal stop observation is immutable. Effect failure
             // and reconciliation belong to the Checkpoint and Effect owners.
-            observeStopped: () => recordNodeRunPhysicalStop({ref, journal, moon, control}, null),
-          });
+            observeStopped: () => recordNodeRunPhysicalStop({ref, journal: journal!, moon, control}, null),
+          })!;
           effectResumeFlights.set(key, flight);
           const settlement = flight.catch(error => {
             diagnostic('effect_resume_failed', {ref,
-              code: error?.code ?? error?.message, cause: error});
+              code: (error as ContinuationFailure)?.code ?? (error as ContinuationFailure)?.message, cause: error});
           }).finally(() => {
             effectResumeFlights.delete(key);
-            if (checkpoints.journal.getRunState(view.runId)?.status !==
+            if (checkpoints!.journal.getRunState(view.runId!)?.status !==
                 'resuming') {
-              void checkpoints.sweep();
+              void checkpoints!.sweep();
             }
           });
           try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
           if (observing) await flight;
         } catch (error) {
           diagnostic('effect_resume_failed', {ref,
-            code: error?.code ?? error?.message, cause: error});
+            code: (error as ContinuationFailure)?.code ?? (error as ContinuationFailure)?.message, cause: error});
           if (reconcileRef !== undefined) throw error;
         }
         busy = true;
       }
       if (page.length < 100) break;
-      after = page.at(-1).checkpointCid;
+      after = page.at(-1)!.checkpointCid;
     }
     return busy;
   };
-  const reconcile = async ({ref, principalId: actual, connection, signal}) => {
+  const reconcile = async ({ref, principalId: actual, connection, signal}: HostRequest<'reconcile'>) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
       throw clientOperationError('RunStateAccessDenied');
     }
@@ -6051,7 +6984,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // An explicit Effect observation never restarts Compute, reopens approval
     // or converts an execution-unknown Run into an invented Effect inventory.
     if (state.status === 'needs_reconciliation' && state.next_action?.kind === 'reconcile_run') {
-      await observeNodeRestoredLocalStop({ref, journal, store, checkpoints, moon, control});
+      await observeNodeRestoredLocalStop({ref, journal: journal!, store: store!, checkpoints, moon, control});
     }
     if (state.status === 'needs_reconciliation' &&
         state.next_action?.kind === 'reconcile') {
@@ -6059,7 +6992,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     return observeRun({ref, principalId: actual});
   };
-  const modelResumeFlights = new Map();
+  const modelResumeFlights = new Map<string, Promise<void>>();
   const sweepModelRuns = async () => {
     if (modelController === undefined || checkpoints === undefined) return false;
     let busy = false;
@@ -6067,7 +7000,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     for (;;) {
       const page = checkpoints.journal.discoverModelCallSets({after, limit: 100});
       for (const record of page) {
-        let token, transferred = false;
+        let token: ModelResumeToken | undefined, transferred = false;
         try {
           const originalOwner = modelController.verifier.admitOriginalRun({
             originalRunWire: record.originals.originalRunWire});
@@ -6095,12 +7028,12 @@ async function openInstalledHost(originalInstallation, preparation) {
           const runId = calls.runId;
           const ref = Object.freeze({namespaceId, authorityScopeCid,
             runDefinitionCid: calls.runDefinitionCid});
-          const retained = journal.lookupRunDefinition(ref, moon, control);
+          const retained = journal!.lookupRunDefinition(ref, moon, control);
           if (retained === undefined || retained.runDefinition.identity !== calls.runDefinitionCid ||
               retained.runAdmissionEvidence?.modelOriginalRunWire !== record.originals.originalRunWire) {
             throw new Error('ModelResumeRunDefinitionMissing');
           }
-          if (modelResumeFlights.has(ref.runDefinitionCid) || dispatchOwner.operation(ref) !== undefined) {
+          if (modelResumeFlights.has(ref.runDefinitionCid) || dispatchOwner!.operation(ref) !== undefined) {
             busy = true;
             continue;
           }
@@ -6126,7 +7059,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             if (unresolved) busy = true;
             continue;
           }
-          let claim;
+          let claim: CheckpointClaim | undefined;
           const claimCheckpointCid = record.checkpointCid ?? parentCheckpoint?.checkpointCid;
           if (claimCheckpointCid !== undefined) {
             if (runState.status !== 'resuming' || active === undefined) {
@@ -6146,21 +7079,21 @@ async function openInstalledHost(originalInstallation, preparation) {
             if (unresolved) busy = true;
             continue;
           }
-          let leaseFailure, originalCutHeld = false;
+          let leaseFailure: unknown, originalCutHeld = false;
           const leaseMs = authorization?.leaseMs ?? 60000;
           const renewal = claim === undefined ? undefined : setInterval(() => {
             // This claimant must not change its own exact Journal observation
             // while it is committing the same pre-entry resource cut.
             if (originalCutHeld) return;
-            try { checkpoints.journal.renewResume(claim, leaseMs); }
+            try { checkpoints!.journal.renewResume(claim, leaseMs); }
             catch (error) {
               leaseFailure = error;
-              dispatchOwner.cancel(ref);
+              dispatchOwner!.cancel(ref);
             }
           }, Math.max(1, Math.min(1000, Math.floor(leaseMs / 3))));
           renewal?.unref?.();
-          const observeRestoredRun = journal.observeRunCancellation(ref, moon, control);
-          const assertCurrent = (cut) => {
+          const observeRestoredRun = journal!.observeRunCancellation(ref, moon, control);
+          const assertCurrent = (cut?: ModelResumeCut) => {
             if (cut === 'end-model-journal-cut') {
               originalCutHeld = false;
               return;
@@ -6172,8 +7105,8 @@ async function openInstalledHost(originalInstallation, preparation) {
             // This is the live claim fence. Model and Effect permission stay
             // with their existing authorization and durable Entry checks.
             if (claim !== undefined) {
-              if (originalCutHeld) checkpoints.journal.assertResumeClaimCurrent(claim);
-              else checkpoints.journal.renewResume(claim, leaseMs);
+              if (originalCutHeld) checkpoints!.journal.assertResumeClaimCurrent(claim);
+              else checkpoints!.journal.renewResume(claim, leaseMs);
               if (cut === 'begin-model-journal-cut') originalCutHeld = true;
             }
           };
@@ -6183,41 +7116,41 @@ async function openInstalledHost(originalInstallation, preparation) {
           // continuation's reclamation. Only its current owner can do that.
           const restorationReclaimed = () => !restorationDispatchEntered || restorationStopConfirmed;
           const retainStoppedModelReconciliation = () => {
-            const stopped = journal.lookupRunDefinition(ref, moon, control);
-            if (!checkpoints.journal.hasUnresolvedModelCalls(runId) ||
+            const stopped = journal!.lookupRunDefinition(ref, moon, control);
+            if (!checkpoints!.journal.hasUnresolvedModelCalls(runId) ||
                 effectRun?.reconciliation(ref) !== undefined ||
                 !restorationReclaimed() || stopped?.physicalCloseConfirmed !== true ||
-                dispatchOwner.operation(ref) !== undefined) return false;
+                dispatchOwner!.operation(ref) !== undefined) return false;
             const reconciliation = issueInstalledUnpublishedRunState(moon, {runId,
-              observedAt: now(), resultNames: stopped.resultNames,
+              observedAt: now(), resultNames: stopped.resultNames!,
               dispatchReserved: true, preDispatchFailureConfirmed: false,
               cancelledBeforeStart: false, observedTerminalOutcome: 'none',
               executionUnknown: true});
-            if (journal.lookupRunDefinition(ref, moon, control)?.revision !== stopped.revision) return false;
-            const lifecycle = checkpoints.journal.getRunState(runId);
+            if (journal!.lookupRunDefinition(ref, moon, control)?.revision !== stopped.revision) return false;
+            const lifecycle = checkpoints!.journal.getRunState(runId);
             if (claim !== undefined && lifecycle?.status === 'resuming' && leaseFailure === undefined) {
-              checkpoints.journal.completeResume(claim, {runStateWire: JSON.stringify(reconciliation)});
+              checkpoints!.journal.completeResume(claim, {runStateWire: JSON.stringify(reconciliation)});
             } else if (claim === undefined && lifecycle?.status === 'running') {
-              checkpoints.journal.finishRun(runId, {status: 'needs_reconciliation',
+              checkpoints!.journal.finishRun(runId, {status: 'needs_reconciliation',
                 runStateWire: JSON.stringify(reconciliation)});
             }
-            return checkpoints.journal.getRunState(runId)?.status === 'needs_reconciliation';
+            return checkpoints!.journal.getRunState(runId)?.status === 'needs_reconciliation';
           };
           const runRestoredModel = async () => {
-            let recovery;
+            let recovery: RequestInputRetention | undefined;
             try {
             assertCurrent();
-            const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);
+            const current = journal!.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);
             if (current === undefined || current.ref.runDefinitionCid !== ref.runDefinitionCid) {
               throw new Error('ModelResumeRunDefinitionMissing');
             }
-            const submission = JSON.parse(canonicalValueJson(token.snapshot.submission));
+            const submission = JSON.parse(canonicalValueJson(token!.snapshot!.submission));
             if (submission.requestId !== current.requestId ||
                 !hostConnection(submission)) throw new Error('ModelResumeSubmissionMismatch');
             const inferOriginal = current.runAdmissionEvidence?.inferRunOriginal;
             if (inferOriginal !== undefined) {
               recovery = preparation.retainModelRecoveryInput(moon, submission,
-                current.requestIdentity, current.runDefinition, assertCurrent,
+                current.requestIdentity as ModelRecoveryInputArgs[1], current.runDefinition, assertCurrent,
                 () => !restorationReclaimed());
               submission.preparedProgram = prepareSubmit.restoreInferOriginal(
                 inferOriginal, current.runDefinition, current.requestIdentity,
@@ -6230,7 +7163,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               // Restore through the SAME funded Request entrance used by cold
               // Effect recovery. A saved Prepared projection cannot stand in
               // for this pending Request's actual compiler/borrower.
-              const originalIntent = journal.originalSubmittedIntent(current.requestIdentity,
+              const originalIntent = journal!.originalSubmittedIntent(current.requestIdentity,
                 {namespaceId}, moon, control);
               const materialWire = current.runAdmissionEvidence?.updateTargetRunOriginal?.materialsWire ??
                 current.runAdmissionEvidence?.effectOriginalRunWire;
@@ -6252,7 +7185,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             }
             preparation.bindSourceRequest(submission, submission.preparedProgram);
             const requested = requestOf(submission);
-            const admitted = journal.resolveDefinition(requested.requested,
+            const admitted = journal!.resolveDefinition(requested.requested,
               {namespaceId}, moon, control);
             if (admitted?.ref.runDefinitionCid !== ref.runDefinitionCid) {
               throw new Error('ModelResumeRunDefinitionMismatch');
@@ -6266,7 +7199,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               }
               const facts = await effectRun.restoreComputation(accepted);
               assertCurrent();
-              const modelResume = {record, token, claim, active: claim !== undefined,
+              const modelResume: ModelEffectResume = {record, token: token!, claim, active: claim !== undefined,
                 view: record.checkpointCid === null ? Object.freeze({kind: 'model_invocation',
                   prepareAttemptId: null, runId, runDefinitionCid: ref.runDefinitionCid}) : active,
                 ...(parentCheckpoint === undefined ? {} : {parentResume: {
@@ -6274,7 +7207,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                 assertCurrent, observeStopped: () => { restorationStopConfirmed = true; }};
               restorationDispatchEntered = true;
               const result = await executeEffectComputation(facts, undefined, undefined, modelResume);
-              recovery.finish('returned');
+              recovery!.finish('returned');
               recovery = undefined;
               return result;
             }
@@ -6285,7 +7218,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             // their existing reconciliation and stop path.
             if (claim !== undefined && calls.slots.every(slot => slot.attempts.length === 0)) {
               const selection = inferSelections.get(submission.preparedProgram);
-              const isOriginalTask = component =>
+              const isOriginalTask = (component: Pick<EmbeddedInferMember, 'graph'>) =>
                 runtimeField(moon.clientProgramInferPlanBoundary(component.graph), 0) === record.inventory.taskIndex;
               const selected = selection?.components?.find(isOriginalTask) ??
                 (selection?.components === undefined && selection !== undefined && isOriginalTask(selection)
@@ -6300,18 +7233,18 @@ async function openInstalledHost(originalInstallation, preparation) {
               throw new Error('ModelResumeOriginalAdmissionChanged');
             }
             restorationDispatchEntered = true;
-            const result = await dispatchOwner.track(ref, {
+            const result = await dispatchOwner!.track(ref, {
               run: async ({signal, retainExecution, beginPhysicalWork}) => {
                 assertCurrent();
                 signal.throwIfAborted();
                 return runInfer({preparedProgram: submission.preparedProgram, plan,
-                  store, principalId, signal, retainExecution, beginPhysicalWork,
-                  submission: token.snapshot.submission, existingModel: record, modelClaim: claim,
+                  store: store!, principalId, signal, retainExecution, beginPhysicalWork,
+                  submission: token!.snapshot!.submission, existingModel: record, modelClaim: claim,
                   assertCurrent});
               },
               observeStopped: async () => {
                 await observeNodeRestoredModelStop({ref,
-                  journal, store, checkpoints, moon, control, cleanupConfirmed: true,
+                  journal: journal!, store: store!, checkpoints, moon, control, cleanupConfirmed: true,
                   physicalStopConfirmed: true});
                 restorationStopConfirmed = true;
               },
@@ -6321,15 +7254,15 @@ async function openInstalledHost(originalInstallation, preparation) {
             return result;
             } catch (cause) {
               if (recovery === undefined) throw cause;
-              throw retainInstalledHostRuntimeFailure(cause, () => recovery.finish('failed'));
+              throw retainInstalledHostRuntimeFailure(cause, () => recovery!.finish('failed'));
             }
           };
           const flight = runRestoredModel().then(async result => {
             if (leaseFailure !== undefined) throw leaseFailure;
-            if (result?.status === 'waiting_checkpoint') return;
-            const lifecycle = checkpoints.journal.getRunState(runId);
-            if (result?.status === 'needs_reconciliation') {
-              const unresolvedModel = checkpoints.journal.hasUnresolvedModelCalls(runId);
+            if ((result as DispatchResultStatus)?.status === 'waiting_checkpoint') return;
+            const lifecycle = checkpoints!.journal.getRunState(runId);
+            if ((result as DispatchResultStatus)?.status === 'needs_reconciliation') {
+              const unresolvedModel = checkpoints!.journal.hasUnresolvedModelCalls(runId);
               const effectReconciliation = effectRun?.reconciliation(ref);
               // This restoration returned only after its physical Owner's
               // stop and cleanup. Retain its unresolved outcome in the same
@@ -6341,35 +7274,35 @@ async function openInstalledHost(originalInstallation, preparation) {
               const reconciliation = effectReconciliation;
               if (reconciliation !== undefined) {
                 if (claim !== undefined && lifecycle?.status === 'resuming') {
-                  checkpoints.journal.completeResume(claim,
+                  checkpoints!.journal.completeResume(claim,
                     {runStateWire: JSON.stringify(reconciliation)});
                 } else if (claim === undefined && lifecycle?.status === 'running') {
-                  checkpoints.journal.finishRun(runId, {status: 'needs_reconciliation',
+                  checkpoints!.journal.finishRun(runId, {status: 'needs_reconciliation',
                     runStateWire: JSON.stringify(reconciliation)});
                 }
               }
               return;
             }
-            if (['failed_without_effect_dispatch', 'failed_effect_set'].includes(result?.status)) {
-              if (!checkpoints.journal.hasUnresolvedModelCalls(runId) &&
-                  dispatchOwner.operation(ref) === undefined) {
+            if (['failed_without_effect_dispatch', 'failed_effect_set'].includes((result as DispatchResultStatus)?.status!)) {
+              if (!checkpoints!.journal.hasUnresolvedModelCalls(runId) &&
+                  dispatchOwner!.operation(ref) === undefined) {
                 if (claim !== undefined && lifecycle?.status === 'resuming') {
-                  checkpoints.journal.completeResume(claim, {status: 'failed'});
+                  checkpoints!.journal.completeResume(claim, {status: 'failed'});
                 } else if (claim === undefined && lifecycle?.status === 'running') {
-                  checkpoints.journal.finishRun(runId, {status: 'failed'});
+                  checkpoints!.journal.finishRun(runId, {status: 'failed'});
                 }
               }
               return;
             }
-            if (await store.confirmCommittedIndex(ref) === undefined) return;
+            if (await store!.confirmCommittedIndex(ref) === undefined) return;
             const published = await inspectAuthorizedRunState(stateService,
               {indexKey: ref, principalId, purpose: 'inspect'});
             if (published.status !== 'succeeded') return;
-            const current = checkpoints.journal.getRunState(runId);
+            const current = checkpoints!.journal.getRunState(runId);
             if (claim !== undefined && current?.status === 'resuming') {
-              checkpoints.journal.completeResume(claim, {runStateWire: JSON.stringify(published)});
+              checkpoints!.journal.completeResume(claim, {runStateWire: JSON.stringify(published)});
             } else if (claim === undefined && current?.status === 'running') {
-              checkpoints.journal.finishRun(runId, {status: 'succeeded',
+              checkpoints!.journal.finishRun(runId, {status: 'succeeded',
                 runStateWire: JSON.stringify(published)});
             }
           }).catch(async error => {
@@ -6378,31 +7311,31 @@ async function openInstalledHost(originalInstallation, preparation) {
             // Its confirmed prior stop still retains unknown Model responsibility;
             // it must not leave a Running journal that only public lookup projects.
             if (retainStoppedModelReconciliation()) return;
-            const stopped = journal.lookupRunDefinition(ref, moon, control);
+            const stopped = journal!.lookupRunDefinition(ref, moon, control);
             const cancellation = stopped?.physicalCloseConfirmed === true
-              ? await observeNodeRunCancellation({ref, journal, store, checkpoints,
+              ? await observeNodeRunCancellation({ref, journal: journal!, store: store!, checkpoints,
                   moon, control, cleanupConfirmed: restorationReclaimed(),
                   physicalStopConfirmed: stopped.physicalCloseConfirmed}, stopped)
               : {cancelled: false};
             if (cancellation.cancelled &&
                 restorationReclaimed() &&
-                journal.lookupRunDefinition(ref, moon, control, cancellation.frame) === cancellation.frame) {
-              const state = checkpoints.journal.getRunState(runId);
+                journal!.lookupRunDefinition(ref, moon, control, cancellation.frame) === cancellation.frame) {
+              const state = checkpoints!.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {
-                checkpoints.journal.completeResume(claim, {status: 'cancelled'});
+                checkpoints!.journal.completeResume(claim, {status: 'cancelled'});
               } else if (claim === undefined && state?.status === 'running') {
-                checkpoints.journal.finishRun(runId, {status: 'cancelled'});
+                checkpoints!.journal.finishRun(runId, {status: 'cancelled'});
               }
               return;
             }
             if ((code === 'ModelSavedTerminalFailure' || isModelCredentialRefusal(error?.primaryFailure ?? error)) &&
                 stopped?.physicalCloseConfirmed === true && restorationReclaimed() &&
-                !checkpoints.journal.hasUnresolvedModelCalls(runId)) {
-              const state = checkpoints.journal.getRunState(runId);
+                !checkpoints!.journal.hasUnresolvedModelCalls(runId)) {
+              const state = checkpoints!.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {
-                checkpoints.journal.completeResume(claim, {status: 'failed'});
+                checkpoints!.journal.completeResume(claim, {status: 'failed'});
               } else if (claim === undefined && state?.status === 'running') {
-                checkpoints.journal.finishRun(runId, {status: 'failed'});
+                checkpoints!.journal.finishRun(runId, {status: 'failed'});
               }
               return;
             }
@@ -6413,23 +7346,23 @@ async function openInstalledHost(originalInstallation, preparation) {
                 'InstalledModelEgressUnavailable'].includes(code) ||
               ['ApprovalExpired', 'ModelRunExpired'].includes(detail);
             if (claim !== undefined && parentCheckpoint === undefined && policyRefusal && leaseFailure === undefined &&
-                dispatchOwner.operation(ref) === undefined) {
+                dispatchOwner!.operation(ref) === undefined) {
               try {
-                const current = checkpoints.journal.readModelCalls(record.inventory);
+                const current = checkpoints!.journal.readModelCalls(record.inventory);
                 if (current.slots.every(slot => slot.attempts.length === 0)) {
-                  checkpoints.journal.refuseUnsentModelResume(record.checkpointCid,
+                  checkpoints!.journal.refuseUnsentModelResume(record.checkpointCid!,
                     ref.runDefinitionCid, claim);
                 }
               } catch (failure) {
                 diagnostic('model_refusal_unresolved', {ref,
-                  code: failure?.code ?? failure?.message});
+                  code: (failure as ContinuationFailure)?.code ?? (failure as ContinuationFailure)?.message});
               }
             }
             diagnostic('model_resume_failed', {ref, code});
           }).finally(() => {
             if (renewal !== undefined) clearInterval(renewal);
             modelResumeFlights.delete(ref.runDefinitionCid);
-            modelController.release(token);
+            modelController!.release(token);
           });
           transferred = true;
           modelResumeFlights.set(ref.runDefinitionCid, flight);
@@ -6438,38 +7371,38 @@ async function openInstalledHost(originalInstallation, preparation) {
         } catch (error) {
           busy = true;
           diagnostic('model_recovery_failed', {scopeCid: record.scopeCid,
-            code: error?.code ?? error?.message});
+            code: (error as ContinuationFailure)?.code ?? (error as ContinuationFailure)?.message});
         } finally { if (!transferred) modelController.release(token); }
       }
       if (page.length < 100) break;
-      after = page.at(-1).scopeCid;
+      after = page.at(-1)!.scopeCid;
     }
     return busy;
   };
   const ownerCursorCodec = authorization?.hostKey === undefined ? undefined :
     createClientOwnerCursorCodec({privateKey:authorization.hostKey.privateKey,
-      publicKey:createPublicKey(authorization.hostKey.privateKey)});
-  const authorizeObservation = value => hostConnection(value) &&
-    journal.lookupRunDefinition(value.ref,moon,control) !== undefined;
+      publicKey:createPublicKey(authorization.hostKey.privateKey as Parameters<typeof createPublicKey>[0])});
+  const authorizeObservation = (value: HostConnectionInput & RunObservationInput) => hostConnection(value) &&
+    journal!.lookupRunDefinition(value.ref,moon,control) !== undefined;
   ownerViews=installedEffect === undefined ? undefined : installClientEffectObservations({moon,
     root:join(root,'state','effects','ledger'),authorize:authorizeObservation});
   const observeOwners = installClientOwnerObservations({
     authorizeRun:authorizeObservation, codec:ownerCursorCodec,maxEntries:1000,maxWireBytes:65536,
-    sourcesFor:value => {
+    sourcesFor:(value): Awaited<ReturnType<Parameters<typeof installClientOwnerObservations>[0]['sourcesFor']>> => {
       const {ref,principalId:actual}=value;
-      const retained=journal.lookupRunDefinition(ref,moon,control);
-      const owned=ownerViews === undefined ? undefined : journal.lookupOwnedDefinition({
-        ...ref,requestId:retained.requestId},moon,control);
+      const retained=journal!.lookupRunDefinition(ref,moon,control);
+      const owned=ownerViews === undefined ? undefined : journal!.lookupOwnedDefinition({
+        ...ref,requestId:retained!.requestId},moon,control);
       return [{owner:{kind:'run',scopeCid:ref.authorityScopeCid,streamCid:ref.runDefinitionCid},
         history:'not_provided',authorize:authorizeObservation,
         readSnapshot:async () => ({value:await observeRun({ref,principalId:actual})})},
         ...(ownerViews === undefined ? [] : owned === undefined ? [{kind:'problem',
-          ownerKind:'effect',problem:'acquisition_failed',authorize:authorizeObservation}] :
-          ownerViews.sources(owned.requestIdentity,value))];
+          ownerKind:'effect',problem:'acquisition_failed',authorize:authorizeObservation} as const] :
+          ownerViews.sources(owned.requestIdentity,value as Parameters<NonNullable<typeof ownerViews>['sources']>[1]))];
     },
   });
   const runPlan = installClientRunPlan({authorize: authorizeObservation, control,
-    lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control)});
+    lookupOriginal: ref => journal!.lookupRunDefinition(ref, moon, control)});
   // Only the admitted installed Request owner and its actual compiled read
   // ports enable this operation. It never borrows Result permission or a
   // producing Run's reservation, including authorized old NotProjected reads.
@@ -6477,24 +7410,26 @@ async function openInstalledHost(originalInstallation, preparation) {
     ['clientProgramBeginRequestExplanationRead', 'clientProgramReserveRequestExplanationRead',
       'clientProgramReadRequestExplanation', 'clientProgramRequestExplanationReadIssueCode']
       .every(name => typeof moon[name] === 'function')
-    ? installClientRunExplanation({authorize: hostConnection,
+    ? installClientRunExplanation<Parameters<typeof authorizeLocalRun>[0],
+      NonNullable<ReturnType<ClientJournal['probeRunExplanationOriginal']>>>({authorize: hostConnection,
       authorizeEgress: (_selected, operation) => authorizeLocalRun(operation, operation),
-      probeOriginal: ref => journal.probeRunExplanationOriginal(ref),
-      lookupOriginal: (ref, extent) => journal.readRunExplanationOriginal(ref, extent),
+      probeOriginal: ref => journal!.probeRunExplanationOriginal(ref),
+      lookupOriginal: (ref, extent) => journal!.readRunExplanationOriginal(ref, extent),
       readWorkspace: preparation.resultReadWorkspace(moon)}) : undefined;
   const runExplanationContext = preparation !== undefined &&
     ['clientProgramBeginRequestExplanationContextRead', 'clientProgramReserveRequestExplanationContextRead',
       'clientProgramReadRequestExplanationContext', 'clientProgramRequestExplanationReadIssueCode']
       .every(name => typeof Object.getOwnPropertyDescriptor(moon, name)?.value === 'function')
-    ? installClientRunExplanation({authorize: hostConnection, context: true,
+    ? installClientRunExplanation<Parameters<typeof authorizeLocalRun>[0],
+      NonNullable<ReturnType<ClientJournal['probeRunExplanationContextOriginal']>>, true>({authorize: hostConnection, context: true,
       authorizeEgress: (_selected, operation) => authorizeLocalRun(operation, operation),
       authorizeCurrent: (_selected, operation) => authorizeCurrentLocalRun(operation, operation),
-      probeOriginal: ref => journal.probeRunExplanationContextOriginal(ref),
-      lookupOriginal: (ref, extent) => journal.readRunExplanationContextOriginal(ref, extent),
+      probeOriginal: ref => journal!.probeRunExplanationContextOriginal(ref),
+      lookupOriginal: (ref, extent) => journal!.readRunExplanationContextOriginal(ref, extent as Parameters<ClientJournal['readRunExplanationContextOriginal']>[1]),
       readWorkspace: preparation.resultReadWorkspace(moon)}) : undefined;
   const inspectRun = installClientRunInspect({
     authorize: authorizeObservation, observeOwners, control,
-    lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control),
+    lookupOriginal: ref => journal!.lookupRunDefinition(ref, moon, control),
   });
   const runReadOperations = new Set(['status', 'wait', 'attach', 'run-plan', 'inspect-run',
     'owner-observations', 'lookup-request', 'lookup-submission']);
@@ -6503,7 +7438,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // A service Workspace is an installed network target label. It does not
     // replace the Local namespace, root-derived authority scope or policy.
     workspaceForPrincipal: () => workspaceId,
-    authorizeConnection: async value => {
+    authorizeConnection: async (value: Parameters<NonNullable<InProcessInstall['authorizeConnection']>>[0]) => {
       if (checkpointOperation.has(value.operation)) return checkpointConnection(value);
       const connected = hostConnection(value) || value.operation === 'connect' &&
         checkpointConnection(value);
@@ -6551,12 +7486,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     authenticate: () => principalId,
     bindOwnedRequest,
     captureResultObservation: observation === undefined ? undefined : ref => {
-      if (!observation.canMeasureResources()) return undefined;
+      if (!observation!.canMeasureResources()) return undefined;
       return captureManagedRunObservation(observation, ref,
         preparation?.managedComputeUsageReader(ref));
     },
     captureResultOperation: observation === undefined ? undefined
-      : () => observation.captureCurrentOperation(),
+      : () => observation!.captureCurrentOperation(),
     ...hostOperations, maxRowBytes: resultReadLimits.maxRowWireBytes,
   });
   const requestPreparation = preparation?.requestPreparation();
@@ -6567,11 +7502,11 @@ async function openInstalledHost(originalInstallation, preparation) {
     mockAccount === undefined ? ingress : Object.freeze({
     ...(requestPreparation === undefined ? {} : {[sourcePreparationPort]: requestPreparation}),
     ...(mockAccount === undefined ? {} : {answerCheckpoint: answerLocalCheckpoint}),
-    perform: (operation, request, signal) => observation === undefined
+    perform: (operation: PerformRequest[0], request: PerformRequest[1], signal?: AbortSignal) => observation === undefined
       ? ingress.perform(operation, request, signal)
       : observation.run(operation, undefined, () => ingress.perform(operation, request, signal)),
   });
-  return Object.assign(host, {port, store, journal, hostOperations, checkpoints, runAcceptance, diagnostic,
+  return Object.assign(host, {port, store: store!, journal: journal!, hostOperations, checkpoints, runAcceptance, diagnostic,
     closeRequestJournal: closeHostRequestJournal,
     ...(preparation === undefined ? {closePublicationOwnership: closeHostPublicationOwnership} : {}),
     observation, ownerViews,
@@ -6647,7 +7582,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       ...(originalRequestPreparation === undefined ? {} :
         {[sourcePreparationPort]: originalRequestPreparation}),
       ...(originalSourcePreparation === undefined ? {} : {
-        async answerCheckpoint(summary, decision, signal) {
+        async answerCheckpoint(summary: Parameters<LocalCheckpointAnswer>[0],
+            decision: Parameters<LocalCheckpointAnswer>[1], signal?: AbortSignal) {
           if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
           const opened = await activate();
           if (opened !== host || modelRuntimeClosing ||
@@ -6657,7 +7593,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           return Reflect.apply(opened.port.answerCheckpoint, opened.port, [summary, decision, signal]);
         },
       }),
-      async perform(operation, request, signal) {
+      async perform(operation: Parameters<BootstrapPort['perform']>[0],
+          request: Parameters<BootstrapPort['perform']>[1], signal?: AbortSignal) {
         if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
         return bootstrapIngress.perform(operation,request,signal);
       },
@@ -6673,24 +7610,24 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (activationFlight !== undefined) {
           try { await activationFlight; }
           catch {
-            const cause = activationFailure.cause;
+            const cause = activationFailure!.cause;
             // Retain each successfully observed callback and its receiver.
             // Only a getter that has not produced an observation may be
             // observed again; later replacement cannot ACK this failure.
-            if (!activationFailure.cleanupObserved) {
-              activationFailure.cleanup = cause?.cleanupHandle;
-              activationFailure.cleanupObserved = true;
+            if (!activationFailure!.cleanupObserved) {
+              activationFailure!.cleanup = (cause as {cleanupHandle?: ActivationFailure['cleanup']} | undefined)?.cleanupHandle;
+              activationFailure!.cleanupObserved = true;
             }
-            const cleanup = activationFailure.cleanup;
-            if (!activationFailure.statusObserved) {
-              activationFailure.status = cleanup?.status;
-              activationFailure.statusObserved = true;
+            const cleanup = activationFailure!.cleanup;
+            if (!activationFailure!.statusObserved) {
+              activationFailure!.status = cleanup?.status;
+              activationFailure!.statusObserved = true;
             }
-            if (!activationFailure.retryObserved) {
-              activationFailure.retry = cleanup?.retry;
-              activationFailure.retryObserved = true;
+            if (!activationFailure!.retryObserved) {
+              activationFailure!.retry = cleanup?.retry;
+              activationFailure!.retryObserved = true;
             }
-            const status = activationFailure.status, retry = activationFailure.retry;
+            const status = activationFailure!.status, retry = activationFailure!.retry;
             if (typeof status !== 'function' || typeof retry !== 'function') throw cause;
             if (Reflect.apply(status,cleanup,[])?.pending !== false) {
               await Reflect.apply(retry,cleanup,[]);
@@ -6752,11 +7689,12 @@ async function openInstalledHost(originalInstallation, preparation) {
 // execution. `faultInjection(step, detail)` is an explicit awaited test hook;
 // `beforeDispatch` remains a required execution barrier. Without a
 // configuration the Missing account denies every request; nothing allows it.
-export function openInstalledRemoteHttpHost(options) {
+export function openInstalledRemoteHttpHost(options: InstalledRemoteHostOptions) {
   return openPreparedInstalledHost(options, 'remote');
 }
 
-function installedRemoteHttpTransport(host, {authenticate, loopbackHttp, maxRequestBytes}, shutdown, prepareRequest) {
+function installedRemoteHttpTransport(host: HttpHost, {authenticate, loopbackHttp, maxRequestBytes}: HttpTransportOptions,
+    shutdown: ReturnType<typeof installedHostShutdown>, prepareRequest: HttpOperations['prepareRequest']) {
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes, loopbackHttp, prepareRequest,
   });
@@ -6764,10 +7702,10 @@ function installedRemoteHttpTransport(host, {authenticate, loopbackHttp, maxRequ
   // its delivery attempt after the last bytes are sent. Close waits for
   // every request still being handled; once closing, new requests are
   // refused before they touch the Store.
-  const handling = new Set();
+  const handling = new Set<Promise<unknown>>();
   let closing = false;
   return Object.freeze({
-    handler(request, response) {
+    handler(request: Parameters<HttpRequestHandler>[0], response: Parameters<HttpRequestHandler>[1]) {
       if (closing) {
         response.writeHead(503, {'content-type': 'application/json'});
         response.end(JSON.stringify({code: 'ClientHostClosing'}));
@@ -6775,7 +7713,7 @@ function installedRemoteHttpTransport(host, {authenticate, loopbackHttp, maxRequ
       }
       const handled = Promise.resolve(host.observation === undefined
         ? handle(request, response) : host.observation.run('http',
-          observationTraceParent(request.headers), () => handle(request, response),
+          observationTraceParent(request.headers as Parameters<typeof observationTraceParent>[0]), () => handle(request, response),
           {http: {method: request.method, response}}));
       handling.add(handled);
       handled.finally(() => handling.delete(handled)).catch(() => {});
@@ -6801,11 +7739,11 @@ function installedRemoteHttpTransport(host, {authenticate, loopbackHttp, maxRequ
   });
 }
 
-function localPublicationStoreAuthorityCid(root, principalId) {
+function localPublicationStoreAuthorityCid(root: string, principalId: string) {
   return cid({version: 'actql-local-store-owner/0.1', root, principalId});
 }
 
-function localPublicationStoreOptions(root, storeAuthorityCid, privateEvidenceKey) {
+function localPublicationStoreOptions(root: string, storeAuthorityCid: string, privateEvidenceKey?: Uint8Array) {
   return {
     directory: join(root, 'publication'), storeAuthorityCid,
     ...hostResultStorePolicy, privateEvidenceKey,
@@ -6816,13 +7754,16 @@ function localPublicationStoreOptions(root, storeAuthorityCid, privateEvidenceKe
 // admission through key creation and Store adoption, instead of leaving a
 // marker that makes the later Host look like an existing, keyless installation.
 // These existing owners grant no Run, Site, request or provider operation.
-async function preparePublicationRoot(root, principalId) {
+async function preparePublicationRoot(root: string, principalId: string) {
   const host = {};
   const originals = {host, installation: {root}, generation: host,
     supplier: preparePublicationRoot, moduleLifetime: import.meta};
   const journal = prepareOrdinaryHostJournal(originals);
   const closeJournal = originalInitialControlClose(journal);
-  let result, closeResult, accountConstruction, hostInitialization;
+  let result: ReturnType<typeof prepareOrdinaryHostResult> | undefined;
+  let closeResult: InitialClose | undefined;
+  let accountConstruction: ReturnType<typeof createAccountConstruction> | undefined;
+  let hostInitialization: Parameters<typeof openHostInitializationPreparation>[0] | undefined;
   async function closeServices() {
     if (accountConstruction !== undefined && await accountConstruction.close() !== true) {
       throw clientOperationError('AccountReadCleanupPending');
@@ -6867,7 +7808,7 @@ async function preparePublicationRoot(root, principalId) {
 // (`ACTQL_LOCAL_SOURCE_PROFILE` by default). This is the explicit step a Host
 // start restores without provider I/O.
 export async function publishInstalledSource({sourceProfilePath, directory,
-  resolveSourceSecret, signal, connectorTable} = {}) {
+  resolveSourceSecret, signal, connectorTable}: PublishSourceOptions = {}) {
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   const root = directory === undefined ? localStateRoot() : resolve(directory);
   const principalId = userInfo().username;
@@ -6884,7 +7825,7 @@ export async function publishInstalledSource({sourceProfilePath, directory,
 // (`ACTQL_LOCAL_EFFECT_PROFILE` by default). This is the explicit step a Host
 // start restores without provider I/O.
 export async function publishInstalledEffect({effectProfilePath, directory,
-  resolveEffectSecret, signal, hostCapacityPolicy, hostLookupExecutionPolicy, connectorTable} = {}) {
+  resolveEffectSecret, signal, hostCapacityPolicy, hostLookupExecutionPolicy, connectorTable}: PublishEffectOptions = {}) {
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
@@ -6903,7 +7844,7 @@ export async function publishInstalledEffect({effectProfilePath, directory,
 // Only the actual early startup captures this operation. It admits the selected
 // raw Local connect/open input before invoking this receiver. This operation
 // alone cannot manufacture that admission or inspect the caller's packet.
-export function connectInitialControlHostPreparation(kind, rawInput) {
+export function connectInitialControlHostPreparation(kind: unknown, rawInput: unknown) {
   if (kind === 'connect') return connectEmbeddedLocal(rawInput, 'connect');
   if (kind !== 'open') {
     throw clientOperationError('NodeInitialControlInputUnavailable');
@@ -6911,37 +7852,66 @@ export function connectInitialControlHostPreparation(kind, rawInput) {
   return connectEmbeddedLocal(rawInput, 'open');
 }
 
-export function connectEmbeddedLocal(options, initialEntry) {
+export function connectEmbeddedLocal(options: unknown, initialEntry?: 'connect'): Promise<EmbeddedClient>;
+export function connectEmbeddedLocal(options: unknown, initialEntry: 'open'): Promise<OpenedEmbeddedClient>;
+export function connectEmbeddedLocal(options: unknown, initialEntry: 'remote'): Promise<InstalledRemoteHost>;
+export function connectEmbeddedLocal(options: unknown, initialEntry?: HostEntry) {
   return openPreparedInstalledHost(options, initialEntry);
 }
 
 // The same original Host, prior control and preparation bundle serve Local and
 // Remote entry. Only Local discovers a Project or leases an in-process Client.
-async function openPreparedInstalledHost(options, initialEntry) {
+function openPreparedInstalledHost(options: unknown, initialEntry: 'remote'): Promise<InstalledRemoteHost>;
+function openPreparedInstalledHost(options: unknown, initialEntry?: HostEntry):
+  Promise<EmbeddedClient | OpenedEmbeddedClient | InstalledRemoteHost>;
+async function openPreparedInstalledHost(options: unknown, initialEntry?: HostEntry) {
   // The actual Host generation and original installation are allocated here,
   // not reconstructed from a later view, Project DATA or current config. Their
   // minimal candidate record belongs to the selected prior startup envelope.
   const host = {};
-  let originalInstallation = {};
-  let originals = Object.freeze({host, installation: originalInstallation,
+  let originalInstallation: EmbeddedInstallation | undefined = {};
+  let originals: HostStartupOriginals | undefined = Object.freeze({host, installation: originalInstallation,
     generation: host, supplier: openPreparedInstalledHost, moduleLifetime: import.meta});
   profiles.registerPreparation(host, originalInstallation, host);
-  let control, controlClose, duty, observedClose, referenceRetirement;
-  let moon, project, projectProfile, mockPreparation, projectSourcePreparation, sourceManaged, sourceManagedClose;
-  let computeManaged, computeManagedClose, computeManagedFlight;
-  let resultPublication, resultPublicationClose, resultPublicationFlight;
-  let resultReadWorkspace;
-  let hostJournal, hostJournalClose, hostJournalOpen, hostJournalOwnership, hostJournalFlight;
-  let hostJournalAdmitRootFormat;
+  let control: HostInitialControl | undefined;
+  let controlClose: HostInitialControl['close'] | undefined;
+  let duty: ReturnType<HostInitialControl['retainPreparation']> | undefined;
+  let observedClose: Readonly<{pending: boolean}> | undefined;
+  let referenceRetirement: (() => void) | undefined;
+  let moon: BootstrapRuntime | undefined;
+  let project: Awaited<ReturnType<typeof loadInstalledProjectConfiguration>> | undefined;
+  let projectProfile: ReturnType<typeof selectInstalledProjectProfile> | undefined;
+  let mockPreparation: Awaited<ReturnType<typeof prepareInstalledProjectMock>> | undefined;
+  let projectSourcePreparation: Awaited<ReturnType<typeof prepareInstalledProjectLocalFiles>> | undefined;
+  let sourceManaged: ManagedSourceInstallation | undefined;
+  let sourceManagedClose: ManagedSourceInstallation['close'] | undefined;
+  let computeManaged: ManagedComputeInstallation | undefined;
+  let computeManagedClose: ManagedComputeInstallation['close'] | undefined;
+  let computeManagedFlight: Promise<ManagedComputeInstallation> | undefined;
+  let resultPublication: SelectedHostResult | undefined;
+  let resultPublicationClose: InitialClose | undefined;
+  let resultPublicationFlight: Promise<SelectedHostResult> | undefined;
+  let resultReadWorkspace: ReturnType<typeof createLocalResultReadWorkspace> | undefined;
+  let hostJournal: SelectedHostJournal | undefined;
+  let hostJournalClose: SelectedHostJournal['close'] | undefined;
+  let hostJournalOpen: SelectedHostJournal['openRequestJournal'] | undefined;
+  let hostJournalOwnership: SelectedHostJournal['publicationOwnership'] | undefined;
+  let hostJournalFlight: Promise<SelectedHostJournal> | undefined;
+  let hostJournalAdmitRootFormat: SelectedHostJournal['admitRootFormat'] | undefined;
   let hostJournalOpenAttempted = false;
-  let mockAnswers, mockModelProfile, mockModelProfileRetire, mockModelFlight;
+  let mockAnswers: InstalledMockAnswers | undefined;
+  let mockModelProfile: unknown;
+  let mockModelProfileRetire: BootstrapRuntime['clientProgramRetireMockProfile'];
+  let mockModelFlight: Promise<InstalledMockModels> | undefined;
   let adopted = false, referencesRetired = false;
-  let hostInitialization, sourceInitializationServices, sourceInitializationSelection;
-  const record = {};
+  let hostInitialization: HostInitialization | undefined;
+  let sourceInitializationServices: ReturnType<typeof createInstalledHostServices> | undefined;
+  let sourceInitializationSelection: SourceInitializationSelection | undefined;
+  const record: EmbeddedPreparationRecord = {};
   function assertSourceInitializationIdentity() {
     const selection = sourceInitializationSelection;
     if (selection === undefined) return;
-    if (selection.runtime !== moon || selection.root !== originalInstallation.root ||
+    if (selection.runtime !== moon || selection.root !== originalInstallation!.root ||
         project !== undefined &&
           installedProjectOriginalsForRuntime(project, moon) !== selection.projectOriginal) {
       throw clientOperationError('ForeignInstalledSourceInitialization');
@@ -6958,7 +7928,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
     // The Root can fail after its fixed callback retained a view but before
     // returning the Source installation to this caller. That same candidate
     // still owns its semantic references; do not abandon it on this path.
-    const retainedMock = profiles.retainedMockPreparation(host, originalInstallation, host);
+    const retainedMock = profiles.retainedMockPreparation(host, originalInstallation, host) as
+      Readonly<{view: ProjectMockOriginal}> | undefined;
     (mockPreparation ?? retainedMock?.view)?.retire(moon);
     projectSourcePreparation?.retire(moon);
     // The Model owner can decline retirement while the original execution
@@ -6966,7 +7937,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
     // Source, Journal, Promise settlement and process exit cannot ACK it.
     mockAnswers?.retire(moon);
     if (mockModelProfile !== undefined) {
-      if (Reflect.apply(mockModelProfileRetire, moon, [mockModelProfile]) !== true) {
+      if (Reflect.apply(mockModelProfileRetire!, moon, [mockModelProfile]) !== true) {
         throw clientOperationError('InstalledMockModelCleanupPending');
       }
       mockModelProfile = mockModelProfileRetire = undefined;
@@ -6978,10 +7949,10 @@ async function openPreparedInstalledHost(options, initialEntry) {
       if (project !== undefined) retireInstalledProjectConfiguration(project, moon);
     }
     mockPreparation = projectSourcePreparation = projectProfile = project = moon = referenceRetirement = undefined;
-    for (const key of Object.keys(record)) record[key] = undefined;
+    for (const key of Object.keys(record)) (record as Record<string, unknown>)[key] = undefined;
     // This private installation bag holds backreferences, not canonical DATA.
     // Its opaque identity remains the same for the original cleanup pair.
-    for (const key of Object.keys(originalInstallation)) originalInstallation[key] = undefined;
+    for (const key of Object.keys(originalInstallation!)) (originalInstallation as Record<string, unknown>)[key] = undefined;
     duty?.releaseReferences(record);
     referencesRetired = true;
   }
@@ -7010,7 +7981,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       if (run.preparationKind === 'model-plan' || run.preparationKind === 'serialization-plan' ||
           run.preparationKind === 'keyed-content-plan' ||
           run.preparationKind === 'effect-plan' && (run.preparationFunded || run.requestInput !== undefined)) {
-        const finish = preparation.retireManagedComputeRun(run.prepared);
+        const finish = preparation.retireManagedComputeRun(run.prepared!);
         finish?.();
         continue;
       }
@@ -7018,13 +7989,13 @@ async function openPreparedInstalledHost(options, initialEntry) {
       // Source-free Runs on either joint Source/Compute or Compute-only
       // installations retire before their same parent service can close.
       finishInstalledEffectModelScope(run, true, checked);
-      if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
-      else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
+      if (run.value !== undefined) checked(Reflect.apply(run.retire!, run.runtime, [run.value]));
+      else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup!, run.runtime, [run.admission]));
       run.closed = true;
       run.preAdmissionRefusal = undefined;
     }
     if (sourceManaged !== undefined) {
-      const observation = await Reflect.apply(sourceManagedClose, sourceManaged, []);
+      const observation = await Reflect.apply(sourceManagedClose!, sourceManaged, []);
       const pending = observation !== null && typeof observation === 'object'
         ? Object.getOwnPropertyDescriptor(observation, 'pending') : undefined;
       if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
@@ -7095,10 +8066,10 @@ async function openPreparedInstalledHost(options, initialEntry) {
     // Unconstructed declaration/Mapping contexts still belong to this SAME
     // initial Source material. Failure retirement ends their constructor duty,
     // never reports a metadata holder as a successfully installed adapter.
-    await originalInstallation.declaredFileInstallationInventory?.fail(
+    await originalInstallation!.declaredFileInstallationInventory?.fail(
       clientOperationError('DeclaredFileInstallationClosed'));
-    if (originalInstallation.sourceCheckpointInventory !== undefined &&
-        originalInstallation.sourceCheckpointInventory.custody.retire() !== true) {
+    if (originalInstallation!.sourceCheckpointInventory !== undefined &&
+        originalInstallation!.sourceCheckpointInventory.custody.retire() !== true) {
       throw clientOperationError('InstalledSourceCheckpointCleanupPending');
     }
     if (hostInitialization !== undefined) {
@@ -7114,7 +8085,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       sourceInitializationSelection = record.sourceInitializationSelection = undefined;
     }
     retirePreparationReferences();
-    const observed = await Reflect.apply(controlClose, control, []);
+    const observed = await Reflect.apply(controlClose! as () => Promise<Awaited<ReturnType<NonNullable<typeof controlClose>>>>, control, []);
     if (observed?.pending === false) {
       if (observedClose !== undefined) return observedClose;
       if (!adopted) profiles.retirePreparation(host, originalInstallation, host);
@@ -7125,14 +8096,17 @@ async function openPreparedInstalledHost(options, initialEntry) {
     }
     return observed;
   }});
-  function prepareEffectCaptureFrame(runtime, request, definition, limits, managed, originalCurrent, retain, assertHost) {
+  function prepareEffectCaptureFrame(runtime: PreparationRuntime, request: EffectCaptureOptions['request'], definition: EffectDefinition,
+      limits: EffectCaptureOptions['contractLimits'], managed: PreparedEffectCapture | undefined,
+      originalCurrent: EffectCaptureOptions['assertCurrent'], retain: EffectCaptureOptions['retain'],
+      assertHost: (originals: unknown) => void) {
     assertHost(originals);
     if (runtime !== moon || typeof originalCurrent !== 'function' || typeof retain !== 'function') {
       throw clientOperationError('EffectRecoveryResourcesUnavailable');
     }
     const liveRuns = record.computeLiveRuns ??= new Set();
     if (liveRuns.size >= 4096) throw clientOperationError('InstalledComputeRunLimit');
-    if (managed !== undefined && (record.computeRuns?.get(managed.prepared) !== managed ||
+    if (managed !== undefined && (record.computeRuns?.get(managed.prepared as object) !== managed ||
         !liveRuns.has(managed) || managed.runtime !== runtime || managed.closed ||
         runtime.clientRequestRelation(request, managed.request) !== 1 ||
         runtime.strategyPublicationContractIdentity(managed.definitionOriginal?.definition) !== definition.identity)) {
@@ -7140,17 +8114,17 @@ async function openPreparedInstalledHost(options, initialEntry) {
     }
     const managedParent = managed?.value, managedPrepared = managed?.prepared;
     const managedRequest = managed?.request, managedDefinition = managed?.definitionOriginal?.definition;
-    const entry = {preparationKind:'effect-capture-recovery', resources:undefined,
+    const entry: EffectCaptureFrame = {preparationKind:'effect-capture-recovery', resources:undefined,
       selecting:true, closed:false};
     liveRuns.add(entry);
-    const current = () => {
+    const current = (): undefined => {
       assertHost(originals);
       originalCurrent();
       if (record.computeLiveRuns !== liveRuns || !liveRuns.has(entry) || entry.closed) {
         throw clientOperationError('ForeignEffectCaptureResources');
       }
       if (managed !== undefined && (preparation.effectManagedPlanRun(runtime,
-          managedPrepared, managedRequest) !== managed || managed.value !== managedParent ||
+          managedPrepared as object, managedRequest as object) !== managed || managed.value !== managedParent ||
           managed.prepared !== managedPrepared || managed.request !== managedRequest ||
           managed.definitionOriginal?.definition !== managedDefinition)) {
         throw clientOperationError('ForeignInstalledEffectManagedRun');
@@ -7159,27 +8133,28 @@ async function openPreparedInstalledHost(options, initialEntry) {
     try {
       return prepareEffectCaptureResources({moon:runtime,
         control:runtimeCore(runtime).publicationControl, request, runDefinition:definition,
-        contractLimits:limits, managed, assertCurrent:current,
+        contractLimits:limits, managed: managed as EffectCaptureOptions['managed'], assertCurrent:current,
         retain(view) {entry.resources = view; retain(view);},
         retired:retireEffectCaptureResourceFrame.bind(undefined, record, liveRuns, entry)});
     } finally {entry.selecting = false;}
   }
   const preparation = Object.freeze({host, initialControl,
     modelSdkInstallation() {
-      return readInitialControlInstallationModelSdk(control, originals);
+      return readInitialControlInstallationModelSdk(control, originals) as ReturnType<EmbeddedHostPreparation['modelSdkInstallation']>;
     },
-    selectSourceProfilePaths(options, fallback, root, principalId) {
+    selectSourceProfilePaths(options: Parameters<typeof installedSourcePaths>[0],
+        fallback: Parameters<typeof installedSourcePaths>[1], root: string, principalId: string) {
       assertInitialControlHostPreparation(originals);
       // This same Host already selected its runtime and detached options.
       // Open no file: the original Source material owns only the pure path
       // snapshot here and retains failed construction through initial close.
-      const services = preparation.sourceInitializationServices(moon, root, principalId);
+      const services = preparation.sourceInitializationServices(moon!, root, principalId);
       const construct = captureSourceAliasConstruction(installedSourceConfigurationReader(services), moon);
       return installedSourcePaths(options, fallback, construct);
     },
-    sourceInitializationServices(runtime, root, principalId, hostCurrent) {
+    sourceInitializationServices(runtime: BootstrapRuntime, root: string, principalId: string, hostCurrent?: () => void) {
       assertInitialControlHostPreparation(originals);
-      if (runtime !== moon || record.runtime !== runtime || root !== originalInstallation.root ||
+      if (runtime !== moon || record.runtime !== runtime || root !== originalInstallation!.root ||
           typeof principalId !== 'string' || !principalId ||
           hostCurrent !== undefined && typeof hostCurrent !== 'function') {
         throw clientOperationError('ForeignInstalledSourceInitialization');
@@ -7218,12 +8193,12 @@ async function openPreparedInstalledHost(options, initialEntry) {
     borrowSourceInitializationMaterial() {
       assertInitialControlHostPreparation(originals);
       if (sourceInitializationServices === undefined) return undefined;
-      const context = originalInstallation.closedValuesPreparationContext;
+      const context = originalInstallation!.closedValuesPreparationContext;
       if (context === undefined) throw clientOperationError('InstalledSourceInitializationPending');
       return borrowInstalledSourceInitialization(sourceInitializationServices,
         originalInstallation, context.preparedEnvironment);
     },
-    hostInitializationPreparation(runtime) {
+    hostInitializationPreparation(runtime: BootstrapRuntime) {
       assertInitialControlHostPreparation(originals);
       if (runtime !== moon || record.runtime !== runtime) {
         throw clientOperationError('ForeignInstalledHostPreparation');
@@ -7239,23 +8214,23 @@ async function openPreparedInstalledHost(options, initialEntry) {
       hostInitialization = {};
       record.hostInitialization = hostInitialization;
       return openHostInitializationPreparation(hostInitialization, runtime,
-        originalInstallation,
+        originalInstallation!,
         () => {
           assertInitialControlInstallationCurrent(control, originals);
           assertSourceInitializationIdentity();
         },
         () => sourceManaged !== undefined);
     },
-    retainHostJournalPreparation(root, principalId, journalDirectory) {
+    retainHostJournalPreparation(root: string, principalId: string, journalDirectory: string) {
       assertInitialControlHostPreparation(originals);
-      if (root !== originalInstallation.root || typeof principalId !== 'string' ||
+      if (root !== originalInstallation!.root || typeof principalId !== 'string' ||
           !principalId || journalDirectory !== join(root, 'requests')) {
         throw clientOperationError('InstalledHostPreparationChanged');
       }
       const view = Object.freeze({root, principalId, journalDirectory,
         assertCurrent() {
           assertInitialControlHostPreparation(originals);
-          if (this !== view || originalInstallation.root !== root ||
+          if (this !== view || originalInstallation!.root !== root ||
               profiles.hostJournalPreparation(host, originalInstallation, host) !== view) {
             throw clientOperationError('InstalledHostPreparationChanged');
           }
@@ -7270,7 +8245,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       // partial failure remains the same owned carrier, never a replacement
       // facility or another initialization attempt.
       hostJournalFlight = Promise.resolve().then(async () => {
-        const original = await prepareHostJournalInstallation(originals);
+        const original = await prepareHostJournalInstallation(originals!);
         if (original === undefined || original === null) {
           throw clientOperationError('HostJournalInstallationUnavailable');
         }
@@ -7293,14 +8268,14 @@ async function openPreparedInstalledHost(options, initialEntry) {
       });
       return hostJournalFlight;
     },
-    admitRootFormat(root) {
+    admitRootFormat(root: string) {
       assertInitialControlHostPreparation(originals);
       if (hostJournal === undefined || typeof hostJournalAdmitRootFormat !== 'function') {
         throw clientOperationError('HostJournalPreparationUnavailable');
       }
       return Reflect.apply(hostJournalAdmitRootFormat, hostJournal, [root]);
     },
-    openRequestJournal(directory, options) {
+    openRequestJournal(directory: string, options: Parameters<SelectedHostJournal['openRequestJournal']>[1]) {
       assertInitialControlHostPreparation(originals);
       if (hostJournalOpenAttempted || hostJournal === undefined ||
           typeof hostJournalOpen !== 'function') {
@@ -7322,7 +8297,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       assertInitialControlHostPreparation(originals);
       if (resultPublicationFlight !== undefined) return resultPublicationFlight;
       resultPublicationFlight = Promise.resolve().then(async () => {
-        const original = await prepareHostResultPublicationInstallation(originals);
+        const original = await prepareHostResultPublicationInstallation(originals!);
         if (original === undefined || original === null) throw clientOperationError('HostResultPublicationUnavailable');
         resultPublication = original;
         record.resultPublication = original;
@@ -7334,53 +8309,54 @@ async function openPreparedInstalledHost(options, initialEntry) {
       });
       return resultPublicationFlight;
     },
-    resultReadWorkspace(runtime) {
+    resultReadWorkspace(runtime: BootstrapRuntime) {
       assertInitialControlHostPreparation(originals);
       if (runtime !== moon) throw clientOperationError('ForeignInstalledHostPreparation');
       resultReadWorkspace ??= createLocalResultReadWorkspace({runtime,
-        requestMemory: originalInstallation.requestMemory,
+        requestMemory: originalInstallation!.requestMemory,
         // The same original remains recognizable during cleanup. New READs
         // are fenced by the workspace owner before it retires its children.
         assertCurrent: () => assertRetainedSourceManagedHost(originals)});
       return resultReadWorkspace;
     },
-    assertResultPublicationCurrent() {
+    assertResultPublicationCurrent(): undefined {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
       resultPublication.assertCurrent();
     },
-    beforeResultPublicationOperation(operation) {
+    beforeResultPublicationOperation(operation: string) {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
       resultPublication.beforeOperation(operation);
     },
-    openResultPublicationStore(options, control) {
+    openResultPublicationStore(options: Parameters<SelectedHostResult['openStore']>[0],
+        control: Parameters<SelectedHostResult['openStore']>[1]) {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
       return resultPublication.openStore(options, control);
     },
-    admitResultPublicationRun(prepared) {
+    admitResultPublicationRun(prepared: object) {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
       resultPublication.admitRun(prepared);
     },
-    admitEffectResultPublicationRun(prepared) {
+    admitEffectResultPublicationRun(prepared: object) {
       if (resultPublication === undefined || typeof resultPublication.admitEffectRun !== 'function') {
         throw clientOperationError('HostEffectResultPublicationUnavailable');
       }
       resultPublication.admitEffectRun(prepared);
     },
-    assertContentRunCurrent() {
+    assertContentRunCurrent(): undefined {
       assertInitialControlHostPreparation(originals);
       // This is the existing ordinary factory's actual Journal/Store, not
       // initial/preload provenance or another purpose's resource credit.
       ordinaryHostJournalInstallation(originals).assertCurrent();
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
-      resultPublication.assertContentCurrent();
+      resultPublication.assertContentCurrent!();
     },
-    modelPublicationCapacity(prepared) {
+    modelPublicationCapacity(prepared: object) {
       if (resultPublication === undefined || typeof resultPublication.modelPublicationCapacity !== 'function') {
         throw clientOperationError('HostResultPublicationUnavailable');
       }
       return resultPublication.modelPublicationCapacity(prepared);
     },
-    bindSourceRequest(parent, derived) {
+    bindSourceRequest(parent: object, derived: object): undefined {
       if (sourceManaged !== undefined) {
         assertSourceManagedInstallationCurrent(sourceManaged, originals);
       } else if (computeManaged !== undefined) {
@@ -7424,28 +8400,29 @@ async function openPreparedInstalledHost(options, initialEntry) {
       assertManagedComputeInstallationCurrent(computeManaged, originals);
       return computeManaged;
     },
-    submittedIntentOriginal(request) {
+    submittedIntentOriginal(request: object) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) return undefined;
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.submittedIntentOriginal?.(originalSourceManagedHostRequest(originals, request));
     },
-    retainModelRecoveryInput(runtime, request, identity, definition, assertCurrent, childrenPending) {
+    retainModelRecoveryInput(runtime: PreparationRuntime, request: object, identity: ModelRecoveryInputArgs[1],
+        definition: ModelRecoveryInputArgs[2], assertCurrent: ModelRecoveryInputArgs[3], childrenPending: ModelRecoveryInputArgs[4]) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.retainModelRecovery !== 'function') {
         throw clientOperationError('InstalledModelRecoveryPreparationUnavailable');
       }
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
-      let settled;
-      const pending = new Promise(resolve => {settled = resolve;});
+      let settled!: () => void;
+      const pending = new Promise<void>(resolve => {settled = resolve;});
       profiles.retainRequest(host, originalInstallation, host, request, pending);
       let original, finished = false;
       const finishProducer = manager.finishSourceProducer;
       try {original = manager.retainModelRecovery(request, identity, definition, assertCurrent, childrenPending);}
       catch (cause) {settled(); throw cause;}
-      return Object.freeze({finish(terminal) {
+      return Object.freeze({finish(terminal: Parameters<RequestInputRetention['finish']>[0]) {
         if (finished) return;
         try {
           Reflect.apply(finishProducer, manager, [original.receipt, terminal]);
@@ -7453,7 +8430,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
         } finally {settled();}
       }});
     },
-    restoreManagedModelOriginal(runtime, request, original, definition, identity, construct) {
+    restoreManagedModelOriginal(runtime: PreparationRuntime, request: object, original: InstalledModelRestoreArgs[1],
+        definition: InstalledModelRestoreArgs[2], identity: InstalledModelRestoreArgs[3], construct: InstalledModelRestoreArgs[4]) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.restoreModelOriginal !== 'function') {
         throw clientOperationError('InstalledModelRecoveryPreparationUnavailable');
@@ -7463,7 +8441,9 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.restoreModelOriginal(originalSourceManagedHostRequest(originals, request),
         original, definition, identity, construct);
     },
-    prepareManagedModelRecoveryPlan(runtime, prepared, request, plan, selected, model) {
+    prepareManagedModelRecoveryPlan(runtime: PreparationRuntime, prepared: object, request: object,
+        plan: OrdinarySourceArgs<'prepareModelRecoveryPlan'>[2], selected: OrdinarySourceArgs<'prepareModelRecoveryPlan'>[3],
+        model: OrdinarySourceArgs<'prepareModelRecoveryPlan'>[4]) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelRecoveryPlan !== 'function' ||
           model.control !== runtimeCore(runtime).publicationControl ||
@@ -7475,15 +8455,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.prepareModelRecoveryPlan(prepared,
         originalSourceManagedHostRequest(originals, prepared), plan, selected, model);
     },
-    retainEffectRequestInput(runtime, request, intent, captured, materialWire) {
+    retainEffectRequestInput(runtime: PreparationRuntime, request: object, intent: RetainEffectInputArgs[1],
+        captured: RetainEffectInputArgs[2], materialWire?: RetainEffectInputArgs[3]) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.retainRequestInput !== 'function') {
         throw clientOperationError('InstalledEffectRequestPreparationUnavailable');
       }
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
-      let settled;
-      const pending = new Promise(resolve => {settled = resolve;});
+      let settled!: () => void;
+      const pending = new Promise<void>(resolve => {settled = resolve;});
       profiles.retainRequest(host, originalInstallation, host, request, pending);
       let original, finished = false;
       const finishProducer = manager.finishSourceProducer;
@@ -7491,7 +8472,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         : manager.retainRequestInput(request, undefined, captured);}
       catch (cause) {settled(); throw cause;}
       return Object.freeze({body: original.body,
-        finish(terminal) {
+        finish(terminal: Parameters<RequestInputRetention['finish']>[0]) {
           if (finished) return;
           try {
             Reflect.apply(finishProducer, manager, [original.receipt, terminal]);
@@ -7503,9 +8484,9 @@ async function openPreparedInstalledHost(options, initialEntry) {
           }
         }});
     },
-    retainedEffectManagedPlan(runtime, request, definition) {
+    retainedEffectManagedPlan(runtime: PreparationRuntime, request: unknown, definition: EffectDefinition) {
       if (runtime !== moon) throw clientOperationError('ForeignInstalledEffectManagedRun');
-      let selected;
+      let selected: EffectPlanRun | undefined;
       for (const run of record.computeLiveRuns ?? []) {
         if (run.preparationKind !== 'effect-plan' || run.closed || run.runtime !== runtime ||
             runtime.clientRequestRelation(run.request, request) !== 1) continue;
@@ -7516,26 +8497,30 @@ async function openPreparedInstalledHost(options, initialEntry) {
         selected = run;
       }
       if (selected === undefined) return undefined;
-      const current = preparation.effectManagedPlanRun(runtime, selected.prepared, selected.request);
+      const current = preparation.effectManagedPlanRun(runtime, selected.prepared, selected.request as object);
       if (current !== selected || selected.closed || !record.computeLiveRuns?.has(selected)) {
         throw clientOperationError('ForeignInstalledEffectManagedRun');
       }
       return current;
     },
-    readStaticPlan(request, environment, originalVerifier, signal, modelInstallation) {
+    readStaticPlan(request: NonNullable<OrdinaryFundedArgs[5]>, environment: OrdinaryFundedArgs[1], originalVerifier: OrdinaryFundedArgs[2],
+        signal: AbortSignal | undefined, modelInstallation: OrdinaryFundedArgs[6]) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) throw clientOperationError('ClientOperationUnavailable');
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
-      return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request),
+      return manager.fundedPreparation!(originalSourceManagedHostRequest(originals, request),
         environment, originalVerifier, signal, undefined, request, modelInstallation,
         record.managedSourceProfile?.fileReadDeclarations);
     },
-    assertStaticEffectExplanationOriginal(request) {
+    assertStaticEffectExplanationOriginal(request: object) {
       // Only the same mapped, live ingress Request may touch metadata policy.
       originalSourceManagedHostRequest(originals, request);
     },
-    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit, modelInstallation) {
+    readStaticEffectExplanation<Value>(request: OrdinaryStaticEffectArgs[4], environment: OrdinaryStaticEffectArgs[1],
+        originalVerifier: OrdinaryStaticEffectArgs[2], signal: AbortSignal | undefined,
+        visit: (wires: Parameters<OrdinaryStaticEffectArgs[6]>[0], current: () => void) => Value,
+        modelInstallation: OrdinaryStaticEffectArgs[7]) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined || typeof manager.withOriginalStaticEffectExplanation !== 'function') {
         throw clientOperationError('ClientOperationUnavailable');
@@ -7545,22 +8530,25 @@ async function openPreparedInstalledHost(options, initialEntry) {
       const original = originalSourceManagedHostRequest(originals, request);
       // Use the installed policy's finite planning ceiling as the numeric
       // traversal bound. The compiled Request still owns the actual backing.
-      const planning = moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal())[0];
+      const planning = ((moon! as Parameters<typeof localResourceLookupExecutionPolicy>[0])
+        .clientLocalPreparationResourceLimits(moon!.clientLocalResourcePolicyOriginal() as Parameters<typeof localResourceLookupExecutionPolicy>[1]) as readonly unknown[])[0];
       if (typeof planning !== 'bigint' || planning < 1n || planning > 2147483647n) {
         throw clientOperationError('ClientOperationUnavailable');
       }
       return manager.withOriginalStaticEffectExplanation(original, environment, originalVerifier, signal,
         request, Number(planning), visit, modelInstallation, record.managedSourceProfile?.fileReadDeclarations);
     },
-    fundedPreparation(request, environment, originalVerifier, signal, journal) {
+    fundedPreparation(request: object, environment: OrdinaryFundedArgs[1], originalVerifier: OrdinaryFundedArgs[2],
+        signal: AbortSignal | undefined, journal: OrdinaryFundedArgs[4]) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) return undefined;
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
-      return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request), environment,
+      return manager.fundedPreparation!(originalSourceManagedHostRequest(originals, request), environment,
         originalVerifier, signal, journal);
     },
-    observeOriginalCheckOutcome(request, failure, visit) {
+    observeOriginalCheckOutcome<Value>(request: object, failure: unknown,
+        visit: (read: (metadata: readonly unknown[]) => string | undefined) => Value) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) return undefined;
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
@@ -7568,22 +8556,22 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.observeOriginalCheckOutcome?.(
         originalSourceManagedHostRequest(originals, request), failure, visit);
     },
-    borrowManagedPreparation(prepared, request) {
+    borrowManagedPreparation(prepared: object, request: object) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) return undefined;
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.borrowPreparation?.(prepared, originalSourceManagedHostRequest(originals, request));
     },
-    bindManagedSources(runtime, profile) {
+    bindManagedSources(runtime: PreparationRuntime, profile: InstalledHostSourceProfile | undefined): InstalledHostSourceProfile | undefined {
       if (runtime !== moon || record.managedSourceProfile !== undefined) {
         throw clientOperationError('ForeignInstalledSourcePreparation');
       }
       const sources = profile?.sources ?? (profile === undefined ? [] : [profile]);
-      if (sources.length === 0 || typeof profile.prepareManagedRun === 'function' ||
+      if (sources.length === 0 || typeof profile!.prepareManagedRun === 'function' ||
           !sources.every(source => typeof source.managedCaptureCapacity === 'function')) return profile;
-      const selected = bindInstalledManagedSources(profile, prepared => {
-        const run = record.computeRuns?.get(prepared);
+      const selected: InstalledHostSourceProfile | undefined = bindInstalledManagedSources(profile, prepared => {
+        const run = record.computeRuns?.get(prepared as object);
         if (run === undefined || run.closed || run.runtime !== runtime ||
             run.prepared !== prepared || run.sourceProfile !== selected) {
           throw clientOperationError('ForeignInstalledSourcePreparation');
@@ -7603,7 +8591,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         const observed = checked(Reflect.apply(observe, runtime, [parent, prepared, request]));
         // The current callback can retire or replace this original Run.
         // Recheck before the Source can prepare or expose its capacity.
-        if (record.computeRuns?.get(prepared) !== run || run.closed ||
+        if (record.computeRuns?.get(prepared as object) !== run || run.closed ||
             run.runtime !== runtime || run.prepared !== prepared || run.request !== request ||
             run.preparationKind !== kind || run.sourceProfile !== selected || run.value !== parent ||
             (effect ? observed !== plan || run.operationPlan !== plan || run.readPlan !== observe
@@ -7611,20 +8599,20 @@ async function openPreparedInstalledHost(options, initialEntry) {
           throw clientOperationError('ForeignInstalledSourcePreparation');
         }
         if (Object.hasOwn(run, 'failure')) throw run.failure;
-        return parent;
-      });
-      record.managedSourceProfile = originalInstallation.managedSourceProfile = selected;
+        return parent as ReturnType<Parameters<typeof bindInstalledManagedSources>[1]>;
+      }) as InstalledHostSourceProfile | undefined;
+      record.managedSourceProfile = originalInstallation!.managedSourceProfile = selected;
       return selected;
     },
     managesInstalledSources() {return record.managedSourceProfile !== undefined;},
-    managedModelSourceCoordinates(runtime, prepared) {
+    managedModelSourceCoordinates(runtime: PreparationRuntime, prepared: object) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.modelSourceCoordinates !== 'function') {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
       return manager.modelSourceCoordinates(prepared, originalSourceManagedHostRequest(originals, prepared));
     },
-    selectManagedDomainSourceInput(runtime, prepared, identity, stage, sourceIndex) {
+    selectManagedDomainSourceInput(runtime: PreparationRuntime, prepared: object, identity: unknown, stage: number, sourceIndex: number) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.selectDomainSourceInput !== 'function') {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
@@ -7632,13 +8620,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.selectDomainSourceInput(prepared,
         originalSourceManagedHostRequest(originals, prepared), identity, stage, sourceIndex);
     },
-    prepareManagedSourceRun(runtime, prepared, request, sourceProfile, prepareInvocation) {
+    prepareManagedSourceRun(runtime: PreparationRuntime, prepared: object, request: object,
+        sourceProfile: ManagedProfile | undefined, prepareInvocation: ManagedRunInvocation | undefined) {
       if (sourceProfile === undefined || sourceProfile !== record.managedSourceProfile) {
         throw clientOperationError('ForeignInstalledSourcePreparation');
       }
       return preparation.prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation);
     },
-    captureEffectRunExplanation(runtime, facts, readEvidence, journal, hasIntent) {
+    captureEffectRunExplanation(runtime: PreparationRuntime, facts: OrdinaryEffectExplanationArgs[2],
+        readEvidence: Parameters<EffectDefinitionExplanation>[1], journal: OrdinaryEffectExplanationArgs[4],
+        hasIntent: OrdinaryEffectExplanationArgs[5]) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined) throw clientOperationError('ForeignInstalledComputePreparation');
       if (typeof manager.captureEffectRunExplanation !== 'function') return undefined;
@@ -7647,15 +8638,18 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.captureEffectRunExplanation(facts.prepared,
         originalSourceManagedHostRequest(originals, facts.prepared), facts, readEvidence, journal, hasIntent);
     },
-    prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection, prepareContent) {
+    prepareManagedEffectPlanRun(runtime: PreparationRuntime, facts: EffectPlanOptions['facts'],
+        selection: EffectPlanOptions['selection'],
+        inputs: EffectPlanOptions['inputs'] & {sourceProfile?: EffectPlanOptions['sourceProfile']},
+        modelSelection?: EffectPlanOptions['modelSelection'], prepareContent?: EffectPlanOptions['prepareContent']) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined) throw clientOperationError('ForeignInstalledComputePreparation');
       const current = () => (sourceManaged === undefined
         ? assertManagedComputeInstallationCurrent : assertSourceManagedInstallationCurrent)(manager, originals);
       current();
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
-      originalInstallation.computeRuns = runs;
-      const modelFor = selected => Object.freeze({kind: selected.localMock === true ? 'local-mock' : 'installed-model',
+      originalInstallation!.computeRuns = runs;
+      const modelFor = (selected: NonNullable<EffectPlanOptions['modelSelection']>) => Object.freeze({kind: selected.localMock === true ? 'local-mock' : 'installed-model',
         compiled: facts.modelCompiled, definition: facts.definition,
         occurrence: selected.occurrence, graph: selected.graph});
       const model = modelSelection === undefined ? undefined : runs.get(facts.prepared)?.model ??
@@ -7670,29 +8664,33 @@ async function openPreparedInstalledHost(options, initialEntry) {
           queryContract: hasSources ? readInitialControlInstallationAsset(control, originals, 'spec/contracts/actql-query-acquisition.json') : undefined,
           evidenceContract: hasSources ? readInitialControlInstallationAsset(control, originals, 'spec/contracts/actql-query-process-evidence.json') : undefined,
           installedContracts: prepareInstalledSequenceContractOriginal(originals).admission}),
-        sourceProfile: inputs.sourceProfile, model, modelSelection,
+        sourceProfile: inputs.sourceProfile, model: model as EffectPlanOptions['model'], modelSelection,
         publicationControl: runtimeCore(runtime).publicationControl, prepareContent, assertCurrent: current, checked});
       const original = record.computeRuns.get(facts.prepared);
       if (original?.value !== parent) throw clientOperationError('ForeignInstalledEffectManagedRun');
       // Return only an already-owned checked tuple for the selected keyed
       // path. Other preparations retain their former opaque parent result.
-      return original.keyedPreparation === undefined ? parent : original.definitionOriginal;
+      return (original!.keyedPreparation === undefined ? parent : original!.definitionOriginal) as ReturnType<EffectDefinitionPreparation>;
     },
-    prepareEffectCaptureRecovery(runtime, request, definition, limits, managed, originalCurrent, retain) {
+    prepareEffectCaptureRecovery(runtime: PreparationRuntime, request: EffectCaptureOptions['request'], definition: EffectDefinition,
+        limits: EffectCaptureOptions['contractLimits'], managed: PreparedEffectCapture | undefined,
+        originalCurrent: EffectCaptureOptions['assertCurrent'], retain: EffectCaptureOptions['retain']) {
       return prepareEffectCaptureFrame(runtime, request, definition, limits, managed,
         originalCurrent, retain, assertInitialControlHostPreparation);
     },
-    prepareEffectCaptureRetirement(runtime, request, definition, limits, originalCurrent, retain) {
+    prepareEffectCaptureRetirement(runtime: PreparationRuntime, request: EffectCaptureOptions['request'], definition: EffectDefinition,
+        limits: EffectCaptureOptions['contractLimits'], originalCurrent: EffectCaptureOptions['assertCurrent'],
+        retain: EffectCaptureOptions['retain']) {
       // Only the terminal cleanup caller selects this path for its existing
       // journal-owned Request/Definition. Closed ingress is not retirement of
       // that same Host generation; normal recovery still requires open ingress.
       return prepareEffectCaptureFrame(runtime, request, definition, limits, undefined,
         originalCurrent, retain, assertRetainedSourceManagedHost);
     },
-    effectManagedRun(runtime, prepared, request) {
+    effectManagedRun(runtime: PreparationRuntime, prepared: object, request: object) {
       return preparation.effectManagedPlanRun(runtime, prepared, request).value;
     },
-    effectManagedPlanRun(runtime, prepared, request) {
+    effectManagedPlanRun(runtime: PreparationRuntime, prepared: object, request: unknown) {
       if (runtime !== moon) throw clientOperationError('ForeignInstalledEffectManagedRun');
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) throw clientOperationError('InstalledEffectPlanUnavailable');
@@ -7701,7 +8699,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return readInstalledEffectManagedPlanRun({runs: record.computeRuns, liveRuns: record.computeLiveRuns,
         runtime, prepared, request, assertCurrent: current, checked});
     },
-    retainManagedContentPreparation(runtime, prepared, contentPreparation) {
+    retainManagedContentPreparation(runtime: PreparationRuntime, prepared: object,
+        contentPreparation: RetainedContentSelection) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || typeof manager?.retainContentPreparation !== 'function') {
         throw clientOperationError('InstalledContentRunPreparationUnavailable');
@@ -7719,7 +8718,9 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.retainContentPreparation(prepared,
         originalSourceManagedHostRequest(originals, prepared), contentPreparation);
     },
-    prepareManagedKeyedContentRun(runtime, prepared, request, graph, recipe, constructPlan, contentPreparation) {
+    prepareManagedKeyedContentRun(runtime: PreparationRuntime, prepared: object, request: object,
+        graph: KeyedContentArgs[2], recipe: KeyedContentArgs[3],
+        constructPlan: OrdinarySourceArgs<'prepareKeyedContentRun'>[4], contentPreparation: ContentPreparation) {
       const manager = sourceManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareKeyedContentRun !== 'function' ||
           record.managedSourceProfile === undefined || typeof constructPlan !== 'function') {
@@ -7727,17 +8728,17 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       assertSourceManagedInstallationCurrent(manager, originals);
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
-      originalInstallation.computeRuns = runs;
+      originalInstallation!.computeRuns = runs;
       const prior = runs.get(prepared);
       if (prior !== undefined) {
         if (Object.hasOwn(prior, 'failure')) throw prior.failure;
         if (prior.closed || prior.preparationKind !== 'keyed-content-plan' || prior.runtime !== runtime ||
             prior.request !== request || prior.manager !== manager || prior.contentGraph !== graph ||
             prior.contentRecipe !== recipe) throw clientOperationError('ForeignInstalledContentRun');
-        checked(Reflect.apply(prior.check, runtime, [prior.value, prepared, request])); return prior;
+        checked(Reflect.apply(prior.check!, runtime, [prior.value, prepared, request])); return prior;
       }
       if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
-      const run = {runtime, prepared, request, manager, contentGraph: graph, contentRecipe: recipe,
+      const run: LocalPlanRun & ComputeRunRetention = {runtime, prepared, request, manager, contentGraph: graph, contentRecipe: recipe,
         preparationKind: 'keyed-content-plan', original: undefined, value: undefined,
         selectedKeyed: undefined, contentCompilation: undefined, closed: false, selecting: true};
       if (contentPreparation?.prepared !== prepared || contentPreparation.inputHolder === undefined ||
@@ -7768,13 +8769,15 @@ async function openPreparedInstalledHost(options, initialEntry) {
             return run.contentCompilation;
           }, contentPreparation);
         run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
-        checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
+        checked(Reflect.apply(run.check!, runtime, [run.value, prepared, request]));
         assertSourceManagedInstallationCurrent(manager, originals);
         return run;
       } catch (cause) {run.failure = cause; throw cause;}
       finally {run.selecting = false;}
     },
-    prepareManagedSerializationOutputDemand(runtime, prepared, compiled, selection, generation, reference, contract, output, identitySlots) {
+    prepareManagedSerializationOutputDemand(runtime: PreparationRuntime, prepared: object, compiled: OutputDemandArgs[1],
+        selection: OutputDemandArgs[2], generation: OutputDemandArgs[3], reference: OutputDemandArgs[4],
+        contract: OutputDemandArgs[5], output: OutputDemandArgs[6], identitySlots: OutputDemandArgs[7]) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || typeof manager?.prepareSerializationOutputDemand !== 'function') {
         throw clientOperationError('InstalledContentRunPreparationUnavailable');
@@ -7783,17 +8786,18 @@ async function openPreparedInstalledHost(options, initialEntry) {
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.prepareSerializationOutputDemand(prepared,
         originalSourceManagedHostRequest(originals, prepared), (parent, input, content) =>
-          content.prepareRequestOutputDemand(
+          (content as ContentControl).prepareRequestOutputDemand(
             parent, input, compiled, selection, generation, reference, contract, output, identitySlots));
     },
-    prepareManagedSerializationRun(runtime, prepared, request, plan, limits, workspace, contentPreparation) {
+    prepareManagedSerializationRun(runtime: PreparationRuntime, prepared: object, request: object,
+        plan: ContentPlan, limits: SerializationArgs[3], workspace: SerializationArgs[4], contentPreparation: ContentPreparation) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareSerializationRun !== 'function' ||
           plan.kind !== 'serialization') throw clientOperationError('InstalledContentRunPreparationUnavailable');
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
-      originalInstallation.computeRuns = runs;
+      originalInstallation!.computeRuns = runs;
       const prior = runs.get(prepared);
       if (prior !== undefined) {
         if (Object.hasOwn(prior, 'failure')) throw prior.failure;
@@ -7802,14 +8806,14 @@ async function openPreparedInstalledHost(options, initialEntry) {
             prior.contentLimits !== limits || prior.contentWorkspace !== workspace) {
           throw clientOperationError('ForeignInstalledContentRun');
         }
-        checked(Reflect.apply(prior.check, runtime, [prior.value, prepared, request])); return prior;
+        checked(Reflect.apply(prior.check!, runtime, [prior.value, prepared, request])); return prior;
       }
       if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
       // The actual Content record retains the facade that issued this
       // workspace. A new facade has a different private original registry.
-      const content = Object.getOwnPropertyDescriptor(contentPreparation, 'contentControl')?.value;
+      const content = Object.getOwnPropertyDescriptor(contentPreparation, 'contentControl')?.value as ContentControl | undefined;
       if (content === undefined) throw clientOperationError('InstalledContentRunPreparationUnavailable');
-      const run = {runtime, prepared, request, manager, content, contentPlan: plan,
+      const run: LocalPlanRun & ComputeRunRetention = {runtime, prepared, request, manager, content, contentPlan: plan,
         contentLimits: limits, contentWorkspace: workspace, preparationKind: 'serialization-plan',
         original: undefined, value: undefined, serialization: undefined, serializationCleaned: false,
         closed: false, selecting: true};
@@ -7837,12 +8841,12 @@ async function openPreparedInstalledHost(options, initialEntry) {
             return run.serialization;
           }, contentPreparation);
         run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
-        checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
+        checked(Reflect.apply(run.check!, runtime, [run.value, prepared, request]));
         return run;
       } catch (cause) {run.failure = cause; throw cause;}
       finally {run.selecting = false;}
     },
-    prepareManagedModelRun(runtime, prepared, request, model) {
+    prepareManagedModelRun(runtime: PreparationRuntime, prepared: object, request: object, model: LocalModelPlan) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelRun !== 'function' ||
           model.control !== runtimeCore(runtime).publicationControl) {
@@ -7856,7 +8860,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
-      originalInstallation.computeRuns = runs;
+      originalInstallation!.computeRuns = runs;
       const sourceProfile = model.components !== undefined
         ? record.managedSourceProfile ?? record.mockSourceProfile
         : model.originalReadInstallation === undefined && runtime.clientProgramAcquisitionCount(prepared) === 0
@@ -7868,11 +8872,11 @@ async function openPreparedInstalledHost(options, initialEntry) {
             prior.manager !== manager || prior.sourceProfile !== sourceProfile) {
           throw clientOperationError('ForeignInstalledModelPreparation');
         }
-        checked(Reflect.apply(prior.check, runtime, [prior.value, prepared, request]));
+        checked(Reflect.apply(prior.check!, runtime, [prior.value, prepared, request]));
         return prior;
       }
       if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
-      const run = {runtime, prepared, request, model, manager, sourceProfile,
+      const run: LocalPlanRun & ComputeRunRetention = {runtime, prepared, request, model, manager, sourceProfile,
         preparationKind: 'model-plan', original: undefined, value: undefined, closed: false, selecting: true,
         queryTimePreparation: model.queryTimePreparation};
       runs.set(prepared, run); liveRuns.add(run);
@@ -7884,8 +8888,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
         if (model.serializationGraph !== undefined) {
           const content = model.contentPreparation;
           if (content?.prepared !== prepared || content.inputHolder === undefined ||
-              content.plan.compiled !== model.compiled || content.plan.runDefinition !== model.runDefinition ||
-              content.plan.serializationGraph !== model.serializationGraph ||
+              content.plan!.compiled !== model.compiled || content.plan!.runDefinition !== model.runDefinition ||
+              content.plan!.serializationGraph !== model.serializationGraph ||
               typeof Object.getOwnPropertyDescriptor(content, 'releaseAliases')?.value !== 'function' ||
               typeof content.contentControl?.cleanupRequestPrefix !== 'function') {
             throw clientOperationError('InstalledContentRunPreparationUnavailable');
@@ -7904,17 +8908,18 @@ async function openPreparedInstalledHost(options, initialEntry) {
         const original = originalSourceManagedHostRequest(originals, prepared);
         const adopted = manager.prepareModelRun(prepared, original, request, model,
           (parent, input, compilation) => prepareRequestMockModelPlan(originals,
-            run, model, compilation, parent, input));
+            run!, model, compilation, parent, input));
         run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
         run.preparedSequences = run.modelPlan = run.modelSourceSelection = run.modelSourceSelections = undefined;
-        checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
+        checked(Reflect.apply(run.check!, runtime, [run.value, prepared, request]));
         (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
         return run;
       } catch (cause) {run.failure = cause; throw cause;}
       finally {run.selecting = false;}
     },
-    prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation) {
+    prepareManagedComputeRun(runtime: PreparationRuntime, prepared: object, request: object,
+        sourceProfile?: ManagedProfile, prepareInvocation?: ManagedRunInvocation) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined) {
         throw clientOperationError('ForeignInstalledComputePreparation');
@@ -7928,7 +8933,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       const liveRuns = record.computeLiveRuns ??= new Set();
       // Same existing Run inventory, shared only with this installation's
       // fixed requirements reader. Retirement cuts the bag's backreference.
-      originalInstallation.computeRuns = runs;
+      originalInstallation!.computeRuns = runs;
       let run = runs.get(prepared);
       if (run !== undefined) {
         if (Object.hasOwn(run, 'failure')) throw run.failure;
@@ -7937,7 +8942,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
           throw clientOperationError('ForeignInstalledComputeRun');
         }
         const value = run.value;
-        checked(Reflect.apply(run.check, runtime, [value, prepared, request]));
+        checked(Reflect.apply(run.check!, runtime, [value, prepared, request]));
         if (Object.hasOwn(run, 'failure')) throw run.failure;
         assertCurrent(manager, originals);
         if (Object.hasOwn(run, 'failure')) throw run.failure;
@@ -7965,12 +8970,12 @@ async function openPreparedInstalledHost(options, initialEntry) {
           throw clientOperationError('NodeManagedRunRuntimeUnavailable');
         }
         const originalRequest = originalSourceManagedHostRequest(originals, prepared);
-        const constructInvocation = typeof prepareInvocation !== 'function' ? undefined : artifact => {
+        const constructInvocation = typeof prepareInvocation !== 'function' ? undefined : (artifact: unknown) => {
           if (run.queryInvocation !== undefined) throw clientOperationError('ForeignInstalledComputeRun');
           // The same Request backed this complete invocation group before the
           // callback. Retain partial originals on the existing Host record,
           // before the next issuer/current/Module step can fail.
-          const retainedInvocation = {preparedProgram: prepared, requestIdentity: request,
+          const retainedInvocation: RetainedQueryInvocation = {preparedProgram: prepared, requestIdentity: request,
             compiled: undefined, runDefinition: undefined, createdAt: undefined,
             validUntil: undefined, queryTimePreparation: undefined, queryTime: undefined};
           run.queryInvocation = retainedInvocation;
@@ -7986,7 +8991,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         const funded = sourceProfile === undefined
           ? manager.adoptPreparation?.(prepared, originalRequest, request, constructInvocation)
           : manager.adoptCapturePreparation?.(prepared, originalRequest, request,
-            invocation => prepareManagedComputeCapturePlan(originals, run, invocation), constructInvocation);
+            invocation => prepareManagedComputeCapturePlan(originals!, run, invocation), constructInvocation);
         if (funded !== undefined) {
           run.original = funded.original;run.value = funded.value;run.preparationFunded = true;
           // Core now retains the same inventory through its original Plan.
@@ -8001,7 +9006,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
           if (![run.cleanup, run.prepare, run.begin].every(value => typeof value === 'function')) {
             throw clientOperationError('NodeManagedRunRuntimeUnavailable');
           }
-          run.original = manager.prepareRun(prepared);
+          run.original = manager.prepareRun!(prepared);
           assertCurrent(manager, originals);
           run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, prepared]));
           run.value = checked(Reflect.apply(run.begin, runtime,
@@ -8009,14 +9014,14 @@ async function openPreparedInstalledHost(options, initialEntry) {
         }
         run.preparedSequences = undefined;
         assertCurrent(manager, originals);
-        checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
+        checked(Reflect.apply(run.check!, runtime, [run.value, prepared, request]));
         return run.value;
       } catch (error) {run.failure = error; throw error;}
     },
     canRetireManagedPreparation() {
       return typeof (sourceManaged ?? computeManaged)?.retireRun === 'function';
     },
-    retireManagedComputeRun(prepared) {
+    retireManagedComputeRun(prepared: object) {
       const runs = record.computeRuns, liveRuns = record.computeLiveRuns;
       const run = runs?.get(prepared);
       if (run === undefined) return;
@@ -8028,7 +9033,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       const contentRetirement = run.preparationKind === 'serialization-plan' || run.preparationKind === 'keyed-content-plan' ||
         run.preparationKind === 'model-plan' && run.contentPreparation !== undefined;
       const modelRetirement = run.preparationKind === 'model-plan';
-      const modelOriginal = run.model;
+      const modelOriginal = run.model as LocalModelPlan | undefined;
       const mockSourceRetirement = run.mockSourceReads !== undefined;
       const effectRetirement = run.preparationKind === 'effect-plan';
       const effectValue = run.value, effectRequest = run.request, effectOriginal = run.original,
@@ -8043,11 +9048,11 @@ async function openPreparedInstalledHost(options, initialEntry) {
       if (effectRetirement) run.retiringEffect = true;
       try {
         if (run.selecting) throw clientOperationError('InstalledEffectPlanSelectionPending');
-        if (['serialization-plan', 'keyed-content-plan'].includes(run.preparationKind) && run.value === undefined) {
+        if (['serialization-plan', 'keyed-content-plan'].includes(run.preparationKind!) && run.value === undefined) {
           // No prefix start can precede an adopted Run. The original Request
           // still owns its partial constructor and aborts it on existing cleanup.
-          record.computeRuns.delete(prepared); record.computeLiveRuns.delete(run);
-          for (const key of Object.keys(run)) run[key] = undefined;
+          record.computeRuns!.delete(prepared); record.computeLiveRuns!.delete(run);
+          for (const key of Object.keys(run)) (run as Record<string, unknown>)[key] = undefined;
           run.closed = true; return;
         }
         if (run.preparationKind === 'model-plan' && run.value === undefined) {
@@ -8064,7 +9069,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
           if (scope !== undefined && model.scopeFinished !== true) {
             const finished = model.components === undefined
               ? model.control.finishCheckedClientInferOriginalReadScope(compiled, definition, graph, scope, true)
-              : finishNodeInferOriginalReadScopes(model);
+              : finishNodeInferOriginalReadScopes(model as unknown as OriginalReadGroup);
             if (finished !== true) {
               throw clientOperationError('InstalledMockModelCleanupPending');
             }
@@ -8078,17 +9083,17 @@ async function openPreparedInstalledHost(options, initialEntry) {
           // A successful old Scope finish cannot retire a replaced Host bag,
           // Model carrier, request or cleanup method from that callback.
           if (record.computeRuns !== runs || record.computeLiveRuns !== liveRuns ||
-              runs.get(prepared) !== run || liveRuns?.has(run) !== true ||
+              runs!.get(prepared) !== run || liveRuns?.has(run) !== true ||
               run.prepared !== prepared || run.runtime !== moon || run.closed ||
               run.model !== model || run.preparationKind !== 'model-plan' ||
               run.value !== effectValue || run.request !== effectRequest || run.original !== effectOriginal ||
               run.releaseModelAliases !== releaseAliases || run.releaseModelSelection !== releaseSelection) {
             throw clientOperationError('ForeignInstalledModelPreparation');
           }
-          Reflect.apply(releaseAliases, model, []);
-          Reflect.apply(releaseSelection, run, [prepared]);
-          runs.delete(prepared); liveRuns.delete(run);
-          for (const key of Object.keys(run)) run[key] = undefined;
+          Reflect.apply(releaseAliases!, model, []);
+          Reflect.apply(releaseSelection!, run, [prepared]);
+          runs!.delete(prepared); liveRuns!.delete(run);
+          for (const key of Object.keys(run)) (run as Record<string, unknown>)[key] = undefined;
           run.closed = true;
           return;
         }
@@ -8098,12 +9103,12 @@ async function openPreparedInstalledHost(options, initialEntry) {
           const finished = modelOriginal.components === undefined
             ? modelOriginal.control.finishCheckedClientInferOriginalReadScope(modelOriginal.compiled,
               modelOriginal.runDefinition, modelOriginal.graph, modelOriginal.scope, true)
-            : finishNodeInferOriginalReadScopes(modelOriginal);
+            : finishNodeInferOriginalReadScopes(modelOriginal as unknown as OriginalReadGroup);
           if (finished !== true) {
             throw clientOperationError('InstalledModelCleanupPending');
           }
           modelOriginal.scopeFinished = true;
-          if (record.computeRuns.get(prepared) !== run || !record.computeLiveRuns.has(run) ||
+          if (record.computeRuns!.get(prepared) !== run || !record.computeLiveRuns!.has(run) ||
               run.prepared !== prepared || run.runtime !== moon || run.closed || run.model !== modelOriginal ||
               run.preparationKind !== 'model-plan' || run.value !== effectValue ||
               run.request !== effectRequest || run.original !== effectOriginal) {
@@ -8112,7 +9117,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         }
         if (run.contentCleanup?.cleanupPending()) throw clientOperationError('InstalledContentPhysicalCleanupPending');
         finishInstalledEffectModelScope(run, true, checked);
-        if (effectRetirement && (record.computeRuns.get(prepared) !== run || !record.computeLiveRuns.has(run) ||
+        if (effectRetirement && (record.computeRuns!.get(prepared) !== run || !record.computeLiveRuns!.has(run) ||
             run.prepared !== prepared || run.runtime !== moon || run.closed ||
             run.preparationKind !== 'effect-plan' || run.value !== effectValue || run.request !== effectRequest ||
             run.original !== effectOriginal || run.operationPlan !== effectPlan)) {
@@ -8124,7 +9129,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
             throw clientOperationError('InstalledEffectControlConstructionCleanupPending');
           }
         }
-        if (effectRetirement && (record.computeRuns.get(prepared) !== run || !record.computeLiveRuns.has(run) ||
+        if (effectRetirement && (record.computeRuns!.get(prepared) !== run || !record.computeLiveRuns!.has(run) ||
             run.prepared !== prepared || run.runtime !== moon || run.closed ||
             run.preparationKind !== 'effect-plan' || run.value !== effectValue || run.request !== effectRequest ||
             run.original !== effectOriginal || run.operationPlan !== effectPlan)) {
@@ -8137,7 +9142,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
           run.manager.retireOriginalExplanation?.(prepared, run.original);
           if ((run.preparationKind === 'serialization-plan' || run.preparationKind === 'model-plan' &&
               run.serialization !== undefined) && !run.serializationCleaned) {
-            if (Reflect.apply(run.cleanupSerialization, run.content, [run.value, run.serialization]) !== true) {
+            if (Reflect.apply(run.cleanupSerialization!, run.content, [run.value, run.serialization]) !== true) {
               throw clientOperationError('InstalledContentRunCleanupPending');
             }
             // Spend only this original prefix's ACK before parent retirement
@@ -8146,7 +9151,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
           }
           const sameValue = run.value, sameRequest = run.request, sameOriginal = run.original;
           const sameSourceReads = run.mockSourceReads, releaseSourceAliases = run.releaseMockSourceAliases;
-          try {checked(Reflect.apply(run.retire,run.runtime,[run.value]));}
+          try {checked(Reflect.apply(run.retire!,run.runtime,[run.value]));}
           catch (cause) {
             const severed = effectRetirement
               ? moon.clientProgramInstalledPreparationPayloadSevered(effectValue,effectRequest)
@@ -8156,14 +9161,14 @@ async function openPreparedInstalledHost(options, initialEntry) {
           // Both the original retire and its one existing fallback observation
           // can call current. Neither may replace the same Effect record before
           // its aliases are cut and its original Request borrower is consumed.
-          if (effectRetirement && (record.computeRuns.get(prepared) !== run || !record.computeLiveRuns.has(run) ||
+          if (effectRetirement && (record.computeRuns!.get(prepared) !== run || !record.computeLiveRuns!.has(run) ||
               run.prepared !== prepared || run.runtime !== moon || run.closed ||
               run.preparationKind !== 'effect-plan' || run.value !== effectValue || run.request !== effectRequest ||
               run.original !== effectOriginal || run.operationPlan !== effectPlan)) {
             throw clientOperationError('ForeignInstalledEffectManagedRun');
           }
-          if (modelRetirement && (record.computeRuns.get(prepared) !== run ||
-              !record.computeLiveRuns.has(run) || run.prepared !== prepared || run.runtime !== moon ||
+          if (modelRetirement && (record.computeRuns!.get(prepared) !== run ||
+              !record.computeLiveRuns!.has(run) || run.prepared !== prepared || run.runtime !== moon ||
               run.closed || run.model !== modelOriginal || run.preparationKind !== 'model-plan' ||
               run.value !== sameValue || run.request !== sameRequest || run.original !== sameOriginal)) {
             throw clientOperationError('ForeignInstalledModelPreparation');
@@ -8172,7 +9177,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
             // Native retirement and physical close are separate duties. Cut
             // only this installation's SAME acknowledged read records before
             // returning the parent borrower, including a consumed-return error.
-            if (record.computeRuns.get(prepared) !== run || run.prepared !== prepared || run.closed ||
+            if (record.computeRuns!.get(prepared) !== run || run.prepared !== prepared || run.closed ||
                 run.runtime !== moon || run.value !== sameValue || run.request !== sameRequest ||
                 run.original !== sameOriginal || run.mockSourceReads !== sameSourceReads ||
                 run.releaseMockSourceAliases !== releaseSourceAliases || typeof releaseSourceAliases !== 'function') {
@@ -8181,7 +9186,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
             Reflect.apply(releaseSourceAliases, run, [prepared, sameRequest]);
           }
           if (contentRetirement) {
-            if (record.computeRuns.get(prepared) !== run || run.prepared !== prepared || run.closed ||
+            if (record.computeRuns!.get(prepared) !== run || run.prepared !== prepared || run.closed ||
                 run.value !== sameValue || run.request !== sameRequest || run.original !== sameOriginal) {
               throw clientOperationError('ForeignInstalledContentRun');
             }
@@ -8200,8 +9205,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
           if (run.preparationKind === 'model-plan' && !run.modelAliasesReleased) {
             // The original receiver must survive its own alias release. Spend
             // that managed retirement before returning a consumed parent borrow.
-            Reflect.apply(run.releaseModelAliases, modelOriginal, []);
-            run.releaseModelSelection(prepared);
+            Reflect.apply(run.releaseModelAliases!, modelOriginal, []);
+            run.releaseModelSelection!(prepared);
             run.modelAliasesReleased = true;
           }
           if (run.modelMembers !== undefined) for (const member of run.modelMembers) {
@@ -8219,24 +9224,24 @@ async function openPreparedInstalledHost(options, initialEntry) {
           // Retire all immutable invocation aliases before consuming the
           // original input borrower, whose parent settlement can still fail.
           run.queryInvocation=run.queryTimePreparation=undefined;
-          run.manager.severPreparation(prepared,run.original);
-          run.prepared=undefined;run.closed=true;
+          run.manager.severPreparation!(prepared,run.original);
+          (run as ComputeRunRetention).prepared=undefined;run.closed=true;
           // Keep a weak-key tombstone but no Prepared in this continuation.
           // Returning registry/handler holders may now complete the same debit.
           run.finishRetirement = managedPreparationRetirementContinuation(run,record);
           return run.finishRetirement;
         }
         finishInstalledEffectModelScope(run, true, checked);
-        if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
-        else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
+        if (run.value !== undefined) checked(Reflect.apply(run.retire!, run.runtime, [run.value]));
+        else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup!, run.runtime, [run.admission]));
         // A failed same-Request Model constructor has no adopted manager Run.
         // Its existing producer/input cleanup owns that original initial parent.
         if (run.original !== undefined && !(run.preparationKind === 'effect-plan' &&
-            run.requestInput !== undefined && run.value === undefined)) run.manager.retireRun(prepared, run.original);
+            run.requestInput !== undefined && run.value === undefined)) run.manager.retireRun!(prepared, run.original as object);
         run.closed = true;
-        record.computeRuns.delete(prepared);
-        record.computeLiveRuns.delete(run);
-        for (const key of Object.keys(run)) run[key] = undefined;
+        record.computeRuns!.delete(prepared);
+        record.computeLiveRuns!.delete(run);
+        for (const key of Object.keys(run)) (run as Record<string, unknown>)[key] = undefined;
       } finally {
         if (modelRetirement) run.retiringModel = false;
         if (contentRetirement) run.retiringContent = false;
@@ -8244,7 +9249,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         if (effectRetirement) run.retiringEffect = false;
       }
     },
-    assertUnadmittedSourceRequest(runtime, prepared, request) {
+    assertUnadmittedSourceRequest(runtime: PreparationRuntime, prepared: object, request: object) {
       if (runtime !== moon || request === undefined || record.computeRuns?.has(prepared)) {
         throw clientOperationError('ForeignInstalledComputeRun');
       }
@@ -8254,29 +9259,30 @@ async function openPreparedInstalledHost(options, initialEntry) {
       else throw clientOperationError('NodeManagedRunAdmissionUnavailable');
       originalSourceManagedHostRequest(originals, prepared);
     },
-    isOriginalManagedComputePreparationRefusal(error, prepared, request) {
-      const run = record.computeRuns?.get(prepared), original = run?.preAdmissionRefusal;
+    isOriginalManagedComputePreparationRefusal(error: unknown, prepared: object, request: object) {
+      const run = record.computeRuns?.get(prepared)!, original = run?.preAdmissionRefusal;
       if (original === undefined || request === undefined || original.error !== error || run.failure !== error ||
           run.prepared !== prepared || original.prepared !== prepared || run.request !== request ||
           original.request !== request || run.runtime !== moon || run.closed ||
           run.original !== undefined || run.admission !== undefined || run.value !== undefined ||
-          original.control !== originalInstallation.initialControl ||
-          error.cleanupPending === true || error.cleanupHandle !== undefined) return false;
+          original.control !== originalInstallation!.initialControl ||
+          (error as {cleanupPending?: unknown}).cleanupPending === true ||
+          (error as {cleanupHandle?: unknown}).cleanupHandle !== undefined) return false;
       assertInitialControlHostPreparation(originals);
       if (computeManaged !== undefined) assertManagedComputeInstallationCurrent(computeManaged, originals);
       else if (sourceManaged !== undefined) assertSourceManagedInstallationCurrent(sourceManaged, originals);
       else return false;
       return true;
     },
-    managedComputePublicationPreparation(runtime, prepared) {
+    managedComputePublicationPreparation(runtime: PreparationRuntime, prepared: object) {
       const run = record.computeRuns?.get(prepared);
       if (run === undefined || !run.preparationFunded) return undefined;
       if (run.runtime !== runtime || run.prepared !== prepared || run.closed || Object.hasOwn(run, 'failure')) {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
-      return run.manager.publicationPreparation(prepared);
+      return run.manager.publicationPreparation!(prepared);
     },
-    managedComputeExplanationPreparation(runtime, prepared) {
+    managedComputeExplanationPreparation(runtime: PreparationRuntime, prepared: object) {
       const run = record.computeRuns?.get(prepared);
       if (run === undefined || !run.preparationFunded ||
           typeof run.manager.originalExplanationPreparation !== 'function') return undefined;
@@ -8294,15 +9300,15 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       return original;
     },
-    managedComputeReservePublication(runtime, prepared) {
+    managedComputeReservePublication(runtime: PreparationRuntime, prepared: object) {
       const run = record.computeRuns?.get(prepared);
       if (run === undefined || !run.preparationFunded || run.runtime !== runtime ||
           run.prepared !== prepared || run.closed || Object.hasOwn(run, 'failure')) {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
-      return run.manager.reservePublication(prepared);
+      return run.manager.reservePublication!(prepared) as ReturnType<NonNullable<DispatchInstallation['beforePublication']>>;
     },
-    managedComputeInvocationOriginal(runtime, prepared) {
+    managedComputeInvocationOriginal(runtime: PreparationRuntime, prepared: object) {
       const run = record.computeRuns?.get(prepared);
       if (run === undefined) return undefined;
       if (run.runtime !== runtime || run.prepared !== prepared || run.closed || Object.hasOwn(run, 'failure')) {
@@ -8311,9 +9317,10 @@ async function openPreparedInstalledHost(options, initialEntry) {
       if (!run.preparationFunded) return undefined;
       if (run.queryInvocation === undefined) return undefined; // Existing untimed module.
       return runtimeCore(runtime).publicationControl.checkedClientManagedQueryInvocationOriginal(
-        run.value, prepared, run.queryInvocation);
+        run.value, prepared, run.queryInvocation) as Parameters<typeof inferTaskRunAdmission>[0]['invocationOriginal'];
     },
-    prepareManagedContentGraph(runtime, prepared, options, intermediate, modelOccurrence) {
+    prepareManagedContentGraph(runtime: PreparationRuntime, prepared: object, options: ContentGraphArgs[4],
+        intermediate: ContentGraphArgs[5], modelOccurrence?: ContentGraphArgs[6]) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareContentGraph !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8322,7 +9329,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         : assertSourceManagedInstallationCurrent)(manager, originals);
       const control = runtimeCore(runtime).publicationControl;
       return manager.prepareContentGraph(prepared, originalSourceManagedHostRequest(originals, prepared),
-        (parent, input, contracts, effectful = false) => {
+        (parent, input, contracts, effectful: boolean = false) => {
           if (effectful ? !intermediate || modelOccurrence === undefined : modelOccurrence !== undefined) {
             throw clientOperationError('ForeignInstalledSourceProducer');
           }
@@ -8335,7 +9342,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
               parent, input, contracts, prepared, options, intermediate, modelOccurrence);
         });
     },
-    prepareManagedContentCompilation(runtime, prepared, graph) {
+    prepareManagedContentCompilation(runtime: PreparationRuntime, prepared: object, graph: unknown) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareContentCompilation !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8347,7 +9354,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
         (parent, input, originalGraph, contracts) => control.prepareCheckedClientRequestSerializationCompilation(
           parent, input, originalGraph, contracts));
     },
-    issueManagedEffectMaterials(runtime, prepared, allowed, definition, identity, compilation) {
+    issueManagedEffectMaterials(runtime: PreparationRuntime, prepared: object, allowed: unknown,
+        definition: unknown, identity: unknown, compilation: unknown) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.issueEffectMaterials !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8357,7 +9365,9 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.issueEffectMaterials(prepared,
         originalSourceManagedHostRequest(originals, prepared), allowed, definition, identity, compilation);
     },
-    admitManagedEffectMaterials(runtime, prepared, wire, runDefinitionCid, compilation, identity, features) {
+    admitManagedEffectMaterials(runtime: PreparationRuntime, prepared: object, wire: string, runDefinitionCid: string,
+        compilation: OrdinaryEffectMaterialArgs[4], identity: OrdinaryEffectMaterialArgs[5],
+        features: OrdinaryEffectMaterialArgs[6]) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.admitEffectMaterials !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8366,7 +9376,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         : assertSourceManagedInstallationCurrent)(manager, originals);
       const run = record.computeRuns?.get(prepared);
       if (run !== undefined && Object.hasOwn(run, 'failure')) throw run.failure;
-      let requestInput, requestIdentity = identity;
+      let requestInput: RetainEffectInputArgs[0], requestIdentity = identity;
       if (run === undefined) {
         requestInput = originalSourceManagedHostRequest(originals, prepared);
       } else {
@@ -8381,7 +9391,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         // Journal re-admission creates logical identity DATA, not another
         // Request owner. Compare every original intent field, then keep the
         // adopted Run's exact identity for the retained material binding.
-        requestInput = run.requestInput;
+        requestInput = run.requestInput as RetainEffectInputArgs[0];
         requestIdentity = run.request;
         if (runtime.clientRequestRelation(identity, requestIdentity) !== 1) {
           throw clientOperationError('ForeignInstalledEffectManagedRun');
@@ -8398,7 +9408,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       return materials;
     },
-    reserveManagedEffectOriginal(runtime, prepared, material, installations) {
+    reserveManagedEffectOriginal(runtime: PreparationRuntime, prepared: object, material: string,
+        installations: OrdinarySourceArgs<'reserveEffectOriginal'>[3]) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.reserveEffectOriginal !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8408,7 +9419,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.reserveEffectOriginal(prepared,
         originalSourceManagedHostRequest(originals, prepared), material, installations);
     },
-    captureManagedModelOriginal(runtime, prepared, construct) {
+    captureManagedModelOriginal<Value>(runtime: PreparationRuntime, prepared: object,
+        construct: (parent: unknown, receipt: object) => Value) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.captureModelOriginal !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8418,7 +9430,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.captureModelOriginal(prepared,
         originalSourceManagedHostRequest(originals, prepared), construct);
     },
-    prepareManagedModelMaterials(runtime, prepared, count, wireAt, containers) {
+    prepareManagedModelMaterials(runtime: PreparationRuntime, prepared: object, count: OrdinaryModelMaterialArgs[2],
+        wireAt: OrdinaryModelMaterialArgs[3], containers: OrdinaryModelMaterialArgs[4]) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelMaterials !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8428,7 +9441,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.prepareModelMaterials(prepared,
         originalSourceManagedHostRequest(originals, prepared), count, wireAt, containers);
     },
-    prepareManagedModelBinding(runtime, prepared, providerId, installation, contract, configuration) {
+    prepareManagedModelBinding(runtime: PreparationRuntime, prepared: object, providerId: string,
+        installation: OrdinaryModelBindingArgs[3], contract: OrdinaryModelBindingArgs[4], configuration: OrdinaryModelBindingArgs[5]) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelBinding !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8438,7 +9452,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.prepareModelBinding(prepared,
         originalSourceManagedHostRequest(originals, prepared), providerId, installation, contract, configuration);
     },
-    prepareManagedModelGraph(runtime, prepared, occurrence, execution, serializationGraph, admittedProvider) {
+    prepareManagedModelGraph(runtime: PreparationRuntime, prepared: object, occurrence: unknown,
+        execution: unknown, serializationGraph: unknown, admittedProvider?: unknown) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelGraph !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8454,7 +9469,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
               selected, originalExecution, contracts),
         record.managedSourceProfile?.fileReadDeclarations, admittedProvider);
     },
-    prepareManagedModelCompilation(runtime, prepared, graph) {
+    prepareManagedModelCompilation(runtime: PreparationRuntime, prepared: object, graph: unknown) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelCompilation !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8464,7 +9479,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.prepareModelCompilation(prepared,
         originalSourceManagedHostRequest(originals, prepared), graph);
     },
-    managedComputeCompilationOriginal(runtime, prepared) {
+    managedComputeCompilationOriginal(runtime: PreparationRuntime, prepared: object) {
       const run = record.computeRuns?.get(prepared);
       if (run === undefined || !run.preparationFunded) return undefined;
       if (run.runtime !== runtime || run.prepared !== prepared || run.closed || Object.hasOwn(run, 'failure')) {
@@ -8472,11 +9487,11 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       // The driver owns the staged compilation under this Run's existing
       // preparation borrow. No cache, recompile or copied wire creates it.
-      const original = run.manager.compilationOriginal(prepared);
+      const original = run.manager.compilationOriginal!(prepared);
       if (original === undefined) throw clientOperationError('NodeManagedRunCompilationUnavailable');
       return original;
     },
-    managedComputePublicationOriginal(runtime, prepared) {
+    managedComputePublicationOriginal(runtime: PreparationRuntime, prepared: object) {
       const run = record.computeRuns?.get(prepared);
       const manager = sourceManaged ?? computeManaged;
       if (run === undefined && manager === undefined) return undefined; // Explicit non-managed path.
@@ -8487,7 +9502,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       // Before admission, borrow the staged pure preparation. After begin, its
       // canonical owner has moved into the live Core Run. Neither path creates
       // a Run, reruns proof, nor retains a second strong plan cache.
-      const authoringContext = (run?.manager ?? manager).authoringContextOriginal(prepared,
+      const authoringContext = (run?.manager ?? manager)!.authoringContextOriginal!(prepared,
         originalSourceManagedHostRequest(originals, prepared));
       if (record.computeRuns?.get(prepared) !== run || runtime !== moon ||
           run !== undefined && (run.runtime !== runtime || run.prepared !== prepared ||
@@ -8501,10 +9516,10 @@ async function openPreparedInstalledHost(options, initialEntry) {
       if (run.preparedSequences !== undefined) return Object.freeze({kind: 'preparation', value: run.preparedSequences, authoringContext});
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     },
-    bindManagedComputeRunObservation(prepared, ref) {
+    bindManagedComputeRunObservation(prepared: object, ref: WireRunRef) {
       return bindManagedComputeRunObservation(record, prepared, ref, clientOperationError);
     },
-    managedComputeUsageReader(ref) {
+    managedComputeUsageReader(ref: WireRunRef) {
       return managedComputeUsageReader(record, ref);
     },
     sourcePreparation() {
@@ -8514,7 +9529,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       return sourceManaged;
     },
-    localFilesLookupExecutionPolicy(runtime) {
+    localFilesLookupExecutionPolicy(runtime: PreparationRuntime) {
       if (runtime !== moon) throw clientOperationError('ForeignInstalledProjectSourcePreparation');
       if ((projectSourcePreparation === undefined) === (mockPreparation === undefined)) return undefined;
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
@@ -8523,15 +9538,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
         const bundle = projectSourcePreparation.originalsForRuntime(moon);
         selected = localFilesLookupExecutionPolicy(bundle.sources.map(source => source.limits));
       } else {
-        const bundle = mockPreparation.originalsForRuntime(moon);
+        const bundle = mockPreparation!.originalsForRuntime(moon);
         if (bundle.physicalKind !== 'declared-json-document') return undefined;
         // The selected Local installation supplies its existing service policy,
         // not a file-count assertion about this declaration or sample data.
         selected = localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS]);
       }
-      return localResourceLookupExecutionPolicy(moon, moon.clientLocalResourcePolicyOriginal(), selected);
+      return localResourceLookupExecutionPolicy(moon, moon.clientLocalResourcePolicyOriginal() as Parameters<typeof localResourceLookupExecutionPolicy>[1], selected);
     },
-    installProjectSources(runtime, baseEnvironmentWire, authorizationFor) {
+    installProjectSources(runtime: PreparationRuntime, baseEnvironmentWire: string,
+        authorizationFor: ProjectSourceInstallation['authorizationFor']) {
       if (runtime !== moon || projectSourcePreparation === undefined || mockPreparation !== undefined) {
         throw clientOperationError('ForeignInstalledProjectSourcePreparation');
       }
@@ -8541,11 +9557,13 @@ async function openPreparedInstalledHost(options, initialEntry) {
       // an independently selected manager. The actual returned profile below
       // is the same one required by that service's original identity fence.
       const acquired = installPreparedProjectLocalFiles({moon, preparation: projectSourcePreparation,
-        sourceManaged, baseEnvironmentWire, authorizationFor, nativeFilesystem: localProjectFilesystem(),
+        sourceManaged: sourceManaged! as ProjectSourceInstallation['sourceManaged'],
+        baseEnvironmentWire, authorizationFor, nativeFilesystem: localProjectFilesystem(),
         construction: installedSourceConfigurationReader(preparation.sourceInitializationServices(
-          moon, originalInstallation.root, userInfo().username)),
+          moon, originalInstallation!.root!, userInfo().username)),
         prepareManagedContentRun(prepared, request, graph, recipe, constructPlan, contentPreparation) {
-          return preparation.prepareManagedKeyedContentRun(moon, prepared, request, graph, recipe, constructPlan, contentPreparation);
+          return preparation.prepareManagedKeyedContentRun(moon!, prepared as object, request as object,
+            graph as KeyedContentArgs[2], recipe as KeyedContentArgs[3], constructPlan, contentPreparation as ContentPreparation);
         },
         prepareManagedRun({preparedProgram, requestIdentity, sourceProfile, prepareInvocation}) {
           return Reflect.apply(prepare, preparation,
@@ -8556,11 +9574,11 @@ async function openPreparedInstalledHost(options, initialEntry) {
           throw await retainInstalledHostInitializationFailure(
             clientOperationError('InstalledSourcePreparationChanged'), {sourceProfile: profile});
         }
-        record.managedSourceProfile = originalInstallation.managedSourceProfile = profile;
+        record.managedSourceProfile = originalInstallation!.managedSourceProfile = profile;
         return profile;
       });
     },
-    localFilesEffectLimits(runtime) {
+    localFilesEffectLimits(runtime: PreparationRuntime) {
       if (runtime !== moon || projectSourcePreparation === undefined || mockPreparation !== undefined) {
         throw clientOperationError('ForeignInstalledProjectSourcePreparation');
       }
@@ -8574,13 +9592,15 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return Object.freeze({maxFileBytes,
         maxRows: 100, maxRequestBytes: 100000, maxResponseBytes: 65536, maxEffects: 16});
     },
-    async installProjectEffects(runtime, baseEnvironmentWire, authorizationFor, principalId,
-      effectResources, sourceBindings, installationServices, sourceProfile) {
+    async installProjectEffects(runtime: PreparationRuntime, baseEnvironmentWire: string,
+        authorizationFor: ProjectEffectInstallation['authorizationFor'], principalId: string,
+        effectResources: ProjectEffectInstallation['effectResources'], sourceBindings: ProjectEffectInstallation['sourceBindings'],
+        installationServices: ProjectEffectInstallation['installationServices'], sourceProfile: ProjectEffectInstallation['sourceProfile']) {
       if (runtime !== moon || projectSourcePreparation === undefined || mockPreparation !== undefined) {
         throw clientOperationError('ForeignInstalledProjectSourcePreparation');
       }
       if (sourceProfile === undefined || sourceProfile !== record.managedSourceProfile ||
-          sourceProfile !== originalInstallation.managedSourceProfile) {
+          sourceProfile !== originalInstallation!.managedSourceProfile) {
         throw clientOperationError('ForeignInstalledProjectSourcePreparation');
       }
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
@@ -8588,53 +9608,58 @@ async function openPreparedInstalledHost(options, initialEntry) {
       const runtimeBundleCid = await installedRuntimeBundleCid(runtimeUrl);
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       if (sourceProfile !== record.managedSourceProfile ||
-          sourceProfile !== originalInstallation.managedSourceProfile) {
+          sourceProfile !== originalInstallation!.managedSourceProfile) {
         throw clientOperationError('ForeignInstalledProjectSourcePreparation');
       }
       return installPreparedProjectLocalFileEffects({moon, preparation: projectSourcePreparation,
-        sourceManaged, baseEnvironmentWire, authorizationFor, principalId, sourceBindings, installationServices, sourceProfile,
-        runtimeBundleCid, ledgerRoot: join(originalInstallation.root, 'state', 'effects', 'ledger'),
+        sourceManaged: sourceManaged!, baseEnvironmentWire, authorizationFor, principalId, sourceBindings, installationServices, sourceProfile,
+        runtimeBundleCid, ledgerRoot: join(originalInstallation!.root!, 'state', 'effects', 'ledger'),
         nativeFilesystem, effectResources,
-        assertCurrent: () => assertSourceManagedInstallationCurrent(sourceManaged, originals)});
+        assertCurrent: () => assertSourceManagedInstallationCurrent(sourceManaged, originals)} as
+        ProjectEffectInstallation & Readonly<{assertCurrent(): void}>);
     },
-    async installMockSources(runtime, baseEnvironmentWire, authorizationFor, installationServices) {
+    async installMockSources(runtime: PreparationRuntime, baseEnvironmentWire: string,
+        authorizationFor: MockSourceInstallation['authorizationFor'], installationServices: MockSourceInstallation['installationServices']) {
       if (runtime !== moon || mockPreparation === undefined) {
         throw clientOperationError('ForeignInstalledMockPreparation');
       }
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       const prepareSource = preparation.prepareManagedSourceRun;
       if (typeof prepareSource !== 'function') throw clientOperationError('NodeManagedRunAdmissionUnavailable');
-      const profile = await installPreparedProjectMockSources({moon, mockPreparation, sourceManaged, installationServices,
+      const profile = await installPreparedProjectMockSources({moon, mockPreparation,
+        sourceManaged: sourceManaged! as MockSourceInstallation['sourceManaged'], installationServices,
         baseEnvironmentWire, authorizationFor,
         readAsset: path => readInitialControlInstallationAsset(control, originals, path),
-        effectManagedRun: (prepared, request) => preparation.effectManagedPlanRun(moon, prepared, request),
+        effectManagedRun: (prepared, request) => preparation.effectManagedPlanRun(moon!, prepared as object, request as object),
         prepareManagedSourceRun({preparedProgram, requestIdentity, prepareInvocation}) {
           const value = Reflect.apply(prepareSource, preparation,
             [moon, preparedProgram, requestIdentity, record.managedSourceProfile, prepareInvocation]);
           const run = record.computeRuns?.get(preparedProgram);
-          if (run?.value !== value || run.runtime !== moon || run.prepared !== preparedProgram ||
-              run.request !== requestIdentity || run.sourceProfile !== record.managedSourceProfile || run.closed) {
+          if (run?.value !== value || run!.runtime !== moon || run!.prepared !== preparedProgram ||
+              run!.request !== requestIdentity || run!.sourceProfile !== record.managedSourceProfile || run!.closed) {
             throw clientOperationError('ForeignInstalledSourcePreparation');
           }
-          return run;
+          return run!;
         },
-        prepareManagedModelRun: (prepared, request, model) => preparation.prepareManagedModelRun(moon,
-          prepared, request, model)});
+        prepareManagedModelRun: (prepared, request, model) => preparation.prepareManagedModelRun(moon!,
+          prepared, request as object, model as LocalModelPlan)});
       if (record.managedSourceProfile !== undefined) {
         throw await retainInstalledHostInitializationFailure(
           clientOperationError('InstalledSourcePreparationChanged'), {sourceProfile: profile});
       }
-      record.managedSourceProfile = originalInstallation.managedSourceProfile = profile;
+      record.managedSourceProfile = originalInstallation!.managedSourceProfile = profile;
       record.mockSourceProfile = profile;
       return profile;
     },
-    async installMockEffects(runtime, baseEnvironmentWire, authorizationFor, principalId, effectResources,
-      sourceProfile, observeWrite, installationServices) {
+    async installMockEffects(runtime: PreparationRuntime, baseEnvironmentWire: string,
+        authorizationFor: MockEffectInstallation['authorizationFor'], principalId: string,
+        effectResources: MockEffectInstallation['effectResources'], sourceProfile: InstalledMockSourceProfile | undefined,
+        observeWrite: MockEffectInstallation['observeWrite'], installationServices: MockEffectInstallation['installationServices']) {
       if (runtime !== moon || mockPreparation === undefined) {
         throw clientOperationError('ForeignInstalledMockPreparation');
       }
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
-      const bundle = mockPreparation.originalsForRuntime(moon);
+      const bundle = mockPreparation!.originalsForRuntime(moon);
       if (sourceProfile !== record.mockSourceProfile || !Array.isArray(sourceProfile?.sources) ||
           sourceProfile.sources.length !== bundle.sources.length || bundle.writables.length === 0) {
         throw clientOperationError('ForeignInstalledMockSourceBinding');
@@ -8647,7 +9672,9 @@ async function openPreparedInstalledHost(options, initialEntry) {
           if (index < 0 || sourceProfile !== record.mockSourceProfile) {
             throw clientOperationError('ForeignInstalledMockSourceBinding');
           }
-          const bindings = sourceProfile.sources[index].connectorBindings;
+          const bindings = sourceProfile.sources[index].connectorBindings as readonly Readonly<{
+            connectorId: string; bindingCid?: unknown;
+          }>[];
           let binding;
           for (const candidate of bindings) {
             if (candidate.connectorId !== source.catalogue.connectorId) continue;
@@ -8660,51 +9687,53 @@ async function openPreparedInstalledHost(options, initialEntry) {
           }
           return binding.bindingCid;
         },
-        ledgerRoot: join(originalInstallation.root, 'state', 'effects', 'ledger'),
+        ledgerRoot: join(originalInstallation!.root!, 'state', 'effects', 'ledger'),
         assertCurrent: () => assertSourceManagedInstallationCurrent(sourceManaged, originals)});
     },
-    async prepareStandardAccount(principal, operatorAuthorization, rootCreation) {
+    async prepareStandardAccount(principal: string,
+        operatorAuthorization: StandardAccountOptions['operatorAuthorization'], rootCreation: StandardAccountOptions['rootCreation']) {
       assertInitialControlHostPreparation(originals);
       const journal = ordinaryHostJournalInstallation(originals);
       const ownership = journal.privateEvidenceInitializationOwnership();
       const accountConstruction = installedAccountConstruction(
-        preparation.sourceInitializationServices(moon, originalInstallation.root, principal));
-      const prepared = await prepareOrdinaryLocalAccount({root: originalInstallation.root,
+        preparation.sourceInitializationServices(moon!, originalInstallation!.root!, principal));
+      const prepared = await prepareOrdinaryLocalAccount({root: originalInstallation!.root!,
         principal, preparedOriginal: ownership, rootCreation, operatorAuthorization, accountConstruction});
       assertInitialControlHostPreparation(originals);
       return prepared;
     },
-    async initializeMockAccount(runtime, principal, operatorAuthorization, models) {
+    async initializeMockAccount(runtime: PreparationRuntime, principal: string,
+        operatorAuthorization: MockAccountOptions['operatorAuthorization'], models: InstalledMockModels) {
       if (runtime !== moon || mockPreparation === undefined || project === undefined) {
         throw clientOperationError('ForeignInstalledMockPreparation');
       }
       assertInitialControlHostPreparation(originals);
       const journal = ordinaryHostJournalInstallation(originals);
-      const bundle = mockPreparation.originalsForRuntime(moon);
+      const bundle = mockPreparation!.originalsForRuntime(moon);
       const accountConstruction = installedAccountConstruction(
-        preparation.sourceInitializationServices(moon, originalInstallation.root, principal));
-      const binding = await initializeOrdinaryMockAccount({moon, root: originalInstallation.root, principal,
-        accountConstruction,
+        preparation.sourceInitializationServices(moon!, originalInstallation!.root!, principal));
+      const binding = await initializeOrdinaryMockAccount({moon, root: originalInstallation!.root!, principal,
+        accountConstruction: accountConstruction!,
         prepareSubjects(frame) {
-          if (mockPreparation.originalsForRuntime(moon) !== bundle) {
+          if (mockPreparation!.originalsForRuntime(moon) !== bundle) {
             throw clientOperationError('ForeignInstalledMockPreparation');
           }
           const originalTasks = models.originalsForRuntime(moon);
           const configurationWire = installedProjectOriginalsForRuntime(project, moon).configurationWire;
-          const requestRealization = installedMockRequestRealization(mockPreparation, moon);
-          return prepareOrdinaryMockAccountSubjects(frame, bundle, originalTasks,
-            project.directory, configurationWire, requestRealization);
+          const requestRealization = installedMockRequestRealization(mockPreparation!, moon);
+          return prepareOrdinaryMockAccountSubjects(frame, bundle as Parameters<typeof prepareOrdinaryMockAccountSubjects>[1], originalTasks,
+            project!.directory, configurationWire, requestRealization);
         },
-        explicitSelection: record.explicitMockSelection,
+        explicitSelection: record.explicitMockSelection!,
         assertExclusiveCurrent: () => {assertInitialControlHostPreparation(originals); journal.assertInitializationCurrent();},
         operatorAuthorization});
       // Retain the actual initialized keys/configuration before the following
       // current fence. A failed caller still owns this same preparation.
-      record.mockAccount = originalInstallation.mockAccount = binding;
+      record.mockAccount = originalInstallation!.mockAccount = binding;
       assertInitialControlHostPreparation(originals);
       return binding;
     },
-    installMockModels(runtime) {
+    installMockModels(runtime: PreparationRuntime) {
       if (runtime !== moon || mockPreparation === undefined) {
         throw clientOperationError('ForeignInstalledMockPreparation');
       }
@@ -8712,8 +9741,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       if (mockModelFlight !== undefined) return mockModelFlight;
       mockModelFlight = Promise.resolve().then(async () => {
-        const install = moon.clientProgramInstallMockProfile;
-        mockModelProfileRetire = moon.clientProgramRetireMockProfile;
+        const install = moon!.clientProgramInstallMockProfile;
+        mockModelProfileRetire = moon!.clientProgramRetireMockProfile;
         if (typeof install !== 'function' || typeof mockModelProfileRetire !== 'function') {
           throw clientOperationError('InstalledMockModelRuntimeUnavailable');
         }
@@ -8724,7 +9753,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         const assertCurrent = () => {
           assertInitialControlInstallationCurrent(control, originals);
           assertSourceManagedInstallationCurrent(sourceManaged, originals);
-          mockPreparation.originalsForRuntime(moon);
+          mockPreparation!.originalsForRuntime(moon);
         };
         assertCurrent();
         mockModelProfile = checked(Reflect.apply(install, moon, [limits.maxBytes,
@@ -8732,9 +9761,9 @@ async function openPreparedInstalledHost(options, initialEntry) {
           limits.contractDepth,limits.contractTextBytes,limits.maxWork]));
         record.mockModelProfile = mockModelProfile;
         assertCurrent();
-        mockAnswers = await loadInstalledProjectMockAnswers(moon, project, projectProfile,
+        mockAnswers = await loadInstalledProjectMockAnswers(moon!, project, projectProfile,
           {limits,assertCurrent,deferAnswers:true,
-            installationInventory:originalInstallation.declaredFileInstallationInventory});
+            installationInventory:originalInstallation!.declaredFileInstallationInventory});
         record.mockAnswers = mockAnswers;
         const models = mockAnswers.bindModelsForRuntime(moon, mockModelProfile, now);
         record.mockModels = models;
@@ -8753,19 +9782,22 @@ async function openPreparedInstalledHost(options, initialEntry) {
     readSequenceContracts() {
       return prepareInstalledSequenceContractOriginal(originals);
     },
-    readAsset(path) {
+    readAsset(path: string) {
       return readInitialControlInstallationAsset(control, originals, path);
     },
-    retainUndispatchedRetirement(original, initial, releaseModelSelection) {
+    retainUndispatchedRetirement(
+        original: ReturnType<typeof installLocalPreparationRegistry>['retireQuiescentUndispatched'],
+        initial: ReturnType<typeof installLocalPreparationRegistry>['retireRetiringOriginal'],
+        releaseModelSelection: NonNullable<EmbeddedInstallation['releaseRequestDomainAliases']>) {
       if (record.retireUndispatched !== undefined || typeof original !== 'function' ||
           typeof initial !== 'function' || typeof releaseModelSelection !== 'function') {
         throw clientOperationError('InstalledHostPreparationChanged');
       }
       record.retireUndispatched = original;
-      originalInstallation.retireInitialPreparation = initial;
-      originalInstallation.releaseRequestDomainAliases = releaseModelSelection;
+      originalInstallation!.retireInitialPreparation = initial;
+      originalInstallation!.releaseRequestDomainAliases = releaseModelSelection;
     },
-    retainReferenceRetirement(original) {
+    retainReferenceRetirement(original: () => void) {
       if (referenceRetirement !== undefined || typeof original !== 'function') {
         throw clientOperationError('InstalledHostPreparationChanged');
       }
@@ -8817,7 +9849,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       resolveEffectSecret, effectInstallation, modelInstallation, registerModelProviders,
       calendarArtifact, resultDataPolicy, inferEvidence, retainedRelationOutput,
       hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy,
-      valuesMaxRows, sourceFreeMaxWork, requestMemory, observation} = options;
+      valuesMaxRows, sourceFreeMaxWork, requestMemory, observation} = options as RemoteHostInput;
     calendarArtifact = snapshotInstalledCalendar(calendarArtifact);
     hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
     hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
@@ -8842,11 +9874,13 @@ async function openPreparedInstalledHost(options, initialEntry) {
     originalInstallation.projectRuntime = moon;
     assertInitialControlInstallationCurrent(control, originals);
     // No cwd, Project read, Local profile selection or in-process SDK Client.
-    const opened = await openInstalledHost(originalInstallation, preparation);
+    const opened = await openInstalledHost(originalInstallation as ReadyEmbeddedInstallation, preparation) as ActivatedEmbeddedHost;
     const shutdown = installedHostShutdown(opened);
     try {
       return installedRemoteHttpTransport(opened, {authenticate, loopbackHttp, maxRequestBytes}, shutdown,
-        installHttpRequestPreparation(preparation, profiles, originals, {rawInput: true}));
+        // Raw HTTP checks every required body method on this same manager.
+        installHttpRequestPreparation(preparation as Parameters<typeof installHttpRequestPreparation>[0],
+          profiles, originals, {rawInput: true}));
     } catch (cause) {
       // No transport was returned. The SAME Host shutdown owns all acquired
       // children, including a failed close; initial control is its last duty.
@@ -8858,7 +9892,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
     // Omission still corresponds to the same original empty packet. An
     // explicit open packet uses that supplier's immutable snapshot, never a
     // later caller read or another installation's admitted connect options.
-    if (omittedOpenInput && Reflect.ownKeys(options).length !== 0) {
+    if (omittedOpenInput && Reflect.ownKeys(options as object).length !== 0) {
       throw clientOperationError('NodeInitialControlOriginalChanged');
     }
     if (options === null || typeof options !== 'object' || Array.isArray(options)) {
@@ -8891,7 +9925,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
     }
     // Resolve against the original call-time working directory after reading
     // the captured stateDir. Initialization awaits cannot redirect this Host.
-    record.openStateDirectory = resolve(record.openWorkingDirectory, openFields.stateDir ?? '.actql');
+    record.openStateDirectory = resolve(record.openWorkingDirectory!, openFields.stateDir ?? '.actql');
     options = Object.assign(Object.create(null), {mode: 'local', owner: 'local',
       ...(openFields.durability === undefined ? {} : {durability: openFields.durability}),
       ...(openFields.consentRefs === undefined ? {} : {consentRefs: openFields.consentRefs}),
@@ -8900,12 +9934,13 @@ async function openPreparedInstalledHost(options, initialEntry) {
         {directory: record.openStateDirectory})});
     record.openOptions = options;
   }
-  if (initialEntry === 'connect' && options.mode === 'local' && options.owner === undefined) {
+  if (initialEntry === 'connect' && (options as LocalConnectInput).mode === 'local' &&
+      (options as LocalConnectInput).owner === undefined) {
     // The same original supplier has already captured every descriptor. Match
     // the Local provider's explicit default without dropping hidden/unknown
     // fields or observing caller-owned options after the initialization await.
     options = Object.create(Object.getPrototypeOf(options), {
-      ...Object.getOwnPropertyDescriptors(options),
+      ...Object.getOwnPropertyDescriptors(options as LocalConnectInput),
       owner: {value: 'local', enumerable: true},
     });
     record.connectOptions = options;
@@ -8913,11 +9948,11 @@ async function openPreparedInstalledHost(options, initialEntry) {
   // Host-owned values never enter the SDK's transport-options packet. Snapshot
   // both once before awaits; selecting a profile is not silently ignoring it.
   const {installation: suppliedInstallation, profile: requestedProfile,
-    ...clientOptions} = options;
+    ...clientOptions} = options as LocalConnectInput;
   // Only an explicit trusted caller selection consents to initial limited
   // Mock setup. A profile discovered later in Project data is not consent.
-  record.explicitMockSelection = Object.hasOwn(options, 'profile') && requestedProfile === 'mock';
-  let installation = suppliedInstallation;
+  record.explicitMockSelection = Object.hasOwn(options as object, 'profile') && requestedProfile === 'mock';
+  let installation: LocalInstallationSnapshot | undefined = suppliedInstallation;
   if (requestedProfile !== undefined && (typeof requestedProfile !== 'string' ||
       !requestedProfile || !requestedProfile.isWellFormed() ||
       requestedProfile.length > 65536)) {
@@ -8942,7 +9977,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
     installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, calendarArtifact, valuesMaxRows, sourceFreeMaxWork,
       requestMemory: snapshotRequestMemory(suppliedMemory)};
     if (installation.effectProfilePaths !== undefined) {
-      installation.effectProfilePaths = installedEffectPaths(installation);
+      installation.effectProfilePaths = installedEffectPaths(installation) as
+        NonNullable<LocalInstallationSnapshot['effectProfilePaths']>;
     }
   }
   // Discover only on the Local installation side. The same module instance
@@ -8956,7 +9992,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
     initialControl: control, initialControlOriginals: originals});
   assertInitialControlInstallationCurrent(control, originals);
   record.project = project;
-  projectProfile = selectInstalledProjectProfile(moon, project, requestedProfile, 65536);
+  projectProfile = selectInstalledProjectProfile(moon!, project, requestedProfile, 65536);
   record.projectProfile = projectProfile;
   const selectedProfile = projectProfile.originalsForRuntime(moon);
   originalInstallation.initialControl = control;
@@ -8988,17 +10024,17 @@ async function openPreparedInstalledHost(options, initialEntry) {
     sourceFreeMaxWork: installation?.sourceFreeMaxWork, requestMemory: installation?.requestMemory});
   record.installation = originalInstallation;
   if (selectedProfile.selected === 'mock') {
-    const services = preparation.sourceInitializationServices(moon, root, userInfo().username);
-    const baseEnvironmentWire = selectInstalledLocalMaterializationEnvironment(moon,
+    const services = preparation.sourceInitializationServices(moon!, root, userInfo().username);
+    const baseEnvironmentWire = selectInstalledLocalMaterializationEnvironment(moon!,
       preparation.readEnvironmentSource().trimEnd(), originalInstallation.hostCapacityPolicy,
-      originalInstallation.hostLookupExecutionPolicy ?? localResourceLookupExecutionPolicy(moon,
-        moon.clientLocalResourcePolicyOriginal(), localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS])),
+      originalInstallation.hostLookupExecutionPolicy ?? localResourceLookupExecutionPolicy(moon!,
+        moon!.clientLocalResourcePolicyOriginal() as Parameters<typeof localResourceLookupExecutionPolicy>[1], localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS])),
       originalInstallation.requestMemory);
     originalInstallation.declaredFileBaseEnvironmentWire = baseEnvironmentWire;
     // Retain before module/runtime selection and before the first dynamic
     // declaration. Later Host installation borrows this same service/parent.
     record.declaredFileInstallationInventory = originalInstallation.declaredFileInstallationInventory =
-      createDeclaredFileInstallationInventory({moon, project, services, baseEnvironmentWire, runtimeUrl,
+      createDeclaredFileInstallationInventory({moon: moon!, project, services, baseEnvironmentWire, runtimeUrl,
         assertCurrent: () => assertInitialControlInstallationCurrent(control, originals)});
     // The actual Source admission precedes its connection/catalogue/control
     // preparation. Initial control cannot fund those allocations or file I/O.
@@ -9009,7 +10045,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
     // The same actual Root called the fixed operation above under its own
     // prior managed holding, then acquired the original file/child backing.
     // Do not reconstruct missing metadata after its returned admission.
-    const retained = profiles.mockPreparation(host, originalInstallation, host);
+    const retained = profiles.mockPreparation(host, originalInstallation, host) as
+      Readonly<{view: ProjectMockOriginal; runtime: unknown}>;
     mockPreparation = retained.view;
     if (mockPreparation === undefined || retained.runtime !== moon) {
       throw clientOperationError('InstalledMockPreparationUnavailable');
@@ -9021,7 +10058,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
     // This existing Connector prepares declaration DATA without business
     // discovery. Retain its actual factory result before post-await current;
     // the later Host installs real Root/readers on the same joint service.
-    projectSourcePreparation = await prepareInstalledProjectLocalFiles(moon, project, {
+    projectSourcePreparation = await prepareInstalledProjectLocalFiles(moon!, project, {
       limits: LOCAL_FILES_DEFAULT_LIMITS,
       assertCurrent: () => assertInitialControlInstallationCurrent(control, originals),
     });
@@ -9042,10 +10079,10 @@ async function openPreparedInstalledHost(options, initialEntry) {
   }
   const configurationReader = originalInstallation.sourceProfilePath === undefined &&
     originalInstallation.sourceProfilePaths === undefined && process.env.ACTQL_LOCAL_SOURCE_PROFILE === undefined ? undefined :
-    installedSourceConfigurationReader(preparation.sourceInitializationServices(moon, root, userInfo().username));
+    installedSourceConfigurationReader(preparation.sourceInitializationServices(moon!, root, userInfo().username));
   const accountConstruction = installedAccountConstruction(
-    preparation.sourceInitializationServices(moon, root, userInfo().username));
-  const identity = await embeddedInstallationIdentity(root, installation, project, moon,
+    preparation.sourceInitializationServices(moon!, root, userInfo().username));
+  const identity = await embeddedInstallationIdentity(root, installation as InstallationIdentityInput | undefined, project, moon,
     projectSourcePreparation, configurationReader, accountConstruction);
   assertInitialControlInstallationCurrent(control, originals);
   const client = await profiles.connect(root, identity,
@@ -9053,7 +10090,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       // This same registry entry now owns even a refused opening/current gate.
       adopted = true;
       assertInitialControlInstallationCurrent(control, originals);
-      return openInstalledHost(originalInstallation, preparation);
+      return openInstalledHost(originalInstallation as ReadyEmbeddedInstallation, preparation);
     }, clientOptions, host, releaseUnadopted, initialControl);
   return initialEntry === 'open'
     ? Object.freeze({...client, info: Object.freeze({stateDir: root})}) : client;

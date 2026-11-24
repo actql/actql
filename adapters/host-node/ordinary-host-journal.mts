@@ -10,7 +10,7 @@ export type HostJournalOriginals = Readonly<{
   installation: object & Readonly<{root?: unknown}>;
   generation: unknown;
 }>;
-type Journal = Readonly<{close(): undefined}>;
+type Journal = ReturnType<typeof openClientRequestJournal>;
 type RootAdmission = Awaited<ReturnType<typeof admitHostRootFormat>>;
 type CloseState = Readonly<{
   pending: boolean; journalPending: boolean; privateEvidencePending: boolean; ownershipPending: boolean;

@@ -80,6 +80,9 @@ type Installation = Readonly<{
   effectTarget?: SourceConfiguration; effectTargets?: readonly EffectTarget[];
   modelResumeVerifier?: JournalOptions['modelResumeVerifier']; now?(): number;
 }>;
+type AcceptanceResult = Readonly<{kind: 'dispatch' | 'run_created'; held?: never} | {
+  kind: 'held'; held: ReturnType<ReturnType<typeof createCheckpointHeldRecovery>['held']>;
+}>;
 type AcceptanceInput = Readonly<{
   requested: Readonly<{logicalRequestScopeCid: string; intentFingerprintCid: string}>;
   captured: CapturedRequest; signal?: AbortSignal;
@@ -156,7 +159,9 @@ export async function installHostRunAcceptance(options: Installation) {
     'answeringAuthorities', 'effectRequiredClaims', 'checkpointTtlMs',
     'leaseMs', 'maxReviewBytes', 'resumeAfterAnswer', 'faultInjection',
     'sweepPage', 'decide'];
-  if (authorization === undefined) return Object.freeze({});
+  if (authorization === undefined) return Object.freeze({}) as Readonly<{
+    checkpoints?: undefined; runAcceptance?: undefined;
+  }>;
   if (authorization === null || typeof authorization !== 'object' ||
       Array.isArray(authorization) ||
       checkpointFields.some(name => name in authorization)) {
@@ -191,7 +196,7 @@ export async function installHostRunAcceptance(options: Installation) {
     decisionBudget.close();
   };
   const runAcceptance = Object.freeze({
-    async acceptRun({requested, captured, signal}: AcceptanceInput) {
+    async acceptRun({requested, captured, signal}: AcceptanceInput): Promise<AcceptanceResult> {
       if (stopped) fail('ExecutionAuthorizationStopped');
       if (captured.principalId !== ownerPrincipal) fail('ClientConnectionDenied');
       const subject = Object.freeze({
@@ -223,14 +228,16 @@ export async function installHostRunAcceptance(options: Installation) {
       }
     },
     stop,
-    close() {
+    close(): undefined {
       stop();
       if (gate.cleanupPending() || decisionBudget.cleanupPending()) {
         fail('ExecutionAuthorizationCleanupPending');
       }
     },
   });
-  return Object.freeze({runAcceptance});
+  return Object.freeze({runAcceptance}) as Readonly<{
+    checkpoints?: undefined; runAcceptance: typeof runAcceptance;
+  }>;
 }
 
 // Install the Checkpoint connection for one installed Host scope. Returns
@@ -954,7 +961,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     maxReviewBytes, heldRequestId, resumeAfterAnswer, sweep, get closed() { return closed; }});
 
   const computationSource = createCheckpointComputationSource({installedSource,
-    createLocalAuthorizationGate, journal: journal as Journal & Deferral['journal'], evidence, accountConstruction, decisionOptions,
+    createLocalAuthorizationGate, journal: journal!, evidence, accountConstruction, decisionOptions,
     decide, answeringAuthorities, authorities, binding, authorityScopeCid, ownerPrincipal,
     now, maxReviewBytes, checkpointTtlMs});
 
@@ -1538,7 +1545,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // Decide Run acceptance for one Host-resolved request before any Run
     // definition exists. `dispatch`: continue; `held`: the durable held
     // reply; refusals throw with their ACTQL runtime code and record nothing.
-    async acceptRun({requested, captured, signal}: AcceptanceInput) {
+    async acceptRun({requested, captured, signal}: AcceptanceInput): Promise<AcceptanceResult> {
       captureInventory(captured);
       const prepareAttemptId = prepareAttemptIdOf(captured.requestId);
       const subject = requestSubject(requested);
@@ -1619,7 +1626,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // allowed or permitted, before any Run Definition or provider I/O. A
     // delegated read is held as a `read_access` `prepare_attempt`
     // Checkpoint (the held reply); refusals throw and record nothing.
-    async acceptAcquisition({requested, captured, signal}: AcceptanceInput) {
+    async acceptAcquisition({requested, captured, signal}: AcceptanceInput): Promise<AcceptanceResult> {
       const inventory = captureInventory(captured);
       if (inventory.length === 0 || installedSources.length === 0) {
         return {kind: 'dispatch'};

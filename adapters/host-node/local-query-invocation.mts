@@ -5,7 +5,7 @@ import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
 type CompilationKind = 'values' | 'tasks' | 'infer' | 'serialization';
 type CompiledRun = Readonly<{kind: CompilationKind}>;
 type RunDefinition = Readonly<{wire: string}>;
-type RetainedHeader = Readonly<{created_at?: unknown; valid_until?: unknown}>;
+type RetainedHeader = Readonly<{created_at?: string; valid_until?: string}>;
 type QueryTime = Readonly<{queryTimePreparation: unknown; queryTime: unknown}>;
 type QueryInvocation = {request: unknown; createdAt?: string; preparation?: unknown};
 type RetainedInvocation = {
@@ -35,7 +35,7 @@ type TimedControl = QueryTimeControl & {
     policy: Readonly<{executionContextCid: string; hostPolicyCid: string; expiresAt: unknown}>,
     graph: undefined, original: unknown): CompiledRun;
   defineCheckedClientCompiledRun(compiled: CompiledRun, options: Readonly<{
-    namespaceId: string; runId: string; createdAt: unknown; validUntil: unknown;
+    namespaceId: string; runId: string; createdAt: string; validUntil: string;
     retainedDefinitionWire: string | undefined;
   }>): RunDefinition;
   clientQueryTimeInvocationOriginal(original: unknown, prepared: unknown): unknown;
@@ -112,7 +112,7 @@ export function prepareTimedClientInvocation({control, preparedProgram, requestI
       hostPolicyCid: policyCid(kind === 'values' ? 'source-free-values' : 'checked-tasks'),
       expiresAt: validUntil}, undefined, compilationOriginal);
   const runDefinition = retainedInvocation.runDefinition = control.defineCheckedClientCompiledRun(compiled,
-    {namespaceId, runId: randomUUID(), createdAt, validUntil, retainedDefinitionWire});
+    {namespaceId, runId: randomUUID(), createdAt: createdAt!, validUntil, retainedDefinitionWire});
   const queryTime = bindQueryInvocation(control, queryInvocation, preparedProgram, compiled, runDefinition);
   retainedInvocation.queryTimePreparation = queryTime.queryTimePreparation;
   retainedInvocation.queryTime = queryTime.queryTime;

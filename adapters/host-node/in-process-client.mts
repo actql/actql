@@ -20,7 +20,7 @@ import {authorizedLocalResultFrames} from './in-process-result.mjs';
 import {publicClientErrorCode, publicClientErrorStatus} from './client-http.mjs';
 
 import type {ClientHostOperation, WireClientBody, WireClientBodyByOperation, WireRunRef,
-  WireConnection} from '../../packages/client-wire/index.js';
+  WireConnection, WireOperationAttemptRef} from '../../packages/client-wire/index.js';
 import type {installHostObservation} from '../host-common/observation.mjs';
 
 type BodyByOperation = WireClientBodyByOperation;
@@ -38,7 +38,10 @@ type HostBody<Operation extends ClientHostOperation> = BodyByOperation[Operation
   signal?: AbortSignal;
   preparedProgram?: unknown;
 }>;
-type Handler<Operation extends ClientHostOperation> = (request: HostBody<Operation>) => unknown;
+type HostAttempt<Operation extends ClientHostOperation> = Operation extends 'submit-intent' | 'restart-intent'
+  ? Readonly<{attemptRef: WireOperationAttemptRef}>
+  : object;
+type Handler<Operation extends ClientHostOperation> = (request: HostBody<Operation> & HostAttempt<Operation>) => unknown;
 type CheckHandler = Handler<'check'> & NonNullable<Parameters<typeof projectClientCheckUnavailable>[0]>;
 type ExplanationConsumer = (view: unknown) => unknown;
 type HandlerPorts = Readonly<{

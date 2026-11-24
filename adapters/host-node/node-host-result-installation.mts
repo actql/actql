@@ -1,6 +1,5 @@
 import {createRequire} from 'node:module';
 import {prepareOrdinaryHostResult} from './ordinary-host-result.mjs';
-// @ts-expect-error TS7016: These fixed read functions still belong to the authored JavaScript Embedded Local owner.
 import {readHostResultPublicationPreparation, readHostResultPublicationRunRequirements, readHostEffectResultPublicationRunRequirements} from './embedded-local.mjs';
 
 import type {HostJournalOriginals} from './ordinary-host-journal.mjs';

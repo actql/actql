@@ -7,8 +7,10 @@ import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs
 import {EFFECT_TARGET_CONTINUATION, effectTargetReadInventory} from
   './effect-target-read-inventory.mjs';
 
+import type {EffectTarget as InstalledTarget} from './client-checkpoint-admission-inputs.mjs';
 import type {createAuthorizationGate} from '../host-common/authorization-gate.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+import type {openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
 import type {EffectTarget, ReadTuple} from './effect-target-read-inventory.mjs';
 
 type Awaitable<Value> = Value | PromiseLike<Value>;
@@ -20,12 +22,10 @@ type Admission = NonNullable<Decision['admission']>;
 type Claim = Readonly<Pick<Admission, 'intentId' | 'claimant' | 'generation'> & {
   runId: string; prepareAttemptId?: string | null;
 }>;
-type Journal = NonNullable<NonNullable<Parameters<typeof createAuthorizationGate>[0]>['deferral']>['journal'];
+type InstalledJournal = ReturnType<typeof openSqliteCheckpointJournal>;
+type Journal = Pick<InstalledJournal, 'persistCheckpoint' | 'submitResolution'>;
 type CheckpointInput = Parameters<Journal['persistCheckpoint']>[0];
-type TargetJournal = Journal & Readonly<{
-  committedApprovalAt(checkpointCid: string): Readonly<{current: boolean}>;
-  completeResume(claim: Claim, outcome: Readonly<{checkpoint: CheckpointInput}>): Awaited<ReturnType<Journal['persistCheckpoint']>>;
-}>;
+type TargetJournal = Journal & Pick<InstalledJournal, 'committedApprovalAt' | 'completeResume'>;
 type TargetGate = Readonly<{
   scopeCid: string; configurationCid?: string; contextCid: string;
   assertCurrent?(): SynchronousRuntimeData;
@@ -44,9 +44,10 @@ type Saved = Readonly<{
   version: typeof EFFECT_TARGET_CONTINUATION; run_definition_cid: string; unit_id: string;
   inventory_cid: string; targets: readonly EffectTarget[]; submission: unknown; pending_target: number;
 }>;
+type UncheckedSaved = Readonly<{[Key in keyof Saved]?: unknown}>;
 type CheckpointView = Readonly<{
   checkpointCid: string; requiredArtifact?: Readonly<{cid: string}> | null;
-  subject?: Readonly<{unit_id?: string}>; closure?: string;
+  subject?: Readonly<{kind?: string; unit_id?: string}>; closure?: string;
 }>;
 type ClaimContext = Readonly<{
   continuation: Saved; claim: Claim; view: CheckpointView; assertCurrent(): SynchronousRuntimeData;
@@ -67,17 +68,18 @@ type State = {
 type Checkpoints = Readonly<{
   journal: TargetJournal;
   inspectEffectTargetApprovals(runId: string, runDefinitionCid: string):
-    Awaitable<readonly Readonly<{view: CheckpointView; continuation: Saved}>[]>;
+    Awaitable<readonly Readonly<{view: CheckpointView; continuation: UncheckedSaved}>[]>;
   effectTargetAuthorization(input: Readonly<{
     runId: string; runDefinitionCid: string; unitId: string; declaredResults: readonly string[];
     inventoryCid: string; target: EffectTarget; continuation(): string; beforeDefer(): void;
-    journalPort?: Journal; effectTargetAuthority?: object;
+    journalPort?: Journal; effectTargetAuthority?: TargetAuthority;
   }>): Awaitable<TargetGate>;
 }>;
+type TargetAuthority = InstalledTarget['authorization'];
 type Options = Readonly<{
   checkpoints?: Checkpoints; runId: string; runDefinitionCid: string; unitId: string;
   declaredResults: readonly string[]; submission: unknown; inventory: unknown; principalId: string;
-  resume?: ClaimContext; signal?: AbortSignal; journalPort?: Journal; effectTargetAuthority?: object;
+  resume?: ClaimContext; signal?: AbortSignal; journalPort?: Journal; effectTargetAuthority?: TargetAuthority;
   allowDefer?: boolean; assertCurrent?(): SynchronousRuntimeData; assertOriginalCurrent?(): SynchronousRuntimeData;
 }>;
 
@@ -181,16 +183,18 @@ export async function effectTargetReadContinuation({checkpoints, runId,
     run_definition_cid: runDefinitionCid, unit_id: unitId,
     submission, inventory_cid: bound.inventoryCid, targets: bound.targets,
     pending_target: pendingTarget}, {dataKeys: true});
-  const validate = (saved: Saved) => {
+  const validate: (saved: UncheckedSaved) => asserts saved is Saved = saved => {
     if (saved?.version !== EFFECT_TARGET_CONTINUATION ||
         saved.run_definition_cid !== runDefinitionCid || saved.unit_id !== unitId ||
         saved.inventory_cid !== bound.inventoryCid || !same(saved.targets, bound.targets) ||
         !same(saved.submission, submission) || !Number.isSafeInteger(saved.pending_target) ||
-        states[saved.pending_target] === undefined) fail('EffectTargetBindingChanged');
+        states[saved.pending_target as number] === undefined) fail('EffectTargetBindingChanged');
   };
   if (resume !== undefined) validate(resume.continuation);
   const port = resume === undefined ? journalPort : {...checkpoints.journal,
-    persistCheckpoint: (checkpoint: CheckpointInput) => checkpoints.journal.completeResume(resume.claim, {checkpoint}),
+    persistCheckpoint: (checkpoint: CheckpointInput) => checkpoints.journal.completeResume(
+      resume.claim as Parameters<InstalledJournal['completeResume']>[0],
+      {checkpoint}) as ReturnType<Journal['persistCheckpoint']>,
   };
   try {
     for (const state of states) {

@@ -69,7 +69,7 @@ export function createInferAdmissionControls(moon: CommonInferAdmissionBindings,
     // First admission retains only the actual compiler owner and its original
     // Result policy. A copied wire cannot supply the journal's original ticket.
     captureOriginalClientInferRun(compiled: CompiledInfer, checkedProgram: unknown, definition: Definition,
-      request: unknown, environment: string, parameters: string, funded?: MaterialReservation) {
+      request: unknown, environment: string | undefined, parameters: string | undefined, funded?: MaterialReservation) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer' ||
           !moon.clientProgramCompiledRunMatches(value, checkedProgram) ||
@@ -84,7 +84,7 @@ export function createInferAdmissionControls(moon: CommonInferAdmissionBindings,
       let materialsWire;
       if (funded === undefined) {
         materialsWire = compiledRunResult(moon.clientProgramIssueInferRunMaterials(
-          value, token(definition), environment, parameters), 'RunHostInferMaterialsRejected') as string;
+          value, token(definition), environment!, parameters!), 'RunHostInferMaterialsRejected') as string;
       } else {
         if (funded?.parent === undefined || funded.input === undefined ||
             typeof moon.clientProgramIssueRequestInferRunMaterials !== 'function') {

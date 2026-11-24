@@ -8,6 +8,7 @@ import {loadInstalledProjectConfiguration} from '../../../host-node/installed-pr
 import {prepareInstalledProjectLocalFiles,installPreparedProjectLocalFiles} from './installed-project-files.mjs';
 import {installPreparedProjectLocalFileEffects} from './installed-project-file-effects.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import type {SynchronousRuntimeData} from '../../../host-common/runtime-result.mjs';
 import {installedSourceConfigurationReader} from '../../../host-node/installed-host-services.mjs';
 import {createInstalledLoaderParent} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 import {canonical,cid} from '../../../host-node/fixtures/file-listing-source.fixture.mjs';
@@ -221,7 +222,7 @@ test('combined Local Source and STORE initialization retain the same original co
 
 test('public Local profile constructor refuses before projection on the original Source budget',async t=>{
   let projected=0;
-  const f=await installedReadProfileFixture(t,real=>({prepareNativeInput<Result>(input: LoadInput<Result>){
+  const f=await installedReadProfileFixture(t,real=>({prepareNativeInput<Result extends Extract<SynchronousRuntimeData, object>>(input: LoadInput<Result>){
     return real.prepareNativeInput(Object.freeze({capacity(){
       const policy=moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal());
       const excessive=checked(moon.clientProgramInstalledSourceConstructionCapacity(1n,0n,0n,0n,0n,policy[5]));
@@ -235,7 +236,7 @@ test('public Local profile constructor refuses before projection on the original
 
 test('public Local profile construction observes original retirement before authorization or Source publication',async t=>{
   const primary=new Error('OriginalLocalSourceRetired');let retired=false,projected=0;
-  const f=await installedReadProfileFixture(t,real=>({prepareNativeInput<Result>(input: LoadInput<Result>){
+  const f=await installedReadProfileFixture(t,real=>({prepareNativeInput<Result extends Extract<SynchronousRuntimeData, object>>(input: LoadInput<Result>){
     return real.prepareNativeInput(Object.freeze({capacity:()=>input.capacity(),project(){
       projected++;const value=input.project();retired=true;return value;
     }}));

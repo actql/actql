@@ -2,7 +2,6 @@ import resultServiceRecipe from './host-result-service-recipe.cjs';
 import {join} from 'node:path';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
-// @ts-expect-error TS7016: The private evidence installation owner still uses authored JavaScript.
 import {preparePrivateEvidenceKeyInstallation} from './local-continuation-evidence.mjs';
 
 import type {HostJournalOriginals} from './ordinary-host-journal.mjs';

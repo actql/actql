@@ -55,14 +55,15 @@ type CopyOwner = Readonly<{cleanupPending(): boolean; close(): Promise<boolean>;
 type RetainCopy = (copy: CopyOwner) => void;
 type Plan = Readonly<{compiled: unknown; runDefinition: Readonly<{identity: string}>}>;
 type Control = Readonly<{compiledInferEvaluationPolicy(compiled: unknown): unknown}>;
-type Selected = Readonly<{occurrence?: unknown; step: number; providerBinding: Readonly<{identity: string}>}>;
+type Selected = Readonly<{occurrence?: unknown; step: number; providerBinding?: Readonly<{identity: string}>}>;
 type PreparedInput = Readonly<{callWire: string; typedInputWire: string; renderedInput: string; contextManifest: string}>;
 type Entry = Readonly<{slotCid: string; attemptCid: string}>;
 type Call = Readonly<{slotCid: string; callWire: string; outcome: string; entry?: Entry;
   captureBundleCid?: string; state?: string}>;
 type CaptureBundle = Readonly<{cid?: string; count: number; calls: readonly Call[]; wire: string}>;
+type StoredBundle = Omit<CaptureBundle, 'calls'>;
 type Inventory = Pick<CaptureBundle, 'count' | 'calls'> & Readonly<{
-  readBundle?(slot: number, count: (bytes: number) => void): Awaitable<CaptureBundle | undefined>;
+  readBundle?(slot: number, count: (bytes: number) => void): Awaitable<StoredBundle | undefined>;
 }>;
 type UsageInventory = Readonly<{cid?: string; count: number; calls: readonly Readonly<{slotCid: string}>[]}>;
 type CaptureOwner = Readonly<{evaluationBundle(): CaptureBundle | undefined;
@@ -78,7 +79,7 @@ type Identity = {modelCallSlotCid: string; attemptCid?: string; inputKeyCid?: st
 type PreparedOptions<Result> = Readonly<{configuration?: object; moon: Runtime; control: Control;
   plan: Plan; selected: Pick<Selected, 'occurrence'>; preparedCallSet: unknown;
   operation: Readonly<{preparedPhysicalRequest(prepared: unknown, slot: number): unknown}>;
-  authorityScopeCid: string; retainCopy: RetainCopy;
+  authorityScopeCid: string; retainCopy?: RetainCopy;
   consume(inputs: readonly PreparedInput[] | undefined): Awaitable<Result>}>;
 type ProjectionOptions = Readonly<{configuration?: object; moon: Runtime; control: Control;
   preparedProgram: unknown; plan: Plan; selected: Selected; captureOwner: CaptureOwner;
@@ -318,7 +319,7 @@ export async function projectInferEvidence({configuration, moon, control, prepar
       for (const [slot, call] of inventory.calls.entries()) {
         const entry = call.entry ?? continuation?.entry(slot);
         const identity: Identity = {modelCallSlotCid: call.slotCid, attemptCid: entry?.attemptCid};
-        let record = bySlot.get(call.slotCid), originalBundle = bundle;
+        let record = bySlot.get(call.slotCid), originalBundle: StoredBundle | undefined = bundle;
         if (currentUnavailable) {
           items.push(Object.freeze({...identity, ...missing('RequiredEvidenceUnavailable')}));
           continue;
@@ -455,7 +456,7 @@ export async function projectInferEvidence({configuration, moon, control, prepar
         programCid: programDefinitionCid ?? moon.clientProgramDefinitionCid(preparedProgram),
         modelTaskCid: (JSON.parse(inventory.calls[0].callWire) as CallBody).model_task_cid,
         ...(partial ? {policy} : {}),
-        providerBindingCid: selected.providerBinding.identity, items: Object.freeze(items)});
+        providerBindingCid: selected.providerBinding!.identity, items: Object.freeze(items)});
     }
   } catch (error) {manifest = missing((error as {code?: string}).code ?? 'EvidenceSinkFailure');}
   finally {

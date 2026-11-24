@@ -11,7 +11,7 @@ type Compiled = TaskAdmission['compiled'];
 type Definition = TaskAdmission['runDefinition'];
 type OriginalInfer = Readonly<{graph: unknown; execution: unknown}>;
 type RestoredInfer = Readonly<{
-  compiled: Compiled; runDefinition: Definition; graph: unknown; authoringContextOriginal?: unknown;
+  compiled: Compiled; prepared: object; runDefinition: Definition; graph: unknown; authoringContextOriginal?: unknown;
 }>;
 type RestoreControls = {
   checkRestoredClientInferRunOwner(restored: RestoredInfer, prepared: unknown): unknown;

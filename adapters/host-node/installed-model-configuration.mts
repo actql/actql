@@ -124,7 +124,7 @@ export async function installConfiguredModelProviders({moon, register, project,
   taskLimits, installationServices, assertCurrent, assertHostRuntime,
   assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals, runtimeUrl,
   verifiedSdkInstallations, sdkImageCustody}: Options) {
-  if (register === undefined) return {providers: new Map(), projectTasks: undefined};
+  if (register === undefined) return {providers: new Map() as ReturnType<ProviderInstaller>, projectTasks: undefined};
   if (typeof register !== 'function' || typeof assertCurrent !== 'function') {
     fail('InvalidInstalledModelProviderRegistration');
   }

@@ -56,14 +56,16 @@ export function validBoundSourceOccurrence(item: CandidateOccurrence | null | un
 }
 
 export function ordinarySourceDescriptors<Occurrence extends object, Prepared extends PreparedSource>(
-  sources: readonly Source<Occurrence, Prepared>[]) {
+  sources: readonly Source<Occurrence, Prepared>[]): Array<Occurrence &
+    Pick<Prepared, 'checkedSource' | 'readTuple' | 'physicalBinding'> & Readonly<{installationBinding?: unknown}>> {
   const bound = sources.map(source => typeof source.adapter.ordinaryRecoveryBinding === 'function');
   if (bound.some(Boolean) && !bound.every(Boolean)) fail();
   return sources.map(({occurrence, prepared, adapter}) => ({...occurrence,
     checkedSource: prepared.checkedSource, readTuple: prepared.readTuple,
     physicalBinding: prepared.physicalBinding,
     ...(bound.every(Boolean) ? {installationBinding: adapter.ordinaryRecoveryBinding!(prepared)} : {}),
-  }));
+  }) as Occurrence & Pick<Prepared, 'checkedSource' | 'readTuple' | 'physicalBinding'> &
+    Readonly<{installationBinding?: unknown}>);
 }
 
 // Compare against the original captured binding. Missing owner capability is

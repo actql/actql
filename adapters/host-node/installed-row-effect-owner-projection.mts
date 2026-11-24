@@ -197,7 +197,7 @@ export function createInstalledRowEffectOwnerProjection<Owner extends Installati
 
   // The Host has already checked the original Core selection owners. This
   // boundary additionally binds those tuples to the actual installed driver.
-  function validateInstalledUpdateOwnerSelections<Selections>(adapter: unknown, selections: Selections, prepared: unknown) {
+  function validateInstalledUpdateOwnerSelections<Selections>(adapter: unknown, selections: Selections, prepared?: unknown) {
     const owner = rowInstallations.get(adapter as object);
     return validateOwnerSelections(owner === undefined ? [] :
       Array.isArray(owner) ? owner as readonly Owner[] : [owner as Owner], selections, prepared);

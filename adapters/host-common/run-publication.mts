@@ -82,11 +82,12 @@ type ConstructionResources = Readonly<{
 }>;
 type ReceiptWires = ReturnType<typeof issuedEffectSetReceiptWires>;
 type EffectReceipts = ReceiptWires & Readonly<{finalWire: string}>;
+type EffectPrivateBinding = Readonly<{name: string; semanticCid: string; holdingCid: string; wire: string}>;
 type EffectPreparation = {
   chain: EffectChain;
   preview: EffectPreview;
   receipts: EffectReceipts;
-  privateBinding: CommonObject;
+  privateBinding: EffectPrivateBinding;
   effectSources: readonly CommonObject[];
   recoveryResources?: ConstructionResources;
 };
@@ -125,7 +126,7 @@ type Control = Readonly<{
 type EffectControl = Control & Readonly<{
   issueEffectfulFinalRunReceipt(chain: EffectChain, preview: EffectPreview, receipts: ReceiptWires, limits: Limits): Contract;
   effectSetReceiptRunDisposition(preview: EffectPreview, receipts: ReceiptWires, limits: Limits): number;
-  effectPrivateEvidenceBinding(preview: EffectPreview, authorityCid: string): CommonObject;
+  effectPrivateEvidenceBinding(preview: EffectPreview, authorityCid: string): EffectPrivateBinding;
   capturedEffectSourceArtifactCid(source: CommonObject): string;
 }>;
 type Store = Readonly<{

@@ -150,7 +150,7 @@ export function createContentPublicationControls(
       }
       return checked(moon.clientProgramInstalledEffectContentPreparationPrepare(prepared,
         value, compilation, token(definition), component, bodies.registry, bodies.values,
-        bodies.fragment, bodies.ordered, workspace, physical.cancel, physical.stopped, physical.cleanup, retain));
+        bodies.fragment, bodies.ordered, workspace, physical.cancel, physical.stopped, physical.cleanup, retain)) as CommonObject;
     },
     compiledSerializationGraph(compiled: unknown) {
       const value = compiledContent(compiled);

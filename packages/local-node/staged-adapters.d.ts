@@ -49,13 +49,13 @@ declare module '*/adapters/host-common/compiler-binding.generated.mjs' {
   export const runtimeIsBoxedSome: typeof import('../../adapters/host-common/compiler-binding.generated.mjs').runtimeIsBoxedSome;
 }
 
-// The existing Embedded Local JavaScript Host supplies this public boundary.
-// The types come from the same package declarations served to consumers.
+// The staged runtime path resolves to the authoritative Embedded Local
+// producer's types during compile, before the copied runtime graph exists.
 declare module '*/adapters/host-node/embedded-local.mjs' {
-  export const connectEmbeddedLocal: typeof import('./index.d.ts').connect;
-  export const publishInstalledSource: typeof import('./index.d.ts').publishSource;
-  export const publishInstalledEffect: typeof import('./index.d.ts').publishEffect;
-  export const openInstalledRemoteHttpHost: typeof import('./http-host.d.ts').openInstalledRemoteHttpHost;
+  export const connectEmbeddedLocal: typeof import('../../adapters/host-node/embedded-local.mjs').connectEmbeddedLocal;
+  export const publishInstalledSource: typeof import('../../adapters/host-node/embedded-local.mjs').publishInstalledSource;
+  export const publishInstalledEffect: typeof import('../../adapters/host-node/embedded-local.mjs').publishInstalledEffect;
+  export const openInstalledRemoteHttpHost: typeof import('../../adapters/host-node/embedded-local.mjs').openInstalledRemoteHttpHost;
 }
 
 declare module '*_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js' {

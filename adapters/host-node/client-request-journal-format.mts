@@ -1369,10 +1369,10 @@ export function readJournalExplanation(database: JournalSqlConnection,
     fail('ClientRequestJournalCorrupt');
   }
   const result: {definitionWire: string; admissionEvidenceWire: string | undefined;
-    programDefinitionCid: string; parameterValuesCid: string; factsWire: string | null | undefined;
+    programDefinitionCid: string; parameterValuesCid: string; factsWire: string | undefined;
     contextWire?: string; invocationTemplateWire?: string} = {definitionWire: row.definition_wire, admissionEvidenceWire: row.evidence_wire ?? undefined,
     programDefinitionCid: row.program_cid, parameterValuesCid: row.parameters_cid,
-    factsWire: row.facts_present === 1 ? row.facts_wire : undefined};
+    factsWire: row.facts_present === 1 ? row.facts_wire! : undefined};
   if (includeContext) {
     result.contextWire = row.context_present === 1 ? row.context_wire! : undefined;
     result.invocationTemplateWire = row.context_present === 1 ? row.invocation_template_wire! : undefined;

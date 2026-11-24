@@ -12,7 +12,7 @@ type Evidence = Readonly<{name: string; identity: string; wire: string}>;
 type CommonEffectPreviewBindings = Readonly<{
   clientProgramEffectReviewOriginalConstructionCapacity(original: unknown, previewWire: string,
     previewBytes: number, previewNodes: number, previewDepth: number, reviewBytes: number,
-    reviewNodes: number, reviewDepth: number): unknown;
+    reviewNodes: number, reviewDepth: number): import('./runtime-result.mjs').SynchronousRuntimeData;
   clientProgramInstalledEffectRecoveredInputInventoryRetain(owner: unknown, prepared: unknown,
     request: unknown, plan: unknown, allowed: unknown, definition: unknown, invocation: unknown,
     preview: unknown): unknown;

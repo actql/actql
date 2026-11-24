@@ -109,7 +109,7 @@ export function createRunPlanControls(moon: CommonRunPlanBindings, {
         token(runDefinition), evidenceToken(prepared), evidenceToken(authorization),
         JSON.stringify(ref), JSON.stringify(state), snapshotCid,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
-      'RunHostInspectRejected');
+      'RunHostInspectRejected') as string;
     },
     readCheckedClientStaticPlan(checkedProgram: unknown, kind: string, limits: Limits) {
       if (!['values', 'tasks', 'effects'].includes(kind) ||

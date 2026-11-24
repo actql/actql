@@ -62,7 +62,10 @@ type ResultPolicyOriginal = Readonly<{kind: 'data_policy'; cid: string; wire: st
 type ValuesPolicyOriginal = Readonly<{cid: string; wire: string}>;
 type AdmissionEvidence = Readonly<{
   authorization: string; prepared: string; submittedIntentCid?: string; effectOriginalRunWire?: string;
-  sourceInventory?: string; updateTargetRunOriginal?: Readonly<{installations: readonly object[]}>;
+  sourceInventory?: string;
+  updateTargetRunOriginal?: Readonly<{
+    materialsWire: string; installations: readonly Readonly<{cid: string; wire: string}>[];
+  }>;
   logicalPlanOriginal?: LogicalPlanOriginal; valuesHostPolicyOriginal?: ValuesPolicyOriginal;
   resultPolicyOriginal?: ResultPolicyOriginal; modelOriginalRunWire?: string;
   inferRunOriginal?: Readonly<{materialsWire: string; resultPolicyOriginal: ResultPolicyOriginal}>;

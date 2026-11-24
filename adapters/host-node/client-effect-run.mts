@@ -90,8 +90,8 @@ type Restore = Pick<Owner, 'prepared' | 'identity' | 'namespaceId'> &
 type StartOptions = Readonly<{beforePhysicalStart?(): unknown; started?(): unknown; signal?: AbortSignal}>;
 type ReceiptSet = Parameters<typeof issuedEffectSetReceiptWires>[0];
 type Reconciliation = Readonly<{issuedSet: ReceiptSet; ledger: unknown; preview: object; updatedAt?: string}>;
-type ExecutionFacts = DefinitionFacts & QueryTime & UpdateSelection & Readonly<{
-  ref: WireRunRef; owner: unknown; originalSubmittedIntent?: OriginalIntent; preparedExecution?: unknown; signal?: AbortSignal;
+type ExecutionFacts = Omit<DefinitionFacts, 'prepared'> & QueryTime & UpdateSelection & Readonly<{
+  prepared: object; ref: WireRunRef; owner: unknown; originalSubmittedIntent?: OriginalIntent; preparedExecution?: unknown; signal?: AbortSignal;
 }>;
 type EvidenceReader = (maxOptionalBytes?: number) => AdmissionMaterial | undefined;
 type Installation<Value> = Readonly<{moon: Runtime; publicationControl?: Publication; journal: Journal;
@@ -555,8 +555,9 @@ export function installNodeClientEffectRun<Value>({moon,
       let preparedExecution: unknown;
       if (prepareExecution !== undefined && authorized === true) {
         try {
+          // compile() has admitted the same prepared object retained by this handle.
           preparedExecution = prepareExecution(Object.freeze({ref: start.ref,
-            identity, owner, prepared, compilation, allowed, definition,
+            identity, owner, prepared: prepared as object, compilation, allowed, definition,
             ...queryTime,
             runDefinition: retained.runDefinition,
             originalSubmittedIntent,
@@ -602,7 +603,7 @@ export function installNodeClientEffectRun<Value>({moon,
       // capture/apply/publication and cleanup, including after a thrown error.
       // No catch path resets the durable physical-start claim.
       const value = await execute(Object.freeze({ref: start.ref, identity,
-        owner, prepared, compilation, allowed, definition,
+        owner, prepared: prepared as object, compilation, allowed, definition,
         ...queryTime,
         ...original,
         runDefinition: retained.runDefinition, originalSubmittedIntent,
@@ -649,7 +650,7 @@ export function installNodeClientEffectRun<Value>({moon,
       }
       const modelCompiled = prepareDefinition === undefined || inferPlanFor?.(prepared) === undefined ? undefined :
         control.adoptCheckedClientEffectInferRun(allowed, retained.runDefinition, evidence.resultPolicyOriginal, limits);
-      const facts = Object.freeze({ref: retained.ref, identity, owner, prepared, compilation,
+      const facts = Object.freeze({ref: retained.ref, identity, owner, prepared: prepared as object, compilation,
         ...queryTime,
         ...original,
         allowed, definition, runDefinition: retained.runDefinition,

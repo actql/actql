@@ -29,6 +29,8 @@ import type {createEffectPreviewControls} from '../host-common/runtime-effect-pr
 import type {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-apply.mjs';
 import type {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import type {effectTargetReadContinuation} from './effect-target-read-continuation.mjs';
+import type {EffectTarget} from './client-checkpoint-admission-inputs.mjs';
+import type {openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
 import type {ControlWork} from './installed-effect-plan.mjs';
 import type {createInstalledRowEffect} from './installed-row-effect.mjs';
 
@@ -93,8 +95,9 @@ type Claimed = Extract<NonNullable<Resume['claim']>, {action: 'claimed'}> &
   Readonly<{claim: Claim}>;
 type Attempt = Claimed | Readonly<{action: 'settlement'; claim: Claim}> |
   Readonly<{action: 'invalidated' | 'admitted' | 'busy' | 'completed' | 'changed'}>;
+type ResumeBinding = Parameters<ReturnType<typeof openSqliteCheckpointJournal>['claimResume']>[1]['binding'];
 type CheckpointJournal = Readonly<{
-  claimResume(runId: string, options: Readonly<{claimant: string; leaseMs: number; binding: unknown;
+  claimResume(runId: string, options: Readonly<{claimant: string; leaseMs: number; binding: ResumeBinding;
     expectedCheckpointCid: string; settleEffectRevalidation: true}>): Attempt;
   admitResume(claim: Claim, options: Readonly<{checkpointCid: string}>): unknown;
   completeResume(claim: Claim, result: Readonly<{status?: 'failed'; runStateWire?: string}>): unknown;
@@ -109,12 +112,12 @@ type Reconciliation = Extract<Result, {status: 'needs_reconciliation'}>;
 type Facts = Readonly<{
   ref: Ref; moon: Runtime; control: Control; store: Publication['store'];
   compilation?: unknown; continuation?: Continuation; view?: Checkpoint;
-  retained?: Readonly<{resultNames: readonly string[]; runDefinition: unknown}>;
+  retained?: Readonly<{resultNames?: readonly string[]; runDefinition: unknown}>;
   runDefinition?: unknown; identity?: unknown; allowed?: unknown; definition?: unknown;
   originalSubmittedIntent?: Readonly<{intent: unknown; referenceWire: string; assertCurrent: Current}>;
   signal?: AbortSignal; targetReads?: TargetReads; observation?: unknown;
   managedEffect?: Readonly<{controlConstruction?: ControlWork}>;
-  effectAuthorization(input: AuthorizeFacts): Awaitable<Gate>;
+  effectAuthorization?(input: AuthorizeFacts): Awaitable<Gate>;
   recordReconciliation(ref: Ref, selected: Readonly<{issuedSet: Reconciliation['issuedSet'];
     ledger: OwnedStage['apply']['ledger']; preview: Stage['preview']}>): ObservedRun;
   observeRun(input: Readonly<{ref: Ref}>): Awaitable<ObservedRun>;
@@ -122,7 +125,7 @@ type Facts = Readonly<{
   beginPhysicalWork?(): void; assertContinuationCurrent?: Current;
 }>;
 type Execution = NonNullable<Publication['execution']> & Physical;
-type Opened = Readonly<{execution?: Execution; checkedHost?: object; cleanupOwner?: Physical;
+type Opened = Readonly<{execution?: Physical; checkedHost?: unknown; cleanupOwner?: Physical;
   contentOwner?: object; publicationPlan?: unknown; status?: string; checkpoint?: unknown;
   modelUnknown?: boolean}>;
 type CapturedFacts = Facts & Readonly<{
@@ -133,7 +136,7 @@ type CapturedFacts = Facts & Readonly<{
 }>;
 type RecoveredFacts = Facts & Readonly<{
   view: Checkpoint; reconciliationOnly?: boolean; checkpointJournal: CheckpointJournal;
-  checkpointBinding: unknown;
+  checkpointBinding: ResumeBinding;
   recoverCapture(ports: Readonly<{signal: AbortSignal | undefined;
     retainRecoveryResources(owner: RecoveryResources): void}>): Awaitable<AdmittedRecovery>;
   prepareTargetReads?(claim: Claimed): Awaitable<TargetReads | undefined>;
@@ -149,7 +152,8 @@ type SiteOptions = Readonly<{
   prepareManagedPlan?: Awaited<ReturnType<typeof createInstalledRowEffect>>['prepareManagedPlan'];
   validateRecoveredInstallation?(facts: RecoverySelection): unknown;
   queryTableBindings?: unknown; queryTableWriteAccesses?: unknown;
-  targetReadInventory?(facts: Facts & Readonly<{assertUpdateSelectionCurrent?: Current}>): unknown; targetReadAuthorization?: unknown;
+  targetReadInventory?(facts: Facts & Readonly<{assertUpdateSelectionCurrent?: Current}>): unknown;
+  targetReadAuthorization?: EffectTarget['authorization'];
   claimant?: string; leaseMs?: number;
 }>;
 
@@ -336,7 +340,7 @@ function authorization(facts: Facts, stage: OwnedStage, beforeDefer: AuthorizeFa
   if (requestedStop !== undefined && typeof facts.effectAuthorization !== 'function') {
     fail('RequestedEffectStopUnavailable');
   }
-  return facts.effectAuthorization({
+  return facts.effectAuthorization!({
     runId: facts.control.runDefinitionRunId(facts.retained?.runDefinition ??
       facts.runDefinition),
     runDefinitionCid: facts.ref.runDefinitionCid,
@@ -650,7 +654,7 @@ export function createInstalledEffectSite({environmentWire,
         return Object.freeze({status: 'needs_reconciliation', modelUnknown: true,
           ...originalFailure});
       }
-      const {execution, checkedHost} = opened ?? {};
+      const {execution, checkedHost} = (opened ?? {}) as Opened & {execution?: Execution; checkedHost?: object};
       if (execution === undefined || checkedHost === undefined) {
         fail('InvalidInstalledEffectComputationPort');
       }

@@ -17,7 +17,7 @@ export type SourceReaderChild = {
 };
 type FileIdentityOwner = {fileIdentity?: readonly bigint[]; children: readonly SourceReaderChild[]};
 type Ports = Readonly<{
-  bundle?: Readonly<{dataPath: string}>; current(): void; pending(value: unknown): boolean; fail(code: string): never;
+  bundle?: Readonly<{dataPath?: string}>; current(): void; pending(value: unknown): boolean; fail(code: string): never;
 }>;
 
 const fileIdentity = (stat: BigIntStats) => [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs];
@@ -74,7 +74,7 @@ export function createOrdinarySourceReaders(ports: Ports) {
     child.attempted = true;
     const work = (async () => {
       try {
-        const bytes = await withOriginalFile<Buffer, FileHandle>(ports.bundle!.dataPath, open, async original => {
+        const bytes = await withOriginalFile<Buffer, FileHandle>(ports.bundle!.dataPath!, open, async original => {
           const read = original.read, stat = original.stat;
           if (typeof read !== 'function' || typeof stat !== 'function') fail('InstalledMockSourceUnavailable');
           const before = await Reflect.apply(stat, original, [{bigint: true}]) as BigIntStats;

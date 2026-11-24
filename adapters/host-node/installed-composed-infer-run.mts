@@ -15,6 +15,7 @@ import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
 
+import type {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import type {runtimeCore} from '../host-common/runtime-core.mjs';
 
 type Awaitable<Value> = Value | PromiseLike<Value>;
@@ -51,7 +52,9 @@ type Execution = Awaited<ReturnType<typeof runCapturedInternalStrategy>>;
 type ExecutionOwner = Omit<Execution, 'close'> & Readonly<{close(): Awaitable<void | false> | undefined}>;
 type PreflightCleanup = Parameters<NonNullable<NonNullable<
   Parameters<typeof runCapturedInternalStrategy>[4]>['retainPreflightCleanup']>>[0];
-type Selection = ProviderInput['selected'] & Projection['selected'] & Readonly<{localMock?: boolean}>;
+type ContinuationOpen = Parameters<Awaited<ReturnType<typeof installNodeModelContinuation>>['open']>[0];
+type Selection = ProviderInput['selected'] & Projection['selected'] &
+  Pick<ContinuationOpen['selected'], 'providerBinding'> & Readonly<{localMock?: boolean}>;
 type Selected = Readonly<{components: readonly Selection[]; restoredRun?: unknown}>;
 type Capture = Omit<Parameters<Continuation['captured']>[1], 'capture'> & Readonly<{
   capture: Readonly<{source(): unknown; retainTask(dag: unknown, task: number): unknown}>;
@@ -82,16 +85,18 @@ type Original = NonNullable<ProviderInput['originalPreparation']> & Readonly<{
   setupUsageIsolated?(run: unknown): boolean;
 }>;
 type Address = Readonly<{scopeCid: string; taskIndex: number}>;
-type RecordOriginal = Readonly<{inventory: Address}>;
+type RecordOriginal = ReturnType<Awaited<ReturnType<typeof installNodeModelContinuation>>['discover']>[number];
 type RestoredInput = NonNullable<ProviderInput['restoredInput']>;
-type ModelToken = RestoredInput['token'] & Readonly<{
+type SavedToken = Awaited<ReturnType<Awaited<ReturnType<typeof installNodeModelContinuation>>['prime']>>;
+type ModelToken = SavedToken & RestoredInput['token'] & Readonly<{
   snapshot: RestoredInput['snapshot'] & Readonly<{sourceContinuation?: SavedSource}>;
 }>;
 type OpenModel = Readonly<{
-  operation: Operation; preparedCallSet: unknown; plan: Plan; selected: Selection; principalId: string;
+  operation: Operation; preparedCallSet: NonNullable<ReturnType<Operation['preparedCallSet']>>; plan: Plan;
+  selected: Selection & Pick<ContinuationOpen['selected'], 'observeAccount'>; principalId: string;
   declaredResults: readonly string[]; submission: unknown; signal: AbortSignal;
-  originalPreparation?: Original; retainEvidenceCopy: Projection['retainCopy'];
-  existing?: RecordOriginal; inputToken?: ModelToken; claim?: unknown; sourceContinuation?: SavedSource;
+  originalPreparation?: ContinuationOpen['originalPreparation']; retainEvidenceCopy: Projection['retainCopy'];
+  existing?: RecordOriginal; inputToken?: ModelToken; claim?: ContinuationOpen['claim']; sourceContinuation?: SavedSource;
 }>;
 type Evaluation = NonNullable<Projection['continuation']>;
 type CaptureJournal = Parameters<CaptureOwner['configureModelJournal']>[0];
@@ -99,12 +104,12 @@ type ModelEntry = NonNullable<ReturnType<Evaluation['entry']>> &
   NonNullable<ReturnType<CaptureJournal['entry']>>;
 type ModelContinuation = Omit<Evaluation, 'entry'> & Omit<CaptureJournal, 'entry'> & Readonly<{
     entry(slot: number): ModelEntry | undefined; hasResponseReconciliation: boolean;
-    authorize(): Awaitable<Readonly<{status: 'dispatch'} | {status: 'waiting_checkpoint'; checkpoint: object}>>;
+    authorize(): Awaitable<Readonly<{status: 'dispatch'} | {status: 'waiting_checkpoint'; checkpoint: object | undefined}>>;
     close(): Awaitable<boolean | void>; cleanup(): Awaitable<boolean | void>; cleanupPending(): boolean;
   }>;
 type ModelController = Readonly<{
   discover(runId: string): readonly RecordOriginal[];
-  prime(record: RecordOriginal): Awaitable<ModelToken>; release(token: ModelToken): void;
+  prime(record: RecordOriginal): Awaitable<SavedToken>; release(token: SavedToken): void;
   state(original: Address): Readonly<{slots: ReturnType<NonNullable<RestoredInput['sendSlots']>>}>;
   savedScope(plan: Plan, prepared: unknown, selected: Selection, token: ModelToken): unknown;
   open(input: OpenModel): Awaitable<ModelContinuation>; unresolved(runId: string): boolean;
@@ -120,7 +125,7 @@ type Control = NonNullable<ProviderInput['control']> & CaptureOptions['control']
   SourceOptions['acquired']['control'] & PublicationInputs['control'] & Completion['control'] &
   Pick<CommonControl, 'checkedClientInferOriginalReadScopeLive' | 'modelPrivateHoldingCid' | 'admitRunEvidence'> &
   Readonly<{admitComposedInferSources(occurrence: unknown, captures: readonly Capture[],
-    evidence: readonly unknown[], authorityScopeCid: string, started?: string, completed?: string): unknown}>;
+    evidence: readonly unknown[], authorityScopeCid: string, started: string, completed: string): unknown}>;
 type Moon = ProviderInput['moon'] & CaptureOptions['moon'] & Projection['moon'] & SourceOptions['moon'] &
   PublicationInputs['moon'] & Parameters<typeof startCompleteInferObservation>[0]['moon'] & Readonly<{
     clientProgramAcquisitionCount(prepared: unknown): number;
@@ -144,7 +149,7 @@ type Options = Readonly<{
   moon: Moon; control: Control; preparedProgram: unknown; plan: Plan; selected: Selected;
   store: Store; principalId: string; signal: AbortSignal; acquiredInfer?: Acquired; replay?: boolean;
   retainExecution(owner: Readonly<{close(): Promise<boolean>; cleanup(): Promise<boolean>; cleanupPending(): boolean}>): void;
-  beginPhysicalWork(): void; submission: unknown; existingModel?: RecordOriginal; modelClaim?: unknown;
+  beginPhysicalWork(): void; submission?: unknown; existingModel?: RecordOriginal; modelClaim?: ContinuationOpen['claim'];
   assertCurrent?(): void; modelController?: ModelController; inferEvidence?: Projection['configuration'];
   checkpoints?: SourceOptions['checkpoints'];
   prepareAcquisition?(prepared: unknown): Awaitable<Source['preparedSource']>;
@@ -381,7 +386,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     if (candidates.length === 0) continue;
     child.record = candidates[0];
     matched.add(child.record.inventory.scopeCid);
-    child.token = await modelController.prime(child.record);
+    child.token = await modelController.prime(child.record) as ModelToken;
     assertCurrent();
     child.restoredInput = {token: child.token, snapshot: child.token.snapshot,
       sendSlots: () => modelController.state(child.record!.inventory).slots,
@@ -519,7 +524,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     const childOriginal = child.originalPreparation;
     const sources = child.restoredInput === undefined && !sourceFree ? control.admitComposedInferSources(
       child.selection.occurrence, captures, sourceEvidence, authorityScopeCid,
-      captureStartedAt, captureCompletedAt) : undefined;
+      captureStartedAt!, captureCompletedAt!) : undefined;
     const context: ProviderInput = {moon, selected: child.selection, sources,
       control, plan, principalId, now, signal, durableCalls: true, restoredInput: child.restoredInput,
       originalPreparation: childOriginal, assertRuntimeCurrent: childOriginal?.assertRuntimeCurrent,
@@ -588,8 +593,8 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       const preparedCallSet = child.operation.preparedCallSet();
       if (preparedCallSet === undefined) throw new Error('ModelPausePreparedOwnerMissing');
       child.continuation = await modelController.open({operation: child.operation, preparedCallSet,
-        plan, selected: child.selection, principalId, declaredResults, submission, signal,
-        originalPreparation: child.originalPreparation,
+        plan, selected: child.selection as Selection & Pick<ContinuationOpen['selected'], 'observeAccount'>, principalId, declaredResults, submission, signal,
+        originalPreparation: child.originalPreparation as (Original & ContinuationOpen['originalPreparation']) | undefined,
         retainEvidenceCopy(copy) {
           if (child.copy?.cleanupPending()) throw new Error('InferEvidenceCopyAlreadyRetained');
           child.copy = copy;

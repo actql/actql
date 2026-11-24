@@ -30,7 +30,7 @@ function fixture(withModel = false) {
   const model = withModel ? Object.freeze({kind: 'local-mock', compiled: {}, definition: {}, occurrence: {}, graph: {}}) : undefined;
   const facts = Object.freeze({prepared, identity: request, compilation: {}, allowed: {},
     definition: model?.definition ?? {}, modelCompiled: model?.compiled, queryTimePreparation: undefined});
-  const runs: Options['runs'] = new WeakMap(), liveRuns: Options['liveRuns'] = new Set(), inputs = Object.freeze({}), sourceProfile = {};
+  const runs = new WeakMap<object, Run>(), liveRuns = new Set<Run>(), inputs = Object.freeze({}), sourceProfile = {};
   const controls: Controls = {getters: 0, checks: 0, quotes: 0, selected: 0, demands: 0,
     onRead: undefined, onCurrent: undefined, returnedPlan: plan, failBegin: false};
   const runtime = {

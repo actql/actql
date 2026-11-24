@@ -1,6 +1,8 @@
 import {checked} from './runtime-result.mjs';
 import type {PublicationContract} from '../store-local/publication-contract-store.mjs';
 
+import type {WireResultDescription} from '../../packages/client-wire/index.js';
+
 type Limits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
 type FrameLimits = Readonly<{maxBytes: number; maxRows: number; maxRowBytes: number;
   maxDepth: number; maxFrameBytes: number}>;
@@ -142,7 +144,7 @@ export function createResultDeliveryControls(moon: CommonResultDeliveryBindings,
         return JSON.parse(checked(moon.strategyDescribeCommittedResult(
           token(index), token(manifest), resultName, bindings.map(token),
           token(definition), schemaWire, format, limits.maxWireBytes,
-          limits.maxNodes, limits.maxDepth)) as string) as unknown;
+          limits.maxNodes, limits.maxDepth)) as string) as Omit<WireResultDescription, 'ref'>;
       },
       issueManifestReadGrant(index: unknown, manifest: unknown, grant: Grant, limits: Limits) {
         limits = captureContractLimits(limits, 'Manifest read grant');
@@ -272,7 +274,7 @@ export function createResultDeliveryControls(moon: CommonResultDeliveryBindings,
         if (!Array.isArray(names)) {
           throw new TypeError('Invalid Manifest Result inventory');
         }
-        return Object.freeze([...names]) as readonly unknown[];
+        return Object.freeze([...names]) as readonly string[];
       },
       resultReadDefinitionCid(manifest: unknown, resultName: string) {
         if (typeof resultName !== 'string') {
@@ -480,7 +482,7 @@ export function createResultDeliveryControls(moon: CommonResultDeliveryBindings,
         if (!(chunk instanceof Uint8Array)) {
           throw new TypeError('Invalid durable Result row-frame chunk');
         }
-        return checked(moon.strategyFeedDurableResultRowFrames(frames, chunk));
+        return checked(moon.strategyFeedDurableResultRowFrames(frames, chunk)) as readonly string[];
       },
       finishDurableResultRowFrames(frames: unknown) {
         const summary = checked(

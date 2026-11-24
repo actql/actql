@@ -19,6 +19,7 @@ import {selectedInferOriginalCurrentStateCodec,
 // Installed Infer caller contracts. Keep public-input wires and generated Core
 // handles opaque at the physical ports until their original producer checks them.
 import type {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {selectRestoredInferOccurrence} from './local-model-content-publication.mjs';
 import type {installNodeContentRun} from './installed-content-run.mjs';
 import type {createInferOriginalReadControls} from '../host-common/runtime-infer-original-read-control.mjs';
 
@@ -63,7 +64,7 @@ type ModelSelection = Composed['selected']['components'][number] & MemberPorts[4
     sourceCoordinates?: GroupPorts[4]['sourceCoordinates'];
     originalReadInstallation?: OriginalInstallation;
     physicalOriginal?: Readonly<{selectTaskOriginals?: (...args: never[]) => unknown}>;
-    restoredRun?: Readonly<{compiled: unknown; graph: unknown; runDefinition: unknown}>;
+    restoredRun?: Parameters<typeof selectRestoredInferOccurrence>[0]['restored'];
     assertNewTrustedRuntime?(): void;
     finishTrustedRuntimeScope?: ModelGroup['components'][number]['selection']['finishTrustedRuntimeScope'];
   }>;
@@ -75,7 +76,7 @@ type SourceCapacity = Readonly<{
   managedRun?: unknown; wholeInput?: boolean; capacity: unknown;
   transferBytes: bigint; executionBytes: bigint;
 }>;
-type KeyedCapacity = SourceCapacity & Readonly<{maxBytes: bigint; maxWork: number}>;
+type KeyedCapacity = SourceCapacity & Readonly<{maxBytes: number; maxWork: number}>;
 type SourceLedgers = {sourceLedgerAttempted?: boolean; sourceLedgerFailure?: unknown};
 type InstalledModel = (ModelMember | ModelGroup) & SourceLedgers;
 type RunScope = Composed['control'] & PublicationExecution['core']['publicationControl'] & MemberPorts[1] &
@@ -145,11 +146,10 @@ type RestoredModelInput = RestoredRead & Readonly<{
 type ModelSession = Awaited<ReturnType<ModelBase['open']>> & Readonly<{
   prepareOriginalResourcesForDispatch(): Awaitable<void>;
 }>;
-type OpenModel = Omit<Parameters<ModelBase['open']>[0], 'originalPreparation' | 'retainEvidenceCopy'> &
-  Readonly<{originalPreparation?: OfferedOriginal}>;
+type OpenModel = Omit<Parameters<ModelBase['open']>[0], 'retainEvidenceCopy'>;
 type ModelController = Omit<ModelBase, 'open' | 'prime' | 'release'> & RestoreKeyed['modelController'] & Readonly<{
   open(input: OpenModel | Parameters<ModelBase['open']>[0]): Awaitable<ModelSession>;
-  prime(record: ModelRecord): Awaitable<Token>;
+  prime: ModelBase['prime'];
   release(token: Awaited<ReturnType<ModelBase['prime']>> | undefined): void;
   capturedContent(token: Token, definition: string): unknown;
 
@@ -171,14 +171,10 @@ type InstallMoon = Composed['moon'] & Compute['moon'] & PublicationExecution['mo
       capacities: readonly unknown[], transfer: readonly bigint[], execution: readonly bigint[]): unknown;
     clientProgramPrepareKeyedInferCapturedLedger(prepared: unknown, occurrence: unknown, direct: unknown,
       acquisition: unknown, capacity: unknown, transfer: readonly bigint[], execution: readonly bigint[],
-      maxBytes: bigint, maxWork: number, registry: unknown, values: string, fragment: string, ordered: string,
+      maxBytes: number, maxWork: number, registry: unknown, values: string, fragment: string, ordered: string,
       capturedContent: boolean): unknown;
   }>;
-type PrepareModel = {
-  (prepared: unknown, plan: Plan, selection: GroupSelected): ModelGroup & SourceLedgers;
-  (prepared: unknown, plan: Plan, selection: ModelSelection): ModelMember & SourceLedgers;
-  (prepared: unknown, plan: Plan, selection: Selected): InstalledModel;
-};
+type PrepareModel = (prepared: unknown, plan: Plan, selection: Selected) => InstalledModel;
 type KeyedRecovery = Pick<Parameters<ContentRunner['recoverKeyed']>[0], 'keyedSource' | 'ledger'>;
 type InstallOptions = Pick<Composed, 'registry' | 'values' | 'fragment' | 'ordered' | 'namespaceId' |
   'authorityScopeCid' | 'storeAuthorityCid' | 'now' | 'faultInjection' | 'inferEvidence' | 'checkpoints' |
@@ -240,7 +236,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           (acquiredInfer?.managedRun === undefined || preparationHolder === undefined) ||
           sourceCount === 0 && acquiredInfer !== undefined) throw new TypeError('InvalidInstalledRequestModelPreparation');
       const model = prepareOriginalModelRun(preparedProgram, plan, selected);
-      const original = sourceFreeModelsPreparation(moon, control, preparedProgram, plan, selected, model, acquiredInfer, preparationHolder);
+      const original = sourceFreeModelsPreparation(moon, control, preparedProgram, plan, selected, model as ModelGroup & SourceLedgers, acquiredInfer, preparationHolder);
       return runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
         store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork, submission,
         existingModel, modelClaim, assertCurrent, modelController, inferEvidence, checkpoints,
@@ -263,8 +259,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         }
         const model = prepareOriginalModelRun(preparedProgram, plan, selected);
         managedPublication = model.managed;
-        originalPreparation = sourceFreeModelPreparation(moon, control, preparedProgram, plan, selected,
-          model, acquiredInfer);
+        originalPreparation = sourceFreeModelPreparation(moon, control, preparedProgram, plan, selected as ModelSelection,
+          model as ModelMember & SourceLedgers, acquiredInfer) as OfferedOriginal;
       } else if (sourceFree && originalPreparation === undefined &&
           typeof prepareOriginalMockRun === 'function') {
         originalPreparation = prepareOriginalMockRun(preparedProgram, plan);
@@ -384,7 +380,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     }
     if (originalInstallation !== undefined && prepareOriginalModelRun !== undefined) {
       if (typeof prepareOriginalModelRun !== 'function') throw new TypeError('InstalledInferOriginalReadRuntimeUnavailable');
-      requestModel = prepareOriginalModelRun(preparedProgram, plan, selected as ModelSelection);
+      requestModel = prepareOriginalModelRun(preparedProgram, plan, selected) as ModelMember & SourceLedgers;
       managedPublication = requestModel?.managed;
       if (requestModel === null || typeof requestModel !== 'object' ||
           requestModel.prepared !== preparedProgram || requestModel.control !== control ||
@@ -452,7 +448,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         existingModel !== undefined) {
       throw new TypeError('RestoredInferOriginalPreparationUnavailable');
     }
-    const token = existingModel === undefined ? undefined : await modelController.prime(existingModel);
+    const token = existingModel === undefined ? undefined : await modelController.prime(existingModel) as Token;
     let restoredInput: RestoredModelInput | undefined, sources: readonly SourceEvidence[];
     try {
       // A fresh original installation cannot have a restored token. Its
@@ -759,7 +755,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       current();
       const admitted = control.admitComposedInferSources(selected.occurrence,
         [acquiredInfer!.captured!], [acquiredInfer!.sourceEvidence], authorityScopeCid,
-        acquiredInfer!.captureStartedAt, acquiredInfer!.captureCompletedAt);
+        acquiredInfer!.captureStartedAt!, acquiredInfer!.captureCompletedAt!);
       directRequestModel.assertRuntimeCurrent();
       // The module compiled this prefix once before adoption. Read its SAME
       // native Run/Request original; the early selection intentionally has no
@@ -1024,10 +1020,10 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         assertOriginalRuntime();
         if (boundary?.status === 'waiting') {
           if (continuation === undefined) {
-            continuation = await modelController.open({operation: operation!, preparedCallSet: boundary.preparedCallSet,
-              plan, selected: selected as ModelSelection, principalId, declaredResults, submission, signal,
+            continuation = await modelController.open({operation: operation!, preparedCallSet: boundary.preparedCallSet!,
+              plan, selected: selected as Parameters<ModelBase['open']>[0]['selected'], principalId, declaredResults, submission, signal,
               existing: existingModel, inputToken: token, claim: modelClaim,
-              originalPreparation,
+              originalPreparation: originalPreparation as (OfferedOriginal & OpenModel['originalPreparation']) | undefined,
               ...(sourceContinuation === undefined || restoredInput !== undefined ? {}
                 : {sourceContinuation: await sourceContinuation.retainAll()})});
             captureOwner.configureModelJournal({observe: continuation.observe, entry: continuation.entry});

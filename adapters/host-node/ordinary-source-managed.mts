@@ -36,6 +36,7 @@ type KeyedEffectPreparation = NonNullable<InstalledEffectModelRun['keyedPreparat
 }>;
 type SourceOccurrence = Readonly<{stage: number; input: number; task: number; computeTask?: number}>;
 type PhysicalReader = NonNullable<SourceReaderChild['reader']>;
+type ModelCoordinate = readonly [stage: number, input: number, task: number];
 type RequestSnapshot = Readonly<{
   kind: string; input: unknown; parameters?: unknown; stopBefore?: unknown; readOnly?: unknown; executionProfile?: unknown;
 }>;
@@ -109,7 +110,7 @@ type ModelPlanConstructor = (parent: unknown, receipt: object, compilation: unkn
 type ModelQuantityLimits = NonNullable<NonNullable<InstalledEffectModelRun['modelSelection']>['quantityCapacity']>['limits'];
 type PublicationControl = ReturnType<typeof runtimeCore>['publicationControl'];
 type ModelRecovery = NonNullable<OrdinaryModelMaterialsState['recovery']>;
-type RecoveryDefinition = ModelRecovery['definition'];
+type RecoveryDefinition = ModelRecovery['definition'] & Readonly<{identity: string}>;
 type RecoveryPlan = Readonly<{compiled: object; runDefinition: RecoveryDefinition}>;
 type RecoverySelection = Readonly<{
   graph: object; restoredRun?: ModelRecovery['restored']; components?: readonly RecoverySelection[];
@@ -195,7 +196,7 @@ type SourceOccurrenceRuntime = Readonly<{
 type EffectMaterialFeatures = readonly [boolean, boolean, boolean, boolean, boolean, boolean, boolean];
 type RetainedEffectMaterials = Readonly<{
   request: object; wire: string; runDefinitionCid: string; compilation: unknown; identity: unknown;
-  environment: unknown; features: EffectMaterialFeatures; value: unknown;
+  environment: unknown; features: EffectMaterialFeatures; value: object & Readonly<{then?: never}>;
 }>;
 type EffectMaterialWire = Readonly<{wire: string}>;
 type EffectMaterialMethod = 'clientProgramIssueRequestEffectPreparedOriginal' |
@@ -242,7 +243,7 @@ type State = OrdinarySourceRequestState & OrdinaryModelMaterialsState & {
   effectMaterials?: RetainedEffectMaterials;
   effectPlan?: unknown;
   contentPreparation?: RetainedContentPreparation;
-  modelSourceCoordinates?: readonly (readonly number[])[];
+  modelSourceCoordinates?: readonly ModelCoordinate[];
   sourceFreeMaxWork?: number;
   staticModelOccurrences?: readonly unknown[];
   staticModelGraphs?: unknown[];
@@ -253,8 +254,8 @@ type Producer = SourceProducerCustody & {kind?: string; body?: object; preparati
 type Run = OrdinarySourceRun<Producer> & {closed?: boolean; keyedPreparation?: KeyedEffectPreparation};
 type RegisteredRun = Run & {prepared: object; producer: Producer};
 type RequestRequirements = Parameters<typeof resourceRuntime.retainOrdinaryManagedRun>[1];
-type InstalledSource = Readonly<{declaration: object}>;
-type Bundle = Readonly<{sources: readonly InstalledSource[]; dataPath: string}>;
+type InstalledSource = Readonly<{declaration: unknown}>;
+type Bundle = Readonly<{sources: readonly InstalledSource[]; dataPath?: string}>;
 type Context = State['context'];
 type OriginalContracts = Readonly<{
   moon: Context['runtime']; admission: unknown; contracts?: Readonly<{values: string; expression: string; ordered: string}>;
@@ -278,7 +279,7 @@ type Callbacks<Original extends Originals> = Readonly<{
   effectRequirements?(originals: Original, prepared: object, operationPlan: object): RequestRequirements;
   mockRequirements?(originals: Original, prepared: object, model: unknown): RequestRequirements;
   contentRequirements?(originals: Original, prepared: object, content: unknown): RequestRequirements;
-  intent?(originals: Original, view: Readonly<{assertCurrent(): void}>, body: object): unknown;
+  intent?(originals: Original, view: Readonly<{assertCurrent(): void}>, body: object): string;
 }>;
 type InstalledPreparation = Readonly<{originals: unknown; source: boolean; current(): void}>;
 type CloseStatus = Readonly<{pending: boolean}>;
@@ -1255,13 +1256,13 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
       current();
       if (compilation !== undefined) {
         return constructEffectMaterials(prepared, request, 'clientProgramIssueRequestEffectPreparedOriginal',
-          [compilation]);
+          [compilation]) as string;
       }
       return constructEffectMaterials(prepared, request, 'clientProgramIssueRequestEffectRunMaterials',
-        [allowed, definition, identity ?? null]);
+        [allowed, definition, identity ?? null]) as string;
     },
-    captureEffectRunExplanation(prepared: object, request: object, facts: EffectExplanationFacts,
-        readEvidence: (budget: number) => EffectPlanEvidence | undefined, journal: RequestJournal, hasIntent: boolean) {
+    captureEffectRunExplanation<Evidence extends EffectPlanEvidence>(prepared: object, request: object, facts: EffectExplanationFacts,
+        readEvidence: (budget: number) => Evidence | undefined, journal: RequestJournal, hasIntent: boolean) {
       current();
       assertOriginalClientRequestJournal(journal);
       const budget = journal.originalExplanationContextLimit();
@@ -1365,7 +1366,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
       // A new inverse remains preparation-only; no parsing can enter through
       // an adopted or retired Request, or recreate its compiler from DATA.
       const value = constructEffectMaterials(prepared, request, 'clientProgramAdmitRequestEffectRunMaterialsWithCompilation',
-        [wire, runDefinitionCid, compilation, identity, f0, f1, f2, f3, f4, f5, f6]);
+        [wire, runDefinitionCid, compilation, identity, f0, f1, f2, f3, f4, f5, f6]) as RetainedEffectMaterials['value'];
       if (state.adopting || producer!.preparation !== state || state.prepared !== prepared ||
           state.context.environment !== environment) fail('ForeignInstalledSourceProducer');
       // The funded codec control reserves this fixed record and seven flags
@@ -1661,7 +1662,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
       }
       return original;
     },
-    adoptPreparation(prepared: object, request: object, identity: unknown, constructInvocation: InvocationConstructor) {
+    adoptPreparation(prepared: object, request: object, identity: unknown, constructInvocation: InvocationConstructor | undefined) {
       current();
       const producer = producerForRequest(request);
       const state = producer?.preparation;
@@ -1709,7 +1710,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
       }
     },
     adoptCapturePreparation(prepared: object, request: object, identity: unknown, constructPlan: CapturePlanConstructor,
-        constructInvocation: InvocationConstructor) {
+        constructInvocation: InvocationConstructor | undefined) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
@@ -1862,7 +1863,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
         throw cause;
       }
     },
-    modelSourceCoordinates(prepared: object, request: object): readonly (readonly number[])[] | undefined {
+    modelSourceCoordinates(prepared: object, request: object): readonly ModelCoordinate[] | undefined {
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
       if (state?.recovery !== undefined) {
@@ -2314,7 +2315,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
           ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {}),
       ...(Object.hasOwn(body, 'executionProfile') ? {executionProfile: body.executionProfile} : {})};
         const moon = state.context.runtime;
-        const cid = checked(moon.clientProgramPrepareRequestSubmittedIntent(state.parent, receipt, value));
+        const cid = checked(moon.clientProgramPrepareRequestSubmittedIntent(state.parent, receipt, value)) as string;
         // The original native/canonical/writer stack has returned. Only now
         // may the same owner reduce its temporary constructor peak.
         checked(moon.clientProgramFinishRequestSubmittedIntent(state.parent, receipt));

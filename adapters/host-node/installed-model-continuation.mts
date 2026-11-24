@@ -22,6 +22,7 @@ import {selectedInferOriginalCurrentStateCodec,
   snapshotInferOriginalCurrentStateCodec as originalCurrentCodecLimits} from './infer-original-installation.mjs';
 
 import type {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {installHostRunAcceptance} from './client-checkpoints.mjs';
 import type {createLocalAuthorizationGate} from './local-account-config.mjs';
 import type {openNodeInferOperation} from './infer-operation.mjs';
 
@@ -91,16 +92,18 @@ type Selected = Record<string, unknown> & PreparedEvidence['selected'] & Readonl
   }>): ResponseReply | null | undefined | PromiseLike<ResponseReply | null | undefined>;
 }>;
 type OriginalPreparation = Readonly<{
-  scope: unknown; control: Control; compiled: Compiled; runDefinition: RunDefinition;
+  scope?: unknown; control?: unknown; compiled: unknown; runDefinition: unknown;
   nodeInstallation: Parameters<Control['checkCheckedClientInferOriginalParkedStorageOrigin']>[6];
   metadataInstallation: Parameters<typeof selectedInferOriginalCurrentStateCodec>[0];
 }>;
+type InstalledModelCheckpoint = NonNullable<Awaited<ReturnType<typeof installHostRunAcceptance>>['checkpoints']>;
+type ModelJournalPort = NonNullable<Parameters<InstalledModelCheckpoint['modelAuthorization']>[0]['journalPort']>;
 type OpenOptions = Readonly<{
   operation: Operation; preparedCallSet: object; plan: Plan; selected: Selected; principalId: string;
   declaredResults: readonly string[]; submission: unknown; signal?: AbortSignal;
   existing?: SourceInventory; inputToken?: Token; claim?: Claim; parentResume?: ImmediateInput['parentResume'];
-  journalPort?: Pick<Journal, 'admitResume'>;
-  sourceContinuation?: Snapshot['sourceContinuation']; retainEvidenceCopy: PreparedEvidence['retainCopy'];
+  journalPort?: ModelJournalPort & Pick<Journal, 'admitResume'>;
+  sourceContinuation?: Snapshot['sourceContinuation']; retainEvidenceCopy?: PreparedEvidence['retainCopy'];
   originalPreparation?: OriginalPreparation; preserveEvidenceInputs?: boolean;
 }>;
 type GateOptions = Readonly<{
@@ -110,13 +113,13 @@ type GateOptions = Readonly<{
   beforeDefer(): Promise<void>; attachImmediate: boolean; journalPort?: OpenOptions['journalPort'];
 }>;
 type RetainedCutFacts = ReturnType<CheckpointCustody['originalModelStateSavedFacts']>;
-type StorageBinding = unknown;
-type StateReceipt = unknown;
-type StateObservation = unknown;
+type StorageBinding = Awaited<ReturnType<InstalledModelCheckpoint['observeModelOriginalStorageBindingSelected']>>;
+type StateReceipt = Awaited<ReturnType<InstalledModelCheckpoint['retainOriginalModelStateSelected']>>;
+type StateObservation = Awaited<ReturnType<InstalledModelCheckpoint['confirmOriginalModelStateSavedSelected']>>;
 type StorageRead = Readonly<{storageBinding: StorageBinding; runDefinition: RunDefinition}>;
 type StateRead = StorageRead & Readonly<{receipt: StateReceipt}>;
 type CheckpointInstallation = CheckpointCustody & Readonly<{
-  modelContext: Readonly<{accountId: string; configurationCid: string; contextCid: string}>;
+  modelContext: Readonly<{accountId: string | undefined; configurationCid: string | undefined; contextCid: string | undefined}>;
   retainModelInput(inputs: Readonly<{runId: string; runDefinitionCid: string; bodyWire: string}>): Promise<Receipt>;
   modelAuthorization(inputs: GateOptions): Promise<ModelGate>;
   modelOriginalStorageBindingEvidence(binding: StorageBinding): Promise<unknown>;
@@ -958,7 +961,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
           ? await gate!.authorize({signal})
           : await gate!.resume({signal, resumption: {claim: {checkpointCid: existing!.checkpointCid!, claim}}});
         checkpoints();
-        if (decision.action === 'waiting') return {status: 'waiting_checkpoint', checkpoint: decision.checkpoint};
+        if (decision.action === 'waiting') return {status: 'waiting_checkpoint', checkpoint: decision.checkpoint} as const;
         if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
         if (!owner.available) fail('ModelContinuationClosed');
         signal?.throwIfAborted();
@@ -1101,7 +1104,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
           }
           unreconciled.delete(slot);
         }
-        return {status: 'dispatch'};
+        return {status: 'dispatch'} as const;
       },
       // Closing revokes use immediately; a late physical callback remains
       // this continuation's responsibility until the same gate settles.
@@ -1129,7 +1132,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     capturedContentBinding: (token: Token, runDefinitionCid: string) =>
       ownedInput(token, runDefinitionCid).capturedContentBinding,
     retire: (record: Pick<SourceInventory, 'originals'>) => retireReceipt(record.originals.fixedInputReceiptWire),
-    discover: (runId: string) => checkpoints().journal.discoverModelCallSets({runId, limit: 100}),
+    discover: (runId: string) => checkpoints().journal.discoverModelCallSets({runId, limit: 100}) as readonly SourceInventory[],
     unresolved: (runId: string) => checkpoints().journal.hasUnresolvedModelCalls(runId),
     state: (identity: Parameters<Journal['readModelCalls']>[0]) => checkpoints().journal.readModelCalls(identity),
     savedScope(plan: Plan, preparedProgram: unknown, selected: Selected, token: Token) {

@@ -20,8 +20,10 @@ type Operation = CaptureOptions['operation'];
 type Restored = NonNullable<Bind['restoredInput']>;
 type ProjectionContinuation = NonNullable<Publication['children'][number]['continuation']>;
 type Entry = Parameters<Capture['persistSettlement']>[1] & NonNullable<ReturnType<ProjectionContinuation['entry']>>;
-type SavedRecord = Readonly<{inventory: Readonly<{taskIndex: number; scopeCid: string}>}>;
-type SavedToken = Restored['token'] & Readonly<{snapshot: Restored['snapshot'] & Readonly<{sourceContinuation?: unknown}>}>;
+type ConfiguredModel = Awaited<ReturnType<typeof import('./installed-model-continuation.mjs').installNodeModelContinuation>>;
+type ConfiguredOpen = Parameters<ConfiguredModel['open']>[0];
+type SavedRecord = Parameters<ConfiguredModel['prime']>[0];
+type SavedToken = Awaited<ReturnType<ConfiguredModel['prime']>>;
 type Evidence = NonNullable<CaptureOptions['sourceEvidence']>[number];
 type EvidenceSource = Readonly<{captured: Readonly<{identity: unknown}>; sourceEvidence: Evidence}>;
 type SourceUnitPublication = Parameters<typeof prepareAcquiredEffectSourceUnits>[0];
@@ -54,12 +56,7 @@ type ModelController = Readonly<{
     slots: ReturnType<NonNullable<Restored['sendSlots']>>;
   }>;
   savedScope(plan: Plan, prepared: unknown, selection: Selection, token: SavedToken): unknown;
-  open(options: Readonly<{
-    operation: Operation; preparedCallSet: unknown; preserveEvidenceInputs: boolean; plan: Plan; selected: Selection;
-    principalId?: string; submission: unknown; signal?: AbortSignal; declaredResults: readonly string[];
-    originalPreparation: OriginalPreparation; existing?: SavedRecord; inputToken?: SavedToken;
-    claim?: unknown; parentResume: unknown; journalPort: unknown; sourceContinuation: unknown;
-  }>): Promise<Continuation>;
+  open(options: ConfiguredOpen): Promise<Continuation>;
 }>;
 type UnitResult = Readonly<{index: number; artifact: unknown; manifest: unknown}>;
 type Child = Omit<Publication['children'][number], 'continuation'> & {
@@ -254,11 +251,11 @@ export function acquiredEffectModelGroup({moon, acquired, infer, originalModelCo
       const sourceClosure = await sourceContinuation?.retainAll(); same();
       child.continuation = await modelController!.open({operation: child.operation, preparedCallSet,
         preserveEvidenceInputs: false,
-        plan, selected: child.authorizationSelection, principalId, submission, signal,
+        plan: plan as Plan & ConfiguredOpen['plan'], selected: child.authorizationSelection, principalId, submission, signal,
         declaredResults: moon.clientProgramEffectCompilationResultNames(acquired.compilation),
         originalPreparation: child.originalPreparation, existing: child.record, inputToken: child.token,
         ...(child.record?.inventory.scopeCid === existingModel?.inventory.scopeCid ? {claim: modelClaim} : {}),
-        parentResume, journalPort: modelJournalPort, sourceContinuation: sourceClosure});
+        parentResume, journalPort: modelJournalPort, sourceContinuation: sourceClosure} as ConfiguredOpen);
       same();
       child.capture.configureModelJournal({observe: child.continuation.observe, entry: child.continuation.entry});
       if (child.record !== undefined && !child.continuation.hasResponseReconciliation) return {action: 'resume'};
@@ -306,7 +303,7 @@ export function acquiredEffectModelGroup({moon, acquired, infer, originalModelCo
         if (candidates.length === 0) continue;
         child.record = candidates[0]; matched.add(child.record.inventory.scopeCid);
         child.token = await modelController.prime(child.record); same();
-        const snapshot = child.token.snapshot;
+        const snapshot = child.token.snapshot as NonNullable<SavedToken['snapshot']> & Restored['snapshot'];
         if (moon.clientProgramEffectAcquisitionCount(acquired.prepared) > 0 &&
             (sourceContinuation?.restoringModel !== true || snapshot.sourceContinuation === undefined)) {
           throw new Error('ModelSourceClosureCustodyUnavailable');

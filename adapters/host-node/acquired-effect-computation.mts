@@ -94,7 +94,7 @@ type ModelEffect = Parameters<typeof acquiredInferEffectPublicationPlan>[0];
 type SourceAdapter = ContinuedSource['adapter'] & Readonly<{
   admitsSource(sourceRef: string): boolean; realizationKey: string; sourceAccess?: SourceAccess;
   prepare(input: SourceFacts & Readonly<{queryTimePreparation?: unknown; requestIdentity: unknown;
-    managedRun: unknown}>): PreparedSource | Promise<PreparedSource>;
+    managedRun: unknown}>): PreparedSource | PromiseLike<PreparedSource>;
   open(input: SourceFacts & Readonly<{signal?: AbortSignal; preparedSource: PreparedSource;
     ledger: unknown; reportAcquisitionFailure: ReturnType<typeof acquisitionEndHandoff>['retain']}>): Capture | Promise<Capture>;
   ledgerCapacity(prepared: PreparedSource): Readonly<{capacity: unknown; transferBytes: bigint;
@@ -602,7 +602,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       let restored: ContentRecovery | undefined;
       if (modelToken !== undefined) {
         restoredModelInput = {
-          token: modelToken, snapshot: modelToken.snapshot,
+          token: modelToken, snapshot: modelToken.snapshot!,
           sendSlots: () => modelController!.state(modelRecord!.inventory).slots,
           savedScope: modelController!.savedScope(modelPlan!, acquired.prepared, infer!, modelToken),
         };
@@ -637,7 +637,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       const plan = modelPlan ?? {compiled, runDefinition: acquired.runDefinition};
       modelPlan = plan;
       const restoredInput = restoredModelInput ?? (modelToken === undefined ? undefined : {
-        token: modelToken, snapshot: modelToken.snapshot,
+        token: modelToken, snapshot: modelToken.snapshot!,
         sendSlots: () => modelController!.state(modelRecord!.inventory).slots,
         savedScope: modelController!.savedScope(plan, acquired.prepared, infer, modelToken),
       });
@@ -848,7 +848,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
           plan: modelPlan!, selected: infer!, principalId,
           declaredResults: moon.clientProgramEffectCompilationResultNames(acquired.compilation),
           submission, signal, existing: modelRecord, inputToken: modelToken, claim: modelClaim, parentResume,
-          journalPort: modelJournalPort, sourceContinuation: sourceClosure});
+          journalPort: modelJournalPort, sourceContinuation: sourceClosure} as ModelOpen);
         current();
         inferCapture.configureModelJournal({observe: modelContinuation.observe, entry: modelContinuation.entry});
         if (modelRecord !== undefined) return {action: 'resume'};

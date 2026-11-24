@@ -85,7 +85,8 @@ export function createOrdinarySourceRequestCustody<Original extends OriginalCont
   const {originals, current, fail, callbacks, receipts, producers, runs, liveRuns,
     retainSourceInitializationMaterial, retainedRunCurrent, releaseFinishedProducer, producerFor,
     producerForRequest, requestProducers, reportCapacityRefusal} = ports;
-  function originalTimedInvocation<Value>(state: State, producer: Producer, prepared: unknown, construct: (artifact: unknown) => Value, contracts?: Contracts) {
+  function originalTimedInvocation<Value>(state: State, producer: Producer, prepared: unknown,
+      construct: ((artifact: unknown) => Value) | undefined, contracts?: Contracts) {
     if (state.requiresQueryTime !== true) return undefined;
     const moon = state.context.runtime, compile = moon.clientProgramPrepareRequestProgramCompilation;
     const issue = moon.clientProgramRequestProgramModuleIssueCode;
@@ -115,7 +116,7 @@ export function createOrdinarySourceRequestCustody<Original extends OriginalCont
     assertOriginal();
     // The typed bridge returns its original Option. Forward it unchanged;
     // JavaScript does not construct or inspect a tuple representation.
-    const invocation = construct(artifact);
+    const invocation = construct!(artifact);
     assertOriginal();
     return invocation;
   }

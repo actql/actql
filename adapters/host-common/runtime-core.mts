@@ -48,7 +48,9 @@ type Evidence = Readonly<{name: string; identity: string; wire: string}>;
 type CommonObject = Extract<import('./runtime-result.mjs').SynchronousRuntimeData, object>;
 type EvidenceBody = Readonly<{kind: string; cid?: string; wire: string}>;
 type CompiledRun = Readonly<{kind: string}>;
+type ClientCompilationKind = 'values' | 'tasks' | 'infer' | 'serialization';
 type ResultPolicy = Readonly<{kind: string; cid: string; wire: string}>;
+type SourceFreeResultPolicy = ResultPolicy & Readonly<{kind: 'data_policy'}>;
 type CompilationPolicy = Readonly<{
   executionContextCid: string; hostPolicyCid: string; expiresAt: string; resultDataPolicy?: ResultPolicy;
 }>;
@@ -64,6 +66,8 @@ type SourceCapture = Readonly<{
     originalCapturedInput(): unknown;
   }>;
 }>;
+type ComposedSourceCapture = Omit<SourceCapture, 'capture' | 'inputKind'> &
+  Readonly<{inputKind?: string; capture: Pick<SourceCapture['capture'], 'source'>}>;
 type SourceInput = Readonly<{captured: SourceCapture; sourceEvidence: unknown}>;
 type InvocationSource = Readonly<{
   captured: SourceCapture; sourceEvidence: unknown; sources?: readonly SourceInput[];
@@ -77,7 +81,7 @@ type RetentionSelection = Readonly<{
 }>;
 type PrivateStorage = Readonly<{namespaceId: string; storeAuthorityCid: string; availabilityEvidenceCid: string;
   issuerContractCid: string}>;
-type InstalledEffectOriginal = Readonly<{runtime: unknown; closed: boolean; prepared: unknown; value?: unknown; request?: unknown}>;
+type InstalledEffectOriginal = Readonly<{runtime: unknown; closed?: boolean; prepared: unknown; value?: unknown; request?: unknown}>;
 type EffectPreparationDependencyOwner = Parameters<Parameters<typeof createEffectPreparationControls>[1]['localEffectDependencyTokens']['set']>[1];
 type ModelEffectDependency = Readonly<{kind: 'preconsumer_model' | 'model'; issued: unknown; original: unknown}>;
 type ImportedEffectDependency = Readonly<{kind: 'imported'; issued: unknown; originalSources: readonly unknown[]}>;
@@ -958,7 +962,7 @@ function publicationControl(moon: RuntimeBindings) {
         'RunHostResultPolicyRejected');
       }
       const result = Object.freeze({
-        kind,
+        kind: kind as ClientCompilationKind,
         template: inspectEvidence(moon.clientProgramCompiledRunTemplate(value)),
         compiledPlan: inspect(moon.clientProgramCompiledRunPlan(value)),
         preparedEvidence: inspectEvidence(
@@ -971,7 +975,7 @@ function publicationControl(moon: RuntimeBindings) {
       compiledRunTokens.set(result, value);
       return result;
     },
-    admitSourceFreeResultPolicy(resultPolicy: ResultPolicy, limits: WireLimits) {
+    admitSourceFreeResultPolicy(resultPolicy: ResultPolicy, limits: WireLimits): SourceFreeResultPolicy {
       if (resultPolicy?.kind !== 'data_policy' ||
           typeof resultPolicy.cid !== 'string' ||
           typeof resultPolicy.wire !== 'string' ||
@@ -983,8 +987,9 @@ function publicationControl(moon: RuntimeBindings) {
       const original = checked(moon.clientProgramAdmitSourceFreeResultPolicyBody(
         resultPolicy.cid, resultPolicy.wire,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      // Common admits a captured dependency body tagged data_policy and supplies its CID and wire.
       return Object.freeze({kind: runtimeField(original, 0), cid: runtimeField(original, 1),
-        wire: runtimeField(original, 2)});
+        wire: runtimeField(original, 2)}) as SourceFreeResultPolicy;
     },
     adoptCheckedClientEffectInferRun(allowed: unknown, definition: unknown, resultPolicy?: ResultPolicy | undefined, limits?: WireLimits) {
       if (resultPolicy !== undefined &&
@@ -1143,7 +1148,7 @@ function publicationControl(moon: RuntimeBindings) {
           !facts.every(value => typeof value === 'string')) {
         throw new TypeError('Invalid recovered Effect Source facts');
       }
-      return facts;
+      return facts as unknown as readonly [string, string, string, string, string, string];
     },
     checkedRecoveredSourceContentCandidate(original: unknown, prepared: unknown, request: unknown,
       referenceWire: string, bindingWire: string, limits: Tail<BindingParameters<'clientProgramRecoveredSourceContentCandidate'>, 5>) {
@@ -1257,7 +1262,7 @@ function publicationControl(moon: RuntimeBindings) {
         captured.logicalInput, evidenceToken(sourceEvidence), authorityScopeCid,
         dataPolicyCid, startedAt, completedAt));
     },
-    admitComposedInferSources(occurrence: unknown, captures: readonly SourceCapture[], sourceEvidence: readonly unknown[], authorityScopeCid: string,
+    admitComposedInferSources(occurrence: unknown, captures: readonly ComposedSourceCapture[], sourceEvidence: readonly unknown[], authorityScopeCid: string,
       startedAt: string, completedAt: string, keyed?: unknown) {
       if (captures.some(value => value.inputKind === 'whole-input')) {
         if (captures.some(value => value.inputKind !== 'whole-input' || value.wholeCapacity === undefined)) {

@@ -9,9 +9,7 @@ import {assertSourceManagedHostPreparation, assertRetainedSourceManagedHost, pre
   readSourceManagedEffectRunRequirements,
   readLocalMockModelRunRequirements, readLocalContentRunRequirements,
   prepareInstalledSequenceContractOriginal,
-  readLocalPreparationContext, retireSourceManagedInitialPreparation}
-  // @ts-expect-error TS7016: these fixed Host operations still belong to authored JavaScript.
-  from './embedded-local.mjs';
+  readLocalPreparationContext, retireSourceManagedInitialPreparation} from './embedded-local.mjs';
 
 type NativeMethod = (...args: unknown[]) => unknown;
 type CallbackTable = readonly (NativeMethod | undefined)[];
@@ -28,7 +26,8 @@ type CleanupCarrier = Error & {
 type BorrowingHost = Readonly<{
   installation: Readonly<{borrowSourceInitializationMaterial?: NativeMethod}>;
 }>;
-type OrdinaryOriginals = Parameters<typeof prepareOrdinarySourceManagedInstallation>[0] & BorrowingHost;
+type OrdinaryOriginals = Parameters<typeof prepareOrdinarySourceManagedInstallation>[0] &
+  Parameters<typeof readInstalledMockPreparation>[0] & BorrowingHost;
 
 // The actual ordinary prefix or the unchanged preload initializes this ESM
 // namespace. Capture that SAME published receiver before application entry;
@@ -181,7 +180,7 @@ export function prepareProjectSourceManagedInstallation(originals: unknown): Pro
   if (explicitStartup) unavailable();
   return prepareOrdinaryProjectSourceManagedInstallation<OrdinaryOriginals>(originals as OrdinaryOriginals, {
     validator: assertSourceManagedHostPreparation, retainedValidator: assertRetainedSourceManagedHost, borrowSourceInitializationMaterial,
-    prepare: () => {readInstalledProjectSourcePreparation(originals);},
+    prepare: () => {readInstalledProjectSourcePreparation(originals as OrdinaryOriginals);},
     read: readInstalledProjectSourcePreparation, request: originalSourceManagedHostRequest,
     intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,
     effectRequirements: readSourceManagedEffectRunRequirements,

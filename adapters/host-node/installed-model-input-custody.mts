@@ -11,7 +11,8 @@ type Snapshot = Readonly<{
   scopeCid: string; inputArtifactCid: string; originals: Originals;
   binding: string; descriptorWire: string; rows: readonly unknown[];
   callScopeSnapshotWire: string; providerOriginals?: unknown; submission: unknown;
-  sourceContinuation?: unknown; providerInputs?: readonly unknown[];
+  sourceContinuation?: unknown;
+  providerInputs?: Parameters<Parameters<typeof import('./infer-evaluation-evidence.mjs').withPreparedInferEvidence>[0]['consume']>[0];
   contentGeneration?: RestoredContent['snapshot']['contentGeneration'];
   capturedContent?: RestoredContent['capturedContent']; capturedContentBinding?: RestoredContent['capturedContentBinding'];
 }>;

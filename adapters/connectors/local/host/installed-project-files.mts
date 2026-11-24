@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import type {SynchronousRuntimeData} from '../../../host-common/runtime-result.mjs';
 import {runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';
 import {createInstalledRowSource,rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {composeInstalledCheckEnvironment} from '../../../host-node/installed-check-environment.mjs';
@@ -126,7 +127,7 @@ type Options = Readonly<{moon: Runtime; preparation: Preparation; sourceManaged:
   prepareManagedRun?(request: PrepareRun & Readonly<{sourceProfile: ProfileView | undefined}>): unknown;
   prepareManagedContentRun?(prepared: unknown, request: unknown, graph: unknown, recipe: Recipe,
     constructPlan: (parent: unknown, requestInput: unknown) => unknown, contentPreparation: ContentPreparation): HostRun | undefined;
-  construction?: Readonly<{prepareNativeInput<Result>(plan: Readonly<{capacity(): unknown; project(): Result}>): Result}>;
+  construction?: Readonly<{prepareNativeInput<Result extends Extract<SynchronousRuntimeData, object>>(plan: Readonly<{capacity(): unknown; project(): Result}>): Result}>;
 }>;
 type FileRequest = Readonly<{resource: unknown; version: string}>;
 type FileLimits = keyof Entry['limits'];

@@ -51,7 +51,7 @@ type ResourceCut = Readonly<{
 type InputIdentity = Readonly<{digest: string; receipt: Receipt; scopeCid: string; inputArtifactCid: string}>;
 type CheckpointInstallation = Readonly<{
   journal: Journal;
-  readModelInput(receipt: Receipt): Promise<Uint8Array<ArrayBuffer>>;
+  readModelInput(receipt: Receipt): Promise<Uint8Array<ArrayBufferLike>>;
   originalModelStateSavedFacts(observation: unknown): SavedFacts;
   originalModelStateSavedObservationCurrent(observation: unknown): unknown;
 }>;

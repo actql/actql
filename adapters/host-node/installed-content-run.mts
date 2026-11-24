@@ -96,6 +96,9 @@ type Preparation = {
   acquiredLedgerAttempted?: boolean;
   acquiredLedger?: CommonObject;
 };
+type RetainedPreparation<Original extends Preparation | KeyedPreparation = Preparation | KeyedPreparation> = Original & Readonly<{
+  releaseAliases(managed: Managed | undefined, inputHolder: unknown): undefined;
+}>;
 type KeyedRecipe = Bodies & PrepareGraph & Readonly<{keyedAcquisition: unknown; prefixLimits: PrefixLimits; workspace: Workspace}>;
 type KeyedPreparation = Omit<Preparation, 'plan'> & {
   plan?: RunPlan;
@@ -105,7 +108,8 @@ type KeyedPreparation = Omit<Preparation, 'plan'> & {
 };
 type LedgerCapacity = Readonly<{capacity: unknown; transferBytes: bigint; executionBytes: bigint}>;
 type KeyedCapacity = LedgerCapacity & Readonly<{maxBytes: number; maxWork: number}>;
-type AcquiredContent = Readonly<{
+type CaptureProof = Parameters<ReturnType<typeof import('../host-common/runtime-core.mjs').runtimeCore>['publicationControl']['bindCheckedClientSerializationCapture']>[3];
+type AcquiredContent = CaptureProof & Readonly<{
   ledger: CommonObject;
   captured: Readonly<{capture: Readonly<{source(): CommonObject; originalRowCapture(): unknown}>}>;
   keyedLookup?: CommonObject;
@@ -180,7 +184,7 @@ type Publications = PublicationPlan['control'] & Complete['control'] &
     bindCheckedClientSerializationCapture(prepared: unknown, graph: PrepareGraph,
       captured: AcquiredContent['captured'], acquired: AcquiredContent): unknown;
     compiledSerializationGraph(compiled: unknown): PrepareGraph;
-    checkedClientSerializationInputRows(compiled: unknown, graph: PrepareGraph): number;
+    checkedClientSerializationInputRows(compiled: unknown, graph: PrepareGraph): number | undefined;
     prepareCheckedClientEffectContentOriginal(prepared: unknown, compiled: unknown, compilation: unknown,
       definition: EffectFacts['runDefinition'], graph: PrepareGraph, bodies: Bodies,
       ...args: Parameters<ManagedFamily['prepare']>): ReturnType<ManagedFamily['prepare']>;
@@ -218,13 +222,13 @@ type Setup = Bodies & Pick<CaptureSetup, 'namespaceId' | 'authorityScopeCid' | '
   assertRunCurrent?: () => undefined;
   preparedRunRequired?: boolean;
   prepareKeyedManagedRun?: (prepared: CommonObject, request: unknown, graph: PrepareGraph,
-    recipe: KeyedRecipe, original: KeyedPreparation) => Managed | undefined;
+    recipe: KeyedRecipe, original: RetainedPreparation<KeyedPreparation>) => Managed | undefined;
   borrowKeyedManagedLedger?: (prepared: CommonObject, request: unknown, recipe: KeyedRecipe | undefined,
     direct: LedgerCapacity, keyed: unknown, capacity: KeyedCapacity) => CommonObject | undefined;
   prepareSerializationManagedRun?: (prepared: CommonObject, request: unknown, plan: RunPlan,
-    limits: PrefixLimits, workspace: Workspace | undefined, original: Preparation) => Managed | undefined;
+    limits: PrefixLimits, workspace: Workspace | undefined, original: RetainedPreparation<Preparation>) => Managed | undefined;
   prepareModelManagedRun?: (prepared: CommonObject, request: unknown, model: ModelPreparation) => Managed | undefined;
-  retainPreparation?: (prepared: CommonObject, original: Preparation | KeyedPreparation) => unknown;
+  retainPreparation?: (prepared: CommonObject, original: RetainedPreparation) => unknown;
   prepareSerializationOutputDemand?: (prepared: CommonObject, compiled: unknown, selection: PrepareGraph | undefined,
     generation: GenerationLimits, reference: ReferenceLimits, contract: ContractLimits, output: OutputLimits,
     identitySlots: number) => Demand;
@@ -289,7 +293,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   }
   function retainOriginalPreparation(prepared: CommonObject, original: Preparation | KeyedPreparation) {
     Object.defineProperty(original, 'releaseAliases', {value: releasePreparationAliases});
-    try { retainPreparation!(prepared, original); }
+    try { retainPreparation!(prepared, original as RetainedPreparation); }
     catch (cause) {
       // The fixed retainer refuses before taking this record. No constructor
       // or physical child has started; its unaccepted slot is not a Run.
@@ -619,7 +623,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       // Retain the SAME Host bag before current/requirements projections.
       // The Request constructor owns the provider and original compilation.
       selectOriginalOutputDemand(preparedProgram, original);
-      original.managed = prepareSerializationManagedRun(preparedProgram, request, plan, prefixLimits, original.workspace, original);
+      original.managed = prepareSerializationManagedRun(preparedProgram, request, plan, prefixLimits, original.workspace, original as RetainedPreparation<Preparation>);
       if (original.managed === undefined || original.managed.value === undefined ||
           original.managed.serialization === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
       original.capacity = control.requestPrefixCapacity(original.managed.serialization);
@@ -706,7 +710,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       const {task, step} = serializationGraph;
       original.recipe = Object.freeze({...bodies, task, step, keyedAcquisition,
         prefixLimits, workspace});
-      original.managed = prepareKeyedManagedRun(preparedProgram, request, serializationGraph, original.recipe, original);
+      original.managed = prepareKeyedManagedRun(preparedProgram, request, serializationGraph, original.recipe, original as RetainedPreparation<KeyedPreparation>);
       if (original.managed === undefined || original.managed.value === undefined ||
           original.managed.selectedKeyed === undefined || original.managed.contentCompilation === undefined) {
         throw new TypeError('InstalledContentRunPreparationUnavailable');

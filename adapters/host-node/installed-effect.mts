@@ -32,6 +32,7 @@ import {installedConnectorFor, installedConnectorForTable, installedEffectTable,
   verifyInstalledConnectorRegistration} from './installed-connectors.mjs';
 
 import type {EffectOwner} from './installed-effect-inventory.mjs';
+import type {createInstalledEffectSite} from './installed-effect-site.mjs';
 
 type Awaitable<Value> = Value | PromiseLike<Value>;
 type Installation = ReturnType<typeof installedConnectorFor>;
@@ -58,13 +59,14 @@ type ProviderOptions = Readonly<{
 }>;
 type LoadOptions = ProviderOptions & Readonly<{installationServices?: BoundSource[0]}>;
 type PublishOptions = ProviderOptions & Readonly<{signal?: AbortSignal}>;
-type InstalledPorts = Readonly<{
-  mappings?: unknown; targetReadInventory?: unknown; targetReadAuthorization?: unknown;
-  prepareManagedPlan?(facts: unknown, inputs: unknown): unknown;
+type Site = Parameters<typeof createInstalledEffectSite>[0];
+type InstalledPorts = Pick<Site, 'targetReadInventory' | 'targetReadAuthorization' | 'prepareManagedPlan'> & Readonly<{
+  mappings?: unknown;
   prepareCaptured(facts: unknown): unknown; prepareRecovered(facts: unknown): unknown;
   close(): unknown;
 }>;
 type LoadedEffect = EffectOwner & InstalledPorts;
+type LoadedEffectInventory = Awaited<ReturnType<typeof composeInstalledEffects<string, LoadOptions & ComposeOptions, LoadedEffect>>>;
 type EffectPaths = Readonly<{effectProfilePath?: string; effectProfilePaths?: readonly string[]}>;
 
 
@@ -291,7 +293,7 @@ async function loadEffect(path: unknown, {root, principalId, moon,
   });
 }
 
-export async function loadInstalledEffect(path: unknown, options: LoadOptions) {
+export async function loadInstalledEffect(path: unknown, options: LoadOptions): Promise<LoadedEffect | undefined> {
   if (path === undefined) return undefined;
   let installed: LoadedEffect | undefined;
   try {
@@ -316,7 +318,7 @@ export function installedEffectPaths({effectProfilePath, effectProfilePaths}: Ef
   return path === undefined ? Object.freeze([]) : Object.freeze([path]);
 }
 
-export async function loadInstalledEffects(paths: unknown, options: LoadOptions) {
+export async function loadInstalledEffects(paths: unknown, options: LoadOptions): Promise<LoadedEffect | LoadedEffectInventory | undefined> {
   if (!Array.isArray(paths)) refuse('InvalidInstalledEffectProfiles');
   if (paths.length < 2) return loadInstalledEffect(paths[0], options);
   if (!validPluralEffectPaths(paths)) refuse('InvalidInstalledEffectProfiles');

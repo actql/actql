@@ -4,11 +4,11 @@
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
 type RunParent = Extract<SynchronousRuntimeData, object>;
-type Method = (...args: unknown[]) => unknown;
+type Method = (...args: never[]) => unknown;
 type ManagedSource = Readonly<{
   [name: string]: unknown;
-  prepare?: (facts: unknown) => object | Promise<object>;
-  ledgerCapacity?: (prepared: object) => Readonly<Record<string, unknown>>;
+  prepare?(facts: object): object | Promise<object>;
+  ledgerCapacity?(prepared: object): Readonly<Record<string, unknown>>;
   managedCaptureCapacity?: Method;
   managedWholeSourceCapacity?: Method;
 }>;

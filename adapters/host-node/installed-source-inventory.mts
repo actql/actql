@@ -12,6 +12,7 @@ import type {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import type {createLocalAuthorizationGate} from './local-account-config.mjs';
 
 type SourceConstructor = ReturnType<typeof captureSourceAliasConstruction>;
+type SourceAuthorization = Pick<NonNullable<Parameters<typeof createLocalAuthorizationGate>[0]>, 'accountConfiguration' | 'context'>;
 type SourceSelector = Readonly<{admitsSource: (sourceRef: string) => boolean}>;
 type SourceReadAccess = Readonly<{
   sourceRef: string;
@@ -22,15 +23,15 @@ type SourceReadAccess = Readonly<{
 type ReadableSource<Access extends SourceReadAccess = SourceReadAccess> = Partial<SourceSelector> & Readonly<{
   sourceAccess: Access;
   sourceReadAccesses?: readonly Access[];
-  readAuthorization?: Readonly<{accountConfiguration?: unknown; context?: unknown}>;
+  readAuthorization?: SourceAuthorization;
   ledgerCapacity?: unknown;
 }>;
 type SourceProfile<Member> = (Member & {sources?: undefined}) | Readonly<{sources: readonly Member[]}>;
 type SourcePaths = Readonly<{sourceProfilePath?: string; sourceProfilePaths?: unknown}>;
 type CheckpointConfiguration = Readonly<{
   sourceRef: string;
-  accountConfiguration: unknown;
-  context: unknown;
+  accountConfiguration: SourceAuthorization['accountConfiguration'];
+  context: SourceAuthorization['context'];
 }>;
 type AccountGate = Awaited<ReturnType<typeof createLocalAuthorizationGate>>;
 type CheckpointSource = {

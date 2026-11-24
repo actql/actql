@@ -60,7 +60,7 @@ type Runtime = Readonly<{
   clientProgramCleanupInferExecution(active: unknown): unknown;
   clientProgramAdvanceInferExecution(active: unknown, quantum: number): unknown;
   clientProgramInferExecutionPollKind(value: unknown): string;
-  clientProgramInferPreparedCallSet(active: unknown): unknown;
+  clientProgramInferPreparedCallSet(active: unknown): object | undefined;
   clientProgramInferCallSettlement(active: unknown): unknown;
   clientProgramInferExecutionOutput(value: unknown): unknown;
   clientProgramInferExecutionPollIssue(value: unknown): unknown;
@@ -300,7 +300,7 @@ type SerializedInput = CapturedContent & Readonly<{control: ContentControl; comp
   generation: unknown; inputs?: readonly unknown[]; recovery?: unknown}>;
 type Quantities = Readonly<{tokens: bigint; costUnits: bigint; durationMs: bigint}>;
 type QuantityCapacity = Readonly<{limits: Quantities; perAttempt: Quantities}>;
-type RunOutput = Readonly<{status?: string; preparedCallSet?: unknown; settlement?: unknown}>;
+type RunOutput = Readonly<{status?: string; preparedCallSet?: object; settlement?: unknown}>;
 type ObservationInputs = ObservationBounds & Readonly<{ledger?: unknown; operations?: readonly ObservationOperation[]}>;
 type ObservationOperation = Readonly<{
   publicationCapacityPending(): boolean;
@@ -1459,7 +1459,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       moon.clientProgramInferCallEntryCurrent(entry, preparedCallSet),
     // Installation-only wake endpoint of this already claimed operation.
     // It is not an ACK, public capability or permission to begin another call.
-    ioNotification,
+    ioNotification: ioNotification as ReturnType<typeof createInferIoNotification> | undefined,
     hasModelCredentialPreparation: () => credentialPreparations !== undefined || credentialFailure !== undefined,
     prepareModelCredentials(preparedCallSet: unknown, entered: Pick<ReadonlySet<number>, "has">, assertCurrent: () => void) {
       if (credentialFailure !== undefined) throw credentialFailure.cause;
@@ -1869,7 +1869,8 @@ type Operation = ReturnType<typeof openNodeInferOperation>;
 type ComposedSelected = Readonly<{
   occurrence?: unknown; graph: unknown; computePrefix?: unknown; computeSuffix?: unknown;
   provider: unknown; quantityCapacity?: QuantityCapacity; physicalPreflight?: PhysicalPreflight;
-  egressAdmission?: unknown; account?: unknown; observeAccount?: unknown; entryPersistence?: string;
+  egressAdmission?: unknown; account?: unknown; observeAccount?: () => unknown; entryPersistence?: 'async';
+  providerBinding?: Readonly<{wire: string; identity: string; originals: unknown}>;
   originalReadInstallation?: unknown;
 }>;
 type GeneratedInput = Readonly<{generation(): unknown; recovery?(): unknown}>;

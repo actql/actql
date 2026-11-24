@@ -15,7 +15,7 @@ type ResultRequest = Parameters<ResultWorkspace['begin']>[0];
 type ExplanationRequest = Parameters<Parameters<typeof installClientRunExplanation>[0]['authorize']>[0];
 type Request = ResultRequest | ExplanationRequest;
 type ExplanationKind = 'run-explanation' | 'run-explanation-context';
-type ExplanationExtent = Readonly<{storedBytes: number; contextBytes: number; invocationTemplateBytes: number}>;
+type ExplanationExtent = Readonly<{storedBytes: number; contextBytes?: number; invocationTemplateBytes?: number}>;
 type Control = Parameters<ResultWorkspace['begin']>[1];
 type RowAdmission = Awaited<ReturnType<ResultWorkspace['row']>>;
 type RowResult<Value extends number | string> = Value extends number ? RowAdmission : Promise<RowAdmission>;
@@ -94,7 +94,7 @@ type Entry = {
   };
 };
 
-const nonnegativeInt32 = (value: number) => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647;
+const nonnegativeInt32 = (value: number | undefined) => Number.isSafeInteger(value) && value! >= 0 && value! <= 2147483647;
 
 function checkedExplanation(
   result: unknown, runtime: Runtime, explanationIssueCode: Runtime['clientProgramRequestExplanationReadIssueCode'],
