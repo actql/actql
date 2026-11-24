@@ -5,11 +5,13 @@ import {cpSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeF
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {test} from 'node:test';
+import ts from 'typescript';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
 import {typescriptInterface} from './typescript-interface-inventory.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {trustedCompilerBindingOutputs} from './interface-generation-freshness.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
+import {installedDeclarationEmits} from './installed-interface-correspondence.mjs';
 import {releaseInterfaceCheck} from './release-interface-check.mjs';
 import {stagePackage, unpack} from './package-release.mjs';
 
@@ -64,7 +66,7 @@ function fixture(t: TestContext) {
   git('init', '-q', '--initial-branch=main'); git('add', '.');
   git('-c', 'user.name=ActQL Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false',
     'commit', '-qm', 'test: original authored type and runtime inputs');
-  return {scratch, repository, put, names, cohort, cohortText, declarations, save,
+  return {scratch, repository, put, names, cohort, cohortText, declarations, save, git,
     source: git('rev-parse', 'HEAD')};
 }
 
@@ -81,6 +83,34 @@ test('actual required caller retains all member-derived declaration variants and
     /Unregistered distributed interfaces: packages\/client-wire\/dormant.d.cts/u);
   f.declarations.push(declaration); declaration.exports.pop(); f.save();
   await assert.rejects(checkInterfaceOwners(f.repository, options), /Unregistered interface export/u);
+});
+
+test('emitted declaration uses its Git author and original inferred dependency before installed admission', t => {
+  const f = fixture(t), base = 'packages/client-wire/';
+  f.put('.gitignore', '/packages/client-wire/projected.mjs\n/packages/client-wire/projected.d.mts\n');
+  f.put('tsconfig.base.json', JSON.stringify({compilerOptions: {target: 'ES2022', module: 'NodeNext',
+    strict: true, noLib: true, types: [], noEmitOnError: true}}));
+  f.put('tsconfig.tooling.json', JSON.stringify({extends: './tsconfig.base.json',
+    compilerOptions: {declaration: true}, include: ['packages/client-wire/*.mts']}));
+  f.put('package-lock.json', JSON.stringify({packages: {'node_modules/typescript': {version: ts.version}}}));
+  f.put(base + 'globals.d.ts', 'interface Array<T> {} interface Boolean {} interface CallableFunction {} ' +
+    'interface Function {} interface IArguments {} interface NewableFunction {} interface Number {} ' +
+    'interface Object {} interface RegExp {} interface String {}\n');
+  f.put(base + 'model.mts', 'export const original = "original" as const;\n');
+  const author = base + 'projected.mts', declaration = base + 'projected.d.mts', runtime = base + 'projected.mjs';
+  f.put(author, '/// <reference path="./globals.d.ts" />\nimport {original} from "./model.mjs";\n' +
+    'export const read = () => original;\n');
+  f.git('add', '.');
+  f.git('-c', 'user.name=ActQL Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false',
+    'commit', '-qm', 'test: original inferred declaration inputs');
+  const source = f.git('rev-parse', 'HEAD');
+  f.put(declaration, 'export declare const read: () => "forged";\n');
+  assert.deepEqual(installedDeclarationEmits(f.repository, source, [declaration, runtime]).get(declaration),
+    {author, sha256: hash('export declare const read: () => "original";\n')});
+  assert.throws(() => installedDeclarationEmits(f.repository, source, [declaration]), /paired runtime/u);
+  f.put(base + 'model.mts', 'export const original = "changed" as const;\n');
+  assert.throws(() => installedDeclarationEmits(f.repository, source, [declaration, runtime]),
+    /Changed original TypeScript dependency/u);
 });
 
 test('real client-wire Source caller accepts its authored type entrance through genuine generation checks', async () => {

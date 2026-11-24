@@ -16512,14 +16512,15 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-construction.generated.d.mts",
-      "sha256": "375731e94bbf2dd879da06f819c227dcc7be41b60a79be6f4a371bd9a7a81e96",
+      "sha256": "23296fb40b4731560413ad15d685cebb48523e128cf8a3d12c9cad14abc85d3a",
       "exports": [
         "AnswerCandidate",
         "AnswerDecision",
         "AnswerLimits",
         "AnswerPrimitives",
         "AnswerResolution",
-        "createCheckpointAnswerCodec"
+        "createCheckpointAnswerCodec",
+        "hasCanonicalReviewContentPadding"
       ],
       "operations": [
         {
@@ -16542,7 +16543,7 @@
           "parameters": [
             "primitives: AnswerPrimitives"
           ],
-          "result": "Readonly<{\n  prepareAnswerCandidate(summary: unknown, decision: unknown, actor: unknown,\n    decidedAt: unknown, limits: AnswerLimits): Promise<AnswerCandidate>;\n  answerCandidateApprovalPreimage(stage: AnswerCandidate): string | undefined;\n  prepareAnswerResolution(stage: AnswerCandidate,\n    approvalSignature?: unknown): Promise<AnswerResolution>;\n  answerResolutionPreimage(stage: AnswerResolution): string;\n  finishAnswerCandidate(stage: AnswerResolution,\n    resolutionSignature: unknown): Promise<WireResolveItem>;\n  reviewBytesMatchCid(raw: unknown, expected: unknown, limits: AnswerLimits): Promise<boolean>;\n}>"
+          "result": "Readonly<{\n  prepareAnswerCandidate(summary: unknown, decision: unknown, actor: unknown,\n    decidedAt: unknown, limits: AnswerLimits): Promise<AnswerCandidate>;\n  answerCandidateApprovalPreimage(stage: AnswerCandidate): string | undefined;\n  prepareAnswerResolution(stage: AnswerCandidate,\n    approvalSignature?: unknown): Promise<AnswerResolution>;\n  answerResolutionPreimage(stage: AnswerResolution): string;\n  finishAnswerCandidate(stage: AnswerResolution,\n    resolutionSignature: unknown): Promise<WireResolveItem>;\n  reviewBytesMatchCid(raw: unknown, expected: unknown, limits: AnswerLimits): Promise<boolean>;\n  encodeSignerSignature(value: unknown): string;\n  validSignerIds(keyId: unknown, reviewerId: unknown): boolean;\n}>"
         },
         {
           "name": "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
@@ -16555,6 +16556,13 @@
           "name": "createCheckpointAnswerCodec/answerResolutionPreimage",
           "parameters": [
             "stage: AnswerResolution"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/encodeSignerSignature",
+          "parameters": [
+            "value: unknown"
           ],
           "result": "string"
         },
@@ -16593,6 +16601,21 @@
             "limits: AnswerLimits"
           ],
           "result": "Promise<boolean>"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/validSignerIds",
+          "parameters": [
+            "keyId: unknown",
+            "reviewerId: unknown"
+          ],
+          "result": "boolean"
+        },
+        {
+          "name": "hasCanonicalReviewContentPadding",
+          "parameters": [
+            "value: string"
+          ],
+          "result": "boolean"
         }
       ],
       "imports": [
@@ -16613,10 +16636,13 @@
             "createCheckpointAnswerCodec",
             "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
             "createCheckpointAnswerCodec/answerResolutionPreimage",
+            "createCheckpointAnswerCodec/encodeSignerSignature",
             "createCheckpointAnswerCodec/finishAnswerCandidate",
             "createCheckpointAnswerCodec/prepareAnswerCandidate",
             "createCheckpointAnswerCodec/prepareAnswerResolution",
-            "createCheckpointAnswerCodec/reviewBytesMatchCid"
+            "createCheckpointAnswerCodec/reviewBytesMatchCid",
+            "createCheckpointAnswerCodec/validSignerIds",
+            "hasCanonicalReviewContentPadding"
           ],
           "exports": [
             "AnswerCandidate",
@@ -16624,7 +16650,8 @@
             "AnswerLimits",
             "AnswerPrimitives",
             "AnswerResolution",
-            "createCheckpointAnswerCodec"
+            "createCheckpointAnswerCodec",
+            "hasCanonicalReviewContentPadding"
           ],
           "attributes": {
             "responsibility": [
@@ -16741,6 +16768,10 @@
               {
                 "path": "packages/python-sdk/tests/test_effect_review_integrity.py",
                 "anchor": "async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):"
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "signer identifiers are never coerced or sent to Lookup"
               }
             ]
           }
