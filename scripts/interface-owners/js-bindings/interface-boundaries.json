@@ -58029,7 +58029,8 @@
             "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources",
             "readInstalledProjectSourcePreparation",
             "readSourceManagedRunRequirementsOwned/matches/matches",
-            "readSourceManagedRunRequirementsOwned/matches/matches/matches"
+            "readSourceManagedRunRequirementsOwned/matches/matches/matches",
+            "openPreparedInstalledHost/preparation/init:originalProjectLocalFiles/init:originalProjectLocalFiles"
           ],
           "exports": [
             "readInstalledProjectSourcePreparation"
@@ -60625,11 +60626,11 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks#2",
-            "openPreparedInstalledHost/preparation/init:prepareStandardAccount/init:prepareStandardAccount"
+            "openPreparedInstalledHost/preparation/init:prepareStandardAccount/init:prepareStandardAccount",
+            "openInstalledHost/adoptStandardAccount/adoptStandardAccount",
+            "openInstalledHost/adoptStandardAccount/adoptStandardAccount#2",
+            "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks",
+            "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks#2"
           ],
           "exports": [],
           "attributes": {
@@ -62006,7 +62007,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
+                "anchor": "authorization = await standardAccountPreparation!.adopt(moon, {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
@@ -69251,7 +69252,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
+                "anchor": "authorization = await standardAccountPreparation!.adopt(moon, {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
@@ -72917,6 +72918,35 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/adoptStandardAccount/adoptStandardAccount",
+          "parameters": [
+            "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/adoptStandardAccount/adoptStandardAccount#2",
+          "parameters": [
+            "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks#2",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/assertModelRuntime",
           "parameters": [],
           "async": false
@@ -73228,20 +73258,6 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource#2",
           "parameters": [
             "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
-          "parameters": [
-            "access"
           ],
           "async": false
         },
@@ -73701,21 +73717,6 @@
             "value"
           ],
           "async": true
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks#2",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeHeldRun/observeHeldRun",
@@ -75604,8 +75605,16 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:openResultPublicationStore/init:openResultPublicationStore",
           "parameters": [
-            "options",
+            "root",
+            "storeAuthorityCid",
             "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:originalProjectLocalFiles/init:originalProjectLocalFiles",
+          "parameters": [
+            "runtime"
           ],
           "async": false
         },
@@ -76979,7 +76988,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a4eb685481991b348fa1d6b241f779a21b572da7bb5abf769b588ec94a37df5d"
+      "sha256": "916c6983eb923985516ca5ceb2d5ce63c274ab199c638fbf3c9cd15b1f515124"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -111401,7 +111410,7 @@
             "cidPattern",
             "cid",
             "prepareRead",
-            "maxTransferBytes",
+            "resourceTransport",
             "limits",
             "readerDemand",
             "listingReportCapacity",
@@ -111574,7 +111583,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "dc2ee3c11288ab50e0d5396cc8c0e0eaa8b62ba61099a3a0d2a695e2e8ebd327",
+      "sha256": "f015248cf41fbbb63e91bfb7fd0a31f64e8412e163b727be188a2f75fcd62c3a",
       "contracts": [
         {
           "operations": [
@@ -111675,7 +111684,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-row-source-acquisition.mts",
-                "anchor": "capacity: MutableCapacity = {transferBytes: maxTransferBytes,"
+                "anchor": "capacity: MutableCapacity = {...resourceTransport(owner.resource),"
               },
               {
                 "path": "adapters/host-node/installed-row-source-acquisition.mts",
@@ -111912,7 +111921,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "cc699a6fc7717444aad5e9f1ffd4299441329ac2c9f53b6dd41f30733a0444d7",
+      "sha256": "e15c9c68c07ab87dcaef9955158ab7d91775508fcbbfff180cdb69ea51f06971",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -111975,6 +111984,7 @@
             "prepareKeyedSourceRead",
             "closeKeyedSourceRead",
             "originalKeyedTransport",
+            "originalReadTransports",
             "readAsset",
             "originalPageLimits"
           ],
@@ -112015,6 +112025,13 @@
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#11",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#12",
           "parameters": [
             "resource",
             "operation"
@@ -112127,6 +112144,20 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/resourceTransport/resourceTransport",
+          "parameters": [
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/resourceTransport/resourceTransport/resourceTransport",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/sourceBody/init:close/init:close",
           "parameters": [],
           "async": false
@@ -112157,7 +112188,8 @@
         {
           "name": "createInstalledRowSource/sourceBody/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
           "parameters": [
-            "selection"
+            "selection",
+            "sourceRef"
           ],
           "async": false
         },
@@ -112446,7 +112478,7 @@
             "createInstalledRowSource/constructReadMetadata/constructReadMetadata/sourceReadAccesses/sourceReadAccesses",
             "createInstalledRowSource/createInstalledRowSource",
             "createInstalledRowSource/createInstalledRowSource#10",
-            "createInstalledRowSource/createInstalledRowSource#11",
+            "createInstalledRowSource/createInstalledRowSource#12",
             "createInstalledRowSource/createInstalledRowSource#4",
             "createInstalledRowSource/createInstalledRowSource#5",
             "createInstalledRowSource/createInstalledRowSource#7",
@@ -113314,7 +113346,10 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/managedWholeSourceCapacity"
+            "createInstalledRowSource/managedWholeSourceCapacity",
+            "createInstalledRowSource/resourceTransport/resourceTransport",
+            "createInstalledRowSource/resourceTransport/resourceTransport/resourceTransport",
+            "createInstalledRowSource/createInstalledRowSource#11"
           ],
           "exports": [],
           "attributes": {
@@ -113400,6 +113435,10 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              },
+              {
+                "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
+                "anchor": "Host-backed Row Source capture capacity retains its checked acquisition"
               }
             ]
           }

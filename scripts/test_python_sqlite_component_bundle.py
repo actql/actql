@@ -15,7 +15,7 @@ P = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(P)
 from actql_sdk._local_distribution import LocalInstallationError  # noqa: E402
 SOURCE, PROVIDER_SOURCE = '1' * 40, '2' * 40
-UPSTREAM = '2025-11-04 19:38:17 fb2c931ae597f8d00a37574ff67aeed3eced4e5547f9120744ae4bfa8e74527b'
+UPSTREAM = '2026-03-13 10:38:09 737ae4a34738ffa0c3ff7f9bb18df914dd1cad163f28fd6b6e114a344fe6d618'
 
 
 def dylib_command(code, name):

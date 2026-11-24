@@ -438,7 +438,7 @@ type MockModelSourceSelection = Readonly<{
 }>;
 type MockModelSourceAdapter = Readonly<{
   admitsSource(ref: string): boolean;
-  managedEffectPlanSelection?(): MockModelSourceSelection | undefined;
+  managedEffectPlanSelection?(selection?: object, sourceRef?: string): MockModelSourceSelection | undefined;
 }>;
 type MockModelPlanRuntime = ManagedRequirementsRuntime &
   Parameters<typeof openNodeComposedInferProvider>[0]['moon'] & Readonly<{
@@ -637,7 +637,8 @@ type EmbeddedHostPreparation = Readonly<{
   resultReadWorkspace: (runtime: BootstrapRuntime) => ReturnType<typeof createLocalResultReadWorkspace>;
   assertResultPublicationCurrent: () => undefined;
   beforeResultPublicationOperation: (operation: string) => void;
-  openResultPublicationStore: SelectedHostResult['openStore'];
+  openResultPublicationStore: (root: string, authority: string,
+    control: Parameters<SelectedHostResult['openStore']>[1]) => ReturnType<SelectedHostResult['openStore']>;
   admitResultPublicationRun: (prepared: object) => void;
   admitEffectResultPublicationRun: (prepared: object) => void;
   assertContentRunCurrent: () => undefined;
@@ -746,6 +747,7 @@ type EmbeddedHostPreparation = Readonly<{
   managedComputeUsageReader: (ref: WireRunRef) => (() => readonly bigint[] | undefined) | undefined;
   sourcePreparation: () => SourcePreparationInstallation | undefined;
   localFilesLookupExecutionPolicy: (runtime: PreparationRuntime) => Readonly<{ version: "actql-lookup-execution-policy/0.1"; max_network_attempts_per_request: number; max_request_bytes_per_attempt: number; max_total_request_bytes: number; max_total_response_bytes: number; max_total_decoded_response_bytes: number; max_total_duration_ms: number; }> | undefined;
+  originalProjectLocalFiles: (runtime: PreparationRuntime) => ReturnType<typeof readInstalledProjectSourcePreparation>;
   installProjectSources: (runtime: PreparationRuntime, baseEnvironmentWire: string,
     authorizationFor: ProjectSourceInstallation['authorizationFor']) => ReturnType<typeof installPreparedProjectLocalFiles>;
   localFilesEffectLimits: (runtime: PreparationRuntime) => Readonly<{
@@ -1287,11 +1289,16 @@ function readSourceManagedRunRequirementsOwned(originals: HostStartupOriginals, 
     if (matches.length !== 1) throw clientOperationError('InstalledSourcePreparationMismatch');
     const source = matches[0];
     declarations.push(source.declaration);
-    transferBytes.push(projectSources === undefined ? documentBytes
-      : BigInt((source as NonNullable<typeof projectSources>['sources'][number]).limits.maxPages) *
-        BigInt((source as NonNullable<typeof projectSources>['sources'][number]).limits.maxPageBytes));
-    executionBytes.push(projectSources === undefined ? documentBytes
-      : BigInt((source as NonNullable<typeof projectSources>['sources'][number]).limits.maxPageBytes));
+    const installed = projectSources === undefined ? undefined
+      : source as NonNullable<typeof projectSources>['sources'][number];
+    if (installed === undefined) {
+      transferBytes.push(documentBytes);
+      executionBytes.push(documentBytes);
+    } else {
+      const transport = typeof sourceRef === 'string' ? installed.csvTransports[sourceRef] : undefined;
+      transferBytes.push(transport?.transferBytes ?? BigInt(installed.limits.maxPages) * BigInt(installed.limits.maxPageBytes));
+      executionBytes.push(transport?.executionBytes ?? BigInt(installed.limits.maxPageBytes));
+    }
   }
   const limits = checked(Reflect.apply(requirements, moon, [
     checkedPrepared, declarations,
@@ -1590,7 +1597,7 @@ function prepareRequestMockModelPlan(originals: HostStartupOriginals | undefined
         const sourceRef = moon.clientProgramSelectedSourceInputRef(selected);
         const adapter = installedSourceFor(run.sourceProfile as Parameters<typeof installedSourceFor<MockModelSourceAdapter>>[0], sourceRef!);
         if (typeof adapter?.managedEffectPlanSelection !== 'function') throw clientOperationError('InstalledModelSourcePreparationUnavailable');
-        const source = adapter.managedEffectPlanSelection(); current();
+        const source = adapter.managedEffectPlanSelection(undefined, sourceRef); current();
         const native = source?.nativeSource;
         if ((source?.declaration === undefined) === (native === undefined) ||
             native === undefined && source!.provider === undefined ||
@@ -1704,7 +1711,7 @@ function prepareRequestMockModelPlan(originals: HostStartupOriginals | undefined
     }
     // A pure selection has no child to recover. Do not attach returned DATA
     // to a bag retired by its current callback; retain only the live original.
-    const original = adapter.managedEffectPlanSelection();
+    const original = adapter.managedEffectPlanSelection(undefined, sourceRef);
     current();
     const native = original?.nativeSource;
     if ((original?.declaration === undefined) === (native === undefined) ||
@@ -2352,6 +2359,7 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
   let mockModels: InstalledMockModels | undefined;
   let mockAccount: MockAccountBinding | undefined;
   let standardAccountPreparation: Awaited<ReturnType<typeof prepareOrdinaryLocalAccount>> | undefined;
+  let projectStandardAccountAdopted = false;
   let localCheckpointAnswer: LocalCheckpointAnswer | undefined;
   let localSigningMetadata: ReturnType<ReturnType<typeof runtimeCore>['localSigningMetadata']> | undefined;
   const localSigningRecoveries = new Set<RecoveredEffect>();
@@ -2552,6 +2560,53 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
   const accountConstruction = preparation === undefined ? undefined
     : installedAccountConstruction(installationServices);
   const control = runtimeCore(moon).publicationControl;
+  const storeAuthorityCid = localPublicationStoreAuthorityCid(root, principalId);
+  async function adoptStandardAccount(realizationKey: string,
+      projectSources?: ReturnType<typeof readInstalledProjectSourcePreparation>['sources']) {
+    const subjectFrame = accountConstruction?.begin();
+    try {
+      const inventory = projectSources === undefined ? sourceCheckpointInventory?.connections : undefined;
+      const visitConnections = (visit: (connection: string) => void, validate = false) => {
+        if (projectSources !== undefined) {
+          for (const source of projectSources) visit(source.connection);
+        } else if (inventory !== undefined) {
+          for (const connection of inventory) visit(connection!);
+        } else {
+          const add = (source: Parameters<typeof installedSourceReadAccesses>[0]) => {
+            if (validate) {
+              for (const access of installedSourceReadAccesses(source)) visit(access.connection!);
+            } else if (source.sourceReadAccesses === undefined) visit(source.sourceAccess.connection!);
+            else for (const access of source.sourceReadAccesses) visit(access.connection!);
+          };
+          if (sourceProfile?.sources !== undefined) {
+            for (const source of sourceProfile.sources) add(source);
+          } else if (sourceProfile !== undefined) add(sourceProfile);
+        }
+      };
+      const originalModelTasks = (projectTasks?.originalsForRuntime(moon) ?? []) as readonly ModelAccountTask[];
+      if (subjectFrame !== undefined) {
+        let units = 0n, count = 0n;
+        visitConnections(connection => {units += BigInt(connection.length); count++;});
+        for (const task of originalModelTasks) units += BigInt(task.providerId.length + task.taskCid.length);
+        subjectFrame.record(units + 512n, 64n + 16n * (count + BigInt(originalModelTasks.length)), 4n);
+      }
+      let configuredConnections = inventory;
+      if (configuredConnections === undefined) {
+        const distinct = new Set<string>();
+        visitConnections(connection => distinct.add(connection), true);
+        configuredConnections = [...distinct].sort();
+      }
+      const modelTasks = originalModelTasks.map(entry => [entry.providerId, entry.taskCid] as const)
+        .sort((left, right) => left[0] < right[0] ? -1 : left[0] > right[0] ? 1
+          : left[1] < right[1] ? -1 : left[1] > right[1] ? 1 : 0);
+      const controlConnection = authorization?.siteKey ?? 'actql-remote-host';
+      authorization = await standardAccountPreparation!.adopt(moon, {
+        controlConnection, configuredConnections: configuredConnections as readonly string[], modelTasks,
+        requestTarget: [controlConnection, realizationKey],
+      }, store!);
+      subjectFrame?.hold(); subjectFrame?.finish(true);
+    } catch (cause) {subjectFrame?.failure(cause); subjectFrame?.finish(false); throw cause;}
+  }
   async function releaseLocalSigningRecovery(recovered: RecoveredEffect | undefined) {
     // Recovery acquired real prepared-schema owners. Signing only borrows the
     // authenticated metadata, so relinquish those temporary owners without
@@ -2586,6 +2641,15 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
     persistModelOriginals = configured.persistOriginals;
     configuredModelInstallation = configured.modelInstallationForRuntime;
   } else modelProviders = new Map();
+  async function loadProjectTasks() {
+    if (mockModels === undefined && projectTasks === undefined && project !== undefined &&
+        installedProjectOriginalsForRuntime(project, moon).modelRegistry !== undefined) {
+      // Installation-time reader ceilings, independent of Model execution.
+      projectTasks = await loadInstalledProjectModelTasks(moon, project, modelProviders, {
+        limits: modelTaskLimits, assertCurrent: assertProjectRuntime, installationServices,
+      });
+    }
+  }
   const inferSelections = new WeakMap<object, EmbeddedInferSelection>();
   const earlyMockInferPlans = new WeakMap<object, EarlyModelOriginal>();
   const earlyContentPlans = new WeakMap();
@@ -2929,6 +2993,21 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
       if (selectedSourcePaths.length !== 0) {
         throw clientOperationError('InstalledProjectSourceCompositionUnavailable');
       }
+      if (standardAccountPreparation !== undefined) {
+        const bundle = preparation.originalProjectLocalFiles(moon);
+        await loadProjectTasks();
+        await preparation.prepareResultPublication();
+        store = await preparation.openResultPublicationStore(root, storeAuthorityCid, control);
+        if (modelRuntimeView !== undefined) {
+          bindInferTrustedStore(modelRuntimeView, runtimeOriginals(), store, publicationStoreModule);
+          assertModelRuntime();
+        }
+        await adoptStandardAccount(bundle.realizationKey, bundle.sources);
+        if (preparation.originalProjectLocalFiles(moon) !== bundle) {
+          throw clientOperationError('InstalledSourcePreparationChanged');
+        }
+        projectStandardAccountAdopted = true;
+      }
       sourceProfile = await preparation.installProjectSources(moon, baseEnvironmentWire,
         () => createLocalAuthorizationGate({...authorization, principal: principalId, accountConstruction}) as ReturnType<ProjectSourceInstallation['authorizationFor']>) as ProjectContentSource & InstalledHostSourceProfile;
       if (preparation.sourcePreparation() !== installationSourcePreparation) {
@@ -3029,16 +3108,7 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
       environmentWire = installedModelEnvironment(moon, baseEnvironmentWire,
         environmentWire, modelInstallation);
     }
-    if (mockModels === undefined && projectTasks === undefined && project !== undefined &&
-        installedProjectOriginalsForRuntime(project, moon).modelRegistry !== undefined) {
-      // These are installation-time reader ceilings, not Model fuel, memory
-      // reservations or a numerical execution profile. The ordinary complete
-      // Environment checker below still enforces its existing aggregate bounds.
-      projectTasks = await loadInstalledProjectModelTasks(moon, project, modelProviders, {
-        limits: modelTaskLimits,
-        assertCurrent: assertProjectRuntime, installationServices,
-      });
-    }
+    await loadProjectTasks();
     let body;
     if (environmentWire === composedEnvironment.wire) {
       body = {...composedEnvironment.body};
@@ -3110,11 +3180,11 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
     // An adapter that failed before returning its owner must clean up its
     // own partial acquisition. Preserve its original public failure when the
     // Host has acquired nothing else.
-    if (sourceProfile === undefined && installedEffect === undefined) {
+    if (sourceProfile === undefined && installedEffect === undefined && store === undefined) {
       throw cause;
     }
     throw await retainInstalledHostInitializationFailure(cause,
-      {sourceProfile, installedEffect});
+      {sourceProfile, installedEffect, store});
   }
   let environment;
   let evidenceCid;
@@ -3204,12 +3274,12 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
     }
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cause,
-      {sourceProfile, installedEffect});
+      {sourceProfile, installedEffect, store});
   }
   if (environment === undefined) {
     throw await retainInstalledHostInitializationFailure(
       new Error('InvalidInstalledLocalEnvironment'),
-      {sourceProfile, installedEffect});
+      {sourceProfile, installedEffect, store});
   }
   let registry: DispatchInstallation['registry'];
   let values: string;
@@ -3221,7 +3291,6 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
       {hostCapacityPolicyCid: effectiveHostCapacityPolicyCid}),
     ...(hostLookupExecutionPolicy === undefined ? {} :
       {hostLookupExecutionPolicyCid: contentCid(hostLookupExecutionPolicy)})});
-  const storeAuthorityCid = localPublicationStoreAuthorityCid(root, principalId);
   let journal: ClientJournal | undefined;
   let originalJournalClose: ClientJournal['close'] | undefined;
   let publicationOwnership: Awaited<ReturnType<typeof prepareLocalPublicationStoreOwnership>> | undefined;
@@ -3439,60 +3508,23 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
     }
     if (modelRuntimeView !== undefined) assertNewModelRuntime();
     try {
-    const storeOptions = localPublicationStoreOptions(root, storeAuthorityCid,
-      effectInstallation?.privateEvidenceKey ?? effectEvidenceKey?.key);
-    store = preparation === undefined
-      ? await openLocalPublicationStore(storeOptions, control, undefined, undefined, publicationOwnership)
-      : await preparation.openResultPublicationStore(storeOptions, control);
-    if (modelRuntimeView !== undefined) {
-      // Bind the actual returned Store before configured policy persistence
-      // performs its original Provider/current checks. An unbound Store may
-      // not borrow the pre-Store runtime view, even during initialization.
-      bindInferTrustedStore(modelRuntimeView, runtimeOriginals(), store, publicationStoreModule);
-      assertModelRuntime();
+    if (store === undefined) {
+      store = preparation === undefined
+        ? await openLocalPublicationStore(localPublicationStoreOptions(root, storeAuthorityCid,
+          effectInstallation?.privateEvidenceKey ?? effectEvidenceKey?.key),
+        control, undefined, undefined, publicationOwnership)
+        : await preparation.openResultPublicationStore(root, storeAuthorityCid, control);
+      if (modelRuntimeView !== undefined) {
+        // Bind the actual returned Store before configured policy persistence
+        // performs its original Provider/current checks.
+        bindInferTrustedStore(modelRuntimeView, runtimeOriginals(), store, publicationStoreModule);
+        assertModelRuntime();
+      }
     }
     await persistModelOriginals?.(store!);
     if (mockAccount !== undefined) await mockAccount.adoptStore(store!);
-    if (standardAccountPreparation !== undefined) {
-      const subjectFrame = accountConstruction?.begin();
-      try {
-      if (subjectFrame !== undefined) {
-        let units = 0n, count = 0n;
-        // Observe borrowed installed strings before flatMap/Set/sort/tuple lists.
-        if (sourceCheckpointInventory !== undefined) {
-          for (const connection of sourceCheckpointInventory.connections) {units += BigInt(connection!.length); count++;}
-        } else {
-          const add = (source: Readonly<{
-            sourceReadAccesses?: readonly Readonly<{connection: string}>[];
-            sourceAccess: Readonly<{connection: string}>;
-          }>) => {
-            const accesses = source.sourceReadAccesses;
-            if (accesses === undefined) {units += BigInt(source.sourceAccess.connection.length); count++;}
-            else for (const access of accesses) {units += BigInt(access.connection.length); count++;}
-          };
-          if (sourceProfile?.sources !== undefined) {for (const source of sourceProfile.sources) add(source);}
-          else if (sourceProfile !== undefined) add(sourceProfile);
-        }
-        for (const entry of (projectTasks?.originalsForRuntime(moon) ?? []) as readonly ModelAccountTask[]) {
-          units += BigInt(entry.providerId.length + entry.taskCid.length); count++;
-        }
-        subjectFrame.record(units + 512n, 64n + 16n * count, 4n);
-      }
-      const configuredConnections = (sourceCheckpointInventory?.connections ?? [...new Set((sourceProfile?.sources ??
-        (sourceProfile === undefined ? [] : [sourceProfile]))
-        .flatMap((source: Parameters<typeof installedSourceReadAccesses>[0]) =>
-          installedSourceReadAccesses(source).map(access => access.connection)))].sort()) as readonly string[];
-      const modelTasks = ((projectTasks?.originalsForRuntime(moon) ?? []) as readonly ModelAccountTask[])
-        .map(entry => [entry.providerId, entry.taskCid] as const)
-        .sort((left, right) => left[0] < right[0] ? -1 : left[0] > right[0] ? 1
-          : left[1] < right[1] ? -1 : left[1] > right[1] ? 1 : 0);
-      const controlConnection = authorization?.siteKey ?? 'actql-remote-host';
-      authorization = await standardAccountPreparation.adopt(moon, {
-        controlConnection, configuredConnections, modelTasks,
-        requestTarget: [controlConnection, sourceProfile?.realizationKey ?? REALIZATION_KEY],
-      }, store!);
-      subjectFrame?.hold(); subjectFrame?.finish(true);
-      } catch (cause) {subjectFrame?.failure(cause); subjectFrame?.finish(false); throw cause;}
+    if (standardAccountPreparation !== undefined && !projectStandardAccountAdopted) {
+      await adoptStandardAccount(sourceProfile?.realizationKey ?? REALIZATION_KEY);
     }
     if (authorization != null && accountConstruction !== undefined) {
       authorization = {...authorization, accountConstruction};
@@ -7629,8 +7661,8 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
         for (const recovered of localSigningRecoveries) await releaseLocalSigningRecovery(recovered);
       },
       closePublicationStore() {
-        // No Store exists before activation. An acquired or partially opened
-        // Store remains with its original initialization/physical cleanup.
+        // The acquired Store remains under the original publication owner,
+        // including an early Project Account adoption before activation.
         if (store !== undefined) return store.close();
       },
     });
@@ -8318,10 +8350,13 @@ async function openPreparedInstalledHost(options: unknown, initialEntry?: HostEn
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
       resultPublication.beforeOperation(operation);
     },
-    openResultPublicationStore(options: Parameters<SelectedHostResult['openStore']>[0],
+    openResultPublicationStore(root: string, storeAuthorityCid: string,
         control: Parameters<SelectedHostResult['openStore']>[1]) {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
-      return resultPublication.openStore(options, control);
+      if (originals === undefined) throw clientOperationError('HostResultPublicationUnavailable');
+      const {privateEvidenceKey} = readHostResultPublicationPreparation(originals);
+      return resultPublication.openStore(localPublicationStoreOptions(root, storeAuthorityCid,
+        privateEvidenceKey), control);
     },
     admitResultPublicationRun(prepared: object) {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
@@ -9536,6 +9571,10 @@ async function openPreparedInstalledHost(options: unknown, initialEntry?: HostEn
         selected = localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS]);
       }
       return localResourceLookupExecutionPolicy(moon, moon.clientLocalResourcePolicyOriginal() as Parameters<typeof localResourceLookupExecutionPolicy>[1], selected);
+    },
+    originalProjectLocalFiles(runtime: PreparationRuntime) {
+      if (runtime !== moon || originals === undefined) throw clientOperationError('ForeignInstalledProjectSourcePreparation');
+      return readInstalledProjectSourcePreparation(originals);
     },
     installProjectSources(runtime: PreparationRuntime, baseEnvironmentWire: string,
         authorizationFor: ProjectSourceInstallation['authorizationFor']) {

@@ -298,15 +298,17 @@ test('exact Local artifact preflight refuses other attempts sources and missing 
 
 test('Native aggregate rejects a failed missing or skipped independent Local consumer', () => {
   const step = workflow.jobs.native.steps.find(step => step.run);
-  for (const name of ['native-cli-linux-local-installed', 'native-cli-linux-local-mock']) {
+  const consumers = {INSTALLED_RESULT: 'native-cli-linux-local-installed', MOCK_RESULT: 'native-cli-linux-local-mock'};
+  for (const [key, name] of Object.entries(consumers)) {
+    assert.equal(step.env[key], '${{ needs.' + name + '.result }}');
     for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
-      const needs = {'native-workloads': {result: 'success'}, 'native-http': {result: 'success'},
-        'native-cli-linux-local-installed': {result: 'success'}, 'native-cli-linux-local-mock': {result: 'success'}};
-      needs[name] = {result};
+      const inputs = {WORKLOADS_RESULT: 'success', HTTP_RESULT: 'success',
+        INSTALLED_RESULT: 'success', MOCK_RESULT: 'success', [key]: result ?? ''};
       const checked = spawnSync('bash', ['-eo', 'pipefail', '-c', step.run],
-        {encoding: 'utf8', timeout: 3000, env: {...process.env, RESULTS: JSON.stringify(needs)}});
+        {encoding: 'utf8', timeout: 3000, env: {...process.env, ...inputs}});
       assert.equal(checked.error, undefined);assert.equal(checked.signal, null);
       assert.equal(checked.status === 0, result === 'success', String(result));
+      assert.equal(checked.stderr.trim(), result === 'success' ? '' : `${name}: ${result ?? 'missing'}`);
     }
   }
 });

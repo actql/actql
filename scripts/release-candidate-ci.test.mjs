@@ -110,6 +110,7 @@ test('Native keeps both same-source inputs in one joint RC and measures only tha
   assert.deepEqual(new Set(installed.strategy.matrix.include.map(row => row.platform)), new Set(['linux-x64-gnu', 'darwin-arm64']));
   const formal = calls(installed, 'test-native-approval-performance.mjs'); assert(formal);
   assert.equal(formal.if, "matrix.platform == 'linux-x64-gnu'");
+  assert.equal(formal['timeout-minutes'], 30);
   assert(formal.run.includes('--normal "$RUNNER_TEMP/native-installed/release"'));
   assert(!/--diagnostic|--binding/u.test(formal.run));
   assert(formal.run.includes('env -u TMPDIR -u TMP -u TEMP'));
@@ -130,6 +131,8 @@ test('Native keeps both same-source inputs in one joint RC and measures only tha
   assert(installed.steps.indexOf(node24) > installed.steps.indexOf(calls(installed, 'test-native-cli-source-free-install.mjs')));
   assert(installed.steps.indexOf(node24) < installed.steps.indexOf(functional));
   assert.equal(functional['timeout-minutes'], 30);
+  assert.equal(installed['timeout-minutes'], '${{ matrix.minutes }}');
+  assert.equal(installed.strategy.matrix.include.find(row => row.platform === 'linux-x64-gnu').minutes, 60);
   assert.equal(installed.strategy.matrix.include.find(row => row.platform === 'darwin-arm64').minutes, 65);
   const evidence = action(installed, 'upload-artifact'); assert.equal(evidence.if, 'always()');
   assert(evidence.with.path.includes('/tmp/actql-native-mock-install-*/commands.json'));

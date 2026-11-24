@@ -37,5 +37,5 @@ struct actql_sqlite_component_api {
 };
 #define ACTQL_SQLITE_COMPONENT_ABI 3
 #define ACTQL_SQLITE_COMPONENT_SOURCE_ID \
-    "2025-11-04 19:38:17 fb2c931ae597f8d00a37574ff67aeed3eced4e5547f9120744ae4bfa8e74527b"
+    "2026-03-13 10:38:09 737ae4a34738ffa0c3ff7f9bb18df914dd1cad163f28fd6b6e114a344fe6d618"
 #endif

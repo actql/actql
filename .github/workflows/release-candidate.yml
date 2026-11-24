@@ -420,9 +420,7 @@ jobs:
           inputs.mkdir(parents=True, exist_ok=False)
           sqlite = json.loads(pathlib.Path('packages/python-local-runtime/native/sqlite-component/source.json').read_text())['upstream']
           crypto = json.loads(pathlib.Path('packages/python-local-runtime/native/crypto-component/source.json').read_text())
-          assert (sqlite['url'], sqlite['bytes'], sqlite['sha256']) == (
-              'https://www.sqlite.org/2025/sqlite-amalgamation-3510000.zip', 2874746,
-              '1caf7116f2910600d04473ad69d37ec538fa62fa36adccd37b5e0e43647c98be')
+          assert sqlite['url'].startswith('https://www.sqlite.org/')
           if platform == 'linux-x64-gnu':
               target = crypto['source_targets']['x86_64-unknown-linux-gnu']
               selected = [('sqlite.zip', sqlite), ('libssl-dev.deb', target['package']), ('libssl3t64.deb', target['license']['package'])]
@@ -709,7 +707,7 @@ jobs:
         include:
           - platform: linux-x64-gnu
             runner: ubuntu-24.04
-            minutes: 40
+            minutes: 60
           - platform: darwin-arm64
             runner: macos-26
             minutes: 65

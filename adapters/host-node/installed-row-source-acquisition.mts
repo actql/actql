@@ -107,7 +107,7 @@ type RowRuntime = RowRunOptions['moon'] & Parameters<typeof bindClientSourceOper
 }>;
 
 export function createInstalledRowSourceAcquisition({prepare, preparations, originalReader, captureCapacity, currentRead,
-  site, moon, directReadIdentity, cidPattern, cid, prepareRead, maxTransferBytes, limits, readerDemand,
+  site, moon, directReadIdentity, cidPattern, cid, prepareRead, resourceTransport, limits, readerDemand,
   listingReportCapacity, startInstalledRowRun, preparingSourceReads, closeSourceRead, operationBindings,
   grantBeforeBegin, pageLimits, managedPageLimits, referenceIssuer, text, readPages, sourceAccess}: {
   prepare: Prepare;
@@ -121,8 +121,8 @@ export function createInstalledRowSourceAcquisition({prepare, preparations, orig
   cidPattern: RegExp;
   cid(value: unknown): string;
   prepareRead?: PrepareRead;
-  maxTransferBytes: bigint;
   limits: ReadLimits;
+  resourceTransport(resource: string): Readonly<{transferBytes: bigint; executionBytes: bigint}>;
   readerDemand?: ReaderDemand;
   listingReportCapacity?: unknown;
   startInstalledRowRun: typeof startRowRun;
@@ -225,8 +225,7 @@ export function createInstalledRowSourceAcquisition({prepare, preparations, orig
         decision, granted, resource: owner.resource, nonce, runInvocationCid,
         dispatchRequestCid, signal}));
     }
-    const capacity: MutableCapacity = {transferBytes: maxTransferBytes,
-      executionBytes: BigInt(limits.maxPageBytes),
+    const capacity: MutableCapacity = {...resourceTransport(owner.resource),
       ...(readerDemand?.transferUnitBytes === undefined ? {} : {transferUnitBytes:readerDemand.transferUnitBytes})};
     if (originalReader !== undefined) capacity.provider = originalReader.capacity;
     if (!owner.wholeInput && listingReportCapacity !== undefined &&

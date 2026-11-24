@@ -187,7 +187,7 @@ fn native_storage_inspection_minimum(
 }
 
 ///|
-// Pinned SQLite 3.51.0: first region 4062 frames, later regions 4096,
+// Pinned SQLite 3.51.3: first region 4062 frames, later regions 4096,
 // WALINDEX_PGSZ 32768. A copied DB+WAL bound is an upper WAL byte bound,
 // not a claim of one index region. The smallest legal page maximizes frames.
 fn native_storage_wal_regions(
