@@ -1474,7 +1474,8 @@ jobs:
     needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # The final check runs three fresh connector package builds after the Host checks.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
