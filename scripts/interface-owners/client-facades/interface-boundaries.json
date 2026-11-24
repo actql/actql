@@ -2257,7 +2257,7 @@
                 "anchor": "selection.configuration = None"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "projectProfile?.retire(projectRuntime);"
               }
             ],
@@ -2275,7 +2275,7 @@
                 "anchor": "const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               }
             ],
@@ -2289,7 +2289,7 @@
                 "anchor": "import type {Client} from '@actql/sdk';"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               },
               {
@@ -2311,7 +2311,7 @@
                 "anchor": "Neither its completion nor dropping aliases proves GC, physical"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
               }
             ],
@@ -2333,7 +2333,7 @@
                 "anchor": "it does not add a profile field to the public connection wire."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "requestedProfile.length > 65536"
               }
             ],
@@ -3279,7 +3279,7 @@
                 "anchor": "selection.configuration = None"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "projectProfile?.retire(projectRuntime);"
               },
               {
@@ -3301,7 +3301,7 @@
                 "anchor": "const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               },
               {
@@ -3319,7 +3319,7 @@
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               },
               {
@@ -3345,7 +3345,7 @@
                 "anchor": "Cancellation requests stop and keeps unfinished tasks and shared native users"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
               }
             ],
@@ -3367,7 +3367,7 @@
                 "anchor": "it does not add a profile field to the public connection wire."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "requestedProfile.length > 65536"
               }
             ],
@@ -7121,7 +7121,7 @@
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
@@ -7155,8 +7155,8 @@
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mts",
@@ -7219,7 +7219,7 @@
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
@@ -7253,8 +7253,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               },
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
@@ -12113,7 +12113,7 @@
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
@@ -12139,8 +12139,8 @@
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mts",
@@ -12191,7 +12191,7 @@
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
@@ -12221,8 +12221,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",

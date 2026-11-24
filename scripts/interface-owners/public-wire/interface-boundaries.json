@@ -1512,7 +1512,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
@@ -1530,8 +1530,8 @@
                 "anchor": "Validation is synchronous."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               },
               {
                 "path": "docs/design/check-sdk.md",
@@ -1562,7 +1562,7 @@
                 "anchor": "Validation performs no cancellation or I/O."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
@@ -1580,8 +1580,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               },
               {
                 "path": "docs/design/check-sdk.md",
@@ -1670,14 +1670,14 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -1688,7 +1688,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -1698,8 +1698,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [

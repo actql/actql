@@ -1005,8 +1005,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "bindManagedComputeRunObservation(prepared: object, ref: WireRunRef) {"
               }
             ],
             "ownership": [
@@ -1015,8 +1015,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "for (const key of Object.keys(record)) (record as Record<string, unknown>)[key] = undefined;"
               }
             ],
             "synchronization": [

@@ -8823,7 +8823,7 @@
                 "anchor": "The Host binds the Result control original after its actual Journal opens and"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               },
               {

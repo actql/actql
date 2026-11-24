@@ -5640,14 +5640,14 @@
                 "anchor": "the structural guard does not authorize either value."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -5662,7 +5662,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -5680,8 +5680,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -5746,14 +5746,14 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -5764,7 +5764,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -5774,8 +5774,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -11931,7 +11931,7 @@
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
@@ -11941,8 +11941,8 @@
                 "anchor": "| synchronization |"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -11965,7 +11965,7 @@
                 "anchor": "| cancellation |"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -11979,8 +11979,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -12047,14 +12047,14 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -12065,7 +12065,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -12075,8 +12075,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [

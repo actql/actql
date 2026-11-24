@@ -13761,7 +13761,7 @@
                 "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
@@ -13783,8 +13783,8 @@
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -13827,7 +13827,7 @@
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -13857,8 +13857,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -14001,7 +14001,7 @@
                 "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
@@ -14023,8 +14023,8 @@
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -14067,7 +14067,7 @@
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -14097,8 +14097,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -20344,7 +20344,7 @@
                 "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
               }
             ],
@@ -20795,7 +20795,7 @@
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mts",
-                "anchor": "async acceptRun({requested, captured, signal}: AcceptanceInput) {"
+                "anchor": "async acceptRun({requested, captured, signal}: AcceptanceInput): Promise<AcceptanceResult> {"
               }
             ],
             "identity": [
@@ -20814,7 +20814,7 @@
                 "anchor": "const scope = gate.withContext({principal: gate.principal,"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "({checkpoints, runAcceptance} = await installHostRunAcceptance({root, namespaceId,"
               }
             ],
@@ -21026,7 +21026,7 @@
                 "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
               }
             ],
@@ -21588,7 +21588,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/client-checkpoint-computation-source.mts",
-                "anchor": "async computationSourceReferences(view: View)"
+                "anchor": "async computationSourceReferences(view: SourceCaptureView)"
               }
             ],
             "verification": [
@@ -24772,7 +24772,7 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
@@ -24790,8 +24790,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -24826,7 +24826,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -24848,8 +24848,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -24964,7 +24964,7 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
@@ -24982,8 +24982,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -25018,7 +25018,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -25040,8 +25040,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -25271,7 +25271,7 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
@@ -25289,8 +25289,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -25325,7 +25325,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -25347,8 +25347,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -25463,7 +25463,7 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
@@ -25481,8 +25481,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -25517,7 +25517,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -25539,8 +25539,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -25655,7 +25655,7 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
@@ -25673,8 +25673,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -25709,7 +25709,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -25731,8 +25731,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -25847,7 +25847,7 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
@@ -25865,8 +25865,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -25901,7 +25901,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -25923,8 +25923,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -26039,7 +26039,7 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
@@ -26057,8 +26057,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -26093,7 +26093,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -26115,8 +26115,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -28353,12 +28353,12 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const current = journal!.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const admitted = journal!.resolveDefinition(requested.requested,"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mts",
@@ -28403,7 +28403,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
               },
               {
@@ -28688,12 +28688,12 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const current = journal!.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const admitted = journal!.resolveDefinition(requested.requested,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28702,7 +28702,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
               },
               {
@@ -29148,12 +29148,12 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const current = journal!.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const admitted = journal!.resolveDefinition(requested.requested,"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mts",
@@ -29198,7 +29198,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
               },
               {
@@ -30541,7 +30541,7 @@
                 "anchor": "after an issuer callback retains its original validation and race handling."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const after = observeControl();"
               },
               {
@@ -31867,7 +31867,7 @@
                 "anchor": "after an issuer callback retains its original validation and race handling."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const after = observeControl();"
               },
               {
@@ -35264,7 +35264,7 @@
                 "anchor": "after an issuer callback retains its original validation and race handling."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const after = observeControl();"
               },
               {
@@ -36672,7 +36672,7 @@
                 "anchor": "after an issuer callback retains its original validation and race handling."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const after = observeControl();"
               },
               {
@@ -37476,7 +37476,7 @@
                 "anchor": "after an issuer callback retains its original validation and race handling."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const after = observeControl();"
               },
               {
@@ -40180,7 +40180,7 @@
                 "anchor": "after an issuer callback retains its original validation and race handling."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const after = observeControl();"
               },
               {
@@ -43996,8 +43996,8 @@
                 "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admissionFailures = new WeakMap();"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const admissionFailures = new WeakMap<EmbeddedSubmission, Parameters<PreparedAdmissionFailure['set']>[1]>();"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -44076,7 +44076,7 @@
                 "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (this !== admitPreparedSubmission) return false;"
               },
               {
@@ -44114,7 +44114,7 @@
                 "anchor": "same duty before its returned view observes it, that view receives the retained"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "admissionFailures.delete(submission);"
               },
               {
@@ -44148,7 +44148,7 @@
                 "anchor": "The Host binds the Result control original after its actual Journal opens and"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               },
               {
@@ -44232,7 +44232,7 @@
                 "anchor": "entry.closedObservation = resultStatus(entry);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "run.preAdmissionRefusal = undefined;"
               }
             ],
@@ -44274,7 +44274,7 @@
                 "anchor": "One durable clock floor covers unchanged internal observations."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "run.original !== undefined || run.admission !== undefined || run.value !== undefined ||"
               },
               {
@@ -44676,8 +44676,8 @@
                 "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admissionFailures = new WeakMap();"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const admissionFailures = new WeakMap<EmbeddedSubmission, Parameters<PreparedAdmissionFailure['set']>[1]>();"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -44748,7 +44748,7 @@
                 "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (this !== admitPreparedSubmission) return false;"
               }
             ],
@@ -44782,7 +44782,7 @@
                 "anchor": "same duty before its returned view observes it, that view receives the retained"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "admissionFailures.delete(submission);"
               },
               {
@@ -44816,7 +44816,7 @@
                 "anchor": "The Host binds the Result control original after its actual Journal opens and"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               },
               {
@@ -44896,7 +44896,7 @@
                 "anchor": "entry.closedObservation = resultStatus(entry);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "run.preAdmissionRefusal = undefined;"
               }
             ],
@@ -44938,7 +44938,7 @@
                 "anchor": "One durable clock floor covers unchanged internal observations."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "run.original !== undefined || run.admission !== undefined || run.value !== undefined ||"
               },
               {
@@ -50991,8 +50991,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function assertInitialControlHostPreparation(originals: unknown): asserts originals is HostStartupOriginals {"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -51029,7 +51029,7 @@
                 "anchor": "const initialControl = host.initialControl;"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
@@ -51067,8 +51067,8 @@
                 "anchor": "test('original close receiver and callback survive pending retries without replacement'"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "originals?.moduleLifetime !== import.meta"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "(originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -51273,7 +51273,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               },
               {
@@ -51377,7 +51377,7 @@
                 "anchor": "incomplete selected Source initialization retains the same Host"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "}, clientOptions, host, releaseUnadopted, initialControl);"
               }
             ]
@@ -51518,8 +51518,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function assertInitialControlHostPreparation(originals: unknown): asserts originals is HostStartupOriginals {"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -51528,7 +51528,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
@@ -51542,8 +51542,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "originals?.moduleLifetime !== import.meta"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "(originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -51628,7 +51628,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               },
               {
@@ -51834,8 +51834,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function assertInitialControlHostPreparation(originals: unknown): asserts originals is HostStartupOriginals {"
               }
             ],
             "inputsOutputs": [
@@ -51868,7 +51868,7 @@
                 "anchor": "const initialControl = host.initialControl;"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
@@ -51906,8 +51906,8 @@
                 "anchor": "test('original close receiver and callback survive pending retries without replacement'"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "originals?.moduleLifetime !== import.meta"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "(originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -52104,7 +52104,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               },
               {
@@ -52303,7 +52303,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
-                "anchor": "export function managedPreparationRetirementContinuation(run: ManagedRun, record: ComputeRegistry) {"
+                "anchor": "export function managedPreparationRetirementContinuation(run: ManagedRun,\n    record: Readonly<{computeLiveRuns?: Pick<Set<ManagedRun>, 'delete'>}>) {"
               }
             ],
             "synchronization": [
@@ -55715,7 +55715,7 @@
                 "anchor": "The Host binds the Result control original after its actual Journal opens and"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               }
             ],
@@ -55921,7 +55921,7 @@
                 "anchor": "The Host binds the Result control original after its actual Journal opens and"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               }
             ],
@@ -56907,8 +56907,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "bindManagedComputeRunObservation(prepared: object, ref: WireRunRef) {"
               },
               {
                 "path": "adapters/host-node/in-process-client.mts",
@@ -56937,8 +56937,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "for (const key of Object.keys(record)) (record as Record<string, unknown>)[key] = undefined;"
               }
             ],
             "synchronization": [
@@ -57333,8 +57333,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "bindManagedComputeRunObservation(prepared: object, ref: WireRunRef) {"
               }
             ],
             "ownership": [
@@ -57359,8 +57359,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "for (const key of Object.keys(record)) (record as Record<string, unknown>)[key] = undefined;"
               }
             ],
             "synchronization": [
@@ -57617,8 +57617,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "bindManagedComputeRunObservation(prepared: object, ref: WireRunRef) {"
               },
               {
                 "path": "adapters/host-node/in-process-client.mts",
@@ -57647,8 +57647,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "for (const key of Object.keys(record)) (record as Record<string, unknown>)[key] = undefined;"
               }
             ],
             "synchronization": [
@@ -57989,8 +57989,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "bindManagedComputeRunObservation(prepared: object, ref: WireRunRef) {"
               },
               {
                 "path": "adapters/host-node/in-process-client.mts",
@@ -58019,8 +58019,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "for (const key of Object.keys(record)) (record as Record<string, unknown>)[key] = undefined;"
               }
             ],
             "synchronization": [
@@ -69225,11 +69225,11 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-content-run.mts",
-                "anchor": "original.managed = prepareKeyedManagedRun(preparedProgram, request, serializationGraph, original.recipe, original);"
+                "anchor": "original.managed = prepareKeyedManagedRun(preparedProgram, request, serializationGraph, original.recipe, original as RetainedPreparation<KeyedPreparation>);"
               },
               {
                 "path": "adapters/host-node/installed-content-run.mts",
-                "anchor": "prepareKeyedManagedRun(preparedProgram, request, serializationGraph, original.recipe, original)"
+                "anchor": "prepareKeyedManagedRun(preparedProgram, request, serializationGraph, original.recipe, original as RetainedPreparation<KeyedPreparation>)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -69287,7 +69287,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-content-run.mts",
-                "anchor": "original.managed = prepareSerializationManagedRun(preparedProgram, request, plan, prefixLimits, original.workspace, original);"
+                "anchor": "original.managed = prepareSerializationManagedRun(preparedProgram, request, plan, prefixLimits, original.workspace, original as RetainedPreparation<Preparation>);"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -75957,8 +75957,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function assertInitialControlHostPreparation(originals: unknown): asserts originals is HostStartupOriginals {"
               }
             ],
             "inputsOutputs": [
@@ -75983,7 +75983,7 @@
                 "anchor": "const initialControl = host.initialControl;"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
@@ -76021,8 +76021,8 @@
                 "anchor": "test('shutdown captures original control close before its first close request'"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "originals?.moduleLifetime !== import.meta"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "(originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -76223,7 +76223,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
@@ -76787,13 +76787,13 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function assertInitialControlHostPreparation(originals: unknown): asserts originals is HostStartupOriginals {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
@@ -76803,8 +76803,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "originals?.moduleLifetime !== import.meta"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "(originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -76857,7 +76857,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
@@ -76988,8 +76988,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function assertInitialControlHostPreparation(originals: unknown): asserts originals is HostStartupOriginals {"
               }
             ],
             "inputsOutputs": [
@@ -77014,7 +77014,7 @@
                 "anchor": "const initialControl = host.initialControl;"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
@@ -77052,8 +77052,8 @@
                 "anchor": "test('shutdown captures original control close before its first close request'"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "originals?.moduleLifetime !== import.meta"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "(originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -77254,7 +77254,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
@@ -77677,7 +77677,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (runtime !== moon) throw clientOperationError('ForeignInstalledProjectSourcePreparation');"
               },
               {
@@ -77691,13 +77691,13 @@
                 "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const bundle = projectSourcePreparation.originalsForRuntime(moon);"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "assertSourceManagedInstallationCurrent(sourceManaged, originals);"
               }
             ],
@@ -78134,7 +78134,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const resultReadLimits = localResourceResultReadLimits(moon, requestMemory);"
               }
             ],
@@ -78602,8 +78602,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function assertInitialControlHostPreparation(originals: unknown): asserts originals is HostStartupOriginals {"
               }
             ],
             "inputsOutputs": [
@@ -78624,7 +78624,7 @@
                 "anchor": "projectEnvironmentForRuntime(runtime: unknown, wire: string, evidenceCid: string, environmentBody?: unknown) {"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
@@ -78654,8 +78654,8 @@
                 "anchor": "pub fn client_project_model_task_selection_for("
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "originals?.moduleLifetime !== import.meta"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "(originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -78676,7 +78676,7 @@
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "projectTasks = undefined;"
               },
               {
@@ -78800,7 +78800,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
@@ -78887,8 +78887,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function assertInitialControlHostPreparation(originals: unknown): asserts originals is HostStartupOriginals {"
               }
             ],
             "inputsOutputs": [
@@ -78901,7 +78901,7 @@
                 "anchor": "projectEnvironmentForRuntime(runtime: unknown, wire: string, evidenceCid: string, environmentBody?: unknown) {"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
@@ -78923,8 +78923,8 @@
                 "anchor": "pub fn client_project_model_task_selection_for("
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "originals?.moduleLifetime !== import.meta"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "(originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -78937,7 +78937,7 @@
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "projectTasks = undefined;"
               },
               {
@@ -79029,7 +79029,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
@@ -79089,13 +79089,13 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function assertInitialControlHostPreparation(originals: unknown): asserts originals is HostStartupOriginals {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
@@ -79105,8 +79105,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "originals?.moduleLifetime !== import.meta"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "(originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -79159,7 +79159,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
@@ -79209,8 +79209,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function assertInitialControlHostPreparation(originals: unknown): asserts originals is HostStartupOriginals {"
               }
             ],
             "inputsOutputs": [
@@ -79231,7 +79231,7 @@
                 "anchor": "projectEnvironmentForRuntime(runtime: unknown, wire: string, evidenceCid: string, environmentBody?: unknown) {"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
@@ -79261,8 +79261,8 @@
                 "anchor": "pub fn client_project_model_task_selection_for("
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "originals?.moduleLifetime !== import.meta"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "(originals as HostStartupOriginals | undefined)?.moduleLifetime !== import.meta"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -79283,7 +79283,7 @@
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "projectTasks = undefined;"
               },
               {
@@ -79407,7 +79407,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
@@ -80197,7 +80197,7 @@
                 "anchor": "#### Original mock answer materials"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               }
             ],
@@ -80575,7 +80575,7 @@
                 "anchor": "#### Original mock answer materials"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               }
             ],
@@ -82178,7 +82178,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "prepareOriginalMockRun(prepared, plan) {"
               },
               {
@@ -82200,7 +82200,7 @@
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "prepareOriginalMockRun(prepared, plan) {"
               },
               {
@@ -83001,7 +83001,7 @@
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "projectTasks = undefined;"
               },
               {
@@ -83268,7 +83268,7 @@
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "projectTasks = undefined;"
               },
               {
@@ -83574,7 +83574,7 @@
                 "anchor": "selection.configuration = None"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "projectProfile?.retire(projectRuntime);"
               }
             ],
@@ -83584,13 +83584,13 @@
                 "anchor": "const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               },
               {
@@ -83604,7 +83604,7 @@
                 "anchor": "Neither its completion nor dropping aliases proves GC, physical"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (adopted) throw cause; // The original opened/failed Host owns cleanup."
               }
             ],
@@ -83618,7 +83618,7 @@
                 "anchor": "it does not add a profile field to the public connection wire."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "requestedProfile.length > 65536"
               }
             ],
@@ -83702,7 +83702,7 @@
                 "anchor": "selection.configuration = None"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "projectProfile?.retire(projectRuntime);"
               }
             ],
@@ -83712,13 +83712,13 @@
                 "anchor": "const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               },
               {
@@ -83732,7 +83732,7 @@
                 "anchor": "Neither its completion nor dropping aliases proves GC, physical"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (adopted) throw cause; // The original opened/failed Host owns cleanup."
               }
             ],
@@ -83746,7 +83746,7 @@
                 "anchor": "it does not add a profile field to the public connection wire."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "requestedProfile.length > 65536"
               }
             ],
@@ -92678,7 +92678,7 @@
               },
               {
                 "path": "adapters/host-node/node-host-journal-installation.mts",
-                "anchor": "return invoke(5, [state.original, state.originals, root]);"
+                "anchor": "return invoke(5, [state.original, state.originals, root]) as ReturnType<JournalInstallation['admitRootFormat']>;"
               }
             ],
             "ownership": [
@@ -92826,7 +92826,7 @@
               },
               {
                 "path": "adapters/host-node/node-host-journal-installation.mts",
-                "anchor": "return invoke(5, [state.original, state.originals, root]);"
+                "anchor": "return invoke(5, [state.original, state.originals, root]) as ReturnType<JournalInstallation['admitRootFormat']>;"
               }
             ],
             "ownership": [
@@ -93110,7 +93110,7 @@
                 "anchor": "The Host binds the Result control original after its actual Journal opens and"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               },
               {
@@ -93254,7 +93254,7 @@
                 "anchor": "The Host binds the Result control original after its actual Journal opens and"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               },
               {
@@ -95731,7 +95731,7 @@
                 "anchor": "The Host binds the Result control original after its actual Journal opens and"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               }
             ],
@@ -96518,7 +96518,7 @@
                 "anchor": "The Host binds the Result control original after its actual Journal opens and"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               }
             ],
@@ -96783,21 +96783,21 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals: HostStartupOriginals) {"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals: HostStartupOriginals) {"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
               }
             ],
@@ -119445,7 +119445,7 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "return Object.freeze({resultCount, maxRows, maxContractBytes: localContractLimits.maxWireBytes});"
               }
             ],
@@ -120221,11 +120221,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals: HostStartupOriginals) {"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
               },
               {
@@ -120255,11 +120255,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals: HostStartupOriginals) {"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
               },
               {
@@ -123911,11 +123911,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals: HostStartupOriginals) {"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
               },
               {
@@ -123945,11 +123945,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals: HostStartupOriginals) {"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
               },
               {
@@ -131557,7 +131557,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "return authorizeLocalRun({principalId: value.principalId,"
               }
             ],
@@ -131759,8 +131759,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit, modelInstallation) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "    readStaticEffectExplanation<Value>(request: OrdinaryStaticEffectArgs[4], environment: OrdinaryStaticEffectArgs[1],"
               }
             ],
             "identity": [
@@ -131769,14 +131769,14 @@
                 "anchor": "const staticPlanScope = Object.freeze({namespaceId, authorityScopeCid});"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "assertStaticEffectExplanationOriginal(request: object) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "assertStaticEffectExplanationOriginal(request: object) {"
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mts",
@@ -131803,13 +131803,13 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const planning = moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal())[0];"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": ".clientLocalPreparationResourceLimits(moon!.clientLocalResourcePolicyOriginal() as Parameters<typeof localResourceLookupExecutionPolicy>[1])"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "function hasStaticExplanationPort(name) {"
               }
             ],
@@ -145658,7 +145658,7 @@
                 "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const initialControl = Object.freeze({async close()"
               }
             ],
@@ -145708,7 +145708,7 @@
                 "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "return openPreparedInstalledHost(options, 'remote');"
               }
             ],

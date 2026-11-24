@@ -7556,7 +7556,7 @@
                 "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
               },
               {
@@ -7630,12 +7630,12 @@
                 "anchor": "after\n/// awaits."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const current = journal!.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const admitted = journal!.resolveDefinition(requested.requested,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mts",
@@ -7708,7 +7708,7 @@
                 "anchor": "actual authentication bridge rejects equal-data original substitution"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
               },
               {
@@ -8916,7 +8916,7 @@
                 "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
               },
               {
@@ -8974,12 +8974,12 @@
                 "anchor": "after\n/// awaits."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const current = journal!.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const admitted = journal!.resolveDefinition(requested.requested,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mts",
@@ -9040,7 +9040,7 @@
                 "anchor": "actual authentication bridge rejects equal-data original substitution"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
               },
               {
@@ -11871,17 +11871,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const current = journal!.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const admitted = journal!.resolveDefinition(requested.requested,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
               },
               {
@@ -12401,7 +12401,7 @@
                 "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
               },
               {
@@ -12475,12 +12475,12 @@
                 "anchor": "after\n/// awaits."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const current = journal!.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const admitted = journal!.resolveDefinition(requested.requested,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mts",
@@ -12553,7 +12553,7 @@
                 "anchor": "actual authentication bridge rejects equal-data original substitution"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
               },
               {
@@ -13241,7 +13241,7 @@
                 "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
               },
               {
@@ -13315,12 +13315,12 @@
                 "anchor": "after\n/// awaits."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const current = journal!.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const admitted = journal!.resolveDefinition(requested.requested,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mts",
@@ -13393,7 +13393,7 @@
                 "anchor": "actual authentication bridge rejects equal-data original substitution"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
               },
               {
@@ -28799,7 +28799,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "prepareOriginalMockRun(prepared, plan) {"
               },
               {
@@ -28821,7 +28821,7 @@
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "prepareOriginalMockRun(prepared, plan) {"
               },
               {
