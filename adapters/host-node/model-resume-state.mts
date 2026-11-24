@@ -26,7 +26,7 @@ type Originals = Readonly<{
   providerBindingWire: string; fixedInputReceiptWire: string; slotWires: readonly string[];
   checkpointWire?: string; reviewWire?: string;
 }>;
-type Checkpoint = SqlRow & Readonly<{checkpoint_cid: string; checkpoint_wire: string; run_id: string}>;
+type Checkpoint = Readonly<{checkpoint_cid: string; checkpoint_wire: string; run_id: string | null}>;
 type Run = SqlRow & Readonly<{status: string; version: number}>;
 type Intent = Readonly<{checkpointCid: string; intentId: string; claimant: string; generation: number}>;
 type Claim = Intent & Readonly<{runId: string}>;
@@ -39,7 +39,7 @@ type EntryReference = ScopeReference & Partial<Deferred> & Readonly<{
 type Enter = EntryReference & Readonly<{attemptWire: string; authorityWire: string}>;
 type Admission = DeferredAdmission | ImmediateAdmission;
 type DeferredAdmission = Deferred & Readonly<{
-  kind: string; runId: string; requiredArtifactCid: string; admittedAt: string;
+  kind: string; runId: string | null; requiredArtifactCid: string; admittedAt: string; verifiedResolutionCid: string;
 }>;
 type ImmediateAdmission = Readonly<{
   kind: 'model_invocation'; provenance: 'immediate'; runId: string; requiredArtifactCid: string;
@@ -139,7 +139,7 @@ type JournalPortSource = Readonly<{
   current(port: object, receipt: object, reference: object, park: unknown, request: unknown): object;
 }>;
 type CallerFailure = Readonly<{code?: string; outcome?: 'failed' | 'unknown'}>;
-type MatchIntent = Readonly<{checkpointCid: string; intentId: string; runId: string}>;
+type MatchIntent = Readonly<{checkpointCid: string; intentId: string; runId: string | null}>;
 type EnterImmediate = Readonly<{
   decision?: unknown; preparedCallSet?: unknown; parentResume?: Readonly<{claim: Claim; checkpointCid: string}>;
 }>;

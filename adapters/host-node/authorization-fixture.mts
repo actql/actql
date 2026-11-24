@@ -9,8 +9,6 @@ import {fileURLToPath} from 'node:url';
 import {createNodeAuthorizationGate} from './authorization.mjs';
 import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
 
-import type {CheckpointRuntime} from './checkpoint-runtime.mjs';
-
 // Tests build the JS release bundles they load, as other release-bundle tests
 // do; product loaders never build. Each package is built at most once per
 // process, synchronously, because `fixtureSourceAccess` below installs a gate
@@ -23,26 +21,6 @@ type FixtureSelectors = Readonly<Partial<Record<
   'principal' | 'connection' | 'resource' | 'operation', string | readonly string[]
 >>>;
 type FixtureEntryOptions = FixtureSelectors & Readonly<{exclusions?: readonly FixtureSelectors[]}>;
-type FixtureCheckpoint = Readonly<{
-  checkpointCid: string; checkpointId: string; kind: string; prepareAttemptId: string | null;
-  runId: string | null; requiredArtifact: Readonly<{cid: string}>;
-  reviewProjectionCid: string; requirements: readonly string[]; expiresAt: string;
-}>;
-type FixtureJournal = Deferral['journal'] & Readonly<{
-  inspect(reference: string): FixtureCheckpoint | undefined;
-  listPending(options?: Readonly<{after?: string; limit?: number}>): readonly FixtureCheckpoint[];
-  getRunState(runId: string): Readonly<{status: string}> | undefined;
-  submitResolution(input: Readonly<{checkpointCid: string; resolutionWire: string; approvalEvidenceWire: string}>): Promise<unknown>;
-  close(): void;
-}>;
-type LegacyCheckpointModule = Readonly<{
-  openSqliteCheckpointJournal(root: string, options: Readonly<{
-    runtime: CheckpointRuntime; expectedAuthorityScopeCid: string; now: () => number;
-    authorizeResolution(input: Readonly<{resolutionWire: string; proofPreimage: string}>):
-      Promise<Readonly<{keyId: string; reviewerId: string; authorityContextCid: string; policyCid: string; verifiedPreimage: string}>>;
-    attestResolution(preimage: string): Promise<Readonly<{hostKeyId: string; signature: string}>>;
-  }>): FixtureJournal;
-}>;
 type DeferralOptions = Readonly<{
   now?: () => number;
   hooks?: Readonly<{authorize?: () => unknown; attest?: () => unknown}>;
@@ -152,9 +130,7 @@ const cidOf = (value: unknown) =>
 export async function sqliteDeferral(root: string, {now = () => Date.now(),
   hooks = {}}: DeferralOptions = {}) {
   ensureCheckpointRuntime();
-  const {openSqliteCheckpointJournal}: LegacyCheckpointModule = await import(
-    // @ts-expect-error The existing SQLite Checkpoint Journal is still authored in JS.
-    './sqlite-checkpoint-journal.mjs');
+  const {openSqliteCheckpointJournal} = await import('./sqlite-checkpoint-journal.mjs');
   const reviewer = generateKeyPairSync('ed25519');
   const host = generateKeyPairSync('ed25519');
   const journal = openSqliteCheckpointJournal(root, {

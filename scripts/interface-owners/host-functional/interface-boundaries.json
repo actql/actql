@@ -102393,7 +102393,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mts",
                 "anchor": "const closeControl = checkpointJournalClose(database);"
               }
             ],
@@ -102417,7 +102417,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mts",
                 "anchor": "if (closeControl.closed) fail('CheckpointJournalClosed');"
               }
             ],
@@ -102450,7 +102450,7 @@
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e986c287791e0fa60edc6e1c7f20ef437beda2e30b6992698a681e552ef01be4",
+      "sha256": "9a2e74b1435114e7caaff25ab94186221ccc1fc1120ab1ec0aa449c07921370a",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -103262,7 +103262,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mts",
                 "anchor": "// Semantics (artifact shape and identity, Resolution admission, signature"
               },
               {
@@ -103290,7 +103290,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mts",
                 "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
               },
               {
@@ -103304,7 +103304,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mts",
                 "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
               },
               {
@@ -103485,7 +103485,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mts",
                 "anchor": "// Semantics (artifact shape and identity, Resolution admission, signature"
               },
               {
@@ -103513,7 +103513,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mts",
                 "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
               },
               {
@@ -103527,7 +103527,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mts",
                 "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
               },
               {
@@ -103829,8 +103829,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
-                "anchor": "core(runtime.checkpointAdmit(row.checkpoint_wire),"
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mts",
+                "anchor": "core<SealedCheckpoint>(runtime.checkpointAdmit(row.checkpoint_wire),"
               }
             ],
             "synchronization": [
@@ -103968,7 +103968,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mts",
                 "anchor": "initializeCheckpointJournal(database, transaction, fail);"
               }
             ],

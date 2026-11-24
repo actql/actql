@@ -2,13 +2,13 @@ import type {WireCheckpointSummary} from '../../packages/client-wire/index.d.ts'
 import type {AdmissionRow, CheckpointRow, PreparationRow} from './sqlite-checkpoint-journal-storage.mjs';
 
 type ReviewerIdentity = Readonly<{keyId?: unknown; reviewerId?: unknown}>;
-type ResumeBinding = Readonly<{authorizationContextCid?: unknown; environmentBindingCid?: unknown}>;
+export type ResumeBinding = Readonly<{authorizationContextCid?: unknown; environmentBindingCid?: unknown}>;
 type CoreResult<Result extends object> = Readonly<{ok: true}> & Result;
 type CoreFailure = Readonly<{ok: false; detail?: unknown; issue: string}>;
 
 // Shape of the wire already admitted by checkpoint_runtime before projection.
 // Retain its original snake_case fields until the inspection view is built.
-type CheckpointArtifact = Readonly<{
+export type CheckpointArtifact = Readonly<{
   checkpoint_id: string; checkpoint_cid: string;
   continuation_state_cid: string; review_projection_cid: string;
   required_artifact: Readonly<{artifact_type: string; artifact_cid: string}>;

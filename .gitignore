@@ -3242,3 +3242,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/sqlite-checkpoint-journal-storage.d.mts
 /adapters/host-node/sqlite-checkpoint-journal-wire.mjs
 /adapters/host-node/sqlite-checkpoint-journal-wire.d.mts
+/adapters/host-node/sqlite-checkpoint-journal.mjs
+/adapters/host-node/sqlite-checkpoint-journal.d.mts

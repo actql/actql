@@ -5,7 +5,7 @@ import {createModelResumeTables} from './model-resume-sqlite.mjs';
 import type {DatabaseSync, SQLInputValue, StatementSync} from 'node:sqlite';
 import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
-type RunRow = Readonly<{
+export type RunRow = Readonly<{
   run_id: string; status: string; version: number; updated_at: string;
   declared_results_json: string; checkpoint_cid: string; run_state_wire: string;
 }>;
@@ -14,23 +14,26 @@ export type PreparationRow = Readonly<{
   version: number; updated_at: string; declared_results_json: string; checkpoint_cid: string;
   run_id: string; end_reason: string; terminal_error_code: string; cancel_requested: 0 | 1;
 }>;
+// Both owning tables have CHECK ((run_id IS NULL) != (prepare_attempt_id IS NULL)).
+type JournalSubjectColumns = Readonly<{run_id: string; prepare_attempt_id: null}> |
+  Readonly<{run_id: null; prepare_attempt_id: string}>;
 export type CheckpointRow = Readonly<{
-  checkpoint_id: string; checkpoint_cid: string; run_id: string | null; prepare_attempt_id: string | null;
+  checkpoint_id: string; checkpoint_cid: string;
   checkpoint_wire: string; expires_at: string; authorities_json: string; binding_json: string;
   decision_subject_cid: string; requested_claims_json: string; configuration_cid: string;
   closure: 'open' | 'resolved' | 'expired' | 'cancelled'; resolution_cid: string;
   persisted_at: string; closed_at: string;
-}>;
+}> & JournalSubjectColumns;
 type ResolutionRow = Readonly<{
   resolution_cid: string; checkpoint_cid: string; decision: 'approved' | 'rejected';
   verified_resolution_cid: string; verified_resolution_wire: string; committed_at: string;
 }>;
-type IntentRow = Readonly<{
-  intent_id: string; checkpoint_cid: string; resolution_cid: string; run_id: string | null;
-  prepare_attempt_id: string | null; state: 'pending' | 'claimed' | 'completed';
+export type IntentRow = Readonly<{
+  intent_id: string; checkpoint_cid: string; resolution_cid: string;
+  state: 'pending' | 'claimed' | 'completed';
   generation: number; claimant: string; lease_expires_ms: number;
   outcome_status: string; completed_at: string;
-}>;
+}> & JournalSubjectColumns;
 export type AdmissionRow = Readonly<{
   generation: number; claimant: string; admitted_at: string; dispatch_identity: string;
 }>;
@@ -206,7 +209,7 @@ export function prepareCheckpointJournalStatements(database: Pick<DatabaseSync, 
       'INSERT INTO journal_metadata (key, value) VALUES (?, ?)'),
     updateLocalSigning: database.prepare(
       'UPDATE journal_metadata SET value = ? WHERE key = ? AND value = ?'),
-    run: database.prepare('SELECT * FROM runs WHERE run_id = ?') as One<RunRow, [runId: string]>,
+    run: database.prepare('SELECT * FROM runs WHERE run_id = ?') as One<RunRow, [runId: string | null]>,
     insertRun: database.prepare(`
       INSERT INTO runs (run_id, status, version, updated_at,
         declared_results_json, checkpoint_cid)
