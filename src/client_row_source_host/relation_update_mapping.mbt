@@ -65,55 +65,16 @@ fn prepare_row_guarded_mapping(
       is Some(Ok(identity)) else {
       return Err(InvalidSpecification)
     }
-    let (delete, operation) = match
-      (@decode.lookup(fields, "update"), @decode.lookup(fields, "delete")) {
-      (Some(update), None) => (false, update)
-      (None, Some(delete)) => (true, delete)
-      _ => return Err(InvalidSpecification)
-    }
-    let keys = if delete {
-      ["permission", "approval"]
-    } else {
-      ["fields", "permission", "approval"]
-    }
-    guard @decode.closed_object(operation, keys) is Ok(operation) &&
-      @decode.lookup(operation, "permission").map(@decode.text)
-      is Some(Ok(permission)) &&
-      @decode.lookup(operation, "approval").map(@decode.text)
-      is Some(Ok(approval)) else {
-      return Err(InvalidSpecification)
-    }
-    let names = if delete {
-      []
-    } else {
-      guard @decode.lookup(operation, "fields").map(@decode.elements)
-        is Some(Ok(names)) &&
-        !names.is_empty() &&
-        names.length() <= limits.max_fields else {
-        return Err(InvalidSpecification)
-      }
-      names
-    }
+    let update = @decode.lookup(fields, "update")
+    let delete = @decode.lookup(fields, "delete")
     if seen.contains(name) ||
       name.is_empty() ||
       identity.is_empty() ||
-      permission.is_empty() ||
-      (approval != "none" && approval != "required") {
+      (update is None && delete is None) {
       return Err(InvalidSpecification)
     }
     seen.push(name)
-    let writable_fields : Array[String] = []
-    for field in names {
-      guard @decode.text(field) is Ok(field) else {
-        return Err(InvalidSpecification)
-      }
-      if writable_fields.contains(field) || field == identity {
-        return Err(InvalidSpecification)
-      }
-      writable_fields.push(field)
-    }
-    // Validate even an unselected sibling spec under its own original schema.
-    // The selected constructor below remains the only Mapping semantic owner.
+    // Both operations select the same original Relation schema and key.
     let (_, contract) = match
       mapping_original_relation(declaration, name, identity, limits) {
       Ok(value) => value
@@ -122,24 +83,57 @@ fn prepare_row_guarded_mapping(
     guard @schema.from_object(contract) is Ok(schema) else {
       return Err(InvalidSpecification)
     }
-    for field in writable_fields {
-      if @schema.lookup_reference(schema, field) is None {
-        return Err(FieldNotWritable(field))
+    for (is_delete, candidate) in [(false, update), (true, delete)] {
+      guard candidate is Some(operation) else { continue }
+      let keys = if is_delete {
+        ["permission", "approval"]
+      } else {
+        ["fields", "permission", "approval"]
       }
-    }
-    if name == resource && delete == deleting {
-      selected = Some(
-        (
-          identity,
-          {
-            kind: RelationUpdate,
-            writable_fields,
-            required_fields: [],
-            permission,
-            approval,
-          },
-        ),
-      )
+      guard @decode.closed_object(operation, keys) is Ok(operation) &&
+        @decode.lookup(operation, "permission").map(@decode.text)
+        is Some(Ok(permission)) &&
+        @decode.lookup(operation, "approval").map(@decode.text)
+        is Some(Ok(approval)) &&
+        !permission.is_empty() &&
+        (approval == "none" || approval == "required") else {
+        return Err(InvalidSpecification)
+      }
+      let writable_fields : Array[String] = []
+      if !is_delete {
+        guard @decode.lookup(operation, "fields").map(@decode.elements)
+          is Some(Ok(names)) &&
+          !names.is_empty() &&
+          names.length() <= limits.max_fields else {
+          return Err(InvalidSpecification)
+        }
+        for field in names {
+          guard @decode.text(field) is Ok(field) &&
+            !writable_fields.contains(field) &&
+            field != identity else {
+            return Err(InvalidSpecification)
+          }
+          if @schema.lookup_reference(schema, field) is None {
+            return Err(FieldNotWritable(field))
+          }
+          writable_fields.push(field)
+        }
+      }
+      // Validate every declared operation before issuing the selected Mapping.
+      if name == resource && is_delete == deleting {
+        selected = Some(
+          (
+            identity,
+            {
+              kind: RelationUpdate,
+              writable_fields,
+              required_fields: [],
+              permission,
+              approval,
+            },
+          ),
+        )
+      }
     }
   }
   guard selected is Some((identity, spec)) else {

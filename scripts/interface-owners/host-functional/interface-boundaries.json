@@ -80805,7 +80805,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "2c9463689a7bf77b12fe50128e6b8065f87e0ee6c49c2f38deedfff8f4988d58",
+      "sha256": "5e5e58b15bdde6176d106ac9d99260672c74118c4ff55a0991d7d079b4e0f9da",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -81322,13 +81322,6 @@
             "runtime"
           ],
           "async": false
-        },
-        {
-          "name": "prepareProjectMockDeclarations/prepareProjectMockDeclarations",
-          "parameters": [
-            "port"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -81362,8 +81355,7 @@
             "prepareInstalledProjectMock",
             "prepareProjectMockDeclarations/current",
             "prepareProjectMockDeclarations/init:originalsForRuntime/init:originalsForRuntime",
-            "prepareProjectMockDeclarations/init:retire/init:retire",
-            "prepareProjectMockDeclarations/prepareProjectMockDeclarations"
+            "prepareProjectMockDeclarations/init:retire/init:retire"
           ],
           "exports": [
             "installedMockRequestRealization",
@@ -81408,7 +81400,7 @@
             "ownership": [
               {
                 "path": "adapters/local-node/installed-project-mock.mts",
-                "anchor": "originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;"
+                "anchor": "originals = sources = writables = catalog = connections = connectionOriginal = undefined;"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -81456,7 +81448,7 @@
             "resources": [
               {
                 "path": "adapters/local-node/installed-project-mock.mts",
-                "anchor": "if (!Number.isSafeInteger(count) || count! < 0 || count! > 128) {"
+                "anchor": "if (!Number.isSafeInteger(count) || count < 0 || count > 128) {"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -81485,6 +81477,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock binds UPDATE and DELETE to the same original table with distinct mappings"
               }
             ]
           }
@@ -82530,7 +82526,7 @@
             "ownership": [
               {
                 "path": "adapters/local-node/installed-project-mock.mts",
-                "anchor": "originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;"
+                "anchor": "originals = sources = writables = catalog = connections = connectionOriginal = undefined;"
               }
             ],
             "synchronization": [
@@ -82554,7 +82550,7 @@
             "resources": [
               {
                 "path": "adapters/local-node/installed-project-mock.mts",
-                "anchor": "if (!Number.isSafeInteger(count) || count! < 0 || count! > 128) {"
+                "anchor": "if (!Number.isSafeInteger(count) || count < 0 || count > 128) {"
               }
             ],
             "extension": [
@@ -128047,7 +128043,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-mock-account.mjs",
-      "sha256": "e0dd5df85548fb02e101dd595c533105dbda569008dbe3bcb5bf9ae3f872d69a",
+      "sha256": "17a883347a33a8669a0d028716105247e8282d2462cc912d1a4ba07b87fae8bd",
       "exports": [
         "initializeOrdinaryMockAccount",
         "prepareOrdinaryMockAccountSubjects"
@@ -128166,14 +128162,14 @@
         {
           "name": "prepareOrdinaryMockAccountSubjects/prepareOrdinaryMockAccountSubjects",
           "parameters": [
-            "target"
+            "tuple"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinaryMockAccountSubjects/prepareOrdinaryMockAccountSubjects/mapping/mapping",
+          "name": "prepareOrdinaryMockAccountSubjects/prepareOrdinaryMockAccountSubjects#2",
           "parameters": [
-            "value"
+            "target"
           ],
           "async": false
         },
@@ -128202,13 +128198,6 @@
           "name": "prepareOrdinaryMockAccountSubjects/tasks/tasks",
           "parameters": [
             "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryMockAccountSubjects/updates/updates",
-          "parameters": [
-            "target"
           ],
           "async": false
         }
@@ -128567,12 +128556,11 @@
           "operations": [
             "prepareOrdinaryMockAccountSubjects",
             "prepareOrdinaryMockAccountSubjects/prepareOrdinaryMockAccountSubjects",
-            "prepareOrdinaryMockAccountSubjects/prepareOrdinaryMockAccountSubjects/mapping/mapping",
             "prepareOrdinaryMockAccountSubjects/sources/sources",
             "prepareOrdinaryMockAccountSubjects/sources/sources/sources",
             "prepareOrdinaryMockAccountSubjects/subject/subject",
             "prepareOrdinaryMockAccountSubjects/tasks/tasks",
-            "prepareOrdinaryMockAccountSubjects/updates/updates"
+            "prepareOrdinaryMockAccountSubjects/prepareOrdinaryMockAccountSubjects#2"
           ],
           "exports": [
             "prepareOrdinaryMockAccountSubjects"
@@ -128656,6 +128644,10 @@
               {
                 "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
                 "anchor": "test('diagnostic exception does not bootstrap explicit or unrecognized authorization selections'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "actual Mock Source mappings retain exact resources through the same Account subject handoff"
               }
             ]
           }
@@ -129341,7 +129333,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c67016aa9dcc6b35866dda279e4c7fadb90231f4e8ebb5a305a7646abf14ff89",
+      "sha256": "7e792d4bb47ed4d90ecc4735514f5a515b1707869ea2cd9b6c2e89418da39ca4",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -129771,6 +129763,20 @@
           "async": false
         },
         {
+          "name": "mockRowEffectDriver/issue/issue",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/memberCurrent/target/target",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "mockRowEffectDriver/readChild",
           "parameters": [
             "member",
@@ -129884,13 +129890,6 @@
         },
         {
           "name": "mockRowEffectDriver/targetForRecord/target/target",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockRowEffectDriver/targetForResource/target/target",
           "parameters": [
             "value"
           ],
@@ -130442,7 +130441,8 @@
             "installPreparedProjectMockEffects/installed/installed/projection/projection/aliases/aliases/aliases",
             "mockRowEffectDriver/describe/construct/construct",
             "mockRowEffectDriver/targetForRecord/target/target",
-            "mockRowEffectDriver/targetForResource/target/target"
+            "mockRowEffectDriver/issue/issue",
+            "mockRowEffectDriver/memberCurrent/target/target"
           ],
           "exports": [],
           "attributes": {
@@ -130512,6 +130512,10 @@
               {
                 "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
                 "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock binds UPDATE and DELETE to the same original table with distinct mappings"
               }
             ]
           }

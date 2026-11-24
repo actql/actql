@@ -5,7 +5,8 @@ import {mkdirSync, readFileSync, symlinkSync, writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {dirname, join} from 'node:path';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
-import {mixedDeleteUpdateMockProject, threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {mixedDeleteUpdateMockProject, threeWriteMockProject,
+  sameResourceMixedMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 import {files as nullableMockFiles} from '../adapters/host-node/fixtures/mock-nullable-update.fixture.mjs';
 
 export function nativeProjectConfigurationFixture(namespace) {
@@ -166,11 +167,15 @@ export function nativeProjectConfigurationFixture(namespace) {
       write(path, 'mock/data.json', sharedFile['mock/data.json']);
     }
   }
-  const mixed = mixedDeleteUpdateMockProject();
-  const mixedRoot = directory('shared-file-mixed-delete-update');
-  for (const [file, contents] of Object.entries(mixed.files)) {
-    mkdirSync(dirname(join(mixedRoot, file)), {recursive: true, mode: 0o700});
-    write(mixedRoot, file, contents);
+  for (const [name, project] of [
+    ['shared-file-mixed-delete-update', mixedDeleteUpdateMockProject()],
+    ['same-resource-mixed-delete-update', sameResourceMixedMockProject()],
+  ]) {
+    const projectRoot = directory(name);
+    for (const [file, contents] of Object.entries(project.files)) {
+      mkdirSync(dirname(join(projectRoot, file)), {recursive: true, mode: 0o700});
+      write(projectRoot, file, contents);
+    }
   }
   const nullable = directory('nullable-mock');
   for (const [file, contents] of Object.entries(nullableMockFiles)) {

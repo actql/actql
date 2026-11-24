@@ -410,7 +410,6 @@ async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformed
         assert.equal(exports.get(declaration) ?? 0, 0, 'each native restore has exactly one owned export');
         exports.set(declaration, 1);state.nativeExports++;return nativeOriginals.get(declaration);
       },
-      clientProgramRelationUpdateMapping: unused,
       clientProgramRowSourceUpdateMappingConstructionCapacity(declaration) {
         assert(nativeOriginals.has(declaration));
         return ok(Object.freeze({fixture: 'same-original-update-mapping-quantity'}));

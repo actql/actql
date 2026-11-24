@@ -1,5 +1,6 @@
 import {nativeMockAcceptanceObservations, projectInitialAdoptionArguments} from '../packages/native-cli/lib/project-scaffold.mjs';
-import {mixedDeleteUpdateMockProject, threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {mixedDeleteUpdateMockProject, sameResourceMixedMockProject,
+  threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 // Public README/Quickstart commands only. The installed runner supplies a new
 // exited process for every invocation. Unit doubles validate these assertions,
 // not Native execution, signatures, custody or an installed package.
@@ -391,16 +392,32 @@ type SharedMockChange = Readonly<{kind: 'update' | 'delete'; resource: string; i
 type SharedMockFixture = Readonly<{files: Readonly<Record<string, string>>;
   before: string; after: string; programFile: string; rows: readonly unknown[]}>;
 type SharedMockScenario<Command extends CommandRecord> = Omit<ScenarioOptions<Command>, 'template'>;
-export async function runNativeMixedFileMockScenarios<Command extends CommandRecord>(
+export function runNativeMixedFileMockScenarios<Command extends CommandRecord>(
   {root, run, launcherTimings = 'optional'}: SharedMockScenario<Command>) {
   const fixture = mixedDeleteUpdateMockProject();
   const changes: readonly SharedMockChange[] = [
     {kind: 'delete', resource: 'Account', id: 'a1'},
     {kind: 'update', resource: 'Contact', id: 'c1', after: 'C-new'},
   ];
+  return runNativeMixedFileDecisions({root, run, launcherTimings}, 'native-mixed-file', fixture, changes);
+}
+
+export function runNativeSameResourceMockScenarios<Command extends CommandRecord>(
+  {root, run, launcherTimings = 'optional'}: SharedMockScenario<Command>) {
+  const fixture = sameResourceMixedMockProject();
+  const changes: readonly SharedMockChange[] = [
+    {kind: 'update', resource: 'Account', id: 'a2', after: 'A2-new'},
+    {kind: 'delete', resource: 'Account', id: 'a1'},
+  ];
+  return runNativeMixedFileDecisions({root, run, launcherTimings}, 'native-same-resource', fixture, changes);
+}
+
+async function runNativeMixedFileDecisions<Command extends CommandRecord>(
+  {root, run, launcherTimings}: SharedMockScenario<Command> & {launcherTimings: LauncherTimings},
+  projectName: string, fixture: SharedMockFixture, changes: readonly SharedMockChange[]) {
   const results = [];
   for (const decision of ['approve', 'reject'] as const) {
-    const result = await runNativeSharedFileMutation({project: join(root, 'native-mixed-file-' + decision),
+    const result = await runNativeSharedFileMutation({project: join(root, projectName + '-' + decision),
       fixture, changes, decision, run, launcherTimings});
     results.push({decision, ...result});
   }
