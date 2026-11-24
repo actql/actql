@@ -1225,6 +1225,16 @@ invalid selection, failed or cancelled required jobs, and unexpected skips
 cannot satisfy the final `check`. Inspect the jobs actually executed; a narrow
 PR run does not establish a full integration or release checkpoint.
 
+A Ready PR that changes no Core target input runs JS core only; main
+integration runs every target. The inputs are a short directory policy: `src`,
+`vendor`, `spec`, `portability`, `proofs`, `.github`, and the Python SDK and
+Local Runtime packages. Moon and package manifests, the toolchain pin, native
+sources and binaries, and `scripts/ci-targets.mjs` also keep every target, and
+the existing macOS workload and wheel selectors still decide those jobs.
+Ordinary `scripts/` changes, including fixtures and test drivers, do not keep
+the Wasm and Native Core legs on a PR, so a cross-target regression there can
+first fail on main. The other PR job families are unchanged.
+
 CI passes the complete selection and aggregate job results through quoted JSON
 files in the runner's temporary directory (`CI_PLAN_PATH` and `RESULTS_PATH`).
 Source inventories can exceed Linux's per-environment-string execution limit.
