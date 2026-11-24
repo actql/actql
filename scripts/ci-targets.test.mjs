@@ -427,6 +427,52 @@ test('macOS HTTP retains its original command under shared preparation and a man
   assert(jobs['native-macos'].needs.includes('native-macos-workloads'));
 });
 
+test('Native aggregate steps receive only required results when the selector plan exceeds the exec limit', () => {
+  const aggregates = {
+    native: {
+      WORKLOADS_RESULT: 'native-workloads',
+      HTTP_RESULT: 'native-http',
+      INSTALLED_RESULT: 'native-cli-linux-local-installed',
+      MOCK_RESULT: 'native-cli-linux-local-mock',
+    },
+    'native-macos': {
+      WORKLOADS_RESULT: 'native-macos-workloads',
+      HTTP_RESULT: 'native-http-macos',
+    },
+  };
+  for (const [name, bindings] of Object.entries(aggregates)) {
+    const job = jobs[name], step = job.steps[0];
+    const required = Object.values(bindings);
+    assert.deepEqual(job.needs, ['select-targets', ...required]);
+    assert.deepEqual(step.env, Object.fromEntries(Object.entries(bindings)
+      .map(([key, dependency]) => [key, '${{ needs.' + dependency + '.result }}'])));
+    const needs = {'select-targets': {result: 'success', outputs: {moon_test_plan: 'x'.repeat(192 * 1024)}},
+      ...Object.fromEntries(required.map(dependency => [dependency, {result: 'success'}]))};
+    assert(Buffer.byteLength(JSON.stringify(needs)) > 128 * 1024);
+    const run = () => {
+      const inputs = Object.fromEntries(Object.entries(step.env).map(([key, expression]) => {
+        const [, dependency] = /^\$\{\{ needs\.([a-z-]+)\.result \}\}$/u.exec(expression);
+        return [key, needs[dependency].result ?? ''];
+      }));
+      assert(Buffer.byteLength(JSON.stringify(inputs)) < 512);
+      const result = spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
+        encoding: 'utf8', timeout: 5000, env: {...process.env, ...inputs},
+      });
+      assert.equal(result.error, undefined);
+      assert.equal(result.signal, null);
+      return result;
+    };
+    assert.equal(run().status, 0, name);
+    for (const dependency of required) for (const failure of ['failure', 'cancelled', 'skipped', undefined]) {
+      needs[dependency].result = failure;
+      const result = run();
+      assert.equal(result.status, 1, `${name}/${dependency}/${failure}`);
+      assert.equal(result.stderr.trim(), `${dependency}: ${failure ?? 'missing'}`);
+      needs[dependency].result = 'success';
+    }
+  }
+});
+
 test('Native retained verification builds exactly its checked release module inventory', () => {
   const step = nativeCases('native').find(step => step.name === 'Verify registered Native retained product path');
   assert(step);

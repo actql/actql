@@ -3155,13 +3155,21 @@ jobs:
     steps:
       - name: Require every Native producer and independent consumer
         env:
-          RESULTS: ${{ toJSON(needs) }}
+          WORKLOADS_RESULT: ${{ needs.native-workloads.result }}
+          HTTP_RESULT: ${{ needs.native-http.result }}
+          INSTALLED_RESULT: ${{ needs.native-cli-linux-local-installed.result }}
+          MOCK_RESULT: ${{ needs.native-cli-linux-local-mock.result }}
         run: |
           node -e '
-            const results = JSON.parse(process.env.RESULTS);
-            for (const job of ["native-workloads", "native-http", "native-cli-linux-local-installed", "native-cli-linux-local-mock"]) {
-              if (results[job]?.result !== "success") {
-                console.error(`${job}: ${results[job]?.result ?? "missing"}`);
+            const results = {
+              "native-workloads": process.env.WORKLOADS_RESULT,
+              "native-http": process.env.HTTP_RESULT,
+              "native-cli-linux-local-installed": process.env.INSTALLED_RESULT,
+              "native-cli-linux-local-mock": process.env.MOCK_RESULT,
+            };
+            for (const [job, result] of Object.entries(results)) {
+              if (result !== "success") {
+                console.error(`${job}: ${result || "missing"}`);
                 process.exitCode = 1;
               }
             }
@@ -3384,13 +3392,17 @@ jobs:
     steps:
       - name: Require every Native producer and independent consumer
         env:
-          RESULTS: ${{ toJSON(needs) }}
+          WORKLOADS_RESULT: ${{ needs.native-macos-workloads.result }}
+          HTTP_RESULT: ${{ needs.native-http-macos.result }}
         run: |
           node -e '
-            const results = JSON.parse(process.env.RESULTS);
-            for (const job of ["native-macos-workloads", "native-http-macos"]) {
-              if (results[job]?.result !== "success") {
-                console.error(`${job}: ${results[job]?.result ?? "missing"}`);
+            const results = {
+              "native-macos-workloads": process.env.WORKLOADS_RESULT,
+              "native-http-macos": process.env.HTTP_RESULT,
+            };
+            for (const [job, result] of Object.entries(results)) {
+              if (result !== "success") {
+                console.error(`${job}: ${result || "missing"}`);
                 process.exitCode = 1;
               }
             }
