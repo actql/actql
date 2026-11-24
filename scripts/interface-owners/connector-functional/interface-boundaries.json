@@ -21725,7 +21725,7 @@
             "cidPattern",
             "cid",
             "prepareRead",
-            "maxTransferBytes",
+            "resourceTransport",
             "limits",
             "readerDemand",
             "listingReportCapacity",
@@ -21898,7 +21898,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "dc2ee3c11288ab50e0d5396cc8c0e0eaa8b62ba61099a3a0d2a695e2e8ebd327",
+      "sha256": "f015248cf41fbbb63e91bfb7fd0a31f64e8412e163b727be188a2f75fcd62c3a",
       "contracts": [
         {
           "operations": [
@@ -21999,7 +21999,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-row-source-acquisition.mts",
-                "anchor": "capacity: MutableCapacity = {transferBytes: maxTransferBytes,"
+                "anchor": "capacity: MutableCapacity = {...resourceTransport(owner.resource),"
               },
               {
                 "path": "adapters/host-node/installed-row-source-acquisition.mts",
@@ -22238,7 +22238,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "cc699a6fc7717444aad5e9f1ffd4299441329ac2c9f53b6dd41f30733a0444d7",
+      "sha256": "e15c9c68c07ab87dcaef9955158ab7d91775508fcbbfff180cdb69ea51f06971",
       "operations": [
         {
           "name": "cid/cid",
@@ -22287,6 +22287,7 @@
             "prepareKeyedSourceRead",
             "closeKeyedSourceRead",
             "originalKeyedTransport",
+            "originalReadTransports",
             "readAsset",
             "originalPageLimits"
           ],
@@ -22327,6 +22328,13 @@
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#11",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#12",
           "parameters": [
             "resource",
             "operation"
@@ -22439,6 +22447,20 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/resourceTransport/resourceTransport",
+          "parameters": [
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/resourceTransport/resourceTransport/resourceTransport",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/sourceBody/init:close/init:close",
           "parameters": [],
           "async": false
@@ -22469,7 +22491,8 @@
         {
           "name": "createInstalledRowSource/sourceBody/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
           "parameters": [
-            "selection"
+            "selection",
+            "sourceRef"
           ],
           "async": false
         },
@@ -23543,7 +23566,7 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/createInstalledRowSource#11"
+            "createInstalledRowSource/createInstalledRowSource#12"
           ],
           "exports": [],
           "attributes": {
@@ -24353,7 +24376,10 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/managedWholeSourceCapacity"
+            "createInstalledRowSource/managedWholeSourceCapacity",
+            "createInstalledRowSource/resourceTransport/resourceTransport",
+            "createInstalledRowSource/resourceTransport/resourceTransport/resourceTransport",
+            "createInstalledRowSource/createInstalledRowSource#11"
           ],
           "exports": [],
           "attributes": {
@@ -24439,6 +24465,10 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              },
+              {
+                "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
+                "anchor": "Host-backed Row Source capture capacity retains its checked acquisition"
               }
             ]
           }
