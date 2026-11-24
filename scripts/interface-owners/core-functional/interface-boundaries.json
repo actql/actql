@@ -105407,7 +105407,7 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_request_preparation.mbt",
-      "sha256": "d045c4f868e2b76c3e403f030c76c2f82c74ac983f4321e4dded0e60e111b618",
+      "sha256": "d42e21bffc68c1b84dbc9e46973848d3a311ccf1a4c20f21ac3555352729a4ad",
       "exports": [],
       "operations": [
         {
@@ -115831,6 +115831,100 @@
               {
                 "path": "scripts/test_native_timings.py",
                 "anchor": "def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_retained_intent.mbt",
+      "operations": [
+        {
+          "name": "[I]check_request_owned_submitted_intent",
+          "declaration": "[ I ] check_request_owned_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , public_primary ~ : Bool , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestRetainedIntentIssue , ]"
+        },
+        {
+          "name": "[I]check_request_retained_submitted_intent",
+          "declaration": "[ I ] check_request_retained_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , intent : @ publication_host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , public_primary ~ : Bool , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestRetainedIntentIssue , ]"
+        }
+      ],
+      "exports": [],
+      "sha256": "3f21f95e4c58dff08c81de0f8e27dc172d3791d4255f2cb9526512edff02cadd",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Original funded Local Request retained-intent check",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]check_request_owned_submitted_intent",
+            "[I]check_request_retained_submitted_intent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "src/platform_native/client_host/native_test/request_effect_test.mbt",
+                "anchor": "test \"Native same Request carries original Effect preparation and retires original borrow\""
               }
             ]
           }
