@@ -1,3 +1,13 @@
+import type {PublicQuerySuccess} from './public-query-input.mjs';
+
+export type MembershipCase = PublicQuerySuccess & {
+  columns: NonNullable<PublicQuerySuccess['columns']>;
+  expected: NonNullable<PublicQuerySuccess['expected']>;
+};
+
+export type MembershipRefusal = Pick<PublicQuerySuccess,
+  'name' | 'format' | 'text' | 'parameters' | 'parameterDeclarations'>;
+
 // Authored from the selected membership law, not compiler/runtime output.
 // NULL container and empty ARRAY mean an empty set; a NULL item means unknown
 // unless another item matches. Duplicate input rows must remain duplicates.
@@ -39,7 +49,8 @@ const control = {version: 'actql/0.1', id: 'fixture.in_unnest', params: declarat
     {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
     results: {rows: {from: 'ordered', fields: ['id', 'included', 'excluded']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
-const success = (name, text, expected, extra = {}) => ({
+const success = (name: string, text: string, expected: MembershipCase['expected'],
+  extra: Partial<Omit<MembershipCase, 'name' | 'text' | 'expected'>> = {}): MembershipCase => ({
   name: 'in-unnest-' + name, format: 'sql', text, expected, columns,
   sourceRows: rows, sourceReadSessionCount: 1,
   parameterDeclarations: declarations, parameters: {xs: [2, null]}, ...extra,
@@ -88,7 +99,7 @@ export const inUnnestRefusals = [
     parameterDeclarations: {xs: {...array, items: {type: 'boolean'}}}, parameters: {xs: [true]}},
   {name: 'multiple-arguments', text: 'SELECT 1 IN UNNEST(@xs, @xs) AS included',
     parameterDeclarations: declarations, parameters: {xs: [1]}},
-].map(item => ({...item, name: 'in-unnest-' + item.name, format: 'sql'}));
+].map((item): MembershipRefusal => ({...item, name: 'in-unnest-' + item.name, format: 'sql'}));
 export const inUnnestExecutionFailures = [{name: 'in-unnest-demanded-left-on-empty-set',
   format: 'sql', text: 'SELECT (1 / 0) IN UNNEST(@xs) AS included',
   parameterDeclarations: {xs: {...array, max_items: 0}}, parameters: {xs: []},

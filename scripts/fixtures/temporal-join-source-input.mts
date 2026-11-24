@@ -1,3 +1,7 @@
+import type {PublicQuerySuccess} from './public-query-input.mjs';
+
+type TemporalCase = PublicQuerySuccess & {results: NonNullable<PublicQuerySuccess['results']>};
+
 // Authored from the common as-of/interval laws, without product evaluation.
 const number={type:'number',nullable:false};
 const left=[{id:1,at:10},{id:2,at:30},{id:3,at:50}];
@@ -11,7 +15,7 @@ const variants=[
   {name:'interval-left',operation:'interval_join',body:{with:'r',kind:'left',mode:'point_in_interval',on:[],left:{time:'at'},right:{start:'begin',end:'finish'},select:projection,max_output_rows:3},call:"interval_join(with: r, kind: 'left', mode: 'point_in_interval', on: [], left: {time: current.at}, right: {start: r.begin, end: r.finish}, select: {id: left.id, value: right.id}, max_output_rows: 3)",rows:[{id:1,value:7},{id:2,value:null},{id:3,value:null}]},
   {name:'interval-inner',operation:'interval_join',body:{with:'r',kind:'inner',mode:'point_in_interval',on:[],left:{time:'at'},right:{start:'begin',end:'finish'},select:projection,max_output_rows:3},call:"interval_join(with: r, kind: 'inner', mode: 'point_in_interval', on: [], left: {time: current.at}, right: {start: r.begin, end: r.finish}, select: {id: left.id, value: right.id}, max_output_rows: 3)",rows:[{id:1,value:7}]},
 ];
-function program(v) {
+function program(v: typeof variants[number]) {
   return {version:'actql/0.1',id:'fixture.temporal_'+v.name,stages:[{id:'main',inputs:{},steps:[
     {values:{schema:{id:number,at:number},rows:left},as:'l'},
     {values:{schema:{id:number,begin:number,finish:number},rows:right},as:'r'},
@@ -19,13 +23,13 @@ function program(v) {
     {from:'matched',sort:[{field:'id',dir:'asc',nulls:'first'}]},
     {select:['id','value'],as:'out'}],results:{rows:{from:'out',fields:['id','value']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
 }
-function source(call) {
+function source(call: string) {
   return `WITH l AS (${leftText}), r AS (${rightText}), matched AS (FROM l AS \`current\` |> ${call}) SELECT id, value FROM matched ORDER BY id`;
 }
-export const temporalJoinSourceSuccesses=variants.flatMap(v=>{
+export const temporalJoinSourceSuccesses: TemporalCase[]=variants.flatMap(v=>{
   const results={answer:{rows:v.rows,columns:[{name:'id',contract:number},{name:'value',contract:{type:'number',nullable:v.body.kind==='left'}}]}};
   return [{name:'temporal-json-'+v.name,format:'json',text:JSON.stringify(program(v)),results,sourceReadCount:0},
-    ...['sql','aql-text'].map(format=>({name:'temporal-'+format+'-'+v.name,format,text:source(v.call),results:{main:results.answer},sourceReadCount:0}))];
+    ...(['sql','aql-text'] as const).map(format=>({name:'temporal-'+format+'-'+v.name,format,text:source(v.call),results:{main:results.answer},sourceReadCount:0}))];
 });
 export const temporalJoinSourceRefusals=[
   ['asof-zero-tolerance',variants[0].call.replace('tolerance: 12','tolerance: 0')],

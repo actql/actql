@@ -1,9 +1,10 @@
 import {inUnnestSuccesses, inUnnestRefusals, inUnnestExecutionFailures}
   from './in-unnest-source-input.mjs';
+import type {MembershipCase, MembershipRefusal} from './in-unnest-source-input.mjs';
 
 // Independent membership truth table and ordinary Program control. Array
 // constructors are not evaluated by the oracle or regenerated from lowering.
-const boolean = (name, nullable = true) => ({name, contract: {type: 'boolean', nullable}});
+const boolean = (name: string, nullable = true) => ({name, contract: {type: 'boolean', nullable}});
 const truthColumns = ['included', 'excluded', 'unknown', 'null_left'].map(name => boolean(name));
 const truth = [{included: true, excluded: false, unknown: null, null_left: null}];
 const declarations = {p: {type: 'number', nullable: true}};
@@ -21,11 +22,13 @@ const control = {version: 'actql/0.1', id: 'fixture.in_unnest_literal_array', pa
     {from: 'seed', derive: expressions}, {select: Object.keys(expressions), as: 'selected'},
   ], results: {rows: {from: 'selected', fields: Object.keys(expressions)}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
-const projection = array => `2 IN UNNEST(${array('[NULL, 2, 2]')}) AS included, `
+const projection = (array: (operand: string) => string) => `2 IN UNNEST(${array('[NULL, 2, 2]')}) AS included, `
   + `2 NOT IN UNNEST(${array('[NULL, 2, 2]')}) AS excluded, `
   + `1 IN UNNEST(${array('[2, NULL, @p]')}) AS unknown, `
   + `CAST(NULL AS FLOAT64) NOT IN UNNEST(${array('[2, 3]')}) AS null_left`;
-const success = (name, text, expected, columns, extra = {}) => ({
+const success = (name: string, text: string, expected: MembershipCase['expected'],
+  columns: MembershipCase['columns'],
+  extra: Partial<Omit<MembershipCase, 'name' | 'text' | 'expected' | 'columns'>> = {}): MembershipCase => ({
   name: 'in-unnest-literal-array-' + name, format: 'sql', text, expected, columns,
   sourceReadCount: 0, sourceReadSessionCount: 0, ...extra,
 });
@@ -80,7 +83,7 @@ export const inUnnestLiteralArrayRefusals = [
   {name: 'wrong-parameter-value', text: 'SELECT 2 IN UNNEST([@p]) AS found',
     parameterDeclarations: declarations, parameters: {p: 'wrong-type'}},
   {name: 'nonfinite', text: 'SELECT 2 IN UNNEST([1e9999]) AS found'},
-].map(value => ({...value, name: 'in-unnest-literal-array-' + value.name, format: 'sql'}));
+].map((value): MembershipRefusal => ({...value, name: 'in-unnest-literal-array-' + value.name, format: 'sql'}));
 
 // SQL uses its public default main; this Pipe case explicitly authors answer.
 for (const fixture of inUnnestLiteralArraySuccesses) {
