@@ -7,7 +7,11 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {openClientRequestJournal, installNodeClientEffectRun} from './client-effect-run.mjs';
 
-const cid = digit => 'sha256:' + digit.repeat(64);
+type Installation = Parameters<typeof installNodeClientEffectRun>[0];
+type Execution = Parameters<Installation['execute']>[0];
+type AcceptRequest = Parameters<ReturnType<typeof installNodeClientEffectRun>['accept']>[0];
+
+const cid = (digit: string) => 'sha256:' + digit.repeat(64);
 const root = new URL('../../', import.meta.url);
 
 async function preparedFixture() {
@@ -25,13 +29,13 @@ async function preparedFixture() {
   assert.ok(environment);
   const source = await readFile(new URL(
     'src/run_publication_host/client_composed_effect_fixture_wbtest.mbt', root), 'utf8');
-  const document = JSON.parse(source.match(/let document =\s*#\|([^\n]+)/u)[1]);
+  const document = JSON.parse(source.match(/let document =\s*#\|([^\n]+)/u)![1]);
   document.stages[0].steps.push({from: 'selected',
     filter: 'current_timestamp() = current_timestamp()', as: 'timed'});
   document.stages[0].results.out.from = 'timed';
   // Raw checker input for this isolated Journal/QueryTime component. The
   // fixture's explicit execution port below is not ordinary Request admission.
-  const prepare = request => {
+  const prepare = (request: Readonly<{kind: string; input: unknown; parameters: unknown}>) => {
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
       JSON.stringify(request.input), 'json', environment, undefined, []);
     const original = moon.clientProgramEffectPreparationReady(outcome);
@@ -50,14 +54,14 @@ test('actual Common and request Journal retain the new invocation time across re
   const directory = await mkdtemp(join(scratch.pathname, 'original-'));
   const control = runtimeCore(moon).publicationControl;
   let journal = openClientRequestJournal(directory);
-  const executions = [];
+  const executions: Execution[] = [];
   const policy = {executionContextCid: cid('a'), hostPolicyCid: cid('b'),
     createdAt: '2001-01-01T00:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z'};
-  const request = owner => ({prepared: owner, authorityScopeCid: cid('c'),
+  const request = (owner: unknown): AcceptRequest => ({prepared: owner, authorityScopeCid: cid('c'),
     requestId: 'original-query', namespaceId: 'query-time-journal',
     lookupExpiresAt: '2099-01-01T00:00:00.000Z',
-    principalId: 'fixture-principal', connection: {mode: 'local', owner: 'local'}});
-  const install = () => installNodeClientEffectRun({moon, publicationControl: control,
+    principalId: 'fixture-principal', connection: {mode: 'local', owner: 'local'} as AcceptRequest['connection']});
+  const install = () => installNodeClientEffectRun({moon: moon as Installation['moon'], publicationControl: control,
     journal, authorizeRequest: async () => policy, authorizeRunStart: async () => true,
     // The callback tests the original prepared Run/context boundary only. It
     // deliberately installs no physical Effect or publication implementation.
@@ -79,11 +83,11 @@ test('actual Common and request Journal retain the new invocation time across re
     first.checkSupported(prepared);
     const before = Date.now(), handle = await first.accept(request(prepared)), after = Date.now();
     const retained = journal.lookupRunDefinition(handle.ref, moon, control);
-    const saved = retained.runDefinition;
+    const saved = retained!.runDefinition;
     const createdAt = JSON.parse(saved.wire).created_at;
     assert.notEqual(createdAt, policy.createdAt);
     assert.ok(Date.parse(createdAt) >= before && Date.parse(createdAt) <= after);
-    assert.equal(retained.physicalStartReserved, false);
+    assert.equal(retained!.physicalStartReserved, false);
     journal.close();
     journal = openClientRequestJournal(directory);
     // A fresh preparation has equal authored bytes, but a different nominal
@@ -92,7 +96,7 @@ test('actual Common and request Journal retain the new invocation time across re
     assert.notStrictEqual(restoredPrepared, prepared);
     const reopened = install(), restored = await reopened.accept(request(restoredPrepared));
     assert.deepEqual(restored.ref, handle.ref);
-    assert.deepEqual(journal.lookupRunDefinition(restored.ref, moon, control).runDefinition, saved);
+    assert.deepEqual(journal.lookupRunDefinition(restored.ref, moon, control)!.runDefinition, saved);
     const started = await reopened.start(restored);
     assert.equal(started.kind, 'started');
     assert.equal(started.value, createdAt);
@@ -101,7 +105,7 @@ test('actual Common and request Journal retain the new invocation time across re
     assert.equal(moon.clientProgramQueryTimeCreatedAt(recovered.queryTimePreparation), createdAt);
     assert.equal(moon.clientProgramEffectRunQueryTimeMatches(recovered.owner,
       recovered.queryTimePreparation, recovered.identity), true);
-    assert.equal(journal.lookupRunDefinition(restored.ref, moon, control).physicalStartReserved, true);
+    assert.equal(journal.lookupRunDefinition(restored.ref, moon, control)!.physicalStartReserved, true);
     const again = await reopened.start(restored);
     assert.equal(again.kind, 'reconcile');
     assert.equal(executions.length, 1, 'the original physical-start claim is never reset');

@@ -3206,3 +3206,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/client-submission-bootstrap-epoch.test.d.mts
 /adapters/host-node/client-effect-run.mjs
 /adapters/host-node/client-effect-run.d.mts
+/adapters/host-node/client-effect-content-policy.test.mjs
+/adapters/host-node/client-effect-content-policy.test.d.mts
+/adapters/host-node/client-query-time-journal.test.mjs
+/adapters/host-node/client-query-time-journal.test.d.mts
