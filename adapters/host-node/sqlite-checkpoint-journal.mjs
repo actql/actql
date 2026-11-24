@@ -19,11 +19,6 @@ import {createModelResumeTables} from './model-resume-sqlite.mjs';
 import {createModelResumeState} from './model-resume-state.mjs';
 import {checkpointJournalClose} from './sqlite-checkpoint-journal-close.mjs';
 
-const runtimeUrl = new URL(
-  '../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js',
-  import.meta.url,
-);
-
 // Private SQLite layout discriminator, not a public artifact version. Upgrade
 // only after all Hosts using this root have stopped and closed their journals.
 // Incompatible records are refused in place; this owner never clears/migrates them.
@@ -50,10 +45,6 @@ const fail = (code, cause) => {
 const text = value => typeof value === 'string' && value.length > 0;
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
-
-export async function loadCheckpointRuntime() {
-  return import(runtimeUrl.href);
-}
 
 function core(result, code) {
   const value = JSON.parse(result);

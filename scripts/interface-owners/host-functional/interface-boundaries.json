@@ -19408,7 +19408,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2a6db3267fef5c8de38023e6e5350fb140435899794c7d9096658c28d2e3f29d",
+      "sha256": "4c4c1257df9bbdaba5621f2ee725a7052f1ff95669b9961ccfcc1bf50fc48a88",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -21764,10 +21764,11 @@
         "../host-common/checkpoint-approval.mjs",
         "../host-common/diagnostic-observer.mjs",
         "../host-common/installed-checkpoint-codec-limits.mjs",
+        "./checkpoint-runtime.mjs",
         "./effect-target-read-inventory.mjs",
         "./infer-operation.mjs",
         "./installed-effect-limits.mjs",
-        "./installed-host-cleanup.mts",
+        "./installed-host-cleanup.mjs",
         "./local-account-config.mjs",
         "./local-continuation-evidence.mjs",
         "./model-checkpoint-metadata.mjs",
@@ -102450,7 +102451,7 @@
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "40bb599b3536e515ab7025c3c76669f04139847136544bc465a069d44f6114b9",
+      "sha256": "80a525418d4f1908b1af03c1276051a82c9d5494689e7100670f1ff389814cc9",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -102459,7 +102460,6 @@
         "MODEL_CURRENT_CUT_INVALIDATION_JOURNAL_LAYOUT",
         "MODEL_CURRENT_CUT_JOURNAL_LAYOUT",
         "PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT",
-        "loadCheckpointRuntime",
         "openSqliteCheckpointJournal"
       ],
       "operations": [
@@ -102483,11 +102483,6 @@
             "ms"
           ],
           "async": false
-        },
-        {
-          "name": "loadCheckpointRuntime",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "openSqliteCheckpointJournal",
@@ -103191,7 +103186,6 @@
             "authoritiesJson/authoritiesJson",
             "cid/cid",
             "iso",
-            "loadCheckpointRuntime",
             "openSqliteCheckpointJournal",
             "openSqliteCheckpointJournal/admissionLocked",
             "openSqliteCheckpointJournal/alive/alive",
@@ -103292,7 +103286,6 @@
             "MODEL_CURRENT_CUT_INVALIDATION_JOURNAL_LAYOUT",
             "MODEL_CURRENT_CUT_JOURNAL_LAYOUT",
             "PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT",
-            "loadCheckpointRuntime",
             "openSqliteCheckpointJournal"
           ],
           "attributes": {
@@ -103382,7 +103375,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/checkpoint-runtime.mts",
                 "anchor": "'../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js',"
               },
               {
@@ -103605,7 +103598,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/checkpoint-runtime.mts",
                 "anchor": "'../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js',"
               },
               {
@@ -103668,6 +103661,99 @@
         "node:path",
         "node:sqlite"
       ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/checkpoint-runtime.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "edf78dc282e1f7856e756313e9cc3367cdfbfee9921ac650da9ed2e71f177b97",
+      "role": "physical-io",
+      "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
+      "exports": [
+        "loadCheckpointRuntime"
+      ],
+      "operations": [
+        {
+          "name": "loadCheckpointRuntime",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "loadCheckpointRuntime"
+          ],
+          "exports": [
+            "loadCheckpointRuntime"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/checkpoint-runtime.mts",
+                "anchor": "export async function loadCheckpointRuntime(): Promise<CheckpointRuntime> {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/checkpoint-runtime.mts",
+                "anchor": "export type CheckpointRuntime = Readonly<{"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/checkpoint-runtime.mts",
+                "anchor": "'../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js',"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/checkpoint_runtime_node/bridge.mbt",
+                "anchor": "\"checkpointSealBody\""
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/checkpoint-runtime.mts",
+                "anchor": "return import(runtimeUrl.href) as Promise<CheckpointRuntime>;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/checkpoint-runtime.mts",
+                "anchor": "return import(runtimeUrl.href) as Promise<CheckpointRuntime>;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/checkpoint-runtime.mts",
+                "anchor": "const runtimeUrl = new URL("
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/local-node-package-inputs.mts",
+                "anchor": "'retained_host_bridge', 'process_host_bridge', 'checkpoint_runtime_node',"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/model-resolution-crypto.test.mjs",
+                "anchor": "real SDK Model signatures commit exact inventory through compiled Core and recorded approval provenance"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"

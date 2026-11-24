@@ -9,7 +9,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
 import {recordCheckpointApproval, checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
-import {loadCheckpointRuntime, openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
+import {openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
+import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
 
 const runtime = await loadCheckpointRuntime();
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/model-resolution-crypto.json', import.meta.url), 'utf8'));

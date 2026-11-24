@@ -24,8 +24,9 @@ import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.
 import {BOUND_SOURCE_SUBMISSION, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
   openContinuationEvidence} from './local-continuation-evidence.mjs';
-import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
+import {openSqliteCheckpointJournal} from
   './sqlite-checkpoint-journal.mjs';
+import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
 import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
 import {modelCheckpointMetadata} from './model-checkpoint-metadata.mjs';

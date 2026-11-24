@@ -9,7 +9,7 @@ import {bytesCid, contentCid} from './local-account-config.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {createInstalledModelInputCustody} from './installed-model-input-custody.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
-import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
+import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
 import {MAX_MODEL_INPUT_BYTES} from './client-checkpoints.mjs';
 import {withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
 import {createNodeInferEntryPersistence} from './infer-entry-persistence.mjs';

@@ -28,8 +28,9 @@ import {randomUUID, sign, verify, createPrivateKey, createPublicKey,
 import {mkdir, readFile, realpath, stat, writeFile} from 'node:fs/promises';
 import {dirname, isAbsolute, join, resolve} from 'node:path';
 import {runExample} from './physical-strategy.mjs';
-import {openSqliteCheckpointJournal, loadCheckpointRuntime} from
+import {openSqliteCheckpointJournal} from
   '../../../../host-node/sqlite-checkpoint-journal.mjs';
+import {loadCheckpointRuntime} from '../../../../host-node/checkpoint-runtime.mjs';
 import {
   bytesCid,
   canonicalJson,

@@ -3236,3 +3236,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/model-resume-state.d.mts
 /adapters/host-node/installed-model-input-custody.mjs
 /adapters/host-node/installed-model-input-custody.d.mts
+/adapters/host-node/checkpoint-runtime.mjs
+/adapters/host-node/checkpoint-runtime.d.mts

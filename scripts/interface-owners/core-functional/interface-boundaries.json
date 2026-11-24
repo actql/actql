@@ -30483,7 +30483,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "e1075c352f3e3e03ee2b6a6704f308769d8819bec8bc8913350712cdd11de9c5",
+      "sha256": "b322c58c4c8215aaad3d9fcfa6fc9c2407adf0217b38ec98ff64060725fec6f3",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -31478,6 +31478,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/diagnostic-observer.mjs",
         "../host-common/runtime-result.mjs",
+        "./checkpoint-runtime.mjs",
         "./client-checkpoints.mjs",
         "./infer-entry-persistence.mjs",
         "./infer-evaluation-evidence.mjs",
@@ -31488,7 +31489,6 @@
         "./installed-model-input-custody.mjs",
         "./installed-model-originals.mjs",
         "./local-account-config.mjs",
-        "./sqlite-checkpoint-journal.mjs",
         "node:timers/promises"
       ],
       "compilerFields": [],
