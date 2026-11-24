@@ -4,20 +4,18 @@ import assert from 'node:assert/strict';
 import {lstatSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {gitTree, hash} from '../ci-evidence/inputs.mjs';
+import {gitTree, hash, proofToolingInputs} from '../ci-evidence/inputs.mjs';
 import {checkPlan} from '../ci-evidence/check.mjs';
 import {mutationNamesByPart, planDigest} from './proof-parts.mjs';
 import {inspectMutationPart, inspectArchivedMutationPart, mutationReportPath} from './mutation-parts.mjs';
 import {executionCommand, fixturePath} from './fixture.mjs';
+import {scratchOriginal, scratchRuntime, resourceOriginal, resourceRuntime, runtimeEmit, snapshotFilePaths} from './inventory.mjs';
 
 const parts = Object.keys(mutationNamesByPart);
 const targets = ['js', 'wasm', 'native'];
 const phases = ['mutated', 'pristine', 'post-restore'];
 const directories = ['src', 'vendor', 'proofs/bounded-session', 'proofs/relation-chain',
   'proofs/relation-capacity', 'proofs/relation-pipeline'];
-const snapshotFiles = ['adapters/host-node/ordinary-node-resource-runtime.cjs', 'scripts/owned-scratch.mjs', 'scripts/native-cxx-link-driver.sh',
-  'scripts/ar', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json',
-  '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md'];
 const checkerFiles = ['proofs/ci-evidence/check.mjs', 'proofs/ci-evidence/Reuse.lean',
   'proofs/ci-evidence/Claims.lean', 'proofs/ci-evidence/inputs.mjs',
   'proofs/ci-evidence/package-configurations.mjs', 'proofs/ci-evidence/receipts.mjs',
@@ -54,27 +52,36 @@ function mutationActionScope(decision, requiredPlanDigest, assignments) {
 // Compare it to the existing source snapshot instead of trusting report paths.
 // Adding a new snapshot dependency must update this adapter, not silently narrow it.
 export function mutationSourceInputs({tree, source, root}) {
+  assert(!(tree.entries.has(scratchOriginal) && tree.entries.has(scratchRuntime)), 'Ambiguous authored pipeline scratch input');
+  const snapshotFiles = snapshotFilePaths(path => tree.entries.has(path));
   const members = directories.map(path => ({path: `${path}/**`, members: [...tree.entries.keys()]
     .filter(file => file.startsWith(`${path}/`) && file !== fixturePath).sort()}));
   const paths = [...new Set([...members.flatMap(entry => entry.members), ...snapshotFiles])].sort();
-  assert.deepEqual(Object.keys(source.sources).sort(), paths, 'Pipeline snapshot/input membership differs');
+  assert(!(tree.entries.has(resourceOriginal) && tree.entries.has(resourceRuntime)), 'Ambiguous authored Node Resource bridge');
+  const runtime = tree.entries.has(resourceOriginal) ? runtimeEmit(tree, resourceOriginal, resourceRuntime) : undefined;
+  const observed = runtime ? [...paths, runtime.path].sort() : paths;
+  assert.deepEqual(Object.keys(source.sources).sort(), observed, 'Pipeline snapshot/input membership differs');
   assert.equal(source.digest, digest(source.sources), 'Pipeline snapshot digest differs');
-  const selected = [...new Set([...paths, ...checkerFiles])].sort();
+  const tooling = proofToolingInputs(tree, checkerFiles);
+  assert.equal(tooling.unresolved.length, 0, 'Ambiguous pipeline tooling source');
+  const selected = [...new Set([...paths, ...tooling.paths])].sort();
   for (const path of selected) {
     const entry = tree.entries.get(path);
     assert(entry?.kind === 'blob' && ['100644', '100755'].includes(entry.mode), `Missing/nonregular pipeline input: ${path}`);
   }
   tree.prefetch?.(selected);
-  const files = selected.map(path => {
-    const bytes = tree.read(path), entry = tree.entries.get(path), sha256 = hash(bytes);
+  const files = (runtime ? [...selected, runtime.path].sort() : selected).map(path => {
+    const derived = path === runtime?.path ? runtime : undefined;
+    const bytes = derived ? derived.bytes : tree.read(path), entry = tree.entries.get(path), sha256 = hash(bytes);
+    const mode = derived ? '100644' : entry.mode;
     if (Object.hasOwn(source.sources, path)) assert.equal(sha256, source.sources[path], `Pipeline source bytes differ: ${path}`);
     if (root) {
       const actual = join(root, path), stat = lstatSync(actual);
       assert(stat.isFile(), `Nonregular working pipeline input: ${path}`);
-      assert.equal(stat.mode & 0o111 ? '100755' : '100644', entry.mode, `Working pipeline input mode differs: ${path}`);
+      assert.equal(stat.mode & 0o111 ? '100755' : '100644', mode, `Working pipeline input mode differs: ${path}`);
       assert.equal(hash(readFileSync(actual)), sha256, `Working pipeline input bytes differ: ${path}`);
     }
-    return {path, mode: entry.mode, bytes: bytes.length, sha256};
+    return {path, mode, bytes: bytes.length, sha256};
   });
   const inputs = {files, directories: members, unresolved: [...residual]};
   return {...inputs, key: hash(encode(inputs))};

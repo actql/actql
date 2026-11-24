@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
-import {checked} from '../host-common/runtime-result.mjs';
+import {retainDispatchPreparationHost as retain, releaseDispatchPreparationHost as release}
+  from './client-dispatch-cleanup.mjs';
 import {ledgerUsageSnapshot, ledgerUsageSnapshotHasPendingResources} from '../host-common/runtime-core.mjs';
 import {ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 
@@ -15,8 +16,6 @@ function declarations(path, names, ports, values) {
   return compileFunction(bodies.map(n => source.slice(n.start, n.end)).join('\n') +
     `\nreturn {${names.join(',')}};`, ports)(...values);
 }
-const {retainDispatchPreparationHost: retain, releaseDispatchPreparationHost: release} = declarations(
-  './client-dispatch-owner.mjs', ['retainDispatchPreparationHost', 'releaseDispatchPreparationHost'], ['checked'], [checked]);
 const ok = _0 => ({$tag: 1, _0});
 
 test('Host holder uses exact original and returns once after clearing local aliases', () => {

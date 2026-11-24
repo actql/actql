@@ -49,7 +49,7 @@ test('reserved refusals keep exact authored source and the existing public refus
 
 test('role cases use the existing delivered quoted-identifier selection and ordinary corpus', () => {
   const acceptance = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const consumer = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const consumer = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(acceptance.includes('successes: quotedIdentifierSuccesses, refusals: quotedIdentifierRefusals'));
   assert.ok(acceptance.includes('scopeInputs.successes.push(...quotedIdentifierSuccesses)'));
   assert.ok(consumer.includes("['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs']"));

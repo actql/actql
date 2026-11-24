@@ -72,7 +72,7 @@ test('INNER expansion preserves the explicit ON filter and independently counted
 
 test('correlated expansion is registered in normal and focused packed execution', () => {
   const corpus = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(corpus.includes('scopeInputs.successes.push(...correlatedUnnestSuccesses)'));
   assert.ok(corpus.includes('scopeInputs.refusals.push(...correlatedUnnestRefusals)'));
   assert.equal(corpus.split('scopeInputs.successes.push(...correlatedUnnestSuccesses)').length - 1, 1);

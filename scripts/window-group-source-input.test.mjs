@@ -59,7 +59,7 @@ test('SQL AQL and JSON controls share full ordered schemas and one acquisition i
 
 test('window group public matrix uses normal module delivery and completed-case observations', () => {
   const acceptance = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const consumer = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const consumer = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(acceptance.includes('scopeInputs.successes.push(...windowGroupSourceSuccesses)'));
   assert.ok(acceptance.includes('scopeInputs.refusals.push(...windowGroupSourceRefusals)'));
   assert.ok(consumer.includes('--window-group-only'));

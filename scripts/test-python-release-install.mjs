@@ -1,11 +1,12 @@
 // Fresh official-PyPI consumer for the existing fixed cohort and business
 // fixture. No builder, publisher, injected runtime or old-state recovery.
 import assert from 'node:assert/strict';
-import {spawn, spawnSync} from 'node:child_process';
+import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {copyFile, lstat, mkdir, readFile, readdir, readlink, realpath, writeFile} from 'node:fs/promises';
-import {dirname, join, resolve, sep} from 'node:path';
+import {copyFile, lstat, mkdir, readFile, realpath, writeFile} from 'node:fs/promises';
+import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {observeChildFds} from './release-install-child.mjs';
 import {verifyReleaseSet} from './release-set.mjs';
 import {observePythonReleaseTarget} from './release-registry.mjs';
 import {pythonReleaseInstallSelection, pythonPublicConsumerEnvironment, pythonInstallCommand, pythonConsumerDestination,
@@ -21,33 +22,6 @@ async function uvToolIdentity(path) {
   const stamp = value => [value.dev, value.ino, value.size, value.mode, value.mtimeMs, value.ctimeMs];
   assert.deepEqual(stamp(after), stamp(before)); assert.equal(bytes.length, before.size);
   return {path, actual, stamp: stamp(before), sha256: sha(bytes)};
-}
-
-export async function observeChildFds(child, state) {
-  assert.equal(child.exitCode, null); assert.equal(child.signalCode, null);
-  const original = await lstat(state); assert(original.isDirectory() && !original.isSymbolicLink());
-  if (process.platform === 'darwin') {
-    const args = ['-nP', '-a', '-p', String(child.pid), '+D', state, '-F', 'pfn'];
-    const result = spawnSync('/usr/sbin/lsof', args, {encoding: 'utf8', timeout: 10_000, maxBuffer: 1024 * 1024});
-    assert(result.status === 1 && result.stdout === '' && result.stderr === '' && !result.error,
-      'Original still-live Python child has unavailable/nonempty scoped descriptor observation');
-    assert.equal(child.exitCode, null); assert.equal(child.signalCode, null);
-    return {pid: child.pid, aliveAfterClose: true, scopedStateFd0: true, command: ['/usr/sbin/lsof', ...args],
-      exitCode: result.status, stdout: result.stdout, stderr: result.stderr};
-  }
-  // A future genuine Linux supplier still uses this own-child observation;
-  // this branch cannot make the current macOS-only runtime accepted on Linux.
-  assert.equal(process.platform, 'linux');
-  const fdRoot = `/proc/${child.pid}/fd`, descriptors = await readdir(fdRoot); assert(descriptors.length <= 4096);
-  const scoped = [];
-  for (const fd of descriptors) {
-    let target;
-    try {target = await readlink(join(fdRoot, fd));} catch (failure) {if (failure.code === 'ENOENT') continue; throw failure;}
-    const path = target.replace(/ \(deleted\)$/u, '');
-    if (path === state || path.startsWith(`${state}${sep}`)) scoped.push({fd, target});
-  }
-  assert.deepEqual(scoped, []); assert.equal(child.exitCode, null); assert.equal(child.signalCode, null);
-  return {pid: child.pid, aliveAfterClose: true, scopedStateFd0: true, descriptorCount: descriptors.length};
 }
 
 export async function runPythonReleaseInstall(args) {

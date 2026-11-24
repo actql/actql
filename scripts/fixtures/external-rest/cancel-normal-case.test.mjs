@@ -19,7 +19,7 @@ import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from '../../benchmark
 import {externalRestDefinition, externalRestProvider} from './provider.fixture.mjs';
 import {externalRestConfiguration} from './configuration.mjs';
 import {prepareExternalRestCohort} from './installed-modules.mjs';
-import {publishStandardRestBarrier} from './cancel-conformance.mjs';
+import {publishStandardRestBarrier} from './publish-barrier.mjs';
 
 const selectedInput = process.env.ACTQL_REST_CONFORMANCE_INPUT;
 assert(typeof selectedInput === 'string' && isAbsolute(selectedInput),

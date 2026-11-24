@@ -284,11 +284,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
               },
               {
@@ -463,11 +463,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
               },
               {
@@ -752,11 +752,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
               },
               {
@@ -956,11 +956,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
               },
               {
@@ -1083,11 +1083,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
               },
               {
@@ -1185,11 +1185,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
               },
               {
@@ -1337,11 +1337,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
               },
               {
@@ -1489,11 +1489,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
               },
               {

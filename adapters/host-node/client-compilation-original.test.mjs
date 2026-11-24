@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {createQueryTimeControls} from '../host-common/runtime-query-time-control.mjs';
+import {acquiredTaskRunAdmission, sourceFreePlanOriginal} from './local-values-plan.mjs';
 
 function method(file, name, context) {
  const source=readFileSync(new URL(file,import.meta.url),'utf8');
@@ -55,8 +57,8 @@ test('Values admission consumes staged nominal compilation without invoking the 
 });
 
 test('source-free Values passes its original and fixed installation warms compiler manifests',()=>{
- const plan=readFileSync(new URL('./local-values-plan.mjs',import.meta.url),'utf8');
- assert.match(plan,/hostPolicyCid, expiresAt: validUntil\}, undefined, compilationOriginal\)/u);
+ const plan=readFileSync(new URL('./local-source-free-plan.mjs',import.meta.url),'utf8');
+ assert.match(plan,/hostPolicyCid,\s*expiresAt:\s*validUntil\s*\},\s*undefined,\s*compilationOriginal\s*\)/u);
  const installed=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');
  const start=installed.indexOf('export function prepareInstalledSequenceContractOriginal');
  const end=installed.indexOf('\n}\n',start);
@@ -82,19 +84,18 @@ test('staged Task admission uses the original artifact and leaves foreign refusa
 });
 
 test('staged Task plan passes the same artifact through the existing admission function',()=>{
- const source=readFileSync(new URL('./local-values-plan.mjs',import.meta.url),'utf8');
- const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});
- const selected=ast.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='checkedTaskRunAdmission');
- assert(selected);
  const preparedProgram={},compilationOriginal={},compiled={admission:{},compiledPlan:{}};
+ const definition={},original={};
  let calls=0;
  const control={prepareCheckedClientCompiledRun(prepared,kind,policy,graph,compilation){
   calls++;assert.equal(prepared,preparedProgram);assert.equal(kind,'tasks');assert.equal(graph,undefined);assert.equal(compilation,compilationOriginal);return compiled;
- },defineCheckedClientCompiledRun(actual){assert.equal(actual,compiled);return {};}};
- const context={prepareQueryInvocation:()=>undefined,instant:ms=>new Date(ms).toISOString(),cid:()=> 'context',policyCid:()=> 'policy',randomUUID:()=> 'run',bindQueryInvocation:()=>({}),retainOriginalPlan:value=>value};
- const invoke=new Function(...Object.keys(context),`return (${source.slice(selected.start,selected.end)})`)(...Object.values(context));
- const value=invoke({control,preparedProgram,compilationOriginal,now:()=> '2026-10-29T00:00:00.000Z'},'tasks');
+ },defineCheckedClientCompiledRun(actual){assert.equal(actual,compiled);return definition;},
+ captureOriginalClientRunPlan(actual,prepared,run){
+  assert.strictEqual(actual,compiled);assert.strictEqual(prepared,preparedProgram);assert.strictEqual(run,definition);return original;
+ }};
+ const value=acquiredTaskRunAdmission({control,preparedProgram,compilationOriginal,now:()=> '2026-10-29T00:00:00.000Z'});
  assert.equal(value.compiled,compiled);assert.equal(calls,1);
+ assert.strictEqual(sourceFreePlanOriginal(value),original);
 });
 
 test('barrier profiles retain their original graph requirements without an artifact fallback',()=>{
@@ -130,7 +131,10 @@ test('Request Serialization consumes its original TaskCompilation and rejects co
 test('timed original projection forwards the Core Option without a JavaScript tuple constructor',()=>{
  const q={},prepared={},opaque=new Proxy({}, {get(){assert.fail('opaque Option inspected');}});
  const moon={clientProgramQueryTimeInvocationOriginal:function(...args){assert.equal(this,moon);assert.deepEqual(args,[q,prepared]);return opaque;}};
- const project=method('../host-common/runtime-core.mjs','clientQueryTimeInvocationOriginal',{moon});
+ const {clientQueryTimeInvocationOriginal: project} = createQueryTimeControls(moon, {
+  compiledRunTokens: new WeakMap(), token() {assert.fail('unexpected token lookup');},
+  currentControl() {assert.fail('unexpected owner check');},
+ });
  assert.equal(project(q,prepared),opaque);moon.clientProgramQueryTimeInvocationOriginal=undefined;assert.throws(()=>project(q,prepared),/unavailable/);
 });
 
@@ -140,7 +144,10 @@ test('timed original adopted getter checks all first tokens and refuses retired 
  let output={_0:q,_1:request,_2:compiledToken,_3:definitionToken},checks=0;
  const moon={clientProgramInstalledManagedRunInvocationOriginal:function(r,p){assert.equal(this,moon);assert.equal(r,run);assert.equal(p,prepared);return output;},clientProgramQueryTimeContext:actual=>{assert.equal(actual,q);return context;}};
  const control={checkClientCompiledRunOwner(c,p){assert.equal(c,compiled);assert.equal(p,prepared);checks++;}};
- const get=method('../host-common/runtime-core.mjs','checkedClientManagedQueryInvocationOriginal',{moon,compiledRunTokens,token:d=>{assert.equal(d,definition);return definitionToken;},runtimeOptionalField:(v,i)=>v?.['_'+i],control});
+ const {checkedClientManagedQueryInvocationOriginal: get} = createQueryTimeControls(moon, {
+  compiledRunTokens, token(d) {assert.equal(d,definition);return definitionToken;},
+  currentControl: () => control,
+ });
  assert.equal(get(run,prepared,expected),expected);assert.equal(checks,1);
  const valid=output;
  for(let i=0;i<4;i++){output={...valid,['_'+i]:{}};assert.throws(()=>get(run,prepared,expected),/Foreign Client original/);}

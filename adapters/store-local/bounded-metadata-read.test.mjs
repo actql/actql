@@ -1,23 +1,19 @@
 import assert from 'node:assert/strict';
 import {constants} from 'node:fs';
-import {lstat, mkdtemp, open, readFile, rm, writeFile} from 'node:fs/promises';
+import {lstat, mkdtemp, open, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
+import {readBounded} from './publication-store-io.mjs';
 
 // Execute the actual private helper without loading unrelated runtime bundles.
 // This is a source-backed physical primitive test, not public Run acceptance.
-const source = await readFile(new URL('./publication-store.mjs', import.meta.url),
-  'utf8');
-const start = source.indexOf('async function readBounded(path, maximum, closed, signal, ownerOnly = false) {');
-const end = source.indexOf('\nasync function processIsAlive(', start);
-assert(start >= 0 && end > start);
-const body = source.slice(start, end);
+const body = Function.prototype.toString.call(readBounded);
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const quantity = value => Number.isSafeInteger(value) && value >= 0;
 const load = overrides => runInNewContext(`(${body})`, {
-  constants, lstat, open, Buffer, quantity, fail, AbortSignal, ...overrides,
+  constants, lstat, open, Buffer, quantity, fail, AbortSignal, originalApply: Reflect.apply, ...overrides,
 });
 const invalid = error => error?.code === 'InvalidPublicationStoreObject';
 const state = changes => ({

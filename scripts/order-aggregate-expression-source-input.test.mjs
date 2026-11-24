@@ -27,7 +27,7 @@ test('ordered aggregate cases join normal packed acceptance and its narrow selec
     ...orderAggregateExpressionExecutionFailures];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, name] of [['successes', 'orderAggregateExpressionSuccesses'],
     ['refusals', 'orderAggregateExpressionRefusals'], ['executionFailures', 'orderAggregateExpressionExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));

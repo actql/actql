@@ -130,7 +130,7 @@ test('generic Source service retains the complete original Slack construction wi
 });
 
 test('actual Slack RowRun grants keep identity channels history and replies separately bounded before reentry',async()=>{
-  const source=readFileSync(new URL('../../../host-node/installed-row-source.mjs',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../../../host-node/installed-row-source-acquisition.mjs',import.meta.url),'utf8');
   let arrow;
   const visit=node=>{
     if(!node||typeof node!=='object')return;

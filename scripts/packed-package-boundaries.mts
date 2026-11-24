@@ -1,0 +1,88 @@
+// Audit actual installed package graphs, not the monorepo's dependency layout.
+import assert from 'node:assert/strict';
+import {existsSync, lstatSync, readFileSync, realpathSync} from 'node:fs';
+import {isBuiltin, createRequire} from 'node:module';
+import {dirname, isAbsolute, join, relative, resolve} from 'node:path';
+import {buildSync, type Metafile} from 'esbuild';
+import {parse, type ImportDeclaration, type ExportNamedDeclaration, type ExportAllDeclaration} from 'acorn';
+
+type ExportTarget = string | {[condition: string]: ExportTarget};
+type Manifest = {name: string; exports: ExportTarget; dependencies?: Record<string, unknown>;
+  peerDependencies?: Record<string, unknown>; peerDependenciesMeta?: Record<string, {optional?: boolean}>};
+type Input = Metafile['inputs'][string];
+type AuthoredImport = ImportDeclaration | ExportNamedDeclaration | ExportAllDeclaration;
+
+const inside = (parent: string, path: string) => {
+  const child = relative(parent, path);
+  return child === '' || !child.startsWith('..') && !isAbsolute(child);
+};
+const targets = (entry: ExportTarget): string[] => typeof entry === 'string' ? [entry]
+  : Object.values(entry).flatMap(targets);
+const packageName = (specifier: string) => specifier.startsWith('@')
+  ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
+
+function compilerRuntimeImport(imported: Input['imports'][number], metadata: Input, path: string) {
+  if (imported.path !== '<runtime>' || imported.kind !== 'import-statement' ||
+      metadata.format !== 'cjs' || Object.hasOwn(imported, 'original')) return false;
+  // esbuild adds this helper for CommonJS require properties (for example
+  // require.cache). An authored import can have identical metafile fields:
+  // inspect the original syntax before classifying it as a compiler helper.
+  const syntax = parse(readFileSync(path, 'utf8'), {ecmaVersion: 'latest',
+    sourceType: 'script', allowReturnOutsideFunction: true, allowImportExportEverywhere: true});
+  return !syntax.body.some(node =>
+    ['ImportDeclaration', 'ExportNamedDeclaration', 'ExportAllDeclaration'].includes(node.type) &&
+    (node as AuthoredImport).source?.value === '<runtime>');
+}
+
+export function auditPackedPackages(root: string, names: readonly string[]) {
+  const owned = realpathSync(root);
+  for (const name of names) {
+    const directory = join(root, 'node_modules', '@actql', name);
+    assert.ok(inside(owned, realpathSync(directory)), `External package link: ${name}`);
+    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')) as Manifest;
+    const exported = targets(manifest.exports);
+    for (const target of exported) {
+      assert.ok(target.startsWith('./'), `Nonlocal export: ${name}/${target}`);
+      const path = resolve(directory, target);
+      assert.ok(existsSync(path) && inside(realpathSync(directory), realpathSync(path)),
+        `Missing or escaped export: ${name}/${target}`);
+    }
+    const entries = exported.filter(target => /\.[cm]?js$/u.test(target));
+    const graph = buildSync({entryPoints: entries.map(target => join(directory, target)),
+      absWorkingDir: root, bundle: true, packages: 'external', platform: 'node',
+      format: 'esm', target: 'node22', metafile: true, write: false,
+      outdir: join(root, 'unused-audit-output'), logLevel: 'silent'});
+    for (const [input, metadata] of Object.entries(graph.metafile.inputs)) {
+      const path = resolve(root, input);
+      assert.ok(inside(realpathSync(directory), realpathSync(path)),
+        `Source-tree fallback: ${name}/${input}`);
+      for (const imported of metadata.imports.filter(item => item.external)) {
+        if (isBuiltin(imported.path)) continue;
+        if (compilerRuntimeImport(imported, metadata, path)) continue;
+        const dependency = packageName(imported.path);
+        const required = Object.hasOwn(manifest.dependencies ?? {}, dependency);
+        const peer = Object.hasOwn(manifest.peerDependencies ?? {}, dependency);
+        assert.ok(required || peer,
+          `Undeclared dependency: ${manifest.name} -> ${imported.path}`);
+        const require = createRequire(path);
+        const optional = !required && peer &&
+          manifest.peerDependenciesMeta?.[dependency]?.optional === true;
+        // Inspect absence before resolution: Node can cache missing package
+        // metadata across the optional peer's subsequent normal installation.
+        // A present package still must resolve its exact entry/subpath.
+        if (optional && require.resolve.paths(dependency)!.every(directory => {
+          try {
+            lstatSync(join(directory, dependency));
+            return false;
+          } catch (failure) {
+            if ((failure as NodeJS.ErrnoException).code === 'ENOENT') return true;
+            throw failure;
+          }
+        })) continue;
+        const resolved = require.resolve(imported.path);
+        assert.ok(inside(owned, realpathSync(resolved)),
+          `Dependency outside consumer: ${imported.path}`);
+      }
+    }
+  }
+}

@@ -76,12 +76,23 @@ test('combined Graph selection stays narrow and rereads after both producers exi
   const {parse} = await import('acorn');
   const syntax = parse(driver, {sourceType: 'module', ecmaVersion: 'latest'});
   const branches = [];
+  const isRetainedReread = statement => {
+    if (statement.type !== 'ExpressionStatement' || statement.expression.type !== 'AwaitExpression') return false;
+    const call = statement.expression.argument;
+    if (call.type !== 'CallExpression' || call.callee.type !== 'Identifier' ||
+        call.callee.name !== 'exerciseRetainedQueryRestart' || call.arguments.length !== 1) return false;
+    const environment = call.arguments[0];
+    if (environment.type !== 'ObjectExpression' || environment.properties.length !== 1) return false;
+    const setting = environment.properties[0];
+    return setting.type === 'Property' && !setting.computed && setting.kind === 'init' &&
+      setting.key.type === 'Identifier' && setting.key.name === 'ACTQL_TEST_RETAINED_COHORT_ONLY' &&
+      setting.value.type === 'Literal' && setting.value.value === '1';
+  };
   const visit = node => {
     if (node === null || typeof node !== 'object') return;
     if (node.type === 'IfStatement' && node.consequent.type === 'BlockStatement' &&
         driver.slice(node.test.start, node.test.end).includes(flag) &&
-        driver.slice(node.consequent.start, node.consequent.end)
-          .includes("exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'})")) {
+        node.consequent.body.some(isRetainedReread)) {
       branches.push(node);
     }
     for (const value of Object.values(node)) {
@@ -113,8 +124,7 @@ test('combined Graph selection stays narrow and rereads after both producers exi
   const first = branch.consequent.body[0];
   assert.equal(first.type, 'ExpressionStatement');
   assert.equal(first.expression.type, 'AwaitExpression');
-  assert.equal(driver.slice(first.expression.argument.start, first.expression.argument.end),
-    "exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'})");
+  assert.ok(isRetainedReread(first), 'the first action rereads this retained cohort');
   const last = branch.consequent.body.at(-1);
   assert.equal(last.type, 'ReturnStatement');
   assert.equal(last.argument, null, 'cold reread completes before returning from this narrow mode');
@@ -123,7 +133,7 @@ test('combined Graph selection stays narrow and rereads after both producers exi
   assert.ok(corpus.includes('graphRemainingOperationCohortInputs(profile.inputs).flatMap(publicQueryCohorts)'));
   assert.ok(corpus.includes('saved.expectedSampleNames = [...boundaryNames]'));
   assert.ok(corpus.includes('cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames'));
-  const reader = await readFile(new URL('./fixtures/string-values-restart.mjs', import.meta.url), 'utf8');
+  const reader = await readFile(new URL('./fixtures/string-values-restart.mts', import.meta.url), 'utf8');
   assert.ok(reader.includes('cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames'));
   assert.ok(reader.includes('cohort.samples.length >= 1 && cohort.samples.length <= 2'));
   assert.ok(reader.includes('observeRetainedGraphDispatch(cohort.authorization, physicalDispatches)'));

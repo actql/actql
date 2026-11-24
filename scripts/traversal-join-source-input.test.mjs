@@ -28,7 +28,7 @@ test('independent traversal controls distinguish node deduplication from path mu
 
 test('traversal JOIN fixtures enter normal packed acceptance and its bounded public selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'traversalJoinSuccesses'], ['refusals', 'traversalJoinRefusals'],
     ['executionFailures', 'traversalJoinExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

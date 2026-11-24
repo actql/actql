@@ -138,12 +138,18 @@ export function updateTypedJsonContracts(expressions, protocol, write = false) {
   else assert.equal(protocol.artifact_registry_cid, machineCid(protocol.artifact_schemas));
 }
 
-export function typedJsonClientPin() {
+export function typedJsonClientPin({declaration = false} = {}) {
   const wireCid = machineCid(typedJsonWireLaw);
   const serializations = Object.fromEntries(['json', 'jsonl', 'csv'].map(format => {
     const version = `actql-${format}/0.1`;
     return [version, machineCid({json_value_wire_contract_cid: wireCid, version})];
   }));
+  if (declaration) return '// Generated from the common typed JSON wire law. Do not edit.\n' +
+    '// Run: node scripts/typed-json-literal-contract.mjs --write\n' +
+    'export declare const jsonValueWireContractCid: ' + JSON.stringify(wireCid) + ';\n' +
+    'export declare const resultSerializationContractCids: Readonly<{\n' +
+    Object.entries(serializations).map(([version, cid]) =>
+      '  ' + JSON.stringify(version) + ': ' + JSON.stringify(cid) + ';').join('\n') + '\n}>;\n';
   return '// Generated from the common typed JSON wire law. Do not edit.\n' +
     '// Run: node scripts/typed-json-literal-contract.mjs --write\n' +
     'export const jsonValueWireContractCid = ' + JSON.stringify(wireCid) + ';\n' +
@@ -166,6 +172,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const clientPin = typedJsonClientPin();
   if (process.argv.includes('--write')) writeFileSync(clientPinPath, clientPin);
   else assert.equal(readFileSync(clientPinPath, 'utf8'), clientPin, 'stale Client JSON value wire pin');
+  const clientTypePath = 'packages/sdk/json-value-wire.generated.d.mts';
+  const clientTypes = typedJsonClientPin({declaration: true});
+  if (process.argv.includes('--write')) writeFileSync(clientTypePath, clientTypes);
+  else assert.equal(readFileSync(clientTypePath, 'utf8'), clientTypes, 'stale Client JSON value wire types');
   updateTypedJsonContracts(...bodies);
   console.log('Typed JSON source/node schemas, law and artifact pins verified.');
 }

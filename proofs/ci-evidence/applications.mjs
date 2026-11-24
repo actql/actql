@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {catalogPath, preserveProtectedActions, validateCatalog} from './actions.mjs';
-import {actionInputs, compareInputs, gitTree, hash, sharedFiles} from './inputs.mjs';
+import {actionInputs, compareInputs, gitTree, hash, proofToolingInputs, sharedFiles} from './inputs.mjs';
 import {readOriginReceipts} from './receipts.mjs';
 import {checkPlan} from './check.mjs';
 import {runtimeForAction} from './isolated-runtime.mjs';
@@ -12,9 +12,14 @@ const identity = value => hash(encode(value));
 const exact = (value, fields) => assert.deepEqual(Object.keys(value ?? {}).sort(), [...fields].sort(), 'Missing/extra application field');
 
 export function policyUnchanged(originTree, candidateTree) {
-  return sharedFiles.every(path => {
+  const origin = proofToolingInputs(originTree, sharedFiles);
+  const candidate = proofToolingInputs(candidateTree, sharedFiles);
+  if (origin.unresolved.length || candidate.unresolved.length ||
+      origin.paths.length !== candidate.paths.length) return false;
+  const candidatePaths = new Set(candidate.paths);
+  return origin.paths.every(path => {
     const a = originTree.entries.get(path), b = candidateTree.entries.get(path);
-    return a?.kind === 'blob' && b?.kind === 'blob' && a.mode === b.mode &&
+    return candidatePaths.has(path) && a?.kind === 'blob' && b?.kind === 'blob' && a.mode === b.mode &&
       hash(originTree.read(path)) === hash(candidateTree.read(path));
   });
 }

@@ -138,7 +138,7 @@ test('resource sequence evidence keeps both registered overlap cases connected',
 
 test('resource Graph evidence follows the captured registry and the suite registration', () => {
   const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
-  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mts')].text;
   const item = {suite: 'node:graph_public_host', role: 'graph_projection_public_store',
     fixture: 'presence selection sort and take survives Relation Store and public Named Results through local'};
   assert.equal(registeredResourceEnvironmentCase(item, source, registry, 'node_rows'), true);
@@ -184,7 +184,7 @@ const graphOperationCancellationEvidence = [
 
 test('current Graph cancellation evidence resolves the actual positive-work operation cases', () => {
   const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
-  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mts')].text;
   for (const [operation, prefix, , title] of graphOperationCancellationEvidence) {
     for (const mode of ['local', 'remote']) {
       const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
@@ -198,7 +198,7 @@ test('current Graph cancellation evidence resolves the actual positive-work oper
 
 test('current Graph cancellation evidence refuses missing work stop cleanup and reuse checks', () => {
   const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
-  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mts')].text;
   for (const [before, after] of [
     ["name === 'local_compute_advanced' && detail.task === cancellationTask", "name === 'computed' && detail.task === cancellationTask"],
     ['assert.ok(BigInt(detail.work) > 0n)', 'assert.ok(BigInt(detail.work) >= 0n)'],
@@ -221,7 +221,7 @@ test('current Graph cancellation evidence refuses missing work stop cleanup and 
 
 test('current Graph cancellation evidence cannot borrow another operation basic Mean or a missing call', () => {
   const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
-  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mts')].text;
   for (const [operation, prefix, , title] of graphOperationCancellationEvidence) {
     const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
       role: `${prefix}_public_in_flight_cancel_cleanup`,
@@ -248,7 +248,7 @@ test('current Graph cancellation evidence cannot borrow another operation basic 
 });
 
 test('resource validation refuses a detached captured Graph fixture registry', () => {
-  const file = join(root, 'scripts/fixtures/graph-host-cases.mjs');
+  const file = join(root, 'scripts/fixtures/graph-host-cases.mts');
   const sources = Object.freeze({...sourceTemplate,
     [file]: Object.freeze({exists: true, text: ''})});
   const errors = validateResourceAccounting({root, manifest: manifestTemplate,

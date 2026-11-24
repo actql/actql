@@ -8,6 +8,7 @@ import {dirname, join, relative} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
+import {normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const httpOnly = process.argv.length === 3 && process.argv[2] === '--http-only';
@@ -29,8 +30,10 @@ const env = {PATH: `${dirname(process.execPath)}:/usr/bin:/bin`, LANG: 'C',
   npm_config_cache: cache, npm_config_userconfig: userConfig,
   npm_config_globalconfig: globalConfig, npm_config_registry: 'https://registry.npmjs.org',
   npm_config_audit: 'false', npm_config_fund: 'false'};
-function run(command, args, cwd) {
-  const result = spawnSync(command, args, {cwd, env, encoding: 'utf8',
+// Only the producer's Owner check uses the selected source toolchain.
+const producerEnv = {...env, PATH: `${dirname(process.execPath)}:${process.env.PATH ?? env.PATH}`};
+function run(command, args, cwd, commandEnv = env) {
+  const result = spawnSync(command, args, {cwd, env: commandEnv, encoding: 'utf8',
     timeout: 30000, killSignal: 'SIGTERM', maxBuffer: 8 * 1024 * 1024});
   if (result.error || result.status !== 0) {
     throw new Error(`OptionalProviderCommandFailed:${JSON.stringify({command,args,status:result.status,signal:result.signal})}\n${result.stdout ?? ''}\n${result.stderr ?? ''}`,
@@ -51,10 +54,13 @@ for (const [directory, name, factory] of [
   const packageRoot = join(repository, 'packages', directory);
   const manifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
   assert.equal(manifest.name, name);
-  assert.equal(manifest.scripts, undefined, 'This JS-only optional package has no runtime producer');
+  // The exact allowlist excludes consumer install hooks and runtime scripts.
+  assert.deepEqual(manifest.scripts, {
+    prepack: `node ../../scripts/check-interface-owners.mjs --manifest packages/${directory}/package.json`,
+  }, 'Optional providers allow only the existing Owner prepack');
   // Normal npm pack lifecycle: no ignore-scripts/prepack bypass.
-  const metadata = JSON.parse(run(process.execPath,
-    [npm, 'pack', '--json', '--pack-destination', artifacts], packageRoot))[0];
+  const packArgs = normalNpmPackJsonArgs(['pack', '--json', '--pack-destination', artifacts]);
+  const metadata = parseNpmPackJson(run(process.execPath, [npm, ...packArgs], packageRoot, producerEnv))[0];
   const tarball = join(artifacts, metadata.filename);
   const bytes = await readFile(tarball);
   assert.equal(metadata.integrity, 'sha512-' + createHash('sha512').update(bytes).digest('base64'));

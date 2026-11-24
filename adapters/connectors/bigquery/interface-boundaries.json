@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/bigquery/site/bigquery-sql-read.mjs",
-      "sha256": "a46c18b81cf049e2deca5cafa5413484e46c2264cec237c43084bbddd411b7b5",
+      "sha256": "02ef4bb84d74384fb2ee90d8a4bf4427059f9dd868509d49470dfad5eef5a77b",
       "exports": [
         "BIGQUERY_SQL_READ_OPERATION",
         "readBigQuerySqlApi"
@@ -145,7 +145,7 @@
     },
     {
       "module": "adapters/connectors/bigquery/host/installed-bigquery-source.mjs",
-      "sha256": "f984f2365fd6ee762f12cea11d51140519dea217628d87fb30da9962ade30600",
+      "sha256": "84cbeba1162489c55b8eb32f70e7f75dd20204af4c607997d7e154c7003daf79",
       "exports": [
         "INSTALLED_BIGQUERY_SITE_VERSION",
         "INSTALLED_BIGQUERY_SOURCE_VERSION",

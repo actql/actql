@@ -162,7 +162,7 @@ confer Account authority, Source read permission or Effect approval.
 
 ## Verification
 
-`declared-project-catalog.actual.test.mjs` exercises real Common declaration,
+`declared-project-catalog.actual.test.mts` exercises real Common declaration,
 File and Mapping semantics with explicit non-installed metadata diagnostics and
 replacement data. These tests do not establish installed resource funding or a
 packaged runtime workflow. They use an explicitly selected matching compiled
@@ -199,7 +199,7 @@ restoration retain their existing separate quantities and identities. Request
 creation, read authorization, actual bytes/chargePage, RelationDocument/RowRun
 admission and physical stop/retirement are unchanged by this metadata path.
 
-The new same-original bridge control in `declared-project-catalog.actual.test.mjs`
+The new same-original bridge control in `declared-project-catalog.actual.test.mts`
 requires a matching actual Common runtime. Staging controls in
 `declared-file-installation.test.mjs` exercise the real initialization owner with
 explicit semantic-port fixtures; they do not prove the Common ABI, numerical

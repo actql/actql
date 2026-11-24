@@ -5,13 +5,14 @@ import {encode} from '../bounded-session/action-inputs.mjs';
 import {readCatalog, catalogPath} from './actions.mjs';
 import {actionInputs, sharedFiles, hash, pipelineInventoryBoundary} from './inputs.mjs';
 import {sealReceipt, canonicalReceipt} from './receipts.mjs';
-import {applicability, checkApplications} from './applications.mjs';
+import {applicability, checkApplications, policyUnchanged} from './applications.mjs';
 
 const old = 'a'.repeat(40), current = 'b'.repeat(40);
 const catalog = readCatalog(); catalog.actions = catalog.actions.filter(action => ['model', 'session-js'].includes(action.id));
 const selected = catalog.actions[1];
 const runtime = {profile: 'controlled-test-runtime', unresolved: []};
 const files = new Map([...sharedFiles.map(path => [path, path]), [catalogPath, encode(catalog)],
+  ['scripts/ci-core-partitions.mjs', 'legacy CI partitions'],
   ['src/bounded_execution/moon.pkg', ''], ['src/bounded_execution/session.mbt', 'production'],
   ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'].map(path => [`proofs/bounded-session/${path}`, path])]);
 for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies])
@@ -35,6 +36,27 @@ test('reuse preserves original receipt; candidate manifest is independently reco
   const request = base(), bytes = canonicalReceipt(request.receipt);
   assert.equal(applicability(request).revision, current);
   assert(canonicalReceipt(request.receipt).equals(bytes));
+});
+
+test('reuse policy compares the authored tooling inputs and refuses changed, missing or ambiguous inputs', () => {
+  const authored = new Map(files);
+  const runtime = 'scripts/test-execution.mjs', source = 'scripts/test-execution.mts';
+  const compiler = 'tsconfig.tooling.json';
+  authored.delete(runtime);
+  for (const path of [source, 'scripts/test-execution-reporter.mts', compiler,
+    'tsconfig.base.json', 'scripts/typescript-executable-modes.mts']) authored.set(path, path);
+  const origin = tree(authored);
+  assert.equal(policyUnchanged(origin, tree(authored)), true);
+  assert.equal(policyUnchanged(origin, tree()), false);
+
+  const changedSource = tree(new Map(authored).set(source, 'changed authored bytes'));
+  const changedCompiler = tree(new Map(authored).set(compiler, 'changed compiler flags'));
+  const missingCompiler = new Map(authored); missingCompiler.delete(compiler);
+  const duplicate = tree(new Map(authored).set(runtime, 'tracked runtime alias'));
+  const changedMode = tree(authored); changedMode.entries.set(source, {mode: '100755', kind: 'blob'});
+  for (const candidate of [changedSource, changedCompiler, tree(missingCompiler), duplicate, changedMode])
+    assert.equal(policyUnchanged(origin, candidate), false);
+  assert.equal(policyUnchanged(duplicate, duplicate), false);
 });
 
 test('actual origin Git bytes cannot be replaced by a self-consistent carried source digest', () => {

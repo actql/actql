@@ -32,6 +32,8 @@ async function check({write = 'dispatch', read = 'dispatch', binding = table,
     clientProgramCheckCompilerIdentity: () => '{}',
     clientProgramCheckContextIdentity: () => '{}',
     clientProgramCheckUnavailable: () => '{}',
+    clientProgramCheckSourceNamespace: () => assert.fail('Unexpected Source alias namespace observation'),
+    clientProgramCheckSourceSelectorNamespace: () => assert.fail('Unexpected Source selector namespace observation'),
     clientProgramCheckSource: (...args) => respond(args),
     clientProgramCheckProgram: (...args) => respond(args),
   };

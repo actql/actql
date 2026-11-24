@@ -196,6 +196,10 @@ test('generated Client–Host guards and types match the machine contract',
     'utf8'));
     assert.equal(outputs.checkpointAnswers, await readFile(new URL(
       '../packages/sdk/internal/checkpoint-answer-contract.generated.mjs', import.meta.url), 'utf8'));
+    assert.equal(outputs.checkpointAnswerTypes, await readFile(new URL(
+      '../packages/sdk/internal/checkpoint-answer-contract.generated.d.mts', import.meta.url), 'utf8'));
+    assert.equal(outputs.checkpointConstructionTypes, await readFile(new URL(
+      '../packages/sdk/internal/checkpoint-answer-construction.generated.d.mts', import.meta.url), 'utf8'));
     assert.equal(outputs.runWait, await readFile(new URL(
       '../src/run_publication/run_wait.generated.mbt', import.meta.url), 'utf8'));
   });
@@ -206,6 +210,7 @@ test('SDK answer grammar projects existing Resolution and Evidence without chang
   changed.artifact_schemas.checkpoint_resolution.properties.decision.enum = ['rejected'];
   const result = buildClientHostWire(registry, changed);
   assert.notEqual(result.checkpointAnswers, original.checkpointAnswers);
+  assert.notEqual(result.checkpointAnswerTypes, original.checkpointAnswerTypes);
   for (const key of ['module', 'types', 'native', 'nativeTests', 'runWait']) {
     assert.equal(result[key], original[key], key);
   }

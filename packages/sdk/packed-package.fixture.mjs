@@ -2,17 +2,21 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {lstatSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
+import {packedClientPackage} from '../../scripts/packed-client-packages.mjs';
 
-// Lifecycle scripts may write diagnostics around npm's JSON report. The
-// successful normal prepack and its actual tarball are the package evidence.
-export function packSdkFixture({name, directory, destination, run}) {
+// The actual tarball supplies the package report. A standalone run still
+// executes normal prepack, whose diagnostics can surround npm's JSON output.
+export async function packSdkFixture({name, repository, destination, run, shared}) {
+  const directory = join(repository, 'packages', name);
   const original = readFileSync(join(directory, 'package.json'), 'utf8');
   const manifest = JSON.parse(original);
   assert.equal(manifest.name, `@actql/${name}`);
   assert.match(manifest.version, /^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/u);
   const filename = `actql-${name}-${manifest.version}.tgz`;
-  run('npm', ['pack', '--json', '--cache', destination,
-    '--pack-destination', destination], directory);
+  await packedClientPackage({repository, name, destination, shared, pack() {
+    run('npm', ['pack', '--json', '--cache', destination,
+      '--pack-destination', destination], directory);
+  }});
   const archive = join(destination, filename);
   const info = lstatSync(archive);
   assert(info.isFile() && !info.isSymbolicLink() && info.size > 0);

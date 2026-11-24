@@ -43,7 +43,7 @@ test('independent Graph Relation controls retain operation arguments, types, JOI
 
 test('Graph Relation JOIN fixtures enter normal packed acceptance and the focused transport cohort', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'graphRelationJoinSuccesses'], ['refusals', 'graphRelationJoinRefusals'],
     ['executionFailures', 'graphRelationJoinExecutionFailures']])
     assert.ok(fixture.includes('scopeInputs.' + kind + '.push(...' + group + ')'));

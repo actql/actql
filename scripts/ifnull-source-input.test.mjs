@@ -29,7 +29,7 @@ test('IFNULL fixtures distinguish NULL, false, empty text and demanded fallback 
 
 test('ordinary packed corpus includes IFNULL and its narrow selection excludes unrelated campaigns', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'ifnullSuccesses'], ['refusals', 'ifnullRefusals'],
     ['executionFailures', 'ifnullExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

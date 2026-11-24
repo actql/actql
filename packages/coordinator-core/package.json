@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "main": "./index.mjs",
-  "types": "./index.d.ts",
+  "types": "./index.d.mts",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
+      "types": "./index.d.mts",
       "default": "./index.mjs"
     }
   },
-  "files": ["compiler-binding.generated.mjs", "index.mjs", "index.d.ts", "dist/remote_coordinator_abi.js"],
+  "files": ["compiler-binding.generated.mjs", "index.mjs", "index.d.mts", "dist/remote_coordinator_abi.js"],
   "scripts": {
     "prepack": "node ../../scripts/build-runtime-packages.mjs coordinator-core"
   }

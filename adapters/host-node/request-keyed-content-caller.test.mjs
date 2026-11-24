@@ -8,20 +8,26 @@ import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {AcquisitionOpenError} from '../host-common/acquisition-outcome.mjs';
+import {localFileStoreDeclaration} from '../connectors/local/host/local-file-store-declaration.mjs';
+import {openLocalFileRoot,physicalReadChild} from '../connectors/local/site/root-filesystem.mjs';
 import {installNodeContentRun} from './installed-content-run.mjs';
 import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
+import {constructRequestDomain} from './ordinary-source-model-materials.mjs';
 
 // Actual Local constructor -> Host bag -> Request manager -> runtime port.
 // Core nominal/Resource/current interfaces are explicit fixture ports. This is
 // neither a compiled Common ABI nor physical backing, Source IO or a public Run.
 function method(file, name, ports) {
-  const s=readFileSync(new URL(file,import.meta.url),'utf8');let selected;
+  const s=readFileSync(new URL(file,import.meta.url),'utf8');let selected, register;
   const walk=n=>{if(!n||typeof n!=='object')return;
     if(n.type==='Property'&&n.key?.name===name){assert(!selected);selected=n;}
+    if(n.type==='FunctionDeclaration'&&n.id?.name==='registerRequestRun'){assert(!register);register=n;}
     for(const value of Object.values(n)){if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);}};
   walk(parse(s,{ecmaVersion:'latest',sourceType:'module'}));assert(selected,name);
-  const helpers = file === './ordinary-source-managed.mjs' ? s.slice(s.indexOf('  function constructRequestDomain('), s.indexOf('  const view = Object.freeze({')) : '';
-  return Function(...Object.keys(ports),`const pendingRunRegistrations=new Set();${helpers}return ({${s.slice(selected.start,selected.end)}}).${name};`)(...Object.values(ports));
+  const registration = register === undefined ? '' : s.slice(register.start,register.end);
+  return Function('constructRequestDomain', ...Object.keys(ports),
+    `const pendingRunRegistrations=new Set();${registration}\nreturn ({${s.slice(selected.start,selected.end)}}).${name};`
+  )(constructRequestDomain, ...Object.values(ports));
 }
 const fail=code=>{throw Object.assign(new Error(code),{code});},ok=value=>({$tag:1,_0:value});
 async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false,requestPlanOnly=false}={}) {
@@ -70,19 +76,21 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false,
     originals,runs,liveRuns,view,checked};
   for(const name of ['retainContentPreparation','prepareKeyedContentRun','adoptContentPreparation'])view[name]=method('./ordinary-source-managed.mjs',name,managerPorts);
   view.assertCurrent=current;view.prepareRead=()=>assert.fail('No physical read selected');
-  const managerSource=readFileSync(new URL('./ordinary-source-managed.mjs',import.meta.url),'utf8');
-  const privateNames=new Set(['runFor','captureReader','closeChild']);
-  let privateFunctions=[];
-  const walk=n=>{if(!n||typeof n!=='object')return;
-    if(n.type==='FunctionDeclaration'&&privateNames.has(n.id?.name))privateFunctions.push(managerSource.slice(n.start,n.end));
-    for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
-  walk(parse(managerSource,{ecmaVersion:'latest',sourceType:'module'}));assert.equal(privateFunctions.length,3);
+  const privateFunctions=[];
+  for (const [file, names] of [['ordinary-source-run-custody.mjs',['runFor']],
+    ['ordinary-source-reader.mjs',['captureReader','closeChild']]]) {
+    const source=readFileSync(new URL(file,import.meta.url),'utf8'), expected=new Set(names);
+    const walk=n=>{if(!n||typeof n!=='object')return;
+      if(n.type==='FunctionDeclaration'&&expected.delete(n.id?.name))privateFunctions.push(source.slice(n.start,n.end));
+      for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
+    walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert.equal(expected.size,0,file);
+  }
   const privatePorts={current,runs,fail,pending:v=>v?.pending===true,resourceRuntime:{assertOrdinaryManagedRunCurrent(o,i){assert.equal(o,original);assert.equal(i,input);}}};
   const helpers=Function(...Object.keys(privatePorts),privateFunctions.join('\n')+'\nreturn{runFor,captureReader,closeChild};')(...Object.values(privatePorts));
   view.prepareKeyedRead=method('./ordinary-source-managed.mjs','prepareKeyedRead',{
     ...helpers,project:true,bundle:{sources:[{declaration}]},fail});
   const tokens=new WeakMap([[graph,rawGraph]]),control={};
-  control.prepareCheckedClientRequestKeyedSerializationCompilation=method('../host-common/runtime-core.mjs',
+  control.prepareCheckedClientRequestKeyedSerializationCompilation=method('../host-common/runtime-model-preparation-control.mjs',
     'prepareCheckedClientRequestKeyedSerializationCompilation',{serializationPlanTokens:tokens,moon,compiledRunResult:checked});
   const host=method('./embedded-local.mjs','prepareManagedKeyedContentRun',{
     sourceManaged:view,moon,record,originalInstallation,originals,checked,
@@ -93,17 +101,19 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false,
     assertSourceManagedInstallationCurrent(){},originalSourceManagedHostRequest:()=>sdkRequest,
     clientOperationError:code=>Object.assign(new Error(code),{code})});
   const path=new URL('../connectors/local/host/installed-project-files.mjs',import.meta.url),s=readFileSync(path,'utf8');
-  const names=new Set(['fail','canonical','cid','positive','text','acknowledged','physicalReadChild','installPreparedProjectLocalFiles']);
+  const names=new Set(['fail','canonical','cid','positive','text','acknowledged','installPreparedProjectLocalFiles']);
   const parts=parse(s,{ecmaVersion:'latest',sourceType:'module'}).body.flatMap(n=>{
     const v=n.type==='ExportNamedDeclaration'?n.declaration:n;
     const selectedNames=v?.type==='VariableDeclaration'?v.declarations.map(d=>d.id.name):[v?.id?.name];
     if(!selectedNames.some(n=>names.has(n)))return[];selectedNames.forEach(n=>assert(names.delete(n)));return[s.slice(v.start,v.end)];});assert.equal(names.size,0);
   const install=Function('createHash','canonicalJson','checked','runtimeOptionalField','readFile','moduleUrl',
     'createInstalledRowSource','rowSourceCheckEnvironment','composeInstalledCheckEnvironment','retainInstalledHostInitializationFailure','AcquisitionOpenError','mime',
+    'localFileStoreDeclaration','openLocalFileRoot','physicalReadChild',
     parts.join('\n').replaceAll('import.meta.url','moduleUrl')+'\nreturn installPreparedProjectLocalFiles;')(
       createHash,canonicalJson,checked,runtimeOptionalField,readFile,path,
       async options=>{localOptions=options;return{connectorBindings:[],admitsSource:()=>true};},()=>({wire:'{}'}),()=> '{}',
-      async cause=>cause,AcquisitionOpenError,()=>assert.fail('No MIME/physical read'));
+      async cause=>cause,AcquisitionOpenError,()=>assert.fail('No MIME/physical read'),
+      localFileStoreDeclaration,openLocalFileRoot,physicalReadChild);
   const entry={connection:'local',rootPath:'/not-opened',declaration,scopeCid:'sha256:'+'a'.repeat(64),
     queryAliases:[{name:'local',resource:'files'},{name:'local.contents',resource:'contents'}],
     limits:{maxReadBytes:100,maxPages:2,maxPageBytes:8,maxFileBytes:32},wire:JSON.stringify({views:[

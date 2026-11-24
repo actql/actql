@@ -1,0 +1,260 @@
+// Reuse a closed ordinary installation and its exact normal cohort. This
+// runner never produces a package or overlays a product. Explicit --ci mode
+// installs only the existing exact-checkout five-package producer input.
+import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {copyFile, mkdir, readFile, readdir, readlink, symlink, unlink, writeFile} from 'node:fs/promises';
+import {isAbsolute, join, dirname, resolve} from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {createOwnedScratch} from './owned-scratch.mjs';
+import {runFocusedTests} from './test-execution.mjs';
+import {admitRecordApprovalCIInput, packedRecordApprovalInvocation} from './record-approval-ci-input.mjs';
+import {packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
+import {createCommandEvidence} from './packed-query-evidence.mjs';
+import {installedRecordHttpCase, installedRecordReplyLossExpectation} from './fixtures/record-approval/installed.fixture.mjs';
+import {readAuthoredCase} from './fixtures/record-approval/command.mjs';
+
+type Qualification = {fixtureVariant: string; qualified: boolean; status: string; expectedTests: number};
+type ApprovalEvidence = ReturnType<typeof createCommandEvidence> & {summary: {qualification: Qualification}};
+type ApprovalInput = (
+  Awaited<ReturnType<typeof admitRecordApprovalCIInput>> |
+  Awaited<ReturnType<typeof import('./composition-release-input.mjs')['admitCompositionRelease']>>
+) & {kind?: string};
+
+// Reuse the original consumer and its normal admission unchanged. The outer
+// command receipt exists before installation, including failed preparation.
+export function collectPackedApprovalEvidence({repository, selection, env = process.env}: {
+  repository: string; selection: string; env?: NodeJS.ProcessEnv;
+}) {
+  assert(['--mock-hubspot-whole-approval', '--mock-hubspot-three-source-approval', '--mock-hubspot-binary-source-approval'].includes(selection));
+  const fixtureVariant = selection === '--mock-hubspot-whole-approval' ? 'whole-input'
+    : selection === '--mock-hubspot-binary-source-approval' ? 'binary-source' : 'three-source';
+  const evidence = createCommandEvidence({cwd: repository, env,
+    scratch: join(repository, '_build', 'packed-approval-evidence'),
+    githubOutput: env.GITHUB_OUTPUT, prefix: fixtureVariant + '-'}) as ApprovalEvidence;
+  evidence.summary.qualification = {fixtureVariant, qualified: false, status: 'unexecuted', expectedTests: 1};
+  evidence.persist();
+  let primary;
+  try {
+    const args = [join(repository, 'scripts/test-packed-hubspot-source.mjs'), '--ci-evidence-child', selection];
+    const {result, outcome, writeFailure} = evidence.capture(process.execPath, args,
+      {cwd: repository, env, timeout: 300000, killSignal: 'SIGTERM'});
+    Object.assign(evidence.summary.qualification, {status: 'failed',
+      observedExitCode: outcome.status, signal: outcome.signal,
+      processComplete: outcome.complete, outputComplete: outcome.outputComplete});
+    assert(!result.error && !result.signal && result.status === 0,
+      'Original packed approval command failed; its bounded raw result remains authoritative');
+    const rows = (result.stdout ?? '').split(/\r?\n/u).filter(line => line.startsWith('PACKED_HUBSPOT_PUBLIC '));
+    assert.equal(rows.length, 1, 'Require the original consumer qualification, not merely exit zero');
+    const receipt = JSON.parse(rows[0].slice('PACKED_HUBSPOT_PUBLIC '.length));
+    assert.equal(receipt.fixtureVariant, fixtureVariant);
+    assert.equal(receipt.productSource, evidence.summary.source.revision);
+    assert.equal(receipt.freshNormalInstall, true);
+    assert.equal(receipt.expectedTests, 1); assert.equal(receipt.observedExitCode, 0);
+    assert.deepEqual(receipt.actualCounts, {tests: 1, passed: 1, failed: 0, cancelled: 0, skipped: 0, todo: 0});
+    assert.match(receipt.manifestSha256, /^[a-f0-9]{64}$/u);
+    Object.assign(evidence.summary.qualification, {productSource: receipt.productSource,
+      manifestSha256: receipt.manifestSha256, actualCounts: receipt.actualCounts,
+      qualified: true, status: 'passed'});
+    if (writeFailure) throw writeFailure;
+  } catch (error) {primary = error;}
+  finally {
+    try {evidence.finish(primary ? 'failed' : 'passed');}
+    catch (error) {primary ??= error;}
+  }
+  if (primary) throw Object.assign(primary, {evidenceDirectory: evidence.directory});
+  assert(evidence.summary.complete, 'Packed approval evidence incomplete');
+  return evidence.directory;
+}
+
+const evidenceSelection = process.argv[2] === '--ci' &&
+  ['--mock-hubspot-whole-approval', '--mock-hubspot-three-source-approval', '--mock-hubspot-binary-source-approval'].includes(process.argv[3]);
+if (evidenceSelection) {
+  assert.equal(process.argv.length, 4, 'Require the unchanged --ci SELECTION contract');
+  console.log('PACKED_APPROVAL_EVIDENCE', collectPackedApprovalEvidence({
+    repository: fileURLToPath(new URL('../', import.meta.url)), selection: process.argv[3]}));
+} else {
+
+assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1',
+  'Preserve original Run/DB/keys/raw on success and failure');
+const repository = fileURLToPath(new URL('../', import.meta.url));
+const argv = process.argv.slice(2), ci = ['--ci', '--ci-evidence-child'].includes(argv[0]);
+const reject = argv.at(-1) === '--reject';
+if (reject) argv.pop();
+assert.equal(process.env.ACTQL_RECORD_APPROVAL_DECISION, undefined, 'Use the explicit packed rejection argument');
+let [source, release, consumer, selection] = ci ? [repository, undefined, undefined, argv[1]] : argv;
+const selections = ['--approval', '--kintone-approval', '--mock-salesforce-approval',
+  '--mock-hubspot-approval', '--mock-hubspot-whole-approval',
+  '--mock-hubspot-three-source-approval', '--mock-hubspot-binary-source-approval', '--mock-kintone-approval'];
+assert(ci ? argv.length === 2 && selections.includes(selection!)
+  : argv.length === 3 || argv.length === 4 && selections.includes(selection!),
+  'usage: test-packed-hubspot-source.mjs SOURCE RELEASE CLOSED_APPLICATION [SELECTION] [--reject] or --ci SELECTION [--reject]');
+const threeSourceMock = selection === '--mock-hubspot-three-source-approval';
+const binarySourceMock = selection === '--mock-hubspot-binary-source-approval';
+const wholeMock = selection === '--mock-hubspot-whole-approval';
+const mockConnector = wholeMock || threeSourceMock || binarySourceMock ? 'hubspot'
+  : /^--mock-(salesforce|hubspot|kintone)-approval$/u.exec(selection ?? '')?.[1];
+const approvalConnector = mockConnector ?? (selection === '--approval' ? 'hubspot'
+  : selection === '--kintone-approval' ? 'kintone' : undefined);
+const approval = approvalConnector !== undefined;
+const mockCaseInput = process.env.ACTQL_RECORD_APPROVAL_MOCK_CASE;
+const httpCaseInput = installedRecordHttpCase().casePath;
+if (mockCaseInput !== undefined) {
+  assert(isAbsolute(mockCaseInput) && ['hubspot', 'kintone'].includes(mockConnector!) &&
+    !wholeMock && !threeSourceMock && !binarySourceMock && process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS !== '1',
+  'Select one supported authored mock case');
+}
+if (httpCaseInput !== undefined) {
+  assert(approval && mockConnector === undefined, 'Select one supported authored HTTP case');
+}
+const caseInput = mockCaseInput ?? httpCaseInput;
+const authoredCase = caseInput === undefined ? undefined : await readAuthoredCase(caseInput);
+assert(authoredCase === undefined || authoredCase.fixture !== undefined, 'An authored case requires a seed and state oracle');
+const fixtureWrite = authoredCase?.review.kind === 'delete' ? 'DELETE'
+  : authoredCase?.review.kind === 'upsert' && authoredCase.review.before === null ? 'CREATE' : 'UPDATE';
+const configuredReplyLoss = installedRecordReplyLossExpectation();
+const authoredFaults = httpCaseInput === undefined ? undefined : authoredCase!.fixture!.faults;
+assert(authoredFaults === undefined || configuredReplyLoss === undefined, 'Select one original fixture fault schedule');
+const replyLossExpectation = authoredFaults === undefined ? configuredReplyLoss : authoredFaults[0]?.expected;
+assert(replyLossExpectation === undefined || approval && mockConnector === undefined,
+  'Applied reply loss is an explicit installed provider fixture selection');
+assert(!reject || (approval && mockConnector === undefined && replyLossExpectation === undefined),
+  'Rejection requires the ordinary installed HubSpot or kintone case');
+if (!ci) for (const path of [source, release, consumer]) assert(isAbsolute(path!), 'Require absolute original input paths');
+assert(!process.env.NODE_PATH && !process.env.NODE_OPTIONS,
+  'Ordinary installed acceptance refuses ambient module/loader overlays');
+assert(!process.env.ACTQL_LOCAL_SOURCE_PROFILE && !process.env.ACTQL_LOCAL_EFFECT_PROFILE,
+  'Ordinary installed acceptance uses only its fresh explicit profiles');
+const {admitCompositionRelease}: typeof import('./composition-release-input.mjs') =
+  await import(pathToFileURL(join(source!, 'scripts/composition-release-input.mjs')) as unknown as string);
+const {inventory}: typeof import('./package-release.mjs') =
+  await import(pathToFileURL(join(source!, 'scripts/package-release.mjs')) as unknown as string);
+const label = approval
+  ? `ordinary installed ${approvalConnector}${mockConnector ? ' mock' : ''}${binarySourceMock ? ' binary same-Unit JOIN' : threeSourceMock ? ' three-Source' : wholeMock ? ' Whole-input' : ''} approval and original Saved restoration`
+  : 'ordinary installed HubSpot Source and original Run restoration';
+let scratch: Awaited<ReturnType<typeof createOwnedScratch>> | undefined, original: ApprovalInput;
+if (ci) {
+  scratch = await createOwnedScratch({parent: join(repository, '..', '.codex-scratch'),
+    prefix: 'packed-record-approval-', label, preserve: true});
+  original = await admitRecordApprovalCIInput({repository,
+    destination: join(scratch.path, 'original-inputs')});
+  consumer = join(scratch.path, 'installed'); await mkdir(consumer);
+  await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
+  const installed = spawnSync('npm', ['install', '--ignore-scripts=false', '--no-save', '--no-audit', '--no-fund',
+    ...original.archives, await pinnedDuckDBPackage(repository)],
+    {cwd: consumer, env: {...process.env, npm_config_cache: packedNpmCache(scratch.path)},
+      encoding: 'utf8', timeout: 120000, maxBuffer: 16 * 1024 * 1024});
+  await writeFile(join(scratch.path, 'install.stdout'), installed.stdout ?? '');
+  await writeFile(join(scratch.path, 'install.stderr'), installed.stderr ?? '');
+  await original.verifyUnchanged();
+  assert(!installed.error && installed.status === 0,
+    `Original normal installation failed; retained evidence: ${scratch.path}`);
+} else original = await admitCompositionRelease({repository: source!, directory: release!});
+async function verifyInstalled() {
+  for (const item of original.manifest.packages) assert.deepEqual(
+    await inventory(join(consumer!, 'node_modules', item.name)), item.files,
+    `Changed original installed members: ${item.name}`);
+}
+await verifyInstalled();
+scratch ??= await createOwnedScratch({parent: join(repository, '_build'),
+  prefix: 'packed-hubspot-original-', label});
+const application = join(scratch.path, 'application');
+await mkdir(application);
+await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n');
+// Read-only borrow of the independently installed exact artifact closure;
+// fresh Host/Run/credential/TLS/SQLite roots below never mutate that donor.
+const software = join(consumer!, 'node_modules'), softwareAlias = join(application, 'node_modules');
+const fixtureFiles = mockConnector ? ['scripts/fixtures/packed-record-approval-mock.mjs',
+  ...['mock-project.mjs', 'run.mjs', 'workflow.mjs', 'update.aql', 'read.aql']
+    .map(name => `scripts/fixtures/${mockConnector}-approval/` + name),
+  ...(!wholeMock && !threeSourceMock && !binarySourceMock && ['hubspot', 'kintone'].includes(mockConnector)
+    ? [`scripts/fixtures/${mockConnector}-approval/case.json`] : []),
+  ...(binarySourceMock ? ['scripts/fixtures/hubspot-approval/binary-source-mock-project.mjs'] : []),
+  ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'mock-project.mjs',
+    'scoped-fds.fixture.mjs', 'installed-child.mjs'].map(name => 'scripts/fixtures/record-approval/' + name),
+  'adapters/host-node/fixtures/work-observation.fixture.mjs']
+  : approval ? [`scripts/fixtures/packed-${approvalConnector}-approval.mjs`,
+  ...['provider.mjs', 'installed.fixture.mjs', 'update.aql', 'read.aql', 'case.json']
+    .map(name => `scripts/fixtures/${approvalConnector}-approval/` + name),
+  ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'host-account.fixture.mjs', 'scoped-fds.fixture.mjs',
+    'installed.fixture.mjs', 'installed-child.mjs', 'provider-state.mjs']
+    .map(name => 'scripts/fixtures/record-approval/' + name),
+  'adapters/host-node/fixtures/work-observation.fixture.mjs',
+  ...(approvalConnector === 'kintone' ? ['adapters/connectors/kintone/test/kintone-update-form.fixture.mjs'] : []),
+  'adapters/site-node/https-exchange-fixture.mjs'] : ['scripts/fixtures/packed-hubspot-public.mjs',
+  'scripts/fixtures/packed-hubspot-public.fixture.mjs',
+  'scripts/fixtures/packed-hubspot-restart.mjs',
+  'adapters/site-node/https-exchange-fixture.mjs'];
+const inputs: {path: string; bytes: number; sha256: string}[] = [];
+let stagedCasePath: string | undefined, stagedCaseBytes: Buffer | undefined;
+if (authoredCase !== undefined) {
+  const path = 'authored-case.json';
+  stagedCasePath = join(application, path);
+  stagedCaseBytes = Buffer.from(JSON.stringify(authoredCase));
+  await writeFile(stagedCasePath, stagedCaseBytes, {mode: 0o600, flag: 'wx'});
+  inputs.push({path, bytes: stagedCaseBytes.byteLength, sha256: createHash('sha256').update(stagedCaseBytes).digest('hex')});
+}
+for (const path of fixtureFiles) {
+  // This is an independently authored consumer input, not a product overlay.
+  // Every approval/Result/Saved/close helper remains the same original file.
+  const sourcePath = threeSourceMock && path === 'scripts/fixtures/hubspot-approval/mock-project.mjs'
+    ? 'scripts/fixtures/hubspot-approval/three-source-mock-project.mjs'
+    : (wholeMock || threeSourceMock || binarySourceMock) && path === 'scripts/fixtures/hubspot-approval/update.aql'
+      ? binarySourceMock ? 'scripts/fixtures/hubspot-approval/binary-source-update.aql'
+        : threeSourceMock ? 'scripts/fixtures/hubspot-approval/three-source-update.aql'
+          : 'scripts/fixtures/hubspot-approval/whole-update.aql' : path;
+  const from = join(repository, sourcePath), to = join(application, path);
+  await mkdir(dirname(to), {recursive: true}); await copyFile(from, to);
+  const bytes = await readFile(from);
+  assert.deepEqual(await readFile(to), bytes, `Changed fixture: ${path}`);
+  inputs.push({path, ...(sourcePath === path ? {} : {sourcePath}), bytes: bytes.byteLength,
+    sha256: createHash('sha256').update(bytes).digest('hex')});
+}
+const mockVariant = binarySourceMock ? 'binary-source' : wholeMock ? 'whole-input' : threeSourceMock ? 'three-source' : '';
+const invocation = packedRecordApprovalInvocation({application, approvalConnector, mockConnector,
+  mockVariant, authoredCasePath: stagedCasePath, reject});
+const {expectedTests} = invocation.options;
+let code: number;
+await symlink(software, softwareAlias, 'dir');
+try {
+  code = runFocusedTests('node', invocation.files, invocation.options);
+} finally {
+  // Return only this fresh link, never its original installed software target.
+  assert.equal(await readlink(softwareAlias), software);
+  await unlink(softwareAlias);
+  await original.verifyUnchanged(); await verifyInstalled();
+  if (stagedCasePath !== undefined) assert.deepEqual(await readFile(stagedCasePath), stagedCaseBytes);
+}
+// No false pass from startup failure, zero discovery, timeout or failed cleanup.
+assert.equal(code, 0, `Ordinary installed HubSpot runtime refused; original evidence: ${scratch.path}`);
+const focusedRoot = join(application, '_build', 'focused-evidence');
+const focused = await readdir(focusedRoot);
+assert.equal(focused.length, 1, 'Exactly one original runtime attempt');
+const execution = JSON.parse(await readFile(join(focusedRoot, focused[0], '001.result.json'), 'utf8'));
+assert(execution.complete && execution.outputComplete && execution.status === 0 && execution.verificationStatus === 0);
+assert.deepEqual(execution.counts, {tests: expectedTests, passed: expectedTests,
+  failed: 0, cancelled: 0, skipped: 0, todo: 0});
+const receipt = {fixtureVariant: reject ? 'rejected' : replyLossExpectation !== undefined ? 'applied-write-reply-loss'
+  : binarySourceMock ? 'binary-source' : threeSourceMock ? 'three-source' : wholeMock ? 'whole-input'
+  : authoredCase === undefined ? 'original' : mockConnector ? 'authored-mock' : 'authored-http',
+  ...(authoredCase === undefined ? {} : {authoredCase: authoredCase.name}),
+  ...(replyLossExpectation === undefined ? {} : {replyLossExpectation}),
+  qualification: reject
+  ? 'Owned TLS provider fixture: one same-checkpoint rejection, unchanged full target and control, and separate-process same-Run lookup.'
+  : mockConnector
+  ? 'Actual declared mock capture, explicit default Local approval and separate-process original Saved before status on the selected normal installation. No provider or installed Effect acceptance claim.'
+  : replyLossExpectation !== undefined
+  ? 'Selected installed Local capture, one signed approval and one applied TLS write with lost reply, followed by same-original public lookup without another write. Explicit per-capability outcome expectations; Unknown is not success or physical cleanup ACK.'
+  : approval
+  ? `Actual installed Local capture, signed approval, exactly one synthetic TLS provider ${fixtureWrite} and separate-process original Saved before status. No real provider, performance or physical cleanup ACK claim.`
+  : 'Actual public Local/HTTPS using the exact borrowed ordinary installed cohort; fresh Host and original same-Run restoration in a fresh process. No new npm install, package build, live service, write or normal numeric-profile claim.',
+  productSource: original.manifest.sourceSha, manifestSha256: original.manifestSha256,
+  inputKind: original.kind ?? 'normal-composition-release', freshNormalInstall: ci,
+  consumer, application, node: process.version, fixtures: inputs,
+  expectedTests, actualCounts: execution.counts, observedExitCode: code,
+  installedMembers: original.manifest.packages.reduce((count, item) => count + item.files.length, 0)};
+await writeFile(join(scratch.path, 'qualification.json'), JSON.stringify(receipt, null, 2) + '\n');
+scratch.passed();
+console.log('PACKED_HUBSPOT_PUBLIC', JSON.stringify(receipt));
+}

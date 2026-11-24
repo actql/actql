@@ -23,7 +23,9 @@ function fixture() {
     if (args[1] === 'HEAD') return head;
     if (args[1] === '--is-shallow-repository') return 'false';
     if (args[1] === '--git-path') return '/tmp/actql-ci-no-grafts-fixture';
-    return state.policyChanged && args[1].startsWith(base) ? sha('f') : sha('a');
+    const changedPolicy = state.policyChanged === true ||
+      typeof state.policyChanged === 'string' && args[1].endsWith(':' + state.policyChanged);
+    return changedPolicy && args[1].startsWith(base) ? sha('f') : sha('a');
   };
   const request = async path => {
     calls.push(path);
@@ -268,8 +270,20 @@ test('A product change without successful CI followed by declaration B keeps pro
 });
 
 test('main admission policy changes invalidate otherwise successful checkpoint reuse', async () => {
-  assert(policyPaths.includes('scripts/ci-preflight.mjs'));
+  assert(policyPaths.includes('scripts/ci-preflight.mts'));
   const f = fixture(), originalGit = f.options.git;
-  f.options.git = args => args[1] === `${base}:scripts/ci-preflight.mjs` ? sha('f') : originalGit(args);
+  f.options.git = args => args[1] === `${base}:scripts/ci-preflight.mts` ? sha('f') : originalGit(args);
   assert.equal((await resolveMainBaseline(f.options)).baseSha, null);
+});
+
+
+test('main checkpoints bind authored TypeScript rather than ignored runtime outputs', async () => {
+  for (const member of ['scripts/test-execution.mts', 'scripts/packed-query-evidence.mts',
+    'scripts/test-execution-reporter.mts', 'scripts/ci-core-partitions.mts', 'tsconfig.base.json',
+    'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts', 'package-lock.json']) {
+    assert(policyPaths.includes(member));
+    const changed = fixture(); changed.state.policyChanged = member;
+    assert.equal((await resolveMainBaseline(changed.options)).baseSha, null, member);
+  }
+  assert(!policyPaths.includes('scripts/test-execution.mjs'));
 });

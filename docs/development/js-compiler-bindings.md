@@ -2,10 +2,13 @@
 
 ## Responsibility
 
-`scripts/templates/js-compiler-binding.mjs` is the sole implementation of the
+`scripts/templates/js-compiler-binding.mts` is the sole implementation of the
 selected MoonBit compiler's Result/Option/tuple representation in product
 JavaScript. `scripts/generate-js-compiler-bindings.mjs` emits byte-identical
-private copies for independently installed packages. The copies are not public
+private JavaScript copies and matching declarations for independently installed
+packages, using the same strict TypeScript compiler options. Ignored bootstrap
+emit is never a generator input. Representation fields remain unchecked static
+views; a declaration does not admit a payload or replace a consuming guard. The copies are not public
 wire codecs, semantic Owners, or opaque-value constructors. Connector checks,
 Model decisions, publication, retention and physical cleanup remain with their
 existing Owners. `runtime-result.mjs` retains its existing checked facade.

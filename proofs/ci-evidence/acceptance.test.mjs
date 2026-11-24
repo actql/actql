@@ -33,6 +33,7 @@ function fixture(event = 'push', fullCatalog = false) {
     event, branch: 'main', jobId: 5};
   delete origin.candidateRevision; delete origin.ancestors; delete origin.headRepositoryId;
   const files = new Map([...sharedFiles.map(path => [path, path]),
+    ['scripts/ci-core-partitions.mjs', 'legacy CI partitions'],
     ...mutationSnapshotExtras.map(path => [path, path]),
     ...['bounded_execution', 'connectors/local', 'query_integration'].map(path => [`src/${path}/moon.pkg`, '']),
     ['src/example/moon.pkg', ''], ['src/example/value.mbt', 'numeric deterministic fixture'],

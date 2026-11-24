@@ -37,7 +37,7 @@ test('alias-first and qualified-input sort expectations have opposite orders', (
 
 test('authored ceiling cases are registered in ordinary packed acceptance and its focused selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'ceilingSuccesses'], ['refusals', 'ceilingRefusals'],
     ['executionFailures', 'ceilingExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

@@ -25,7 +25,7 @@ test('Mean independent oracle preserves explicit sample occurrences and nullable
 });
 
 test('Mean public acceptance reuses the existing fresh-process retained cohort reader', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_MEAN_ONLY = '1'"));
   assert.ok(corpus.includes('graphMeanOnly ? {successes: graphMeanSourceOracles, refusals: graphMeanSourceRefusals}'));

@@ -30,7 +30,7 @@ test('typed subscript controls retain independent complete Program and nullable 
 });
 
 test('typed subscript packed selection stays narrow and reuses original retained restart', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   const start = driver.indexOf('const narrowPublicQuery =');
   const end = driver.indexOf('.includes(flag));', start);

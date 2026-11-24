@@ -1,4 +1,5 @@
 import {buildSync} from 'esbuild';
+import {parse} from 'acorn';
 import './typed-results.test.mjs';
 import './request-recovery.test.mjs';
 import './source-query.test.mjs';
@@ -130,13 +131,23 @@ test('localized partial and unavailable fixtures preserve their incomplete bound
 
 test('missing or malformed translation data falls back to the same safe English text', async () => {
   const source = readFileSync(new URL('./check-presentation.mjs', import.meta.url), 'utf8');
-  const anchor = "'reason.query_syntax_invalid': ['クエリの構文が不正です。',\n" +
-    "    '位置が示されている場合は、その位置のクエリ構文を修正してください。']";
-  assert.equal(source.split(anchor).length, 2);
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const key = 'reason.query_syntax_invalid';
+  const catalogs = tree.body.flatMap(node => node.declarations ?? []).filter(node => node.id.name === 'japanese');
+  assert.equal(catalogs.length, 1);
+  const entries = [], pending = [catalogs[0].init];
+  while (pending.length) {
+    const node = pending.pop();
+    if (!node || typeof node !== 'object') continue;
+    if (node.type === 'Property' && node.key.value === key) entries.push(node);
+    pending.push(...Object.values(node));
+  }
+  assert.equal(entries.length, 1, 'replace the original emitted Japanese entry');
+  const [{start, end}] = entries;
   const english = ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'];
   for (const replacement of ["'unrelated': ['missing']", "'reason.query_syntax_invalid': [42]",
     "'reason.query_syntax_invalid': ['', '']"]) {
-    const bundled = buildSync({stdin: {contents: source.replace(anchor, replacement),
+    const bundled = buildSync({stdin: {contents: source.slice(0, start) + replacement + source.slice(end),
       resolveDir: fileURLToPath(new URL('./', import.meta.url)), sourcefile: 'check-presentation.mjs'},
       bundle: true, platform: 'browser', format: 'esm', target: 'es2022', write: false});
     const module = await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].contents).toString('base64')}`);

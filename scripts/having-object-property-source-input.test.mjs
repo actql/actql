@@ -38,7 +38,7 @@ test('HAVING object regressions run in the ordinary packed corpus and focused se
     ...havingObjectPropertyExecutionFailures];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, name] of [['successes', 'havingObjectPropertySuccesses'],
     ['refusals', 'havingObjectPropertyRefusals'], ['executionFailures', 'havingObjectPropertyExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));

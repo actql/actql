@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/salesforce/host/salesforce-initialization-construction.mjs",
-      "sha256": "79076120d008f344dcb2f27b6913632939b5a8c8b1b1b294f25db679887ca74a",
+      "sha256": "6ca2a90c27a9f0c52344d58552451c6f2dbe343d54d8a64b55aa3d6b97331d49",
       "exports": [
         "salesforceDeclarationConstructionCapacity",
         "salesforceExecutionMappingConstructionCapacity",

@@ -33,7 +33,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/project-template.mjs",
+                "path": "packages/native-cli/lib/project-template.mts",
                 "anchor": "// Project inputs from the public examples."
               },
               {
@@ -47,13 +47,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/project-template.mjs",
+                "path": "packages/native-cli/lib/project-template.mts",
                 "anchor": "export function projectTemplateFiles("
               }
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/project-template.mjs",
+                "path": "packages/native-cli/lib/project-template.mts",
                 "anchor": "// authority, signers, credential grants or runtime implementation."
               }
             ],
@@ -62,13 +62,13 @@
             },
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/project-template.mjs",
+                "path": "packages/native-cli/lib/project-template.mts",
                 "anchor": "export function projectTemplateFiles("
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/project-template.mjs",
+                "path": "packages/native-cli/lib/project-template.mts",
                 "anchor": "if (template !== undefined && !['churn-risk-mock', 'deal-review-mock'].includes(template))"
               }
             ],
@@ -77,8 +77,8 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/project-template.mjs",
-                "anchor": "const json = value => JSON.stringify(value, null, 2)"
+                "path": "packages/native-cli/lib/project-template.mts",
+                "anchor": "const json = (value: unknown) => JSON.stringify(value, null, 2)"
               }
             ],
             "extension": [
@@ -89,23 +89,23 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('the Quickstart template prepares eight inputs"
               },
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('root README deal-review template prepares its exact Program"
               },
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('deal-review Mock DATA contains only original Opportunity"
               },
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('mock template catalogs declare existing typed rows keys aliases and write permissions'"
               },
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('deal-review catalog separates physical UTF8 files from logical keyed Content views'"
               }
             ]
@@ -231,11 +231,11 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "// Private installer preparation."
               },
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "export function scaffoldProject("
               },
               {
@@ -245,59 +245,59 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "export function scaffoldProject("
               },
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
-                "anchor": "export function projectInitArguments(args)"
+                "path": "packages/native-cli/lib/project-scaffold.mts",
+                "anchor": "export function projectInitArguments(args: readonly string[])"
               },
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
-                "anchor": "export function projectInitialAdoptionArguments(project, hostConfiguration)"
+                "path": "packages/native-cli/lib/project-scaffold.mts",
+                "anchor": "export function projectInitialAdoptionArguments(project: Pick<ReturnType<typeof scaffoldProject>, 'configuration' | 'stateDirectory'>, hostConfiguration?: string)"
               }
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "// Host, issue a key, adopt configuration or report a runnable mock installation."
               },
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "// no fresh-state witness, default signer, grant or permission itself."
               }
             ],
             "ownership": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "// Each write is exclusive."
               },
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "// preparation receipt can hide an outstanding cleanup responsibility."
               }
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "const checkRoot = () => {"
               },
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "const fd = openSync("
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "// inspection; retry cannot overwrite the partial project or any existing state."
               },
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "code: 'ACTQL_E_PROJECT_CLEANUP_PENDING'"
               },
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "cause: failed ? cause : cleanupCause"
               }
             ],
@@ -306,35 +306,35 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "const files = projectTemplateFiles(template);"
               },
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "try { return directory.readSync() === null; }"
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "// The existing installation Owner must create state with its exclusive"
               }
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('the Quickstart template prepares eight inputs"
               },
               {
-                "path": "scripts/native-cli-project-cleanup.test.mjs",
+                "path": "scripts/native-cli-project-cleanup.test.mts",
                 "anchor": "// Inject failures into operations on real, fresh handles."
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('init forwards one explicit operator Host path unchanged to the original Native adoption'"
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('installed init dispatcher forwards the original Host selector without reading or creating that file'"
               }
             ]
@@ -356,65 +356,65 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "// Implementation availability only, observed from the same admitted executable."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "export function requireProjectInitSupport("
               }
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "// A positive answer cannot adopt a Store or supply runtime/Account authority."
               }
             ],
             "ownership": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "const child = query(executable, ['project-init-support'],"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "env: {...environment, ACTQL_NATIVE_TIMINGS: observing ? '1' : '0'}, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "if (child.error || child.signal || child.status !== 0 || (!observing && child.stderr !== '') ||"
               },
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "if (child.stdout !== wire && child.stdout !== wire + '\\n') unavailable();"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "timeout: 5000, killSignal: 'SIGKILL', maxBuffer: observing ? 32768 : 4096,"
               }
             ],
             "resources": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "timeout: 5000, killSignal: 'SIGKILL', maxBuffer: observing ? 32768 : 4096,"
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "path": "packages/native-cli/lib/project-scaffold.mts",
                 "anchor": "// No runtime supplier, grant, signer or fallback is selected by this answer."
               }
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('old, malformed, failed, timed out and oversized Native queries refuse before preparation'"
               },
               {
@@ -422,11 +422,11 @@
                 "anchor": "test \"project init support is implementation data and acquires no command original\""
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('installed init silences only private query timings and preserves adoption diagnostics'"
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('opt-in init observations forward only complete original child metadata with unchanged support contract'"
               }
             ]
