@@ -3278,3 +3278,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/embedded-local.d.mts
 /adapters/host-node/embedded-local-lifecycle-alias.test.mjs
 /adapters/host-node/embedded-local-lifecycle-alias.test.d.mts
+/scripts/native-preparation-originals.mjs
+/scripts/native-preparation-originals.d.mts
