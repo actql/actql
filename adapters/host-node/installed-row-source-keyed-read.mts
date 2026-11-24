@@ -21,8 +21,16 @@ type VerificationOptions = Parameters<ReturnType<typeof createInstalledRowSource
 type KeyedPreparation = VerificationOptions['preparedKeyed'];
 type SourceAccess = NonNullable<VerificationOptions['sourceAccess']>;
 type CredentialSite = Awaited<ReturnType<ReturnType<typeof createInstalledRowSourceCredentialSite>['openRowSourceCredentialSite']>>;
-type KeyedSite = Pick<Extract<CredentialSite, {issueReadGrant: unknown}>,
+type ProviderSite = Pick<Extract<CredentialSite, {issueReadGrant: unknown}>,
   'connection' | 'admitCheckpointReadApproval' | 'issueReadGrant'>;
+type LocalReadSite = Readonly<{
+  connection: string;
+  issueReadGrant(input: Parameters<ProviderSite['issueReadGrant']>[0]): Readonly<{
+    runInvocationCid: string; dispatchRequestCid: string;
+  }>;
+  admitCheckpointReadApproval?: never;
+}>;
+type KeyedSite = ProviderSite | LocalReadSite;
 type Grant = ReturnType<KeyedSite['issueReadGrant']>;
 type RowLimits = Readonly<{maxPageBytes: number; maxPages: number}>;
 type Target = readonly [resource: string, ...columns: string[]];
@@ -265,7 +273,7 @@ export function createInstalledRowSourceKeyedRead({originalReader, captureConten
       const decision = await verifyRead();
       signal?.throwIfAborted();
       const granted = decision.basis === 'resumed_approval'
-        ? site.admitCheckpointReadApproval(decision) : decision;
+        ? site.admitCheckpointReadApproval!(decision) : decision;
       const runInvocationCid = valueCid({version: 'actql-keyed-row-acquisition/0.1',
         readSubject, nonce});
       const dispatchRequestCid = cid({

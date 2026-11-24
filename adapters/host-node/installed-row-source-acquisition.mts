@@ -192,7 +192,7 @@ export function createInstalledRowSourceAcquisition({prepare, preparations, orig
     }
     const decision = await currentRead(prepared, access, signal);
     const granted = decision.basis === 'resumed_approval'
-      ? site.admitCheckpointReadApproval(decision) : decision;
+      ? site.admitCheckpointReadApproval!(decision) : decision;
     const acquisition = owner.acquisition;
     const columns = owner.wholeInput ? moon.clientProgramWholeSourceTarget(acquisition).slice(1)
       : [...moon.clientProgramRowSourceColumns(acquisition)];
@@ -389,7 +389,7 @@ export function createInstalledRowSourceAcquisition({prepare, preparations, orig
                 authorization: Object.freeze({...original.grant, useId}), verifyCurrent: original.verifyCurrent});
             }
             const childGranted = owner.originalRead === undefined && decision.basis === 'resumed_approval'
-              ? site.admitCheckpointReadApproval(decision) : decision;
+              ? site.admitCheckpointReadApproval!(decision) : decision;
             let original = childOperation === operation ? grant : readChildGrants.get(childOperation) as Grant | undefined;
             if (original === undefined) {
               original = site.issueReadGrant({operation:childOperation,decision:childGranted,
@@ -430,7 +430,7 @@ export function createInstalledRowSourceAcquisition({prepare, preparations, orig
             const decision = await currentRead(prepared, access, signal);
             if (supplied !== undefined) return supplied;
             const childGranted = owner.originalRead === undefined && decision.basis === 'resumed_approval'
-              ? site.admitCheckpointReadApproval(decision) : decision;
+              ? site.admitCheckpointReadApproval!(decision) : decision;
             if (entry !== undefined && entry.grant === undefined) {
               entry.grant = site.issueReadGrant({operation: childOperation, decision: childGranted,
                 resource: owner.resource, runInvocationCid, dispatchRequestCid, maxUses: readerDemand.propertyPages});

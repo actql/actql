@@ -428,7 +428,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "974e58bd26481f316da3912072e37f246c1b7cbb0d5edfe1c3df2c9e5917c3dd",
+      "sha256": "157252f5333fbbe7a62c3102699583062c0e948fa3af0c01008971dcef20c8a7",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -916,7 +916,7 @@
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "export async function installPreparedProjectLocalFiles"
               },
               {
@@ -930,11 +930,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "prepareInstalledProjectLocalFiles"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "installPreparedProjectLocalFiles"
               },
               {
@@ -946,7 +946,7 @@
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "managedRun,originalRead"
               },
               {
@@ -964,11 +964,11 @@
                 "anchor": "originalEntryWire"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "ForeignLocalFilesPreparation"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LocalFilesContentResourceMismatch"
               },
               {
@@ -976,7 +976,7 @@
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "managedRun!==run.value||originalRead===undefined"
               },
               {
@@ -990,15 +990,15 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "physicalReadChild"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "retainChild"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "prepareManagedContentRun:prepareContentRun"
               },
               {
@@ -1010,7 +1010,7 @@
                 "anchor": "### Local native read retirement"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "The Core session still owns its original read and RowRun retirement."
               },
               {
@@ -1024,11 +1024,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "sameRun"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "consumePage"
               },
               {
@@ -1036,7 +1036,7 @@
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "read.externalClosing=work;"
               },
               {
@@ -1050,15 +1050,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LocalFilesContentReadUnavailable"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "retainInstalledHostInitializationFailure"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "new AcquisitionOpenError(cause"
               },
               {
@@ -1070,7 +1070,7 @@
                 "anchor": "### Local native read retirement"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LocalFileCleanupPending"
               },
               {
@@ -1118,15 +1118,15 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LOCAL_FILES_DEFAULT_LIMITS"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "ledgerCapacity"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "const keyedTransports="
               },
               {
@@ -1138,7 +1138,7 @@
                 "anchor": "### Local native read retirement"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "sharedReads.delete(read);read.closed=true;"
               },
               {
@@ -1261,7 +1261,7 @@
                 "anchor": "## Sources"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "export async function installPreparedProjectLocalFiles"
               },
               {
@@ -1275,11 +1275,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "prepareInstalledProjectLocalFiles"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "installPreparedProjectLocalFiles"
               },
               {
@@ -1287,7 +1287,7 @@
                 "anchor": "export function defaultFileMediaType"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "managedRun,originalRead"
               },
               {
@@ -1305,15 +1305,15 @@
                 "anchor": "originalEntryWire"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "ForeignLocalFilesPreparation"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LocalFilesContentResourceMismatch"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "managedRun!==run.value||originalRead===undefined"
               },
               {
@@ -1327,19 +1327,19 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "physicalReadChild"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "retainChild"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "prepareManagedContentRun:prepareContentRun"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "The Core session still owns its original read and RowRun retirement."
               },
               {
@@ -1353,15 +1353,15 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "sameRun"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "consumePage"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "read.externalClosing=work;"
               },
               {
@@ -1375,19 +1375,19 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LocalFilesContentReadUnavailable"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "retainInstalledHostInitializationFailure"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "new AcquisitionOpenError(cause"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LocalFileCleanupPending"
               },
               {
@@ -1427,19 +1427,19 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LOCAL_FILES_DEFAULT_LIMITS"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "ledgerCapacity"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "const keyedTransports="
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "sharedReads.delete(read);read.closed=true;"
               },
               {
@@ -1521,7 +1521,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function prepareContentRun("
               },
               {
@@ -1535,7 +1535,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function prepareContentRun("
               },
               {
@@ -1549,7 +1549,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function prepareContentRun("
               },
               {
@@ -1563,7 +1563,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function prepareContentRun("
               },
               {
@@ -1577,7 +1577,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function prepareContentRun("
               },
               {
@@ -1591,7 +1591,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function prepareContentRun("
               },
               {
@@ -1605,7 +1605,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function prepareContentRun("
               },
               {
@@ -1619,7 +1619,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function prepareContentRun("
               },
               {
@@ -1633,7 +1633,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function prepareContentRun("
               },
               {
@@ -1665,7 +1665,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function releaseContentAliases("
               },
               {
@@ -1675,7 +1675,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function releaseContentAliases("
               },
               {
@@ -1685,7 +1685,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function releaseContentAliases("
               },
               {
@@ -1695,7 +1695,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function releaseContentAliases("
               },
               {
@@ -1705,7 +1705,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function releaseContentAliases("
               },
               {
@@ -1715,7 +1715,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function releaseContentAliases("
               },
               {
@@ -1725,7 +1725,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function releaseContentAliases("
               },
               {
@@ -1735,7 +1735,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function releaseContentAliases("
               },
               {
@@ -1745,7 +1745,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "  function releaseContentAliases("
               },
               {
@@ -1777,7 +1777,7 @@
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "export async function installPreparedProjectLocalFiles"
               },
               {
@@ -1791,11 +1791,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "prepareInstalledProjectLocalFiles"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "installPreparedProjectLocalFiles"
               },
               {
@@ -1807,7 +1807,7 @@
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "managedRun,originalRead"
               },
               {
@@ -1825,11 +1825,11 @@
                 "anchor": "originalEntryWire"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "ForeignLocalFilesPreparation"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LocalFilesContentResourceMismatch"
               },
               {
@@ -1837,7 +1837,7 @@
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "managedRun!==run.value||originalRead===undefined"
               },
               {
@@ -1851,15 +1851,15 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "physicalReadChild"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "retainChild"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "prepareManagedContentRun:prepareContentRun"
               },
               {
@@ -1871,7 +1871,7 @@
                 "anchor": "### Local native read retirement"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "The Core session still owns its original read and RowRun retirement."
               },
               {
@@ -1885,11 +1885,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "sameRun"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "consumePage"
               },
               {
@@ -1897,7 +1897,7 @@
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "read.externalClosing=work;"
               },
               {
@@ -1911,15 +1911,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LocalFilesContentReadUnavailable"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "retainInstalledHostInitializationFailure"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "new AcquisitionOpenError(cause"
               },
               {
@@ -1931,7 +1931,7 @@
                 "anchor": "### Local native read retirement"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LocalFileCleanupPending"
               },
               {
@@ -1979,15 +1979,15 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "LOCAL_FILES_DEFAULT_LIMITS"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "ledgerCapacity"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "const keyedTransports="
               },
               {
@@ -1999,7 +1999,7 @@
                 "anchor": "### Local native read retirement"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
                 "anchor": "sharedReads.delete(read);read.closed=true;"
               },
               {
