@@ -42516,7 +42516,7 @@
     },
     {
       "module": "packages/transfer-core/index.mjs",
-      "sha256": "ba3ac39d933226c2230e0abc1d5d12c09dde8d3097c6d18629defae3e8ee70a6",
+      "sha256": "20c9ae6f90637ca70d9407a9a89efa6083cb19fb83a9b2e1c212e135b4d96678",
       "role": "physical-io",
       "exports": [
         "activeAt",
@@ -42774,8 +42774,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "export const admitEnvelopeJson = (body, claimedRequestCid,"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "export const admitEnvelopeJson = (body: string, claimedRequestCid: string,"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -42788,8 +42788,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "export const admitEnvelopeJson = (body, claimedRequestCid,"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "export const admitEnvelopeJson = (body: string, claimedRequestCid: string,"
               },
               {
                 "path": "src/remote_transfer_abi/pkg.generated.mbti",
@@ -42798,7 +42798,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -42808,7 +42808,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import * as owner from './dist/remote_transfer_abi.js';"
               },
               {
@@ -42818,8 +42818,8 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "export const admitEnvelopeJson = (body, claimedRequestCid,"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "export const admitEnvelopeJson = (body: string, claimedRequestCid: string,"
               },
               {
                 "path": "src/remote_transfer_abi/pkg.generated.mbti",
@@ -42828,7 +42828,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -42838,8 +42838,8 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "export const prepareFailure = (record, cancelled, sourceAccessStopped) =>"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "export const prepareFailure = (record: TransferRecord, cancelled: boolean, sourceAccessStopped: boolean) =>"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -42848,8 +42848,8 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "const limits = value => {"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "const limits = (value: TransferLimits): [number, number, bigint] => {"
               },
               {
                 "path": "src/remote_transfer_abi/pkg.generated.mbti",
@@ -42858,8 +42858,8 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "destinationGrantCid, routeCapabilityCid] = fields;"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "destinationGrantCid, routeCapabilityCid] = fields as string[];"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -42868,7 +42868,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.test.mjs",
+                "path": "packages/transfer-core/index.test.mts",
                 "anchor": "test('portable Transfer owner admits exact envelope and canonical record',"
               },
               {
@@ -42886,8 +42886,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "export const admitEnvelopeJson = (body, claimedRequestCid,"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "export const admitEnvelopeJson = (body: string, claimedRequestCid: string,"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -42900,8 +42900,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "export const admitEnvelopeJson = (body, claimedRequestCid,"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "export const admitEnvelopeJson = (body: string, claimedRequestCid: string,"
               },
               {
                 "path": "src/remote_transfer_abi/pkg.generated.mbti",
@@ -42910,7 +42910,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -42920,7 +42920,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import * as owner from './dist/remote_transfer_abi.js';"
               },
               {
@@ -42930,8 +42930,8 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "export const admitEnvelopeJson = (body, claimedRequestCid,"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "export const admitEnvelopeJson = (body: string, claimedRequestCid: string,"
               },
               {
                 "path": "src/remote_transfer_abi/pkg.generated.mbti",
@@ -42940,7 +42940,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -42950,8 +42950,8 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "export const prepareFailure = (record, cancelled, sourceAccessStopped) =>"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "export const prepareFailure = (record: TransferRecord, cancelled: boolean, sourceAccessStopped: boolean) =>"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -42960,8 +42960,8 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "const limits = value => {"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "const limits = (value: TransferLimits): [number, number, bigint] => {"
               },
               {
                 "path": "src/remote_transfer_abi/pkg.generated.mbti",
@@ -42970,8 +42970,8 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
-                "anchor": "destinationGrantCid, routeCapabilityCid] = fields;"
+                "path": "packages/transfer-core/index.mts",
+                "anchor": "destinationGrantCid, routeCapabilityCid] = fields as string[];"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -42980,7 +42980,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.test.mjs",
+                "path": "packages/transfer-core/index.test.mts",
                 "anchor": "test('portable Transfer owner admits exact envelope and canonical record',"
               },
               {

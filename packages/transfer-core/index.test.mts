@@ -4,8 +4,9 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../../adapters/host-common/runtime-core.mjs';
 import * as transfer from './index.mjs';
+import type {TransferTransition} from './index.js';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const bounds = {maxChunks: 2, maxManifestBytes: 4096,
   maxReferencedBytes: 5n};
 const issuer = runtimeCore(moon).remoteTransferControl;
@@ -61,7 +62,7 @@ test('portable Transfer owner admits exact envelope and canonical record',
     assert.equal(transfer.durableRequestCid(restored), requestCid);
     assert.equal(transfer.replyJson(transfer.restoreDurable(restored)),
       transfer.replyJson(initial));
-    const persist = transition => {
+    const persist = (transition: TransferTransition) => {
       const expected = transfer.transitionExpectedRevision(transition);
       const body = transfer.transitionDurableJson(transition);
       const admitted = transfer.admitDurableJson(body, bounds);

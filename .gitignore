@@ -3332,3 +3332,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/native-http-phases.test.d.mts
 /scripts/native-core-c-compiler.test.mjs
 /scripts/native-core-c-compiler.test.d.mts
+/packages/transfer-core/index.mjs
+/packages/transfer-core/index.d.mts
+/packages/transfer-core/index.test.mjs
+/packages/transfer-core/index.test.d.mts

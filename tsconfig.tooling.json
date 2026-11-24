@@ -42,6 +42,8 @@
     "packages/sdk/**/*.mts",
     "packages/run-host-core/**/*.mts",
     "packages/run-host-core/runtime-bridges.d.ts",
+    "packages/transfer-core/**/*.mts",
+    "packages/transfer-core/runtime-bridge.d.ts",
     "packages/node/**/*.mts",
     "packages/node/**/*.cts",
     "packages/local-node/**/*.cts",
