@@ -134,7 +134,9 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-19-session-local-whole-source-selector-review.json.
   // One additional JS-only Request namespace quote fixture and its original helpers.
   // See docs/reviews/2026-11-21-session-local-namespace-quote-selector-review.json.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: 'b949d8dcae2cf24884957ce4078b53c5f2aa140e6de182bc9a83d1f15ce70000', rule: 'literal-target-selectors-with-bound-source-membership', revision: '14c5617fe4f0c1d466cf0dec30bb2ffb6410e7de'}),
+  // The retained Request intake uses the UTF-8 and string packages in ordinary
+  // code. Its production imports leave all existing target selectors intact.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '69f0f83ea6b499104c1e5b501a6b7b47511e62d422d85cc9281fca18a375d63b', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'b58d8581136cf7b6783d38031e5753d80d47b2e5'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   // One literal timestamp-pattern dependency; existing JS/non-JS selectors unchanged.
   // See docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json.

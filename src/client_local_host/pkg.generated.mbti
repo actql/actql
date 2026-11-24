@@ -307,6 +307,10 @@ pub fn check_program_commit_validation(ClientProgramCapture, @run_publication.Pu
 
 pub fn check_program_commit_validation_in_read(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, (ClientProgramValidationReadDemand) -> Result[Unit, ClientProgramValidationIssue]) -> Result[Unit, ClientProgramValidationIssue]
 
+pub fn[I] check_request_owned_submitted_intent(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, public_primary~ : Bool) -> Result[@run_publication_host.ClientProgramPreparationLimits, ClientRequestRetainedIntentIssue]
+
+pub fn[I] check_request_retained_submitted_intent(ClientRequestPreparation[I], I, @run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, public_primary~ : Bool) -> Result[@run_publication_host.ClientProgramPreparationLimits, ClientRequestRetainedIntentIssue]
+
 pub fn cleanup_client_broad_residual(ClientBroadResidual) -> Result[Bool, @connector_sdk.FixedComputeIssue]
 
 pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, ClientInferInputIssue]
@@ -2205,6 +2209,12 @@ pub(all) enum ClientRequestPreparationIssue {
   ParameterDeclarations(@parameter_binding.Issue)
   ParameterSource(@stage_parameters.Issue)
 } derive(@debug.Debug)
+
+pub(all) enum ClientRequestRetainedIntentIssue {
+  InvalidInput
+  Preparation(ClientRequestPreparationIssue)
+  Request(ClientRequestTerminalIssue)
+}
 
 pub(all) enum ClientRequestStaticContextIssue {
   Preparation(ClientRequestPreparationIssue)
