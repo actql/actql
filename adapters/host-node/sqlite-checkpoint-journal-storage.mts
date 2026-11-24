@@ -9,12 +9,12 @@ type RunRow = Readonly<{
   run_id: string; status: string; version: number; updated_at: string;
   declared_results_json: string; checkpoint_cid: string; run_state_wire: string;
 }>;
-type PreparationRow = Readonly<{
+export type PreparationRow = Readonly<{
   prepare_attempt_id: string; status: 'waiting_checkpoint' | 'resuming' | 'run_created' | 'ended';
   version: number; updated_at: string; declared_results_json: string; checkpoint_cid: string;
   run_id: string; end_reason: string; terminal_error_code: string; cancel_requested: 0 | 1;
 }>;
-type CheckpointRow = Readonly<{
+export type CheckpointRow = Readonly<{
   checkpoint_id: string; checkpoint_cid: string; run_id: string | null; prepare_attempt_id: string | null;
   checkpoint_wire: string; expires_at: string; authorities_json: string; binding_json: string;
   decision_subject_cid: string; requested_claims_json: string; configuration_cid: string;
@@ -31,7 +31,7 @@ type IntentRow = Readonly<{
   generation: number; claimant: string; lease_expires_ms: number;
   outcome_status: string; completed_at: string;
 }>;
-type AdmissionRow = Readonly<{
+export type AdmissionRow = Readonly<{
   generation: number; claimant: string; admitted_at: string; dispatch_identity: string;
 }>;
 type SettlementRow = Readonly<{

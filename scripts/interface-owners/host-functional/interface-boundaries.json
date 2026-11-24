@@ -102450,42 +102450,13 @@
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c0e183544e7ac0d608ce5af7ac7e3266bdfdd91af5b70ed6a0a757d6ad004dfb",
+      "sha256": "e986c287791e0fa60edc6e1c7f20ef437beda2e30b6992698a681e552ef01be4",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
         "openSqliteCheckpointJournal"
       ],
       "operations": [
-        {
-          "name": "authoritiesJson/authoritiesJson",
-          "parameters": [
-            "authority"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "iso",
-          "parameters": [
-            "ms"
-          ],
-          "async": false
-        },
         {
           "name": "openSqliteCheckpointJournal",
           "parameters": [
@@ -103161,22 +103132,11 @@
           "name": "openSqliteCheckpointJournal/transaction/transaction",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
-            "authoritiesJson/authoritiesJson",
-            "cid/cid",
-            "fail/fail",
-            "iso",
             "openSqliteCheckpointJournal",
             "openSqliteCheckpointJournal/admissionLocked",
             "openSqliteCheckpointJournal/alive/alive",
@@ -103266,8 +103226,7 @@
             "openSqliteCheckpointJournal/resolutionCall/call/call",
             "openSqliteCheckpointJournal/transaction/init:run/init:run",
             "openSqliteCheckpointJournal/transaction/init:run/init:run/init:run",
-            "openSqliteCheckpointJournal/transaction/transaction",
-            "text/text"
+            "openSqliteCheckpointJournal/transaction/transaction"
           ],
           "exports": [
             "openSqliteCheckpointJournal"
@@ -103373,8 +103332,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
-                "anchor": "const text = value => typeof value === 'string' && value.length > 0;"
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "export const text = (value: unknown): value is string =>"
               },
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
@@ -103596,8 +103555,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
-                "anchor": "const text = value => typeof value === 'string' && value.length > 0;"
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "export const text = (value: unknown): value is string =>"
               },
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
@@ -103641,10 +103600,287 @@
         "./model-resume-state.mjs",
         "./sqlite-checkpoint-journal-close.mjs",
         "./sqlite-checkpoint-journal-storage.mjs",
+        "./sqlite-checkpoint-journal-wire.mjs",
         "node:fs",
         "node:path",
         "node:sqlite"
       ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/sqlite-checkpoint-journal-wire.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "2d1ccc0b93b86588cd30aaf6707d38d48542e2e3bf2a1219c0f9f91adfa7399b",
+      "role": "physical-io",
+      "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
+      "exports": [
+        "admissionIdentity",
+        "authoritiesJson",
+        "bindingJson",
+        "checkpointView",
+        "cid",
+        "configurationBinding",
+        "core",
+        "declaredJson",
+        "effectsJson",
+        "fail",
+        "iso",
+        "preparationView",
+        "priorAdmissionView",
+        "requestedClaimsJson",
+        "subjectBinding",
+        "text"
+      ],
+      "operations": [
+        {
+          "name": "admissionIdentity",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoritiesJson",
+          "parameters": [
+            "authorities"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoritiesJson/authoritiesJson",
+          "parameters": [
+            "authority"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindingJson",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkpointView",
+          "parameters": [
+            "wire",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "configurationBinding",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "core",
+          "parameters": [
+            "result",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredJson",
+          "parameters": [
+            "results"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectsJson",
+          "parameters": [
+            "effects"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "iso",
+          "parameters": [
+            "ms"
+          ],
+          "async": false
+        },
+        {
+          "name": "preparationView",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "priorAdmissionView/priorAdmissionView",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestedClaimsJson",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "subjectBinding",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admissionIdentity",
+            "authoritiesJson",
+            "authoritiesJson/authoritiesJson",
+            "bindingJson",
+            "checkpointView",
+            "cid/cid",
+            "configurationBinding",
+            "core",
+            "declaredJson",
+            "effectsJson",
+            "fail/fail",
+            "iso",
+            "preparationView",
+            "priorAdmissionView/priorAdmissionView",
+            "requestedClaimsJson",
+            "subjectBinding",
+            "text/text"
+          ],
+          "exports": [
+            "admissionIdentity",
+            "authoritiesJson",
+            "bindingJson",
+            "checkpointView",
+            "cid",
+            "configurationBinding",
+            "core",
+            "declaredJson",
+            "effectsJson",
+            "fail",
+            "iso",
+            "preparationView",
+            "priorAdmissionView",
+            "requestedClaimsJson",
+            "subjectBinding",
+            "text"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "export function checkpointView("
+              },
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "export function preparationView("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "type CheckpointArtifact = Readonly<{"
+              },
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "export function bindingJson("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "export function subjectBinding("
+              },
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "export function admissionIdentity("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "anchor": "core(runtime.checkpointAdmit(row.checkpoint_wire),"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "export const priorAdmissionView = (row: AdmissionRow)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "export function core<Result extends object>"
+              },
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "fail('InvalidReviewerAuthorities');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "cancelRequested: row.cancel_requested === 1"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "return JSON.stringify([...value].sort());"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-wire.mts",
+                "anchor": "export function configurationBinding("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal.test.mjs",
+                "anchor": "pending Checkpoints page by a stable cursor; resumable preparations and their Runs are listed"
+              },
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal.test.mjs",
+                "anchor": "core signature preimages match the pinned Resolution vectors"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
