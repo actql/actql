@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "83178dadc15b2c7ad40ffe2de5dd42e508a41b885e76f48435b5ba8d0e1d761d",
+      "sha256": "f333209b01861a7637363b49c68c4c24584e8a432e3739f331c6b73804d5d31d",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -191,31 +191,31 @@
                 "anchor": "Notion cursor metadata uses exact bounded writer output"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "Notion constructor captures original services and provider before configuration await"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "Notion constructor keeps the original implementation refusal before any Site or reader"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "Notion users delivers every declared Source cell before subset or empty user projection"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "original current refusal prevents another authorization or remaining-row request"
               },
               {
-                "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
+                "path": "adapters/connectors/notion/test/user-list-read.test.mts",
                 "anchor": "Notion cross-page IDs stay checked when selected output omits identity"
               }
             ]
@@ -225,7 +225,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/property-item-read.mjs",
-      "sha256": "d6a94de793b36723e8e7f5c58ce0b694dfcd24db193bb98a69a3849871631120",
+      "sha256": "63d2d52c546661820e182e1243afc380662e13423cc938748688f817ce7c7fa4",
       "exports": [
         "NOTION_PROPERTY_READ_API_VERSION",
         "NOTION_PROPERTY_READ_OPERATION",
@@ -396,20 +396,20 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/site/property-item-read.mjs",
-                "anchor": "export function createNotionPropertyReader(options)"
+                "path": "adapters/connectors/notion/site/property-item-read.mts",
+                "anchor": "export function createNotionPropertyReader(options:"
               },
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Prefix charges go to observation"
               },
               {
-                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "path": "adapters/connectors/notion/site/property-item-read.mts",
                 "anchor": "{charge,originalRequest:request,completedPage:page}"
               },
               {
-                "path": "adapters/connectors/notion/site/property-item-read.mjs",
-                "anchor": "export function createNotionPageTitleReader(options)"
+                "path": "adapters/connectors/notion/site/property-item-read.mts",
+                "anchor": "export function createNotionPageTitleReader(options:"
               }
             ],
             "identity": [
@@ -446,13 +446,13 @@
                 "anchor": "after each awaited current check, including the physical pre-send fence."
               },
               {
-                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "path": "adapters/connectors/notion/site/property-item-read.mts",
                 "anchor": "await context.callbacks.consumeObservation(charge);\n      await verify();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "path": "adapters/connectors/notion/site/property-item-read.mts",
                 "anchor": "export class NotionPropertyReadFailure"
               },
               {
@@ -504,7 +504,7 @@
                 "anchor": "test \"Notion property item chain admits only complete ordered original rich text\""
               },
               {
-                "path": "adapters/connectors/notion/test/property-item-read.test.mjs",
+                "path": "adapters/connectors/notion/test/property-item-read.test.mts",
                 "anchor": "actual property lost reply remains original journal Unknown with no resend or replacement token resolution"
               },
               {
@@ -512,27 +512,27 @@
                 "anchor": "test \"Notion copied pagination control cannot upgrade an incomplete original\""
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion query and property operations retain typed rows and original response charges across both cursors"
               },
               {
-                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-title-read.test.mts",
                 "anchor": "actual original Page GET and separately scoped title pages complete without a synthetic data-source row"
               },
               {
-                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-title-read.test.mts",
                 "anchor": "actual title lost terminal reply stays original Unknown and cannot resend or refresh secret"
               },
               {
-                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-title-read.test.mts",
                 "anchor": "actual title compiled callbacks and their original receiver are captured once across awaits"
               },
               {
-                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-title-read.test.mts",
                 "anchor": "after partial observation refuses the next Common request"
               },
               {
-                "path": "adapters/connectors/notion/test/property-item-read.test.mjs",
+                "path": "adapters/connectors/notion/test/property-item-read.test.mts",
                 "anchor": "after partial observation refuses the next Common request"
               }
             ]
@@ -542,7 +542,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/data-source-read.mjs",
-      "sha256": "9a26f48c179f0c7704a3e1bf5c44375491aba4e5883fb2b76e7975215613491d",
+      "sha256": "3f7359e3543771e94d37c1e96c10203fe1dcbac242530ccb9e04711708523f69",
       "exports": [
         "NOTION_DATA_SOURCE_READ_OPERATION",
         "NotionDataSourceReadFailure",
@@ -715,8 +715,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/site/data-source-read.mjs",
-                "anchor": "export function createNotionDataSourceReader(options)"
+                "path": "adapters/connectors/notion/site/data-source-read.mts",
+                "anchor": "export function createNotionDataSourceReader(options:Options)"
               },
               {
                 "path": "src/connectors/notion/catalog/read_row.mbt",
@@ -763,7 +763,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/site/data-source-read.mjs",
+                "path": "adapters/connectors/notion/site/data-source-read.mts",
                 "anchor": "export class NotionDataSourceReadFailure"
               },
               {
@@ -831,39 +831,39 @@
                 "anchor": "test \"Notion row aggregate canonical text budget counts Decimal coefficient rather than input punctuation\""
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion dependent reply loss remains the original credential Unknown and retained child, without resend"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion aggregate page node cap applies to all complete rows together"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion incomplete first page refuses before dependent I/O or row delivery and retains original charges"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion incomplete final page cannot complete after an earlier valid original page"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion explicit complete statuses preserve exact Decimal and original page custody"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion lazy property grant follows the original pending request without early authorization"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion lazy property selection refuses query and foreign original grants without fallback"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion current denial or stop after the awaited property selection sends no dependent request"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
@@ -874,7 +874,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/database-discovery.mjs",
-      "sha256": "9aa46d82b3f853f064a99aeb2e9122f7e904769f947988e946c8ba14a7fb3cfb",
+      "sha256": "8d7e0de3084e13a1714dd0259c8f13da03b0c3044abc87f3f006566325617f3d",
       "exports": [
         "NOTION_DATABASE_RETRIEVE_OPERATION",
         "NOTION_DATA_SOURCE_RETRIEVE_OPERATION",
@@ -1108,15 +1108,15 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/site/database-discovery.mjs",
-                "anchor": "export function createNotionDatabaseDiscovery(options)"
+                "path": "adapters/connectors/notion/site/database-discovery.mts",
+                "anchor": "export function createNotionDatabaseDiscovery(options:Options)"
               },
               {
                 "path": "src/connectors/notion/host_node/read_contract_bridge.mbt",
                 "anchor": "pub fn notion_read_database_id("
               },
               {
-                "path": "adapters/connectors/notion/site/database-discovery.mjs",
+                "path": "adapters/connectors/notion/site/database-discovery.mts",
                 "anchor": "const readContracts=original.systemColumns?checked(provider.notionSourceSystemReadContracts("
               },
               {
@@ -1212,7 +1212,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/site/database-discovery.mjs",
+                "path": "adapters/connectors/notion/site/database-discovery.mts",
                 "anchor": "export class NotionDatabaseDiscoveryFailure"
               },
               {
@@ -1220,7 +1220,7 @@
                 "anchor": "reply remains the original Credential journal's Unknown and is never resent."
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion full Source metadata omission refuses before property I/O without publishing rows"
               },
               {
@@ -1308,23 +1308,23 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion discovery passes the same original declaration and schema into typed query and property reads"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion discovery current refusal and reply loss retain original custody without resend"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion discovery aggregate exhaustion retains the offending original body and charge"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion discovery retains full Source metadata through the same original typed property row"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion full Source metadata omission refuses before property I/O without publishing rows"
               },
               {
@@ -1332,27 +1332,27 @@
                 "anchor": "### Original schema occurrence and delayed authorization"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion declaration source identity retains original UTF8 and never grants equal-data substitution"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion schema authorization receives only the original observed Common selection and exact path"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion current and stop after awaited schema issuer retain the same database charge without schema I/O"
               },
               {
-                "path": "adapters/connectors/notion/test/installation-metadata-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/installation-metadata-discovery.test.mts",
                 "anchor": "test('actual Notion pre-schema discovery consumes one original Host metadata Subject without a fake Program Run'"
               },
               {
-                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mts",
                 "anchor": "live publication capture retains actual Host request Catalog snapshot"
               },
               {
-                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mts",
                 "anchor": "capture binds retained Catalog bytes to the response"
               }
             ]
@@ -1434,11 +1434,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mts",
                 "anchor": "live publication capture retains actual Host request Catalog snapshot"
               },
               {
-                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mts",
                 "anchor": "capture binds retained Catalog bytes to the response"
               }
             ]
@@ -1448,7 +1448,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "2a12b3e2fe0b0839345ba398cd27d58ee9e1abcc81613b2754d84475c8cd8fc1",
+      "sha256": "ed60e3051a68c6a557061b7967b0771376ce7bd9ba743514de826a115fc187cf",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1709,27 +1709,27 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "Notion constructor captures original services and provider before configuration await"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "finite provider-page publication refusal keeps its original cause and never republishes"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "Notion users delivers every declared Source cell before subset or empty user projection"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "original current refusal prevents another authorization or remaining-row request"
               },
               {
@@ -1857,7 +1857,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]
@@ -1867,7 +1867,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/page-read.mjs",
-      "sha256": "2635fce8b7a24223059c68850647f04287017ffc42bb009eaf02421e9e100e53",
+      "sha256": "2d92c3b0560f33065de63c96fa5edd53d56603972b7a60c2acc7f4a18bd06fec",
       "exports": [
         "NOTION_PAGE_READ_OPERATION",
         "NotionPageReadFailure",
@@ -2001,11 +2001,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "function prepare({moon,pageId,initialAuthorization,credential,current,chargeResponse,"
               },
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "return Object.freeze({page,metadataWire,observation:state.observation,responseCharge:state.charge});"
               }
             ],
@@ -2015,8 +2015,8 @@
                 "anchor": "The original `in_trash` and legacy `archived` aliases must be Boolean and agree"
               },
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
-                "anchor": "const scope=invocationScopeFields(context.scope,context.credential.control);"
+                "path": "adapters/connectors/notion/site/page-read.mts",
+                "anchor": "const scope=invocationScopeFields(context.scope,context.credential.control) as NotionReadScope;"
               },
               {
                 "path": "src/connectors/notion/catalog/page_observation.mbt",
@@ -2025,8 +2025,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
-                "anchor": "const readers=new WeakMap();"
+                "path": "adapters/connectors/notion/site/page-read.mts",
+                "anchor": "const readers=new WeakMap<object,"
               },
               {
                 "path": "docs/design/notion-database-catalog.md",
@@ -2035,31 +2035,31 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "const verify=async()=>{signal.throwIfAborted();await context.callbacks.current(request);signal.throwIfAborted();};"
               },
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "await context.callbacks.consumeObservation(state.charge);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "state.failure=new NotionPageReadFailure(cause,state.observation,state.charge);throw state.failure;"
               },
               {
-                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-read.test.mts",
                 "anchor": "actual Notion lost page reply keeps the original use Unknown across another reader without resend"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
-                "anchor": "requestStop(reason){originalReader(this).stop.abort(reason);},"
+                "path": "adapters/connectors/notion/site/page-read.mts",
+                "anchor": "requestStop(reason?:unknown){originalReader(this).stop.abort(reason);},"
               },
               {
-                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-read.test.mts",
                 "anchor": "actual Notion page current or stop refusal after response retains raw custody without publication"
               }
             ],
@@ -2073,7 +2073,7 @@
                 "anchor": "Actual installation lifetime funding and confirmed cleanup must cover this"
               },
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "receivedBodyBytes:BigInt(state.observation?.body.byteLength??0),cleanupConfirmed:false"
               }
             ],
@@ -2089,11 +2089,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-read.test.mts",
                 "anchor": "actual Notion exact-page GET retains the original response parent version and checked UTC metadata"
               },
               {
-                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-read.test.mts",
                 "anchor": "actual Notion rejected page identity malformed response and output exhaustion retain the original body and charge"
               },
               {
@@ -2107,7 +2107,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/page-properties-read.mjs",
-      "sha256": "8c52bf673920c80b34399764a26a0eb0f7476034f0101fd67de50f0e477e82fe",
+      "sha256": "9ba103c77f229621802a962912fd10f684cd5cc6ee5764198169761c723cb7dd",
       "exports": [
         "NotionPagePropertiesReadFailure",
         "createNotionPagePropertiesReader"
@@ -2275,11 +2275,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "function prepare({moon,declaration,source,readContracts,pageId,initialAuthorization,credential,"
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "await context.callbacks.consumeRow(wire,Object.freeze({charge:pendingCharge,originalPage:state.page,"
               }
             ],
@@ -2289,7 +2289,7 @@
                 "anchor": "pub fn notion_read_row_matches_observed_page("
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "if(provider.notionReadRowMatchesObservedPage(state.row,readContracts,state.page)!==true)"
               },
               {
@@ -2299,8 +2299,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
-                "anchor": "const readers=new WeakMap();"
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
+                "anchor": "const readers=new WeakMap<object,"
               },
               {
                 "path": "src/connectors/notion/catalog/read_row.mbt",
@@ -2313,35 +2313,35 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "await verify(NOTION_PROPERTY_READ_OPERATION);return selected;"
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "state.children.push(child);const result=await child.read();"
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "state.children.push(property);state.results.push(await property.read());"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "state.failure=new NotionPagePropertiesReadFailure(cause,state.page,state.row,state.children,state.charges);"
               },
               {
-                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mts",
                 "anchor": "actual Notion lost dependent property reply stays Unknown across an explicit new reader without resend"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
-                "anchor": "requestStop(reason){originalReader(this).stop.abort(reason);},"
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
+                "anchor": "requestStop(reason?:unknown){originalReader(this).stop.abort(reason);},"
               },
               {
-                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mts",
                 "anchor": "actual Notion dependent authorization await rechecks current Account and abort before property send"
               }
             ],
@@ -2355,7 +2355,7 @@
                 "anchor": "Actual installation/phase funding must cover"
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "if(body.byteLength>b.maxTotalResponseBytes-totalBytes)fail("
               }
             ],
@@ -2365,17 +2365,17 @@
                 "anchor": "This is a full-diff read prerequisite, not an issued target, complete Preview,"
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "receivedResponses,receivedBodyBytes,cleanupConfirmed:false"
               }
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mts",
                 "anchor": "actual Notion exact GET completes the same checked row and paginated property under separate original uses"
               },
               {
-                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mts",
                 "anchor": "actual scalar-only Notion GET supplies its original ticket with the complete row without property authorization"
               },
               {
@@ -2389,7 +2389,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/database-metadata-targets.mjs",
-      "sha256": "f79d2a7a066415da6a3b2e38737e2bb68099dc302ef66572a27b43de2d4adb9d",
+      "sha256": "e09b8309838c72f0d7ca9f0846a0eea43258f787180b8d1aefca15e3daf8488d",
       "exports": [
         "prepareNotionDatabaseMetadataTargets"
       ],
@@ -2480,17 +2480,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "export function prepareNotionDatabaseMetadataTargets("
               },
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "return Object.freeze({resource,operation,origin,method:'GET',path,bodyBytes:0});"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "if(this!==targetAuthority||originalDeclaration!==declaration)fail('ForeignNotionMetadataTarget');"
               },
               {
@@ -2504,7 +2504,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "selected=Object.freeze({...value,path});"
               },
               {
@@ -2514,21 +2514,21 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
+                "anchor": "(name: Name,...args: Parameters<MetadataPorts[Name]>)=>Reflect.apply(ports[name],moon,args);"
               },
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "const descriptors=Object.getOwnPropertyDescriptors(value),names=Reflect.ownKeys(descriptors);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "if(selected!==undefined)fail('NotionMetadataSourceAlreadySelected');"
               },
               {
-                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mts",
                 "anchor": "test('metadata targets reject foreign originals receiver path purpose and selection substitutions'"
               }
             ],
@@ -2548,11 +2548,11 @@
                 "anchor": "The installer closure retains provider methods/receiver"
               },
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "if(id.length>maxTargetBytes)fail('NotionMetadataTargetLimit');"
               },
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "if(Buffer.byteLength(path)>maxTargetBytes)fail('NotionMetadataTargetLimit');"
               }
             ],
@@ -2568,15 +2568,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mts",
                 "anchor": "test('metadata targets preserve original declaration then exact selected occurrence and request encoding'"
               },
               {
-                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mts",
                 "anchor": "test('metadata target bounds and captured provider receiver cannot be replaced by later getters'"
               },
               {
-                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mts",
                 "anchor": "test('actual Host metadata discovery selects the same target only after the original database response'"
               }
             ]
@@ -2606,7 +2606,7 @@
         }
       ],
       "imports": [
-        "./installed-host-cleanup.mjs"
+        "./installed-host-cleanup.mts"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -2679,7 +2679,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "finite provider-page capacity getter failure retains reader before Site cleanup"
               }
             ]
@@ -2817,7 +2817,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]

@@ -59,7 +59,7 @@ test('Graph nullable, empty and unknown-member cases retain their separate oblig
 });
 
 test('Graph member fixtures remain in the normal public acceptance consumer', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(driver.includes('fixtures/graph-projection-property-source-input.mjs'));
   assert.ok(driver.includes('--graph-projection-property-only'));
 });

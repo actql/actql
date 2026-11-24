@@ -1,5 +1,7 @@
 import './owner-atomic-publication.test.mjs';
 import test from 'node:test';
+import {createPublicationContractStore} from './publication-contract-store.mjs';
+import {createPublicationEvidence} from './publication-evidence-inspection.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
@@ -28,6 +30,7 @@ import fsPromises from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
+import {exactKeys} from './publication-store-io.mjs';
 import {canonicalCid, createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore as openActualLocalPublicationStore,
@@ -935,99 +938,92 @@ test('publication Index original refuses conflicting body and invalid nominal co
   assert.equal(await prepared.prepared.release(), true);
 });
 
+function evidenceInspectionFixture(control, active, ports) {
+  const configuration = {maxObjectBytes: limits.maxWireBytes, storeAuthorityCid: cids.authority};
+  const {admitContract, parseContract} = createPublicationContractStore(configuration, control, limits, new Set(), {});
+  return createPublicationEvidence(configuration, control, limits, new Set(), {
+    active, admitContract, parseContract, ...ports,
+  });
+}
+
+const unselectedEffectInspectionMethods = Object.fromEntries([
+  'effectfulCommitValid', 'effectPrivateEvidenceBinding', 'capturedEffectSourceHoldingCid',
+  'capturedEffectSourceArtifactCid', 'capturedEffectSourceStoreAuthorityCid',
+].map(name => [name, () => assert.fail('No semantic or physical callback before the selected evidence read')]));
+
 test('Effectful commit inspection consumes only its original private Index observation', async () => {
-  // Execute the real inspector's pre-I/O admission prefix and its actual
-  // helpers. This is not complete Effect evidence or physical commit coverage.
-  const text = readFileSync(new URL('./publication-store.mjs', import.meta.url), 'utf8');
-  const wanted = new Set(['exactKeys', 'admitContract', 'parseContract', 'inspectEffectfulStoredEvidence']);
-  const declarations = new Map();
-  function visit(node) {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'VariableDeclaration') for (const value of node.declarations) {
-      if (wanted.has(value.id.name)) {
-        assert(!declarations.has(value.id.name)); declarations.set(value.id.name, {node,value});
-      }
-    }
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value && typeof value === 'object') visit(value);
-    }
-  }
-  visit(parse(text, {ecmaVersion:'latest',sourceType:'module'}));
-  assert.equal(declarations.size, wanted.size);
-  const inspector = declarations.get('inspectEffectfulStoredEvidence').value.init;
-  const boundary = inspector.body.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(value => value.id.name === 'request'));
-  assert(boundary);
-  const helpers = ['exactKeys','admitContract','parseContract'].map(name => {
-    const node = declarations.get(name).node; return text.slice(node.start,node.end);
-  }).join('\n');
   let admissions = 0, active = 0;
-  const control = {...contractControl, admit(...args) {admissions++;return contractControl.admit(...args);},
-    ...Object.fromEntries(['effectfulCommitValid','effectPrivateEvidenceBinding',
-      'capturedEffectSourceHoldingCid','capturedEffectSourceArtifactCid','capturedEffectSourceStoreAuthorityCid']
-      .map(name=>[name,()=>assert.fail('No semantic or physical callback in the admission prefix')]))};
-  const prefix = compileFunction(helpers + '\nreturn (' + text.slice(inspector.start,inspector.body.start+1) +
-    text.slice(inspector.body.start+1,boundary.start) + '\nreturn {contract:admittedIndex,entry};});',
-    ['configuration','contractControl','contractLimits','fail','active','readSemanticOriginal','cidPattern'])(
-    {maxObjectBytes:limits.maxWireBytes}, control, limits,
-    code=>{throw Object.assign(new Error(code),{code});}, ()=>{active++;},
-    ()=>assert.fail('No physical read in the admission prefix'), /^sha256:[a-f0-9]{64}$/u);
+  const control = {...contractControl, admit(...args) {
+    admissions++; return contractControl.admit(...args);
+  }, ...unselectedEffectInspectionMethods};
+  const reads = [];
+  const selectedRead = new Error('SelectedEvidenceRead');
+  const {inspectEffectfulStoredEvidence} = evidenceInspectionFixture(control, () => {active++;}, {
+    readContract(cid, name) { reads.push([cid, name]); throw selectedRead; },
+    readSemanticOriginal() { assert.fail('No physical payload read before the selected Request'); },
+  });
   const invocationValue = invocation();
   const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
   const attempt = publicationAttempt(request);
   const original = contractControl.admit('public_index_entry', wire(indexEntry(request, attempt, invocationValue)), limits);
-  const observation = Object.freeze({contract:original,entry:JSON.parse(original.wire)});
+  const entry = JSON.parse(original.wire);
+  const retainedRequest = digest('retained fixture request observation');
+  Object.defineProperty(entry, 'publication_request_cid', {get() {
+    assert.strictEqual(this, entry);
+    return retainedRequest;
+  }});
+  const observation = Object.freeze({contract:original,entry:Object.freeze(entry)});
   const chain = Object.fromEntries(['runDefinition','invocation','definitions','artifacts','derivations',
     'orderings','retentions','durableBindings','manifest','computationReceipt','capturedRun'].map(name=>
     [name,['definitions','artifacts','derivations','orderings','retentions','durableBindings'].includes(name)?[]:{}]));
   const args = {index:original,chain,preview:{},receipts:{setWire:'',memberWires:[],finalWire:''},
     privateBinding:{name:'',semanticCid:'',holdingCid:'',wire:''},effectSources:[]};
-  const retained = await prefix(args, undefined, observation);
-  assert.strictEqual(retained.contract, original); assert.strictEqual(retained.entry, observation.entry);
+  await assert.rejects(inspectEffectfulStoredEvidence(args, undefined, observation), error => error === selectedRead);
+  assert.deepEqual(reads, [[retainedRequest,'publication_request']]);
   assert.equal(admissions, 0); assert.equal(active, 1);
-  const external = await prefix(args);
-  assert.equal(external.contract.wire, original.wire); assert.notStrictEqual(external.entry, observation.entry);
+  await assert.rejects(inspectEffectfulStoredEvidence(args), error => error === selectedRead);
+  assert.deepEqual(reads, [[retainedRequest,'publication_request'], [request.publication_request_cid,'publication_request']]);
   assert.equal(admissions, 1, 'an external stored-evidence inspection keeps its full admission');
-  await assert.rejects(prefix({...args,index:Object.freeze({...original})},undefined,observation),
+  await assert.rejects(inspectEffectfulStoredEvidence({...args,index:Object.freeze({...original})},undefined,observation),
     code('InvalidEffectfulStoredEvidence'));
   assert.equal(admissions, 1, 'foreign private observation refuses rather than admitting it as an original');
+  assert.equal(reads.length, 2, 'foreign observation refuses before its first read');
 });
 
 test('independent publication reader defaults never interpret a contract as generation retention', async () => {
-  // Execute the actual default-parameter entrances, not full evidence/FS.
-  const text = readFileSync(new URL('./publication-store.mjs', import.meta.url), 'utf8');
-  const selected = new Set(['verifyCommitEvidence', 'inspectEffectfulStoredEvidence']);
-  const functions = new Map();
-  function visit(node) {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'VariableDeclarator' && selected.has(node.id.name)) {
-      assert(!functions.has(node.id.name)); functions.set(node.id.name, node.init);
-    }
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value && typeof value === 'object') visit(value);
-    }
-  }
-  visit(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}));
-  assert.equal(functions.size, 2);
-  for (const [name, node] of functions) {
-    const calls = [];
-    const readSemanticOriginal = async (...args) => {calls.push(args);return {bytes: Buffer.from('legacy')};};
-    const enter = compileFunction('return (' + text.slice(node.start, node.body.start) +
-      '{return readOriginal;});', ['readSemanticOriginal'])(readSemanticOriginal);
-    const args = name === 'verifyCommitEvidence' ? [undefined, undefined, undefined, undefined] : [{}];
-    const original = Object.freeze({name: 'run_invocation', wire: 'same original'});
-    const reader = await enter(...args);
-    const value = await reader(cids.run, false, original);
-    assert.equal(value.bytes.toString('utf8'), 'legacy');
-    assert.deepEqual(calls, [[cids.run, false]], `${name} independent default ignores the private contract argument`);
-    const privateCalls = [];
-    const privateReader = async (...args) => {privateCalls.push(args);return value;};
-    const retainedReader = await enter(...args, privateReader);
-    assert.strictEqual(retainedReader, privateReader);
-    await retainedReader(cids.run, true, original);
-    assert.deepEqual(privateCalls, [[cids.run, true, original]], `${name} preserves the actual private reader's original forwarding`);
+  const value = invocation();
+  const request = publicationRequest(resultDefinition(), value.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const index = contractControl.admit('public_index_entry', wire(indexEntry(request, attempt, value)), limits);
+  const original = contractControl.admit('run_invocation', wire(value), limits);
+  const chain = {runDefinition:original, invocation:original,
+    definitions:[original], artifacts:[original], derivations:[], orderings:[], retentions:[], durableBindings:[original],
+    manifest:original, capturedRun:original};
+  const scene = {index, chain:{...chain,computationReceipt:original}, preview:{},
+    receipts:{setWire:'',memberWires:[],finalWire:''},
+    privateBinding:{name:'',semanticCid:'',holdingCid:'',wire:''},effectSources:[]};
+  const selectedRead = new Error('SelectedEvidenceRead');
+  for (const name of ['verifyCommitEvidence', 'inspectEffectfulStoredEvidence']) {
+    const calls = [], privateCalls = [];
+    const evidence = evidenceInspectionFixture({...contractControl, ...unselectedEffectInspectionMethods}, () => {}, {
+      nativeContractRead: () => false,
+      readContract(cid, contractName, readOriginal) {
+        assert.deepEqual([cid, contractName], [request.publication_request_cid,'publication_request']);
+        return readOriginal(cid, false, original);
+      },
+      async readSemanticOriginal(...args) {calls.push(args);throw selectedRead;},
+    });
+    const enter = name === 'verifyCommitEvidence'
+      ? reader => evidence.verifyCommitEvidence(index, JSON.parse(index.wire), {...chain,receipt:original}, undefined, reader)
+      : reader => evidence.inspectEffectfulStoredEvidence(scene, reader);
+    const selectedCid = name === 'verifyCommitEvidence' ? original.identity : request.publication_request_cid;
+    await assert.rejects(enter(undefined), error => error === selectedRead);
+    assert.deepEqual(calls, [[selectedCid, false]], `${name} independent default ignores the private contract argument`);
+    const privateReader = async (...args) => {privateCalls.push(args);throw selectedRead;};
+    await assert.rejects(enter(privateReader), error => error === selectedRead);
+    assert.deepEqual(privateCalls, [[selectedCid, false, original]], `${name} preserves the actual private reader's original forwarding`);
+    assert.strictEqual(privateCalls[0][2], original);
+    assert.equal(calls.length, 1, 'the private reader cannot fall through to the default');
   }
 });
 
@@ -1413,8 +1409,8 @@ test('publication commit parses its Binding once across evidence and metadata in
       // Node's test mock adds an apply frame; identify the actual Store
       // function, not a fixed stack depth in the instrumentation wrapper.
       const stack = new Error().stack;
-      if (value === prepared.binding.wire && /at parseContract \(file:.*publication-store\.mjs:/u.test(stack)) bindingParses++;
-      if (value === resultSchemaWire && /at verifyDurableResultBinding \(file:.*publication-store\.mjs:/u.test(stack)) schemaParses++;
+      if (value === prepared.binding.wire && /at parseContract \(file:.*\/publication-contract-store\.mjs:/u.test(stack)) bindingParses++;
+      if (value === resultSchemaWire && /at verifyDurableResultBinding \(file:.*\/publication-result-reader\.mjs:/u.test(stack)) schemaParses++;
     }
     return Reflect.apply(parse, this, [value, ...rest]);
   });
@@ -6813,7 +6809,7 @@ test('Result reader consumes its already parsed Binding once while retaining phy
   t.mock.method(JSON,'parse',function(value,...rest){
     // Count only direct Store DATA interpretation, separately from the
     // actual contract-control admission and its own canonical validation.
-    if(value===prepared.binding.wire&&/at parseContract \(file:.*publication-store\.mjs:/u.test(new Error().stack))bindingParses++;
+    if(value===prepared.binding.wire&&/at parseContract \(file:.*\/publication-contract-store\.mjs:/u.test(new Error().stack))bindingParses++;
     return Reflect.apply(parse,this,[value,...rest]);
   });
   for(let operation=0;operation<2;operation++) {

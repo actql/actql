@@ -1,0 +1,159 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createResultDeletionOwner} from './result-deletion-owner.mjs';
+
+const failure = (code: string) => Object.assign(new Error(code), {code});
+
+type Operations = Parameters<typeof createResultDeletionOwner>[0];
+type Retention = Awaited<ReturnType<Operations['retention']>>;
+type Allocation = Awaited<ReturnType<Operations['inspectAllocation']>>;
+
+function fixture() {
+  const calls: string[] = [];
+  let retention: Retention = 'free';
+  let allocation: Allocation = 'exclusive';
+  const syncFailures: unknown[] = [];
+  let unlinkFailures = 0;
+  let busy = Promise.resolve();
+  const operations: Operations = {
+    serialize(run) {
+      calls.push('serialize');
+      const operation = busy.then(run);
+      busy = operation.catch(() => {});
+      return operation;
+    },
+    async ensureMarker() { calls.push('marker'); },
+    async retention() { calls.push('retention'); return retention; },
+    markReclaiming() { calls.push('reclaiming'); },
+    async inspectAllocation() { calls.push('inspect'); return allocation; },
+    async unlink() {
+      calls.push('unlink');
+      if (unlinkFailures-- > 0) throw failure('UNLINK_FAILED');
+    },
+    async syncObjects() {
+      calls.push('sync');
+      if (syncFailures.length !== 0) throw syncFailures.shift();
+    },
+    releaseCapacity() { calls.push('account'); },
+    settle(clearReclaiming) {
+      calls.push(clearReclaiming ? 'settle-reclaim' : 'settle-reference');
+    },
+  };
+  return {
+    owner: createResultDeletionOwner(operations),
+    calls,
+    setRetention: (value: Retention) => { retention = value; },
+    setAllocation: (value: Allocation) => { allocation = value; },
+    failSync: () => { syncFailures.push(failure('SYNC_FAILED')); },
+    failSyncWith: (error: unknown) => { syncFailures.push(error); },
+    failUnlink: () => { unlinkFailures++; },
+  };
+}
+
+test('active readers retain deletion without unlink or capacity release',
+  async () => {
+    const {owner, calls, setRetention} = fixture();
+    setRetention('wait');
+    assert.equal((await owner.retry()).pending, true);
+    assert.deepEqual(calls, ['serialize', 'marker', 'retention']);
+    setRetention('free');
+    assert.equal((await owner.retry()).pending, false);
+    assert.deepEqual(calls.slice(3), [
+      'serialize', 'marker', 'retention', 'reclaiming', 'inspect', 'unlink',
+      'sync', 'account', 'settle-reclaim',
+    ]);
+    assert.equal((await owner.retry()).pending, false);
+    assert.equal(calls.filter(call => call === 'account').length, 1);
+  });
+
+test('unlink failure keeps the exact allocation for retry', async () => {
+  const {owner, calls, failUnlink} = fixture();
+  failUnlink();
+  await assert.rejects(owner.retry(), {code: 'UNLINK_FAILED'});
+  assert.equal(owner.status().pending, true);
+  assert.equal(owner.status().errors.length, 1);
+  assert.equal((await owner.retry()).pending, false);
+  assert.equal(calls.filter(call => call === 'unlink').length, 2);
+  assert.equal(calls.filter(call => call === 'account').length, 1);
+});
+
+test('sync failure retries durability without a second unlink or early release',
+  async () => {
+    const {owner, calls, failSync} = fixture();
+    failSync();
+    await assert.rejects(owner.retry(), {code: 'SYNC_FAILED'});
+    assert.equal(owner.status().pending, true);
+    assert.equal(calls.filter(call => call === 'account').length, 0);
+    assert.equal((await owner.retry()).pending, false);
+    assert.equal(calls.filter(call => call === 'unlink').length, 1);
+    assert.equal(calls.filter(call => call === 'sync').length, 2);
+    assert.equal(calls.filter(call => call === 'account').length, 1);
+  });
+
+test('shared or absent allocation settles without releasing Store capacity',
+  async () => {
+    for (const allocation of ['shared', 'missing'] as const) {
+      const {owner, calls, setAllocation} = fixture();
+      setAllocation(allocation);
+      assert.equal((await owner.retry()).pending, false);
+      assert.equal(calls.includes('unlink'), false);
+      assert.equal(calls.includes('account'), false);
+      assert.equal(calls.at(-1), 'settle-reclaim');
+    }
+  });
+
+test('an absent original with retained quota waits for its same directory ACK',async()=>{
+  const {owner,calls,setAllocation,failSync}=fixture();
+  setAllocation('missing-unconfirmed');failSync();
+  await assert.rejects(owner.retry(),{code:'SYNC_FAILED'});
+  assert.equal(owner.status().pending,true);
+  assert.equal(calls.includes('unlink'),false);
+  assert.equal(calls.includes('account'),false);
+  assert.equal((await owner.retry()).pending,false);
+  assert.equal(calls.includes('unlink'),false);
+  assert.equal(calls.filter(call=>call==='account').length,1);
+});
+
+test('another live reference settles this deletion without reclaiming',
+  async () => {
+    const {owner, calls, setRetention} = fixture();
+    setRetention('settled');
+    assert.equal((await owner.retry()).pending, false);
+    assert.deepEqual(calls, [
+      'serialize', 'marker', 'retention', 'settle-reference',
+    ]);
+  });
+
+test('concurrent retries unlink and release capacity only once', async () => {
+  const {owner, calls} = fixture();
+  const results = await Promise.all([owner.retry(), owner.retry()]);
+  assert.deepEqual(results.map(result => result.pending), [false, false]);
+  assert.equal(calls.filter(call => call === 'unlink').length, 1);
+  assert.equal(calls.filter(call => call === 'account').length, 1);
+});
+
+test('Result cleanup keeps first/latest original diagnostics through repeated failure without releasing custody', async () => {
+  const f = fixture(), first = Object.freeze(new Error('original first directory failure'));
+  const failures = [first, undefined, first, 'primitive directory failure', Object.freeze(new Error('original last directory failure'))];
+  const snapshots: ReturnType<typeof f.owner.status>[] = [];
+  for (let index = 0; index < failures.length; index++) {
+    f.failSyncWith(failures[index]);
+    await f.owner.retry().then(() => assert.fail('Expected original durability refusal'),
+      error => assert.equal(error, failures[index]));
+    const status = f.owner.status(); snapshots.push(status);
+    assert.equal(status.pending, true);
+    assert.deepEqual(status.errors, index === 0 ? [first] : [first, failures[index]]);
+    assert.ok(Object.isFrozen(status) && Object.isFrozen(status.errors));
+    assert.equal(f.calls.filter(call => call === 'unlink').length, 1);
+    assert.equal(f.calls.includes('account'), false);
+    for (let old = 0; old < snapshots.length; old++) {
+      assert.deepEqual(snapshots[old].errors, old === 0 ? [first] : [first, failures[old]]);
+    }
+  }
+  const finished = await f.owner.retry();
+  assert.equal(finished.pending, false);
+  assert.deepEqual(finished.errors, [first, failures.at(-1)]);
+  assert.equal(f.calls.filter(call => call === 'unlink').length, 1);
+  assert.equal(f.calls.filter(call => call === 'account').length, 1);
+  assert.equal(f.calls.filter(call => call === 'settle-reclaim').length, 1);
+});

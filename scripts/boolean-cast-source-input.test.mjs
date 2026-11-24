@@ -24,7 +24,7 @@ test('BOOLEAN cast fixtures preserve independent type, NULL, empty and failure e
 
 test('BOOLEAN cast cases remain in normal packed acceptance and its narrow selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'booleanCastSuccesses'], ['refusals', 'booleanCastRefusals'],
     ['executionFailures', 'booleanCastExecutionFailures']]) assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   assert.ok(fixture.includes('booleanCastOnly ? {successes: booleanCastSuccesses'));

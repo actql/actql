@@ -73,6 +73,9 @@ for (const [boundary, immediateCleanup] of [
     const token = {available: true, snapshot: {binding: 'binding', rows: [],
       descriptorWire: 'descriptor', callScopeSnapshotWire: '{"sources":[]}'}};
     const record = {inventory: {taskIndex: 0}};
+    const frame = Object.freeze({cancellationRequested: false, revision: 1,
+      runDefinition: plan.runDefinition});
+    let originalFailure;
     let started = 0, stopConfirmed = immediateCleanup, cleanupAllowed = immediateCleanup, reclaimed = false;
     let releases = 0, bindings = 0;
     const stopped = [];
@@ -124,27 +127,35 @@ for (const [boundary, immediateCleanup] of [
       selections: new Map([[preparedProgram, selected]]), modelController});
     const owner = installNodeClientDispatchOwner({moon, control,
       journal: {reservePhysicalStart: () => true,
-        lookupRunDefinition: () => ({cancellationRequested: false, revision: 1,
-          runDefinition: plan.runDefinition}), lookupReconciliationState: () => undefined,
+        lookupRunDefinition(actual, _moon, _control, original) {
+          assert.strictEqual(actual, ref);
+          if (original !== undefined) assert.strictEqual(original, frame);
+          return frame;
+        }, lookupReconciliationState: () => undefined,
         markPhysicalClose: (...args) => stopped.push(args),
         markPreDispatchFailure() { assert.fail('an input owner already exists'); }},
       store: {confirmCommittedIndex: async () => undefined},
       startRun: async () => ({kind: 'reserved', ref}), hostConnection: () => true,
-      planFor: () => plan, runInfer, namespaceId: 'opening-namespace'});
+      planFor: () => plan, async runInfer(input) {
+        try {return await runInfer(input);}
+        catch (error) {originalFailure = error; throw error;}
+      }, namespaceId: 'opening-namespace'});
     await owner.start({preparedProgram, principalId: 'owner', connection: {}, requestId: 'opening-request'},
       {}, {ref, runDefinition: plan.runDefinition, dispatchReserved: false, cancellationRequested: false}, {});
     await owner.operation(ref);
+    assert.equal(originalFailure?.code, 'MoonBitHostFailure');
+    assert.strictEqual(originalFailure?.cause, cause);
     if (immediateCleanup) {
       await owner.drain();
       assert.equal(started, 1);
       assert.equal(releases, 1);
-      assert.deepEqual(stopped, [[ref, 'failed']]);
+      assert.deepEqual(stopped, [[ref, 'failed', frame]]);
       return;
     }
     const assertPending = error => {
       assert.equal(error.code, 'ClientDispatchCleanupPending');
       assert.equal(error.failures[0].primary.code, 'MoonBitHostFailure');
-      assert.equal(error.failures[0].primary.cause, cause);
+      assert(!Object.hasOwn(error.failures[0].primary, 'cause'));
       return true;
     };
     await assert.rejects(owner.drain(), assertPending);
@@ -159,6 +170,6 @@ for (const [boundary, immediateCleanup] of [
     assert.equal(releases, 1);
     assert.equal(started, 1);
     assert.equal(bindings, originalBindings, 'cleanup cannot replay a rejected binding');
-    assert.deepEqual(stopped, [[ref, 'failed']]);
+    assert.deepEqual(stopped, [[ref, 'failed', frame]]);
   });
 }

@@ -250,6 +250,14 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
       Ok(value) => value
       Err(issue) => return Err(SavedResolutionProof(issue))
     }
+    // The first signing scope must still see the waiting revision selected
+    // by this same approve command. A racing stored answer cannot become a
+    // new signing candidate. Its caller must reopen the original intent.
+    guard self._retained_original is Some(metadata) &&
+      materials.original.revision == metadata.revision &&
+      materials.original.state.status == @publication.WaitingCheckpoint else {
+      return Err(SavedResolutionUnavailable)
+    }
     let signing = match
       materials.prepare_initial_approval_signing(
         "approval/" + original.checkpoint.artifact.checkpoint_cid,
@@ -386,9 +394,8 @@ pub fn NativeLocalSavedEffectReview::resolve_initial_in_original_read(
 }
 
 ///|
-/// The same acknowledged Approved answer and original lease supplier. It does
-/// not start a second Run or execute a mutation. The caller retains the returned
-/// view before claim/constructor callbacks and retires it with that same Read.
+/// Sign an open Checkpoint, or continue its already recorded first pending
+/// approval. The existing Read retains the original before any claim.
 pub fn NativeLocalSavedEffectReview::resolve_initial_resume_in_original_read(
   self : NativeLocalSavedEffectReview,
   host_configuration_file : String,
@@ -396,6 +403,20 @@ pub fn NativeLocalSavedEffectReview::resolve_initial_resume_in_original_read(
   (NativeClientRunRecord, NativeLocalEffectResumeOriginal),
   NativeLocalSavedEffectResolutionIssue,
 ] {
+  guard self._retained_original is Some(metadata) else {
+    return Err(SavedResolutionUnavailable)
+  }
+  if metadata.state.status == @publication.Resuming {
+    return self
+      .restore_effect_resume_in_original_read(
+        host_configuration_file,
+        settlement_only=false,
+      )
+      .map(original => (original.record, original))
+  }
+  if metadata.state.status != @publication.WaitingCheckpoint {
+    return Err(SavedResolutionUnavailable)
+  }
   match
     self.resolve_initial_original("approve", host_configuration_file, true) {
     Ok((record, Some(original))) => Ok((record, original))

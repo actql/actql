@@ -1,3 +1,4 @@
+import {createOrdinarySourceModelMaterials} from './ordinary-source-model-materials.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -236,11 +237,6 @@ test('native metadata rejection cannot certify custom element reads or replaced 
   } finally {Object.defineProperty(Array.prototype, 'find', original);}
 });
 
-const managerSource = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
-const managerHelpers = managerSource.slice(managerSource.indexOf('  function constructRequestDomain('),
-  managerSource.indexOf('  const view = Object.freeze({'));
-const materialStart = managerSource.indexOf('    prepareModelMaterials(');
-const materialEnd = managerSource.indexOf('    prepareModelGraph(', materialStart);
 const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const hostTree = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'});
 let materialCallback;
@@ -291,11 +287,14 @@ function effectMaterialCaller({foreignBorrow = false, refuse = false, replaceAft
     assert.equal(value, holder); return foreignBorrow ? undefined : prepared;
   }};
   state.context = {runtime: moon};
-  const manager = Function('current', 'producerForRequest', 'fail', 'checkedRequestProgramPreparation',
-    `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(materialStart, materialEnd)}});`)(
-    () => {if (replaceAfter && state.modelProviderBinding !== undefined) state.prepared = {};},
-    value => {assert.equal(value, request); return producer;}, fail,
-    (runtime, result) => {assert.equal(runtime, moon); return result.value;});
+  const {modelMaterials: manager} = createOrdinarySourceModelMaterials({
+    current() {if (replaceAfter && state.modelProviderBinding !== undefined) state.prepared = {};},
+    producerForRequest(value) {assert.equal(value, request); return producer;},
+    fail,
+    checked() {assert.fail('Effect materials use the original checked Request result');},
+    checkedRequestProgramPreparation(runtime, result) {assert.equal(runtime, moon); return result.value;},
+    runtimeCore() {assert.fail('Effect materials cannot use the recovery runtime');},
+  });
   const preparation = {
     prepareManagedModelMaterials(runtime, p, ...args) {
       assert.equal(this, preparation); assert.equal(runtime, moon); assert.equal(p, prepared);

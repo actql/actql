@@ -328,6 +328,87 @@ test "Static explanation Source rows retain the exact consuming ports of one Eff
 }
 
 ///|
+extern "js" fn static_explanation_stage_transfers_match(
+  plan_wire : String,
+  transfers_wire : String,
+  imports : FixedArray[Int],
+) -> Bool =
+  #|(planWire, transfersWire, imports) => {
+  #|  const steps = JSON.parse(planWire).computation.plan_view.logical_map.steps;
+  #|  const ports = new Map(steps.flatMap(step => step.ports.map(port => [port.port_id, {step, port}])));
+  #|  const transfers = JSON.parse(transfersWire);
+  #|  return transfers.length === 2 && imports.length === 6 &&
+  #|    new Set(transfers.map(link => link.consumer.port_id)).size === 2 &&
+  #|    transfers.every(({producer, consumer, result_projection}) => {
+  #|      const from = ports.get(producer.port_id), to = ports.get(consumer.port_id);
+  #|      if (!from || !to || from.step.step_id !== producer.step_id || to.step.step_id !== consumer.step_id ||
+  #|          from.port.role !== 'output' || to.port.role !== 'input' || to.step.operator !== 'join' ||
+  #|          result_projection !== true ||
+  #|          from.port.carrier_contract_cid !== to.port.carrier_contract_cid ||
+  #|          to.port.source.kind !== 'stage_input') return false;
+  #|      return [0, 3].some(i => imports[i] === from.step.key.stage_ordinal &&
+  #|        imports[i + 1] === to.step.key.stage_ordinal && imports[i + 2] === to.port.source.input_port_ordinal);
+  #|    });
+  #|}
+
+///|
+test "Static explanation retains original Result transfers into the README joins" {
+  let (owner, _, model) = deferred_keyed_model_fixture()
+  let compiled = client_program_compile_local_effects_with_infer(owner, model).unwrap()
+  let (original, plan) = @publication_host.capture_client_static_effect_explanation_original(
+    owner, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let graph = @strategy.checked_effect_computation_graph(
+    @publication_host.prepared_client_effect_computation_graph(owner),
+  )
+  let imports : Array[Int] = []
+  for i in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, i).unwrap()
+    let prior = @strategy.graph_task_unit_index(graph, edge.producer).unwrap()
+    let stage = @strategy.graph_task_unit_index(graph, edge.consumer).unwrap()
+    if prior < stage && edge.source_input is Some(input) {
+      imports.push(prior)
+      imports.push(stage)
+      imports.push(input)
+    }
+  }
+  let writer = @encode.writer(4096, 256, 16)
+  @publication_host.write_client_static_effect_explanation_transfers(
+    original, owner, compiled, writer, 10000,
+  ).unwrap()
+  let wire = @encode.finish(writer)
+  assert_true(
+    static_explanation_stage_transfers_match(
+      plan,
+      wire,
+      FixedArray::from_array(imports),
+    ),
+  )
+  let tiny = @encode.writer(16, 256, 16)
+  assert_true(
+    @publication_host.write_client_static_effect_explanation_transfers(
+      original, owner, compiled, tiny, 10000,
+    )
+    is Err(Encoding(@encode.OutputLimit)),
+  )
+  let work = @encode.writer(4096, 256, 16)
+  assert_true(
+    @publication_host.write_client_static_effect_explanation_transfers(
+      original, owner, compiled, work, 1,
+    )
+    is Err(WorkLimit),
+  )
+  let foreign = client_program_compile_local_effects_with_infer(owner, model).unwrap()
+  let rejected = @encode.writer(4096, 256, 16)
+  assert_true(
+    @publication_host.write_client_static_effect_explanation_transfers(
+      original, owner, foreign, rejected, 10000,
+    )
+    is Err(ForeignOriginal),
+  )
+}
+
+///|
 extern "js" fn static_explanation_context_matches(
   plan_wire : String,
   context_wire : String,

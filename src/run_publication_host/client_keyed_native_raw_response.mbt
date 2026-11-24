@@ -97,7 +97,7 @@ pub fn prepare_client_keyed_native_raw_response(
     2L,
     limits.max_nodes,
     limits.max_depth,
-    fn() {
+    fn(_) {
       match keyed_lookup_observation(request, now_ms) {
         Err(issue) => return Err(issue)
         Ok(_) => ()

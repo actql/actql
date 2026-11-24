@@ -1,0 +1,100 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "moduleDetection": "legacy",
+    "paths": {
+      "@duckdb/node-api": [
+        "./adapters/connectors/duckdb/node/node_modules/@duckdb/node-api/lib/index.d.ts",
+        "./adapters/connectors/duckdb/node/neo-session-api.d.mts"
+      ],
+      "@duckdb/node-api/package.json": [
+        "./adapters/connectors/duckdb/node/node_modules/@duckdb/node-api/package.json",
+        "./adapters/connectors/duckdb/node/neo-package.d.mts"
+      ],
+      "@actql/explorer/browser-source": ["./packages/explorer/browser-source.d.ts"],
+      "@actql/explorer/launcher": ["./packages/explorer/launcher.d.ts"],
+      "@actql/local-node/_internal/compile-cache": ["./adapters/host-node/compile-cache.mts"],
+      "@actql/local-node/runtime": ["./scripts/fixtures/installed-common-runtime.d.ts"],
+      "elkjs/lib/elk-api.js": ["./packages/explorer-ui/elk-layout-module.d.ts"],
+      "actql-explorer-test-contracts/*": ["./packages/explorer-ui/*.d.ts"]
+    },
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable",
+      "ES2023.Array",
+    "ESNext.Array",
+      "ES2024.String",
+      "ES2024.Promise",
+      "ES2024.ArrayBuffer",
+      "DOM.AsyncIterable"
+    ],
+    "declaration": true
+  },
+  "include": [
+    "scripts/**/*.mts",
+    "reviews/2026-10-13-vector-scalar-installed-source/public-audit.mts",
+    "reviews/2026-10-14-carrier-continuation-release-matrix/public-audit.mts",
+    "reviews/2026-10-14-carrier-peer-scope-release-matrix/public-audit.mts",
+    "reviews/2026-10-13-vector-scalar-installed-source/prepared-release-public.mts",
+    "reviews/2026-10-14-carrier-continuation-release-matrix/prepared-checks.mts",
+    "reviews/2026-10-14-carrier-continuation-release-matrix/prepared-release-public.mts",
+    "reviews/2026-10-14-carrier-peer-scope-release-matrix/prepared-checks.mts",
+    "reviews/2026-10-14-carrier-peer-scope-release-matrix/prepared-release-public.mts",
+    "reviews/2026-10-14-composite-vector-release-matrix/prepared-release-public.mts",
+    "reviews/2026-10-14-identifier-release-matrix/prepared-release-public.mts",
+    "reviews/2026-10-14-nearest-carrier-release-matrix/prepared-checks.mts",
+    "reviews/2026-10-14-nearest-carrier-release-matrix/prepared-release-public.mts",
+    "reviews/2026-10-14-nearest-required-release-matrix/prepared-checks.mts",
+    "reviews/2026-10-14-nearest-required-release-matrix/prepared-release-public.mts",
+    "reviews/2026-10-14-source-ranking-public-controls/prepared-release-public.mts",
+    "reviews/2026-10-14-time-series-release-matrix/prepared-checks.mts",
+    "reviews/2026-10-14-time-series-release-matrix/prepared-release-public.mts",
+    "reviews/2026-10-14-window-group-release-matrix/prepared-release-public.mts",
+    "reviews/2026-10-14-sequence-release-matrix/public-audit.mts",
+    "reviews/2026-10-14-temporal-join-release-matrix/public-audit.mts",
+    "reviews/2026-10-14-time-series-release-matrix/public-audit.mts",
+    "reviews/2026-10-15-calendar-host-installation/public-audit.mts",
+    "packages/sdk/**/*.mts",
+    "packages/coordinator-core/**/*.mts",
+    "packages/coordinator-core/runtime-abi.d.ts",
+    "packages/run-host-core/**/*.mts",
+    "packages/run-host-core/index-abi.d.ts",
+    "packages/run-host-core/runtime-bridges.d.ts",
+    "packages/transfer-core/**/*.mts",
+    "packages/transfer-core/runtime-bridge.d.ts",
+    "packages/node/**/*.mts",
+    "packages/node/**/*.cts",
+    "packages/local-node/**/*.cts",
+    "packages/local-node/**/*.mts",
+    "packages/local-node/staged-adapters.d.ts",
+    "packages/native-cli/**/*.mts",
+    "packages/provider-ai-sdk/**/*.mts",
+    "packages/provider-http/**/*.mts",
+    "packages/otel-node/**/*.mts",
+    "adapters/host-common/**/*.mts",
+    "adapters/host-node/**/*.mts",
+    "adapters/host-node/process-retained-runtime.d.ts",
+    "adapters/host-node/**/*.cts",
+    "adapters/site-node/**/*.mts",
+    "adapters/store-local/**/*.mts",
+    "adapters/local-node/**/*.mts",
+    "adapters/reference-compute-node/**/*.mts",
+    "adapters/workers/**/*.mts",
+    "adapters/workers/compiled-bindings.d.ts",
+    "adapters/connectors/**/*.mts",
+    "packages/client-wire/**/*.mts",
+    "packages/explorer/**/*.mts",
+    "packages/explorer-ui/**/*.mts",
+    "packages/explorer-ui/elk-layout-module.d.ts",
+    "packages/explorer-ui/built-component-test-types.d.ts"
+  ],
+  "exclude": [
+    "**/*.typecheck.mts",
+    "**/*.d.mts",
+    "**/*.d.cts"
+  ]
+}

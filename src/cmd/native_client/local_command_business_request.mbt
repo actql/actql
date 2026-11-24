@@ -382,9 +382,10 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
         stop("LocalOriginalModelUnavailable")
       }
       match
-        mock.prepare_effect_models(
+        mock.prepare_request_models(
           parent,
           input,
+          kind=@local_values.Effect,
           occurrences,
           self.environment,
           self.installed_contracts,

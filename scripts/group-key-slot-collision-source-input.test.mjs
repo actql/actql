@@ -39,7 +39,7 @@ test('normal public acceptance and the existing focused Group selection retain t
   assert.ok(app.includes('scopeInputs.successes.push(...groupSelectScopeSuccesses)'));
   assert.ok(app.includes('scopeInputs.refusals.push(...groupSelectScopeRefusals)'));
   assert.ok(app.includes('groupSelectScopeOnly ? {successes: groupSelectScopeSuccesses, refusals: groupSelectScopeRefusals}'));
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/group-select-scope-source-input.mjs', 'group-select-scope-source-input.mjs']"));
   assert.ok(driver.includes('--group-select-scope-only'));
 });

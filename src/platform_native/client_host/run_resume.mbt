@@ -9,6 +9,7 @@ struct NativeClientEffectResumeClaim {
   resolution_cid : String
   intent_id : String
   claim : @checkpoint.ResumeClaim
+  original_lease_expires_ms : Int64
   // The SAME permission parsed after cryptographic admission above. Retain
   // it on this claim rather than reparsing its immutable wire per target/IO.
   approval : @checkpoint.ResumedApproval
@@ -75,6 +76,7 @@ fn NativeClientRunJournal::claim_effect_resume_with_operations(
   current : () -> Bool,
   clock : () -> (String, Int64),
   operations : NativeClientJournalOperationAccess?,
+  expected_revision? : Int64? = None,
 ) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue] {
   if operations is Some(original) &&
     !physical_equal(self.database, original.reads.database) {
@@ -89,6 +91,9 @@ fn NativeClientRunJournal::claim_effect_resume_with_operations(
     Ok(Retained(value)) => value
     Ok(_) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
+  }
+  if expected_revision is Some(revision) && before.revision != revision {
+    return Err(Checkpoint(StaleRevision))
   }
   guard before.checkpoint is Some(original) &&
     original.verified_wire is Some(wire) &&
@@ -188,6 +193,7 @@ fn NativeClientRunJournal::claim_effect_resume_with_operations(
         resolution_cid: verified.resolution_cid,
         intent_id,
         claim: { claimant, generation, },
+        original_lease_expires_ms: expires,
         approval,
       }
       Ok(if settlement_only { SettlementOnly(claim) } else { Claimed(claim) })

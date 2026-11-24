@@ -6,7 +6,8 @@ import {createHash} from 'node:crypto';
 import {join} from 'node:path';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
-import {preparePinnedEffectSourceHoldings} from './effect-input-export.mjs';
+import {preparePinnedEffectSourceHoldings, readPinnedEffectTableInput} from './effect-input-export.mjs';
+import {createPinnedEffectSourceHoldings} from './effect-source-holdings.mjs';
 import {completedTableCaptureOptions} from './fixtures/table-completed-capture.mjs';
 import {issueCompletedEffectfulComputationEvidence, prepareCompletedEffectfulPublication,
   retireCompletedEffectfulCapture, suspendCompletedEffectfulComputation}
@@ -111,3 +112,46 @@ test('Table scope binding rejects foreign Preview keys and standalone saved sett
     }
     assert.equal(binding.operationWire, canonicalJson(operation));
   }}));
+
+
+test('Table reads refuse a holding from a separate Source owner before Store I/O', async () => {
+  const rowBytes = Buffer.from('[]');
+  const physicalCid = cid('c');
+  const logicalCid = 'sha256:' + createHash('sha256').update('{"sort":"relation","value":[]}').digest('hex');
+  const artifact = Object.freeze({identity: cid('a'), wire: '{}'});
+  const payload = Object.freeze({
+    summary: Object.freeze({artifact, logicalCid, rowCount: 0}),
+    localResultArtifact: artifact,
+    physical: Object.freeze({cid: physicalCid, bytes: rowBytes.length}),
+    prepared: Object.freeze({}),
+  });
+  let reads = 0;
+  const store = {
+    storeAuthorityCid: cid('b'),
+    async commitPhysicalHolding() {},
+    async consumePhysicalHolding(holdingCid, index, accept) {
+      assert.equal(holdingCid, cid('d'));
+      assert.equal(index, 0);
+      reads++;
+      accept(rowBytes);
+      return {cid: physicalCid, bytes: rowBytes.length};
+    },
+  };
+  const control = {
+    admitCapturedEffectSourceArtifact: () => ({}),
+    capturedEffectSourceHoldingCid: () => cid('d'),
+    localEffectSourceMatches: () => true,
+    admitLocalEffectSourceEvidence: () => ({}),
+    tableInputMatchesSource: (_table, result) => result === artifact,
+  };
+  const owner = createPinnedEffectSourceHoldings({
+    preparedEffectSourceOwners: new WeakMap([[payload, {store}]]),
+    preparedEffectSourceSets: new WeakMap(), adoptedEffectSourceDependencies: new WeakSet(),
+  });
+  const holding = await owner.commitPinnedEffectSourceHolding({payload, store, control, preview: {}, memberIndex: 0, invocation: {}});
+  const read = {holding, store, control, tableInput: {}, identity: {}, maxBytes: rowBytes.length};
+  await assert.rejects(readPinnedEffectTableInput(read), {message: 'ForeignTableSourceHolding'});
+  assert.equal(reads, 0);
+  assert.deepEqual(await owner.readPinnedEffectTableInput(read), []);
+  assert.equal(reads, 1);
+});

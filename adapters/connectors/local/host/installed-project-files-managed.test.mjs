@@ -9,6 +9,7 @@ import {runtimeOptionalField} from '../../../host-common/compiler-binding.genera
 import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {defaultFileMediaType as mime} from '../../../host-common/file-media-type.mjs';
 import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
+import {physicalReadChild} from '../site/root-filesystem.mjs';
 
 // Exact Local installer with explicit original Host/Core ports. No test here
 // issues a real Resource admission, Native filesystem or public Run.
@@ -16,7 +17,7 @@ const moduleUrl = new URL('./installed-project-files.mjs', import.meta.url);
 const source = await readFile(moduleUrl, 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const selected = new Set(['fail', 'canonical', 'cid', 'positive', 'text',
-  'acknowledged', 'physicalReadChild', 'installPreparedProjectLocalFiles']);
+  'acknowledged', 'installPreparedProjectLocalFiles']);
 const statements = ast.body.flatMap(node => {
   const value = node.type === 'ExportNamedDeclaration' ? node.declaration : node;
   const names = value?.type === 'VariableDeclaration'
@@ -29,7 +30,7 @@ assert.equal(selected.size, 0);
 const factory = new Function('createHash', 'canonicalJson', 'checked', 'runtimeOptionalField',
   'readFile', 'moduleUrl', 'createInstalledRowSource', 'rowSourceCheckEnvironment',
   'composeInstalledCheckEnvironment', 'retainInstalledHostInitializationFailure',
-  'AcquisitionOpenError', 'openLocalFileRoot', 'mime',
+  'AcquisitionOpenError', 'openLocalFileRoot', 'mime', 'physicalReadChild',
   statements.join('\n').replaceAll('import.meta.url', 'moduleUrl') + '\nreturn installPreparedProjectLocalFiles;');
 const ok = value => ({$tag: 1, _0: value});
 
@@ -44,7 +45,7 @@ async function fixture({pendingClose = false, currentAfterRead = true, closeGate
     queryAliases: [{name: 'local', resource: 'files'}],
     wire: JSON.stringify({views: [{resource: 'files', source_ref: 'local:files',
       view_cid: 'view', carrier_schema_cid: 'schema'}]})};
-  const bundle = {sources: [entry]};
+  const bundle = {sources: [entry], realizationKey: 'installed-multi-acquired'};
   const moon = {clientProgramLocalFileTimestamp() {}, clientProgramResourceReferenceIssuer: () => ({}),
     clientProgramNodeManagedRunPrepare(value, owner) {
       assert.strictEqual(value, oldOriginal); assert.strictEqual(owner, prepared);
@@ -78,7 +79,7 @@ async function fixture({pendingClose = false, currentAfterRead = true, closeGate
   const install = factory(createHash, canonicalJson, checked, runtimeOptionalField, readFile, moduleUrl,
     async value => {options = value; return {connectorBindings: [], admitsSource: () => true};}, () => ({wire: '{}'}),
     () => '{}', async cause => cause, AcquisitionOpenError,
-    () => assert.fail('No Native constructor selected'), mime);
+    () => assert.fail('No Native constructor selected'), mime, physicalReadChild);
   profile = await install({moon, preparation: {originalsForRuntime: () => bundle}, sourceManaged,
     baseEnvironmentWire: '{}', authorizationFor: async () => ({context: {contextCid}, assertAccountCurrent() {}}),
     prepareManagedRun({preparedProgram: owner, requestIdentity: intent, sourceProfile: originalProfile, prepareInvocation: invocation}) {
@@ -402,7 +403,7 @@ async function effectSourceFixture({pending = false, changedAfterRead = false} =
     limits: {maxReadBytes: 4096, maxPages: 4, maxPageBytes: 1024, maxFileBytes: 1024,
       maxPageRows: 4, maxFiles: 8}, queryAliases: [{name: 'local', resource: 'files'}],
     wire: JSON.stringify(declared)};
-  const bundle = {sources: [entry]};
+  const bundle = {sources: [entry], realizationKey: 'installed-multi-acquired'};
   const raw = {retainChild() {assert.fail('No native filesystem selected');},
     close() {assert.strictEqual(this, raw); calls.push('same-raw-close'); return {pending: !closeAllowed};}};
   const moon = {
@@ -454,7 +455,7 @@ async function effectSourceFixture({pending = false, changedAfterRead = false} =
     }};
   const install = factory(createHash, canonicalJson, checked, runtimeOptionalField, readFile, moduleUrl,
     createInstalledRowSource, () => ({wire: '{}'}), () => '{}', async cause => cause,
-    AcquisitionOpenError, () => assert.fail('No native filesystem selected'), mime);
+    AcquisitionOpenError, () => assert.fail('No native filesystem selected'), mime, physicalReadChild);
   const profile = await install({moon, preparation: {originalsForRuntime: () => bundle}, sourceManaged,
     baseEnvironmentWire: '{}', authorizationFor: async () => ({context: {contextCid}, assertAccountCurrent() {},
       authorize: async () => ({action: 'dispatch'})}),

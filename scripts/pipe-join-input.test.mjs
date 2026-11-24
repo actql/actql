@@ -39,7 +39,7 @@ test('removed Pipe JOIN names and duplicate ranges are invalid input', () => {
 
 test('ordinary and narrow packed acceptance use the same Pipe JOIN corpus', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...pipeJoinInputSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...pipeJoinInputRefusals)'));
   assert.match(fixture, /const scopeOnly = [^;]*pipeJoinInputOnly/u);

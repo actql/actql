@@ -53,12 +53,12 @@ test('Local adapter uses the packaged private SDK custody predicate, not a check
  const {rewriteLocalNodePackageImports}=await import('../../scripts/local-node-package-imports.mjs');
  const privatePort=await import('../../packages/sdk/internal/private-source-preparation.mjs');
  assert.equal(privatePort.matchesPublishedSubmissionSnapshot,matchesPublishedSubmissionSnapshot);
- const source=await readFile(new URL('./ordinary-source-managed.mjs',import.meta.url),'utf8');
- const packaged=rewriteLocalNodePackageImports(source,'adapters/host-node/ordinary-source-managed.mjs');
+ const source=await readFile(new URL('./ordinary-source-request-custody.mjs',import.meta.url),'utf8');
+ const packaged=rewriteLocalNodePackageImports(source,'adapters/host-node/ordinary-source-request-custody.mjs');
  const imports=parse(packaged,{ecmaVersion:'latest',sourceType:'module'}).body.filter(node=>
    node.type==='ImportDeclaration'&&node.source.value==='@actql/sdk/_internal/source-preparation');
  assert.equal(imports.length,1);
  assert.ok(imports[0].specifiers.some(node=>node.type==='ImportSpecifier'&&
    node.imported.name==='matchesPublishedSubmissionSnapshot'&&node.local.name==='matchesPublishedSubmissionSnapshot'));
- assert.throws(()=>rewriteLocalNodePackageImports(source.replace('sdk/internal/private-source-preparation.mjs','sdk/internal/submission-observation.mjs'),'ordinary-source-managed.mjs'),/UnpackagedLocalNodeImport/u);
+ assert.throws(()=>rewriteLocalNodePackageImports(source.replace('sdk/internal/private-source-preparation.mjs','sdk/internal/submission-observation.mjs'),'ordinary-source-request-custody.mjs'),/UnpackagedLocalNodeImport/u);
 });

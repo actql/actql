@@ -1,6 +1,6 @@
 // Actual same Store/ownership/key lifetime; no new normal-profile coefficients.
 import assert from 'node:assert/strict';
-import {chmod, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {chmod, lstat, mkdtemp, readFile, rename, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -65,18 +65,26 @@ test('actual Store failed close retains original ownership and key for single-fl
 
 test('actual Store absent or foreign ownership cannot authorize key retirement', async t => {
   const f = await fixture(t);
-  await rm(f.record);
-  await assert.rejects(f.store.close(), {code: 'PublicationStoreOwnershipLost'});
-  assert.equal(f.store.status().closed, false);
-  assert.deepEqual(f.ownedKey, Buffer.alloc(32, 7));
-  const foreign = {...JSON.parse(f.original), token: 'foreign'};
-  await writeFile(f.record, JSON.stringify(foreign));
-  await assert.rejects(f.store.close(), {code: 'PublicationStoreOwnershipLost'});
-  assert.deepEqual(JSON.parse(await readFile(f.record)), foreign);
-  assert.deepEqual(f.ownedKey, Buffer.alloc(32, 7));
-  // Restore only this disposable test's exact saved record; product cleanup
-  // does not reconstruct absent ownership or authorize from a copied token.
-  await writeFile(f.record, f.original);
+  const original = await lstat(f.record, {bigint: true});
+  const parked = join(f.directory, 'original-owner-fixture.json');
+  await rename(f.record, parked);
+  try {
+    await assert.rejects(f.store.close(), {code: 'ENOENT'});
+    assert.equal(f.store.status().closed, false);
+    assert.deepEqual(f.ownedKey, Buffer.alloc(32, 7));
+    const foreign = {...JSON.parse(f.original), token: 'foreign'};
+    await writeFile(f.record, JSON.stringify(foreign), {flag: 'wx'});
+    await assert.rejects(f.store.close(), {code: 'PublicationStoreOwnershipLost'});
+    assert.deepEqual(JSON.parse(await readFile(f.record)), foreign);
+    assert.deepEqual(f.ownedKey, Buffer.alloc(32, 7));
+  } finally {
+    await rm(f.record, {force: true});
+    await rename(parked, f.record);
+  }
+  // A copy of the owner bytes cannot restore the original inode.
+  const restored = await lstat(f.record, {bigint: true});
+  assert.equal(restored.dev, original.dev);
+  assert.equal(restored.ino, original.ino);
   assert.equal(await f.store.close(), true);
   assert.deepEqual(f.ownedKey, Buffer.alloc(32));
 });

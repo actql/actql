@@ -1,0 +1,446 @@
+// Physical composition under the dispatch owner's existing Source custody.
+// The common Run/Source/candidate and Store owners decide identity, admission,
+// byte retention and resource settlement; there is no capture journal here.
+import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
+import {originalLocalContentStoragePolicy} from './local-account-config.mjs';
+import {retainCapturedContent} from './captured-content-holding.mjs';
+import {issueStoredCapturedContent, consumeStoredContentOriginal,
+  closeStoredContentReaders} from './generated-content-holding.mjs';
+
+import type {contentCaptureControl} from '../host-common/content-capture-control.mjs';
+import type {createInstalledRowSourceKeyedPreparation} from './installed-row-source-keyed-preparation.mjs';
+
+type Control = Pick<ReturnType<typeof contentCaptureControl>, 'candidateForRun' |
+  'recoveryCandidateForRun' | 'holdingCid' | 'reserveWorkspace' | 'growWorkspace' |
+  'releaseWorkspace' | 'reissuer' | 'inspect' | 'issuer' | 'issue'>;
+type Issue = Parameters<typeof issueStoredCapturedContent>[0];
+type Retention = Parameters<typeof retainCapturedContent>[0];
+type Consumption = Parameters<typeof consumeStoredContentOriginal>[0];
+type StoredOriginal = Parameters<NonNullable<Issue['retainOriginal']>>[0];
+type Readers = Parameters<typeof closeStoredContentReaders>[0];
+type Custody = Parameters<Retention['retainCustody']>[0];
+type CaptureCustody = Partial<Extract<Custody, {writer: unknown}> &
+  Extract<Custody, {prepared: unknown}> & Extract<Custody, {holding: unknown}>> &
+  {storedOriginal?: StoredOriginal};
+type SourceBinding = ReturnType<ReturnType<typeof createInstalledRowSourceKeyedPreparation>['keyedRecoveryBinding']>;
+type RunDefinition = Readonly<{identity: string; wire: string}>;
+type SourceFacts = readonly [string, string, string, string, string, string];
+type Execution = Readonly<{
+  close(): Promise<boolean>;
+  cleanup(): Promise<boolean>;
+  cleanupPending(): boolean;
+}>;
+type CaptureSetup = Readonly<{
+  moon: Readonly<{
+    clientProgramKeyedAcquisitionMatchesProgram(acquisition: unknown, prepared: unknown): boolean;
+    clientProgramKeyedAcquisitionMatchesEffectProgram(acquisition: unknown, prepared: unknown): boolean;
+    clientProgramKeyedAcquisitionSourceEvidenceFacts(acquisition: unknown): unknown;
+    clientProgramEffectCommandContentMatchesIssued?(binding: unknown, issued: StoredOriginal['issued']): boolean;
+  }>;
+  publications: Readonly<{
+    checkClientCompiledRunOwner(compiled: unknown, prepared: unknown): unknown;
+    checkClientCompiledEffectRunOwner(compiled: unknown, prepared: unknown, compilation: unknown): unknown;
+    checkClientCompiledRunDefinition(compiled: unknown, definition: RunDefinition): unknown;
+  }>;
+  control: Control;
+  preparedProgram?: unknown;
+  preparedEffect?: unknown;
+  compilation?: unknown;
+  plan: Readonly<{compiled: unknown; runDefinition: RunDefinition}>;
+  acquisition: unknown;
+  ledger: unknown;
+  maxBytes: number;
+  maxWork?: number;
+  store: Retention['store'] & Consumption['store'];
+  namespaceId: string;
+  authorityScopeCid: string;
+  storeAuthorityCid: string;
+  principalId: string;
+  ownerPrincipal: string;
+  now(): string;
+  authorize(principalId: string): unknown;
+  retainExecution(execution: Execution): unknown;
+  signal?: AbortSignal;
+  inputAvailable?: () => unknown;
+  sourceBinding?: SourceBinding;
+}>;
+type Verification = Readonly<{keyedAcquisition: unknown; verifyRead(): unknown}>;
+type CaptureInput = Verification & Pick<Retention, 'bytes' | 'signal'> & Readonly<{
+  request: unknown;
+  readSubjectCid: string;
+  mediaType: string;
+  contentCid: string;
+}>;
+type RecoveryEntry = Readonly<{referenceWire: string; captureAuthorityCid: string}>;
+type RecoveryInput = Verification & RecoveryEntry;
+type InventoryEntry = Readonly<{
+  candidate: ReturnType<Control['candidateForRun']>;
+  wire: string;
+  mediaType: string;
+  value: StoredOriginal['issued'];
+  storedOriginal?: StoredOriginal;
+  captureAuthorityCid: string;
+}>;
+type CaptureFailure = Readonly<{
+  cleanupPending?: boolean;
+  cleanupHandle?: Readonly<{retry(): Readonly<{pending: boolean}> | PromiseLike<Readonly<{pending: boolean}>>}>;
+}> | null | undefined;
+
+export function installRunKeyedContentCapture({moon, publications, control,
+  preparedProgram, preparedEffect, compilation, plan, acquisition, ledger, maxBytes, maxWork = 1000000, store, namespaceId,
+  authorityScopeCid, storeAuthorityCid, principalId, ownerPrincipal, now,
+  authorize, retainExecution, signal, inputAvailable = () => true, sourceBinding}: CaptureSetup) {
+  if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
+    throw new TypeError('InvalidInstalledKeyedContentCapture');
+  }
+  if (preparedEffect === undefined) publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
+  else publications.checkClientCompiledEffectRunOwner(plan.compiled, preparedEffect, compilation);
+  publications.checkClientCompiledRunDefinition(plan.compiled, plan.runDefinition);
+  if (principalId !== ownerPrincipal || store.storeAuthorityCid !== storeAuthorityCid ||
+      typeof retainExecution !== 'function' || typeof inputAvailable !== 'function' ||
+      (preparedEffect === undefined
+        ? moon.clientProgramKeyedAcquisitionMatchesProgram(acquisition, preparedProgram)
+        : moon.clientProgramKeyedAcquisitionMatchesEffectProgram(acquisition, preparedEffect)) !== true) {
+    throw new TypeError('InvalidInstalledKeyedContentCapture');
+  }
+  const definition = JSON.parse(plan.runDefinition.wire) as {valid_until: string};
+  const facts = moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(acquisition);
+  if (!runtimeIsOk(facts) || (runtimeField(facts, 0) as SourceFacts).length !== 6) {
+    throw new TypeError('InstalledKeyedContentSourceUnavailable');
+  }
+  const source = runtimeField(facts, 0) as SourceFacts;
+  // No Source cardinality is needed to create an empty retained inventory.
+  // Each actual addition grows the SAME workspace before constructing it.
+  let inventoryCount = 0, inventoryWireCapacity = 0n, inventoryWireUnits = 0n, inventoryGrowing = false;
+  const limits = Object.freeze({maxBytes, maxNodes: 256, maxDepth: 32, maxTextUnits: maxBytes});
+  const live = () => !cleaned && cleanupFlight === undefined && signal?.aborted !== true &&
+    inputAvailable() === true &&
+    store.status().closed === false &&
+    Date.parse(now()) < Date.parse(definition.valid_until) && authorize(principalId) === true;
+  let reservation: ReturnType<Control['reserveWorkspace']> | undefined, current: CaptureCustody | undefined,
+    last: InventoryEntry | undefined, flight: Promise<unknown> | undefined, cleanupFlight: Promise<boolean> | undefined,
+    failureCleanup: NonNullable<CaptureFailure>['cleanupHandle'], cleaned = false;
+  let inventoryReady = true, inventoryFlight: Promise<void> | undefined;
+  const inventory = new Map<string, InventoryEntry>();
+  const contentReaders: Readers = new Set();
+  const ensureInventoryCapacity = (count: number, wireUnits: bigint) => {
+    if (!Number.isSafeInteger(count) || count < 0 || count > 2147483647 || typeof wireUnits !== 'bigint' || wireUnits < 0n ||
+        wireUnits > BigInt(count) * BigInt(maxBytes) || inventoryGrowing) {
+      throw new TypeError('InvalidInstalledContentInventoryCapacity');
+    }
+    if (count <= inventoryCount && wireUnits <= inventoryWireCapacity) return;
+    if (!live() || reservation === undefined) throw new Error('InstalledContentAuthorityUnavailable');
+    const original = reservation;
+    inventoryGrowing = true;
+    try {
+      const nextCount = Math.max(count, inventoryCount);
+      const nextUnits = wireUnits > inventoryWireCapacity ? wireUnits : inventoryWireCapacity;
+      control.growWorkspace(ledger, original, maxBytes, nextCount, nextUnits);
+      // A successful debit remains owned even if its current callback began
+      // cleanup. Never expose a new inventory entry after that state change.
+      inventoryCount = nextCount; inventoryWireCapacity = nextUnits;
+      if (reservation !== original || !live()) throw new Error('InstalledContentAuthorityUnavailable');
+    } finally { inventoryGrowing = false; }
+  };
+  const checkInventoryRoom = (wire: string) => {
+    const nextUnits = inventoryWireUnits + (inventory.has(wire) ? 0n : BigInt(wire.length));
+    if ((!inventory.has(wire) && inventory.size >= inventoryCount) || nextUnits > inventoryWireCapacity) {
+      throw new TypeError('InstalledContentInventoryLimit');
+    }
+  };
+  const remember = (entry: InventoryEntry) => {
+    const prior = inventory.get(entry.wire);
+    if (prior !== undefined && prior.captureAuthorityCid !== entry.captureAuthorityCid) {
+      throw new TypeError('InstalledContentInventoryChanged');
+    }
+    checkInventoryRoom(entry.wire);
+    if (prior === undefined) inventoryWireUnits += BigInt(entry.wire.length);
+    inventory.set(entry.wire, entry);
+    last = entry;
+  };
+  const releaseCurrent = async () => {
+    if (current?.holding !== undefined && current?.prepared?.status().pending === true) {
+      // A failed holding ACK may leave its exact record installed. Confirm it
+      // through the same Store before releasing bytes or the original frame;
+      // cleanup does not re-capture, issue authority, or create an absent holding.
+      const observed = await store.inspectPhysicalHolding(current.holding.holding_cid);
+      if (observed !== undefined) await store.commitPhysicalHolding(current.holding, []);
+    }
+    if (current?.prepared?.status().pending === true) await current.prepared.release();
+    if (current?.prepared?.status().pending === true) return false;
+    if (current?.writer !== undefined) {
+      await current.writer.cancel();
+      const status = current.writer.status();
+      if (status.reservationHeld || status.custodyPending || status.cleanupPending) return false;
+    }
+    current = undefined;
+    return true;
+  };
+  const cleanup = () => {
+    if (cleaned) return Promise.resolve(true);
+    if (cleanupFlight !== undefined) return cleanupFlight;
+    let operation: Promise<boolean>;
+    operation = (async () => {
+      if (!await closeStoredContentReaders(contentReaders)) return false;
+      if (inventoryFlight !== undefined) await inventoryFlight.catch(() => {});
+      if (flight !== undefined) await flight.catch(() => {});
+      if (failureCleanup !== undefined) {
+        if ((await failureCleanup.retry()).pending) return false;
+        failureCleanup = undefined;
+      }
+      if (!await releaseCurrent()) return false;
+      // Committed Content has its own original declared lifetime and Store
+      // quota. Temporary Source close is not permission to retire those bytes.
+      last = undefined;
+      inventory.clear(); inventoryWireUnits = 0n;
+      if (reservation !== undefined) control.releaseWorkspace(ledger, reservation);
+      reservation = undefined;
+      cleaned = true;
+      return true;
+    })().finally(() => { if (cleanupFlight === operation) cleanupFlight = undefined; });
+    cleanupFlight = operation;
+    return operation;
+  };
+  retainExecution(Object.freeze({close: cleanup, cleanup, cleanupPending: () => !cleaned}));
+  // Retain the cleanup composition before reserving or allocating any child.
+  reservation = control.reserveWorkspace(ledger, maxBytes, inventoryCount);
+  if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
+  const referenceIssuer = control.reissuer((media, wire) => {
+    const original = inventory.get(wire);
+    return inventoryReady && original !== undefined && live() &&
+      (media === undefined || media === original.mediaType) ? original.value : undefined;
+  });
+  const selectionCurrent = () => inventoryReady && !inventoryGrowing && !cleaned && cleanupFlight === undefined &&
+    flight === undefined && inventoryFlight === undefined;
+  // Select an already issued original, not a reference reconstructed from wire
+  // or a caller-provided matching predicate. Nonmatching references short-circuit
+  // in Common before its bounded current/field checks. The existing inventory
+  // count bounds this scan without allocating a second reference index.
+  const selectedForContent = (binding: unknown) => {
+    if (binding === undefined || !selectionCurrent() || !live() ||
+        !selectionCurrent() ||
+        typeof moon.clientProgramEffectCommandContentMatchesIssued !== 'function') return undefined;
+    let remaining = inventoryCount;
+    for (const original of inventory.values()) {
+      if (remaining-- <= 0) return undefined;
+      const matched = moon.clientProgramEffectCommandContentMatchesIssued(binding, original.value);
+      // Common invokes Host currentness callbacks. They may begin cleanup or
+      // replace this inventory; their prior true return is not a handoff fence.
+      if (!selectionCurrent() || !live() || !selectionCurrent()) return undefined;
+      if (matched === true && inventory.get(original.wire) === original) return original;
+    }
+    return undefined;
+  };
+  const issuedForContent = (binding: unknown) => selectedForContent(binding)?.value;
+  // The same Source supplies this exact stored binding only after the typed
+  // original match. Exposed facts contain no Store/path/key, byte buffer or
+  // allocation. An escaped/copy record cannot replace the live entry check.
+  const storageForContent = (binding: unknown) => selectedForContent(binding)?.storedOriginal;
+  const storageCurrentForContent = (stored: StoredOriginal | undefined, binding: unknown) => stored !== undefined &&
+    selectedForContent(binding)?.storedOriginal === stored;
+  const bindingFor = (captureAuthorityCid: string) => {
+    const policy = originalLocalContentStoragePolicy({storeAuthorityCid, authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity, expiresAt: definition.valid_until});
+    return {content_store_id: namespaceId,
+      content_store_cid: storeAuthorityCid, workspace_scope_cid: authorityScopeCid,
+      storage_scope:'workspace', retention_class:'local-content', expires_at:definition.valid_until,
+      availability_evidence_cid:policy.availabilityEvidenceCid,
+      effective_data_policy_cid:source[3], data_classification:source[4],
+      issuer_contract_cid:policy.issuerContractCid, capture_authority_cid:captureAuthorityCid};
+  };
+  const capture = (options: CaptureInput) => {
+    if (!inventoryReady || inventoryGrowing || cleaned || cleanupFlight !== undefined || flight !== undefined || inventoryFlight !== undefined ||
+        options.keyedAcquisition !== acquisition || typeof options.verifyRead !== 'function') {
+      throw new TypeError('InstalledKeyedContentCaptureMismatch');
+    }
+    let operation: Promise<unknown>;
+    operation = (async () => {
+      signal?.throwIfAborted();
+      options.signal?.throwIfAborted();
+      await options.verifyRead();
+      if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
+      if (!await releaseCurrent()) throw new Error('CapturedContentCleanupPending');
+      last = undefined;
+      // The original reserved frame already covers this one bounded candidate
+      // and its measurement. Fund its persistent inventory before issuance,
+      // physical Store construction or the next retained entry is built.
+      const binding = bindingFor(options.readSubjectCid);
+      const candidate = control.candidateForRun(plan.compiled, plan.runDefinition,
+        acquisition, options.request, binding,
+        {mediaType: options.mediaType, contentCid: options.contentCid,
+          sizeBytes: options.bytes?.byteLength}, limits);
+      const description = control.inspect(candidate);
+      ensureInventoryCapacity(inventory.size + (inventory.has(description.wire) ? 0 : 1),
+        inventoryWireUnits + (inventory.has(description.wire) ? 0n : BigInt(description.wire.length)));
+      checkInventoryRoom(description.wire);
+      current = {};
+      let storedOriginal: StoredOriginal | undefined;
+      const retained = await retainCapturedContent({store, control, candidate,
+        bytes: options.bytes, holdingCid: control.holdingCid(candidate),
+        workspaceScopeCid: authorityScopeCid, effectiveDataPolicyCid: source[3],
+        available: live, authorize: live, limits, signal: options.signal,
+        retainCustody: handles => { Object.assign(current!, handles); },
+        retainOriginal: original => {
+          storedOriginal = original;
+          current!.storedOriginal = original;
+        }});
+      await options.verifyRead();
+      signal?.throwIfAborted();
+      options.signal?.throwIfAborted();
+      if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
+      if (!await releaseCurrent()) throw new Error('CapturedContentCleanupPending');
+      remember(Object.freeze({candidate, wire: retained.wire, mediaType: description.mediaType,
+        value: retained.value, storedOriginal, captureAuthorityCid: options.readSubjectCid}));
+      return JSON.parse(retained.wire) as unknown;
+    })().catch((error: CaptureFailure) => {
+      if (error?.cleanupPending === true && error.cleanupHandle !== undefined) {
+        failureCleanup = error.cleanupHandle;
+      }
+      throw error;
+    }).finally(() => { if (flight === operation) flight = undefined; });
+    flight = operation;
+    return operation;
+  };
+  // The caller supplies this entry only from authenticated original inventory.
+  // This operation borrows the same frame/reservation and Store: it cannot send
+  // a provider request, synthesize completion, renew expiry or retire bytes.
+  const recover = (options: RecoveryInput, ownedInventory = false) => {
+    if (inventoryGrowing || cleaned || cleanupFlight !== undefined || flight !== undefined ||
+        inventoryFlight !== undefined && !ownedInventory ||
+        options.keyedAcquisition !== acquisition || typeof options.verifyRead !== 'function' ||
+        typeof options.referenceWire !== 'string' || typeof options.captureAuthorityCid !== 'string') {
+      throw new TypeError('InstalledKeyedContentRecoveryMismatch');
+    }
+    let operation: Promise<unknown>;
+    operation = (async () => {
+      signal?.throwIfAborted();
+      await options.verifyRead();
+      signal?.throwIfAborted();
+      if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
+      if (!await releaseCurrent()) throw new Error('CapturedContentCleanupPending');
+      last = undefined;
+      // Saved wire is borrowed DATA. Bound its complete original extent before
+      // parsing/restoring a candidate in the same already reserved frame.
+      if (Buffer.byteLength(options.referenceWire) > maxBytes) throw new TypeError('InstalledKeyedContentRecoveryMismatch');
+      ensureInventoryCapacity(inventory.size + (inventory.has(options.referenceWire) ? 0 : 1),
+        inventoryWireUnits + (inventory.has(options.referenceWire) ? 0n : BigInt(options.referenceWire.length)));
+      const candidate = control.recoveryCandidateForRun(plan.compiled, plan.runDefinition,
+        acquisition, options.referenceWire, bindingFor(options.captureAuthorityCid), limits);
+      const description = control.inspect(candidate);
+      checkInventoryRoom(description.wire);
+      let storedOriginal: StoredOriginal | undefined;
+      const value = await issueStoredCapturedContent({store, control, candidate,
+        holdingCid: control.holdingCid(candidate), workspaceScopeCid: authorityScopeCid,
+        effectiveDataPolicyCid: source[3], available: live, authorize: live, limits,
+        retainOriginal: original => { storedOriginal = original; }});
+      await options.verifyRead();
+      signal?.throwIfAborted();
+      if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
+      remember(Object.freeze({candidate, wire: description.wire, mediaType: description.mediaType,
+        value, storedOriginal, captureAuthorityCid: options.captureAuthorityCid}));
+      return JSON.parse(description.wire) as unknown;
+    })().finally(() => { if (flight === operation) flight = undefined; });
+    flight = operation;
+    return operation;
+  };
+  const recoverInventory = (options: Verification & Readonly<{inventory: unknown}>) => {
+    const original = options.inventory;
+    const closed = (item: unknown, keys: string): item is Record<string, unknown> => item !== null && typeof item === 'object' &&
+      !Array.isArray(item) && Object.keys(item).sort().join(',') === keys;
+    if (inventoryGrowing || cleaned || cleanupFlight !== undefined || flight !== undefined || inventoryFlight !== undefined ||
+        options.keyedAcquisition !== acquisition || typeof options.verifyRead !== 'function' ||
+        !closed(original, 'entries,runDefinitionCid,version') ||
+        original.version !== 'actql-installed-captured-content-inventory/0.1' ||
+        original.runDefinitionCid !== plan.runDefinition.identity ||
+        !Array.isArray(original.entries) || original.entries.length > 2147483647) {
+      throw new TypeError('InstalledKeyedContentInventoryMismatch');
+    }
+    // Count borrowed originals without building a second collection. The
+    // existing frame covers this bounded preflight. Old inventory + snapshot,
+    // then restored inventory + snapshot, coexist under this SAME reservation.
+    const entriesOriginal = original.entries as readonly unknown[], count = entriesOriginal.length;
+    let units = 0n;
+    for (let index = 0; index < count; index++) {
+      const entry = entriesOriginal[index];
+      if (!closed(entry, 'captureAuthorityCid,referenceWire')) throw new TypeError('InstalledKeyedContentInventoryMismatch');
+      const referenceWire = entry.referenceWire, captureAuthorityCid = entry.captureAuthorityCid;
+      if (typeof referenceWire !== 'string' || Buffer.byteLength(referenceWire) > maxBytes ||
+          typeof captureAuthorityCid !== 'string' || captureAuthorityCid.length > maxBytes) {
+        throw new TypeError('InstalledKeyedContentInventoryMismatch');
+      }
+      units += BigInt(referenceWire.length);
+    }
+    if (original.entries !== entriesOriginal || entriesOriginal.length !== count) {
+      throw new TypeError('InstalledKeyedContentInventoryMismatch');
+    }
+    const receivingCount = Math.max(inventory.size + count, 2 * count);
+    const receivingUnits = inventoryWireUnits + units > 2n * units ? inventoryWireUnits + units : 2n * units;
+    ensureInventoryCapacity(receivingCount, receivingUnits);
+    if (original.entries !== entriesOriginal || entriesOriginal.length !== count ||
+        original.version !== 'actql-installed-captured-content-inventory/0.1' ||
+        original.runDefinitionCid !== plan.runDefinition.identity) {
+      throw new TypeError('InstalledKeyedContentInventoryMismatch');
+    }
+    const seen = new Set<string>(), entries: RecoveryEntry[] = [];
+    let copiedUnits = 0n;
+    for (let index = 0; index < count; index++) {
+      const entry = entriesOriginal[index];
+      if (!closed(entry, 'captureAuthorityCid,referenceWire')) throw new TypeError('InstalledKeyedContentInventoryMismatch');
+      const referenceWire = entry.referenceWire, captureAuthorityCid = entry.captureAuthorityCid;
+      if (typeof referenceWire !== 'string' || Buffer.byteLength(referenceWire) > maxBytes ||
+          typeof captureAuthorityCid !== 'string' || captureAuthorityCid.length > maxBytes || seen.has(referenceWire)) {
+        throw new TypeError('InstalledKeyedContentInventoryMismatch');
+      }
+      copiedUnits += BigInt(referenceWire.length);
+      if (copiedUnits > units) throw new TypeError('InstalledKeyedContentInventoryMismatch');
+      seen.add(referenceWire);
+      entries.push(Object.freeze({referenceWire, captureAuthorityCid}));
+    }
+    if (copiedUnits !== units || original.entries !== entriesOriginal || entriesOriginal.length !== count) {
+      throw new TypeError('InstalledKeyedContentInventoryMismatch');
+    }
+    const verifyRead = options.verifyRead;
+    // One receiving frame confirms the full original inventory before its
+    // issuer becomes usable. A failed batch keeps custody but exposes no
+    // partial restored authority; an explicit retry confirms saved bytes only.
+    inventoryReady = false;
+    inventory.clear(); inventoryWireUnits = 0n;
+    last = undefined;
+    let operation: Promise<void>;
+    operation = (async () => {
+      await verifyRead();
+      signal?.throwIfAborted();
+      if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
+      for (const entry of entries) {
+        await recover({...entry, keyedAcquisition: acquisition, verifyRead}, true);
+      }
+      await verifyRead();
+      signal?.throwIfAborted();
+      if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
+      inventoryReady = true;
+    })().finally(() => { if (inventoryFlight === operation) inventoryFlight = undefined; });
+    inventoryFlight = operation;
+    return operation;
+  };
+  return Object.freeze({capture, recover: (options: RecoveryInput) => recover(options), recoverInventory, referenceIssuer,
+    issuedForContent, storageForContent, storageCurrentForContent,
+    consumeContent(binding: unknown, accept: Consumption['accept']) {
+      const original = storageForContent(binding);
+      if (original === undefined) throw new Error('OriginalEffectContentUnavailable');
+      return consumeStoredContentOriginal({store, original, readers: contentReaders, accept,
+        assertCurrent() {
+          if (!storageCurrentForContent(original, binding)) throw new Error('OriginalEffectContentUnavailable');
+        }});
+    },
+    sourceBinding,
+    recoveryInventory: () => !inventoryReady || !live() || cleaned || flight !== undefined ||
+        inventoryFlight !== undefined ? undefined : Object.freeze({
+      version: 'actql-installed-captured-content-inventory/0.1',
+      runDefinitionCid: plan.runDefinition.identity,
+      entries: Object.freeze([...inventory.values()].map(entry => Object.freeze({
+        referenceWire: entry.wire, captureAuthorityCid: entry.captureAuthorityCid}))),
+    }),
+    recovery: () => !inventoryReady || last === undefined || !live() ? undefined : Object.freeze({
+      referenceWire: last.wire, captureAuthorityCid: last.captureAuthorityCid}),
+  });
+}

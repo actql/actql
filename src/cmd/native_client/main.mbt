@@ -1067,7 +1067,7 @@ fn command() -> @argparse.Command {
         flags=[
           @argparse.FlagArg(
             "explanation-json",
-            about="Read the structural Explanation for a Local Effect Program as JSON",
+            about="Read the structural Explanation for a Local Program as JSON",
           ),
           @argparse.FlagArg(
             "verbose",
@@ -1088,7 +1088,7 @@ fn command() -> @argparse.Command {
         options=[
           @argparse.OptionArg(
             "explanation-language",
-            about="Read the structural Explanation for a Local Effect Program in en or ja",
+            about="Read the structural Explanation for a Local Program in en or ja",
           ),
           @argparse.OptionArg("program-file", about="Path to a Program file", conflicts_with=[
             "program", "run",

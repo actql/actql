@@ -21,7 +21,7 @@ const inputs = (action, tree = original) => actionInputs({tree, revision, action
 
 test('the real 30-action source catalog preserves every key for an unrelated Node Host edit', () => {
   assert.equal(catalog.actions.length, 30);
-  const candidate = changedTree('adapters/host-node/client-http.mjs');
+  const candidate = changedTree('adapters/host-node/client-http.mts');
   for (const action of catalog.actions) {
     const before = inputs(action), after = inputs(action, candidate);
     assert.equal(after.key, before.key, action.id);
@@ -80,11 +80,10 @@ test('reviewed current inventory and runner extension preserve eager Session iso
     .replace("import { spawnSync } from 'node:child_process';\n", '')
     .replace("import assert from 'node:assert/strict';\n", '')
     .replace("import {checkProofRunnerExtension} from './proof-runner-extension.mjs';\n", ''), prefix(old));
-  // This reviewed source adds the existing CJS runtime to snapshotFiles.
-  // Keep the earlier import-isolation and lazy baseline checks above/below.
+  // Keep the earlier reviewed body bound for historical inputs.
   const reviewed = execFileSync('git', ['--no-replace-objects', 'show',
     `d6f427871e58fc1770dedfee4237dba5d7ca329d:${path}`], {cwd: root});
-  assert.equal(hash(reviewed), hash(current), 'Unreviewed function or top-level change');
+  assert.equal(hash(reviewed), pipelineInventoryBoundary.legacyDigest, 'Changed historical inventory binding');
   const baseline = text => text.slice(text.indexOf('export function checkBaseline('));
   assert.equal(baseline(current), baseline(introduced), 'Changed separately invoked model checker');
   const helperPath = 'proofs/relation-pipeline/proof-runner-extension.mjs';

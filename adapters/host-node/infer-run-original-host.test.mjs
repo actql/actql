@@ -7,6 +7,7 @@ import {pathToFileURL} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-managed.mjs';
 import {restoreInferTaskRunAdmission} from './local-values-plan.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -24,14 +25,15 @@ const bounds = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000, maxDepth:
 const cid = value => 'sha256:' + value.repeat(64);
 const policyWire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
 
-function original(parameters = null) {
+async function original(t, parameters = null) {
   const installation = configuration(base);
   const environment = moon.clientProgramCheckEnvironment(installation.environmentWire,
     JSON.parse(installation.environmentWire).evidence_bundle_cid, ...profiles);
   assert.ok(environment);
-  const prepare = installNodeClientProgramPreparation({moon, environment});
-  const prepared = prepare({kind: 'program', input: program, parameters});
-  return compileOriginal(prepare, prepared, environment, installation);
+  const funded = await openFundedClientPreparation({moon, environment});
+  t.after(funded.close);
+  const prepared = await funded.prepare({kind: 'program', input: program, parameters});
+  return compileOriginal(funded.prepare, prepared, environment, installation);
 }
 
 function compileOriginal(prepare, prepared, environment, installation) {
@@ -56,25 +58,39 @@ function compileOriginal(prepare, prepared, environment, installation) {
   return {prepare, prepared, inputs, environment, compiled, definition, request, evidence, graph, materials, restore};
 }
 
-test('Host preparation retains exact admitted Environment and original serialized Parameter Values once', () => {
+test('Host preparation retains exact admitted Environment and original serialized Parameter Values once', async t => {
   const parameters = {};
-  const value = original(parameters);
+  const value = await original(t, parameters);
   parameters.changedAfterPreparation = true;
   assert.strictEqual(value.inputs.environment, value.environment);
-  assert.equal(value.inputs.parameters, '{}');
+  assert.equal(value.inputs.parameters, undefined);
+  assert.ok(value.inputs.parametersCursor);
   assert.ok(Object.isFrozen(value.inputs));
   assert.strictEqual(value.prepare.originalInputs(value.prepared), value.inputs);
+  const retained = moon.clientProgramRequestIdentity(value.prepared, cid('c'), 'original-request',
+    moon.clientProgramSourceFreeInputIntentCid());
+  assert.ok(retained);
+  const expectedValues = identity({values: {}, version: 'actql-parameter-values/0.1'});
+  assert.equal(moon.clientRequestParametersCid(value.request), expectedValues);
+  assert.equal(moon.clientRequestParametersCid(retained), expectedValues);
   assert.throws(() => value.prepare.originalInputs({...value.prepared}), {code: 'ClientProgramPreparationFailure'});
 });
 
-test('restored Host preparation uses saved Task materials even when current Environment has no such Task', () => {
-  const value = original();
+test('restored Host preparation uses saved Task materials even when current Environment has no such Task', async t => {
+  const value = await original(t);
   const current = moon.clientProgramCheckEnvironment(JSON.stringify(base), base.evidence_bundle_cid, ...profiles);
   assert.ok(current);
-  const prepare = installNodeClientProgramPreparation({moon, environment: current,
-    restoreInferOriginal: (materials, definition, request, evidence) =>
-      control.admitStoredClientInferRunOriginal(materials, definition, request, evidence, profiles, bounds)});
-  assert.throws(() => prepare({kind: 'program', input: program, parameters: null}));
+  const funded = await openFundedClientPreparation({moon, environment: current, preparationPorts: {
+    prepareOrdinarySourceManagedInstallation,
+    installNodeClientProgramPreparation(options) {
+      return installNodeClientProgramPreparation({...options,
+        restoreInferOriginal: (materials, definition, request, evidence) =>
+          control.admitStoredClientInferRunOriginal(materials, definition, request, evidence, profiles, bounds)});
+    },
+  }});
+  t.after(funded.close);
+  const {prepare} = funded;
+  await assert.rejects(() => prepare({kind: 'program', input: program, parameters: null}));
   const prepared = prepare.restoreInferOriginal(value.materials, value.definition, value.request, value.evidence);
   prepare.assertOwned(prepared);
   assert.equal(prepare.kindOf(prepared), 'effect_free');
@@ -88,8 +104,8 @@ test('restored Host preparation uses saved Task materials even when current Envi
   assert.throws(() => prepare.originalInputs(prepared), {code: 'ClientProgramPreparationFailure'});
 });
 
-test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation', () => {
-  const value = original(), other = original();
+test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation', async t => {
+  const value = await original(t), other = await original(t);
   const selected = control.checkedClientCompiledInferOriginal(value.compiled, value.prepared, value.definition);
   assert.strictEqual(selected.graph, value.graph);
   assert.throws(() => control.checkedClientCompiledInferOriginal(value.compiled, other.prepared, value.definition), /Foreign/u);
@@ -122,8 +138,8 @@ test('actual Common boxed plural originals retain fresh and restored compiler me
   }
 });
 
-test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers', () => {
-  const value = original(), restored = value.restore();
+test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers', async t => {
+  const value = await original(t), restored = value.restore();
   let issued = 0;
   const observed = Object.freeze({...control,
     prepareCheckedClientCompiledRun() {issued++; throw new Error('UnexpectedNewCompilation');},
@@ -139,8 +155,8 @@ test('restored Infer plan retains original Run and never calls fresh compilation
   assert.equal(originalModelRunWire(plan.compiled, plan.runDefinition), value.evidence.modelOriginalRunWire);
 });
 
-test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution', () => {
-  const value = original(), restored = value.restore(), other = value.restore();
+test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution', async t => {
+  const value = await original(t), restored = value.restore(), other = value.restore();
   assert.notStrictEqual(restored.graph, other.graph);
   assert.throws(() => restoreInferTaskRunAdmission({control, preparedProgram: value.prepared, restored}), /Foreign/u);
   assert.throws(() => restoreInferTaskRunAdmission({control, preparedProgram: restored.prepared,

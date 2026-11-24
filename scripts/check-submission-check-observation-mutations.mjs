@@ -17,7 +17,7 @@ const mutations = [
       'program-preparation-observation'))},
   {name: 'reference-only lookup acquires original input observation',
     path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
-    from: 'if (!projectsProblem && originalObservation === undefined) return outcome;',
+    from: "if (!projectsProblem && originalObservation === undefined)\n            return outcome;",
     to: `if (!projectsProblem && originalObservation === undefined) {
       const intent = immutable(JSON.parse(retained.intentWire));
       if (!supportsCheckObservation(intent)) return outcome;
@@ -43,7 +43,7 @@ const mutations = [
       `missing submission requirements bind pre-await declarations without changing ${phase}`,
       'submission-missing-requirement', 'deepStrictEqual'))},
   {name: 'submission check accepts input metadata without original byte binding', path: sdk, file: tests,
-    from: '!bindCheckObservation(checkObservation, {kind: body.kind, input: body.input, parameters: body.parameters})',
+    from: "!bindCheckObservation(checkObservation, { kind: body.kind, input: body.input, parameters: body.parameters })",
     to: 'false',
     targets: ['wrong original byte length', 'split UTF-8 scalar'].map(fault => target(
       `submission check refuses ${fault} without acquiring report custody`, 'submission-check-binding'))},
@@ -85,7 +85,7 @@ const mutations = [
 mutations.push(
   {name: 'Program pointer loses its original node', path: 'packages/sdk/internal/check-observation.mjs',
     file: 'packages/sdk/structured-program-check-observations.test.mjs',
-    from: 'return Object.freeze({...location, input: original});',
+    from: "return Object.freeze({ ...location, input: original });",
     to: "return Object.freeze({...location, pointer: '', input: original});",
     targets: phases.map(phase => target(
       `structured Program original snapshot and Unicode pointer survive ${phase}`, 'program-pointer'))},
@@ -97,7 +97,7 @@ mutations.push(
       `${entrance}: structured Program supplied violations coexist with missing declarations`, 'program-mixed-verdict'))},
   {name: 'Program protected Source cause escapes through the original Problem',
     path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission-input.test.mjs',
-    from: "if (projectsProblem && intent.kind === 'program' && observed?.coverage.unresolved.length > 0) disclosable = false;",
+    from: "if (projectsProblem && intent.kind === 'program' && observed?.coverage.unresolved.length > 0)\n                disclosable = false;",
     to: 'void observed;',
     targets: ['local', 'https'].map(entrance => target(
       `${entrance}: structured Program protected Sources retain only independent public obligations`,

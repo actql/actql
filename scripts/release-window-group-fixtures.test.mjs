@@ -84,7 +84,11 @@ test('JSON window controls retain the adopted exclusive scan/filter/select captu
     'spec/contracts/actql-query-acquisition.json'), 'utf8'));
   assert.equal(contract.scope, 'exclusive_finite_relation_scan_filter_select');
   assert.equal(successes.length, originalSuccesses.length);
-  assert.deepEqual(refusals, originalRefusals);
+  // The current refusal distinguishes unresolved ordering from invalid input.
+  assert.deepEqual(refusals, originalRefusals.map(original =>
+    original.name === 'window-group-unresolved-order'
+      ? {...original, expectedCode: 'ClientProgramOrderUnresolved'}
+      : original));
   for (const [index, current] of successes.entries()) {
     const original = originalSuccesses[index];
     if (current.format !== 'json') {

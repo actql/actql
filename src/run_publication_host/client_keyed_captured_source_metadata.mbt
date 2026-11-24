@@ -196,7 +196,7 @@ fn bind_client_keyed_captured_source_metadata(
     7L,
     max_nodes,
     max_depth,
-    fn() {
+    fn(_) {
       guard !lookup.closed &&
         lookup.left.lookup_issue is None &&
         lookup.planned_requests is None &&

@@ -30,7 +30,7 @@ test('COUNTIF fixtures retain FALSE, NULL, duplicate occurrences and empty-frame
 
 test('ordinary packed corpus includes COUNTIF and narrow acceptance excludes unrelated campaigns', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'analyticCountifSuccesses'],
     ['refusals', 'analyticCountifRefusals'], ['executionFailures', 'analyticCountifExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

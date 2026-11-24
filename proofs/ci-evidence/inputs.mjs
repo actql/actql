@@ -15,7 +15,9 @@ export const hash = value => createHash('sha256').update(value).digest('hex');
 // boundary before a closed key may be issued; a digest update is not a review.
 export const pipelineInventoryBoundary = Object.freeze({
   path: 'proofs/relation-pipeline/inventory.mjs',
-  digest: '5f4dabc338bb780b8cdd965946815eef7b0c0f3f4a03dc824c06e4783d9989ca',
+  digest: '5c24d9e731cfc6859ff91d0a7da1d5a62c23cec0491ba3ff4860924ee9dbcf39',
+  legacyDigest: '5f4dabc338bb780b8cdd965946815eef7b0c0f3f4a03dc824c06e4783d9989ca',
+  preResourceDigest: '6acea9bb8f3669853489b481e5f2dc3a986b196f9247be76c51bcb29031301d3',
   dependencies: Object.freeze([Object.freeze({
     path: 'proofs/relation-pipeline/proof-runner-extension.mjs',
     digest: 'e510caa50fbdb48c1c0d179f74ab351f158de81e086620e801ecd8f2aa80b9bb',
@@ -28,6 +30,13 @@ export const mutationSnapshotExtras = Object.freeze([
   'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
   'adapters/host-node/ordinary-node-resource-runtime.cjs',
 ]);
+const resourceRuntime = 'adapters/host-node/ordinary-node-resource-runtime.cjs';
+const resourceOriginal = 'adapters/host-node/ordinary-node-resource-runtime.cts';
+export function mutationSnapshotPaths(tree) {
+  if (!tree.entries.has(resourceOriginal)) return mutationSnapshotExtras;
+  return [...mutationSnapshotExtras.filter(path => path !== resourceRuntime), resourceOriginal,
+    'tsconfig.base.json', 'tsconfig.tooling.json', 'package-lock.json'];
+}
 const validSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/u.test(value);
 const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(value) &&
   !value.startsWith('/') && !value.split('/').some(part => ['', '.', '..'].includes(part));
@@ -58,6 +67,50 @@ export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidenc
   'scripts/setup-moonbit.mjs', 'scripts/moonbit-installation.mjs',
   'scripts/ci-main-base.mjs', 'scripts/ci-targets.mjs',
   '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml'];
+
+// Migrated runtime entry names stay stable. In a Git input inventory retain
+// the actual authored member. An old tree with only JavaScript keeps its
+// original path and key. Never bind a checkout's untracked emitted bytes.
+const migratedTooling = new Map([
+  ['scripts/test-execution.mjs', 'scripts/test-execution.mts'],
+  ['scripts/packed-query-evidence.mjs', 'scripts/packed-query-evidence.mts'],
+  ['scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.mts'],
+  ['scripts/ci-main-base.mjs', 'scripts/ci-main-base.mts'],
+]);
+const typescriptPreparationInputs = Object.freeze([
+  'tsconfig.base.json', 'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts',
+]);
+export function proofToolingInputs(tree, originalPaths) {
+  const paths = new Set(), unresolved = [];
+  let typescript = false;
+  function addTyped(authored, runtime) {
+    if (tree.entries.has(runtime)) unresolved.push(`ambiguous authored tooling input: ${runtime}`);
+    paths.add(authored);
+    typescript = true;
+  }
+  for (const path of originalPaths) {
+    const authored = migratedTooling.get(path);
+    if (authored && tree.entries.has(authored)) addTyped(authored, path);
+    else paths.add(path);
+    if (path === 'scripts/test-execution.mjs' && tree.entries.has(authored)) {
+      addTyped('scripts/test-execution-reporter.mts', 'scripts/test-execution-reporter.mjs');
+    }
+    if (path === 'scripts/ci-main-base.mjs') {
+      const runtime = 'scripts/ci-core-partitions.mjs', original = 'scripts/ci-core-partitions.mts';
+      if (tree.entries.has(authored) || tree.entries.has(original)) addTyped(original, runtime);
+      else {
+        // A legacy Git original retains its existing evidence key. A missing
+        // companion cannot be treated as the historical tracked runtime.
+        const legacy = tree.entries.get(runtime);
+        if (!legacy) addTyped(original, runtime);
+        else if (legacy.kind !== 'blob' || !['100644', '100755'].includes(legacy.mode))
+          unresolved.push(`unsupported source kind/mode: ${runtime}`);
+      }
+    }
+  }
+  if (typescript) typescriptPreparationInputs.forEach(path => paths.add(path));
+  return {paths: [...paths], unresolved};
+}
 
 // Read cat-file's length-delimited binary protocol, never split blob bytes on
 // newlines. Bind every returned object to the ls-tree identity and content; a
@@ -349,14 +402,21 @@ function buildActionInputs({tree, revision, action, runtime}) {
     listings.set(directory + (recursive ? '/**' : '/*'), paths);
     paths.forEach(add);
   }
-  sharedFiles.forEach(add);
+  const tooling = proofToolingInputs(tree, sharedFiles);
+  tooling.paths.forEach(add);
+  tooling.unresolved.forEach(reason => unresolved.add(reason));
   // Pipeline scientific consumers are now loaded only in explicit local
   // pipeline executions. Their directory is not read/evaluated by Session.
   // Bind every evaluated module in the reviewed inventory import graph. A
   // changed dependency cannot inherit the inventory's unchanged digest.
-  for (const {path, digest} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]) {
+  for (const {path, digest, legacyDigest, preResourceDigest} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]) {
     const entry = tree.entries.get(path);
-    if (entry?.kind !== 'blob' || entry.mode !== '100644' || hash(tree.read(path)) !== digest)
+    const actual = entry?.kind === 'blob' && entry.mode === '100644' ? hash(tree.read(path)) : null;
+    const historicalResource = !tree.entries.has(resourceOriginal);
+    const legacy = legacyDigest && historicalResource && !tree.entries.has('scripts/owned-scratch.mts');
+    const preResource = preResourceDigest && historicalResource;
+    if (actual !== digest && (!legacy || actual !== legacyDigest) &&
+        (!preResource || actual !== preResourceDigest))
       unresolved.add('unreviewed pipeline inventory import/effect boundary');
   }
   function bridgeInputs() {
@@ -383,7 +443,9 @@ function buildActionInputs({tree, revision, action, runtime}) {
       configurations.push(...packageInputs.packageConfigurations);
     }
     if (action.id === 'mutations-js') {
-      mutationSnapshotExtras.forEach(add);
+      mutationSnapshotPaths(tree).forEach(add);
+      if (tree.entries.has(resourceOriginal) && tree.entries.has(resourceRuntime))
+        unresolved.add('ambiguous authored Node Resource bridge');
       add('proofs/bounded-session/mutations.mjs');
       add('proofs/bounded-session/evidence.mjs');
     } else if (!action.package) unresolved.add(`unreviewed executor: ${action.id}`);

@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "main": "./index.mjs",
-  "types": "./index.d.ts",
+  "types": "./index.d.mts",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
+      "types": "./index.d.mts",
       "default": "./index.mjs"
     },
     "./result-access": {
-      "types": "./result-access.d.ts",
+      "types": "./result-access-public.d.mts",
       "default": "./result-access-public.mjs"
     },
     "./observation": {
@@ -32,8 +32,8 @@
     }
   },
   "dependencies": {"@actql/client-wire": "0.0.0-development"},
-  "files": ["compiler-binding.generated.mjs", "index.mjs", "index.d.ts", "publication-action.mjs", "result-access.mjs", "result-access-public.mjs",
-    "result-access.d.ts", "result-delivery.mjs", "managed-failure.mjs",
+  "files": ["compiler-binding.generated.mjs", "index.mjs", "index.d.mts", "publication-action.mjs", "result-access.mjs", "result-access-public.mjs",
+    "result-access-public.d.mts", "result-delivery.mjs", "managed-failure.mjs",
     "observation.mjs", "observation.d.ts",
     "checkpoints.mjs", "checkpoints.d.ts", "explanation-narrative.mjs", "explanation-narrative.d.ts",
     "workers-finite.d.ts", "dist/workers_finite.js", "dist/workers_finite_payload.js",

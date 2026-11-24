@@ -56,10 +56,12 @@ async function preparation() {
     read('spec/contracts/actql-aoa.json').then(JSON.parse),
     read('spec/contracts/actql-query-acquisition.json'),
     read('spec/contracts/actql-query-process-evidence.json')]);
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const sequenceContracts = checked(moon.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
   const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(program, 0, 0,
-    registry, JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    sequenceContracts, values, fragment, ordered));
   return checked(moon.clientProgramKintonePrepareRead(original, requirement, query, evidence));
 }
 

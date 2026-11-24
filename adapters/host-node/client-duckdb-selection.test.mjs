@@ -14,14 +14,19 @@ import {capturedDuckDBNativeConfiguration, openCapturedDuckDBSource,
   prepareCapturedDuckDBSource} from './captured-duckdb-source.mjs';
 import * as capturedModule from './captured-duckdb-source.mjs';
 
-const nativeCapability = 'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a';
-const broadCapability = 'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b';
 const text = path => readFile(new URL(path, import.meta.url), 'utf8');
 const contracts = await Promise.all(['actql-query-acquisition.json',
   'actql-query-process-evidence.json', 'actql-query-two-receipt.json']
   .map(name => text(`../../spec/contracts/${name}`)));
+const nativeCapability = contentCid(JSON.parse(contracts[2]));
+const broadCapability = contentCid(JSON.parse(contracts[1]));
 const aoa = JSON.parse(await text('../../spec/contracts/actql-aoa.json'));
 const registry = await text('../../spec/dependencies/aoa-pipeline-registry.json');
+const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+  registry, values, fragment, ordered));
 const program = await text('../connectors/duckdb/node/examples/program.json');
 const parameters = await text('../connectors/duckdb/node/examples/parameters.json');
 const preparedOwners = new WeakMap();
@@ -39,9 +44,7 @@ async function requirement(capabilities = [nativeCapability, broadCapability], d
   const prepared = moon.clientProgramPreparationReady(outcome);
   assert.ok(prepared, String(moon.clientProgramPreparationIssueCode(outcome)));
   const required = checked(moon.clientProgramPrepareLocalQueryRequirement(prepared, 0, 0,
-    registry, JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    installedContracts, values, fragment, ordered));
   preparedOwners.set(required, prepared);
   return required;
 }
@@ -167,10 +170,8 @@ async function sourceOptions(required, observedMoon, outcome) {
         operation: {any_of: ['read']}, exclusions: []}]}),
     context: {principal: 'planner-ordering', contextCid: 'sha256:' + 'c'.repeat(64)},
   });
-  return {moon: observedMoon, preparedProgram: preparedOwners.get(required), registry,
-    values: JSON.stringify(aoa.execution_contracts['REL.values']),
-    fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered']),
+  return {moon: observedMoon, preparedProgram: preparedOwners.get(required), registry: installedContracts,
+    values, fragment, ordered,
     database: '/unopened-fixture.duckdb', schema: 'main', table: 'records',
     sourceAccess: {authorization, sourceRef: 'connector://crm/main/r#v'},
     transportLimits: sourceLimits,

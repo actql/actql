@@ -37,7 +37,7 @@ test('normal and focused public routes retain conditional inputs and existing li
     assert.ok(app.includes('push(...' + name + ')'));
     assert.ok(app.includes('...aggregateSignedOrder' + (name.endsWith('Successes') ? 'Successes' : 'Refusals') + ', ...' + name));
   }
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/aggregate-conditional-order-source-input.mjs', 'aggregate-conditional-order-source-input.mjs']"));
   const groups = publicQueryProfiles({successes, refusals});
   assert.deepEqual(groups.map(group => group.name), ['standard']);

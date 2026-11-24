@@ -8,7 +8,19 @@ import {createInstalledCredentialSourceReader, installedJsonSourceReaderLimitNam
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
 import {startInstalledRowRun} from './installed-row-run.mjs';
+import {createInstalledSourceContextCustody} from './installed-source-context-custody.mjs';
 import {createProcessFrameReader} from './process-frames.mjs';
+
+import {createHash, generateKeyPairSync} from 'node:crypto';
+import {join} from 'node:path';
+import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
+import {beginInstalledSourceInitialization, bindInstalledSourceConstruction, finishInstalledSourceInitialization,
+  installedSourceConfigurationReader, retainInstalledHostServiceInstallation} from './installed-host-services.mjs';
+import {createInstalledConnectorTable, installedConnectorForTable} from './installed-connectors.mjs';
+import {installedConnectors} from '../connectors-builtin/installations.generated.mjs';
+import {createInstalledRowSource, openRowSourceCredentialCustody} from './installed-row-source.mjs';
+import {createInstalledRowSourceAcquisition} from './installed-row-source-acquisition.mjs';
+import {openSqliteCredentialJournal} from '../site-node/sqlite-credential-journal.mjs';
 
 const ok=value=>({$tag:1,_0:value});
 const fail=code=>{throw Object.assign(new Error(code),{code});};
@@ -39,10 +51,12 @@ function serviceFixture(){
     clientProgramInstalledJsonSourceReaderCapacity(actual,columns,secret){
       assert.deepEqual(actual,installedJsonSourceReaderLimitNames.map(name=>limits[name]));
       assert.equal(columns,3);assert.equal(secret,100);return capacity;}};
+  const {requireSourceConstructor}=createInstalledSourceContextCustody({fail,installations,sourceContexts});
   const ports={installations,sourceContexts,fail,checked,runtimeField,runtimeIsBoxedSome,nodeTypes,
-    createInstalledCredentialSourceReader,installedJsonSourceReaderLimitNames,installedJsonSourceReaderProfileLimitNames,
+    requireSourceConstructor,createInstalledCredentialSourceReader,installedJsonSourceReaderLimitNames,
+    installedJsonSourceReaderProfileLimitNames,
     installedRowCredentialOperationSite(actual){assert.equal(actual,credential);return originalSite;}};
-  const create=Function(...Object.keys(ports),body(source,'requireSourceConstructor')+'\n'+
+  const create=Function(...Object.keys(ports),
     body(source,'createInstalledHostServices')+'\nreturn createInstalledHostServices;')(...Object.values(ports));
   const services=create({root:'/UNOPENED',principalId:'component',moon,assertCurrent(){}});
   const state=installations.get(services),runtimeBundleCid='sha256:'+'a'.repeat(64);
@@ -68,41 +82,120 @@ function pageSelection(reader,readerDemand,originalPageLimits,prepareSourceRead)
     '\nreturn {pageLimits,managedPageLimits,originalReader};')(...Object.values(ports));
 }
 
-test('same managed service reader demand supplies original whole page bounds without a legacy preparer',()=>{
-  const f=serviceFixture();
-  try{
-    assert.equal(Object.isFrozen(f.scope.readerDemand),true);
-    assert.equal(f.scope.readerDemand.transferUnitBytes,256n);
-    assert.deepEqual({maxNodes:f.scope.readerDemand.maxNodes,maxDepth:f.scope.readerDemand.maxDepth},{maxNodes:64,maxDepth:6});
-    const selected=pageSelection(f.reader,f.scope.readerDemand);
-    assert.equal(selected.pageLimits,undefined);
-    assert.deepEqual(selected.managedPageLimits,{maxNodes:64,maxDepth:6});
-    assert(Object.isFrozen(selected.managedPageLimits));
-    assert.equal(selected.originalReader.capacity,f.capacity);
-    const source=text('./installed-row-source.mjs');
-    const start=source.indexOf('  function managedWholeSourceCapacity('),end=source.indexOf('  const captureCapacity = owner =>',start);
-    const prepared={},selection={},declaration={},contracts={},capacity={};
-    const moon={clientProgramPrepareWholeSourceCapacity(...args){
-      assert.deepEqual(args,[prepared,selection,declaration,contracts,f.capacity,4,256,64,6,2,3]);return ok(capacity);}};
-    const ports={moon,checked,fail,declaration,originalReader:selected.originalReader,
-      providerSiteCurrent(){return true;},site:{},limits:{maxPages:3,maxCaptureRows:4,maxPageBytes:256,maxPageRows:2},
-      pageLimits:selected.pageLimits,managedPageLimits:selected.managedPageLimits,
-      readTransports:undefined,defaultReadTransport:Object.freeze({transferBytes:768n,executionBytes:256n})};
-    const select=Function(...Object.keys(ports),source.slice(start,end)+'\nreturn managedWholeSourceCapacity;')(...Object.values(ports));
-    const quote=select({preparedProgram:prepared,sourceSelection:selection,installedContracts:contracts});
-    assert.equal(quote.capacity,capacity);
-    assert.deepEqual(quote,{capacity,wholeInput:true,transferBytes:768n,executionBytes:256n});
-    const begin=source.indexOf('      const beginPageLimits ='),stop=source.indexOf('      const isListing =',begin);
-    assert(begin>0&&stop>begin);
-    for(const wholeInput of [true,false]){
-      let calls=0;
-      const moon={clientProgramRowSourceBegin(...args){assert.equal(wholeInput,false);assert.deepEqual(args,[run,256,2,4,undefined]);calls++;return ok();},
-        clientProgramRowSourceBeginWithPageLimits(...args){assert.equal(wholeInput,true);assert.deepEqual(args,[run,256,64,6,2,4,undefined]);calls++;return ok();}};
-      const run={};const p={moon,run,checked,owner:{wholeInput},pageLimits:undefined,managedPageLimits:selected.managedPageLimits,
-        limits:{maxPageBytes:256,maxPageRows:2,maxCaptureRows:4},referenceIssuer:undefined};
-      Function(...Object.keys(p),source.slice(begin,stop))(...Object.values(p));assert.equal(calls,1);
-    }
-  }finally{assert.equal(f.reader.retire(),true);}
+test('same managed service reader demand supplies original whole page bounds without a legacy preparer', async t => {
+  const original = await boundConstructionActualFixture(t);
+  const selected = await original.profile();
+  const runtime = process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME ?? new URL(
+    '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
+  const runtimeCid = 'sha256:' + createHash('sha256').update(readFileSync(runtime)).digest('hex');
+  const installation = installedConnectorForTable(createInstalledConnectorTable(installedConnectors),
+    'source', selected.value);
+  installedSourceConfigurationReader(original.services);
+  retainInstalledHostServiceInstallation(original.services, installation, runtimeCid);
+  const context = beginInstalledSourceInitialization(original.services, installation, 'fixture', original.baseEnvironmentWire);
+  const bound = bindInstalledSourceConstruction(original.services, context, selected.value);
+  const noIo = () => assert.fail('A capacity quote and RowRun begin do not request provider I/O');
+  const preparedProgram = {}, sourceSelection = {}, installedContracts = {}, capacity = {};
+  const limits = {maxPages:3, maxCaptureRows:4, maxPageBytes:256, maxPageRows:2};
+  let reader, site, adapter, quotedBounds;
+  try {
+    const declaration = bound.prepareAuthoredDeclaration(JSON.stringify({views: [{
+      resource:'records', resource_kind:'record', fields:[{name:'id',type:'number',nullable:false}],
+    }]}));
+    const policy = bound.sourceReaderImplementationProfile({metadataResponses:0, originUnits:20});
+    const implementation = bound.sourceReaderImplementation({columnCount:1, limits:{
+      ...policy, maxPages:3, maxResponseBytes:256, maxRows:2, maxTotalRows:4, maxNodes:64, maxDepth:6,
+    }});
+    const opened = await bound.openSpecializedSite({
+      authorizationConstructor: () => ({authorize:noIo}),
+      siteConstructor(_profile, {commonMoon, runtimeBundleCid}) {
+        assert.strictEqual(commonMoon,original.moon);
+        assert.equal(runtimeBundleCid,runtimeCid);
+        const custody = openRowSourceCredentialCustody({
+          commonMoon, principalId:'operator', connectorRegistration:installation.registration,
+          connectorRevision:installation.revision, runtimeBundleCid,
+          profile:Object.freeze({credentialAuthorityId:'authority',credentialKeyId:'key',
+            namespaceId:'fixture',environment:'fixture',siteKey:'fixture',siteGeneration:1,
+            resourceOrigin:'https://fixture.example', journalRoot:join(original.root,'whole-reader-journal')}),
+          privateKey:generateKeyPairSync('ed25519').privateKey, resolveSecret:noIo,
+          now:()=>1_999_999_999_000, grantLifetimeMs:1000, openCredentialJournal:openSqliteCredentialJournal,
+          runAcquisitionLimits:{maxBindings:1,maxSecretBytes:64},
+        });
+        site = custody.retainOperationSite(Object.freeze({connection:'fixture:records',
+          credential:custody.credential, callResource:noIo, issueReadGrant:noIo,
+          referenceCurrent:custody.referenceCurrent, close:custody.closeOnce,
+          cleanupPending:custody.cleanupPending}));
+        return site;
+      },
+    });
+    reader = bound.createSourceReader({implementation,operation:'rest:read',preparePageReader:noIo});
+    const moon = {...original.moon, clientProgramPrepareWholeSourceCapacity(...args) {
+      assert.deepEqual(args,[preparedProgram,sourceSelection,declaration.declaration,installedContracts,
+        reader.capacity,4,256,64,6,2,3]);
+      quotedBounds = {maxNodes:args[7], maxDepth:args[8]};
+      return ok(capacity);
+    }};
+    adapter = await createInstalledRowSource({moon,...declaration,sourceInitialization:context,
+      environmentWire:declaration.environment.wire,connectorId:'fixture',
+      connectorRegistration:installation.registration,connectorRevision:installation.revision,
+      site:opened.site,authorization:opened.authorization,readOperation:'rest:read',providerReader:reader,
+      physicalTarget:(resource,fields)=>({resource,fields}),bindingCid:'sha256:'+'b'.repeat(64),limits});
+    finishInstalledSourceInitialization(context,adapter);
+    original.sources.push(adapter);
+  } catch (cause) {
+    finishInstalledSourceInitialization(context,adapter,cause,true);
+    reader?.retire();
+    site?.close();
+    throw cause;
+  }
+  const quote = adapter.managedWholeSourceCapacity({preparedProgram,sourceSelection,installedContracts});
+  assert.strictEqual(quote.capacity,capacity);
+  assert.deepEqual(quote,{capacity,wholeInput:true,transferBytes:768n,executionBytes:256n});
+
+  // Let the current acquisition choose the begin entry, then stop before any
+  // Credential or page read. The query case shares the same managed demand.
+  for (const wholeInput of [true,false]) {
+    const stop = new Error('Stop at original RowRun begin');
+    const run = {}, acquisition = {}, referenceIssuer = {}, access = {}, ledger = {};
+    const occurrence = {stage:0,input:0,task:0};
+    const preparedSource = {checkedSource:{}};
+    const owner = {checkedOwner:preparedProgram,effectful:false,access,occurrence,acquisition,wholeInput,
+      resource:'records'};
+    let begins = 0, closed = 0;
+    const moon = {
+      clientProgramWholeSourceTarget:()=>['records','id'], clientProgramRowSourceColumns:()=>['id'],
+      clientProgramWholeSourceRequestWire:()=>ok('{}'), clientProgramRowSourceRequestWire:()=>ok('{}'),
+      clientProgramRowSourceBegin(...args) {
+        assert.equal(wholeInput,false);
+        assert.deepEqual(args,[run,256,2,4,referenceIssuer]); begins++; throw stop;
+      },
+      clientProgramRowSourceBeginWithPageLimits(...args) {
+        assert.equal(wholeInput,true);
+        assert.deepEqual(args,[run,256,64,6,2,4,referenceIssuer]); begins++; throw stop;
+      },
+    };
+    const {open} = createInstalledRowSourceAcquisition({
+      preparations:new WeakMap([[preparedSource,owner]]), sourceAccess:access,
+      originalReader:{capacity:reader.capacity,prepare:reader.prepare,receiver:reader},
+      captureCapacity(actual) {assert.strictEqual(actual,owner); return capacity;},
+      currentRead:async()=>({action:'dispatch'}), site, moon, cid:()=> 'sha256:'+'c'.repeat(64),
+      resourceTransport(resource) {
+        assert.equal(resource, 'records');
+        return {transferBytes:quote.transferBytes,executionBytes:quote.executionBytes};
+      }, limits, managedPageLimits:quotedBounds, referenceIssuer,
+      startInstalledRowRun(options) {
+        assert.strictEqual(options.ledger,ledger);
+        assert.strictEqual(options.acquisition,acquisition);
+        assert.deepEqual(options.capacity,{transferBytes:768n,executionBytes:256n,provider:reader.capacity});
+        assert.strictEqual(options.capacity.provider,reader.capacity);
+        return {run, closeAfterFailure() {closed++;}};
+      },
+      preparingSourceReads:new Set(), operationBindings:new Map([['records','rest:read']]),
+    });
+    await assert.rejects(open({preparedProgram,preparedSource,occurrence,ledger}), error=>error.cause===stop);
+    assert.equal(begins,1); assert.equal(closed,1);
+  }
+  await original.close();
 });
 
 test('managed page demand does not weaken the legacy originalPageLimits guard or accept malformed original fields',()=>{
@@ -148,7 +241,7 @@ test('scalar request byte limits cannot revive the retired unbacked query-proper
 // authority, provider I/O, managed Plan funding or ordinary Table acceptance.
 function tablePageEncodingFixture({rows = [{text:'e\u0301\r\n',zero:0,flag:false,nullable:null}, {}],
   receivedCount = rows.length} = {}) {
-  const table = text('./installed-table-source.mjs'), row = text('./installed-row-source.mjs');
+  const table = text('./installed-table-source.mjs'), row = text('./installed-row-source-acquisition.mjs');
   const find = (source, predicate) => {
     const found = [];
     function visit(node) {
@@ -268,7 +361,7 @@ function tableManagedReaderFixture({rows=[{name:'e\u0301\r\n',zero:0,nullable:nu
   if(actualFacade) {
     // Enter the actual installed Source facade, without a replacement parser,
     // wrapper encoding or Common image. Its original Core port is explicit.
-    const facadeSource=text('./installed-row-source.mjs'),facades=[];
+    const facadeSource=text('./installed-row-source-acquisition.mjs'),facades=[];
     const find=node=>{if(!node||typeof node!=='object')return;
       if(node.type==='Property'&&node.key?.name==='consumePageWire')facades.push(node.value);
       for(const value of Object.values(node))if(Array.isArray(value))value.forEach(find);else find(value);};

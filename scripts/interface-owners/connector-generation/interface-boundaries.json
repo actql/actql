@@ -316,19 +316,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -358,19 +358,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -382,15 +382,15 @@
                 "anchor": "pub fn gcs_collection_issue_reference"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
+                "anchor": "issueOriginalCollectionReference(pair: unknown, maxWork: number)"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "export function checkInstalledNotionSourceProfile(profile)"
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
+                "anchor": "export function checkInstalledNotionSourceProfile(profile: unknown)"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "export async function loadInstalledNotionSource("
               },
               {
@@ -416,19 +416,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -436,7 +436,7 @@
                 "anchor": "export const installedConnectors = Object.freeze(["
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "installationCid: bindingCid"
               },
               {
@@ -444,15 +444,15 @@
                 "anchor": "actual_catalog != expected_catalog"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "originalStringsCid:sha(JSON.stringify("
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "const admitsApprovalTarget="
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "runtimeBundleCid,...binding,site:siteProfile"
               },
               {
@@ -474,19 +474,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -494,15 +494,15 @@
                 "anchor": "export const installedConnectors = Object.freeze(["
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "site.referenceCurrent()"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "referenceCurrent: () => !closing"
               },
               {
-                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "path": "adapters/host-node/installed-finite-page-source.mts",
                 "anchor": "providerReader = services('createSourceReader'"
               },
               {
@@ -524,19 +524,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -544,7 +544,7 @@
                 "anchor": "export const installedConnectors = Object.freeze(["
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "closing = true"
               },
               {
@@ -552,15 +552,15 @@
                 "anchor": "Bound connector construction"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "const initialAuthorization = await Reflect.apply(authorizationFor, selected, [0]);"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "const initialAuthorization = await Reflect.apply(authorizationFor!, selected, [0]);"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const verify = async () => {"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const result = await readSelected(initialAuthorization, acquisition.credential);"
               },
               {
@@ -578,19 +578,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -598,7 +598,7 @@
                 "anchor": "export const installedConnectors = Object.freeze(["
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "GcsCollectionProviderUnavailable"
               },
               {
@@ -606,15 +606,15 @@
                 "anchor": "the same credential Site invalidates reference currentness before failed close"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "fail('NotionSourceInitializationUnavailable')"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "phase = 'failed'; primary = cause;"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion lost original reply keeps Journal Unknown after original reader retirement without resend"
               },
               {
@@ -632,19 +632,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -652,16 +652,16 @@
                 "anchor": "Closing"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "signal.throwIfAborted();"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "signal!.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "stopped = true; stop.abort(reason);"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "stopped = true; stop!.abort(reason);"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -678,23 +678,23 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "const declarationLimits"
               },
               {
@@ -706,11 +706,11 @@
                 "anchor": "Additional declarations/trees/strings"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "const limitKeys="
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "const pem=await reads.readText"
               },
               {
@@ -736,19 +736,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -772,7 +772,7 @@
                 "anchor": "This factory does not narrow the full public Notion target to users."
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "cleanupConfirmed:retired"
               },
               {
@@ -802,23 +802,23 @@
                 "anchor": "LIST_FILES paths=[]"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "ordinary installed Notion entrance selects the real factory and refuses missing normal supply"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion copied preparation or absent original Ledger cannot dispatch users"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion actual Account denial refuses preparation before a Credential use or HTTP"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion optional TLS authority is bounded original PEM before native transport"
               },
               {
@@ -935,19 +935,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -957,19 +957,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -979,19 +979,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1001,19 +1001,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1023,19 +1023,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1045,19 +1045,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1067,19 +1067,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1089,19 +1089,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1111,19 +1111,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1196,19 +1196,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1218,19 +1218,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1240,19 +1240,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1262,19 +1262,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1284,19 +1284,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1306,19 +1306,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1328,19 +1328,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1350,19 +1350,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1372,19 +1372,19 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1490,7 +1490,7 @@
             ],
             "identity": [
               {
-                "path": "scripts/connector-manifest-selection.mjs",
+                "path": "scripts/connector-manifest-selection.mts",
                 "anchor": "export function connectorManifestSelection"
               }
             ],
@@ -1680,7 +1680,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]
@@ -1700,7 +1700,7 @@
     {
       "module": "scripts/connector.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1050ebf0631f28c41b372a363438217ef1096c9fcd5aa221f2e5e6bb41c2059d",
+      "sha256": "54b3678440cd577a66af09c1774a4ddfab75f647ab15d673964cf4b687c0ed53",
       "exports": [
         "connectorCommand",
         "connectorConformancePlan"
@@ -1744,13 +1744,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/connector.mjs",
+                "path": "scripts/connector.mts",
                 "anchor": "const usage ="
               }
             ],
             "identity": [
               {
-                "path": "scripts/connector-authoring-toolkit.mjs",
+                "path": "scripts/connector-authoring-toolkit.mts",
                 "anchor": "authoringBinPath"
               }
             ],
@@ -1762,13 +1762,13 @@
             ],
             "synchronization": [
               {
-                "path": "scripts/connector.mjs",
+                "path": "scripts/connector.mts",
                 "anchor": "await runLocalCheck"
               }
             ],
             "failure": [
               {
-                "path": "scripts/connector.mjs",
+                "path": "scripts/connector.mts",
                 "anchor": "process.exitCode = 1"
               }
             ],
@@ -1780,19 +1780,19 @@
             ],
             "resources": [
               {
-                "path": "scripts/connector.mjs",
+                "path": "scripts/connector.mts",
                 "anchor": "heavyResources:"
               }
             ],
             "extension": [
               {
-                "path": "scripts/connector.mjs",
+                "path": "scripts/connector.mts",
                 "anchor": "export function connectorCommand"
               }
             ],
             "verification": [
               {
-                "path": "scripts/connector-authoring.cli.test.mjs",
+                "path": "scripts/connector-authoring.cli.test.mts",
                 "anchor": "the packed author toolkit runs outside the checkout"
               }
             ]
@@ -1886,25 +1886,25 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/connector-authoring-toolkit.mjs",
+                "path": "scripts/connector-authoring-toolkit.mts",
                 "anchor": "Use the authoritative selected tarball inventory"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/connector-authoring-toolkit.mjs",
+                "path": "scripts/connector-authoring-toolkit.mts",
                 "anchor": "observeInstalledAuthoringToolkit"
               }
             ],
             "identity": [
               {
-                "path": "scripts/connector-authoring-toolkit.mjs",
-                "anchor": "sha256: host.sha256"
+                "path": "scripts/connector-authoring-toolkit.mts",
+                "anchor": "sha256: host!.sha256"
               }
             ],
             "ownership": [
               {
-                "path": "scripts/connector-authoring-toolkit.mjs",
+                "path": "scripts/connector-authoring-toolkit.mts",
                 "anchor": "@actql/local-node"
               }
             ],
@@ -1916,7 +1916,7 @@
             ],
             "failure": [
               {
-                "path": "scripts/connector-authoring-toolkit.mjs",
+                "path": "scripts/connector-authoring-toolkit.mts",
                 "anchor": "toolkit payload mismatch"
               }
             ],
@@ -1925,19 +1925,19 @@
             },
             "resources": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "Release payload symlink:"
               }
             ],
             "extension": [
               {
-                "path": "scripts/build-connector-authoring.mjs",
+                "path": "scripts/build-connector-authoring.mts",
                 "anchor": "Include actual import edges"
               }
             ],
             "verification": [
               {
-                "path": "scripts/connector-authoring.cli.test.mjs",
+                "path": "scripts/connector-authoring.cli.test.mts",
                 "anchor": "the packed author toolkit runs outside the checkout"
               }
             ]
@@ -1948,7 +1948,7 @@
     {
       "module": "scripts/connector-authoring.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e7e63e54582ea061c848d810ec44aeb4a97659d25d67c485c21765ad66b0d74f",
+      "sha256": "6b3d505f80c1c79083a139af6a3456906c40e749504c10dc6b83643a015d1ed8",
       "exports": [
         "initRestConnector",
         "projectRestConnector",
@@ -2103,37 +2103,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "Build-time author DATA projection"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "function projectRestConnector"
               }
             ],
             "identity": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "installedHostVersion"
               }
             ],
             "ownership": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "@actql/local-node/connector-authoring"
               }
             ],
             "synchronization": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "Validate every selected destination before the first write"
               }
             ],
             "failure": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "StaleRestConnectorProjection"
               }
             ],
@@ -2142,7 +2142,7 @@
             },
             "resources": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "definition.sources).length > 64"
               }
             ],
@@ -2154,7 +2154,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/connector-authoring.cli.test.mjs",
+                "path": "scripts/connector-authoring.cli.test.mts",
                 "anchor": "the packed author toolkit runs outside the checkout"
               }
             ]
@@ -2165,7 +2165,7 @@
     {
       "module": "scripts/connector-conformance-input.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8f0efcdc52a612b292438a51082b1ca53df2e20ce7661edc3ef19663033e66ba",
+      "sha256": "0e16548439993718dbfadde2df9a30f9903c713eaab4d83646b7ca5b75929ac1",
       "exports": [
         "readRestConformanceInput"
       ],
@@ -2208,25 +2208,25 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "The CLI and the installed runner select the same finite input"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "const fields ="
               }
             ],
             "identity": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "gitIdentity(selected.sourceSha)"
               }
             ],
             "ownership": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "accountConfigurationPath"
               }
             ],
@@ -2235,7 +2235,7 @@
             },
             "failure": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "Invalid actql-standard-rest-normal/0.1 descriptor"
               }
             ],
@@ -2244,19 +2244,19 @@
             },
             "resources": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "Object.keys(selected).length === fields.length"
               }
             ],
             "extension": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "if (selected?.mode === 'author')"
               }
             ],
             "verification": [
               {
-                "path": "scripts/connector-authoring.cli.test.mjs",
+                "path": "scripts/connector-authoring.cli.test.mts",
                 "anchor": "author conformance refuses implicit runtime"
               }
             ]
@@ -2552,25 +2552,25 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "// Installed Host bindings."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "function renderHostInstallations"
               }
             ],
             "identity": [
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "implementationModules(entry, ownerRoot)"
               }
             ],
             "ownership": [
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "Connector-owned declarations"
               }
             ],
@@ -2579,7 +2579,7 @@
             },
             "failure": [
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "Invalid Host bundle manifest"
               }
             ],
@@ -2588,13 +2588,13 @@
             },
             "resources": [
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "files.length > 128"
               }
             ],
             "extension": [
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "resolveImplementationFile"
               }
             ],
@@ -3035,37 +3035,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "Read exact package-owned files"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "function inventory"
               }
             ],
             "identity": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "createHash('sha256')"
               }
             ],
             "ownership": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "package's own frozen payload"
               }
             ],
             "synchronization": [
               {
-                "path": "scripts/connector-authoring-toolkit.mjs",
+                "path": "scripts/connector-authoring-toolkit.mts",
                 "anchor": "await inventory(root)"
               }
             ],
             "failure": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "Release payload symlink:"
               }
             ],
@@ -3074,19 +3074,19 @@
             },
             "resources": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "ignoreInstalledDependencies"
               }
             ],
             "extension": [
               {
-                "path": "scripts/package-release.mjs",
+                "path": "scripts/package-release.mts",
                 "anchor": "payload(after), payload(before)"
               }
             ],
             "verification": [
               {
-                "path": "scripts/connector-authoring.cli.test.mjs",
+                "path": "scripts/connector-authoring.cli.test.mts",
                 "anchor": "the packed author toolkit runs outside the checkout"
               }
             ]
@@ -3103,25 +3103,25 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "Health checks the npm-created root .bin separately"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "function installedModulesPayloadInventory"
               }
             ],
             "identity": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "createHash('sha256')"
               }
             ],
             "ownership": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "Installed node_modules must be a real directory"
               }
             ],
@@ -3133,7 +3133,7 @@
             ],
             "failure": [
               {
-                "path": "scripts/package-inventory.mjs",
+                "path": "scripts/package-inventory.mts",
                 "anchor": "Release payload symlink:"
               }
             ],
@@ -3142,13 +3142,13 @@
             },
             "resources": [
               {
-                "path": "scripts/health-monitor-adapters.mjs",
+                "path": "scripts/health-monitor-adapters.mts",
                 "anchor": "installed.reduce((sum, row) => sum + row.bytes, 0)"
               }
             ],
             "extension": [
               {
-                "path": "scripts/health-monitor-adapters.mjs",
+                "path": "scripts/health-monitor-adapters.mts",
                 "anchor": "await inspectInstalledConnectorBins(modules, manifest)"
               }
             ],
@@ -3203,19 +3203,19 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/release-version.mjs",
+                "path": "scripts/release-version.mts",
                 "anchor": "function releaseVersion"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/release-version.mjs",
+                "path": "scripts/release-version.mts",
                 "anchor": "function compareReleaseVersions"
               }
             ],
             "identity": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "releaseVersion(manifest.version)"
               }
             ],
@@ -3230,7 +3230,7 @@
             },
             "failure": [
               {
-                "path": "scripts/release-version.mjs",
+                "path": "scripts/release-version.mts",
                 "anchor": "Use X.Y.Z"
               }
             ],
@@ -3248,8 +3248,8 @@
             ],
             "verification": [
               {
-                "path": "scripts/release-version-schema.test.mjs",
-                "anchor": "release version"
+                "path": "scripts/release-version-schema.test.mts",
+                "anchor": "test('actual schema version regex and shared parser match independent literal version oracles'"
               }
             ]
           }

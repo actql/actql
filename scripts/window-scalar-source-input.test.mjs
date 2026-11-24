@@ -164,7 +164,7 @@ test('window operands retain independent ordering, NULL, keys and scope controls
 
 test('normal packed acceptance includes window operands and its narrow scope is isolated', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'windowScalarSuccesses'],
     ['refusals', 'windowScalarRefusals'], ['executionFailures', 'windowScalarExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

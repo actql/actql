@@ -29,7 +29,7 @@ const mutations = [
   {name: 'outcome schema omitted', path, file: acceptance, targets,
     from: '      outcome_schema_cid: checkOutcomeSchemaCid,', to: ''},
   {name: 'fallback outcome schema omitted', path, file: acceptance, targets,
-    from: '      preimage = canonicalJson({...bound,\n        received:',
+    from: 'preimage = canonicalJson({ ...bound,\n                received:',
     to: '      const {outcome_schema_cid, ...fallbackBound} = bound;\n' +
       '      preimage = canonicalJson({...fallbackBound,\n        received:'},
   {name: 'exact context strings normalized', path, file: acceptance, targets,

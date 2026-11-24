@@ -3,6 +3,8 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {startInstalledRowRun} from './installed-row-run.mjs';
+import {createInstalledRowSourceAcquisition} from './installed-row-source-acquisition.mjs';
+import {createInstalledRowSourcePreparation} from './installed-row-source-preparation.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
 
@@ -11,16 +13,11 @@ const rowSourceProgram = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'm
 const rowSourceConstructor = rowSourceProgram.body.map(node => node.declaration ?? node)
   .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createInstalledRowSource');
 assert(rowSourceConstructor);
-const prepareDeclaration = rowSourceConstructor.body.body.find(node =>
-  node.type === 'FunctionDeclaration' && node.id.name === 'prepare');
-const describePreparedSourceDeclaration = rowSourceConstructor.body.body.find(node =>
-  node.type === 'FunctionDeclaration' && node.id.name === 'describePreparedSource');
 const sourceBodyDeclaration = rowSourceConstructor.body.body.find(node =>
   node.type === 'VariableDeclaration' && node.declarations.some(value => value.id.name === 'sourceBody'));
 const sourceBody = sourceBodyDeclaration?.declarations.find(value => value.id.name === 'sourceBody').init;
 const closeMethod = sourceBody?.properties.find(value => value.type === 'Property' && value.key.name === 'close');
-assert(prepareDeclaration && describePreparedSourceDeclaration &&
-  sourceBody?.type === 'ObjectExpression' && closeMethod?.method);
+assert(sourceBody?.type === 'ObjectExpression' && closeMethod?.method);
 
 test('whole input consumes the same Run/reader/evidence originals without Query or output transfer', async () => {
   const acquisition = {}, originalRead = {}, ledger = {}, provider = {}, capacity = {};
@@ -167,14 +164,7 @@ test('whole input cannot select a bare, keyed or listing RowRun', () => {
 });
 
 async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity, authorization, effectful = false} = {}) {
-  const {types} = await import('node:util');
-  const {runtimeField, runtimeOptionalField, runtimeIsOk, runtimeIsBoxedSome} = await import('../host-common/compiler-binding.generated.mjs');
   const {checked} = await import('../host-common/runtime-result.mjs');
-  // Capture this constructor's actual prepare and public close methods. A
-  // later Credential/Site close in the same module is a different owner.
-  const source = rowSource;
-  const start = prepareDeclaration.start, end = prepareDeclaration.end;
-  const closeStart = closeMethod.start, closeEnd = closeMethod.end;
   const read = {}, managedRun = {}, preparedProgram = {}, declaration = {};
   let retireCalls = 0, siteCloses = 0;
   const metadataCalls = {wholeCensus: 0, slot: 0, current: 0};
@@ -228,21 +218,27 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
       return ok();
     },
   };
-  const bindings = {moon, declaration, runtimeField, runtimeOptionalField, runtimeIsOk, runtimeIsBoxedSome, checked,
-    fail(code) {throw Object.assign(new Error(code), {code});},
-    sourceAccess: {}, directReadIdentity: undefined, originalReader: {retire: () => true, receiver: {}},
-    immutableTargets: undefined, physicalTargetGeneration: undefined,
-    prepareSourceRead: undefined, sourceInitialization: undefined,
-    site: {close() {siteCloses++;}}, nodeTypes: types,
-    preparingSourceReads: new Set(), sourceRefs: new Set(['source']), preparations: new WeakMap(),
+  const site = {close() {siteCloses++;}};
+  const preparingSourceReads = new Set();
+  const preparations = new WeakMap(), sourceAccess = {};
+  const originalReader = {retire: () => true, receiver: {}};
+  const {prepare} = createInstalledRowSourcePreparation({
+    moon, declaration, sourceAccess, originalReader, site, preparingSourceReads,
+    sourceRefs: new Set(['source']), preparations,
     cidPattern: /^sha256:[0-9a-f]{64}$/u,
     physicalTarget: (resource, fields) => ({resource, fields}), valueCid: value => JSON.stringify(value),
-    decideRead: async () => authorization === undefined ? {action: 'dispatch'} : await authorization, ordinaryRecoveryBinding() {}};
-  const fixture = new Function(...Object.keys(bindings),
-    source.slice(describePreparedSourceDeclaration.start, describePreparedSourceDeclaration.end) + '\n' +
-    source.slice(start, end) +
-    '\nreturn {prepare,' + source.slice(closeStart, closeEnd) + '};')(...Object.values(bindings));
-  return {fixture, originalRead: read, pendingReads: bindings.preparingSourceReads, input: effectful
+    decideRead: async () => authorization === undefined ? {action: 'dispatch'} : await authorization,
+    ordinaryRecoveryBinding() {},
+  });
+  // Keep the existing close fixture for the enclosing Row Source. Preparation
+  // and close share the original Set of pending runtime reads.
+  const closePorts = {moon, checked, originalReader, preparingSourceReads, site,
+    sourceInitialization: undefined, physicalTargetGeneration: undefined,
+    fail(code) {throw Object.assign(new Error(code), {code});}};
+  const close = new Function(...Object.keys(closePorts),
+    'return ({' + rowSource.slice(closeMethod.start, closeMethod.end) + '}).close;')(...Object.values(closePorts));
+  const fixture = {prepare, close};
+  return {fixture, originalRead: read, pendingReads: preparingSourceReads, preparations, sourceAccess, moon, input: effectful
     ? {preparedEffect: preparedProgram, managedRun, occurrence: {stage: 0, input: 1, task: 1, computeTask: 0}}
     : {preparedProgram, managedRun},
     retireCalls: () => retireCalls, siteCloses: () => siteCloses, metadataCalls,
@@ -355,34 +351,44 @@ test('whole Source closes an original prepared read which was never given to a R
 
 
 test('whole Source transfers its original reference only after the RowRun constructor returns', async () => {
-  const source = rowSource;
-  const begin = source.indexOf('    const session = startInstalledRowRun({moon, acquisition, nonce, ledger, capacity,');
-  const end = source.indexOf('    let externalClosed', begin);
-  assert(begin > 0 && end > begin);
-  const handoff = new Function('startInstalledRowRun', 'owner', 'preparingSourceReads',
-    'const moon={},acquisition={},nonce="original",ledger={},capacity={};' +
-    source.slice(begin, end) + 'return session;');
   const pair = ['sha256:' + 'a'.repeat(64), 'sha256:' + 'b'.repeat(64)];
   for (const fails of [true, false]) {
     const f = await failedPreparationFixture({validFacts: true, identity: {$tag: 1, _0: pair}});
-    await f.fixture.prepare(f.input);
+    const preparedSource = await f.fixture.prepare(f.input);
     assert(f.pendingReads.has(f.originalRead));
     const originalFailure = new Error('OriginalRowConstructorFailure');
-    const session = {run: {}, close: () => f.retireOriginal()};
+    const result = {};
+    const session = {run: {}, close: () => f.retireOriginal(), async complete({owner}) {
+      assert.strictEqual(owner.originalRead, f.originalRead);
+      assert.equal(f.pendingReads.has(f.originalRead), false);
+      return result;
+    }};
     const start = options => {
       assert.equal(options.originalRead, f.originalRead);
       assert(f.pendingReads.has(f.originalRead));
       if (fails) throw originalFailure;
       return session;
     };
-    const enter = () => handoff(start, {originalRead: f.originalRead, wholeInput: true}, f.pendingReads);
+    const {open} = createInstalledRowSourceAcquisition({
+      prepare: f.fixture.prepare, preparations: f.preparations, sourceAccess: f.sourceAccess,
+      currentRead: async () => ({action: 'dispatch'}),
+      site: {issueReadGrant() {assert.fail('Original local read cannot issue a credential');}},
+      moon: {...f.moon, clientProgramWholeSourceRequestWire: () => ok('{}'),
+        clientProgramRowSourceBegin: () => ok(), clientProgramWholeSourceIsListing: () => false},
+      cid: () => pair[0],
+      resourceTransport: () => ({transferBytes: 1024n, executionBytes: 1024n}),
+      limits: {maxPages: 2, maxPageBytes: 512, maxPageRows: 2, maxCaptureRows: 2},
+      startInstalledRowRun: start, preparingSourceReads: f.pendingReads, operationBindings: new Map(),
+      async readPages({rowRun}) {assert.strictEqual(rowRun.originalRead, f.originalRead);},
+    });
+    const enter = () => open({...f.input, preparedSource});
     if (fails) {
-      assert.throws(enter, error => error === originalFailure);
+      await assert.rejects(enter, error => error.cause === originalFailure && error.outcome === 'not_started');
       assert(f.pendingReads.has(f.originalRead));
       f.fixture.close();
       assert.equal(f.retireCalls(), 1);
     } else {
-      assert.equal(enter(), session);
+      assert.strictEqual(await enter(), result);
       assert.equal(f.pendingReads.has(f.originalRead), false);
       f.fixture.close();
       assert.equal(f.retireCalls(), 0, 'Source close cannot retire a read already handed to its RowRun');

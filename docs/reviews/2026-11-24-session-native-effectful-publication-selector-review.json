@@ -1,0 +1,23 @@
+{
+  "source": "f13e742e7e04ea47c5593d5ad70e7c510356809a",
+  "parent": "73870495b141bbe400363993d90416c00259bd74",
+  "qualification": "Exact JS Session input review for one Native-only source selector. Removing that line restores the complete previously reviewed descriptor. The source and every literal dependency remain in the input key.",
+  "path": "src/platform_native/publication_store/moon.pkg",
+  "mode": "100644",
+  "sha256": "59da613d0a27cb9c8b4c016b2df11a2c50058626e0d5286bfa1b93b7ae5bb310",
+  "bytes": 2845,
+  "previousRevision": "6b1733e430d8b7b126c9ec4a3189fcc697cdb6ce",
+  "previousReview": "docs/reviews/2026-11-17-session-native-publication-constructor-selector-review.json",
+  "previousSha256": "e58d91de882c517bf24b92c07e74e53086b49efd192b0ddc818dfbfa5142fff5",
+  "previousBytes": 2791,
+  "rule": "literal-native-options-with-bound-source-membership",
+  "addedSelector": {
+    "file": "effectful_preparation_native.mbt",
+    "targets": ["native"],
+    "mode": "100644",
+    "sha256": "a9468ced0d8d0fa479224da87f55db57354c70b092f76daf430bbb4ffae6d840",
+    "bytes": 7367
+  },
+  "meaning": "The persistent File publication preparation implementation uses the existing Native Store and SQLite operation. The literal selector excludes that implementation from JS and Wasm compilation. The JS Session closure still binds its bytes and the complete Store source membership.",
+  "refusalPolicy": "The historical descriptor stays historical. Only the exact successor on the reviewed JS toolchain qualifies. Changed imports, aliases, options, hooks, selectors, paths, targets and toolchains remain refused or separately keyed."
+}
