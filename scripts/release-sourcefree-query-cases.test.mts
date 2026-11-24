@@ -43,13 +43,13 @@ test('custody and both process entries share the closed reread selection', () =>
 
 test('normal source-free delivery contains its full relative import closure', () => {
   const root = fileURLToPath(new URL('../', import.meta.url));
-  const closure = paths => {
+  const closure = (paths: readonly string[]) => {
     const delivered = new Set(paths.map(path => resolve(root, path)));
     const pending = [resolve(root, 'scripts/fixtures/release-sourcefree-query.mjs'),
       resolve(root, 'scripts/fixtures/release-time-series-reread.mjs')];
-    const seen = new Set(), missing = [];
+    const seen = new Set<string>(), missing: string[] = [];
     while (pending.length) {
-      const path = pending.pop();
+      const path = pending.pop()!;
       if (seen.has(path)) continue;
       seen.add(path);
       if (!delivered.has(path)) { missing.push(path); continue; }
@@ -108,7 +108,7 @@ test('release selection preserves five independent inputs and all five refusals'
     assert.deepEqual(value.columns, [{name: column, contract: {type: 'boolean', nullable: false}}]);
   }
   assert.ok(!selected.successes.some(value => value.name.endsWith('where-source-once')));
-  assert.equal(successes.find(value => value.name.endsWith('where-source-once')).sourceReadCount, 1);
+  assert.equal(successes.find(value => value.name.endsWith('where-source-once'))!.sourceReadCount, 1);
   assert.equal(JSON.stringify({successes, refusals}), before);
 });
 for (const name of releaseSourcefreeSuccessNames) test(`missing case refuses: ${name}`, () => {
@@ -125,7 +125,7 @@ test('duplicate and Source-bearing selected cases refuse', () => {
 test('missing, duplicate, reordered and extra refusal inventory refuse', () => {
   for (const changed of [combinedRefusals, refusals.slice(1), [...refusals, refusals[0]], [...refusals].reverse(),
     [...refusals, {name: 'unreviewed-refusal'}]]) {
-    assert.throws(() => selectReleaseSourcefreeQueryCases({refusals: changed}));
+    assert.throws(() => selectReleaseSourcefreeQueryCases({refusals: changed as typeof refusals}));
   }
   assert.deepEqual(selectReleaseSourcefreeQueryCases().refusals.map(value => value.name), releaseSourcefreeRefusalNames);
 });
@@ -155,10 +155,10 @@ test('provider guard permits only one exact fixture HTTPS origin', () => {
 
 test('membership fixture separately grants only its actual Run and main Result reads', async () => {
   const selected = selectReleaseSourcefreeQueryCases();
-  assert.deepEqual([...new Set(selected.successes.flatMap(value => Object.keys(value.results)))], ['main']);
+  assert.deepEqual([...new Set(selected.successes.flatMap(value => Object.keys(value.results!)))], ['main']);
   for (const mode of ['local', 'https']) {
     const authorization = await sourcefreeFixtureAuthorization(mode, 'in-unnest');
-    const account = JSON.parse(authorization.accountConfiguration);
+    const account = JSON.parse(authorization.accountConfiguration) as {entries: {operation: {any_of: string[]}}[]};
     const entries = account.entries.filter(value => value.operation.any_of.includes('read'));
     assert.deepEqual(entries, [
       {entry_id: 'run-read', outcome: 'allow', principal: {all: true},

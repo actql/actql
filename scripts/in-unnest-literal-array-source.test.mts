@@ -25,7 +25,7 @@ test('SQL signed zero membership preserves its canonical-zero success and indepe
 
 test('literal membership controls distinguish matching, unknown and empty sets', () => {
   const cases = new Map(inUnnestLiteralArraySuccesses.map(value => [value.name, value]));
-  const control = cases.get('in-unnest-literal-array-json-control');
+  const control = cases.get('in-unnest-literal-array-json-control')!;
   const program = JSON.parse(control.text);
   assert.deepEqual(program.stages[0].steps[1].derive, {
     included: {in: [{literal: 2}, {literal: [null, 2, 2]}]},
@@ -38,12 +38,12 @@ test('literal membership controls distinguish matching, unknown and empty sets',
     [{included: true, excluded: false, unknown: null, null_left: null}]);
   assert.deepEqual(program.stages[0].results.rows.fields,
     control.columns.map(column => column.name));
-  assert.deepEqual(cases.get('in-unnest-literal-array-empty-set-with-null-left').expected,
+  assert.deepEqual(cases.get('in-unnest-literal-array-empty-set-with-null-left')!.expected,
     [{included: false, excluded: true}]);
-  assert.ok(cases.get('in-unnest-literal-array-empty-set-with-null-left').columns
+  assert.ok(cases.get('in-unnest-literal-array-empty-set-with-null-left')!.columns
     .every(column => column.contract.nullable === false));
-  assert.deepEqual(cases.get('in-unnest-literal-array-empty-input').expected, []);
-  const source = cases.get('in-unnest-literal-array-where-source-once');
+  assert.deepEqual(cases.get('in-unnest-literal-array-empty-input')!.expected, []);
+  const source = cases.get('in-unnest-literal-array-where-source-once')!;
   assert.deepEqual(source.expected, [{id: 2}, {id: 3}, {id: 3}]);
   assert.equal(source.sourceReadCount, 1);
   assert.equal(source.sourceReadSessionCount, 1);
@@ -75,21 +75,21 @@ test('normal packed acceptance and its narrow selector register the same literal
 test('general ARRAY membership corpus fixes field, conditional and lazy results', () => {
   const cases = new Map(inUnnestLiteralArraySuccesses.map(value => [value.name, value]));
   for (const name of ['array-field', 'conditional-array', 'lazy-array-branch']) {
-    const value = cases.get('in-unnest-literal-array-' + name);
+    const value = cases.get('in-unnest-literal-array-' + name)!;
     assert.deepEqual(value.expected, [{included: true}]);
     assert.deepEqual(value.columns, [{name: 'included', contract: {type: 'boolean', nullable: false}}]);
     assert.equal(value.sourceReadCount, 0);
     assert.equal(value.sourceReadSessionCount, 0);
   }
   for (const name of ['array-field', 'conditional-array']) {
-    const value = cases.get('in-unnest-literal-array-' + name);
+    const value = cases.get('in-unnest-literal-array-' + name)!;
     assert.deepEqual(value.parameters, {xs: [2], ys: [7]});
     assert.deepEqual(value.parameterDeclarations, {
       xs: {type: 'array', nullable: false, max_items: 2, items: {type: 'number', nullable: false}},
       ys: {type: 'array', nullable: false, max_items: 2, items: {type: 'number', nullable: false}},
     });
   }
-  assert.deepEqual(cases.get('in-unnest-literal-array-general-element').expected, [{found: true}]);
+  assert.deepEqual(cases.get('in-unnest-literal-array-general-element')!.expected, [{found: true}]);
   assert.ok(!inUnnestLiteralArrayRefusals.some(value => value.name.endsWith('-general-element')));
 });
 

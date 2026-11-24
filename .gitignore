@@ -1037,6 +1037,14 @@ target/
 /scripts/release-sequence-query-cases.d.mts
 /scripts/release-time-series-query-cases.mjs
 /scripts/release-time-series-query-cases.d.mts
+/scripts/fixtures/release-sourcefree-authorization.mjs
+/scripts/fixtures/release-sourcefree-authorization.d.mts
+/scripts/fixtures/release-sourcefree-io.mjs
+/scripts/fixtures/release-sourcefree-io.d.mts
+/scripts/in-unnest-literal-array-source.test.mjs
+/scripts/in-unnest-literal-array-source.test.d.mts
+/scripts/release-sourcefree-query-cases.test.mjs
+/scripts/release-sourcefree-query-cases.test.d.mts
 /scripts/release-temporal-join-query-cases.mjs
 /scripts/release-temporal-join-query-cases.d.mts
 /scripts/release-calendar-query-cases.mjs
