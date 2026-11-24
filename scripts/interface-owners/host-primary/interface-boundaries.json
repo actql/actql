@@ -15336,11 +15336,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined) originalPreparation.retain();"
               },
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
               },
               {
@@ -15374,7 +15374,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
               },
               {

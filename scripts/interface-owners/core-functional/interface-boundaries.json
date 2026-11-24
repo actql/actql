@@ -28076,7 +28076,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "export async function runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,"
               },
               {
@@ -28102,7 +28102,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "export async function runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,"
               },
               {
@@ -28124,7 +28124,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Local owns scheduling; the original Model journal owns each physical send."
               },
               {
@@ -28154,7 +28154,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';"
               },
               {
@@ -28180,7 +28180,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {"
               },
               {
@@ -28198,7 +28198,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "throw new Error('InstalledComposedInferInputUnavailable');"
               },
               {
@@ -28228,7 +28228,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork,"
               },
               {
@@ -28250,7 +28250,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork,"
               },
               {
@@ -28284,7 +28284,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "export async function runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,"
               },
               {
@@ -28587,12 +28587,12 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "function retainCompleted(child) {"
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
+                "anchor": "function retainCompleted(child: Child) {"
               },
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "issuance ??= startCompleteInferObservation({moon, operations: children.map(original => original.operation),"
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
+                "anchor": "issuance ??= startCompleteInferObservation({moon, operations: children.map(original => original.operation!),"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28605,7 +28605,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (!children.includes(child)) {"
               },
               {
@@ -28631,11 +28631,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "if (!child.capture.retainCompleted(completeOriginal ? publicationOwner : child.operation)) return false;"
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
+                "anchor": "if (!child.capture!.retainCompleted(completeOriginal ? publicationOwner : child.operation)) return false;"
               },
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (!checked(moon.clientProgramCleanupInferObservationIssuance(issuance))) return false;"
               },
               {
@@ -28653,7 +28653,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "for (let step = 0; step < calls + 2 && !issuanceComplete; step++) {"
               },
               {
@@ -28667,7 +28667,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (!issuanceComplete) throw new Error('InstalledComposedInferOriginalObservationUnavailable');"
               },
               {
@@ -28689,7 +28689,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (moon.clientProgramCancelInferObservationIssuance(issuance)) {"
               },
               {
@@ -28737,7 +28737,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {"
               },
               {
@@ -28843,11 +28843,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined) originalPreparation.retain();"
               },
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
               },
               {
@@ -28893,7 +28893,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
               },
               {
@@ -28993,7 +28993,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "export async function runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,"
               },
               {
@@ -29007,7 +29007,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "export async function runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,"
               },
               {
@@ -29021,7 +29021,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Local owns scheduling; the original Model journal owns each physical send."
               },
               {
@@ -29035,7 +29035,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';"
               },
               {
@@ -29049,7 +29049,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {"
               },
               {
@@ -29059,7 +29059,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "throw new Error('InstalledComposedInferInputUnavailable');"
               },
               {
@@ -29073,7 +29073,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork,"
               },
               {
@@ -29087,7 +29087,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork,"
               },
               {
@@ -29101,7 +29101,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "export async function runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,"
               },
               {

@@ -63735,11 +63735,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined) originalPreparation.retain();"
               },
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
               },
               {
@@ -63773,7 +63773,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
               },
               {
@@ -83857,7 +83857,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "95800b9c2139a1a1f233b89ba47f46619111b0247690d5cebe250dd920cf75de",
+      "sha256": "211b157e6bbcd9e29f830790e51e7b25e68c0db04cd81d0a96d8ed604cba20bd",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -84235,7 +84235,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "runInstalledComposedInfers"
               },
               {
@@ -84257,7 +84257,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "runInstalledComposedInfers"
               },
               {
@@ -84279,7 +84279,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "runInstalledComposedInfers"
               },
               {
@@ -84309,7 +84309,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "runInstalledComposedInfers"
               },
               {
@@ -84335,7 +84335,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "runInstalledComposedInfers"
               },
               {
@@ -84353,7 +84353,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "runInstalledComposedInfers"
               },
               {
@@ -84383,7 +84383,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "runInstalledComposedInfers"
               },
               {
@@ -84405,7 +84405,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "runInstalledComposedInfers"
               },
               {
@@ -84439,7 +84439,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "runInstalledComposedInfers"
               },
               {
@@ -84457,7 +84457,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "runInstalledComposedInfers"
               },
               {
@@ -84738,12 +84738,12 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "function retainCompleted(child) {"
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
+                "anchor": "function retainCompleted(child: Child) {"
               },
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "issuance ??= startCompleteInferObservation({moon, operations: children.map(original => original.operation),"
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
+                "anchor": "issuance ??= startCompleteInferObservation({moon, operations: children.map(original => original.operation!),"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -84756,7 +84756,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (!children.includes(child)) {"
               },
               {
@@ -84782,11 +84782,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "if (!child.capture.retainCompleted(completeOriginal ? publicationOwner : child.operation)) return false;"
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
+                "anchor": "if (!child.capture!.retainCompleted(completeOriginal ? publicationOwner : child.operation)) return false;"
               },
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (!checked(moon.clientProgramCleanupInferObservationIssuance(issuance))) return false;"
               },
               {
@@ -84804,7 +84804,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "for (let step = 0; step < calls + 2 && !issuanceComplete; step++) {"
               },
               {
@@ -84818,7 +84818,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (!issuanceComplete) throw new Error('InstalledComposedInferOriginalObservationUnavailable');"
               },
               {
@@ -84840,7 +84840,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (moon.clientProgramCancelInferObservationIssuance(issuance)) {"
               },
               {
@@ -84888,7 +84888,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {"
               },
               {
@@ -84990,11 +84990,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined) originalPreparation.retain();"
               },
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
               },
               {
@@ -85040,7 +85040,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
               },
               {
@@ -85136,7 +85136,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Assemble checked Model components into the existing Local task driver."
               },
               {
@@ -85146,7 +85146,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Assemble checked Model components into the existing Local task driver."
               },
               {
@@ -85156,7 +85156,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Assemble checked Model components into the existing Local task driver."
               },
               {
@@ -85170,7 +85170,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Assemble checked Model components into the existing Local task driver."
               },
               {
@@ -85184,7 +85184,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Assemble checked Model components into the existing Local task driver."
               },
               {
@@ -85194,7 +85194,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Assemble checked Model components into the existing Local task driver."
               },
               {
@@ -85208,7 +85208,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Assemble checked Model components into the existing Local task driver."
               },
               {
@@ -85222,7 +85222,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Assemble checked Model components into the existing Local task driver."
               },
               {
@@ -85236,7 +85236,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Assemble checked Model components into the existing Local task driver."
               },
               {
@@ -85246,7 +85246,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "path": "adapters/host-node/installed-composed-infer-run.mts",
                 "anchor": "// Assemble checked Model components into the existing Local task driver."
               },
               {
