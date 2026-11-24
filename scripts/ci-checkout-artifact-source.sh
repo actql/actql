@@ -6,11 +6,12 @@ source_sha="${1:?Expected the verified artifact source SHA}"
 [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]]
 controller_sha=$(git rev-parse HEAD)
 if [[ "$source_sha" != "$controller_sha" ]]; then
-  git ls-files -z -- '*.mts' |
+  git ls-files -z -- '*.mts' '*.cts' |
     while IFS= read -r -d '' input; do
       case "$input" in
-        *.d.mts) continue ;;
-        *) printf '%s\0' "${input%.mts}.mjs" "${input%.mts}.d.mts" ;;
+        *.d.mts|*.d.cts) continue ;;
+        *.mts) printf '%s\0' "${input%.mts}.mjs" "${input%.mts}.d.mts" ;;
+        *.cts) printf '%s\0' "${input%.cts}.cjs" "${input%.cts}.d.cts" ;;
       esac
     done |
     xargs -0 sh -c 'if [ "$#" -gt 0 ]; then GIT_LITERAL_PATHSPECS=1 git clean -q -fX -- "$@"; fi' sh

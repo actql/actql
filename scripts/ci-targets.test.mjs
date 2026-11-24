@@ -11,6 +11,7 @@ import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {parse as parseModule} from 'acorn';
+import ts from 'typescript';
 import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, documentationFiles, gateJobs, pythonWheelAcceptanceRequired, pythonWheelMatrix, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
@@ -152,10 +153,27 @@ test('early Source admission runs original recipes once and refuses plan publica
     assert.equal(observed.some(row => row.args.includes('moon-graph-candidate')), failure === '');
   }
   const {scripts} = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  const types = scripts['check:client-types'].split(/\s+/u);
-  for (const required of ['--strict', '--noEmit', 'packages/sdk/index.d.ts', 'packages/client-wire/index.d.ts'])
-    assert(types.includes(required), required);
-  assert(!types.includes('--skipLibCheck'));
+  const [compiler, ...args] = scripts['check:client-types'].split(/\s+/u);
+  assert.equal(compiler, 'tsc');
+  const invocation = ts.parseCommandLine(args);
+  assert.deepEqual(invocation.errors, []);
+  assert.equal(typeof invocation.options.project, 'string');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const config = ts.getParsedCommandLineOfConfigFile(join(root, invocation.options.project), invocation.options, {
+    ...ts.sys,
+    onUnRecoverableConfigFileDiagnostic(diagnostic) {
+      assert.fail(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+    },
+  });
+  assert(config);
+  assert.deepEqual(config.errors, []);
+  assert.equal(config.options.strict, true);
+  assert.equal(config.options.noEmit, true);
+  assert.equal(config.options.skipLibCheck, false);
+  for (const required of ['packages/sdk/index.d.ts', 'packages/sdk/host-port.d.ts',
+    'packages/client-wire/index.d.ts', 'scripts/fixtures/installed-connector-table.typecheck.mts']) {
+    assert(config.fileNames.includes(join(root, required)), required);
+  }
 });
 
 test('Linux Native profile compilers retain their commands and existing stack prerequisite', t => {
