@@ -31931,7 +31931,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoint-model-custody.mts",
                 "anchor": "maxWireBytes: Math.min(MAX_MODEL_INPUT_BYTES, parse.max_input_bytes)"
               }
             ],

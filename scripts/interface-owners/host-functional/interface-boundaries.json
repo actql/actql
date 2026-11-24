@@ -19408,7 +19408,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "78e3178cc10495935b722e50180c6894f32fdadd662b28bcd39879d134fdc2c0",
+      "sha256": "7714c0df81ac995e315d35af28f43929d831708fb55cec08282cfeed7962a75b",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -19425,9 +19425,24 @@
           "async": false
         },
         {
+          "name": "capturedValueWire/capturedValueWire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "captureEffectTargets/captureEffectTargets",
           "parameters": [
             "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "detail"
           ],
           "async": false
         },
@@ -19784,14 +19799,6 @@
           "async": true
         },
         {
-          "name": "installRemoteCheckpoints/init:confirmOriginalModelStateSavedSelected/init:confirmOriginalModelStateSavedSelected",
-          "parameters": [
-            "args",
-            "acquisition"
-          ],
-          "async": true
-        },
-        {
           "name": "installRemoteCheckpoints/init:describe/init:describe",
           "parameters": [],
           "async": false
@@ -20128,56 +20135,6 @@
           "async": true
         },
         {
-          "name": "installRemoteCheckpoints/init:modelOriginalStorageBindingBootstrapSelected/init:modelOriginalStorageBindingBootstrapSelected",
-          "parameters": [
-            "args",
-            "acquisition"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:modelOriginalStorageBindingEvidence/init:modelOriginalStorageBindingEvidence",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:modelOriginalStorageBindingEvidenceSelected/init:modelOriginalStorageBindingEvidenceSelected",
-          "parameters": [
-            "args",
-            "acquisition"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:observeModelOriginalStorageBinding/init:observeModelOriginalStorageBinding",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:observeModelOriginalStorageBindingSelected/init:observeModelOriginalStorageBindingSelected",
-          "parameters": [
-            "args",
-            "acquisition"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:originalModelStateSavedFacts/init:originalModelStateSavedFacts",
-          "parameters": [
-            "observation"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:originalModelStateSavedObservationCurrent/init:originalModelStateSavedObservationCurrent",
-          "parameters": [
-            "observation"
-          ],
-          "async": false
-        },
-        {
           "name": "installRemoteCheckpoints/init:preparation/init:preparation",
           "parameters": [
             "prepareAttemptId"
@@ -20190,21 +20147,6 @@
             "view",
             "semanticCid",
             "maxBytes"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:readModelInput/init:readModelInput",
-          "parameters": [
-            "receipt"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:readOriginalModelStateSelected/init:readOriginalModelStateSelected",
-          "parameters": [
-            "args",
-            "acquisition"
           ],
           "async": true
         },
@@ -20277,23 +20219,6 @@
           "async": true
         },
         {
-          "name": "installRemoteCheckpoints/init:retainModelInput/init:retainModelInput",
-          "parameters": [
-            "runId",
-            "runDefinitionCid",
-            "bodyWire"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:retainOriginalModelStateSelected/init:retainOriginalModelStateSelected",
-          "parameters": [
-            "args",
-            "acquisition"
-          ],
-          "async": true
-        },
-        {
           "name": "installRemoteCheckpoints/init:retireComputationSources/init:retireComputationSources",
           "parameters": [
             "runId"
@@ -20345,20 +20270,6 @@
           "async": false
         },
         {
-          "name": "installRemoteCheckpoints/installRemoteCheckpoints#10",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/installRemoteCheckpoints#11",
-          "parameters": [
-            "principal"
-          ],
-          "async": false
-        },
-        {
           "name": "installRemoteCheckpoints/installRemoteCheckpoints#2",
           "parameters": [
             "item"
@@ -20403,16 +20314,14 @@
         {
           "name": "installRemoteCheckpoints/installRemoteCheckpoints#8",
           "parameters": [
-            "args"
+            "principal"
           ],
           "async": false
         },
         {
-          "name": "installRemoteCheckpoints/installRemoteCheckpoints#9",
-          "parameters": [
-            "args"
-          ],
-          "async": true
+          "name": "installRemoteCheckpoints/modelCustody/modelCustody",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "installRemoteCheckpoints/prepareAttemptIdOf/prepareAttemptIdOf",
@@ -20494,13 +20403,6 @@
           "name": "installRemoteCheckpoints/resumeOne/read/read#2",
           "parameters": [
             "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/retireOriginalModelStateSavedObservation",
-          "parameters": [
-            "observation"
           ],
           "async": false
         },
@@ -20601,7 +20503,6 @@
             "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/read/init:describe/init:describe",
             "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/read/read",
             "installRemoteCheckpoints/init:computationSourceReferences/init:computationSourceReferences",
-            "installRemoteCheckpoints/init:confirmOriginalModelStateSavedSelected/init:confirmOriginalModelStateSavedSelected",
             "installRemoteCheckpoints/init:describe/init:describe",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/cleanupPending/cleanupPending",
@@ -20645,17 +20546,8 @@
             "installRemoteCheckpoints/init:modelAuthorization/init:modelAuthorization/model/model",
             "installRemoteCheckpoints/init:modelAuthorization/init:modelAuthorization/port/port",
             "installRemoteCheckpoints/init:modelContinuation/init:modelContinuation",
-            "installRemoteCheckpoints/init:modelOriginalStorageBindingBootstrapSelected/init:modelOriginalStorageBindingBootstrapSelected",
-            "installRemoteCheckpoints/init:modelOriginalStorageBindingEvidence/init:modelOriginalStorageBindingEvidence",
-            "installRemoteCheckpoints/init:modelOriginalStorageBindingEvidenceSelected/init:modelOriginalStorageBindingEvidenceSelected",
-            "installRemoteCheckpoints/init:observeModelOriginalStorageBinding/init:observeModelOriginalStorageBinding",
-            "installRemoteCheckpoints/init:observeModelOriginalStorageBindingSelected/init:observeModelOriginalStorageBindingSelected",
-            "installRemoteCheckpoints/init:originalModelStateSavedFacts/init:originalModelStateSavedFacts",
-            "installRemoteCheckpoints/init:originalModelStateSavedObservationCurrent/init:originalModelStateSavedObservationCurrent",
             "installRemoteCheckpoints/init:preparation/init:preparation",
             "installRemoteCheckpoints/init:readComputationSource/init:readComputationSource",
-            "installRemoteCheckpoints/init:readModelInput/init:readModelInput",
-            "installRemoteCheckpoints/init:readOriginalModelStateSelected/init:readOriginalModelStateSelected",
             "installRemoteCheckpoints/init:releaseAcquisition/init:releaseAcquisition",
             "installRemoteCheckpoints/init:resolve/init:resolve",
             "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve",
@@ -20665,16 +20557,12 @@
             "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve/init:resolve",
             "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve/init:resolve#2",
             "installRemoteCheckpoints/init:retainComputationSource/init:retainComputationSource",
-            "installRemoteCheckpoints/init:retainModelInput/init:retainModelInput",
-            "installRemoteCheckpoints/init:retainOriginalModelStateSelected/init:retainOriginalModelStateSelected",
             "installRemoteCheckpoints/init:retireComputationSources/init:retireComputationSources",
             "installRemoteCheckpoints/init:reviewCheckpoint/init:reviewCheckpoint",
             "installRemoteCheckpoints/init:runFinished/init:runFinished",
             "installRemoteCheckpoints/init:runUnitReadContinuation/init:runUnitReadContinuation",
             "installRemoteCheckpoints/init:start/init:start",
             "installRemoteCheckpoints/installRemoteCheckpoints",
-            "installRemoteCheckpoints/installRemoteCheckpoints#10",
-            "installRemoteCheckpoints/installRemoteCheckpoints#11",
             "installRemoteCheckpoints/installRemoteCheckpoints#2",
             "installRemoteCheckpoints/installRemoteCheckpoints#3",
             "installRemoteCheckpoints/installRemoteCheckpoints#4",
@@ -20682,7 +20570,6 @@
             "installRemoteCheckpoints/installRemoteCheckpoints#6",
             "installRemoteCheckpoints/installRemoteCheckpoints#7",
             "installRemoteCheckpoints/installRemoteCheckpoints#8",
-            "installRemoteCheckpoints/installRemoteCheckpoints#9",
             "installRemoteCheckpoints/installedSource/installed/installed",
             "installRemoteCheckpoints/prepareAttemptIdOf/prepareAttemptIdOf",
             "installRemoteCheckpoints/readDeferralFor/init:describe/init:describe",
@@ -20696,7 +20583,6 @@
             "installRemoteCheckpoints/resumeOne/outcome/init:started/init:started",
             "installRemoteCheckpoints/resumeOne/read/read",
             "installRemoteCheckpoints/resumeOne/read/read#2",
-            "installRemoteCheckpoints/retireOriginalModelStateSavedObservation",
             "installRemoteCheckpoints/step/step",
             "installRemoteCheckpoints/stop",
             "installRemoteCheckpoints/summaryOf/summaryOf",
@@ -20704,7 +20590,10 @@
             "installRemoteCheckpoints/sweep/sweep",
             "installRemoteCheckpoints/sweep/sweep/sweep",
             "principals/principals",
-            "without/without/without"
+            "without/without/without",
+            "capturedValueWire/capturedValueWire",
+            "fail/fail",
+            "installRemoteCheckpoints/modelCustody/modelCustody"
           ],
           "exports": [
             "installRemoteCheckpoints"
@@ -21763,11 +21652,10 @@
         "../host-common/diagnostic-observer.mjs",
         "../host-common/installed-checkpoint-codec-limits.mjs",
         "./checkpoint-runtime.mjs",
+        "./client-checkpoint-model-custody.mjs",
         "./effect-target-read-inventory.mjs",
-        "./infer-operation.mjs",
         "./installed-effect-limits.mjs",
         "./installed-host-cleanup.mjs",
-        "./installed-model-input-custody.mjs",
         "./local-account-config.mjs",
         "./local-continuation-evidence.mjs",
         "./model-checkpoint-metadata.mjs",
@@ -21776,6 +21664,246 @@
         "node:crypto",
         "node:fs/promises",
         "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/client-checkpoint-model-custody.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4bbe6d7633ad5c3c788ae3be46cfaa102ba80beadf5a9c3a679333947d6c6e07",
+      "role": "physical-io",
+      "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
+      "exports": [
+        "createCheckpointModelCustody"
+      ],
+      "operations": [
+        {
+          "name": "createCheckpointModelCustody",
+          "parameters": [
+            "ports"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointModelCustody/createCheckpointModelCustody",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointModelCustody/createCheckpointModelCustody#2",
+          "parameters": [
+            "args"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointModelCustody/createCheckpointModelCustody#3",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointModelCustody/init:confirmOriginalModelStateSavedSelected/init:confirmOriginalModelStateSavedSelected",
+          "parameters": [
+            "args",
+            "acquisition"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointModelCustody/init:modelOriginalStorageBindingBootstrapSelected/init:modelOriginalStorageBindingBootstrapSelected",
+          "parameters": [
+            "args",
+            "acquisition"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointModelCustody/init:modelOriginalStorageBindingEvidence/init:modelOriginalStorageBindingEvidence",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointModelCustody/init:modelOriginalStorageBindingEvidenceSelected/init:modelOriginalStorageBindingEvidenceSelected",
+          "parameters": [
+            "args",
+            "acquisition"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointModelCustody/init:observeModelOriginalStorageBinding/init:observeModelOriginalStorageBinding",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createCheckpointModelCustody/init:observeModelOriginalStorageBindingSelected/init:observeModelOriginalStorageBindingSelected",
+          "parameters": [
+            "args",
+            "acquisition"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointModelCustody/init:originalModelStateSavedFacts/init:originalModelStateSavedFacts",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointModelCustody/init:originalModelStateSavedObservationCurrent/init:originalModelStateSavedObservationCurrent",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointModelCustody/init:readModelInput/init:readModelInput",
+          "parameters": [
+            "receipt"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointModelCustody/init:readOriginalModelStateSelected/init:readOriginalModelStateSelected",
+          "parameters": [
+            "args",
+            "acquisition"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointModelCustody/init:retainModelInput/init:retainModelInput",
+          "parameters": [
+            "runId",
+            "runDefinitionCid",
+            "bodyWire"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointModelCustody/init:retainOriginalModelStateSelected/init:retainOriginalModelStateSelected",
+          "parameters": [
+            "args",
+            "acquisition"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointModelCustody/retireOriginalModelStateSavedObservation",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createCheckpointModelCustody",
+            "createCheckpointModelCustody/createCheckpointModelCustody",
+            "createCheckpointModelCustody/createCheckpointModelCustody#2",
+            "createCheckpointModelCustody/createCheckpointModelCustody#3",
+            "createCheckpointModelCustody/init:confirmOriginalModelStateSavedSelected/init:confirmOriginalModelStateSavedSelected",
+            "createCheckpointModelCustody/init:modelOriginalStorageBindingBootstrapSelected/init:modelOriginalStorageBindingBootstrapSelected",
+            "createCheckpointModelCustody/init:modelOriginalStorageBindingEvidence/init:modelOriginalStorageBindingEvidence",
+            "createCheckpointModelCustody/init:modelOriginalStorageBindingEvidenceSelected/init:modelOriginalStorageBindingEvidenceSelected",
+            "createCheckpointModelCustody/init:observeModelOriginalStorageBinding/init:observeModelOriginalStorageBinding",
+            "createCheckpointModelCustody/init:observeModelOriginalStorageBindingSelected/init:observeModelOriginalStorageBindingSelected",
+            "createCheckpointModelCustody/init:originalModelStateSavedFacts/init:originalModelStateSavedFacts",
+            "createCheckpointModelCustody/init:originalModelStateSavedObservationCurrent/init:originalModelStateSavedObservationCurrent",
+            "createCheckpointModelCustody/init:readModelInput/init:readModelInput",
+            "createCheckpointModelCustody/init:readOriginalModelStateSelected/init:readOriginalModelStateSelected",
+            "createCheckpointModelCustody/init:retainModelInput/init:retainModelInput",
+            "createCheckpointModelCustody/init:retainOriginalModelStateSelected/init:retainOriginalModelStateSelected",
+            "createCheckpointModelCustody/retireOriginalModelStateSavedObservation"
+          ],
+          "exports": [
+            "createCheckpointModelCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-checkpoint-model-custody.mts",
+                "anchor": "export function createCheckpointModelCustody(ports: Ports)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-checkpoint-model-custody.mts",
+                "anchor": "type StateWrite = StateInput"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoint-model-custody.mts",
+                "anchor": "type StateRead = StateInput"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-checkpoint-model-custody.mts",
+                "anchor": "const originalStateSavedObservations = new WeakMap<object, StateRecord>()"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const modelCustody = createCheckpointModelCustody({contractControl, evidence, IDENTIFIER,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-checkpoint-model-custody.mts",
+                "anchor": "selectOriginalInferMetadataAcquisition(acquisition, ownerId, runDefinitionCid);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-checkpoint-model-custody.mts",
+                "anchor": "fail('OriginalModelStateBindingMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-checkpoint-model-custody.mts",
+                "anchor": "function retireOriginalModelStateSavedObservation(observation: unknown)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-checkpoint-model-custody.mts",
+                "anchor": "maxWireBytes: Math.min(MAX_MODEL_INPUT_BYTES, parse.max_input_bytes)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-checkpoint-model-custody.mts",
+                "anchor": "selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/model-original-state-checkpoints.test.mjs",
+                "anchor": "original saved observation retirement cuts nominal facts without deleting saved bytes"
+              },
+              {
+                "path": "adapters/host-node/model-current-resource-store.test.mjs",
+                "anchor": "same original encrypted Store bytes pass actual parked origin and Resource census comparison"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./infer-operation.mjs",
+        "./installed-model-input-custody.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
