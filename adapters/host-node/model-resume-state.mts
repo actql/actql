@@ -1252,7 +1252,7 @@ export function createModelResumeState(database: Pick<DatabaseSync, 'prepare'>, 
               generation: parentAdmission.generation, claimant: parentAdmission.claimant}})}, 'enterImmediateModelCall');
         });
       },
-      enterResumedCall(claim: Claim, reference: Enter & Deferred) {
+      enterResumedCall(claim: Claim, reference: Enter & Pick<Deferred, 'checkpointCid' | 'resolutionCid'>) {
         alive();
         return transaction.run(() => {
           const state = checked(reference);

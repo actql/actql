@@ -65,10 +65,10 @@ type Runtime = Readonly<{
   clientProgramReadInferCaptureBundle(wire: string, cid: string): unknown;
   clientProgramReleaseInferCaptureBundle(bundle: unknown): unknown;
 }>;
-type Ports = Readonly<{
+type Ports<Installation extends CheckpointInstallation> = Readonly<{
   moon: Runtime; control: Control; store: Store; storeAuthorityCid: string;
   namespaceId: string; authorityScopeCid: string; runtime: CheckpointRuntime;
-  getCheckpoints(): CheckpointInstallation | undefined;
+  getCheckpoints(): Installation | undefined;
   observeDiagnostic?: unknown;
 }>;
 type ModelInputOriginal = Pick<Snapshot['originals'],
@@ -106,8 +106,8 @@ const roles = ['model_call_attempt', 'model_attempt_accounting', 'model_attempt_
   'model_dispatch_authority', 'model_slot_capture', 'model_capture_bundle', 'model_attachment_admission'] as const;
 
 
-export function createInstalledModelContinuationCustody({moon, control, store, storeAuthorityCid, namespaceId,
-  authorityScopeCid, runtime, getCheckpoints, observeDiagnostic}: Ports) {
+export function createInstalledModelContinuationCustody<Installation extends CheckpointInstallation>({moon, control, store, storeAuthorityCid, namespaceId,
+  authorityScopeCid, runtime, getCheckpoints, observeDiagnostic}: Ports<Installation>) {
   const live = new WeakMap<object, LiveOwner>();
   // Route only the original bare park to its existing installed operation's
   // completed Common comparison. Escaped park refs retain no new callback or
@@ -125,7 +125,7 @@ export function createInstalledModelContinuationCustody({moon, control, store, s
   // rows, submitted programs or responses, and cannot authorize a fresh send.
   const inventories = new Map<string, InputIdentity>();
   const diagnostic = diagnosticObserver(observeDiagnostic);
-  let checkpointInstallation: Readonly<{checkpoints: CheckpointInstallation; journal: Journal}> | undefined;
+  let checkpointInstallation: Readonly<{checkpoints: Installation; journal: Journal}> | undefined;
   const {retain, ownedInput, release, usage, changed, hasRetainedReceipt, firstRetained, leaseReceiptWire} =
     createInstalledModelInputCustody({inventorySize: () => inventories.size, retireReceipt, diagnostic, fail});
   function retireReceipt(receiptWire: string) {

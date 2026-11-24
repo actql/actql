@@ -100,7 +100,7 @@ type RawCaptureOptions = RawSelection & Readonly<{
 type RawCaptureRegistration = Readonly<{
   policy: unknown; profile: unknown; installation: unknown; probability: unknown; account: unknown;
   at: string; storeAuthorityCid: string; selectionAvailable: () => boolean;
-  observeAccount: () => unknown; observeAt: () => string; delegated: unknown;
+  observeAccount: () => unknown; observeAt: () => string; delegated?: unknown;
 }>;
 type IssuedInvocation = Readonly<{binding: unknown; observation: Evidence; invocation: Contract}>;
 type ModelObservation = Readonly<{task: number; unit: number; step: number; bodies: readonly EvidenceBody[]}>;

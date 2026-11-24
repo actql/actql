@@ -21,7 +21,153 @@ import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {selectedInferOriginalCurrentStateCodec,
   snapshotInferOriginalCurrentStateCodec as originalCurrentCodecLimits} from './infer-original-installation.mjs';
 
-function requireModelDispatchPreparation(moon, selected) {
+import type {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {createLocalAuthorizationGate} from './local-account-config.mjs';
+import type {openNodeInferOperation} from './infer-operation.mjs';
+
+type Custody = ReturnType<typeof createInstalledModelContinuationCustody>;
+type CustodyPorts = Parameters<typeof createInstalledModelContinuationCustody>[0];
+type CheckpointCustody = ReturnType<Custody['checkpoints']>;
+type Journal = CheckpointCustody['journal'];
+type Control = ReturnType<typeof runtimeCore>['publicationControl'];
+type InferOperation = ReturnType<typeof openNodeInferOperation>;
+type Operation = Omit<InferOperation, 'ioNotification'> & Readonly<{
+  ioNotification?: Readonly<{notify(): void}>;
+}>;
+type PreparedEvidence = Parameters<typeof withPreparedInferEvidence>[0];
+type RawTransport = Parameters<typeof createModelRawTransportPersistenceFactory>[0];
+type PersistenceOptions = Parameters<typeof createNodeInferEntryPersistence>[0];
+type PhysicalObservation = Parameters<typeof createInferPhysicalObservation>[0]['observation'] &
+  Readonly<{canMeasure(owner: 'infer'): boolean}>;
+type Runtime = CustodyPorts['moon'] & PreparedEvidence['moon'] & RawTransport['moon'] & PersistenceOptions['moon'] & Readonly<{
+  clientProgramOriginalMockProvider?(installation: unknown): unknown;
+  executionAuthorizationEvaluate(account: unknown, principal: string, provider: string, resource: string, operation: 'infer'): unknown;
+  executionAuthorizationEvaluationJson(evaluation: unknown): string;
+  clientProgramInferPlanBoundary(graph: unknown): unknown;
+  clientProgramInferAttemptRecords(attempt: unknown, accounting: unknown, outcome: unknown, authority: unknown): unknown;
+  clientProgramInferPreparedRequest(prepared: unknown, slot: number): unknown;
+  clientProgramModelRequestInputFrameBounded(request: unknown, maxBytes: number): unknown;
+  clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch?: unknown;
+  clientProgramInferOriginalCurrentStateMatchPoll?: unknown;
+  clientProgramInferOriginalCurrentStateMatchCurrent?: unknown;
+  clientProgramRetireInferOriginalCurrentStateMatch?: unknown;
+}>;
+type Store = CustodyPorts['store'] & RawTransport['store'];
+type RunDefinition = Parameters<Control['checkCheckedClientInferOriginalParkedStorageOrigin']>[1] &
+  Readonly<{identity: string; wire: string}>;
+type Compiled = Parameters<Control['issueCheckedClientInferRawCapturePolicy']>[0] &
+  Readonly<{preparedEvidence: Readonly<{identity: string; wire: string}>}>;
+type Plan = PreparedEvidence['plan'] & Readonly<{compiled: Compiled; runDefinition: RunDefinition}>;
+type Token = ReturnType<Custody['retain']>;
+type Snapshot = Parameters<Custody['retain']>[2];
+type Receipt = Parameters<Custody['retain']>[1];
+type Originals = Snapshot['originals'] & Readonly<{fixedInputReceiptWire: string}>;
+type Inventory = ReturnType<Custody['admittedInventory']>;
+type SourceInventory = Parameters<Custody['prime']>[0] & Readonly<{originals: Originals}>;
+type ModelSlot = ReturnType<Journal['readModelCalls']>['slots'][number];
+type Entry = ModelSlot['attempts'][number];
+type OpaqueEntryOriginal = Parameters<Parameters<Operation['bindModelDispatch']>[4]['enterCall']>[0];
+type EntryOriginal = Readonly<{entry: object; slot: number; callWire: string; attemptWire: string; authorityWire: string}>;
+type ImmediateInput = NonNullable<Parameters<Journal['enterImmediateModelCall']>[1]>;
+type Claim = Parameters<Journal['enterResumedCall']>[0];
+type Gate = Awaited<ReturnType<typeof createLocalAuthorizationGate>>;
+type Decision = Awaited<ReturnType<Gate['authorize']>>;
+type ModelGate = Pick<Gate, 'configurationCid' | 'close' | 'cleanup' | 'cleanupPending'> & Readonly<{
+  authorize(options: Parameters<Gate['authorize']>[2]): Promise<Decision>;
+  resume(options: Parameters<Gate['resume']>[2]): Promise<Decision>;
+}>;
+type ProviderBinding = Readonly<{wire: string; identity: string; originals: unknown}>;
+type ResponseReply = Readonly<{attemptWire: string; callWire: string; providerBindingCid: string; response: unknown}>;
+type Selected = Record<string, unknown> & PreparedEvidence['selected'] & Readonly<{
+  provider: unknown; localMock?: boolean; originalMockInstallation?: unknown;
+  egressAdmission?: unknown; egressFailure?: unknown; entryPersistence?: 'async';
+  graph: unknown; step: number; currentProvider?(): unknown;
+  providerBinding?: ProviderBinding; observeAccount(): unknown;
+  rawCaptureSelection?: Parameters<typeof snapshotModelRawCaptureSelection>[0];
+  reconcileResponse?(request: Readonly<{
+    request: unknown; inputFrame: unknown; entry: ReturnType<typeof entryIdentity>;
+    callWire: string; attemptWire: string; authorityWire: string; providerBindingCid: string;
+    signal?: AbortSignal;
+  }>): ResponseReply | null | undefined | PromiseLike<ResponseReply | null | undefined>;
+}>;
+type OriginalPreparation = Readonly<{
+  scope: unknown; control: Control; compiled: Compiled; runDefinition: RunDefinition;
+  nodeInstallation: Parameters<Control['checkCheckedClientInferOriginalParkedStorageOrigin']>[6];
+  metadataInstallation: Parameters<typeof selectedInferOriginalCurrentStateCodec>[0];
+}>;
+type OpenOptions = Readonly<{
+  operation: Operation; preparedCallSet: object; plan: Plan; selected: Selected; principalId: string;
+  declaredResults: readonly string[]; submission: unknown; signal?: AbortSignal;
+  existing?: SourceInventory; inputToken?: Token; claim?: Claim; parentResume?: ImmediateInput['parentResume'];
+  journalPort?: Pick<Journal, 'admitResume'>;
+  sourceContinuation?: Snapshot['sourceContinuation']; retainEvidenceCopy: PreparedEvidence['retainCopy'];
+  originalPreparation?: OriginalPreparation; preserveEvidenceInputs?: boolean;
+}>;
+type GateOptions = Readonly<{
+  runId: string; runDefinitionCid: string; unitId: string; scopeCid: string;
+  tuple: Readonly<{connection: string; resource: string; operation: 'infer'}>;
+  declaredResults: readonly string[]; modelCallSet: Originals; reviewWire: string; continuationWire: string;
+  beforeDefer(): Promise<void>; attachImmediate: boolean; journalPort?: OpenOptions['journalPort'];
+}>;
+type RetainedCutFacts = ReturnType<CheckpointCustody['originalModelStateSavedFacts']>;
+type StorageBinding = unknown;
+type StateReceipt = unknown;
+type StateObservation = unknown;
+type StorageRead = Readonly<{storageBinding: StorageBinding; runDefinition: RunDefinition}>;
+type StateRead = StorageRead & Readonly<{receipt: StateReceipt}>;
+type CheckpointInstallation = CheckpointCustody & Readonly<{
+  modelContext: Readonly<{accountId: string; configurationCid: string; contextCid: string}>;
+  retainModelInput(inputs: Readonly<{runId: string; runDefinitionCid: string; bodyWire: string}>): Promise<Receipt>;
+  modelAuthorization(inputs: GateOptions): Promise<ModelGate>;
+  modelOriginalStorageBindingEvidence(binding: StorageBinding): Promise<unknown>;
+  modelOriginalStorageBindingEvidenceSelected(inputs: StorageRead, acquisition: object): Promise<unknown>;
+  modelOriginalStorageBindingBootstrapSelected(inputs: StorageRead, acquisition: object): Promise<unknown>;
+  observeModelOriginalStorageBindingSelected(inputs: Readonly<{runDefinition: RunDefinition}>, acquisition: object): Promise<StorageBinding>;
+  confirmOriginalModelStateSavedSelected(inputs: StateRead & Readonly<{identity: RetainedCutFacts['identity']}>, acquisition: object): Promise<StateObservation>;
+  readOriginalModelStateSelected(inputs: StateRead, acquisition: object): Promise<unknown>;
+  retainOriginalModelStateSelected(inputs: StorageRead & Readonly<{bodyWire: string}>, acquisition: object): Promise<StateReceipt>;
+  retireOriginalModelStateSavedObservation(observation: StateObservation): void;
+}>;
+type Inputs = Omit<CustodyPorts, 'moon' | 'control' | 'store' | 'runtime' | 'getCheckpoints' | 'observeDiagnostic'> & Readonly<{
+  moon: Runtime; control: Control; store: Store; now(): string;
+  getCheckpoints(): CheckpointInstallation | undefined;
+  observe?: unknown; observation?: PhysicalObservation; inferEvidence?: PreparedEvidence['configuration'];
+}>;
+type Owner = {
+  operation: Operation; preparedCallSet: object; available: boolean; pending?: EntryOriginal; decision?: Decision;
+  currentProvider(): boolean; entries: Map<number, Entry>; entryFailure?: unknown;
+};
+type OpenCustody = {owner?: Owner; token?: Token};
+type CurrentStateReference = ReturnType<Journal['prepareOriginalModelCurrentCut']>;
+type InvalidationReceipt = ReturnType<Journal['invalidateOriginalModelCurrentCut']>;
+type OriginalInvalidation = {reference: CurrentStateReference; park: object; request: unknown; receipt?: InvalidationReceipt};
+type OriginalCut = {
+  park: unknown; storageBinding: StorageBinding; receipt: StateReceipt; saved?: StateObservation;
+  codec: WeakRef<object>; promise?: Promise<CurrentStateReference>; document?: unknown; matched?: unknown;
+  facts?: Pick<RetainedCutFacts, 'identity' | 'phase' | 'cut'>;
+  current(): boolean; invalidationCurrent(request: unknown): unknown;
+};
+type SavedCut = Readonly<{park: unknown; receipt: StateReceipt; reference: CurrentStateReference}>;
+type OriginalSave = {
+  storageBinding: StorageBinding; originWire: string; codec: WeakRef<object>; park: unknown;
+  promise?: Promise<SavedCut>; receipt?: StateReceipt; reference?: CurrentStateReference; pending: boolean;
+};
+type OriginalDispatchCut = {park?: unknown; flight?: Promise<void>; pending: boolean};
+type CleanupHandle = Readonly<{status(): Readonly<{pending: boolean}>; retry(): unknown}>;
+type RawBinding = {
+  attempted: boolean; complete: boolean; issue?: unknown;
+  persistence?: ReturnType<typeof createModelRawTransportPersistenceFactory>;
+  holdings: Parameters<RawTransport['retainHolding']>[0][] | undefined;
+  originalsFlight?: Promise<void>; originalsPending: boolean;
+  readCleanup?: CleanupHandle; readCleanupFlight?: Promise<unknown>;
+};
+type UnreconciledEntry = Readonly<{entry: Entry; historical: ReturnType<Journal['readModelAttemptOriginals']>}>;
+type StoredSettlement = Parameters<NonNullable<Parameters<Custody['readSettled']>[1]>>[0];
+type EvidenceRole = keyof StoredSettlement['bodies'];
+type CapturedFacts = Omit<ReturnType<Operation['preparedFacts']>, 'providerId' | 'modelTaskCid' | 'unitId' | 'callScopeSnapshotWire'> &
+  Readonly<{providerId: string; modelTaskCid: string; unitId: string; callScopeSnapshotWire: string}>;
+
+function requireModelDispatchPreparation(moon: Runtime, selected: Selected) {
   if (selected.localMock === true) {
     // Only the same live Core Mock installation/provider has no external I/O.
     // A Host flag, a matching provider name or absence of egress is not that
@@ -39,7 +185,7 @@ function requireModelDispatchPreparation(moon, selected) {
   }
 }
 export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,
-  authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic, observation, inferEvidence}) {
+  authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic, observation, inferEvidence}: Inputs) {
   const runtime = await loadCheckpointRuntime();
   const custody = createInstalledModelContinuationCustody({moon, control, store, storeAuthorityCid, namespaceId,
     authorityScopeCid, runtime, getCheckpoints, observeDiagnostic});
@@ -48,9 +194,9 @@ export async function installNodeModelContinuation({moon, control, store, storeA
 
   async function openOwned({operation, preparedCallSet, plan, selected, principalId,
     declaredResults, submission, signal, existing, inputToken, claim, parentResume, journalPort,
-    sourceContinuation, retainEvidenceCopy, originalPreparation, preserveEvidenceInputs = true}, ownership) {
+    sourceContinuation, retainEvidenceCopy, originalPreparation, preserveEvidenceInputs = true}: OpenOptions, ownership: OpenCustody) {
     let rawSelection = snapshotModelRawCaptureSelection(selected.rawCaptureSelection);
-    const rawBinding = rawSelection === undefined ? undefined :
+    const rawBinding: RawBinding | undefined = rawSelection === undefined ? undefined :
       {attempted: false, complete: false, issue: undefined,
         persistence: undefined, holdings: [], originalsFlight: undefined,
         originalsPending: false, readCleanup: undefined, readCleanupFlight: undefined};
@@ -60,8 +206,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     if (rawBinding !== undefined &&
         (typeof operation.ioNotification?.notify !== 'function' ||
           typeof control.installedModelRawSelectionOriginals !== 'function' ||
-          ['confirmModelRawCaptureOriginals', 'confirmModelRawEvidence',
-            'prepareModelRawEvidence', 'commitPhysicalHolding'].some(name =>
+          (['confirmModelRawCaptureOriginals', 'confirmModelRawEvidence',
+            'prepareModelRawEvidence', 'commitPhysicalHolding'] as const).some(name =>
             typeof store?.[name] !== 'function'))) {
       fail('InstalledModelRawStoreUnavailable');
     }
@@ -76,22 +222,22 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       fail('InstalledModelOriginalScopeMismatch');
     }
     const cp = originalPreparation === undefined ? checkpoints() : installOriginalJournal();
-    const facts = operation.preparedFacts(preparedCallSet);
-    const run = JSON.parse(plan.runDefinition.wire);
-    let token;
-    let originals;
-    let scope;
+    const facts = operation.preparedFacts(preparedCallSet) as CapturedFacts;
+    const run = JSON.parse(plan.runDefinition.wire) as Readonly<{run_id: string; valid_until: string}>;
+    let token: Token;
+    let originals: Originals | Snapshot['originals'];
+    let scope: ReturnType<Control['admitRunEvidence']>;
     const binding = selected.providerBinding;
     if (binding === undefined) fail('InstalledModelProviderBindingRequired');
     if (existing !== undefined) {
-      token = inputToken;
+      token = inputToken!;
       if (leaseReceiptWire(token) !== existing.originals.fixedInputReceiptWire ||
           !token.available) fail('ModelFixedInputCustodyUnavailable');
       originals = existing.originals;
       scope = control.admitRunEvidence('model_invocation_scope', originals.scopeWire, limits);
       if (facts.inputArtifactWire !== originals.inputArtifactWire ||
           !same(facts.slotWires, originals.slotWires) ||
-          facts.callScopeSnapshotWire !== token.snapshot.callScopeSnapshotWire) fail('ModelRestoredInventoryChanged');
+          facts.callScopeSnapshotWire !== token.snapshot!.callScopeSnapshotWire) fail('ModelRestoredInventoryChanged');
     } else {
       const account = selected.observeAccount();
       const evaluated = JSON.parse(moon.executionAuthorizationEvaluationJson(
@@ -125,20 +271,20 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         run_definition_cid: plan.runDefinition.identity, scope_cid: scope.identity,
         input_artifact_cid: input.identity, task_index: runtimeField(coordinates, 0), strategy_revision: runtimeField(coordinates, 2)});
       const exported = operation.exportPreparedInput(preparedCallSet, fixedBinding);
-      originals = {originalRunWire: originalModelRunWire(plan.compiled, plan.runDefinition),
+      originals = {originalRunWire: originalModelRunWire(plan.compiled, plan.runDefinition)!,
         preparedInvocationWire: plan.compiled.preparedEvidence.wire, scopeWire: scope.wire,
         providerBindingWire: binding.wire, inputArtifactWire: input.wire,
         slotWires: [...facts.slotWires], expectedBoundary};
-      const contentGeneration = operation.contentRecovery?.();
-      const capturedContent = operation.capturedContentRecovery?.();
-      const capturedContentBinding = operation.capturedContentBinding?.();
+      const contentGeneration = operation.contentRecovery?.() as Snapshot['contentGeneration'];
+      const capturedContent = operation.capturedContentRecovery?.() as Snapshot['capturedContent'];
+      const capturedContentBinding = operation.capturedContentBinding?.() as Snapshot['capturedContentBinding'];
       checkCapturedInventory(capturedContent, plan.runDefinition.identity, capturedContentBinding, fail);
       if (operation.contentGenerationCount > 0 && contentGeneration === undefined) {
         fail('ModelContentGenerationCustodyMissing');
       }
-      let snapshot = {version: 'actql-installed-model-input/0.1', scopeCid: scope.identity,
+      let snapshot: Snapshot = {version: 'actql-installed-model-input/0.1', scopeCid: scope.identity,
         inputArtifactCid: input.identity, originals, binding: fixedBinding,
-        descriptorWire: exported.descriptorWire, rows: [...exported.rows],
+        descriptorWire: exported.descriptorWire, rows: [...exported.rows as readonly unknown[]],
         callScopeSnapshotWire: facts.callScopeSnapshotWire,
         providerOriginals: binding.originals, submission,
         ...(sourceContinuation === undefined ? {} : {sourceContinuation}),
@@ -174,16 +320,16 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     const historicalProvider = control.admitRunEvidence('model_provider_binding', originals.providerBindingWire, limits);
     const bound = operation.bindModelScope(control, plan, preparedCallSet,
       {scope, provider: historicalProvider, expectedBoundary: originals.expectedBoundary});
-    const inventory = admittedInventory(originals, existing?.checkpointCid == null, token);
-    const owner = {operation, preparedCallSet, available: true, pending: undefined, decision: undefined,
+    const inventory = admittedInventory(originals as Originals, existing?.checkpointCid == null, token);
+    const owner: Owner = {operation, preparedCallSet, available: true, pending: undefined, decision: undefined,
       currentProvider: () => selected.currentProvider?.() !== false && binding.identity === inventory.providerBindingCid,
       entries: new Map()};
-    let installedJournalPort;
-    let originalInvalidation;
-    let originalCut;
-    let originalSave;
-    let originalDispatchCut;
-    function originalResourceReadCurrent(park, acquisition) {
+    let installedJournalPort: ReturnType<Journal['installOriginalModelJournalPort']> | undefined;
+    let originalInvalidation: OriginalInvalidation | undefined;
+    let originalCut: OriginalCut | undefined;
+    let originalSave: OriginalSave | undefined;
+    let originalDispatchCut: OriginalDispatchCut | undefined;
+    function originalResourceReadCurrent(park: unknown, acquisition?: object) {
       const originalScope = operation.originalResourceScope?.();
       if (!owner.available || originalPreparation === undefined ||
           originalScope === undefined || originalScope !== originalPreparation.scope ||
@@ -198,7 +344,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       }
       return originalScope;
     }
-    async function selectedOriginalStorageEvidence(park, storageBinding, acquisition) {
+    async function selectedOriginalStorageEvidence(park: unknown, storageBinding: StorageBinding, acquisition: object) {
       originalResourceReadCurrent(park, acquisition);
       if (typeof cp.modelOriginalStorageBindingEvidenceSelected !== 'function') {
         fail('InferOriginalMetadataAcquisitionUnavailable');
@@ -208,7 +354,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       originalResourceReadCurrent(park, acquisition);
       return evidence;
     }
-    async function confirmOriginalResourceStateSaved(park, storageBinding, receipt) {
+    async function confirmOriginalResourceStateSaved(park: unknown, storageBinding: StorageBinding, receipt: StateReceipt) {
       const originalScope = originalResourceReadCurrent(park);
       if (typeof cp.confirmOriginalModelStateSavedSelected !== 'function' ||
           typeof cp.retireOriginalModelStateSavedObservation !== 'function') {
@@ -233,7 +379,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       originalResourceReadCurrent(park, acquisition);
       control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
         plan.runDefinition, selected.graph, originalScope, park, document,
-        originalPreparation.nodeInstallation, storage);
+        originalPreparation!.nodeInstallation, storage);
       originalResourceReadCurrent(park, acquisition);
       return saved;
     }
@@ -255,7 +401,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     ownership.owner = owner;
     const persistence = selected.entryPersistence !== 'async' ? undefined :
       createNodeInferEntryPersistence({moon, preparedCallSet, journal: cp.journal,
-        ioNotification: operation.ioNotification,
+        ioNotification: operation.ioNotification!,
         settled(entry, receipt) {
           if (owner.pending?.entry !== entry) return;
           owner.pending = undefined;
@@ -270,18 +416,18 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       const installed = operation.bindModelObservation(preparedCallSet,
         createInferPhysicalObservation({observation,
           reference: {namespaceId, authorityScopeCid},
-          receiptAt: slot => owner.entries.get(slot)}));
+          receiptAt: slot => owner.entries.get(slot)}) as Parameters<Operation['bindModelObservation']>[1]);
       if (!installed) observation.noteLoss();
     }
-    const unreconciled = new Map();
-    let view = existing === undefined ? undefined : cp.journal.readModelCalls(existing.inventory);
+    const unreconciled = new Map<number, UnreconciledEntry>();
+    let view = existing === undefined ? undefined : cp.journal.readModelCalls(existing!.inventory);
     if (view !== undefined) {
       for (const slot of view.slots) {
         const entry = slot.attempts.at(-1);
         if (entry === undefined) continue;
         await observe(entry);
       }
-      view = cp.journal.readModelCalls(existing.inventory);
+      view = cp.journal.readModelCalls(existing!.inventory);
       for (const slot of view.slots) {
         const entry = slot.attempts.at(-1);
         if (entry === undefined) continue;
@@ -295,13 +441,14 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         } else {
           // Store remains the authority. Keep response bodies only while
           // restoring this call, rather than caching every settled attempt.
-          let stored;
-          await readSettled({originals, entry, ...historical}, record => { stored = record; });
+          let stored: StoredSettlement | undefined;
+          await readSettled({originals: originals as Originals, entry,
+            ...historical as Omit<typeof historical, 'entry'>}, record => { stored = record; });
           if (stored === undefined) fail('ModelSavedCustodyUnavailable');
           if (stored.terminalFailure === true) fail('ModelSavedTerminalFailure');
-          const leaf = name => checked(moon.strategyRunEvidenceAdmit(name, stored.bodies[name], 16384, 1024, 20));
-          const bundle = checked(moon.clientProgramReadInferCaptureBundle(stored.bodies.model_capture_bundle,
-            stored.evidence.model_capture_bundle.cid));
+          const leaf = (name: EvidenceRole) => checked(moon.strategyRunEvidenceAdmit(name, stored!.bodies[name]!, 16384, 1024, 20));
+          const bundle = checked(moon.clientProgramReadInferCaptureBundle(stored.bodies.model_capture_bundle!,
+            stored.evidence.model_capture_bundle!.cid));
           try { operation.restoreCall(preparedCallSet, slot.ordinal, leaf('model_slot_capture'),
             moon.clientProgramInferAttemptRecords(leaf('model_call_attempt'), leaf('model_attempt_accounting'),
               leaf('model_attempt_outcome'), leaf('model_dispatch_authority')), bundle,
@@ -323,7 +470,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       expires_at: run.valid_until, displayed_scope: {model_invocation_scope_cid: scope.identity,
         model_call_slot_cids: inventory.slots.map(slot => slot.slotCid)}, displayed_authoring_context: [],
     }), limits);
-    let gate, gateOpening;
+    let gate: ModelGate | undefined, gateOpening: Promise<void> | undefined;
     let gateCloseAttempted = false, gateReleased = false;
     function rawOriginalsCurrent() {
       checkpoints();
@@ -341,14 +488,14 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       if (rawBinding.originalsFlight !== undefined) return rawBinding.originalsFlight;
       // The finite Common projection is captured before the first Store await.
       // No copied packet/CID or this availability result issues a raw grant.
-      const originals = control.installedModelRawSelectionOriginals(rawSelection);
+      const originals = control.installedModelRawSelectionOriginals(rawSelection!);
       rawBinding.originalsPending = true;
       rawBinding.originalsFlight = (async () => {
         try {
           await store.confirmModelRawCaptureOriginals(originals, storeAuthorityCid);
           rawOriginalsCurrent();
         } catch (error) {
-          const handle = error?.cleanupHandle;
+          const handle = (error as Readonly<{cleanupHandle?: CleanupHandle}> | null | undefined)?.cleanupHandle;
           // Only this actual selected Store's failed physical read supplies
           // retry custody. Never lose its FD merely because approval failed.
           if (typeof handle?.status === 'function' &&
@@ -371,7 +518,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             .catch(() => { /* Retain the same original FD for cleanup retry. */ })
             .finally(() => {
               rawBinding.readCleanupFlight = undefined;
-              try { operation.ioNotification.notify(); } catch { /* Wake is not cleanup proof. */ }
+              try { operation.ioNotification!.notify(); } catch { /* Wake is not cleanup proof. */ }
             });
           return false;
         }
@@ -396,7 +543,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       }
       if (live.get(preparedCallSet) === owner) live.delete(preparedCallSet);
       if (originalCut !== undefined) {
-        originalResourceCuts.delete(originalCut.park);
+        originalResourceCuts.delete(originalCut.park as object);
         if (originalCut.matched !== undefined) operation.retireOriginalCurrentStateMatch(originalCut.matched);
         if (originalCut.document !== undefined) operation.retireOriginalCurrentStateDocument(originalCut.document);
         originalCut = undefined;
@@ -420,21 +567,21 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     };
     const cleanupPending = () => owner.available || gateOpening !== undefined ||
       gate !== undefined && !gateReleased || token.available;
-    const gateOptions = {runId: run.run_id,
+    const gateOptions: GateOptions = {runId: run.run_id,
       runDefinitionCid: plan.runDefinition.identity, unitId: facts.unitId, scopeCid: scope.identity,
       tuple: {connection: facts.providerId, resource: facts.modelTaskCid, operation: 'infer'},
-      declaredResults, modelCallSet: originals, reviewWire: originals.reviewWire ?? review.wire,
+      declaredResults, modelCallSet: originals as Originals, reviewWire: originals.reviewWire ?? review.wire,
       continuationWire: canonicalJson({version: 'actql-installed-model-continuation/0.1',
-        scopeCid: scope.identity, receipt: token.receipt, submission: token.snapshot.submission}),
+        scopeCid: scope.identity, receipt: token.receipt, submission: token.snapshot!.submission}),
       beforeDefer: async () => { if (!token.available) fail('ModelFixedInputCustodyUnavailable'); },
       attachImmediate: view?.checkpointCid === null,
       ...(journalPort === undefined ? {} : {journalPort})};
-    const continuationView = Object.freeze({originals, inventory, token, scope, preparedCallSet,
+    const continuationView = Object.freeze({originals: originals as Originals, inventory, token, scope, preparedCallSet,
       originalJournalInstallation,
       prepareOriginalResourcesForDispatch() {
         if (!owner.available || checkpoints()!==cp) fail('ModelOriginalCurrentCutUnavailable');
         if (originalDispatchCut!==undefined) return originalDispatchCut.flight;
-        const codec=selectedInferOriginalCurrentStateCodec(originalPreparation?.metadataInstallation,
+        const codec=selectedInferOriginalCurrentStateCodec(originalPreparation?.metadataInstallation!,
           originalPreparation?.nodeInstallation);
         if (typeof operation.originalStoreBootstrapAcquisition !== 'function' ||
             typeof cp.observeModelOriginalStorageBindingSelected !== 'function' ||
@@ -444,7 +591,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         const acquisition=operation.originalStoreBootstrapAcquisition();
         // This same installed operation already owns all initialization and
         // Store/codec overlap. There is no request-supplied serializer/amount.
-        const original=originalDispatchCut={park:undefined,flight:undefined,pending:true};
+        const original: OriginalDispatchCut=originalDispatchCut={park:undefined,flight:undefined,pending:true};
         original.flight=(async()=>{
           try {
             const storageBinding=await cp.observeModelOriginalStorageBindingSelected(
@@ -462,7 +609,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
               storageBinding,originWire,codec);
             originalResourceReadCurrent(original.park);
             cp.journal.commitOriginalModelCurrentCut(saved.reference, claim);
-            continuationView.beginOriginalResourceInvalidation(saved.reference,original.park);
+            continuationView.beginOriginalResourceInvalidation(saved.reference,original.park as object);
             continuationView.completeOriginalResourceInvalidation();
             // Unit only: journal ACK/fence consumption never issues InferAllow
             // or bypasses the original final Entry/current send gate.
@@ -470,12 +617,12 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         })();
         return original.flight;
       },
-      retainOriginalResourceCurrentCut(park, storageBinding, originWire, codec) {
+      retainOriginalResourceCurrentCut(park: unknown, storageBinding: StorageBinding, originWire: string, codec: object): Promise<SavedCut> {
         if (originalSave !== undefined) {
           if (originalSave.park !== park || originalSave.storageBinding !== storageBinding || originalSave.originWire !== originWire ||
               originalSave.codec.deref() !== codec) fail('ModelOriginalCurrentCutBindingMismatch');
           originalResourceReadCurrent(originalSave.park);
-          return originalSave.promise;
+          return originalSave.promise!;
         }
         // This method is internal to the original opened operation. Origin DATA
         // was selected before park by its existing checked getter; matching
@@ -492,7 +639,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // codec snapshots, Writer, trees, Promise and physical Store I/O.
         const acquisition = operation.originalMetadataAcquisition(park);
         const limits = originalCurrentCodecLimits(codec);
-        const original = originalSave = {storageBinding, originWire, codec: new WeakRef(codec),
+        const original: OriginalSave = originalSave = {storageBinding, originWire, codec: new WeakRef(codec),
           park, promise: undefined, receipt: undefined, reference: undefined, pending: true};
         original.promise = (async () => {
           let writer;
@@ -508,21 +655,22 @@ export async function installNodeModelContinuation({moon, control, store, storeA
               originalResourceReadCurrent(park, acquisition);
               const poll = operation.advanceOriginalCurrentStateWriter(park, writer, limits.quantum);
               if (poll.kind === 'complete') break;
-              if (poll.kind !== 'continue' || poll.work < 1) fail('ModelOriginalCurrentStateWriteFailed');
+              if (poll.kind !== 'continue' || (poll.work as number) < 1) fail('ModelOriginalCurrentStateWriteFailed');
               await yieldEventLoop();
             }
-            let stateWire = operation.finishOriginalCurrentStateWriter(park, writer);
+            let stateWire = operation.finishOriginalCurrentStateWriter(park, writer) as string | undefined;
             operation.cancelOriginalCurrentStateWriter(writer);
             writer = undefined;
             const bodyWire = control.encodeModelOriginalResourceDocument(originWire,
-              stateWire, cutWire, 'parked', envelope);
+              stateWire!, cutWire, 'parked', envelope);
             stateWire = undefined;
-            let document = control.readModelOriginalResourceDocument(bodyWire, envelope);
+            let document: ReturnType<Control['readModelOriginalResourceDocument']> | undefined =
+              control.readModelOriginalResourceDocument(bodyWire, envelope);
             const storage = await selectedOriginalStorageEvidence(park, storageBinding, acquisition);
             originalResourceReadCurrent(park, acquisition);
             control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
-              plan.runDefinition, selected.graph, originalPreparation.scope, park,
-              document, originalPreparation.nodeInstallation, storage);
+              plan.runDefinition, selected.graph, originalPreparation!.scope, park,
+              document, originalPreparation!.nodeInstallation, storage);
             // This temporary canonical view has served its origin guard. Keep
             // the exact wire/park/custody, not this extra tree, across save.
             // This drops one alias, not a GC, Store or Resource retirement ACK.
@@ -545,7 +693,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         })();
         return original.promise;
       },
-      prepareOriginalResourceCurrentCut(park, storageBinding, receipt, codec) {
+      prepareOriginalResourceCurrentCut(park: unknown, storageBinding: StorageBinding, receipt: StateReceipt, codec: object): Promise<CurrentStateReference> {
         originalResourceReadCurrent(park);
         // Validate the installed runtime before Store I/O and use the original
         // envelope before even limit-snapshot/validation temporary allocation.
@@ -561,13 +709,13 @@ export async function installNodeModelContinuation({moon, control, store, storeA
               originalCut.receipt !== receipt || originalCut.codec.deref() !== codec) {
             fail('ModelOriginalCurrentCutBindingMismatch');
           }
-          return originalCut.promise;
+          return originalCut.promise!;
         }
         // This is one private installation caller, not a second Resource or
         // journal state machine. Fund this record, Promise/frames and BOTH
         // Common trees through the original installation before using it.
         const limits = originalCurrentCodecLimits(codec);
-        const original = originalCut = {park, storageBinding, receipt, saved: undefined, codec: new WeakRef(codec),
+        const original: OriginalCut = originalCut = {park, storageBinding, receipt, saved: undefined, codec: new WeakRef(codec),
           promise: undefined, document: undefined, matched: undefined, facts: undefined,
           current() {
             return original.matched !== undefined && original.document !== undefined &&
@@ -575,7 +723,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
               operation.originalCurrentStateMatchCurrent(park, original.matched) === original.matched;
           },
           invalidationCurrent: request => operation.originalResourceInvalidationCurrent(park, request)};
-        originalResourceCuts.set(park, new WeakRef(original));
+        originalResourceCuts.set(park as object, new WeakRef(original));
         original.promise = (async () => {
           const observation = cp.journal.observeOriginalModelJournal(inventory);
           const journalFacts = cp.journal.originalModelJournalObservationFacts(observation);
@@ -595,7 +743,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
               const poll = operation.advanceOriginalCurrentStateDecode(park, decoder, limits.quantum);
               if (poll.kind === 'failed') fail('ModelOriginalCurrentStateDecodeFailed');
               if (poll.kind === 'complete') {original.document = poll.document; break;}
-              if (poll.kind !== 'continue' || poll.work < 1) fail('ModelOriginalCurrentStateDecodeFailed');
+              if (poll.kind !== 'continue' || (poll.work as number) < 1) fail('ModelOriginalCurrentStateDecodeFailed');
             }
             comparison = operation.startOriginalCurrentStateComparison(park, original.document, limits.comparisonWork);
             for (;;) {
@@ -603,7 +751,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
               const poll = operation.advanceOriginalCurrentStateComparisonWithMatch(park, comparison, limits.quantum);
               if (poll.kind === 'failed') fail('ModelOriginalCurrentStateComparisonFailed');
               if (poll.kind === 'complete') {original.matched = poll.matched; break;}
-              if (poll.kind !== 'continue' || poll.work < 1) fail('ModelOriginalCurrentStateComparisonFailed');
+              if (poll.kind !== 'continue' || (poll.work as number) < 1) fail('ModelOriginalCurrentStateComparisonFailed');
             }
             originalResourceReadCurrent(park, acquisition);
             if (!original.current()) fail('ModelOriginalCurrentCutUnavailable');
@@ -628,7 +776,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         })();
         return original.promise;
       },
-      async readOriginalResourceState(park, storageBinding, receipt) {
+      async readOriginalResourceState(park: unknown, storageBinding: StorageBinding, receipt: StateReceipt) {
         const originalScope = originalResourceReadCurrent(park);
         if (typeof cp.readOriginalModelStateSelected !== 'function') {
           fail('InferOriginalMetadataAcquisitionUnavailable');
@@ -645,12 +793,12 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         originalResourceReadCurrent(park, acquisition);
         control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
           plan.runDefinition, selected.graph, originalScope, park, document,
-          originalPreparation.nodeInstallation, storage);
+          originalPreparation!.nodeInstallation, storage);
         originalResourceReadCurrent(park, acquisition);
         return document;
       },
       confirmOriginalResourceStateSaved,
-      async originalResourceOrigin(storageBinding, acquisition) {
+      async originalResourceOrigin(storageBinding: StorageBinding, acquisition?: object) {
         const originalScope = operation.originalResourceScope?.();
         const installation = originalPreparation?.nodeInstallation;
         if (originalScope === undefined || originalScope !== originalPreparation?.scope ||
@@ -675,7 +823,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         }
         // Select these immutable originals BEFORE Resource park. Do not infer
         // them from current census bytes, response data or saved document fields.
-        const origin = {};
+        const origin: Record<string, unknown> = {};
         for (const field of ['run_id', 'run_definition_cid', 'prepared_invocation_cid',
           'host_policy_cid', 'execution_context_cid', 'program_definition_cid',
           'parameter_values_cid', 'barrier_cid', 'runtime_artifact_cid',
@@ -691,7 +839,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // bootstrap inventory; its existence does not prove a numeric profile.
         return Object.freeze(origin);
       },
-      originalJournalInvalidationCurrent(receipt, reference, park, request) {
+      originalJournalInvalidationCurrent(receipt: InvalidationReceipt, reference: CurrentStateReference, park: unknown, request: unknown) {
         const port = originalJournalInstallation();
         const observed = cp.journal.originalModelJournalPortInvalidationCurrent(
           port, receipt, reference, park, request);
@@ -704,7 +852,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // INFER Allow prerequisite to cleanup/unpark or permit Model sending.
         return observed;
       },
-      beginOriginalResourceInvalidation(reference, park) {
+      beginOriginalResourceInvalidation(reference: CurrentStateReference, park: object) {
         originalJournalInstallation();
         if (originalInvalidation !== undefined || !owner.available ||
             operation.originalResourceParkCurrent(park) !== park ||
@@ -712,7 +860,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
           fail('ModelOriginalResourceInvalidationUnavailable');
         }
         const observation = cp.journal.originalModelCurrentCutObservation(reference);
-        const facts = cp.journal.originalModelJournalObservationFacts(observation);
+        const facts = cp.journal.originalModelJournalObservationFacts(observation!);
         if (!same(select(facts.identity, scopeKeys), select(inventory, scopeKeys))) {
           fail('ModelOriginalJournalInstallationChanged');
         }
@@ -739,7 +887,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // Retire comparison/data borrows only AFTER the original Core Owner
         // consumed this exact committed request. Unknown/failure keeps them.
         if (originalCut?.park === original.park) {
-          originalResourceCuts.delete(original.park);
+          originalResourceCuts.delete(original.park as object);
           if (originalCut.matched !== undefined) operation.retireOriginalCurrentStateMatch(originalCut.matched);
           if (originalCut.document !== undefined) operation.retireOriginalCurrentStateDocument(originalCut.document);
           originalCut.matched = undefined;
@@ -761,21 +909,22 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             entry, captureBundleCid: bundle?.cid});
         });
         return Object.freeze({count: calls.length, calls: Object.freeze(calls),
-          async readBundle(slot, beforeRead) {
+          async readBundle(slot: number, beforeRead?: (bytes: number) => void) {
             if (!owner.available || !token.available) fail('ModelContinuationClosed');
             const call = calls[slot];
             if (call?.state !== 'SavedSuccess' || call.captureBundleCid === undefined) return undefined;
             const historical = cp.journal.readModelAttemptOriginals(call.entry);
-            let stored;
-            await readSettled({originals, entry: call.entry, ...historical},
+            let stored: StoredSettlement | undefined;
+            await readSettled({originals: originals as Originals, entry: call.entry,
+              ...historical as Omit<typeof historical, 'entry'>},
               value => {stored = value;}, beforeRead);
             if (!owner.available || !token.available || stored?.state !== 'SavedSuccess' ||
-                stored.evidence.model_capture_bundle.cid !== call.captureBundleCid) fail('ModelSettlementCustodyLost');
-            return Object.freeze({wire: stored.bodies.model_capture_bundle,
+                stored.evidence.model_capture_bundle!.cid !== call.captureBundleCid) fail('ModelSettlementCustodyLost');
+            return Object.freeze({wire: stored.bodies.model_capture_bundle!,
               cid: call.captureBundleCid, count: 1});
           }});
       },
-      entry: slot => owner.entries.get(slot), observe,
+      entry: (slot: number) => owner.entries.get(slot), observe,
       async authorize() {
         if (!owner.available) fail('ModelContinuationClosed');
         checkpoints();
@@ -806,8 +955,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         if (!owner.available) { cleanup(); fail('ModelContinuationClosed'); }
         signal?.throwIfAborted();
         const decision = claim === undefined
-          ? await gate.authorize({signal})
-          : await gate.resume({signal, resumption: {claim: {checkpointCid: existing.checkpointCid, claim}}});
+          ? await gate!.authorize({signal})
+          : await gate!.resume({signal, resumption: {claim: {checkpointCid: existing!.checkpointCid!, claim}}});
         checkpoints();
         if (decision.action === 'waiting') return {status: 'waiting_checkpoint', checkpoint: decision.checkpoint};
         if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
@@ -818,9 +967,9 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             assertAuthorizationAccountCurrent(decision);
             if (claim !== undefined) {
               const current = (journalPort ?? cp.journal).admitResume(claim,
-                {checkpointCid: existing.checkpointCid});
-              if (current.resolutionCid !== decision.admission.resolutionCid ||
-                  current.configurationCid !== gate.configurationCid) {
+                {checkpointCid: existing!.checkpointCid!});
+              if (current.resolutionCid !== decision.admission!.resolutionCid ||
+                  current.configurationCid !== gate!.configurationCid) {
                 fail('ModelCredentialResumeChanged');
               }
             }
@@ -831,12 +980,13 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             signal?.throwIfAborted();
           });
         }
-        if (view === undefined) view = cp.journal.registerImmediateModelCallSet({modelCallSet: originals, declaredResults, parentResume});
+        if (view === undefined) view = cp.journal.registerImmediateModelCallSet({modelCallSet: originals as Originals, declaredResults, parentResume});
         owner.decision = decision;
         if (rawBinding?.complete !== true) {
           const dispatch = {account: selected.observeAccount(), principalId, at: now(), delegated: decision.runtimeDecision,
               observeAccount: selected.observeAccount, observeAt: now,
-              enterCall(original) {
+              enterCall(selectedEntry: OpaqueEntryOriginal) {
+                const original = selectedEntry as EntryOriginal;
                 if (!owner.available || !owner.currentProvider() ||
                     original.callWire !== originals.slotWires[original.slot] ||
                     !operation.entryCurrent(original.entry, preparedCallSet)) return false;
@@ -850,8 +1000,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
                   checkpoints();
                   const receipt = claim === undefined
                     ? cp.journal.enterImmediateModelCall(reference, {decision, preparedCallSet, parentResume})
-                    : cp.journal.enterResumedCall(claim, {...reference, checkpointCid: existing.checkpointCid,
-                        resolutionCid: decision.admission.resolutionCid});
+                    : cp.journal.enterResumedCall(claim, {...reference, checkpointCid: existing!.checkpointCid!,
+                        resolutionCid: decision.admission!.resolutionCid});
                   owner.entries.set(original.slot, receipt);
                   diagnostic('model_call_entered', {ref: {namespaceId, authorityScopeCid,
                     runDefinitionCid: receipt.runDefinitionCid}, task: receipt.taskIndex,
@@ -868,7 +1018,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             admittedDispatch = operation.bindModelDispatch(control, plan, preparedCallSet, bound, dispatch);
           } else {
             admittedDispatch = operation.bindModelEntryPersistence(control, plan, preparedCallSet, bound,
-              {...dispatch, beginEntry(original) {
+              {...dispatch, beginEntry(selectedEntry: OpaqueEntryOriginal) {
+                const original = selectedEntry as EntryOriginal;
                 try { checkpoints(); }
                 catch (error) {owner.entryFailure = error; return undefined;}
                 if (!owner.available || !owner.currentProvider() ||
@@ -886,8 +1037,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
                   ? persistence.beginImmediate(original, reference,
                       {decision, parentResume})
                   : persistence.beginResumed(original, {...reference,
-                      checkpointCid: existing.checkpointCid,
-                      resolutionCid: decision.admission.resolutionCid}, claim);
+                      checkpointCid: existing!.checkpointCid!,
+                      resolutionCid: decision.admission!.resolutionCid}, claim);
                 if (view === undefined) owner.pending = undefined;
                 return view;
               }});
@@ -897,11 +1048,11 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             try {
               const policy = control.issueCheckedClientInferRawCapturePolicy(
                 plan.compiled, plan.runDefinition, admittedDispatch, bound,
-                {...rawSelection, storeAuthorityCid});
+                {...rawSelection, storeAuthorityCid} as Parameters<Control['issueCheckedClientInferRawCapturePolicy']>[4]);
               const registration = control.registerCheckedClientInferRawCapture(
                 plan.compiled, plan.runDefinition, admittedDispatch, bound,
-                {policy, profile: rawSelection.profile,
-                  installation: rawSelection.installation, probability: rawSelection.probability,
+                {policy, profile: rawSelection!.profile,
+                  installation: rawSelection!.installation, probability: rawSelection!.probability,
                   account: selected.observeAccount(), at: now(), storeAuthorityCid,
                   selectionAvailable: () => owner.available && token.available &&
                     owner.currentProvider() && rawSelection?.selectionAvailable() === true,
@@ -909,9 +1060,9 @@ export async function installNodeModelContinuation({moon, control, store, storeA
               // Use this continuation's actual selected Store, not a Provider
               // supplied CID, replacement Store or another retention Owner.
               const persistence = createModelRawTransportPersistenceFactory({store, moon, operation,
-                registration, notify: operation.ioNotification?.notify,
+                registration, notify: (operation.ioNotification?.notify)!,
                 retainHolding(value) {
-                  if (!rawBinding.holdings.includes(value)) rawBinding.holdings.push(value);
+                  if (!rawBinding.holdings!.includes(value)) rawBinding.holdings!.push(value);
                 }});
               rawBinding.persistence = persistence;
               operation.bindModelRawCapture(registration, persistence);
@@ -930,7 +1081,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             checked(moon.strategyRunEvidenceAdmit('model_dispatch_authority', historical.authorityWire, 16384, 1024, 20)));
           const request = moon.clientProgramInferPreparedRequest(preparedCallSet, slot);
           if (request === undefined) fail('ModelReconciliationRequestUnavailable');
-          const reply = await selected.reconcileResponse(Object.freeze({request,
+          const reply = await selected.reconcileResponse!(Object.freeze({request,
             inputFrame: moon.clientProgramModelRequestInputFrameBounded(request, 65536),
             entry: Object.freeze(entryIdentity(entry)), callWire: originals.slotWires[slot],
             attemptWire: historical.attemptWire, authorityWire: historical.authorityWire,
@@ -958,8 +1109,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     });
     return continuationView;
   }
-  async function open(options) {
-    const ownership = {};
+  async function open(options: OpenOptions) {
+    const ownership: OpenCustody = {};
     try { return await openOwned(options, ownership); }
     catch (error) {
       if (ownership.owner !== undefined && live.get(options.preparedCallSet) === ownership.owner) {
@@ -973,15 +1124,15 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     }
   }
   return Object.freeze({verifier, open, prime, release, usage, observe,
-    capturedContent: (token, runDefinitionCid) =>
+    capturedContent: (token: Token, runDefinitionCid: string) =>
       ownedInput(token, runDefinitionCid).capturedContent,
-    capturedContentBinding: (token, runDefinitionCid) =>
+    capturedContentBinding: (token: Token, runDefinitionCid: string) =>
       ownedInput(token, runDefinitionCid).capturedContentBinding,
-    retire: record => retireReceipt(record.originals.fixedInputReceiptWire),
-    discover: runId => checkpoints().journal.discoverModelCallSets({runId, limit: 100}),
-    unresolved: runId => checkpoints().journal.hasUnresolvedModelCalls(runId),
-    state: identity => checkpoints().journal.readModelCalls(identity),
-    savedScope(plan, preparedProgram, selected, token) {
+    retire: (record: Pick<SourceInventory, 'originals'>) => retireReceipt(record.originals.fixedInputReceiptWire),
+    discover: (runId: string) => checkpoints().journal.discoverModelCallSets({runId, limit: 100}),
+    unresolved: (runId: string) => checkpoints().journal.hasUnresolvedModelCalls(runId),
+    state: (identity: Parameters<Journal['readModelCalls']>[0]) => checkpoints().journal.readModelCalls(identity),
+    savedScope(plan: Plan, preparedProgram: unknown, selected: Selected, token: Token) {
       const snapshot = ownedInput(token, plan.runDefinition.identity);
       // A copied envelope or a lease from another continuation is not custody.
       // Recheck the original lease when the common saved-input owner borrows it.

@@ -1,20 +1,18 @@
+import type {openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
+
 // Installation-only physical save observation. Common owns the Entry/view,
 // current authority, one-shot send gate, outcome and cleanup responsibility.
 // Fund this adapter's handles/closures/Promise in the installed profile before
 // connecting it to a public continuation. It installs no capability itself.
 type Provenance = 'immediate' | 'deferred';
 type EntryOriginal = Readonly<{entry: object; slot: number; attemptWire: string; authorityWire: string}>;
-type Reference = Readonly<{ordinal: number; attemptWire: string; authorityWire: string}> &
-  Readonly<Record<string, unknown>>;
-type JournalReceipt = Readonly<{state: string; provenance: Provenance}> & Readonly<Record<string, unknown>>;
-type JournalOriginals = Readonly<{attemptWire: string; authorityWire: string; entry: Readonly<Record<string, unknown>>}>;
-type ImmediateChoice = Readonly<{decision?: unknown; parentResume?: unknown}>;
-type ImmediateInputs = ImmediateChoice & Readonly<{preparedCallSet: unknown}>;
-type Journal = Readonly<{
-  readModelAttemptOriginals(receipt: unknown): JournalOriginals;
-  enterImmediateModelCall(reference: Reference, inputs: ImmediateInputs): unknown;
-  enterResumedCall(claim: unknown, reference: Reference): unknown;
-}>;
+type Journal = Pick<ReturnType<typeof openSqliteCheckpointJournal>,
+  'readModelAttemptOriginals' | 'enterImmediateModelCall' | 'enterResumedCall'>;
+type ImmediateReference = Parameters<Journal['enterImmediateModelCall']>[0];
+type ResumedReference = Parameters<Journal['enterResumedCall']>[1];
+type Reference = ImmediateReference | ResumedReference;
+type JournalReceipt = ReturnType<Journal['enterImmediateModelCall']> | ReturnType<Journal['enterResumedCall']>;
+type ImmediateChoice = Omit<NonNullable<Parameters<Journal['enterImmediateModelCall']>[1]>, 'preparedCallSet'>;
 type Runtime<View, Observation> = Readonly<{
   clientProgramCreateInferCallEntryPersistence(entry: object, preparedCallSet: unknown,
     poll: () => Observation): View | undefined;
@@ -26,7 +24,7 @@ type Runtime<View, Observation> = Readonly<{
 type PersistenceOptions<View, Observation> = Readonly<{
   moon: Runtime<View, Observation>; preparedCallSet: unknown; journal: Journal;
   ioNotification: Readonly<{notify(): unknown}>;
-  settled?(entry: object | undefined, receipt: unknown): void;
+  settled?(entry: object | undefined, receipt: JournalReceipt | undefined): void;
 }>;
 type HeldSave = Readonly<{
   original: Readonly<Pick<EntryOriginal, 'entry' | 'attemptWire' | 'authorityWire'>>;
@@ -48,7 +46,7 @@ export function createNodeInferEntryPersistence<View, Observation>({moon, prepar
     throw new TypeError('InferEntryPersistenceUnavailable');
   }
   const views = new WeakMap<object, View>();
-  function begin(original: EntryOriginal, reference: Reference, provenance: Provenance, enter: () => unknown) {
+  function begin(original: EntryOriginal, reference: Reference, provenance: Provenance, enter: () => JournalReceipt) {
     if (original?.entry === undefined || reference?.ordinal !== original.slot ||
         reference.attemptWire !== original.attemptWire ||
         reference.authorityWire !== original.authorityWire) {
@@ -72,15 +70,15 @@ export function createNodeInferEntryPersistence<View, Observation>({moon, prepar
     // The installed continuation records physical custody after the journal
     // operation, never inside its transaction. This observer cannot issue ACK
     // or grant execution; Common independently checks the retained Entry.
-    const retireSave = (receipt: unknown) => {
+    const retireSave = (receipt: JournalReceipt | undefined) => {
       const original = held?.original;
       held = undefined;
       try { settled?.(original?.entry, receipt); }
       catch { /* Physical notification is not durable proof or authority. */ }
       try { ioNotification.notify(); } catch { /* Wake is not authority. */ }
     };
-    const finish = (receipt: unknown) => {
-      let accepted: unknown;
+    const finish = (receipt: JournalReceipt) => {
+      let accepted: JournalReceipt | undefined;
       try {
         const saved = held!.journal.readModelAttemptOriginals(receipt);
         if ((receipt as JournalReceipt | undefined)?.state !== 'EnteredUnknown' ||
@@ -89,7 +87,7 @@ export function createNodeInferEntryPersistence<View, Observation>({moon, prepar
             saved.authorityWire !== held!.original.authorityWire ||
             Object.entries(held!.reference).some(([key, value]) =>
               key !== 'attemptWire' && key !== 'authorityWire' &&
-              ((receipt as JournalReceipt)[key] !== value || saved.entry[key] !== value))) {
+              ((receipt as JournalReceipt & Readonly<Record<string, unknown>>)[key] !== value || (saved.entry as typeof saved.entry & Readonly<Record<string, unknown>>)[key] !== value))) {
           unknown();
         } else {
           accepted = receipt;
@@ -106,7 +104,7 @@ export function createNodeInferEntryPersistence<View, Observation>({moon, prepar
         retireSave(accepted);
       }
     };
-    let saved: unknown;
+    let saved: JournalReceipt;
     try {
       saved = enter();
     } catch {
@@ -124,11 +122,11 @@ export function createNodeInferEntryPersistence<View, Observation>({moon, prepar
   // The installed journal performs the write. A caller cannot substitute a
   // saved receipt or callback and thereby authorize re-entry of an old attempt.
   return Object.freeze({
-    beginImmediate(original: EntryOriginal, reference: Reference, {decision, parentResume}: ImmediateChoice = {}) {
+    beginImmediate(original: EntryOriginal, reference: ImmediateReference, {decision, parentResume}: ImmediateChoice = {}) {
       return begin(original, reference, 'immediate', () =>
         journal.enterImmediateModelCall(reference, {decision, preparedCallSet, parentResume}));
     },
-    beginResumed(original: EntryOriginal, reference: Reference, claim: unknown) {
+    beginResumed(original: EntryOriginal, reference: ResumedReference, claim: Parameters<Journal['enterResumedCall']>[0]) {
       return begin(original, reference, 'deferred', () =>
         journal.enterResumedCall(claim, reference));
     },

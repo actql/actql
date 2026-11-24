@@ -30483,7 +30483,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "7b369c6bd9eefbb0b393bb186336d7dc0d6670f9028a16fa95c09252ecd5d053",
+      "sha256": "6af7ddfe13cf9b69127244af57edb1e0e4ee92a0c8b57b5f0ff59de2c78af47c",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -30626,7 +30626,7 @@
         {
           "name": "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/dispatch/init:enterCall/init:enterCall",
           "parameters": [
-            "original"
+            "selectedEntry"
           ],
           "async": false
         },
@@ -30650,7 +30650,7 @@
         {
           "name": "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:beginEntry/init:beginEntry",
           "parameters": [
-            "original"
+            "selectedEntry"
           ],
           "async": false
         },
@@ -30916,7 +30916,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,"
               },
               {
@@ -30930,7 +30930,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,"
               },
               {
@@ -30940,7 +30940,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -30950,7 +30950,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "// Installed composition of the actual Model owner, immutable input custody,"
               },
               {
@@ -30964,7 +30964,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "import {setImmediate as yieldEventLoop} from 'node:timers/promises';"
               },
               {
@@ -30974,7 +30974,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "import {assertAuthorizationAccountCurrent, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
               },
               {
@@ -30998,7 +30998,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "// a source of dispatch permission from historical bytes."
               },
               {
@@ -31008,7 +31008,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "// Installed composition of the actual Model owner, immutable input custody,"
               },
               {
@@ -31052,8 +31052,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "function requireModelDispatchPreparation(moon, selected) {"
+                "path": "adapters/host-node/installed-model-continuation.mts",
+                "anchor": "function requireModelDispatchPreparation(moon: Runtime, selected: Selected) {"
               },
               {
                 "path": "src/model_execution/mock_installation.mbt",
@@ -31068,25 +31068,25 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "const cp = originalPreparation === undefined ? checkpoints() : installOriginalJournal();"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "if (!owner.currentProvider()) fail('ModelProviderBindingChanged');"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "function requireModelDispatchPreparation(moon, selected) {"
+                "path": "adapters/host-node/installed-model-continuation.mts",
+                "anchor": "function requireModelDispatchPreparation(moon: Runtime, selected: Selected) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
@@ -31102,7 +31102,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "throw selected.egressFailure ?? new Error('InstalledModelEgressUnavailable');"
               }
             ],
@@ -31126,7 +31126,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,"
               },
               {
@@ -31140,7 +31140,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,"
               },
               {
@@ -31150,7 +31150,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -31160,7 +31160,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "// Installed composition of the actual Model owner, immutable input custody,"
               },
               {
@@ -31170,7 +31170,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "import {setImmediate as yieldEventLoop} from 'node:timers/promises';"
               },
               {
@@ -31180,7 +31180,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "import {assertAuthorizationAccountCurrent, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
               },
               {
@@ -31200,7 +31200,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "// a source of dispatch permission from historical bytes."
               },
               {
@@ -31210,7 +31210,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-continuation.mts",
                 "anchor": "// Installed composition of the actual Model owner, immutable input custody,"
               },
               {
@@ -31576,7 +31576,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-model-continuation-custody.mts",
-                "anchor": "export function createInstalledModelContinuationCustody("
+                "anchor": "export function createInstalledModelContinuationCustody<Installation extends CheckpointInstallation>("
               }
             ],
             "inputsOutputs": [
