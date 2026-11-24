@@ -1378,6 +1378,13 @@ if (process.argv.includes('--dry-run')) {
       'src/'+name+'/main.mbt --target native --pkg-name fixture/'+name+' --driver-kind internal');
   process.exit(0);
 }
+if (process.argv.includes('--build-only')) {
+  // The scoped prebuild compiles nothing in this fixture; record its plan.
+  if (process.env.ACTQL_FIXTURE_NATIVE_BUILDS) require('node:fs').appendFileSync(process.env.ACTQL_FIXTURE_NATIVE_BUILDS,
+    JSON.stringify({args:process.argv.slice(2),profile:process.env.ACTQL_FIXTURE_PROFILE,at:Date.now(),
+      compiler:process.env.CC,path:process.env.PATH})+'\\n');
+  process.exit(process.env.ACTQL_FIXTURE_NATIVE_BUILD_STATUS ? Number(process.env.ACTQL_FIXTURE_NATIVE_BUILD_STATUS) : 0);
+}
 if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
   require('node:fs').appendFileSync(process.env.ACTQL_FIXTURE_NATIVE_COMMANDS,
     JSON.stringify({args:process.argv.slice(2),path:process.env.PATH,
@@ -2782,7 +2789,7 @@ test('two scoped allocation loops share one preparation and join all original ca
   const original = readFileSync(f.moon, 'utf8');
   const boundary = original.indexOf('\n') + 1;
   const probe = `
-if (process.env.ACTQL_FIXTURE_PROFILE) {
+if (process.env.ACTQL_FIXTURE_PROFILE && !process.argv.includes('--build-only')) {
   const fs=require('node:fs'),path=${JSON.stringify(events)};
   fs.appendFileSync(path,JSON.stringify({phase:'start',profile:process.env.ACTQL_FIXTURE_PROFILE,at:Date.now(),pid:process.pid})+'\\n');
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,200);
@@ -2827,11 +2834,53 @@ if (process.env.ACTQL_FIXTURE_PROFILE) {
   f.verifyExternal();
 });
 
+test('each scoped profile builds every selected executable once before its serial cases', t => {
+  const f = fixture(t, {scoped: true}), commands = join(f.root, 'build-commands.jsonl');
+  const builds = join(f.root, 'builds.jsonl');
+  const run = extra => spawnSync(process.execPath, ['scripts/test-native-core.mjs', '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'], {
+    cwd: f.checkout, encoding: 'utf8', timeout: 15000,
+    env: {...f.env, ACTQL_FIXTURE_NATIVE_COMMANDS: commands, ACTQL_FIXTURE_NATIVE_BUILDS: builds, ...extra},
+  });
+  const result = run({});
+  assert.ifError(result.error); assert.equal(result.status, 0, result.stdout + result.stderr);
+  const built = readFileSync(builds, 'utf8').trim().split('\n').map(JSON.parse);
+  const cases = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse).filter(call => call.profile !== 'ordinary');
+  assert.deepEqual(built.map(call => call.profile), ['runtime-values', 'scoped-review-values']);
+  for (const build of built) {
+    const selected = cases.filter(call => call.profile === build.profile);
+    assert(selected.length > 0);
+    // The same original flags, target directory and compiler profile as each case.
+    const flags = ['test', '--target', 'native', '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'];
+    assert.deepEqual(build.args.slice(0, flags.length), flags);
+    assert.equal(build.args.at(-1), '--build-only');
+    const directory = build.args[build.args.indexOf('--target-dir') + 1];
+    const sources = build.args.slice(flags.length, build.args.indexOf('--target-dir'));
+    assert.deepEqual([...sources].sort(), [...new Set(selected.map(call => call.args.find(value => value.endsWith('.mbt'))))].sort());
+    assert.equal(new Set(sources).size, sources.length);
+    assert(!build.args.includes('--index'));
+    for (const call of selected) {
+      assert.equal(call.args[call.args.indexOf('--target-dir') + 1], directory);
+      assert.equal(call.path, build.path);
+    }
+    assert.match(result.stdout, new RegExp(`Native Core ${build.profile}: built selected executables in \\d+ ms`, 'u'));
+  }
+  // A failed build is the profile's failure: no case of that profile starts.
+  writeFileSync(commands, ''); writeFileSync(builds, '');
+  const failed = run({ACTQL_FIXTURE_NATIVE_BUILD_STATUS: '9'});
+  assert.ifError(failed.error); assert.equal(failed.status, 9, failed.stdout + failed.stderr);
+  const phase = failed.stderr.split('\n').filter(line => line.startsWith('ACTQL_NATIVE_CI_PHASE '))
+    .map(line => JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length))).find(value => value.phase === 'scoped-profile');
+  assert.equal(phase.attemptedCases, 0); assert.equal(phase.succeeded, false);
+  assert.equal(readFileSync(commands, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse)
+    .filter(call => call.profile !== 'ordinary').length, 0);
+  f.verifyExternal();
+});
+
 test('a failed scoped loop retains the original failure after its independent sibling finishes and closes', t => {
   const f = fixture(t, {scoped: true}), events = join(f.root, 'failed-parallel-events.jsonl');
   const original = readFileSync(f.moon, 'utf8'), boundary = original.indexOf('\n') + 1;
   const probe = `
-if (process.env.ACTQL_FIXTURE_PROFILE) {
+if (process.env.ACTQL_FIXTURE_PROFILE && !process.argv.includes('--build-only')) {
   const fs=require('node:fs'),path=${JSON.stringify(events)};
   fs.appendFileSync(path,JSON.stringify({phase:'start',profile:process.env.ACTQL_FIXTURE_PROFILE,pid:process.pid})+'\\n');
   if(process.env.ACTQL_FIXTURE_PROFILE==='runtime-values')process.exit(7);
@@ -2871,7 +2920,7 @@ test('parallel scoped joins cannot accept zero, skipped or signalled original ca
     const entered = join(f.root, 'entered-' + mode);
     const boundary = original.indexOf('\n') + 1;
     const probe = `
-if(process.env.ACTQL_FIXTURE_PROFILE==='runtime-values') {
+if(process.env.ACTQL_FIXTURE_PROFILE==='runtime-values' && !process.argv.includes('--build-only')) {
   require('node:fs').writeFileSync(${JSON.stringify(entered)}, ${JSON.stringify(mode)});
   if(${JSON.stringify(mode)}==='signal')process.kill(process.pid,'SIGTERM');
   else {

@@ -297,6 +297,26 @@ if (full) {
           {env: fixtureEnvironment, profile,
             ...(scopedSoftwareRoot ? {softwareDirectory: join(scopedSoftwareRoot, profile)} : {})});
         console.log(`Native Core ${profile}: ${tests.length} required cases`);
+        // Each case below builds at most one executable per Moon invocation, so
+        // its -j never has two compilations to overlap. Build the same plan
+        // once here: the original arguments, target directory, compiler profile
+        // and inputs, with every selected source, so independent executables
+        // compile concurrently. The cases then find their executables current.
+        {
+          const buildStarted = performance.now();
+          const timeout = scopedDeadline - Date.now();
+          if (timeout <= 0) throw new Error('Selected Native Core deadline exhausted');
+          const build = await new Promise(resolve => {
+            let error;
+            const child = spawn('moon', ['test', '--target', 'native', ...args,
+              ...new Set(tests.map(test => test.source)), '--target-dir', scoped.targetDirectory, '--build-only'],
+            {cwd: root, stdio: 'inherit', timeout, env: Object.assign({}, fixtureEnvironment, scoped.environment)});
+            child.once('error', value => { error = value; });
+            child.once('close', (status, signal) => resolve({status, signal, error}));
+          });
+          console.log(`Native Core ${profile}: built selected executables in ${Math.round(performance.now() - buildStarted)} ms`);
+          if (build.error || build.status !== 0) return build;
+        }
         // Each original case initializes its own physical region header. Closing
         // that region does not erase the header, and the cases require different
         // exact backing extents. Keep the compiled target, never reset a used file.
