@@ -10,6 +10,10 @@ import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {repositoryFiles} from './distribution-interface-roots.mjs';
 import {checkoutState, initializeNormalPackSourceIndex, normalPackSourceInputs} from './packed-client-packages.mjs';
 
+const reviewAudit = 'reviews/2026-10-13-vector-scalar-installed-source/public-audit.mts';
+const reviewRunner = 'reviews/2026-10-14-time-series-release-matrix/prepared-release-public.mts';
+const unselectedReview = 'reviews/2026-10-14-time-series-release-matrix/other.mts';
+
 const attributes = ['responsibility', 'inputsOutputs', 'identity', 'ownership',
   'synchronization', 'failure', 'cancellation', 'resources', 'extension', 'verification'];
 function fixture(t) {
@@ -38,8 +42,11 @@ function fixture(t) {
   put('release/input.json', '{}\n');
   put('portability/corpus/generation.json', '{"original":true}\n');
   put('docs/spec/generation.md', 'Original normative generation input\n');
-  put('reviews/2026-10-13-vector-scalar-installed-source/public-audit.mts', 'export {};\n');
+  put('tsconfig.tooling.json', JSON.stringify({include: ['scripts/**/*.mts', reviewAudit, reviewRunner]}));
+  put(reviewAudit, 'export {};\n');
+  put(reviewRunner, 'export {};\n');
   put('reviews/2026-10-13-vector-scalar-installed-source/receipt.json', '{}\n');
+  put(unselectedReview, 'export {};\n');
   put('.gitignore', '_build/\n');
   execFileSync('git', ['init', '-q'], {cwd: source});
   const listed = () => repositoryFiles(source);
@@ -58,7 +65,9 @@ test('normal pack copied sources satisfy the original required interface entranc
   assert(paths.includes('release/input.json'));
   assert(paths.includes('portability/corpus/generation.json'));
   assert(paths.includes('docs/spec/generation.md'));
-  assert(paths.includes('reviews/2026-10-13-vector-scalar-installed-source/public-audit.mts'));
+  assert(paths.includes(reviewAudit));
+  assert(paths.includes(reviewRunner));
+  assert(!paths.includes(unselectedReview));
   assert(!paths.includes('reviews/2026-10-13-vector-scalar-installed-source/receipt.json'));
   assert(!paths.includes('docs/not-an-input.md'));
   f.copy(paths);
@@ -81,11 +90,15 @@ test('normal pack copied sources satisfy the original required interface entranc
 
 test('normal package freshness includes new normative generation inputs without unrelated documentation', t => {
   const f = fixture(t);
+  rmSync(join(f.source, reviewRunner));
   execFileSync('git', ['add', '.'], {cwd: f.source});
   execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid',
     'commit', '-qm', 'Authored source fixture'], {cwd: f.source});
   assert.equal(checkoutState(f.source).clean, true);
   f.put('docs/unrelated-new.md', 'Unrelated documentation\n');
+  f.put(reviewRunner, 'export {};\n');
+  assert.equal(checkoutState(f.source).clean, false);
+  rmSync(join(f.source, reviewRunner));
   assert.equal(checkoutState(f.source).clean, true);
   for (const path of ['portability/corpus/new.json', 'docs/spec/new.md']) {
     f.put(path, 'New normative generation input\n');
@@ -97,6 +110,8 @@ test('normal package freshness includes new normative generation inputs without 
 
 test('normal pack reference acquisition preserves canonical malformed and missing-reference refusals', async t => {
   const f = fixture(t);
+  await assert.rejects(normalPackSourceInputs(f.source, f.listed().filter(path => path !== reviewRunner)),
+    /UnlistedNormalPackSourceReference:.*prepared-release-public\.mts/u);
   f.declaration.contracts[0].attributes.failure = [{path: 'docs/original.md', anchor: 'Absent original anchor'}];
   f.save();
   await assert.rejects(normalPackSourceInputs(f.source, f.listed()), /Missing interface reference/u);
