@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
-// @ts-expect-error TS7016: remove after acquired-effect-computation has an authored TypeScript entry.
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+type AcquiredCall = Parameters<typeof openAcquiredEffectComputation>[0];
 type Runtime = Parameters<typeof prepareOriginalSourceQuery>[0]['moon'];
 type QueryOptions = Parameters<typeof prepareOriginalSourceQuery>[0];
-type ComputationCustody = Readonly<{close(): unknown; cleanup(): Promise<boolean>; cleanupPending(): boolean}>;
+type ComputationCustody = Parameters<AcquiredCall['retainComputationOwner']>[0];
 const ok = (value: unknown) => ({$tag: 1, _0: value});
 
 for (const effectful of [false, true]) {
@@ -134,7 +134,7 @@ for (const matches of [false, true]) {
         },
         open() { opens++; },
       },
-    }), error => matches ? error === stop : (error as Error).message === 'OriginalQueryTimeUnavailable');
+    } as unknown as AcquiredCall), error => matches ? error === stop : (error as Error).message === 'OriginalQueryTimeUnavailable');
     assert.equal(checkedRun, 1);
     assert.equal(prepares, matches ? 1 : 0);
     assert.equal(opens, 0);

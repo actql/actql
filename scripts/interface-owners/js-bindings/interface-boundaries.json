@@ -41142,7 +41142,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f471c127ef1d4d800eea94908fbc2a21aeeac1c8aaf27f76792547e674241ef4",
+      "sha256": "c874b2aaec0a77d45a39e810b537fd10649040a235573966a8c023a718360710",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -41499,7 +41499,7 @@
                 "anchor": "### Bound Effect Plan currentness"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "if (acquired.prepared !== prepared || acquired.requestIdentity !== request) {"
               },
               {
@@ -41619,7 +41619,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "openAcquiredEffectComputation"
               },
               {
@@ -41627,13 +41627,13 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "openAcquiredEffectComputation"
               },
               {
@@ -41649,13 +41649,13 @@
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "openAcquiredEffectComputation"
               },
               {
@@ -41675,13 +41675,13 @@
                 "anchor": "## Original Model inventory construction"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "openAcquiredEffectComputation"
               },
               {
@@ -41709,13 +41709,13 @@
                 "anchor": "## Original Model inventory construction"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "openAcquiredEffectComputation"
               },
               {
@@ -41735,13 +41735,13 @@
                 "anchor": "enclosing close awaits the same unfinished publication"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "openAcquiredEffectComputation"
               },
               {
@@ -41773,13 +41773,13 @@
                 "anchor": "## Original Model inventory construction"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "openAcquiredEffectComputation"
               },
               {
@@ -41803,13 +41803,13 @@
                 "anchor": "## Original Model inventory construction"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "openAcquiredEffectComputation"
               },
               {
@@ -41833,13 +41833,13 @@
                 "anchor": "## Original Model inventory construction"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "openAcquiredEffectComputation"
               },
               {
@@ -41847,13 +41847,13 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "openAcquiredEffectComputation"
               },
               {
@@ -41899,8 +41899,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
-                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+                "path": "adapters/host-node/acquired-effect-computation.mts",
+                "anchor": "retainCleanup(value: ContentOwner) {contentFamilyCleanup = value;}"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -41909,8 +41909,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
-                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+                "path": "adapters/host-node/acquired-effect-computation.mts",
+                "anchor": "retainCleanup(value: ContentOwner) {contentFamilyCleanup = value;}"
               },
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
@@ -41919,8 +41919,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
-                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+                "path": "adapters/host-node/acquired-effect-computation.mts",
+                "anchor": "retainCleanup(value: ContentOwner) {contentFamilyCleanup = value;}"
               },
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
@@ -41933,8 +41933,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
-                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+                "path": "adapters/host-node/acquired-effect-computation.mts",
+                "anchor": "retainCleanup(value: ContentOwner) {contentFamilyCleanup = value;}"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -41947,8 +41947,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
-                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+                "path": "adapters/host-node/acquired-effect-computation.mts",
+                "anchor": "retainCleanup(value: ContentOwner) {contentFamilyCleanup = value;}"
               },
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
@@ -41957,8 +41957,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
-                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+                "path": "adapters/host-node/acquired-effect-computation.mts",
+                "anchor": "retainCleanup(value: ContentOwner) {contentFamilyCleanup = value;}"
               },
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
@@ -41975,8 +41975,8 @@
                 "anchor": "## Content family constructor cleanup custody"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
-                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+                "path": "adapters/host-node/acquired-effect-computation.mts",
+                "anchor": "retainCleanup(value: ContentOwner) {contentFamilyCleanup = value;}"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -41989,8 +41989,8 @@
                 "anchor": "## Content family constructor cleanup custody"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
-                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+                "path": "adapters/host-node/acquired-effect-computation.mts",
+                "anchor": "retainCleanup(value: ContentOwner) {contentFamilyCleanup = value;}"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -42003,8 +42003,8 @@
                 "anchor": "## Content family constructor cleanup custody"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
-                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+                "path": "adapters/host-node/acquired-effect-computation.mts",
+                "anchor": "retainCleanup(value: ContentOwner) {contentFamilyCleanup = value;}"
               }
             ],
             "verification": [
@@ -42027,7 +42027,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "// Physical custody while one admitted Effect Run acquires its source and"
               },
               {
@@ -42037,7 +42037,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "// Physical custody while one admitted Effect Run acquires its source and"
               },
               {
@@ -42047,7 +42047,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "// Physical custody while one admitted Effect Run acquires its source and"
               },
               {
@@ -42061,7 +42061,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "// Physical custody while one admitted Effect Run acquires its source and"
               },
               {
@@ -42075,7 +42075,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "// Physical custody while one admitted Effect Run acquires its source and"
               },
               {
@@ -42085,7 +42085,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "// Physical custody while one admitted Effect Run acquires its source and"
               },
               {
@@ -42099,7 +42099,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "// Physical custody while one admitted Effect Run acquires its source and"
               },
               {
@@ -42113,7 +42113,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "// Physical custody while one admitted Effect Run acquires its source and"
               },
               {
@@ -42127,7 +42127,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "// Physical custody while one admitted Effect Run acquires its source and"
               },
               {
@@ -42137,7 +42137,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "// Physical custody while one admitted Effect Run acquires its source and"
               },
               {
@@ -63165,7 +63165,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "captures.push(captured);"
               },
               {
@@ -63175,11 +63175,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
-                "anchor": "admission?.enter();"
+                "path": "adapters/host-node/acquired-effect-computation.mts",
+                "anchor": "admission?.enter!();"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "Only this original adapter call starts a new Source attempt."
               },
               {
@@ -63189,8 +63189,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
-                "anchor": "recovery = ended.recovery;"
+                "path": "adapters/host-node/acquired-effect-computation.mts",
+                "anchor": "recovery = ended.recovery as Cleanup | undefined;"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -63199,7 +63199,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "sourceAccess: source.access, signal,"
               },
               {

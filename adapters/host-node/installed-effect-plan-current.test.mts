@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareInstalledEffectManagedPlanRun as prepare, readInstalledEffectManagedPlanRun as read}
   from './installed-effect-managed-run.mjs';
-// @ts-expect-error TS7016: the actual acquired Effect owner is still authored in JavaScript.
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+type AcquiredCall = Parameters<typeof openAcquiredEffectComputation>[0];
 
 type Options = Parameters<typeof prepare>[0];
 type Run = ReturnType<typeof read>;
@@ -11,7 +11,7 @@ type Mutable<T> = {-readonly [Key in keyof T]: T[Key]};
 type FixtureOptions = Omit<Mutable<Options>, 'runtime'> & {runtime: Mutable<Options['runtime']>};
 type Result = Readonly<{$tag: number; _0: unknown}>;
 type Refusal = Error & {code?: string};
-type BoundaryCustody = Readonly<{close(): unknown; cleanup(): Promise<boolean>; cleanupPending(): boolean}>;
+type BoundaryCustody = Parameters<AcquiredCall['retainComputationOwner']>[0];
 type Controls = {
   getters: number; checks: number; quotes: number; selected: number; demands: number;
   onRead?: (run: Run | undefined) => void;
@@ -179,7 +179,7 @@ async function acquiredBoundary(change: boolean) {
   await assert.rejects(openAcquiredEffectComputation({moon, acquired, managedRun: parent,
     retainComputationOwner(value: BoundaryCustody) {custody = value;},
     assertContinuationCurrent() {if (returned && !change) throw primary;},
-  }), (cause: unknown) => change ? (cause as Refusal).code === 'ForeignInstalledEffectManagedRun' : cause === primary);
+  } as unknown as AcquiredCall), (cause: unknown) => change ? (cause as Refusal).code === 'ForeignInstalledEffectManagedRun' : cause === primary);
   assert.equal(getters, 1); assert.equal(checks, 0);
   assert.equal(custody!.cleanupPending(), true);
   await custody!.close(); assert.equal(await custody!.cleanup(), true);

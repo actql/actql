@@ -146687,7 +146687,7 @@
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               },
               {
-                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "path": "adapters/host-node/acquired-effect-computation.mts",
                 "anchor": "hasOutputPins"
               }
             ],
