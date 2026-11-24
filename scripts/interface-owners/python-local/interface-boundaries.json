@@ -81073,12 +81073,12 @@
     },
     {
       "module": "src/client_host_wasm/preparation.mbt",
-      "sha256": "61b7402075e5a489913f1b9df97d4563ea0d2fbc4a8fff04ba0569b437ae1fab",
+      "sha256": "f9fe9e7aaaf5101281212cb4b58cefb549ab20af79099f1fdbd84bdceeb0cf54",
       "exports": [],
       "operations": [
         {
-          "name": "admit_python_local_source_free_environment",
-          "declaration": "admit_python_local_source_free_environment ( body : String , cid : String , ) - > @ checked . CheckEnvironment ?"
+          "name": "admit_python_local_published_input",
+          "declaration": "admit_python_local_published_input ( body : String , publication : String , ) - > ( @ checked . CheckEnvironment , @ preparation . LocalInputContext ) ?"
         },
         {
           "name": "bind_restored_preparation",
@@ -81174,7 +81174,7 @@
             "prepared_tasks",
             "reserve_preparation",
             "stored_preparation_input",
-            "admit_python_local_source_free_environment"
+            "admit_python_local_published_input"
           ],
           "exports": [],
           "attributes": {
@@ -81324,6 +81324,10 @@
               {
                 "path": "src/client_host_wasm/client_check_wbtest.mbt",
                 "anchor": "test \"Python Local Check admits the pinned numeric profile for PIVOT SUM and COUNT\""
+              },
+              {
+                "path": "src/client_host_wasm/published_preparation_wbtest.mbt",
+                "anchor": "test \"published Python Local admission retains the built-in numeric profile\""
               }
             ]
           }

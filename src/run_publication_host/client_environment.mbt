@@ -61,6 +61,34 @@ pub fn admit_client_check_environment_wire(
 }
 
 ///|
+/// Select the installed Local relation profile from the authenticated policy.
+/// The callers link the Common evaluator and use the same built-in reducer.
+pub fn admit_local_relation_check_environment(
+  body : String,
+  evidence_bundle_cid : String,
+) -> @checked.CheckEnvironment? {
+  guard admit_client_check_environment_wire(body, evidence_bundle_cid)
+    is Some(wire) else {
+    return None
+  }
+  let policy = @environment.host_policy(wire)
+  guard @decode.object_length(policy) is Some(field_count) else { return None }
+  let mut text_time = false
+  for position in 0..<field_count {
+    if @decode.field_at(policy, position) is Some(("text_time_evaluation", _)) {
+      text_time = true
+      break
+    }
+  }
+  admit_client_check_environment_from_wire(
+    wire,
+    { text_time, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    numeric_profile=Some(@numeric.builtin_profile()),
+  )
+}
+
+///|
 /// Continue the SAME admitted wire without encoding, parsing or hashing it
 /// again. ModelTask admission and checker flags retain their original meaning.
 pub fn admit_client_check_environment_from_wire(

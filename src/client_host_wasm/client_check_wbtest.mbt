@@ -20,10 +20,41 @@ fn local_check_test_environment() -> @checked.CheckEnvironment {
   let original = @host.client_local_product_bootstrap_originals(
     "/local-check-fixture", "2026-10-20T00:00:00.000Z",
   ).unwrap()
-  admit_python_local_environment(
+  @host.admit_local_relation_check_environment(
     original.environment,
     environment_body_cid(original.environment),
   ).unwrap()
+}
+
+///|
+fn local_check_test_report(
+  environment : @checked.CheckEnvironment,
+  document : String,
+  format : String,
+) -> @decode.ObjectView raise {
+  let writer = @encode.writer(4096, 16, 2)
+  @encode.begin_object(writer)
+  for
+    (key, text) in [
+      ("kind", "text"),
+      ("scope", "bound_input"),
+      ("document", document),
+      ("format", format),
+      ("context", "ctx:profile-local"),
+      ("revision", "rev:" + "1".repeat(64)),
+      ("correlation", "corr:profile-local"),
+    ] {
+    @encode.key(writer, key)
+    @encode.string_value(writer, text)
+  }
+  @encode.end_object(writer)
+  let wire = client_check_report(
+    environment,
+    local_check_test_object(@encode.finish(writer)),
+  ).unwrap()
+  let outcome = local_check_test_object(wire)
+  assert_eq(required_text(outcome, "outcome"), Some("completed"), msg=wire)
+  @decode.open_object(@decode.required(outcome, "report").unwrap()).unwrap()
 }
 
 ///|
@@ -72,56 +103,50 @@ test "Python Local Check admits the pinned numeric profile for PIVOT SUM and COU
       "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
     ),
   )
-  assert_false(profiles.expressions.text_time)
   let prefix =
     #|WITH r AS (
     #|  SELECT 'east' AS side, 1 AS v UNION ALL
     #|  SELECT 'west', 2 UNION ALL SELECT 'west', 3
     #|)
   for
-    (document, format, verdict) in [
+    (document, format) in [
       (
         prefix + "\nFROM r |> PIVOT(SUM(v) FOR side IN ('east','west'))",
         "aql-text",
-        "verified",
       ),
-      (prefix + " SELECT SUM(v) AS n FROM r", "sql", "verified"),
-      (prefix + " SELECT COUNT(v) AS n FROM r", "sql", "verified"),
-      (
-        "SELECT PARSE_TIMESTAMP('yyyy-MM-dd', '2026-01-02') AS x", "sql", "undetermined",
-      ),
+      (prefix + " SELECT SUM(v) AS n FROM r", "sql"),
+      (prefix + " SELECT COUNT(v) AS n FROM r", "sql"),
     ] {
-    let writer = @encode.writer(4096, 16, 2)
-    @encode.begin_object(writer)
-    for
-      (key, text) in [
-        ("kind", "text"),
-        ("scope", "bound_input"),
-        ("document", document),
-        ("format", format),
-        ("context", "ctx:numeric-local"),
-        ("revision", "rev:" + "1".repeat(64)),
-        ("correlation", "corr:numeric-local"),
-      ] {
-      @encode.key(writer, key)
-      @encode.string_value(writer, text)
-    }
-    @encode.end_object(writer)
-    let wire = client_check_report(
-      environment,
-      local_check_test_object(@encode.finish(writer)),
-    ).unwrap()
-    let outcome = local_check_test_object(wire)
-    assert_eq(required_text(outcome, "outcome"), Some("completed"))
-    let report = @decode.open_object(
-      @decode.required(outcome, "report").unwrap(),
-    ).unwrap()
-    assert_eq(required_text(report, "verdict"), Some(verdict), msg=wire)
-    if verdict == "verified" {
-      assert_eq(
-        @decode.array_length(@decode.required(report, "requirements").unwrap()),
-        Some(0),
-      )
-    }
+    let report = local_check_test_report(environment, document, format)
+    assert_eq(required_text(report, "verdict"), Some("verified"), msg=document)
+    assert_eq(
+      @decode.array_length(@decode.required(report, "requirements").unwrap()),
+      Some(0),
+    )
+  }
+}
+
+///|
+test "Python Local Check selects text-time from the original installed policy" {
+  let assets = @host.client_local_product_assets()
+  let cid = environment_body_cid(assets.environment)
+  let publication = "{\"environmentCid\":\"" + cid + "\",\"aliases\":[]}"
+  let (published, _) = admit_python_local_published_input(
+    assets.environment,
+    publication,
+  ).unwrap()
+  for environment in [local_check_test_environment(), published] {
+    assert_eq(@checked.checking_environment_cid(environment), cid)
+    assert_true(
+      @checked.checking_environment_profile_selection(environment).expressions.text_time,
+    )
+    let timestamp = local_check_test_report(
+      environment, "SELECT PARSE_TIMESTAMP('yyyy-MM-dd', '2026-01-02') AS x", "sql",
+    )
+    assert_eq(required_text(timestamp, "verdict"), Some("verified"))
+    let invalid = local_check_test_report(
+      environment, "SELECT PARSE_TIMESTAMP('%Y', '2026') AS x", "sql",
+    )
+    assert_eq(required_text(invalid, "verdict"), Some("invalid"))
   }
 }

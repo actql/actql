@@ -146,6 +146,10 @@ test "published Python Local admission retains the built-in numeric profile" {
     ),
   )
   assert_false(profiles.expressions.text_time)
+  let report = local_check_test_report(
+    environment, "SELECT PARSE_TIMESTAMP('yyyy-MM-dd', '2026-01-02') AS x", "sql",
+  )
+  assert_eq(required_text(report, "verdict"), Some("undetermined"))
   assert_true(
     admit_python_local_published_input(
       original.wire,

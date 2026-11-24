@@ -6,6 +6,9 @@
   each constructor before it runs. These APIs do not create another preparation
   controller, Resource, Catalog interpreter or execution authority. The legacy
   complete admission entry continues through the same two reader helpers.
+  Native and Python Local relation admission share that reader and select the
+  built-in numeric profile. They enable text-time only when the admitted
+  Environment carries the text-time policy.
 - Inputs and outputs: The already-funded immutable JavaScript document supplies
   exact same-input byte, node, container, field, key, member and manifest counts.
   Quotation performs scalar arithmetic and shared constructor expansion, not

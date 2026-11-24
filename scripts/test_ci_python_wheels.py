@@ -140,7 +140,7 @@ class InstalledSavedControlTests(unittest.TestCase):
 class InstalledNumericReductionTests(unittest.TestCase):
     def test_same_cohort_numeric_saved_requires_a_distinct_process(self):
         source, module = 'a' * 40, 'b' * 64
-        cases = ['pivot', 'sum', 'count']
+        cases = ['pivot', 'sum', 'count', 'parse-timestamp']
         consumer = Path('/consumer/python')
         env = {'ACTUAL_INSTALLED': 'yes'}
         for saved_pid in (42, 41):
