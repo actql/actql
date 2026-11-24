@@ -3717,6 +3717,13 @@ same reader still supports reusing that census. An unsupported supplier or an
 effect requires a fresh census; original current, row and binding checks still
 run. Saved routing uses this only for the paired selector.
 
+Saved payload input preparation first validates the retained publication fence
+rows by exact key, revision and body. A later current check within that same
+export can reuse those observations with a positive proof from the original
+unchanged Store reader. Each check still observes the selected Submission and
+Run and checks current authority. An effect or an unavailable proof requires
+fresh fence reads, and a failed proof propagates its physical refusal.
+
 The evidence, first-delivery and terminal Saved proposals can reuse their
 initial census inside the original write-free inspection. The insert-only
 evidence producer can also reuse it while constructing the first projected

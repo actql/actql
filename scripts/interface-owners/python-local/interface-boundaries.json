@@ -80852,7 +80852,7 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "f4f2ba10ef1ca4278b6ab68a8c72d5200ad068127e9aadba6953d1ab8d6ab10b",
+      "sha256": "9a8bf8d39165c99b90d49a81320eb72a8e19cc60a4e80c36f01759b8206a36bc",
       "exports": [],
       "operations": [
         {
@@ -81061,6 +81061,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_codec_census_proof_expires_at_reader_stop("
+              },
+              {
+                "path": "src/client_host_wasm/cancellation_saved_inventory_wbtest.mbt",
+                "anchor": "test \"Saved input reuses checked fence rows only within the same proven reader\""
               }
             ]
           }
