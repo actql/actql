@@ -46610,7 +46610,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "installNodeClientDispatchOwner"
               },
               {
@@ -46628,7 +46628,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "installNodeClientDispatchOwner"
               },
               {
@@ -46642,7 +46642,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "installNodeClientDispatchOwner"
               },
               {
@@ -46650,7 +46650,7 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "capacities.some(value => value.managedRun !== managedRun)"
               },
               {
@@ -46668,7 +46668,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "installNodeClientDispatchOwner"
               },
               {
@@ -46676,7 +46676,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "clientProgramInstalledManagedRunPrepareLedger("
               },
               {
@@ -46690,7 +46690,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "installNodeClientDispatchOwner"
               },
               {
@@ -46704,7 +46704,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "installNodeClientDispatchOwner"
               },
               {
@@ -46718,7 +46718,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "installNodeClientDispatchOwner"
               },
               {
@@ -46732,7 +46732,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "installNodeClientDispatchOwner"
               },
               {
@@ -46758,7 +46758,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "installNodeClientDispatchOwner"
               },
               {
@@ -46766,7 +46766,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
               },
               {
@@ -46776,7 +46776,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "installNodeClientDispatchOwner"
               },
               {
@@ -47114,8 +47114,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -47124,8 +47124,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -47134,8 +47134,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -47144,8 +47144,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -47154,8 +47154,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -47164,8 +47164,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -47174,8 +47174,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -47184,8 +47184,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -47194,8 +47194,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -47708,7 +47708,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// One installed Host owner for an admitted Run's physical dispatch, stop"
               },
               {
@@ -47722,7 +47722,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// One installed Host owner for an admitted Run's physical dispatch, stop"
               },
               {
@@ -47730,13 +47730,13 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "held.managedRun, preparedProgram, requested, registry, values,"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "held!.managedRun, preparedProgram, requested, registry, values,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// One installed Host owner for an admitted Run's physical dispatch, stop"
               },
               {
@@ -47754,7 +47754,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// One installed Host owner for an admitted Run's physical dispatch, stop"
               },
               {
@@ -47762,13 +47762,13 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "entry.pendingSetup = setup;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// One installed Host owner for an admitted Run's physical dispatch, stop"
               },
               {
@@ -47776,13 +47776,13 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// Retain before the reservation/fault boundary: cancellation can"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// One installed Host owner for an admitted Run's physical dispatch, stop"
               },
               {
@@ -47790,13 +47790,13 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "throw new Error('InstalledManagedComputeHostUnavailable');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// One installed Host owner for an admitted Run's physical dispatch, stop"
               },
               {
@@ -47810,7 +47810,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// One installed Host owner for an admitted Run's physical dispatch, stop"
               },
               {
@@ -47828,7 +47828,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// One installed Host owner for an admitted Run's physical dispatch, stop"
               },
               {
@@ -47842,7 +47842,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// One installed Host owner for an admitted Run's physical dispatch, stop"
               },
               {
@@ -48826,7 +48826,7 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "capacities.some(value => value.managedRun !== managedRun)"
               },
               {
@@ -48852,7 +48852,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "clientProgramInstalledManagedRunPrepareLedger("
               },
               {
@@ -48942,7 +48942,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
               },
               {
@@ -48952,7 +48952,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "installNodeClientDispatchOwner"
               },
               {

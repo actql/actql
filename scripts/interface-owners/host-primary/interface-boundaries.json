@@ -3568,7 +3568,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "does not decide whether to retry"
               },
               {
@@ -3598,8 +3598,8 @@
                 "anchor": "pub fn"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "held.managedRun, preparedProgram, requested, registry, values,"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "held!.managedRun, preparedProgram, requested, registry, values,"
               },
               {
                 "path": "adapters/host-node/client-dispatch-stop.mts",
@@ -3628,7 +3628,7 @@
                 "anchor": "Equal CIDs do not establish ownership"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "capacities.some(value => value.managedRun !== managedRun)"
               },
               {
@@ -3658,15 +3658,15 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "recoverable cleanup"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "clientProgramInstalledManagedRunPrepareLedger("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "entry.pendingSetup = setup;"
               },
               {
@@ -3688,7 +3688,7 @@
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// Retain before the reservation/fault boundary: cancellation can"
               },
               {
@@ -3706,7 +3706,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "throw new Error('InstalledManagedComputeHostUnavailable');"
               },
               {
@@ -3776,7 +3776,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
               },
               {
@@ -4108,8 +4108,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -4118,8 +4118,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -4128,8 +4128,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -4138,8 +4138,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -4148,8 +4148,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -4158,8 +4158,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -4168,8 +4168,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -4178,8 +4178,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -4188,8 +4188,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "let preparationLease = preparationCustody?.begin(submission);"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let preparationLease = preparationCustody?.begin(submission!);"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -4280,7 +4280,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "does not decide whether to retry"
               },
               {
@@ -4302,8 +4302,8 @@
                 "anchor": "pub fn"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "held.managedRun, preparedProgram, requested, registry, values,"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "held!.managedRun, preparedProgram, requested, registry, values,"
               },
               {
                 "path": "adapters/host-node/client-dispatch-stop.mts",
@@ -4328,7 +4328,7 @@
                 "anchor": "Equal CIDs do not establish ownership"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "capacities.some(value => value.managedRun !== managedRun)"
               },
               {
@@ -4350,15 +4350,15 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "recoverable cleanup"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "clientProgramInstalledManagedRunPrepareLedger("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "entry.pendingSetup = setup;"
               },
               {
@@ -4372,7 +4372,7 @@
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// Retain before the reservation/fault boundary: cancellation can"
               },
               {
@@ -4386,7 +4386,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "throw new Error('InstalledManagedComputeHostUnavailable');"
               },
               {
@@ -4436,7 +4436,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
               },
               {
@@ -5456,8 +5456,8 @@
                 "anchor": "pub fn"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "held.managedRun, preparedProgram, requested, registry, values,"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "held!.managedRun, preparedProgram, requested, registry, values,"
               },
               {
                 "path": "adapters/host-node/client-dispatch-stop.mts",
@@ -5490,7 +5490,7 @@
                 "anchor": "Equal CIDs do not establish ownership"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "capacities.some(value => value.managedRun !== managedRun)"
               },
               {
@@ -5524,15 +5524,15 @@
                 "anchor": "export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "recoverable cleanup"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "clientProgramInstalledManagedRunPrepareLedger("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "entry.pendingSetup = setup;"
               },
               {
@@ -5558,7 +5558,7 @@
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// Retain before the reservation/fault boundary: cancellation can"
               },
               {
@@ -5580,7 +5580,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "throw new Error('InstalledManagedComputeHostUnavailable');"
               },
               {
@@ -5662,7 +5662,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
               },
               {
@@ -6024,7 +6024,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "does not decide whether to retry"
               },
               {
@@ -6054,8 +6054,8 @@
                 "anchor": "pub fn"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "held.managedRun, preparedProgram, requested, registry, values,"
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "held!.managedRun, preparedProgram, requested, registry, values,"
               },
               {
                 "path": "adapters/host-node/client-dispatch-stop.mts",
@@ -6084,7 +6084,7 @@
                 "anchor": "Equal CIDs do not establish ownership"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "capacities.some(value => value.managedRun !== managedRun)"
               },
               {
@@ -6114,15 +6114,15 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "recoverable cleanup"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "clientProgramInstalledManagedRunPrepareLedger("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "entry.pendingSetup = setup;"
               },
               {
@@ -6144,7 +6144,7 @@
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "// Retain before the reservation/fault boundary: cancellation can"
               },
               {
@@ -6162,7 +6162,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "throw new Error('InstalledManagedComputeHostUnavailable');"
               },
               {
@@ -6232,7 +6232,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-owner.mts",
                 "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
               },
               {
