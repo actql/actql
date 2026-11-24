@@ -1,36 +1,34 @@
 ///|
 fn write_static_explanation_binding(
   writer : @encode.Writer,
-  original : ClientStaticEffectExplanationOriginal,
+  map : @canonical.CanonicalValue,
+  identity : ClientProgramIdentity,
+  environment_cid : String,
+  compiled_plan_cid : String,
 ) -> Unit raise {
-  let declarations = original.declarations
-  let plan_cid = explanation_original_text(original.map, "compiled_plan_cid")
-  if plan_cid != declarations.compiled_plan_cid ||
-    explanation_original_text(original.map, "program_definition_cid") !=
-    declarations.program.program_definition_cid {
+  let plan_cid = explanation_original_text(map, "compiled_plan_cid")
+  if plan_cid != compiled_plan_cid ||
+    explanation_original_text(map, "program_definition_cid") !=
+    identity.program_definition_cid {
     raise StaticExplanationForeignSubject
   }
   @encode.begin_object(writer)
-  explanation_text(
-    writer,
-    "check_environment_cid",
-    declarations.check_environment_cid,
-  )
+  explanation_text(writer, "check_environment_cid", environment_cid)
   explanation_text(writer, "compiled_plan_cid", plan_cid)
   explanation_text(
     writer,
     "logical_map_cid",
-    explanation_original_text(original.map, "self_cid"),
+    explanation_original_text(map, "self_cid"),
   )
   explanation_text(
     writer,
     "parameter_values_cid",
-    declarations.program.parameter_values_cid,
+    identity.parameter_values_cid,
   )
   explanation_text(
     writer,
     "program_definition_cid",
-    declarations.program.program_definition_cid,
+    identity.program_definition_cid,
   )
   @encode.end_object(writer)
 }
@@ -38,18 +36,16 @@ fn write_static_explanation_binding(
 ///|
 // Look up the compiler-issued logical port using its original step key. A
 // declaration whose producer is missing from this map remains unprojected.
-fn write_static_explanation_output(
-  writer : @encode.Writer,
+fn static_explanation_output(
   steps : @canonical.FrozenArray[@canonical.CanonicalValue],
   stage : Int,
   target : @pipeline.Target,
   remaining : Ref[Int],
-) -> Unit raise {
+) -> (@canonical.CanonicalValue, @canonical.CanonicalValue)? raise {
   let (kind, field, ordinal) = match target {
     @pipeline.Step(step) => ("operation", "operation_ordinal", step)
     @pipeline.Input(input) => ("input_output", "input_port_ordinal", input)
   }
-  @encode.begin_object(writer)
   for index in 0..<@canonical.array_count(steps) {
     spend_static_explanation_work(remaining)
     let step = @canonical.array_at(steps, index).unwrap()
@@ -68,24 +64,39 @@ fn write_static_explanation_output(
       spend_static_explanation_work(remaining)
       let port = @canonical.array_at(ports, index).unwrap()
       if explanation_original_text(port, "role") == "output" {
-        explanation_text(
-          writer,
-          "port_id",
-          explanation_original_text(port, "port_id"),
-        )
-        explanation_text(writer, "state", "projected")
-        explanation_text(
-          writer,
-          "step_id",
-          explanation_original_text(step, "step_id"),
-        )
-        @encode.end_object(writer)
-        return
+        return Some((step, port))
       }
     }
   }
-  explanation_text(writer, "reason", "no_original_port")
-  explanation_text(writer, "state", "not_projected")
+  None
+}
+
+///|
+fn write_static_explanation_output(
+  writer : @encode.Writer,
+  steps : @canonical.FrozenArray[@canonical.CanonicalValue],
+  stage : Int,
+  target : @pipeline.Target,
+  remaining : Ref[Int],
+) -> Unit raise {
+  @encode.begin_object(writer)
+  if static_explanation_output(steps, stage, target, remaining)
+    is Some((step, port)) {
+    explanation_text(
+      writer,
+      "port_id",
+      explanation_original_text(port, "port_id"),
+    )
+    explanation_text(writer, "state", "projected")
+    explanation_text(
+      writer,
+      "step_id",
+      explanation_original_text(step, "step_id"),
+    )
+  } else {
+    explanation_text(writer, "reason", "no_original_port")
+    explanation_text(writer, "state", "not_projected")
+  }
   @encode.end_object(writer)
 }
 
@@ -133,13 +144,20 @@ fn write_static_explanation_model_input(
 fn write_static_explanation_models(
   writer : @encode.Writer,
   steps : @canonical.FrozenArray[@canonical.CanonicalValue],
-  original : ClientStaticEffectExplanationOriginal,
+  prepared : PreparedClientProgram,
+  infers : Array[ClientInferPlanGraph],
+  effect : ClientStaticEffectExplanationOriginal?,
   remaining : Ref[Int],
 ) -> Unit raise {
-  for component in original.compiled.compiled.infers {
+  for component in infers {
     spend_static_explanation_work(remaining)
     let selected = component.occurrence
-    guard client_infer_occurrence_matches_effect(selected, original.prepared) &&
+    let same_occurrence = match effect {
+      Some(original) =>
+        client_infer_occurrence_matches_effect(selected, original.prepared)
+      None => client_infer_occurrence_matches(selected, prepared)
+    }
+    guard same_occurrence &&
       client_infer_occurrence_matches_plan(selected, component) &&
       @lower.node_at(
         @lower.bound_preparation(selected.preparation),
@@ -200,10 +218,9 @@ fn write_static_explanation_models(
 fn write_static_explanation_results(
   writer : @encode.Writer,
   steps : @canonical.FrozenArray[@canonical.CanonicalValue],
-  compiled : ClientEffectCompilation,
+  graph : @strategy.CheckedDAG,
   remaining : Ref[Int],
 ) -> Unit raise {
-  let graph = compiled.compiled.owner.graph
   let stages = @checked.unit_count(@strategy.graph_program(graph))
   let tasks = @strategy.graph_task_count(graph)
   for index in 0..<@strategy.graph_result_count(graph) {

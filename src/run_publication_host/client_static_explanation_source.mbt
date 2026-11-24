@@ -12,6 +12,7 @@ struct ClientStaticEffectExplanationOriginal {
 ///|
 pub(all) enum ClientStaticExplanationSourceIssue {
   Plan(ClientEffectfulStaticPlanIssue)
+  ComputationPlan(ClientInteractivePlanIssue)
   ForeignOriginal
   WorkLimit
   Encoding(@encode.EncodeFailure)
@@ -233,20 +234,60 @@ pub fn write_client_static_effect_explanation_context(
   if !client_static_effect_explanation_matches(original, prepared, compiled) {
     return Err(ForeignOriginal)
   }
+  write_client_static_explanation_context(
+    original.map,
+    compiled.compiled.owner,
+    compiled.compiled.compiled_plan,
+    Some(compiled.compiled.infers),
+    Some(original),
+    writer,
+    max_work,
+  )
+}
+
+///|
+fn write_client_static_explanation_context(
+  map : @canonical.CanonicalValue,
+  prepared : PreparedClientProgram,
+  compiled_plan : @publication.PublicationContract,
+  infers : Array[ClientInferPlanGraph]?,
+  effect : ClientStaticEffectExplanationOriginal?,
+  writer : @encode.Writer,
+  max_work : Int,
+) -> Result[Unit, ClientStaticExplanationSourceIssue] {
   if max_work <= 0 {
     return Err(WorkLimit)
   }
-  guard @canonical.object_field(original.map, "steps")
-    is Some(@canonical.Array(steps)) else {
+  guard @canonical.object_field(map, "steps") is Some(@canonical.Array(steps)) else {
     return Err(ForeignOriginal)
   }
-  let checked = @strategy.graph_program(compiled.compiled.owner.graph)
+  let graph = prepared.graph
+  let checked = @strategy.graph_program(graph)
   let identity = @checked.source_identity(checked)
   let remaining = Ref(max_work)
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "binding")
-    write_static_explanation_binding(writer, original)
+    match effect {
+      Some(original) => {
+        let declarations = original.declarations
+        write_static_explanation_binding(
+          writer,
+          map,
+          declarations.program,
+          declarations.check_environment_cid,
+          declarations.compiled_plan_cid,
+        )
+      }
+      None =>
+        write_static_explanation_binding(
+          writer,
+          map,
+          prepared_client_identity(prepared),
+          prepared_client_check_environment_cid(prepared),
+          @publication.publication_contract_identity(compiled_plan),
+        )
+    }
     explanation_text(writer, "disclosure", "structural")
     @encode.key(writer, "items")
     @encode.begin_array(writer)
@@ -261,9 +302,15 @@ pub fn write_client_static_effect_explanation_context(
         write_static_explanation_source(writer, steps, subject, remaining)
       }
     }
-    write_static_explanation_models(writer, steps, original, remaining)
-    write_static_explanation_results(writer, steps, compiled, remaining)
-    write_static_explanation_effect(writer, original, remaining)
+    if infers is Some(graphs) {
+      write_static_explanation_models(
+        writer, steps, prepared, graphs, effect, remaining,
+      )
+    }
+    write_static_explanation_results(writer, steps, graph, remaining)
+    if effect is Some(original) {
+      write_static_explanation_effect(writer, original, remaining)
+    }
     @encode.end_array(writer)
     explanation_text(writer, "version", "actql-explanation-context/0.1")
     @encode.end_object(writer)

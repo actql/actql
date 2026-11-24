@@ -2934,15 +2934,8 @@ pub fn client_program_read_request_checked_static_effect_explanation(
     Ok(value) => value
     Err(issue) => return Err(Manifests(issue))
   }
-  @client_local_host.request_prepared_static_effect_explanation(
-    parent,
-    input,
-    manifests,
-    max_bytes,
-    max_nodes,
-    max_depth,
-    max_work,
-    infers~,
+  @client_local_host.request_prepared_static_explanation(
+    parent, input, manifests, max_bytes, max_nodes, max_depth, max_work, infers,
   ).map_err(issue => Projection(issue))
 }
 
