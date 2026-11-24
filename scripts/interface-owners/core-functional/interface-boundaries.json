@@ -37261,7 +37261,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "e6872570d64052f999d5ad0ce0dac2916a137104386852b5fc73d5d907478aa4",
+      "sha256": "d025ba293663a9abb1456994833c8f5fda8b0fcf500c9c1ab31973506277b1a6",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -40991,8 +40991,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function beginResultMaterialHolds(bindingCid: string, materialGenerationCid: string): ResultMaterialHolds {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -41037,8 +41037,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function beginResultMaterialHolds(bindingCid: string, materialGenerationCid: string): ResultMaterialHolds {"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -41049,8 +41049,8 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function effectReviewCheckpointBindingFacts(binding, allowed, definition) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function effectReviewCheckpointBindingFacts(binding: EffectReviewCheckpointBinding, allowed: AllowedEffectRun, definition: RunDefinition)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -41079,7 +41079,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
@@ -41091,7 +41091,7 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "original.definition !== definition) throw new TypeError"
               },
               {
@@ -41121,7 +41121,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "import * as owner from './dist/client_values_host_abi.js';"
               },
               {
@@ -41133,8 +41133,8 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "const effectCheckpointBindings = new WeakMap();"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "const effectCheckpointBindings = new WeakMap<EffectReviewCheckpointBinding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -41163,8 +41163,8 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function beginResultMaterialHolds(bindingCid: string, materialGenerationCid: string): ResultMaterialHolds {"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -41175,7 +41175,7 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "return binding;"
               },
               {
@@ -41205,7 +41205,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
@@ -41247,8 +41247,8 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "const cancellationIdentities = new WeakMap();"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "const cancellationIdentities = new WeakMap<RunCancellationIdentity"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -41289,7 +41289,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "if (!Array.isArray(counts) || counts.length !== 3 ||"
               },
               {
@@ -41301,7 +41301,7 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "effectCheckpointBindings.set(binding, {original, allowed, definition});"
               },
               {
@@ -41331,7 +41331,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',"
               },
               {
@@ -41470,8 +41470,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function beginResultMaterialHolds(bindingCid: string, materialGenerationCid: string): ResultMaterialHolds {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -41496,8 +41496,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function beginResultMaterialHolds(bindingCid: string, materialGenerationCid: string): ResultMaterialHolds {"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -41508,8 +41508,8 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire, publishedEnvironment) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function prepareSourceProgram(intent: SubmittedIntent, environment: CheckEnvironment"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -41518,7 +41518,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
@@ -41544,7 +41544,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "import * as owner from './dist/client_values_host_abi.js';"
               },
               {
@@ -41566,8 +41566,8 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function beginResultMaterialHolds(bindingCid: string, materialGenerationCid: string): ResultMaterialHolds {"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -41578,7 +41578,7 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "original.intent !== intent"
               },
               {
@@ -41588,7 +41588,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
@@ -41610,8 +41610,8 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "const cancellationIdentities = new WeakMap();"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "const cancellationIdentities = new WeakMap<RunCancellationIdentity"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -41632,7 +41632,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "if (!Array.isArray(counts) || counts.length !== 3 ||"
               },
               {
@@ -41654,7 +41654,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',"
               },
               {
@@ -41706,8 +41706,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function beginResultMaterialHolds(bindingCid: string, materialGenerationCid: string): ResultMaterialHolds {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -41752,8 +41752,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function beginResultMaterialHolds(bindingCid: string, materialGenerationCid: string): ResultMaterialHolds {"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -41764,8 +41764,8 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function effectReviewCheckpointBindingFacts(binding, allowed, definition) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function effectReviewCheckpointBindingFacts(binding: EffectReviewCheckpointBinding, allowed: AllowedEffectRun, definition: RunDefinition)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -41794,7 +41794,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
@@ -41806,7 +41806,7 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "original.definition !== definition) throw new TypeError"
               },
               {
@@ -41836,7 +41836,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "import * as owner from './dist/client_values_host_abi.js';"
               },
               {
@@ -41848,8 +41848,8 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "const effectCheckpointBindings = new WeakMap();"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "const effectCheckpointBindings = new WeakMap<EffectReviewCheckpointBinding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -41878,8 +41878,8 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function beginResultMaterialHolds(bindingCid: string, materialGenerationCid: string): ResultMaterialHolds {"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -41890,7 +41890,7 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "return binding;"
               },
               {
@@ -41920,7 +41920,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
@@ -41962,8 +41962,8 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "const cancellationIdentities = new WeakMap();"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "const cancellationIdentities = new WeakMap<RunCancellationIdentity"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -42004,7 +42004,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "if (!Array.isArray(counts) || counts.length !== 3 ||"
               },
               {
@@ -42016,7 +42016,7 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "effectCheckpointBindings.set(binding, {original, allowed, definition});"
               },
               {
@@ -42046,7 +42046,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',"
               },
               {

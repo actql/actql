@@ -111085,9 +111085,9 @@
       "unresolvedSyntax": []
     },
     {
-      "module": "packages/run-host-core/index.d.ts",
+      "module": "packages/run-host-core/index.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "d4d92568384b1b2ec72f12425dba736b5f1582cf6b34187f28045533962fb6c8",
+      "sha256": "50045d2e853b2d76207f0697993e5e7cf485b7fc32f55f3e6cec4084308b2305",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -111342,14 +111342,14 @@
         {
           "name": "admitCompletedSourceObservation",
           "parameters": [
-            "facts: Readonly<{\n  sourceEvidenceWire: string;\n  inputLogicalWire: string;\n  sourceRef: string;\n  sourceContractCid: string;\n  authorityScopeCid: string;\n  effectiveDataPolicyCid: string;\n  limits: PublicationLimits;\n}>"
+            "{ sourceEvidenceWire, inputLogicalWire, sourceRef, sourceContractCid, authorityScopeCid, effectiveDataPolicyCid, limits }: Readonly<{\n    sourceEvidenceWire: string;\n    inputLogicalWire: string;\n    sourceRef: string;\n    sourceContractCid: string;\n    authorityScopeCid: string;\n    effectiveDataPolicyCid: string;\n    limits: PublicationLimits;\n}>"
           ],
           "result": "string"
         },
         {
           "name": "admitEffectfulFinalRunEvidence",
           "parameters": [
-            "evidence: Omit<EffectfulPublicationCommitEvidence,'durableBindings'>",
+            "evidence: Omit<EffectfulPublicationCommitEvidence, 'durableBindings'>",
             "limits: PublicationLimits"
           ],
           "result": "PublicationContract"
@@ -111393,7 +111393,7 @@
             "derivation: PublicationContract",
             "ordering: PublicationContract",
             "retention: PublicationContract",
-            "facts: Readonly<{logicalValueCid: string; resultSchemaCid: string;\n    effectiveDataPolicyCid: string}>"
+            "facts: Readonly<{\n    logicalValueCid: string;\n    resultSchemaCid: string;\n    effectiveDataPolicyCid: string;\n}>"
           ],
           "result": "ResultOccurrenceEvidence"
         },
@@ -111402,7 +111402,7 @@
           "parameters": [
             "profiles: unknown"
           ],
-          "result": "Readonly<Required<Omit<ProfileSelection, 'numericProfileCid'>> &\n    Pick<ProfileSelection, 'numericProfileCid'>>"
+          "result": "Readonly<Required<Omit<ProfileSelection, 'numericProfileCid'>> & Pick<ProfileSelection, 'numericProfileCid'>>"
         },
         {
           "name": "admitPublicationContract",
@@ -111431,7 +111431,7 @@
           "name": "admitRetainedInputCurrentReply",
           "parameters": [
             "query: RetainedInputCurrentQuery",
-            "saved: Readonly<{cid: string; wire: string}>",
+            "saved: Readonly<{\n    cid: string;\n    wire: string;\n}>",
             "limits: RetainedInputPlanLimits"
           ],
           "result": "RetainedInputCurrentReply"
@@ -111440,7 +111440,7 @@
           "name": "admitRetainedInputIntent",
           "parameters": [
             "producer: RetainedInputProducer",
-            "saved: Readonly<{cid: string; wire: string}>"
+            "saved: Readonly<{\n    cid: string;\n    wire: string;\n}>"
           ],
           "result": "RetainedInputIntent"
         },
@@ -111448,7 +111448,7 @@
           "name": "admitRetainedInputPlan",
           "parameters": [
             "intent: RetainedInputIntent",
-            "saved: Readonly<{cid: string; wire: string}>",
+            "saved: Readonly<{\n    cid: string;\n    wire: string;\n}>",
             "current: RetainedInputPlanCurrent",
             "limits: RetainedInputPlanLimits"
           ],
@@ -111458,7 +111458,7 @@
           "name": "admitRetainedInputResult",
           "parameters": [
             "plan: RetainedInputPlan",
-            "saved: Readonly<{cid: string; wire: string}>"
+            "saved: Readonly<{\n    cid: string;\n    wire: string;\n}>"
           ],
           "result": "RetainedInputResult"
         },
@@ -111466,8 +111466,8 @@
           "name": "admitRetainedTaskInput",
           "parameters": [
             "producer: RetainedInputProducer",
-            "saved: Readonly<{cid: string; wire: string}>",
-            "receipt: Readonly<{cid: string; wire: string}>",
+            "saved: Readonly<{\n    cid: string;\n    wire: string;\n}>",
+            "receipt: Readonly<{\n    cid: string;\n    wire: string;\n}>",
             "destinationUseId: string",
             "current: RetainedInputCurrent",
             "limits: RetainedInputLimits"
@@ -111597,7 +111597,7 @@
           "name": "compileEffect",
           "parameters": [
             "prepared: PreparedEffectProgram",
-            "options?: Readonly<{normalizationProfile?: 'completion-free'}>"
+            "options?: Readonly<{\n    normalizationProfile?: 'completion-free';\n}>"
           ],
           "result": "EffectCompilation"
         },
@@ -111635,12 +111635,12 @@
             "prepared: PreparedEffectProgram",
             "compilation: EffectCompilation"
           ],
-          "result": "Readonly<{taskCount: number; acquisitionCount: number; effectCount: number}>"
+          "result": "Readonly<{\n    taskCount: number;\n    acquisitionCount: number;\n    effectCount: number;\n}>"
         },
         {
           "name": "effectfulFinalRunFailedState",
           "parameters": [
-            "finalReceipt: PublicationContract",
+            "receipt: PublicationContract",
             "updatedAt: string",
             "limits: PublicationLimits"
           ],
@@ -111649,14 +111649,14 @@
         {
           "name": "effectfulFinalRunOutcome",
           "parameters": [
-            "finalReceipt: PublicationContract"
+            "receipt: PublicationContract"
           ],
-          "result": "Readonly<{\n  status: 'succeeded' | 'needs_reconciliation' | 'failed'; allUnattempted: boolean}>"
+          "result": "Readonly<{\n    status: 'succeeded' | 'needs_reconciliation' | 'failed';\n    allUnattempted: boolean;\n}>"
         },
         {
           "name": "effectfulFinalRunReconciliationState",
           "parameters": [
-            "finalReceipt: PublicationContract",
+            "receipt: PublicationContract",
             "updatedAt: string",
             "limits: PublicationLimits"
           ],
@@ -111675,7 +111675,7 @@
             "prepared: PreparedEffectProgram",
             "compilation: EffectCompilation"
           ],
-          "result": "readonly Readonly<{name: string; cid: string; wire: string}>[]"
+          "result": "readonly Readonly<{\n    name: string;\n    cid: string;\n    wire: string;\n}>[]"
         },
         {
           "name": "effectResultSchema",
@@ -111684,14 +111684,14 @@
             "compilation: EffectCompilation",
             "resultName: string"
           ],
-          "result": "Readonly<{\n    cid: string; wire: string; fields: readonly string[]}>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n    fields: readonly string[];\n}>"
         },
         {
           "name": "effectReviewCheckpointBinding",
           "parameters": [
             "allowed: AllowedEffectRun",
             "definition: RunDefinition",
-            "checkpointWire: string"
+            "wire: string"
           ],
           "result": "EffectReviewCheckpointBinding"
         },
@@ -111721,7 +111721,7 @@
           "parameters": [
             "allowed: AllowedEffectRun",
             "definition: RunDefinition",
-            "checkpointWire: string"
+            "wire: string"
           ],
           "result": "readonly string[]"
         },
@@ -111770,7 +111770,7 @@
           "parameters": [
             "review: RunEvidence"
           ],
-          "result": "Readonly<{\n  previewCid: string;\n  authoringContextCid: string;\n  authorityScopeCid: string;\n  approvalClaims: readonly string[];\n}>"
+          "result": "Readonly<{\n    previewCid: string;\n    authoringContextCid: string;\n    authorityScopeCid: string;\n    approvalClaims: readonly string[];\n}>"
         },
         {
           "name": "effectRunStartCurrent",
@@ -111789,7 +111789,7 @@
             "stage: number",
             "sourceIndex: number"
           ],
-          "result": "Readonly<{\n    sourceRef: string; sourceContractCid: string; carrierSchemaContractCid: string;\n    sourceDataPolicyCid: string; dataClassification: string; sourceViewContractCid: string;\n  }> | undefined"
+          "result": "Readonly<{\n    sourceRef: string;\n    sourceContractCid: string;\n    carrierSchemaContractCid: string;\n    sourceDataPolicyCid: string;\n    dataClassification: string;\n    sourceViewContractCid: string;\n}> | undefined"
         },
         {
           "name": "effectSourceInputBinding",
@@ -111812,7 +111812,7 @@
           "parameters": [
             "compilation: ValuesCompilation"
           ],
-          "result": "Readonly<{\n  planNodeId: string;\n  outputContractCid: string;\n  resultNames: readonly string[];\n}>"
+          "result": "Readonly<{\n    planNodeId: string;\n    outputContractCid: string;\n    resultNames: readonly string[];\n}>"
         },
         {
           "name": "inspectCanonicalResultRows",
@@ -111821,7 +111821,7 @@
             "fields: readonly string[]",
             "limits: PublicationLimits"
           ],
-          "result": "Readonly<{logicalRelationCid: string; rowCount: number}>"
+          "result": "Readonly<{\n    logicalRelationCid: string;\n    rowCount: number;\n}>"
         },
         {
           "name": "inspectEffectTaskProgress",
@@ -111831,7 +111831,7 @@
             "authority: string",
             "durableWires: readonly string[]"
           ],
-          "result": "Readonly<{\n    nextTask: number | undefined; computationComplete: boolean;\n    taskCleanupComplete: boolean; resultTasks: readonly number[];\n    tasks: ReturnType<typeof inspectTaskProgress>['tasks'];\n  }>"
+          "result": "Readonly<{\n    nextTask: number | undefined;\n    computationComplete: boolean;\n    taskCleanupComplete: boolean;\n    resultTasks: readonly number[];\n    tasks: ReturnType<typeof inspectTaskProgress>['tasks'];\n}>"
         },
         {
           "name": "inspectTaskProgress",
@@ -111843,14 +111843,14 @@
             "authority: string",
             "durableWires: readonly string[]"
           ],
-          "result": "Readonly<{\n    nextTask: number | undefined; executionComplete: boolean;\n    cleanupComplete: boolean; resultTasks: readonly number[];\n    tasks: readonly Readonly<{ordinal: number; taskKey: string;\n      execution: 'unobserved' | 'accepted' | 'provisioning' | 'running' |\n        'settled' | 'failed' | 'cancelled' | 'unknown';\n      cleanup: 'unobserved' | 'active' | 'releasing' | 'released' |\n        'unknown' | 'force_lost' | 'recovered_after_loss';\n      revision: number; dispatchCid: string | undefined;\n      executionScope: readonly string[]}>[];\n  }>"
+          "result": "Readonly<{\n    nextTask: number | undefined;\n    executionComplete: boolean;\n    cleanupComplete: boolean;\n    resultTasks: readonly number[];\n    tasks: readonly Readonly<{\n        ordinal: number;\n        taskKey: string;\n        execution: 'unobserved' | 'accepted' | 'provisioning' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';\n        cleanup: 'unobserved' | 'active' | 'releasing' | 'released' | 'unknown' | 'force_lost' | 'recovered_after_loss';\n        revision: number;\n        dispatchCid: string | undefined;\n        executionScope: readonly string[];\n    }>[];\n}>"
         },
         {
           "name": "issueAllowedEffectRun",
           "parameters": [
             "prepared: PreparedEffectProgram",
             "compilation: EffectCompilation",
-            "policy: Readonly<{executionContextCid: string;\n    hostPolicyCid: string; expiresAt: string}>"
+            "{ executionContextCid, hostPolicyCid, expiresAt, }: Readonly<{\n    executionContextCid: string;\n    hostPolicyCid: string;\n    expiresAt: string;\n}>"
           ],
           "result": "AllowedEffectRun"
         },
@@ -111859,18 +111859,18 @@
           "parameters": [
             "prepared: PreparedProgram",
             "compilation: ValuesCompilation",
-            "policy: Readonly<{\n    executionContextCid: string;\n    hostPolicyCid: string;\n    expiresAt: string;\n  }>"
+            "{ executionContextCid, hostPolicyCid, expiresAt, }: Readonly<{\n    executionContextCid: string;\n    hostPolicyCid: string;\n    expiresAt: string;\n}>"
           ],
-          "result": "Readonly<{\n    admission: RunAdmission;\n    preparedInvocationWire: string;\n    authorizationWire: string;\n  }>"
+          "result": "Readonly<{\n    admission: RunAdmission;\n    preparedInvocationWire: string;\n    authorizationWire: string;\n}>"
         },
         {
           "name": "issueAllowedTaskRun",
           "parameters": [
             "prepared: PreparedProgram",
             "compilation: TaskCompilation",
-            "policy: Readonly<{\n    executionContextCid: string;\n    hostPolicyCid: string;\n    expiresAt: string;\n  }>"
+            "{ executionContextCid, hostPolicyCid, expiresAt, }: Readonly<{\n    executionContextCid: string;\n    hostPolicyCid: string;\n    expiresAt: string;\n}>"
           ],
-          "result": "Readonly<{\n    admission: RunAdmission;\n    preparedInvocationWire: string;\n    authorizationWire: string;\n  }>"
+          "result": "Readonly<{\n    admission: RunAdmission;\n    preparedInvocationWire: string;\n    authorizationWire: string;\n}>"
         },
         {
           "name": "issueCheckedValuesResultOccurrenceEvidence",
@@ -111878,7 +111878,7 @@
             "prepared: PreparedProgram",
             "compilation: ValuesCompilation",
             "definition: PublicationContract",
-            "facts: Readonly<{\n    logicalValueCid: string;\n    resultSchemaCid: string;\n    scopeCid: string;\n    effectiveDataPolicyCid: string;\n    issuerId: string;\n    authorityScopeCid: string;\n  }>",
+            "facts: Readonly<{\n    logicalValueCid: string;\n    resultSchemaCid: string;\n    scopeCid: string;\n    effectiveDataPolicyCid: string;\n    issuerId: string;\n    authorityScopeCid: string;\n}>",
             "limits: PublicationLimits"
           ],
           "result": "ResultOccurrenceEvidence"
@@ -111904,7 +111904,7 @@
             "artifact: PublicationContract",
             "ordering: PublicationContract",
             "retention: PublicationContract",
-            "physical: Readonly<{\n    codecContractCid: string;\n    resultFields: readonly string[];\n    resultSchemaWire: string;\n    materialGenerationCid: string;\n    storeAuthorityCid: string;\n    rowCount: number;\n    byteCount: number;\n    physicalSha256: string;\n  }>",
+            "physical: Readonly<{\n    codecContractCid: string;\n    resultFields: readonly string[];\n    resultSchemaWire: string;\n    materialGenerationCid: string;\n    storeAuthorityCid: string;\n    rowCount: number;\n    byteCount: number;\n    physicalSha256: string;\n}>",
             "limits: PublicationLimits"
           ],
           "result": "PublicationContract"
@@ -111920,7 +111920,7 @@
             "artifacts: readonly PublicationContract[]",
             "manifest: PublicationContract",
             "normalizationJournal: RunEvidence",
-            "facts: Readonly<{\n    bindingNames: readonly string[];\n    bindingDigests: readonly string[];\n    sourceEvidence: readonly RunEvidence[];\n    modelEvidence: readonly RunEvidence[];\n    barrierAttemptReceiptCids: readonly string[];\n  }>",
+            "facts: Readonly<{\n    bindingNames: readonly string[];\n    bindingDigests: readonly string[];\n    sourceEvidence: readonly RunEvidence[];\n    modelEvidence: readonly RunEvidence[];\n    barrierAttemptReceiptCids: readonly string[];\n}>",
             "limits: PublicationLimits"
           ],
           "result": "PublicationContract"
@@ -111947,7 +111947,7 @@
             "selection: ValuesSiteSelection",
             "input: RetainedTaskInput"
           ],
-          "result": "Readonly<{cid: string; wire: string}>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n}>"
         },
         {
           "name": "issueEffectRunDefinition",
@@ -111965,7 +111965,7 @@
           "parameters": [
             "allowed: AllowedEffectRun",
             "definition: RunDefinition",
-            "retained: Readonly<{format: 'json'; document: string;\n    environment: CheckEnvironment; environmentWire: string;\n    parametersWire?: string}>",
+            "retained: Readonly<{\n    format: 'json';\n    document: string;\n    environment: CheckEnvironment;\n    environmentWire: string;\n    parametersWire?: string;\n}>",
             "request?: RequestIdentity"
           ],
           "result": "string"
@@ -111978,7 +111978,7 @@
             "request: RequestIdentity",
             "selection: ValuesSiteSelection"
           ],
-          "result": "Readonly<{cid: string; wire: string}>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n}>"
         },
         {
           "name": "issuePreparedEffectRunMaterials",
@@ -111994,7 +111994,7 @@
           "parameters": [
             "request: PublicationRequestContract",
             "runDefinition: PublicationContract",
-            "facts: Readonly<{\n    attemptId: string;\n    fenceCid: string;\n    externalIdempotencyKey?: string;\n    startedAt: string;\n  }>",
+            "facts: Readonly<{\n    attemptId: string;\n    fenceCid: string;\n    externalIdempotencyKey?: string;\n    startedAt: string;\n}>",
             "limits: PublicationLimits"
           ],
           "result": "PublicationAttemptContract"
@@ -112004,7 +112004,7 @@
           "parameters": [
             "attempt: PublicationAttemptContract",
             "previous: PublicationRecordContract | undefined",
-            "facts: Readonly<{\n    state: string;\n    observedAt: string;\n    publicIndexEntry?: PublicIndexEntryContract;\n    failureCid?: string;\n    cleanupOwnerCids: readonly string[];\n    uncommittedConfirmed: boolean;\n  }>",
+            "facts: Readonly<{\n    state: string;\n    observedAt: string;\n    publicIndexEntry?: PublicIndexEntryContract;\n    failureCid?: string;\n    cleanupOwnerCids: readonly string[];\n    uncommittedConfirmed: boolean;\n}>",
             "limits: PublicationLimits"
           ],
           "result": "PublicationRecordContract"
@@ -112014,7 +112014,7 @@
           "parameters": [
             "runDefinition: PublicationContract",
             "definitions: readonly PublicationContract[]",
-            "facts: Readonly<{\n    namespaceId: string;\n    authorityScopeCid: string;\n    publicationPolicyCid: string;\n    publicationTargetCid: string;\n    requestedAt: string;\n  }>",
+            "facts: Readonly<{\n    namespaceId: string;\n    authorityScopeCid: string;\n    publicationPolicyCid: string;\n    publicationTargetCid: string;\n    requestedAt: string;\n}>",
             "limits: PublicationLimits"
           ],
           "result": "PublicationRequestContract"
@@ -112066,7 +112066,7 @@
           "name": "issueResultOccurrenceEvidence",
           "parameters": [
             "definition: PublicationContract",
-            "facts: Readonly<{\n    logicalValueCid: string;\n    resultSchemaCid: string;\n    computationContractCid: string;\n    inputRelationCids: readonly string[];\n    scopeCid: string;\n    effectiveDataPolicyCid: string;\n    issuerId: string;\n    authorityScopeCid: string;\n  }>",
+            "facts: Readonly<{\n    logicalValueCid: string;\n    resultSchemaCid: string;\n    computationContractCid: string;\n    inputRelationCids: readonly string[];\n    scopeCid: string;\n    effectiveDataPolicyCid: string;\n    issuerId: string;\n    authorityScopeCid: string;\n}>",
             "limits: PublicationLimits"
           ],
           "result": "ResultOccurrenceEvidence"
@@ -112083,15 +112083,15 @@
             "selection: ValuesSiteSelection",
             "input: RetainedTaskInput"
           ],
-          "result": "Readonly<{\n  cid: string; wire: string;\n}>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n}>"
         },
         {
           "name": "issueRunControlObservation",
           "parameters": [
             "revision: number",
-            "observation: Readonly<{requested: boolean; unstarted: boolean;\n    stopped: boolean}>"
+            "observation: Readonly<{\n    requested: boolean;\n    unstarted: boolean;\n    stopped: boolean;\n}>"
           ],
-          "result": "Readonly<{\n    revision: number; cancellation_requested: boolean;\n    physical_stop: 'unknown' | 'confirmed'}>"
+          "result": "Readonly<{\n    revision: number;\n    cancellation_requested: boolean;\n    physical_stop: 'unknown' | 'confirmed';\n}>"
         },
         {
           "name": "issueRunDefinition",
@@ -112131,7 +112131,7 @@
             "request: RequestIdentity",
             "selection: ValuesSiteSelection"
           ],
-          "result": "Readonly<{cid: string; wire: string}>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n}>"
         },
         {
           "name": "issueSourceFreeInvocation",
@@ -112143,7 +112143,7 @@
             "dataPolicyCid: string",
             "limits: PublicationLimits"
           ],
-          "result": "Readonly<{\n    observation: RunEvidence;\n    invocation: PublicationContract;\n  }>"
+          "result": "Readonly<{\n    observation: RunEvidence;\n    invocation: PublicationContract;\n}>"
         },
         {
           "name": "issueSourceFreeRunDefinition",
@@ -112179,7 +112179,7 @@
             "dataPolicyCid: string",
             "limits: PublicationLimits"
           ],
-          "result": "Readonly<{\n    observation: RunEvidence;\n    invocation: PublicationContract;\n  }>"
+          "result": "Readonly<{\n    observation: RunEvidence;\n    invocation: PublicationContract;\n}>"
         },
         {
           "name": "issueSucceededRunStateWire",
@@ -112217,7 +112217,7 @@
             "task: number",
             "selection: ValuesSiteSelection"
           ],
-          "result": "Readonly<{cid: string; wire: string}>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n}>"
         },
         {
           "name": "issueTaskInvocation",
@@ -112226,10 +112226,10 @@
             "compilation: TaskCompilation",
             "admission: RunAdmission",
             "definition: RunDefinition",
-            "source: Readonly<{\n    sourceEvidenceWire: string;\n    inputLogicalWire: string;\n    sourceRef: string;\n    sourceContractCid: string;\n    authorityScopeCid: string;\n    dataPolicyCid: string;\n    captureStartedAt: string;\n    captureCompletedAt: string;\n  }>",
+            "{ sourceEvidenceWire, inputLogicalWire, sourceRef, sourceContractCid, authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt }: Readonly<{\n    sourceEvidenceWire: string;\n    inputLogicalWire: string;\n    sourceRef: string;\n    sourceContractCid: string;\n    authorityScopeCid: string;\n    dataPolicyCid: string;\n    captureStartedAt: string;\n    captureCompletedAt: string;\n}>",
             "limits: PublicationLimits"
           ],
-          "result": "Readonly<{\n    observation: RunEvidence;\n    invocation: PublicationContract;\n  }>"
+          "result": "Readonly<{\n    observation: RunEvidence;\n    invocation: PublicationContract;\n}>"
         },
         {
           "name": "issueTaskRunDefinition",
@@ -112263,7 +112263,7 @@
             "admission: RunAdmission",
             "definition: RunDefinition",
             "observedAt: string",
-            "observation: Readonly<{dispatchReserved: boolean;\n    preDispatchFailureConfirmed: boolean; cancelledBeforeStart?: boolean;\n    executionUnknown?: boolean}>"
+            "observation: Readonly<{\n    dispatchReserved: boolean;\n    preDispatchFailureConfirmed: boolean;\n    cancelledBeforeStart?: boolean;\n    executionUnknown?: boolean;\n}>"
           ],
           "result": "string"
         },
@@ -112278,7 +112278,7 @@
             "selection: OriginalRunPlan",
             "definition: RunDefinition",
             "programCid: string",
-            "evidence: Readonly<{prepared: string; authorization: string}>"
+            "evidence: Readonly<{\n    prepared: string;\n    authorization: string;\n}>"
           ],
           "result": "StoredRunPlanOriginal"
         },
@@ -112331,7 +112331,7 @@
             "durableWires: readonly string[]",
             "requested: RequestIdentity",
             "retained: RequestIdentity",
-            "claim: Readonly<{taskKey: string; dispatchCid: string; definitionCid: string;\n    reserved: boolean; unstarted: boolean; authorized: boolean;\n    cancelled: boolean; failed: boolean}>"
+            "claim: Readonly<{\n    taskKey: string;\n    dispatchCid: string;\n    definitionCid: string;\n    reserved: boolean;\n    unstarted: boolean;\n    authorized: boolean;\n    cancelled: boolean;\n    failed: boolean;\n}>"
           ],
           "result": "boolean"
         },
@@ -112344,7 +112344,7 @@
             "parametersWire?: string",
             "publishedEnvironment?: PreparedPublishedEnvironment"
           ],
-          "result": "Readonly<{kind: 'effect_free'; prepared: PreparedProgram}> |\n  Readonly<{kind: 'effect'; prepared: PreparedEffectProgram}>"
+          "result": "Readonly<{\n    kind: 'effect_free';\n    prepared: PreparedProgram;\n}> | Readonly<{\n    kind: 'effect';\n    prepared: PreparedEffectProgram;\n}>"
         },
         {
           "name": "preparePublishedEnvironment",
@@ -112368,7 +112368,7 @@
           "name": "prepareResultMaterialHoldsStep",
           "parameters": [
             "value: ResultMaterialHolds",
-            "operation: 'add_consumer' | 'release_consumer' | 'begin_reader' |\n    'end_reader' | 'stop_readers'",
+            "operation: 'add_consumer' | 'release_consumer' | 'begin_reader' | 'end_reader' | 'stop_readers'",
             "identity: string"
           ],
           "result": "ResultMaterialHolds"
@@ -112393,20 +112393,20 @@
           "name": "prepareRetainedInputProducer",
           "parameters": [
             "edge: RetainedTaskInputEdge",
-            "readCurrent: () => Readonly<{authority: string;\n    durableRecordWire: string}>"
+            "readCurrent: () => Readonly<{\n    authority: string;\n    durableRecordWire: string;\n}>"
           ],
           "result": "RetainedInputProducer"
         },
         {
           "name": "prepareRetainedInputProducer/<call>",
           "parameters": [],
-          "result": "Readonly<{authority: string;\n    durableRecordWire: string}>"
+          "result": "Readonly<{\n    authority: string;\n    durableRecordWire: string;\n}>"
         },
         {
           "name": "prepareRetainedTaskInput",
           "parameters": [
             "producer: RetainedInputProducer",
-            "receipt: Readonly<{cid: string; wire: string}>",
+            "receipt: Readonly<{\n    cid: string;\n    wire: string;\n}>",
             "destinationUseId: string",
             "current: RetainedInputCurrent",
             "limits: RetainedInputLimits"
@@ -112440,7 +112440,7 @@
           "name": "prepareRunCancellationIdentity",
           "parameters": [
             "definition: RunDefinition",
-            "scope: Readonly<{namespaceId: string; authorityScopeCid: string;\n    cancelId: string; expectedRevision: number}>"
+            "scope: Readonly<{\n    namespaceId: string;\n    authorityScopeCid: string;\n    cancelId: string;\n    expectedRevision: number;\n}>"
           ],
           "result": "RunCancellationIdentity"
         },
@@ -112449,7 +112449,7 @@
           "parameters": [
             "definition: RunDefinition",
             "requested: RunCancellationIdentity",
-            "facts: Readonly<{\n    retained?: RunCancellationIdentity; currentRevision: number;\n    currentAuthorization: boolean; terminalObserved: boolean;\n    cancellationRequested: boolean;\n  }>"
+            "facts: Readonly<{\n    retained?: RunCancellationIdentity;\n    currentRevision: number;\n    currentAuthorization: boolean;\n    terminalObserved: boolean;\n    cancellationRequested: boolean;\n}>"
           ],
           "result": "'accepted' | 'already_requested' | 'already_terminal' | 'replay_original'"
         },
@@ -112492,7 +112492,7 @@
             "dispatchReserved: boolean",
             "currentAuthorization: boolean"
           ],
-          "result": "'reserve_dispatch' |\n  'reconcile_reserved_dispatch'"
+          "result": "'reserve_dispatch' | 'reconcile_reserved_dispatch'"
         },
         {
           "name": "prepareSourceFreeRequest",
@@ -112527,7 +112527,7 @@
         {
           "name": "prepareSubmissionEpoch",
           "parameters": [
-            "scope: Readonly<{authorityScopeCid: string;\n  epochNonce: string; notBefore: number; expiresAt: number}>"
+            "scope: Readonly<{\n    authorityScopeCid: string;\n    epochNonce: string;\n    notBefore: number;\n    expiresAt: number;\n}>"
           ],
           "result": "SubmissionEpoch"
         },
@@ -112535,7 +112535,7 @@
           "name": "prepareSubmittedIntent",
           "parameters": [
             "wire: string",
-            "limits: Readonly<{\n  maxWireBytes: number; maxNodes: number; maxDepth: number}>"
+            "limits: Readonly<{\n    maxWireBytes: number;\n    maxNodes: number;\n    maxDepth: number;\n}>"
           ],
           "result": "SubmittedIntent"
         },
@@ -112550,7 +112550,7 @@
             "durableWires: readonly string[]",
             "requested: RequestIdentity",
             "retained: RequestIdentity",
-            "claim: Readonly<{taskKey: string; dispatchCid: string;\n    definitionCid: string; reserved: boolean; unstarted: boolean;\n    authorized: boolean; cancelled: boolean; failed: boolean}>"
+            "claim: Readonly<{\n    taskKey: string;\n    dispatchCid: string;\n    definitionCid: string;\n    reserved: boolean;\n    unstarted: boolean;\n    authorized: boolean;\n    cancelled: boolean;\n    failed: boolean;\n}>"
           ],
           "result": "boolean"
         },
@@ -112576,21 +112576,21 @@
           "parameters": [
             "compilation: EffectCompilation"
           ],
-          "result": "Readonly<{boundTemplate: string; compiledPlan: string}>"
+          "result": "Readonly<{\n    boundTemplate: string;\n    compiledPlan: string;\n}>"
         },
         {
           "name": "privateEffectRunEvidence",
           "parameters": [
             "allowed: AllowedEffectRun"
           ],
-          "result": "Readonly<{preparedInvocationWire: string; authorizationWire: string}>"
+          "result": "Readonly<{\n    preparedInvocationWire: string;\n    authorizationWire: string;\n}>"
         },
         {
           "name": "privateRunDefinition",
           "parameters": [
             "definition: RunDefinition"
           ],
-          "result": "Readonly<{\n  wire: string;\n  cid: string;\n}>"
+          "result": "Readonly<{\n    wire: string;\n    cid: string;\n}>"
         },
         {
           "name": "privateTaskCompilationWires",
@@ -112607,7 +112607,7 @@
             "resultName: string",
             "bindings: readonly PublicationContract[]"
           ],
-          "result": "Readonly<{\n    resultName: string;\n    resultArtifactCid: string;\n    resultDefinitionCid: string;\n    logicalResultCid: string;\n    resultSchemaCid: string;\n    orderingEvidenceCid: string;\n    effectiveRetentionPolicyCid: string;\n    durableResultBindingCid: string;\n    materialGenerationCid: string;\n    storeAuthorityCid: string;\n    codecContractCid: string;\n    resultFields: readonly string[];\n    rowCount: number;\n    byteCount: number;\n    physicalSha256: string;\n  }>"
+          "result": "Readonly<{\n    resultName: string;\n    resultArtifactCid: string;\n    resultDefinitionCid: string;\n    logicalResultCid: string;\n    resultSchemaCid: string;\n    orderingEvidenceCid: string;\n    effectiveRetentionPolicyCid: string;\n    durableResultBindingCid: string;\n    materialGenerationCid: string;\n    storeAuthorityCid: string;\n    codecContractCid: string;\n    resultFields: readonly string[];\n    rowCount: number;\n    byteCount: number;\n    physicalSha256: string;\n}>"
         },
         {
           "name": "projectEffectSiteRun",
@@ -112618,9 +112618,9 @@
             "durableWires: readonly string[]",
             "observedAt: string",
             "cancellationRequested: boolean",
-            "savedClaims: readonly Readonly<{taskKey: string; dispatchCid: string | null;\n    dispatchReserved: boolean; physicalStartClaimed: boolean}>[]"
+            "savedClaims: readonly Readonly<{\n    taskKey: string;\n    dispatchCid: string | null;\n    dispatchReserved: boolean;\n    physicalStartClaimed: boolean;\n}>[]"
           ],
-          "result": "Readonly<\n    Omit<ReturnType<typeof inspectEffectTaskProgress>, 'tasks'> & {\n      stateWire: string; publicationReady: false;\n      execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';\n      tasks: readonly Readonly<ReturnType<typeof inspectTaskProgress>['tasks'][number] & {\n        nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>[];\n    }>"
+          "result": "Readonly<Omit<ReturnType<typeof inspectEffectTaskProgress>, 'tasks'> & {\n    stateWire: string;\n    publicationReady: false;\n    execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';\n    tasks: readonly Readonly<ReturnType<typeof inspectTaskProgress>['tasks'][number] & {\n        nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release';\n    }>[];\n}>"
         },
         {
           "name": "projectPublicationSnapshot",
@@ -112628,7 +112628,7 @@
             "record: PublicationContract | undefined",
             "index: PublicationIndexObservation"
           ],
-          "result": "Readonly<{\n    state: 'not_started' | 'preparing' | 'committing' |\n      'publication_unknown' | 'succeeded' | 'failed' | 'cancelled';\n    evidenceCid: string | undefined;\n  }>"
+          "result": "Readonly<{\n    state: 'not_started' | 'preparing' | 'committing' | 'publication_unknown' | 'succeeded' | 'failed' | 'cancelled';\n    evidenceCid: string | undefined;\n}>"
         },
         {
           "name": "projectSiteRun",
@@ -112643,7 +112643,7 @@
             "cancellationRequested?: boolean",
             "physicalStartClaimed?: boolean"
           ],
-          "result": "Readonly<{stateWire: string;\n    execution: 'unobserved' | 'running' | 'settled' | 'failed' |\n      'cancelled' | 'unknown';\n    cleanup: 'complete' | 'pending'; revision: number;\n    nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>"
+          "result": "Readonly<{\n    stateWire: string;\n    execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';\n    cleanup: 'complete' | 'pending';\n    revision: number;\n    nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release';\n}>"
         },
         {
           "name": "projectTaskSiteRun",
@@ -112658,12 +112658,12 @@
             "cancellationRequested?: boolean",
             "claimedTaskKeys?: readonly string[]"
           ],
-          "result": "Readonly<{\n    stateWire: string; publicationReady: boolean;\n    nextTask: number | undefined; executionComplete: boolean; cleanupComplete: boolean;\n    resultTasks: readonly number[];\n    execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';\n    tasks: readonly Readonly<{ordinal: number; taskKey: string;\n      execution: 'unobserved' | 'accepted' | 'provisioning' | 'running' |\n        'settled' | 'failed' | 'cancelled' | 'unknown';\n      cleanup: 'unobserved' | 'active' | 'releasing' | 'released' |\n        'unknown' | 'force_lost' | 'recovered_after_loss';\n      revision: number; dispatchCid: string | undefined; executionScope: readonly string[];\n      nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>[];\n  }>"
+          "result": "Readonly<{\n    stateWire: string;\n    publicationReady: boolean;\n    nextTask: number | undefined;\n    executionComplete: boolean;\n    cleanupComplete: boolean;\n    resultTasks: readonly number[];\n    execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';\n    tasks: readonly Readonly<{\n        ordinal: number;\n        taskKey: string;\n        execution: 'unobserved' | 'accepted' | 'provisioning' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';\n        cleanup: 'unobserved' | 'active' | 'releasing' | 'released' | 'unknown' | 'force_lost' | 'recovered_after_loss';\n        revision: number;\n        dispatchCid: string | undefined;\n        executionScope: readonly string[];\n        nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release';\n    }>[];\n}>"
         },
         {
           "name": "publicationIndexScopeKey",
           "parameters": [
-            "ref: Readonly<{\n  namespaceId: string;\n  authorityScopeCid: string;\n  runDefinitionCid: string;\n}>",
+            "ref: Readonly<{\n    namespaceId: string;\n    authorityScopeCid: string;\n    runDefinitionCid: string;\n}>",
             "limits: PublicationLimits"
           ],
           "result": "string"
@@ -112700,7 +112700,7 @@
             "requested: RequestIdentity",
             "retained: RequestIdentity"
           ],
-          "result": "'different_request' | 'same_request' |\n    'changed_intent'"
+          "result": "'different_request' | 'same_request' | 'changed_intent'"
         },
         {
           "name": "restoreEffectRunNormalization",
@@ -112724,7 +112724,7 @@
             "prepared: PreparedProgram",
             "compilation: ValuesCompilation"
           ],
-          "result": "readonly Readonly<{\n  name: string;\n  cid: string;\n  wire: string;\n}>[]"
+          "result": "readonly Readonly<{\n    name: string;\n    cid: string;\n    wire: string;\n}>[]"
         },
         {
           "name": "ResultDeliveryControl/admit",
@@ -112824,7 +112824,7 @@
           "parameters": [
             "record?: RecordView"
           ],
-          "result": "'confirm_succeeded_record' | 'reject_unresolved_attempt' |\n    'reject_terminal_attempt' | 'invalid'"
+          "result": "'confirm_succeeded_record' | 'reject_unresolved_attempt' | 'reject_terminal_attempt' | 'invalid'"
         },
         {
           "name": "ResultDeliveryControl/feedDurableResultRowFrames",
@@ -112839,7 +112839,7 @@
           "parameters": [
             "frames: DurableResultRowFrames"
           ],
-          "result": "Readonly<{bytes: number; rows: number}>"
+          "result": "Readonly<{\n        bytes: number;\n        rows: number;\n    }>"
         },
         {
           "name": "ResultDeliveryControl/finishResultDelivery",
@@ -112869,7 +112869,7 @@
             "index: IndexView",
             "manifest: ManifestView",
             "grant: GrantView",
-            "attempt: Readonly<{resultName: string; format: string;\n      attemptId: string; requestedAt: string}>",
+            "attempt: Readonly<{\n        resultName: string;\n        format: string;\n        attemptId: string;\n        requestedAt: string;\n    }>",
             "limits: PublicationLimits"
           ],
           "result": "AttemptView"
@@ -112879,7 +112879,7 @@
           "parameters": [
             "attempt: AttemptView",
             "previous: RecordView | undefined",
-            "update: Readonly<{state: string; confirmedByteCount: number;\n      exposure: string; possibleUnconfirmedMaxBytes?: number;\n      deliveredSha256?: string; receipt?: ReceiptView;\n      failureCid?: string; observedAt: string;\n      cleanupOwnerCids: readonly string[]}>",
+            "update: Readonly<{\n        state: string;\n        confirmedByteCount: number;\n        exposure: string;\n        possibleUnconfirmedMaxBytes?: number;\n        deliveredSha256?: string;\n        receipt?: ReceiptView;\n        failureCid?: string;\n        observedAt: string;\n        cleanupOwnerCids: readonly string[];\n    }>",
             "limits: PublicationLimits"
           ],
           "result": "RecordView"
@@ -112889,7 +112889,7 @@
           "parameters": [
             "index: IndexView",
             "manifest: ManifestView",
-            "grant: Readonly<{principalId: string; purpose: string;\n      dataCeilingCid: string; maxBytes: number; maxUses: number;\n      expiresAt: string; authorizationContextCid: string}>",
+            "grant: Readonly<{\n        principalId: string;\n        purpose: string;\n        dataCeilingCid: string;\n        maxBytes: number;\n        maxUses: number;\n        expiresAt: string;\n        authorizationContextCid: string;\n    }>",
             "limits: PublicationLimits"
           ],
           "result": "DeliveryContractView<'manifest_read_grant'>"
@@ -112901,7 +112901,7 @@
             "manifest: ManifestView",
             "grant: GrantView",
             "attempt: AttemptView",
-            "delivered: Readonly<{byteCount: number; sha256: string}>",
+            "delivered: Readonly<{\n        byteCount: number;\n        sha256: string;\n    }>",
             "limits: PublicationLimits"
           ],
           "result": "ReceiptView"
@@ -112911,7 +112911,7 @@
           "parameters": [
             "index: IndexView",
             "manifest: ManifestView",
-            "grant: Readonly<{\n      resultNames: readonly string[]; formats: readonly string[];\n      principalId: string; purpose: string; dataCeilingCid: string;\n      maxBytes: number; maxUses: number; expiresAt: string;\n      authorizationContextCid: string; egressAdmissionCid: string;\n    }>",
+            "grant: Readonly<{\n        resultNames: readonly string[];\n        formats: readonly string[];\n        principalId: string;\n        purpose: string;\n        dataCeilingCid: string;\n        maxBytes: number;\n        maxUses: number;\n        expiresAt: string;\n        authorizationContextCid: string;\n        egressAdmissionCid: string;\n    }>",
             "limits: PublicationLimits"
           ],
           "result": "GrantView"
@@ -112948,12 +112948,12 @@
             "attempt: AttemptView",
             "limits: PublicationLimits"
           ],
-          "result": "Readonly<{\n      wire: string; newlyClaimed: boolean;\n    }>"
+          "result": "Readonly<{\n        wire: string;\n        newlyClaimed: boolean;\n    }>"
         },
         {
           "name": "ResultDeliveryControl/prepareDurableResultRowFrames",
           "parameters": [
-            "bounds: Readonly<{\n    maxBytes: number; maxRows: number; maxRowBytes: number;\n    maxDepth: number; maxFrameBytes: number;\n  }>"
+            "bounds: Readonly<{\n        maxBytes: number;\n        maxRows: number;\n        maxRowBytes: number;\n        maxDepth: number;\n        maxFrameBytes: number;\n    }>"
           ],
           "result": "DurableResultRowFrames"
         },
@@ -113019,7 +113019,7 @@
           "parameters": [
             "progress: ResultAccessProgress"
           ],
-          "result": "'authorize_request' | 'resolve_committed_result' |\n    'check_initial_availability' | 'admit_read' | 'issue_grant' |\n    'start_delivery' | 'reject'"
+          "result": "'authorize_request' | 'resolve_committed_result' | 'check_initial_availability' | 'admit_read' | 'issue_grant' | 'start_delivery' | 'reject'"
         },
         {
           "name": "ResultDeliveryControl/resultMetadataRetentionState",
@@ -113102,7 +113102,7 @@
           "parameters": [
             "value: ResultMaterialHolds"
           ],
-          "result": "Readonly<{bindingCid: string; materialGenerationCid: string;\n    revision: number; reclaimable: boolean}>"
+          "result": "Readonly<{\n    bindingCid: string;\n    materialGenerationCid: string;\n    revision: number;\n    reclaimable: boolean;\n}>"
         },
         {
           "name": "resultMaterialHoldsWire",
@@ -113127,7 +113127,7 @@
             "prepared: PreparedProgram",
             "compilation: ValuesCompilation"
           ],
-          "result": "Readonly<{\n    cid: string;\n    wire: string;\n    fields: readonly string[];\n  }>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n    fields: readonly string[];\n}>"
         },
         {
           "name": "RetainedInputCurrent/<call>",
@@ -113146,14 +113146,14 @@
           "parameters": [
             "reply: RetainedInputCurrentReply"
           ],
-          "result": "Readonly<{\n  cid: string; wire: string; transferRecordWire: string;\n  receipt: Readonly<{cid: string; wire: string}>;\n}>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n    transferRecordWire: string;\n    receipt: Readonly<{\n        cid: string;\n        wire: string;\n    }>;\n}>"
         },
         {
           "name": "retainedInputIntentFacts",
           "parameters": [
             "intent: RetainedInputIntent"
           ],
-          "result": "Readonly<{\n  cid: string; wire: string;\n}>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n}>"
         },
         {
           "name": "RetainedInputPlanCurrent/<call>",
@@ -113194,7 +113194,7 @@
           "parameters": [
             "plan: RetainedInputPlan"
           ],
-          "result": "Readonly<{\n  cid: string; wire: string;\n  transfer: Readonly<{cid: string; wire: string}>;\n  manifest: Readonly<{cid: string; wire: string}>;\n}>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n    transfer: Readonly<{\n        cid: string;\n        wire: string;\n    }>;\n    manifest: Readonly<{\n        cid: string;\n        wire: string;\n    }>;\n}>"
         },
         {
           "name": "retainedInputProducerAvailable",
@@ -113208,14 +113208,14 @@
           "parameters": [
             "producer: RetainedInputProducer"
           ],
-          "result": "Readonly<{\n  dispatch: Readonly<{cid: string; wire: string}>;\n  evidence: Readonly<{cid: string; wire: string}>;\n  subject: Readonly<{cid: string; wire: string}>;\n}>"
+          "result": "Readonly<{\n    dispatch: Readonly<{\n        cid: string;\n        wire: string;\n    }>;\n    evidence: Readonly<{\n        cid: string;\n        wire: string;\n    }>;\n    subject: Readonly<{\n        cid: string;\n        wire: string;\n    }>;\n}>"
         },
         {
           "name": "retainedInputResultFacts",
           "parameters": [
             "result: RetainedInputResult"
           ],
-          "result": "Readonly<{\n  cid: string; wire: string; planCid: string;\n  transferReply: Readonly<{requestCid: string; wire: string}>;\n  receipt: Readonly<{cid: string; wire: string}>;\n}>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n    planCid: string;\n    transferReply: Readonly<{\n        requestCid: string;\n        wire: string;\n    }>;\n    receipt: Readonly<{\n        cid: string;\n        wire: string;\n    }>;\n}>"
         },
         {
           "name": "retainedInputTransferEnvelope",
@@ -113229,14 +113229,14 @@
           "parameters": [
             "edge: RetainedTaskInputEdge"
           ],
-          "result": "Readonly<{\n  runDefinitionCid: string;\n  producerTaskKey: string;\n  producerOutputPort: string;\n  producerLogicalCid: string;\n  carrierContractCid: string;\n  consumerTaskKey: string;\n  consumerLogicalCid: string;\n  consumerInputPort: string;\n  physicalSchemaCid: string;\n}>"
+          "result": "Readonly<{\n    runDefinitionCid: string;\n    producerTaskKey: string;\n    producerOutputPort: string;\n    producerLogicalCid: string;\n    carrierContractCid: string;\n    consumerTaskKey: string;\n    consumerLogicalCid: string;\n    consumerInputPort: string;\n    physicalSchemaCid: string;\n}>"
         },
         {
           "name": "retainedTaskInputFacts",
           "parameters": [
             "input: RetainedTaskInput"
           ],
-          "result": "Readonly<{\n  cid: string; wire: string;\n}>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n}>"
         },
         {
           "name": "runCancellationIntentCid",
@@ -113261,7 +113261,7 @@
             "stage: number",
             "sourceIndex: number"
           ],
-          "result": "Readonly<{sourceRef: string; sourceContractCid: string;\n    carrierSchemaContractCid: string; sourceDataPolicyCid: string;\n    dataClassification: string; sourceViewContractCid: string}> | undefined"
+          "result": "Readonly<{\n    sourceRef: string;\n    sourceContractCid: string;\n    carrierSchemaContractCid: string;\n    sourceDataPolicyCid: string;\n    dataClassification: string;\n    sourceViewContractCid: string;\n}> | undefined"
         },
         {
           "name": "sourceProgramMaterialInput",
@@ -113283,14 +113283,14 @@
           "parameters": [
             "prepared: PreparedProgram | PreparedEffectProgram"
           ],
-          "result": "Readonly<{\n  document: string; format: string; parametersWire?: string; parameterDeclarationsWire?: string}>"
+          "result": "Readonly<{\n    document: string;\n    format: string;\n    parametersWire?: string;\n    parameterDeclarationsWire?: string;\n}>"
         },
         {
           "name": "submissionEpochFacts",
           "parameters": [
             "epoch: SubmissionEpoch"
           ],
-          "result": "Readonly<{wire: string; cid: string}>"
+          "result": "Readonly<{\n    wire: string;\n    cid: string;\n}>"
         },
         {
           "name": "submissionEpochValidity",
@@ -113313,7 +113313,7 @@
           "parameters": [
             "intent: SubmittedIntent"
           ],
-          "result": "Readonly<{wire: string; cid: string}>"
+          "result": "Readonly<{\n    wire: string;\n    cid: string;\n}>"
         },
         {
           "name": "submittedIntentTransition",
@@ -113329,7 +113329,7 @@
             "prepared: PreparedProgram",
             "compilation: TaskCompilation"
           ],
-          "result": "Readonly<{taskCount: number; acquisitionCount: number}>"
+          "result": "Readonly<{\n    taskCount: number;\n    acquisitionCount: number;\n}>"
         },
         {
           "name": "taskInputBinding",
@@ -113353,7 +113353,7 @@
             "prepared: PreparedProgram",
             "compilation: TaskCompilation"
           ],
-          "result": "readonly Readonly<{\n  name: string;\n  cid: string;\n  wire: string;\n}>[]"
+          "result": "readonly Readonly<{\n    name: string;\n    cid: string;\n    wire: string;\n}>[]"
         },
         {
           "name": "taskResultNames",
@@ -113369,12 +113369,12 @@
             "compilation: TaskCompilation",
             "resultName: string"
           ],
-          "result": "Readonly<{\n    cid: string;\n    wire: string;\n    fields: readonly string[];\n  }>"
+          "result": "Readonly<{\n    cid: string;\n    wire: string;\n    fields: readonly string[];\n}>"
         },
         {
           "name": "validateEffectFreePublicationCommit",
           "parameters": [
-            "evidence: Readonly<{\n  runDefinition: PublicationContract;\n  invocation: PublicationContract;\n  definitions: readonly PublicationContract[];\n  artifacts: readonly PublicationContract[];\n  derivations: readonly PublicationContract[];\n  orderings: readonly PublicationContract[];\n  retentions: readonly PublicationContract[];\n  durableBindings: readonly PublicationContract[];\n  manifest: PublicationContract;\n  receipt: PublicationContract;\n  capturedRun: PublicationContract;\n}>",
+            "evidence: Readonly<{\n    runDefinition: PublicationContract;\n    invocation: PublicationContract;\n    definitions: readonly PublicationContract[];\n    artifacts: readonly PublicationContract[];\n    derivations: readonly PublicationContract[];\n    orderings: readonly PublicationContract[];\n    retentions: readonly PublicationContract[];\n    durableBindings: readonly PublicationContract[];\n    manifest: PublicationContract;\n    receipt: PublicationContract;\n    capturedRun: PublicationContract;\n}>",
             "request: PublicationRequestContract",
             "attempt: PublicationAttemptContract",
             "indexEntry: PublicIndexEntryContract",
@@ -113884,7 +113884,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "export interface ResultMaterialHolds {"
               },
               {
@@ -113930,7 +113930,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "export interface ResultMaterialHolds {"
               },
               {
@@ -113976,7 +113976,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "declare const originalRunPlanBrand: unique symbol;"
               },
               {
@@ -114022,7 +114022,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "declare const retainedInputCurrentQueryBrand: unique symbol;"
               },
               {
@@ -114068,7 +114068,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "export function beginResultMaterialHolds(bindingCid: string,"
               },
               {
@@ -114114,8 +114114,8 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/index.d.ts",
-                "anchor": "* with the Host. Missing legacy originals are unavailable, never recompiled. */"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "/** Validate authenticated saved metadata without preparation, recompilation or"
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -114160,7 +114160,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "operation: 'add_consumer' | 'release_consumer' | 'begin_reader' |"
               },
               {
@@ -114206,8 +114206,8 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/index.d.ts",
-                "anchor": "definition: RunDefinition, limits: PublicationLimits): OriginalRunPlan;"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "definition: RunDefinition, limits: PublicationLimits): OriginalRunPlan {"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -114252,8 +114252,8 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/index.d.ts",
-                "anchor": "options?: Readonly<{normalizationProfile?: 'completion-free'}>): EffectCompilation;"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "options: Readonly<{normalizationProfile?: 'completion-free'}> = {}): EffectCompilation {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -114396,7 +114396,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "export interface ResultMaterialHolds {"
               },
               {
@@ -114418,7 +114418,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "export interface ResultMaterialHolds {"
               },
               {
@@ -114434,13 +114434,13 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire, publishedEnvironment) {"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "export function prepareSourceProgram(intent: SubmittedIntent, environment: CheckEnvironment"
               }
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "declare const originalRunPlanBrand: unique symbol;"
               },
               {
@@ -114466,7 +114466,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "declare const retainedInputCurrentQueryBrand: unique symbol;"
               },
               {
@@ -114488,7 +114488,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "export function beginResultMaterialHolds(bindingCid: string,"
               },
               {
@@ -114504,14 +114504,14 @@
                 "anchor": "## Pre-Checkpoint Effect Run observation"
               },
               {
-                "path": "packages/run-host-core/index.mjs",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "original.intent !== intent"
               }
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/index.d.ts",
-                "anchor": "* with the Host. Missing legacy originals are unavailable, never recompiled. */"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "/** Validate authenticated saved metadata without preparation, recompilation or"
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -114532,7 +114532,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "operation: 'add_consumer' | 'release_consumer' | 'begin_reader' |"
               },
               {
@@ -114554,8 +114554,8 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/index.d.ts",
-                "anchor": "definition: RunDefinition, limits: PublicationLimits): OriginalRunPlan;"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "definition: RunDefinition, limits: PublicationLimits): OriginalRunPlan {"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -114576,8 +114576,8 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/index.d.ts",
-                "anchor": "options?: Readonly<{normalizationProfile?: 'completion-free'}>): EffectCompilation;"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "options: Readonly<{normalizationProfile?: 'completion-free'}> = {}): EffectCompilation {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -114628,7 +114628,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "export interface ResultMaterialHolds {"
               },
               {
@@ -114674,7 +114674,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "export interface ResultMaterialHolds {"
               },
               {
@@ -114720,7 +114720,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "declare const originalRunPlanBrand: unique symbol;"
               },
               {
@@ -114766,7 +114766,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "declare const retainedInputCurrentQueryBrand: unique symbol;"
               },
               {
@@ -114812,7 +114812,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "export function beginResultMaterialHolds(bindingCid: string,"
               },
               {
@@ -114858,8 +114858,8 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/index.d.ts",
-                "anchor": "* with the Host. Missing legacy originals are unavailable, never recompiled. */"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "/** Validate authenticated saved metadata without preparation, recompilation or"
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -114904,7 +114904,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/index.d.ts",
+                "path": "packages/run-host-core/index.mts",
                 "anchor": "operation: 'add_consumer' | 'release_consumer' | 'begin_reader' |"
               },
               {
@@ -114950,8 +114950,8 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/index.d.ts",
-                "anchor": "definition: RunDefinition, limits: PublicationLimits): OriginalRunPlan;"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "definition: RunDefinition, limits: PublicationLimits): OriginalRunPlan {"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -114996,8 +114996,8 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/index.d.ts",
-                "anchor": "options?: Readonly<{normalizationProfile?: 'completion-free'}>): EffectCompilation;"
+                "path": "packages/run-host-core/index.mts",
+                "anchor": "options: Readonly<{normalizationProfile?: 'completion-free'}> = {}): EffectCompilation {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",

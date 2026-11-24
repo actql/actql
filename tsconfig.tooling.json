@@ -62,6 +62,7 @@
     "packages/coordinator-core/**/*.mts",
     "packages/coordinator-core/runtime-abi.d.ts",
     "packages/run-host-core/**/*.mts",
+    "packages/run-host-core/index-abi.d.ts",
     "packages/run-host-core/runtime-bridges.d.ts",
     "packages/transfer-core/**/*.mts",
     "packages/transfer-core/runtime-bridge.d.ts",

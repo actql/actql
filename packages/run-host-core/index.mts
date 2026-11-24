@@ -1,47 +1,607 @@
 import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
 import * as owner from './dist/client_values_host_abi.js';
 
-const retainedInputEdges = new WeakMap();
-const retainedInputProducers = new WeakMap();
-const retainedInputIntents = new WeakMap();
-const retainedInputPlans = new WeakMap();
-const retainedInputResults = new WeakMap();
-const retainedInputCurrentQueries = new WeakMap();
-const retainedInputCurrentReplies = new WeakMap();
-const retainedTaskInputs = new WeakMap();
+declare const retainedInputCurrentQueryBrand: unique symbol;
+
+declare const retainedInputCurrentReplyBrand: unique symbol;
+
+declare const environmentBrand: unique symbol;
+
+declare const publishedEnvironmentBrand: unique symbol;
+
+declare const preparedBrand: unique symbol;
+
+declare const compilationBrand: unique symbol;
+
+declare const taskCompilationBrand: unique symbol;
+
+declare const effectPreparationBrand: unique symbol;
+
+declare const effectCompilationBrand: unique symbol;
+
+declare const effectAllowedBrand: unique symbol;
+
+declare const effectPreviewIdentityBrand: unique symbol;
+
+declare const effectCheckpointBindingBrand: unique symbol;
+
+declare const issuedEffectMaterialsBrand: unique symbol;
+
+declare const requestBrand: unique symbol;
+
+declare const admissionBrand: unique symbol;
+
+declare const definitionBrand: unique symbol;
+
+declare const publicationBrand: unique symbol;
+
+declare const deliveryContractBrand: unique symbol;
+
+declare const resultOccurrenceBrand: unique symbol;
+
+declare const runEvidenceBrand: unique symbol;
+
+declare const originalRunPlanBrand: unique symbol;
+
+declare const capturedSnapshotBrand: unique symbol;
+
+declare const materialHoldsBrand: unique symbol;
+
+declare const retainedInputEdgeBrand: unique symbol;
+
+declare const retainedInputProducerBrand: unique symbol;
+
+declare const retainedInputIntentBrand: unique symbol;
+
+declare const retainedInputPlanBrand: unique symbol;
+
+declare const retainedInputResultBrand: unique symbol;
+
+declare const retainedTaskInputBrand: unique symbol;
+
+export interface ResultMaterialHolds {
+  readonly [materialHoldsBrand]: true;
+}
+
+export interface CheckEnvironment {
+  readonly [environmentBrand]: true;
+}
+
+/** Static publication/Catalog facts for one original admitted Environment.
+ * No Program values, current permission, Run or physical custody is retained. */
+export interface PreparedPublishedEnvironment {
+  readonly [publishedEnvironmentBrand]: true;
+}
+
+export interface PreparedProgram {
+  readonly [preparedBrand]: true;
+}
+
+/** In-process first-capture provenance; saved metadata cannot recreate it. */
+export interface OriginalRunPlan {
+  readonly [originalRunPlanBrand]: true;
+}
+
+export interface StoredRunPlanOriginal {
+  readonly compiledPlanWire: string;
+  readonly planViewWire: string;
+}
+
+export interface ValuesCompilation {
+  readonly [compilationBrand]: true;
+}
+
+export interface TaskCompilation {
+  readonly [taskCompilationBrand]: true;
+}
+
+/** Static checked Effect computation; never an approval or apply permit. */
+export interface PreparedEffectProgram {
+  readonly [effectPreparationBrand]: true;
+}
+
+export interface EffectCompilation {
+  readonly [effectCompilationBrand]: true;
+}
+
+export interface AllowedEffectRun {
+  readonly [effectAllowedBrand]: true;
+}
+
+/** Same original submitted SQL/AQL and trusted installation publication.
+ * Static preparation is not Source access, current authorization or capacity. */
+export type PreparedSourceProgram =
+  Readonly<{kind: 'effect_free'; prepared: PreparedProgram; originalIntent: SubmittedIntent}> |
+  Readonly<{kind: 'effect'; prepared: PreparedEffectProgram; originalIntent: SubmittedIntent}>;
+
+export interface SourceProgramOriginals {
+  /** Absent on historical originals; restore never upgrades their primary. */
+  readonly primaryResultRecipe?: 'public-main';
+  readonly intentWire: string;
+  readonly intentCid: string;
+  readonly environmentCid: string;
+  readonly publicationWire: string;
+}
+
+/** Metadata binding to the original checked Effect Run/unit/window only.
+ * Does not confirm Native custody, current authority, waiting or approval. */
+export interface EffectReviewCheckpointBinding {
+    readonly [effectCheckpointBindingBrand]: true;
+    readonly checkpointCid: string; readonly checkpointWire: string;
+    readonly runId: string; readonly unitId: string;
+    readonly runDefinitionCid: string; readonly previewCid: string;
+    readonly reviewProjectionCid: string; readonly continuationCid: string;
+}
+
+/** Process-local opaque issuance proof. Copying its visible wire loses custody. */
+export interface IssuedEffectRunMaterials {
+  readonly [issuedEffectMaterialsBrand]: true;
+  readonly wire: string;
+}
+
+export type RestoredEffectRun = Readonly<{prepared: PreparedEffectProgram;
+  compilation: EffectCompilation; allowed: AllowedEffectRun;
+  definition: RunDefinition; request?: RequestIdentity}>;
+
+export interface RequestIdentity {
+  readonly [requestBrand]: true;
+}
+
+export interface RunAdmission {
+  readonly [admissionBrand]: true;
+}
+
+declare const cancellationIdentityBrand: unique symbol;
+
+export interface RunCancellationIdentity {
+  readonly [cancellationIdentityBrand]: true;
+}
+
+export interface RunDefinition {
+  readonly [definitionBrand]: true;
+}
+
+export interface PublicationContract<Kind extends string = string> {
+  readonly token: {readonly [publicationBrand]: Kind};
+  readonly cid: string;
+  readonly wire: string;
+}
+
+export type PublicationRequestContract =
+  PublicationContract<'publication_request'>;
+
+export type PublicationAttemptContract =
+  PublicationContract<'publication_attempt'>;
+
+export type PublicationRecordContract =
+  PublicationContract<'publication_record'>;
+
+export type PublicIndexEntryContract =
+  PublicationContract<'public_index_entry'>;
+
+export interface DeliveryContractView<Kind extends string = string> {
+  readonly [deliveryContractBrand]: Kind;
+  readonly name: Kind;
+  readonly identityField: string;
+  readonly identity: string;
+  readonly wire: string;
+}
+
+type IndexView = DeliveryContractView<'public_index_entry'>;
+
+type ManifestView = DeliveryContractView<'result_manifest'>;
+
+type RetentionView = DeliveryContractView<'result_retention_policy'>;
+
+type ExtensionView = RetentionView;
+
+type GrantView = DeliveryContractView<'result_read_grant'>;
+
+type AttemptView = DeliveryContractView<'delivery_attempt'>;
+
+type ReceiptView = DeliveryContractView<'result_delivery_receipt'>;
+
+type RecordView = DeliveryContractView<'delivery_record'>;
+
+declare const resultAccessBrand: unique symbol;
+
+declare const resultSerializerBrand: unique symbol;
+
+export interface ResultAccessProgress {
+  readonly [resultAccessBrand]: true;
+}
+
+export interface ResultDeliverySerializer {
+  readonly [resultSerializerBrand]: true;
+}
+
+declare const durableRowFramesBrand: unique symbol;
+
+export interface DurableResultRowFrames {
+  readonly [durableRowFramesBrand]: true;
+}
+
+declare const issuedDeliveryAttemptBrand: unique symbol;
+
+export interface IssuedDeliveryAttemptOriginal {
+  readonly [issuedDeliveryAttemptBrand]: true;
+}
+
+export interface IssuedDeliveryAttemptFacts {
+  readonly index: IndexView;
+  readonly manifest: ManifestView;
+  readonly grant: GrantView;
+  readonly attempt: AttemptView;
+  readonly request: Readonly<{resultName: string; format: string;
+    attemptId: string; requestedAt: string}>;
+  readonly limits: PublicationLimits;
+}
+
+export interface ResultDeliveryControl {
+  describeCommittedResult(index: IndexView, manifest: ManifestView,
+    resultName: string, bindings: readonly DeliveryContractView<string>[],
+    definition: DeliveryContractView<string>, schemaWire: string,
+    format: string, limits: PublicationLimits):
+    Omit<import('@actql/client-wire').WireResultDescription, 'ref'>;
+  resultMetadataRetentionState(retention: RetentionView,
+    observedAt: string): 'retained' | 'delete_due';
+  issueManifestReadGrant(index: IndexView, manifest: ManifestView,
+    grant: Readonly<{principalId: string; purpose: string;
+      dataCeilingCid: string; maxBytes: number; maxUses: number;
+      expiresAt: string; authorizationContextCid: string}>,
+    limits: PublicationLimits): DeliveryContractView<'manifest_read_grant'>;
+  manifestReadGrantValidAt(grant: DeliveryContractView<'manifest_read_grant'>,
+    at: string): boolean;
+  manifestReadGrantAllowsBytes(grant: DeliveryContractView<'manifest_read_grant'>,
+    bytes: number): boolean;
+  admit<Kind extends string>(name: Kind, wire: string,
+    limits: PublicationLimits): DeliveryContractView<Kind>;
+  /** Reuse an original publication from this module without wire admission. */
+  fromPublication<Kind extends string>(original: PublicationContract<Kind>):
+    DeliveryContractView<Kind>;
+  fromPublication<Kind extends string>(original: PublicationContract,
+    expectedName: Kind): DeliveryContractView<Kind>;
+  beginResultAccessProgress(): ResultAccessProgress;
+  resultAccessProgressAction(progress: ResultAccessProgress):
+    'authorize_request' | 'resolve_committed_result' |
+    'check_initial_availability' | 'admit_read' | 'issue_grant' |
+    'start_delivery' | 'reject';
+  recordResultAccessRequestAuthorization(progress: ResultAccessProgress,
+    value: boolean): boolean;
+  recordResultAccessResolution(progress: ResultAccessProgress,
+    value: boolean): boolean;
+  recordResultAccessInitialAvailability(progress: ResultAccessProgress,
+    value: boolean): boolean;
+  recordResultAccessReadAdmission(progress: ResultAccessProgress,
+    value: boolean): boolean;
+  recordResultAccessGrant(progress: ResultAccessProgress,
+    value: boolean): boolean;
+  resultReadRetentionPolicyCid(manifest: ManifestView,
+    resultName: string): string;
+  resultReadDefinitionCid(manifest: ManifestView,
+    resultName: string): string;
+  resultReadAvailability(manifest: ManifestView,
+    resultName: string, retention: RetentionView,
+    observedAt: string): string;
+  resultReadExtendedAvailability(manifest: ManifestView,
+    resultName: string, retention: RetentionView,
+    extension: ExtensionView, observedAt: string): string;
+  resultRetentionClockContractCid(retention: RetentionView): string;
+  issueResultReadGrant(index: IndexView,
+    manifest: ManifestView, grant: Readonly<{
+      resultNames: readonly string[]; formats: readonly string[];
+      principalId: string; purpose: string; dataCeilingCid: string;
+      maxBytes: number; maxUses: number; expiresAt: string;
+      authorizationContextCid: string; egressAdmissionCid: string;
+    }>, limits: PublicationLimits): GrantView;
+  resultReadGrantValidAt(grant: GrantView,
+    observedAt: string): boolean;
+  resultReadGrantAllowsBytes(grant: GrantView,
+    count: number): boolean;
+  issueDeliveryAttempt(index: IndexView,
+    manifest: ManifestView, grant: GrantView,
+    attempt: Readonly<{resultName: string; format: string;
+      attemptId: string; requestedAt: string}>,
+    limits: PublicationLimits): AttemptView;
+  /** Capture this issuer's exact immutable inputs; no authority or durable ACK. */
+  captureIssuedDeliveryAttempt(attempt: AttemptView, index: IndexView,
+    manifest: ManifestView, grant: GrantView, limits: PublicationLimits):
+    IssuedDeliveryAttemptOriginal | undefined;
+  readIssuedDeliveryAttempt(original: IssuedDeliveryAttemptOriginal):
+    IssuedDeliveryAttemptFacts;
+  deliveryResultDefinitionCid(manifest: ManifestView,
+    attempt: AttemptView): string;
+  issueResultDeliveryReceipt(index: IndexView,
+    manifest: ManifestView, grant: GrantView,
+    attempt: AttemptView,
+    delivered: Readonly<{byteCount: number; sha256: string}>,
+    limits: PublicationLimits): ReceiptView;
+  issueDeliveryRecord(attempt: AttemptView,
+    previous: RecordView | undefined,
+    update: Readonly<{state: string; confirmedByteCount: number;
+      exposure: string; possibleUnconfirmedMaxBytes?: number;
+      deliveredSha256?: string; receipt?: ReceiptView;
+      failureCid?: string; observedAt: string;
+      cleanupOwnerCids: readonly string[]}>,
+    limits: PublicationLimits): RecordView;
+  existingDeliveryAttemptAction(record?: RecordView):
+    'confirm_succeeded_record' | 'reject_unresolved_attempt' |
+    'reject_terminal_attempt' | 'invalid';
+  deliveryFailureTerminalAction(observed: boolean): 'failed' | 'cancelled';
+  deliveryRecordRetryAction(next: number, count: number):
+    'append_next_record' | 'finished' | 'invalid';
+  deliveryTransition(previous: RecordView | undefined,
+    next: RecordView): boolean;
+  deliverySuccessValid(attempt: AttemptView,
+    receipt: ReceiptView, record: RecordView): boolean;
+  trustedClockNotBefore(previous: string | undefined,
+    observedAt: string): boolean;
+  prepareDeliveryGrantUsageClaim(grant: GrantView,
+    existingWire: string | undefined, attempt: AttemptView,
+    limits: PublicationLimits): Readonly<{
+      wire: string; newlyClaimed: boolean;
+    }>;
+  prepareDurableResultRowFrames(bounds: Readonly<{
+    maxBytes: number; maxRows: number; maxRowBytes: number;
+    maxDepth: number; maxFrameBytes: number;
+  }>): DurableResultRowFrames;
+  feedDurableResultRowFrames(frames: DurableResultRowFrames,
+    chunk: Uint8Array): readonly string[];
+  finishDurableResultRowFrames(frames: DurableResultRowFrames):
+    Readonly<{bytes: number; rows: number}>;
+  cancelDurableResultRowFrames(frames: DurableResultRowFrames): void;
+  prepareResultDeliverySerializer(format: string, schemaWire: string,
+    fields: readonly string[], limits: PublicationLimits):
+    ResultDeliverySerializer;
+  beginResultDelivery(serializer: ResultDeliverySerializer): string;
+  nextResultDeliveryRow(serializer: ResultDeliverySerializer,
+    rowWire: string): string;
+  finishResultDelivery(serializer: ResultDeliverySerializer): string;
+}
+
+export type PublicationIndexObservation =
+  | Readonly<{kind: 'absent'}>
+  | Readonly<{kind: 'unknown'}>
+  | Readonly<{kind: 'committed'; entry: PublicationContract}>;
+
+export interface RunEvidence {
+  readonly token: {readonly [runEvidenceBrand]: true};
+  readonly cid: string;
+  readonly wire: string;
+}
+
+export interface CapturedResultSnapshot {
+  readonly token: {readonly [capturedSnapshotBrand]: true};
+}
+
+export interface PublicationLimits {
+  readonly maxWireBytes: number;
+  readonly maxNodes: number;
+  readonly maxDepth: number;
+}
+
+export interface ResultOccurrenceEvidence {
+  readonly token: {readonly [resultOccurrenceBrand]: true};
+  readonly derivation: PublicationContract;
+  readonly ordering: PublicationContract;
+}
+
+export interface RequestFields {
+  readonly authorityScopeCid: string;
+  readonly requestId: string;
+  readonly logicalRequestScopeCid: string;
+  readonly intentFingerprintCid: string;
+  readonly programDefinitionCid: string;
+  readonly parameterValuesCid: string;
+  readonly callerInputIntentCid: string;
+}
+
+export interface ProfileSelection {
+  readonly textTime?: boolean;
+  readonly veca?: boolean;
+  readonly rela?: boolean;
+  readonly sga?: boolean;
+  readonly tea?: boolean;
+  readonly calendar?: boolean;
+  readonly textRank?: boolean;
+  /** Exact installed numeric reduction profile; omission enables none. */
+  readonly numericProfileCid?: string;
+}
+
+export interface PrivateCompilationWires {
+  readonly executablePlan: string;
+  readonly factManifest: string;
+  readonly boundTemplate: string;
+  readonly compiledPlan: string;
+}
+
+/** Project an unpublished candidate for a committed Run with current availability.
+ * The Host completes its state observation through the same original Run row. */
+type RunResultStateObservation = Readonly<{name: string;
+    state: 'available' | 'unavailable' | 'unknown';
+    reason: 'confirmed_present' | 'retention_expired' | 'deleted' |
+      'policy_unavailable' | 'integrity_failed' | 'not_published' |
+      'store_query_failed' | 'clock_uncertain' | 'verification_pending';
+    observedAt: string}>;
+
+/** Original JSON input retained alongside a Run; not new authority. */
+export interface SourceFreeRunMaterialsInput {
+  readonly document: string;
+  readonly format: 'json';
+  readonly environment: CheckEnvironment;
+  readonly environmentWire: string;
+  readonly parametersWire?: string;
+}
+
+export interface ValuesSiteSelection {
+  readonly taskAttempt: number;
+  readonly dispatchId: string;
+  readonly siteKey: string;
+  readonly siteGeneration: number;
+  readonly runtimeBundleCid: string;
+  readonly connectorRegistration: string;
+  readonly connectorRevision: string;
+  readonly strategyRevision: string;
+  readonly obligationsCid: string;
+  readonly budgetCid: string;
+  readonly evidenceIssuerCapabilityCid: string;
+  readonly grantCid: string;
+}
+
+/** A checked edge, not producer completion, physical custody or permission. */
+export interface RetainedTaskInputEdge {
+  readonly [retainedInputEdgeBrand]: true;
+}
+
+/** Accepted producer evidence; independent current Transfer custody is required. */
+export interface RetainedInputProducer {
+  readonly [retainedInputProducerBrand]: true;
+}
+
+/** Current trusted Owner ports; saved evidence is never its own authority. */
+export interface RetainedInputPlanCurrent {
+  readonly siteBindingCurrent: (siteKey: string, generation: number,
+    runtimeBundleCid: string) => boolean;
+  readonly authority: () => string;
+  readonly nowUnixMs: () => bigint;
+  readonly authorized: (producerDispatchCid: string,
+    transferRequestWire: string) => boolean;
+}
+
+/** The actual receiver record exists only after physical handoff. */
+export interface RetainedInputCurrent extends RetainedInputPlanCurrent {
+  readonly readTransfer: () => string;
+}
+
+export interface RetainedInputTransferPolicy {
+  readonly destinationGrantCid: string;
+  readonly routeCapabilityCid: string;
+  readonly sourceGrantCid: string;
+  readonly transferAttempt: string;
+  readonly transferExpiresUnixMs: bigint;
+  readonly transferMaxBytes: bigint;
+}
+
+export interface RetainedInputIntent {
+  readonly [retainedInputIntentBrand]: true;
+}
+
+export interface RetainedInputPlan {
+  readonly [retainedInputPlanBrand]: true;
+}
+
+export interface RetainedInputPlanLimits {
+  readonly maxChunks: number;
+  readonly maxManifestBytes: number;
+  readonly maxReferencedBytes: bigint;
+}
+
+/** Historical protocol evidence; no reservation, borrow or execution authority. */
+export interface RetainedInputResult {
+  readonly [retainedInputResultBrand]: true;
+}
+
+/** A fresh receiver query; never an execution attempt or physical borrow. */
+export interface RetainedInputCurrentQuery {
+  readonly [retainedInputCurrentQueryBrand]: true;
+}
+
+export interface RetainedInputCurrentReply {
+  readonly [retainedInputCurrentReplyBrand]: true;
+}
+
+export interface RetainedInputLimits {
+  readonly maxChunks: number;
+  readonly maxManifestBytes: number;
+  readonly maxReferencedBytes: bigint;
+  readonly maxBindingBytes: number;
+}
+
+/** Checked binding only; physical borrow/start claims remain with their Owners. */
+export interface RetainedTaskInput {
+  readonly [retainedTaskInputBrand]: true;
+}
+
+/** Historical Preview DATA from this module's Common admission; no Allow,
+ * physical outcome, claim, Store commit or acknowledgement is supplied. */
+export interface EffectPreviewIdentity {
+  readonly [effectPreviewIdentityBrand]: true;
+}
+
+export interface EffectfulPublicationCommitEvidence {
+  readonly runDefinition: PublicationContract;
+  readonly invocation: PublicationContract;
+  readonly definitions: readonly PublicationContract[];
+  readonly artifacts: readonly PublicationContract[];
+  readonly derivations: readonly PublicationContract[];
+  readonly orderings: readonly PublicationContract[];
+  readonly retentions: readonly PublicationContract[];
+  readonly durableBindings: readonly PublicationContract[];
+  readonly manifest: PublicationContract;
+  readonly computationReceipt: PublicationContract;
+  readonly capturedRun: PublicationContract;
+  readonly preview: EffectPreviewIdentity;
+  readonly setReceiptWire: string;
+  readonly memberReceiptWires: readonly string[];
+  readonly finalReceipt: PublicationContract;
+}
+
+declare const submissionEpochBrand: unique symbol;
+
+export interface SubmissionEpoch {readonly [submissionEpochBrand]: true;}
+
+declare const submittedIntentBrand: unique symbol;
+
+export interface SubmittedIntent {readonly [submittedIntentBrand]: true;}
+
+const retainedInputEdges = new WeakMap<RetainedTaskInputEdge, owner.ClientRetainedInputEdge>();
+const retainedInputProducers = new WeakMap<RetainedInputProducer, owner.ClientRetainedInputProducer>();
+const retainedInputIntents = new WeakMap<RetainedInputIntent, {producer: owner.ClientRetainedInputProducer; value: owner.RemoteRetainedInputIntent}>();
+const retainedInputPlans = new WeakMap<RetainedInputPlan, owner.ClientValuesHostRetainedInputPlan>();
+const retainedInputResults = new WeakMap<RetainedInputResult, owner.RemoteRetainedInputResult>();
+const retainedInputCurrentQueries = new WeakMap<RetainedInputCurrentQuery, owner.ClientValuesHostRetainedInputQuery>();
+const retainedInputCurrentReplies = new WeakMap<RetainedInputCurrentReply, owner.RemoteRetainedCurrentReply>();
+const retainedTaskInputs = new WeakMap<RetainedTaskInput, owner.ClientValuesHostRetainedTaskInput>();
 import {publicationAction} from './publication-action.mjs';
 
-const environments = new WeakMap();
-const publishedEnvironments = new WeakMap();
-const preparations = new WeakMap();
-const sourcePreparations = new WeakMap();
-const compilations = new WeakMap();
-const taskCompilations = new WeakMap();
-const effectPreparations = new WeakMap();
-const effectCompilations = new WeakMap();
-const effectAllowedRuns = new WeakMap();
-const effectPreviewIdentities = new WeakMap();
-const effectCheckpointBindings = new WeakMap();
-const effectMaterialOwners = new WeakMap();
-const issuedEffectMaterials = new WeakMap();
-const requests = new WeakMap();
-const cancellationIdentities = new WeakMap();
-const submissionEpochs = new WeakMap();
-const submittedIntents = new WeakMap();
-const admissions = new WeakMap();
-const definitions = new WeakMap();
-const publicationContracts = new WeakMap();
-const publicationOriginals = new WeakMap();
-const runEvidences = new WeakMap();
-const originalRunPlans = new WeakMap();
-const resultOccurrences = new WeakMap();
-const capturedSnapshots = new WeakMap();
-const materialHolds = new WeakMap();
+const environments = new WeakMap<CheckEnvironment, owner.CheckEnvironment>();
+const publishedEnvironments = new WeakMap<PreparedPublishedEnvironment, {value: owner.PreparedPublishedQueryEnvironment; environment: CheckEnvironment; publicationWire: string}>();
+const preparations = new WeakMap<PreparedProgram, owner.PreparedClientProgram>();
+const sourcePreparations = new WeakMap<PreparedProgram | PreparedEffectProgram, {value: owner.ClientSourcePreparation; intent: SubmittedIntent; environment: CheckEnvironment; primaryResultRecipe: SourceProgramOriginals['primaryResultRecipe']}>();
+const compilations = new WeakMap<ValuesCompilation, {value: owner.ClientValuesCompilation; prepared: PreparedProgram}>();
+const taskCompilations = new WeakMap<TaskCompilation, {value: owner.ClientTaskCompilation; prepared: PreparedProgram}>();
+const effectPreparations = new WeakMap<PreparedEffectProgram, owner.PreparedClientEffectComputation>();
+const effectCompilations = new WeakMap<EffectCompilation, {value: owner.ClientEffectCompilation; prepared: PreparedEffectProgram}>();
+const effectAllowedRuns = new WeakMap<AllowedEffectRun, {value: owner.ClientEffectAllowedRun; prepared: PreparedEffectProgram; compilation: EffectCompilation}>();
+const effectPreviewIdentities = new WeakMap<EffectPreviewIdentity, {value: owner.EffectPreviewIdentity; memberCount: number}>();
+const effectCheckpointBindings = new WeakMap<EffectReviewCheckpointBinding, {original: owner.SealedCheckpoint; allowed: AllowedEffectRun; definition: RunDefinition}>();
+const effectMaterialOwners = new WeakMap<RestoredEffectRun, owner.ClientEffectRunMaterials>();
+const issuedEffectMaterials = new WeakMap<IssuedEffectRunMaterials, owner.ClientEffectIssuedNormalizationMaterials>();
+const requests = new WeakMap<RequestIdentity, owner.ClientRequestIdentity>();
+const cancellationIdentities = new WeakMap<RunCancellationIdentity, owner.ClientCancellationIdentity>();
+const submissionEpochs = new WeakMap<SubmissionEpoch, owner.SubmissionEpoch>();
+const submittedIntents = new WeakMap<SubmittedIntent, owner.ClientSubmittedIntent>();
+const admissions = new WeakMap<RunAdmission, {value: owner.RunPublicationAdmission; prepared: PreparedProgram}>();
+const definitions = new WeakMap<RunDefinition, owner.PublicationContract>();
+const publicationContracts = new WeakMap<PublicationContract['token'], owner.PublicationContract>();
+type EffectFinalCustody = {
+  value: owner.EffectfulFinalRunEvidence;
+  original: EffectFinalOriginals;
+  validatedPublication: owner.PublicationContract | undefined;
+};
+const publicationOriginals = new WeakMap<PublicationContract, Readonly<{
+  value: owner.PublicationContract; cid: string; wire: string; effect?: EffectFinalCustody;
+}>>();
+const runEvidences = new WeakMap<RunEvidence['token'], owner.RunEvidenceValue>();
+const originalRunPlans = new WeakMap<OriginalRunPlan, {original: StoredRunPlanOriginal; definitionCid: string; programCid: string; prepared: string; authorization: string}>();
+const resultOccurrences = new WeakMap<ResultOccurrenceEvidence['token'], owner.ResultOrderingEvidence>();
+const capturedSnapshots = new WeakMap<CapturedResultSnapshot, owner.CapturedResultSnapshot>();
+const materialHolds = new WeakMap<ResultMaterialHolds, owner.ResultMaterialHolds>();
 const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',
   'calendar', 'textRank']);
 
-function checked(result, code) {
-  if (runtimeIsOk(result)) return runtimeField(result, 0);
+function checked<Value>(result: owner.Result<Value>, code: string): Value {
+  if (runtimeIsOk(result)) return runtimeField(result, 0) as Value;
   if (runtimeIsError(result)) {
     throw Object.assign(new Error(code, {cause: runtimeField(result, 0)}), {code});
   }
@@ -49,38 +609,50 @@ function checked(result, code) {
     {code: 'InvalidRunHostOwnerResult'});
 }
 
-function handle(map, value, kind) {
-  const token = Object.freeze({kind});
+// The original Map membership selects matching Values and Task compiler ports.
+type CombinedParameters<Left extends readonly unknown[], Right extends readonly unknown[]> = {
+  [Index in keyof Left]: Left[Index] | Right[Index & keyof Right];
+};
+type SelectedOwnerCall<Left extends (...args: never[]) => unknown, Right extends (...args: never[]) => unknown> =
+  (...args: CombinedParameters<Parameters<Left>, Parameters<Right>>) => ReturnType<Left | Right>;
+
+type CustodyMap = WeakMap<object, unknown>;
+type CustodyKey<Map> = Map extends WeakMap<infer Key, unknown> ? Key : never;
+type CustodyValue<Map> = Map extends WeakMap<object, infer Value> ? Value : never;
+
+function handle<Map extends CustodyMap>(map: Map, value: CustodyValue<Map>, kind: string): CustodyKey<Map> {
+  const token = Object.freeze({kind}) as unknown as CustodyKey<Map>;
   map.set(token, value);
   return token;
 }
 
-function requireHandle(map, token) {
-  const value = map.get(token);
+function requireHandle<Map extends CustodyMap>(map: Map, token: object | undefined): CustodyValue<Map> {
+  const value = map.get(token as object);
   if (value === undefined) throw new TypeError('ForeignRunHostHandle');
-  return value;
+  return value as CustodyValue<Map>;
 }
 
 /** Shared Result-generation hold decisions; physical CAS stays in the Host. */
-export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {
+export function beginResultMaterialHolds(bindingCid: string, materialGenerationCid: string): ResultMaterialHolds {
   return handle(materialHolds, deliveryResult(
     'clientValuesHostBeginResultMaterialHolds', bindingCid,
     materialGenerationCid), 'result-material-holds');
 }
 
-export function admitResultMaterialHolds(wire) {
+export function admitResultMaterialHolds(wire: string): ResultMaterialHolds {
   if (typeof wire !== 'string') throw new TypeError('InvalidMaterialHoldsWire');
   return handle(materialHolds, deliveryResult(
     'clientValuesHostAdmitResultMaterialHolds', wire),
   'result-material-holds');
 }
 
-export function resultMaterialHoldsWire(value) {
+export function resultMaterialHoldsWire(value: ResultMaterialHolds): string {
   return deliveryResult('clientValuesHostResultMaterialHoldsWire',
     requireHandle(materialHolds, value));
 }
 
-export function resultMaterialHoldsFacts(value) {
+export function resultMaterialHoldsFacts(value: ResultMaterialHolds): Readonly<{bindingCid: string; materialGenerationCid: string;
+    revision: number; reclaimable: boolean}> {
   const ownerValue = requireHandle(materialHolds, value);
   return Object.freeze({
     bindingCid: owner.clientValuesHostResultMaterialHoldsBinding(ownerValue),
@@ -92,7 +664,8 @@ export function resultMaterialHoldsFacts(value) {
   });
 }
 
-export function prepareResultMaterialHoldsStep(value, operation, identity) {
+export function prepareResultMaterialHoldsStep(value: ResultMaterialHolds, operation: 'add_consumer' | 'release_consumer' | 'begin_reader' |
+    'end_reader' | 'stop_readers', identity: string): ResultMaterialHolds {
   if (!['add_consumer', 'release_consumer', 'begin_reader',
     'end_reader', 'stop_readers'].includes(operation) ||
     typeof identity !== 'string') {
@@ -104,7 +677,7 @@ export function prepareResultMaterialHoldsStep(value, operation, identity) {
   'result-material-holds');
 }
 
-function checkedProfileSelection(profiles, error) {
+function checkedProfileSelection(profiles: Parameters<typeof admitProfileSelection>[0], error: string) {
   if (profiles === null || typeof profiles !== 'object' ||
       Array.isArray(profiles)) {
     throw new TypeError(error);
@@ -121,23 +694,24 @@ function checkedProfileSelection(profiles, error) {
     }
   }
   return Object.freeze({
-    textTime: profiles.textTime === true,
-    veca: profiles.veca === true,
-    rela: profiles.rela === true,
-    sga: profiles.sga === true,
-    tea: profiles.tea === true,
-    calendar: profiles.calendar === true,
-    textRank: profiles.textRank === true,
+    textTime: (profiles as ProfileSelection).textTime === true,
+    veca: (profiles as ProfileSelection).veca === true,
+    rela: (profiles as ProfileSelection).rela === true,
+    sga: (profiles as ProfileSelection).sga === true,
+    tea: (profiles as ProfileSelection).tea === true,
+    calendar: (profiles as ProfileSelection).calendar === true,
+    textRank: (profiles as ProfileSelection).textRank === true,
     ...(numericProfileCid === undefined ? {} : {numericProfileCid}),
   });
 }
 
 /** Admit the existing profile contract and make omitted selections explicit. */
-export function admitProfileSelection(profiles) {
+export function admitProfileSelection(profiles: unknown): Readonly<Required<Omit<ProfileSelection, 'numericProfileCid'>> &
+    Pick<ProfileSelection, 'numericProfileCid'>> {
   return checkedProfileSelection(profiles, 'InvalidRunHostProfileSelection');
 }
 
-export function admitEnvironment(body, evidenceBundleCid, profiles) {
+export function admitEnvironment(body: string, evidenceBundleCid: string, profiles: ProfileSelection): CheckEnvironment {
   if (typeof body !== 'string' || typeof evidenceBundleCid !== 'string') {
     throw new TypeError('InvalidRunHostEnvironment');
   }
@@ -153,7 +727,7 @@ export function admitEnvironment(body, evidenceBundleCid, profiles) {
 }
 
 /** Retain only static metadata under its original admitted Environment. */
-export function preparePublishedEnvironment(environment, publicationWire) {
+export function preparePublishedEnvironment(environment: CheckEnvironment, publicationWire: string): PreparedPublishedEnvironment {
   if (typeof publicationWire !== 'string') throw new TypeError('InvalidRunHostSourcePublication');
   if (typeof owner.clientValuesHostPreparePublishedEnvironment !== 'function') {
     throw new Error('RunHostPreparedEnvironmentUnavailable');
@@ -165,7 +739,8 @@ export function preparePublishedEnvironment(environment, publicationWire) {
     'prepared-published-environment');
 }
 
-function requirePublishedEnvironment(prepared, environment, publicationWire) {
+function requirePublishedEnvironment(prepared: PreparedPublishedEnvironment | undefined,
+  environment: CheckEnvironment, publicationWire?: string) {
   if (prepared === undefined) return undefined;
   const original = requireHandle(publishedEnvironments, prepared);
   if (original.environment !== environment || publicationWire !== undefined &&
@@ -176,13 +751,13 @@ function requirePublishedEnvironment(prepared, environment, publicationWire) {
 }
 
 /** A nominal/full-wire join only; never current authorization or custody. */
-export function publishedEnvironmentMatches(prepared, environment, publicationWire) {
+export function publishedEnvironmentMatches(prepared: PreparedPublishedEnvironment, environment: CheckEnvironment, publicationWire: string): boolean {
   const original = requireHandle(publishedEnvironments, prepared);
   requireHandle(environments, environment);
   return original.environment === environment && original.publicationWire === publicationWire;
 }
 
-export function prepare(document, format, environment, parametersWire, publishedEnvironment) {
+export function prepare(document: string, format: 'json' | 'yaml', environment: CheckEnvironment, parametersWire?: string, publishedEnvironment?: PreparedPublishedEnvironment): PreparedProgram {
   if (typeof document !== 'string' || !['json', 'yaml'].includes(format) ||
       parametersWire !== undefined && typeof parametersWire !== 'string') {
     throw new TypeError('InvalidRunHostPreparation');
@@ -195,7 +770,8 @@ export function prepare(document, format, environment, parametersWire, published
 }
 
 /** Select the existing preparation Owner from one ordinary parsed Program. */
-export function prepareProgram(document, format, environment, parametersWire, publishedEnvironment) {
+export function prepareProgram(document: string, format: 'json' | 'yaml', environment: CheckEnvironment, parametersWire?: string, publishedEnvironment?: PreparedPublishedEnvironment): Readonly<{kind: 'effect_free'; prepared: PreparedProgram}> |
+  Readonly<{kind: 'effect'; prepared: PreparedEffectProgram}> {
   if (typeof document !== 'string' || !['json', 'yaml'].includes(format) ||
       parametersWire !== undefined && typeof parametersWire !== 'string') {
     throw new TypeError('InvalidRunHostPreparation');
@@ -218,13 +794,13 @@ export function prepareProgram(document, format, environment, parametersWire, pu
 }
 
 /** One original submitted source and trusted installation publication. */
-export function prepareSourceProgram(intent, environment, publicationWire, publishedEnvironment) {
+export function prepareSourceProgram(intent: SubmittedIntent, environment: CheckEnvironment, publicationWire: string, publishedEnvironment?: PreparedPublishedEnvironment): PreparedSourceProgram {
   return prepareSourceProgramOriginal(intent, environment, publicationWire,
     'public-main', publishedEnvironment);
 }
 
-function prepareSourceProgramOriginal(intent, environment, publicationWire, primaryResultRecipe,
-  publishedEnvironment) {
+function prepareSourceProgramOriginal(intent: SubmittedIntent, environment: CheckEnvironment,
+  publicationWire: string, primaryResultRecipe: SourceProgramOriginals['primaryResultRecipe'], publishedEnvironment?: PreparedPublishedEnvironment) {
   if (typeof publicationWire !== 'string') throw new TypeError('InvalidRunHostSourcePublication');
   const originalIntent = requireHandle(submittedIntents, intent);
   const originalEnvironment = requireHandle(environments, environment);
@@ -236,16 +812,17 @@ function prepareSourceProgramOriginal(intent, environment, publicationWire, prim
   'RunHostSourcePreparationRejected');
   const kind = owner.clientValuesHostSourceProgramKind(value);
   const raw = kind === 'effect_free' ? owner.clientValuesHostSourceProgramPure(value)
-    : kind === 'effect' ? owner.clientValuesHostSourceProgramEffect(value) : undefined;
+    : kind === 'effect' ? owner.clientValuesHostSourceProgramEffect(value): undefined;
   if (raw === undefined) throw new Error('InvalidRunHostOwnerResult');
   const prepared = handle(kind === 'effect_free' ? preparations : effectPreparations,
     raw, kind === 'effect_free' ? 'prepared-program' : 'prepared-effect-program');
   sourcePreparations.set(prepared, {value, intent, environment, primaryResultRecipe});
-  return Object.freeze({kind, prepared, originalIntent: intent});
+  // The discriminator chooses the corresponding preparation issuer immediately above.
+  return Object.freeze({kind, prepared, originalIntent: intent}) as PreparedSourceProgram;
 }
 
 /** Retained original DATA for authenticated Host storage, never authority. */
-export function sourceProgramOriginals(prepared) {
+export function sourceProgramOriginals(prepared: PreparedProgram | PreparedEffectProgram): SourceProgramOriginals {
   const original = sourcePreparations.get(prepared);
   if (original === undefined) throw new TypeError('ForeignRunHostSourcePreparation');
   const facts = owner.clientValuesHostSourceProgramOriginals(original.value);
@@ -259,7 +836,7 @@ export function sourceProgramOriginals(prepared) {
 }
 
 /** Original lowerer projection for the existing JSON Run material codec. */
-export function sourceProgramMaterialInput(prepared, environmentWire) {
+export function sourceProgramMaterialInput(prepared: PreparedProgram | PreparedEffectProgram, environmentWire: string): SourceFreeRunMaterialsInput {
   const original = sourcePreparations.get(prepared);
   if (original === undefined) throw new TypeError('ForeignRunHostSourcePreparation');
   if (typeof environmentWire !== 'string') throw new TypeError('InvalidRunHostRunMaterialsInput');
@@ -273,7 +850,8 @@ export function sourceProgramMaterialInput(prepared, environmentWire) {
 }
 
 /** Exact authored input projection for saved-source correspondence. */
-export function sourceProgramSourceInput(prepared) {
+export function sourceProgramSourceInput(prepared: PreparedProgram | PreparedEffectProgram): Readonly<{
+  document: string; format: string; parametersWire?: string; parameterDeclarationsWire?: string}> {
   const original = sourcePreparations.get(prepared);
   if (original === undefined) throw new TypeError('ForeignRunHostSourcePreparation');
   const fields = owner.clientValuesHostSourceProgramInput(original.value);
@@ -289,8 +867,8 @@ export function sourceProgramSourceInput(prepared) {
 }
 
 /** Re-admit saved originals; the Host still verifies current custody and Run. */
-export function restoreSourceProgram(originals, environment, publishedEnvironment) {
-  const keys = ['intentWire', 'intentCid', 'environmentCid', 'publicationWire'];
+export function restoreSourceProgram(originals: SourceProgramOriginals, environment: CheckEnvironment, publishedEnvironment?: PreparedPublishedEnvironment): PreparedSourceProgram {
+  const keys: (keyof SourceProgramOriginals)[] = ['intentWire', 'intentCid', 'environmentCid', 'publicationWire'];
   const recipe = originals === null || typeof originals !== 'object' ? undefined
     : Object.getOwnPropertyDescriptor(originals, 'primaryResultRecipe');
   if (recipe !== undefined) {
@@ -316,7 +894,7 @@ export function restoreSourceProgram(originals, environment, publishedEnvironmen
   return selected;
 }
 
-export function prepareSourceRequest(prepared, intent, authorityScopeCid, requestId) {
+export function prepareSourceRequest(prepared: PreparedProgram | PreparedEffectProgram, intent: SubmittedIntent, authorityScopeCid: string, requestId: string): RequestIdentity {
   const original = sourcePreparations.get(prepared);
   if (original === undefined || original.intent !== intent) throw new TypeError('ForeignRunHostSourcePreparation');
   if (typeof authorityScopeCid !== 'string' || typeof requestId !== 'string') throw new TypeError('InvalidRunHostRequest');
@@ -326,7 +904,7 @@ export function prepareSourceRequest(prepared, intent, authorityScopeCid, reques
 }
 
 /** Restore only a request that belongs to this original source preparation. */
-export function admitSourceRequestFields(prepared, intent, fields) {
+export function admitSourceRequestFields(prepared: PreparedProgram | PreparedEffectProgram, intent: SubmittedIntent, fields: RequestFields): RequestIdentity {
   const retained = admitRequestFields(fields);
   const current = prepareSourceRequest(prepared, intent, fields.authorityScopeCid, fields.requestId);
   if (requestRelation(current, retained) !== 'same_request') {
@@ -335,20 +913,20 @@ export function admitSourceRequestFields(prepared, intent, fields) {
   return retained;
 }
 
-export function compileValues(prepared) {
+export function compileValues(prepared: PreparedProgram): ValuesCompilation {
   const value = checked(owner.clientValuesHostCompile(
     requireHandle(preparations, prepared)), 'RunHostCompilationRejected');
   return handle(compilations, {value, prepared}, 'values-compilation');
 }
 
-export function compileTasks(prepared) {
+export function compileTasks(prepared: PreparedProgram): TaskCompilation {
   const value = checked(owner.clientValuesHostCompileTasks(
     requireHandle(preparations, prepared)), 'RunHostTaskCompilationRejected');
   return handle(taskCompilations, {value, prepared}, 'task-compilation');
 }
 
 /** Static Effect closure; no acquisition, approval or physical apply. */
-export function prepareEffect(document, format, environment, parametersWire, publishedEnvironment) {
+export function prepareEffect(document: string, format: 'json' | 'yaml', environment: CheckEnvironment, parametersWire?: string, publishedEnvironment?: PreparedPublishedEnvironment): PreparedEffectProgram {
   if (typeof document !== 'string' || !['json', 'yaml'].includes(format) ||
       parametersWire !== undefined && typeof parametersWire !== 'string') {
     throw new TypeError('InvalidRunHostPreparation');
@@ -359,7 +937,7 @@ export function prepareEffect(document, format, environment, parametersWire, pub
   'RunHostEffectPreparationRejected'), 'prepared-effect-program');
 }
 
-export function compileEffect(prepared, options = {}) {
+export function compileEffect(prepared: PreparedEffectProgram, options: Readonly<{normalizationProfile?: 'completion-free'}> = {}): EffectCompilation {
   if (options === null || typeof options !== 'object' ||
       options.normalizationProfile !== undefined &&
       options.normalizationProfile !== 'completion-free') {
@@ -371,14 +949,14 @@ export function compileEffect(prepared, options = {}) {
   return handle(effectCompilations, {value, prepared}, 'effect-compilation');
 }
 
-function effectCompilationFor(prepared, compilation) {
+function effectCompilationFor(prepared: PreparedEffectProgram, compilation: EffectCompilation) {
   const retained = requireHandle(effectCompilations, compilation);
   if (retained.prepared !== prepared) throw new TypeError('ForeignRunHostCompilation');
   return retained.value;
 }
 
 /** Checked counts only; this does not select or schedule an executable task. */
-export function effectExecutionShape(prepared, compilation) {
+export function effectExecutionShape(prepared: PreparedEffectProgram, compilation: EffectCompilation): Readonly<{taskCount: number; acquisitionCount: number; effectCount: number}> {
   const counts = owner.clientValuesHostEffectShape(effectCompilationFor(prepared, compilation));
   if (!Array.isArray(counts) || counts.length !== 3 ||
       counts.some(value => !Number.isSafeInteger(value) || value < 0)) {
@@ -389,7 +967,7 @@ export function effectExecutionShape(prepared, compilation) {
 }
 
 /** Original checked dispatch coordinates, not execution or approval permits. */
-export function effectTaskKeys(prepared, compilation) {
+export function effectTaskKeys(prepared: PreparedEffectProgram, compilation: EffectCompilation): readonly string[] {
   const keys = checked(owner.clientValuesHostEffectTaskKeys(
     effectCompilationFor(prepared, compilation)), 'RunHostTaskKeysRejected');
   if (!Array.isArray(keys) || keys.some(key => typeof key !== 'string') ||
@@ -398,7 +976,7 @@ export function effectTaskKeys(prepared, compilation) {
 }
 
 /** Result inventory owned by the original Effect computation. */
-export function effectResultDefinitions(prepared, compilation) {
+export function effectResultDefinitions(prepared: PreparedEffectProgram, compilation: EffectCompilation): readonly Readonly<{name: string; cid: string; wire: string}>[] {
   const value = effectCompilationFor(prepared, compilation);
   const fields = checked(owner.clientValuesHostEffectResultDefinitions(value),
     'RunHostResultInventoryRejected');
@@ -413,7 +991,8 @@ export function effectResultDefinitions(prepared, compilation) {
   }));
 }
 
-export function effectResultSchema(prepared, compilation, resultName) {
+export function effectResultSchema(prepared: PreparedEffectProgram, compilation: EffectCompilation, resultName: string): Readonly<{
+    cid: string; wire: string; fields: readonly string[]}> {
   const value = effectCompilationFor(prepared, compilation);
   if (typeof resultName !== 'string') throw new TypeError('InvalidRunHostResultSelection');
   const result = owner.clientValuesHostEffectResultNames(value).indexOf(resultName);
@@ -436,7 +1015,10 @@ export function effectResultSchema(prepared, compilation, resultName) {
 }
 
 /** Exact original Catalog evidence, never a read grant or Effect approval. */
-export function effectSourceEvidenceFacts(prepared, compilation, stage, sourceIndex) {
+export function effectSourceEvidenceFacts(prepared: PreparedEffectProgram, compilation: EffectCompilation, stage: number, sourceIndex: number): Readonly<{
+    sourceRef: string; sourceContractCid: string; carrierSchemaContractCid: string;
+    sourceDataPolicyCid: string; dataClassification: string; sourceViewContractCid: string;
+  }> | undefined {
   const value = effectCompilationFor(prepared, compilation);
   if (![stage, sourceIndex].every(index => Number.isSafeInteger(index) &&
       index >= 0 && index <= 2147483647)) {
@@ -455,16 +1037,17 @@ export function effectSourceEvidenceFacts(prepared, compilation, stage, sourceIn
     dataClassification: facts[4], sourceViewContractCid: facts[5]});
 }
 
-export function privateEffectCompilationWires(compilation) {
+export function privateEffectCompilationWires(compilation: EffectCompilation): Readonly<{boundTemplate: string; compiledPlan: string}> {
   const {value} = requireHandle(effectCompilations, compilation);
   return Object.freeze({boundTemplate: owner.clientValuesHostEffectTemplateWire(value),
     compiledPlan: owner.clientValuesHostEffectCompiledPlanWire(value)});
 }
 
 /** Current Host authorization precedes this call; Effect approval is separate. */
-export function issueAllowedEffectRun(prepared, compilation, {
+export function issueAllowedEffectRun(prepared: PreparedEffectProgram, compilation: EffectCompilation, {
   executionContextCid, hostPolicyCid, expiresAt,
-}) {
+}: Readonly<{executionContextCid: string;
+    hostPolicyCid: string; expiresAt: string}>): AllowedEffectRun {
   if ([executionContextCid, hostPolicyCid, expiresAt]
     .some(value => typeof value !== 'string')) throw new TypeError('InvalidRunHostEvidence');
   const value = checked(owner.clientValuesHostIssueAllowedEffectRun(
@@ -473,13 +1056,13 @@ export function issueAllowedEffectRun(prepared, compilation, {
   return handle(effectAllowedRuns, {value, prepared, compilation}, 'allowed-effect-run');
 }
 
-export function privateEffectRunEvidence(allowed) {
+export function privateEffectRunEvidence(allowed: AllowedEffectRun): Readonly<{preparedInvocationWire: string; authorizationWire: string}> {
   const {value} = requireHandle(effectAllowedRuns, allowed);
   return Object.freeze({preparedInvocationWire: owner.clientValuesHostAllowedEffectPreparedWire(value),
     authorizationWire: owner.clientValuesHostAllowedEffectAuthorizationWire(value)});
 }
 
-export function issueEffectRunDefinition(allowed, scopeId, runId, createdAt, validUntil) {
+export function issueEffectRunDefinition(allowed: AllowedEffectRun, scopeId: string, runId: string, createdAt: string, validUntil: string): RunDefinition {
   if ([scopeId, runId, createdAt, validUntil].some(value => typeof value !== 'string')) {
     throw new TypeError('InvalidRunHostDefinition');
   }
@@ -489,7 +1072,9 @@ export function issueEffectRunDefinition(allowed, scopeId, runId, createdAt, val
 }
 
 /** Project the original Effect materials using the existing bounded codec. */
-export function issueEffectRunMaterials(allowed, definition, retained, request) {
+export function issueEffectRunMaterials(allowed: AllowedEffectRun, definition: RunDefinition, retained: Readonly<{format: 'json'; document: string;
+    environment: CheckEnvironment; environmentWire: string;
+    parametersWire?: string}>, request?: RequestIdentity): string {
   validateRunMaterialsInput(retained);
   const {value} = requireHandle(effectAllowedRuns, allowed);
   return checked(owner.clientValuesHostIssueEffectRunMaterials(value,
@@ -500,21 +1085,21 @@ export function issueEffectRunMaterials(allowed, definition, retained, request) 
 
 /** Issue original materials and checked normalization without replacement inputs.
  * This finite profile refuses actual completions and unsupported operations. */
-export function issuePreparedEffectRunMaterials(allowed, definition, request) {
+export function issuePreparedEffectRunMaterials(allowed: AllowedEffectRun, definition: RunDefinition, request?: RequestIdentity): IssuedEffectRunMaterials {
   const {value, prepared} = requireHandle(effectAllowedRuns, allowed);
   const issued = checked(owner.clientValuesHostIssuePreparedEffectRunMaterials(
     requireHandle(effectPreparations, prepared), value,
     requireHandle(definitions, definition),
     request === undefined ? undefined : requireHandle(requests, request)),
   'RunHostEffectOriginalMaterialsRejected');
-  const material = Object.freeze({wire: owner.clientValuesHostIssuedEffectRunMaterialsWire(issued)});
+  const material = Object.freeze({wire: owner.clientValuesHostIssuedEffectRunMaterialsWire(issued)}) as IssuedEffectRunMaterials;
   issuedEffectMaterials.set(material, issued);
   return material;
 }
 
 /** Bind the same live issuer originals; no preparation, compilation or approval.
  * The existing Common Owner verifies the Run, request and normalization custody. */
-export function bindPreparedEffectRunMaterials(allowed, definition, issued, request) {
+export function bindPreparedEffectRunMaterials(allowed: AllowedEffectRun, definition: RunDefinition, issued: IssuedEffectRunMaterials, request: RequestIdentity): RestoredEffectRun {
   const original = requireHandle(effectAllowedRuns, allowed);
   const bound = checked(owner.clientValuesHostBindPreparedEffectRunMaterials(
     original.value, requireHandle(definitions, definition),
@@ -527,13 +1112,13 @@ export function bindPreparedEffectRunMaterials(allowed, definition, issued, requ
 }
 
 /** Restore saved journal bytes from this exact material admission; no approval. */
-export function restoreEffectRunNormalization(materials) {
+export function restoreEffectRunNormalization(materials: RestoredEffectRun): RunEvidence {
   return runEvidence(checked(owner.clientValuesHostRestoreEffectRunNormalization(
     requireHandle(effectMaterialOwners, materials)), 'RunHostEffectNormalizationRejected'));
 }
 
 /** Saved evidence is re-admitted, not reissued with a fresh policy or lifetime. */
-export function admitEffectRunMaterials(wire, definitionCid, profiles, original, expectedRequest, sourcePrepared) {
+export function admitEffectRunMaterials(wire: string, definitionCid: string, profiles: ProfileSelection, original?: IssuedEffectRunMaterials, expectedRequest?: RequestIdentity, sourcePrepared?: PreparedEffectProgram): RestoredEffectRun {
   if (typeof wire !== 'string' || typeof definitionCid !== 'string') {
     throw new TypeError('InvalidRunHostRunMaterialsInput');
   }
@@ -552,7 +1137,7 @@ export function admitEffectRunMaterials(wire, definitionCid, profiles, original,
   if (source !== undefined) sourcePreparations.set(prepared, source);
   const originalRequest = owner.clientValuesHostRestoredEffectRequest(restored);
   if (!Array.isArray(originalRequest) || originalRequest.length > 1) throw new Error('InvalidRunHostOriginalRequest');
-  const request = originalRequest.length === 1 ? handle(requests, originalRequest[0], 'request-identity') : undefined;
+  const request = originalRequest.length === 1 ? handle(requests, originalRequest[0], 'request-identity'): undefined;
   const compilation = handle(effectCompilations,
     {value: owner.clientValuesHostRestoredEffectCompilation(restored), prepared}, 'effect-compilation');
   const materials = Object.freeze({prepared, ...(request === undefined ? {} : {request}), compilation,
@@ -564,7 +1149,7 @@ export function admitEffectRunMaterials(wire, definitionCid, profiles, original,
 }
 
 /** Original policy/Run expiry check only; current Host authority is independent. */
-export function effectRunStartCurrent(allowed, definition, at) {
+export function effectRunStartCurrent(allowed: AllowedEffectRun, definition: RunDefinition, at: string): boolean {
   if (typeof at !== 'string') throw new TypeError('InvalidRunHostCurrentTime');
   const {value} = requireHandle(effectAllowedRuns, allowed);
   return owner.clientValuesHostEffectStartCurrent(value, requireHandle(definitions, definition), at);
@@ -572,7 +1157,7 @@ export function effectRunStartCurrent(allowed, definition, at) {
 
 /** Original Run/unit/window binding only. Native custody, current authority,
  * waiting commit and Effect approval must be confirmed independently. */
-export function effectReviewCheckpointBinding(allowed, definition, wire) {
+export function effectReviewCheckpointBinding(allowed: AllowedEffectRun, definition: RunDefinition, wire: string): EffectReviewCheckpointBinding {
   if (typeof wire !== 'string') throw new TypeError('InvalidRunHostCheckpointWire');
   const {value} = requireHandle(effectAllowedRuns, allowed);
   const original = checked(owner.clientValuesHostAdmitEffectCheckpointBinding(value,
@@ -586,7 +1171,7 @@ export function effectReviewCheckpointBinding(allowed, definition, wire) {
   }
   const binding = Object.freeze({checkpointCid: fields[0], checkpointWire: fields[1],
     runId: fields[2], unitId: fields[3], runDefinitionCid: fields[4],
-    previewCid: fields[5], reviewProjectionCid: fields[6], continuationCid: fields[7]});
+    previewCid: fields[5], reviewProjectionCid: fields[6], continuationCid: fields[7]}) as EffectReviewCheckpointBinding;
   // Only this returned binding retains its nominal Checkpoint and exact
   // original roots. It is neither a persistence receipt nor current authority.
   effectCheckpointBindings.set(binding, {original, allowed, definition});
@@ -595,7 +1180,7 @@ export function effectReviewCheckpointBinding(allowed, definition, wire) {
 
 /** Pure same-original facts; helpers and awaits do not re-admit the wire.
  * Restored operations must obtain their own original binding. */
-export function effectReviewCheckpointBindingFacts(binding, allowed, definition) {
+export function effectReviewCheckpointBindingFacts(binding: EffectReviewCheckpointBinding, allowed: AllowedEffectRun, definition: RunDefinition): EffectReviewCheckpointBinding {
   const original = effectCheckpointBindings.get(binding);
   if (original === undefined || original.allowed !== allowed ||
       original.definition !== definition) throw new TypeError('ForeignRunHostCheckpointBinding');
@@ -604,13 +1189,13 @@ export function effectReviewCheckpointBindingFacts(binding, allowed, definition)
 
 /** Original authoring/Preview binding through the same Common Checkpoint owner.
  * This historical DATA is not current permission or an outcome/Store ACK. */
-export function effectReviewCheckpointPreview(binding, allowed, definition,
-  storedWire, previewWire, limits) {
+export function effectReviewCheckpointPreview(binding: EffectReviewCheckpointBinding, allowed: AllowedEffectRun, definition: RunDefinition,
+  storedWire: string, previewWire: string, limits: PublicationLimits): EffectPreviewIdentity {
   effectReviewCheckpointBindingFacts(binding, allowed, definition);
   if (typeof storedWire !== 'string' || typeof previewWire !== 'string') {
     throw new TypeError('InvalidRunHostCheckpointPreviewInput');
   }
-  const {original} = effectCheckpointBindings.get(binding);
+  const {original} = effectCheckpointBindings.get(binding)!;
   const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
   const value = checked(owner.clientValuesHostAdmitEffectCheckpointPreview(original,
     requireHandle(effectAllowedRuns, allowed).value, requireHandle(definitions, definition),
@@ -623,10 +1208,10 @@ export function effectReviewCheckpointPreview(binding, allowed, definition,
 
 /** Same original plus actual stored bytes, through the existing waiting writer.
  * Physical read/revision/current gates remain with the restoration operation. */
-export function effectReviewCheckpointWaitingState(binding, allowed, definition,
-  storedWire, updatedAt, declaredResults) {
+export function effectReviewCheckpointWaitingState(binding: EffectReviewCheckpointBinding, allowed: AllowedEffectRun, definition: RunDefinition,
+  storedWire: string, updatedAt: string, declaredResults: readonly string[]): string {
   effectReviewCheckpointBindingFacts(binding, allowed, definition);
-  const {original} = effectCheckpointBindings.get(binding);
+  const {original} = effectCheckpointBindings.get(binding)!;
   if (typeof storedWire !== 'string' || typeof updatedAt !== 'string') {
     throw new TypeError('InvalidRunHostCheckpointWaitingInput');
   }
@@ -644,16 +1229,16 @@ export function effectReviewCheckpointWaitingState(binding, allowed, definition,
 
 /** Same original review plus complete authenticated receipt DATA. Journal
  * custody/current/CAS and physical outcomes remain the caller's obligations. */
-export function effectReviewCheckpointReconciliationState(binding, allowed, definition,
-  storedWire, previewWire, invocationWire, setReceiptWire, memberReceiptWires,
-  updatedAt, declaredResults) {
+export function effectReviewCheckpointReconciliationState(binding: EffectReviewCheckpointBinding, allowed: AllowedEffectRun, definition: RunDefinition,
+  storedWire: string, previewWire: string, invocationWire: string, setReceiptWire: string, memberReceiptWires: readonly string[],
+  updatedAt: string, declaredResults: readonly string[]): string {
   effectReviewCheckpointBindingFacts(binding, allowed, definition);
-  const {original} = effectCheckpointBindings.get(binding);
+  const {original} = effectCheckpointBindings.get(binding)!;
   const wires = [storedWire, previewWire, invocationWire, setReceiptWire, updatedAt];
   if (wires.some(value => typeof value !== 'string')) {
     throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
   }
-  const snapshot = value => {
+  const snapshot = (value: readonly string[]) => {
     if (!Array.isArray(value)) {
       throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
     }
@@ -687,10 +1272,10 @@ export function effectReviewCheckpointReconciliationState(binding, allowed, defi
 
 /** Pure confirmed-cancellation DATA for this same original review. The Host
  * retains every whole-Run no-grant/stop/publication/current/CAS obligation. */
-export function effectReviewCheckpointCancelledState(binding, allowed, definition,
-  storedWire, updatedAt, declaredResults) {
+export function effectReviewCheckpointCancelledState(binding: EffectReviewCheckpointBinding, allowed: AllowedEffectRun, definition: RunDefinition,
+  storedWire: string, updatedAt: string, declaredResults: readonly string[]): string {
   effectReviewCheckpointBindingFacts(binding, allowed, definition);
-  const {original} = effectCheckpointBindings.get(binding);
+  const {original} = effectCheckpointBindings.get(binding)!;
   if (typeof storedWire !== 'string' || typeof updatedAt !== 'string' ||
       !Array.isArray(declaredResults)) {
     throw new TypeError('InvalidRunHostCheckpointCancelledInput');
@@ -714,7 +1299,7 @@ export function effectReviewCheckpointCancelledState(binding, allowed, definitio
 }
 
 /** Original checked member IDs, not Source grants or Effect authority. */
-export function effectReviewCheckpointMembers(allowed, definition, wire) {
+export function effectReviewCheckpointMembers(allowed: AllowedEffectRun, definition: RunDefinition, wire: string): readonly string[] {
   if (typeof wire !== 'string' || wire.length > 65536 || new TextEncoder().encode(wire).length > 65536) {
     throw new TypeError('InvalidRunHostCheckpointWire');
   }
@@ -728,7 +1313,7 @@ export function effectReviewCheckpointMembers(allowed, definition, wire) {
 }
 
 /** Original Effect caller; capture is not a newly submitted input Artifact. */
-export function prepareEffectRequest(prepared, compilation, authorityScopeCid, requestId) {
+export function prepareEffectRequest(prepared: PreparedEffectProgram, compilation: EffectCompilation, authorityScopeCid: string, requestId: string): RequestIdentity {
   effectCompilationFor(prepared, compilation);
   const source = sourcePreparations.get(prepared);
   if (source !== undefined) return prepareSourceRequest(prepared, source.intent, authorityScopeCid, requestId);
@@ -742,20 +1327,22 @@ export function prepareEffectRequest(prepared, compilation, authorityScopeCid, r
 }
 
 /** Logical Source binding from the original checked Effect graph, no I/O. */
-export function effectSourceInputBinding(compilation, request) {
+export function effectSourceInputBinding(compilation: EffectCompilation, request?: RequestIdentity): string {
   const {value} = requireHandle(effectCompilations, compilation);
   return checked(owner.clientValuesHostEffectSourceInputBinding(value,
     request === undefined ? undefined : requireHandle(requests, request)),
     'RunHostEffectSourceBindingRejected');
 }
 
-function effectSiteSelection(selection) {
+function effectSiteSelection(selection: ValuesSiteSelection) {
   if (selection === null || typeof selection !== 'object' || Array.isArray(selection) ||
       Object.keys(selection).sort().join('\0') !== [...siteSelectionKeys].sort().join('\0')) {
     throw new TypeError('InvalidRunHostSiteSelection');
   }
   // Capture once: validation and the ABI must consume exactly the same values.
-  const args = siteSelectionKeys.map(key => selection[key]);
+  const args = siteSelectionKeys.map(key => selection[key]) as [
+    number, string, string, number, string, string, string, string, string, string, string, string
+  ];
   const [taskAttempt, , , siteGeneration] = args;
   if (!Number.isSafeInteger(taskAttempt) || taskAttempt <= 0 ||
       taskAttempt > 2147483647 ||
@@ -768,7 +1355,7 @@ function effectSiteSelection(selection) {
 }
 
 /** The Host saves the original envelope before the existing Coordinator sends. */
-export function issueEffectSourceDispatch(allowed, definition, request, selection) {
+export function issueEffectSourceDispatch(allowed: AllowedEffectRun, definition: RunDefinition, request: RequestIdentity, selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}> {
   const args = effectSiteSelection(selection);
   const {value} = requireHandle(effectAllowedRuns, allowed);
   const dispatch = checked(owner.clientValuesHostPrepareEffectSourceDispatch(
@@ -780,7 +1367,7 @@ export function issueEffectSourceDispatch(allowed, definition, request, selectio
 }
 
 /** Checked topology only; use existing producer/Transfer/current custody owners. */
-export function prepareEffectRetainedTaskInputEdge(allowed, definition) {
+export function prepareEffectRetainedTaskInputEdge(allowed: AllowedEffectRun, definition: RunDefinition): RetainedTaskInputEdge {
   const {value} = requireHandle(effectAllowedRuns, allowed);
   return handle(retainedInputEdges, checked(owner.clientValuesHostEffectRetainedInputEdge(
     value, requireHandle(definitions, definition)), 'RunHostEffectRetainedInputEdgeRejected'),
@@ -788,7 +1375,7 @@ export function prepareEffectRetainedTaskInputEdge(allowed, definition) {
 }
 
 /** Exact original consumer; current input and destination are read again. */
-export function issueEffectRetainedTaskDispatch(allowed, definition, request, selection, input) {
+export function issueEffectRetainedTaskDispatch(allowed: AllowedEffectRun, definition: RunDefinition, request: RequestIdentity, selection: ValuesSiteSelection, input: RetainedTaskInput): Readonly<{cid: string; wire: string}> {
   const args = effectSiteSelection(selection);
   const {value} = requireHandle(effectAllowedRuns, allowed);
   const dispatch = checked(owner.clientValuesHostPrepareEffectRetainedTaskDispatch(
@@ -799,7 +1386,7 @@ export function issueEffectRetainedTaskDispatch(allowed, definition, request, se
       'RunHostEffectRetainedTaskDispatchRejected')});
 }
 
-export function privateTaskCompilationWires(compilation) {
+export function privateTaskCompilationWires(compilation: TaskCompilation): PrivateCompilationWires {
   const {value} = requireHandle(taskCompilations, compilation);
   return Object.freeze({
     executablePlan: owner.clientValuesHostTaskPlanWire(value),
@@ -809,12 +1396,12 @@ export function privateTaskCompilationWires(compilation) {
   });
 }
 
-export function taskResultNames(compilation) {
+export function taskResultNames(compilation: TaskCompilation): readonly string[] {
   const {value} = requireHandle(taskCompilations, compilation);
   return Object.freeze([...owner.clientValuesHostTaskResultNames(value)]);
 }
 
-export function taskExecutionShape(prepared, compilation) {
+export function taskExecutionShape(prepared: PreparedProgram, compilation: TaskCompilation): Readonly<{taskCount: number; acquisitionCount: number}> {
   const compiled = requireHandle(taskCompilations, compilation);
   if (compiled.prepared !== prepared) throw new TypeError('ForeignRunHostCompilation');
   const counts = owner.clientValuesHostTaskExecutionShape(requireHandle(preparations, prepared));
@@ -826,7 +1413,7 @@ export function taskExecutionShape(prepared, compilation) {
 }
 
 /** Dispatch keys from checked task fragments, excluding Result transforms. */
-export function taskKeys(prepared, compilation) {
+export function taskKeys(prepared: PreparedProgram, compilation: TaskCompilation): readonly string[] {
   const compiled = requireHandle(taskCompilations, compilation);
   if (compiled.prepared !== prepared) throw new TypeError('ForeignRunHostCompilation');
   const keys = checked(owner.clientValuesHostTaskKeys(requireHandle(preparations, prepared)),
@@ -836,7 +1423,7 @@ export function taskKeys(prepared, compilation) {
   return Object.freeze([...keys]);
 }
 
-export function privateCompilationWires(compilation) {
+export function privateCompilationWires(compilation: ValuesCompilation): PrivateCompilationWires {
   const {value} = requireHandle(compilations, compilation);
   return Object.freeze({
     executablePlan: owner.clientValuesHostPlanWire(value),
@@ -846,12 +1433,16 @@ export function privateCompilationWires(compilation) {
   });
 }
 
-export function compiledPlanCid(compilation) {
+export function compiledPlanCid(compilation: ValuesCompilation): string {
   const {value} = requireHandle(compilations, compilation);
   return owner.clientValuesHostCompiledPlanCid(value);
 }
 
-export function executionShape(compilation) {
+export function executionShape(compilation: ValuesCompilation): Readonly<{
+  planNodeId: string;
+  outputContractCid: string;
+  resultNames: readonly string[];
+}> {
   const {value} = requireHandle(compilations, compilation);
   return Object.freeze({
     planNodeId: owner.clientValuesHostPlanNodeId(value),
@@ -860,7 +1451,11 @@ export function executionShape(compilation) {
   });
 }
 
-export function resultDefinitions(prepared, compilation) {
+export function resultDefinitions(prepared: PreparedProgram, compilation: ValuesCompilation): readonly Readonly<{
+  name: string;
+  cid: string;
+  wire: string;
+}>[] {
   const compiled = requireHandle(compilations, compilation);
   if (compiled.prepared !== prepared) {
     throw new TypeError('ForeignRunHostCompilation');
@@ -882,7 +1477,11 @@ export function resultDefinitions(prepared, compilation) {
   }));
 }
 
-export function taskResultDefinitions(prepared, compilation) {
+export function taskResultDefinitions(prepared: PreparedProgram, compilation: TaskCompilation): readonly Readonly<{
+  name: string;
+  cid: string;
+  wire: string;
+}>[] {
   const compiled = requireHandle(taskCompilations, compilation);
   if (compiled.prepared !== prepared) {
     throw new TypeError('ForeignRunHostCompilation');
@@ -904,7 +1503,11 @@ export function taskResultDefinitions(prepared, compilation) {
   }));
 }
 
-export function resultSchema(prepared, compilation) {
+export function resultSchema(prepared: PreparedProgram, compilation: ValuesCompilation): Readonly<{
+    cid: string;
+    wire: string;
+    fields: readonly string[];
+  }> {
   const compiled = requireHandle(compilations, compilation);
   if (compiled.prepared !== prepared) {
     throw new TypeError('ForeignRunHostCompilation');
@@ -927,7 +1530,11 @@ export function resultSchema(prepared, compilation) {
   return Object.freeze({cid: facts[0], wire: facts[1], fields});
 }
 
-export function taskResultSchema(prepared, compilation, resultName) {
+export function taskResultSchema(prepared: PreparedProgram, compilation: TaskCompilation, resultName: string): Readonly<{
+    cid: string;
+    wire: string;
+    fields: readonly string[];
+  }> {
   const compiled = requireHandle(taskCompilations, compilation);
   if (compiled.prepared !== prepared || typeof resultName !== 'string') {
     throw new TypeError('ForeignRunHostCompilation');
@@ -955,8 +1562,8 @@ export function taskResultSchema(prepared, compilation, resultName) {
 
 // The Host must establish scope and admitted input intent before calling this
 // pure identity operation. The returned handle is not a Run or a grant.
-export function prepareRequest(prepared, authorityScopeCid, requestId,
-  admittedInputIntentCid) {
+export function prepareRequest(prepared: PreparedProgram, authorityScopeCid: string, requestId: string,
+  admittedInputIntentCid: string): RequestIdentity {
   if ([authorityScopeCid, requestId, admittedInputIntentCid]
     .some(value => typeof value !== 'string')) {
     throw new TypeError('InvalidRunHostRequest');
@@ -972,8 +1579,8 @@ export function prepareRequest(prepared, authorityScopeCid, requestId,
   return handle(requests, value, 'request-identity');
 }
 
-export function prepareSourceFreeRequest(prepared, compilation,
-  authorityScopeCid, requestId) {
+export function prepareSourceFreeRequest(prepared: PreparedProgram, compilation: ValuesCompilation,
+  authorityScopeCid: string, requestId: string): RequestIdentity {
   if (typeof authorityScopeCid !== 'string' || typeof requestId !== 'string') {
     throw new TypeError('InvalidRunHostRequest');
   }
@@ -988,8 +1595,8 @@ export function prepareSourceFreeRequest(prepared, compilation,
 }
 
 // A later provider capture is not a caller-supplied Run-start Artifact.
-export function prepareTaskRequest(prepared, compilation,
-  authorityScopeCid, requestId) {
+export function prepareTaskRequest(prepared: PreparedProgram, compilation: TaskCompilation,
+  authorityScopeCid: string, requestId: string): RequestIdentity {
   if (typeof authorityScopeCid !== 'string' || typeof requestId !== 'string') {
     throw new TypeError('InvalidRunHostRequest');
   }
@@ -1003,7 +1610,9 @@ export function prepareTaskRequest(prepared, compilation,
   return handle(requests, value, 'request-identity');
 }
 
-export function sourceEvidenceFacts(prepared, stage, sourceIndex) {
+export function sourceEvidenceFacts(prepared: PreparedProgram, stage: number, sourceIndex: number): Readonly<{sourceRef: string; sourceContractCid: string;
+    carrierSchemaContractCid: string; sourceDataPolicyCid: string;
+    dataClassification: string; sourceViewContractCid: string}> | undefined {
   if (![stage, sourceIndex].every(value => Number.isSafeInteger(value) &&
       value >= 0 && value <= 2147483647)) {
     throw new TypeError('InvalidRunHostSourceSelection');
@@ -1022,7 +1631,7 @@ export function sourceEvidenceFacts(prepared, stage, sourceIndex) {
     dataClassification: facts[4], sourceViewContractCid: facts[5]});
 }
 
-export function taskInputBinding(prepared, task) {
+export function taskInputBinding(prepared: PreparedProgram, task: number): string {
   if (!Number.isSafeInteger(task) || task < 0 || task > 2147483647) {
     throw new TypeError('InvalidRunHostTaskSelection');
   }
@@ -1030,7 +1639,7 @@ export function taskInputBinding(prepared, task) {
     requireHandle(preparations, prepared), task), 'RunHostTaskBindingRejected');
 }
 
-export function requestFields(request) {
+export function requestFields(request: RequestIdentity): RequestFields {
   const value = requireHandle(requests, request);
   return Object.freeze({
     authorityScopeCid: owner.clientValuesHostRequestAuthorityScopeCid(value),
@@ -1045,9 +1654,9 @@ export function requestFields(request) {
 
 const requestKeys = ['authorityScopeCid', 'requestId',
   'logicalRequestScopeCid', 'intentFingerprintCid', 'programDefinitionCid',
-  'parameterValuesCid', 'callerInputIntentCid'];
+  'parameterValuesCid', 'callerInputIntentCid'] as const;
 
-export function admitRequestFields(fields) {
+export function admitRequestFields(fields: RequestFields): RequestIdentity {
   if (fields === null || typeof fields !== 'object' || Array.isArray(fields) ||
       Object.keys(fields).sort().join('\0') !==
         [...requestKeys].sort().join('\0') ||
@@ -1062,7 +1671,7 @@ export function admitRequestFields(fields) {
   return handle(requests, value, 'request-identity');
 }
 
-export function admitSourceFreeRequestFields(prepared, compilation, fields) {
+export function admitSourceFreeRequestFields(prepared: PreparedProgram, compilation: ValuesCompilation, fields: RequestFields): RequestIdentity {
   if (fields === null || typeof fields !== 'object' || Array.isArray(fields) ||
       Object.keys(fields).sort().join('\0') !==
         [...requestKeys].sort().join('\0') ||
@@ -1090,7 +1699,8 @@ export function admitSourceFreeRequestFields(prepared, compilation, fields) {
   return handle(requests, value, 'request-identity');
 }
 
-export function requestRelation(requested, retained) {
+export function requestRelation(requested: RequestIdentity, retained: RequestIdentity): 'different_request' | 'same_request' |
+    'changed_intent' {
   const relation = owner.clientValuesHostRequestRelation(
     requireHandle(requests, requested), requireHandle(requests, retained));
   switch (relation) {
@@ -1101,8 +1711,8 @@ export function requestRelation(requested, retained) {
   }
 }
 
-export function admitRun(prepared, compilation, preparedInvocationWire,
-  authorizationWire) {
+export function admitRun(prepared: PreparedProgram, compilation: ValuesCompilation, preparedInvocationWire: string,
+  authorizationWire: string): RunAdmission {
   if (typeof preparedInvocationWire !== 'string' ||
       typeof authorizationWire !== 'string') {
     throw new TypeError('InvalidRunHostEvidence');
@@ -1121,9 +1731,17 @@ export function admitRun(prepared, compilation, preparedInvocationWire,
 
 // Host authorization must precede this call. These owner-issued wires bind
 // the selected policy context to the exact checked Values compilation.
-export function issueAllowedRun(prepared, compilation, {
+export function issueAllowedRun(prepared: PreparedProgram, compilation: ValuesCompilation, {
   executionContextCid, hostPolicyCid, expiresAt,
-}) {
+}: Readonly<{
+    executionContextCid: string;
+    hostPolicyCid: string;
+    expiresAt: string;
+  }>): Readonly<{
+    admission: RunAdmission;
+    preparedInvocationWire: string;
+    authorizationWire: string;
+  }> {
   if ([executionContextCid, hostPolicyCid, expiresAt]
     .some(value => typeof value !== 'string')) {
     throw new TypeError('InvalidRunHostEvidence');
@@ -1147,9 +1765,17 @@ export function issueAllowedRun(prepared, compilation, {
   });
 }
 
-export function issueAllowedTaskRun(prepared, compilation, {
+export function issueAllowedTaskRun(prepared: PreparedProgram, compilation: TaskCompilation, {
   executionContextCid, hostPolicyCid, expiresAt,
-}) {
+}: Readonly<{
+    executionContextCid: string;
+    hostPolicyCid: string;
+    expiresAt: string;
+  }>): Readonly<{
+    admission: RunAdmission;
+    preparedInvocationWire: string;
+    authorizationWire: string;
+  }> {
   if ([executionContextCid, hostPolicyCid, expiresAt]
     .some(value => typeof value !== 'string')) {
     throw new TypeError('InvalidRunHostEvidence');
@@ -1173,8 +1799,8 @@ export function issueAllowedTaskRun(prepared, compilation, {
   });
 }
 
-export function admitTaskRun(prepared, compilation,
-  preparedInvocationWire, authorizationWire) {
+export function admitTaskRun(prepared: PreparedProgram, compilation: TaskCompilation,
+  preparedInvocationWire: string, authorizationWire: string): RunAdmission {
   if ([preparedInvocationWire, authorizationWire]
     .some(value => typeof value !== 'string')) {
     throw new TypeError('InvalidRunHostEvidence');
@@ -1190,8 +1816,8 @@ export function admitTaskRun(prepared, compilation,
   return handle(admissions, {value, prepared}, 'run-admission');
 }
 
-export function issueRunDefinition(admission, scopeId, runId,
-  inputArtifactSetCid, createdAt, validUntil) {
+export function issueRunDefinition(admission: RunAdmission, scopeId: string, runId: string,
+  inputArtifactSetCid: string, createdAt: string, validUntil: string): RunDefinition {
   if ([scopeId, runId, inputArtifactSetCid, createdAt, validUntil]
     .some(value => typeof value !== 'string')) {
     throw new TypeError('InvalidRunHostDefinition');
@@ -1203,8 +1829,8 @@ export function issueRunDefinition(admission, scopeId, runId,
   return handle(definitions, value, 'run-definition');
 }
 
-export function issueSourceFreeRunDefinition(prepared, compilation,
-  admission, scopeId, runId, createdAt, validUntil) {
+export function issueSourceFreeRunDefinition(prepared: PreparedProgram, compilation: ValuesCompilation,
+  admission: RunAdmission, scopeId: string, runId: string, createdAt: string, validUntil: string): RunDefinition {
   const compiled = requireHandle(compilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
@@ -1221,8 +1847,8 @@ export function issueSourceFreeRunDefinition(prepared, compilation,
   return handle(definitions, value, 'run-definition');
 }
 
-export function issueTaskRunDefinition(prepared, compilation,
-  admission, scopeId, runId, createdAt, validUntil) {
+export function issueTaskRunDefinition(prepared: PreparedProgram, compilation: TaskCompilation,
+  admission: RunAdmission, scopeId: string, runId: string, createdAt: string, validUntil: string): RunDefinition {
   const compiled = requireHandle(taskCompilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
@@ -1239,8 +1865,8 @@ export function issueTaskRunDefinition(prepared, compilation,
   return handle(definitions, value, 'run-definition');
 }
 
-export function admitTaskRunDefinition(prepared, compilation, admission,
-  wire) {
+export function admitTaskRunDefinition(prepared: PreparedProgram, compilation: TaskCompilation, admission: RunAdmission,
+  wire: string): RunDefinition {
   if (typeof wire !== 'string') throw new TypeError('InvalidRunHostDefinition');
   const compiled = requireHandle(taskCompilations, compilation);
   const admitted = requireHandle(admissions, admission);
@@ -1253,7 +1879,10 @@ export function admitTaskRunDefinition(prepared, compilation, admission,
   return handle(definitions, value, 'run-definition');
 }
 
-export function privateRunDefinition(definition) {
+export function privateRunDefinition(definition: RunDefinition): Readonly<{
+  wire: string;
+  cid: string;
+}> {
   const value = requireHandle(definitions, definition);
   return Object.freeze({
     wire: owner.clientValuesHostRunDefinitionWire(value),
@@ -1263,17 +1892,19 @@ export function privateRunDefinition(definition) {
 
 /** Capture once from the same checked compilation/admission used by the Host.
  * The Host persists the two original wires in its first admission transaction. */
-export function captureOriginalRunPlan(prepared, compilation, admission, definition, limits) {
+export function captureOriginalRunPlan(prepared: PreparedProgram, compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission, definition: RunDefinition, limits: PublicationLimits): OriginalRunPlan {
   const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
-  const task = taskCompilations.has(compilation);
+  const task = taskCompilations.has(compilation as TaskCompilation);
   const compiled = requireHandle(task ? taskCompilations : compilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
     throw new TypeError('ForeignRunHostCompilation');
   }
-  const fields = checked((task
+  const fields = checked(((task
     ? owner.clientValuesHostCaptureOriginalTaskRunPlan
-    : owner.clientValuesHostCaptureOriginalValuesRunPlan)(
+    : owner.clientValuesHostCaptureOriginalValuesRunPlan) as SelectedOwnerCall<
+      typeof owner.clientValuesHostCaptureOriginalTaskRunPlan, typeof owner.clientValuesHostCaptureOriginalValuesRunPlan
+    >)(
     requireHandle(preparations, prepared), compiled.value, admitted.value,
     requireHandle(definitions, definition), maxWireBytes, maxNodes, maxDepth),
   'RunHostOriginalPlanRejected');
@@ -1290,7 +1921,7 @@ export function captureOriginalRunPlan(prepared, compilation, admission, definit
 }
 
 /** Only a genuine first-capture token can supply admission evidence. */
-export function originalRunPlanAdmissionEvidence(selection, definition, programCid, evidence) {
+export function originalRunPlanAdmissionEvidence(selection: OriginalRunPlan, definition: RunDefinition, programCid: string, evidence: Readonly<{prepared: string; authorization: string}>): StoredRunPlanOriginal {
   const retained = requireHandle(originalRunPlans, selection);
   if (retained.definitionCid !== privateRunDefinition(definition).cid ||
       retained.programCid !== programCid || retained.prepared !== evidence?.prepared ||
@@ -1303,7 +1934,7 @@ export function originalRunPlanAdmissionEvidence(selection, definition, programC
 /** Validate authenticated saved metadata without preparation, recompilation or
  * reissuing capture custody. The Host separately checks current RunRead and its
  * original Run/request/context join before and after durable lookup. */
-export function readStoredRunPlanOriginal(original, definition, programCid, limits) {
+export function readStoredRunPlanOriginal(original: StoredRunPlanOriginal | undefined, definition: RunDefinition, programCid: string, limits: PublicationLimits): string {
   const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
   const run = privateRunDefinition(definition);
   if (original === undefined) {
@@ -1326,8 +1957,8 @@ export function readStoredRunPlanOriginal(original, definition, programCid, limi
         !Object.hasOwn(descriptors[name], 'value'))) {
     throw new TypeError('InvalidRunHostOriginalPlan');
   }
-  const compiledPlanWire = descriptors.compiledPlanWire.value;
-  const planViewWire = descriptors.planViewWire.value;
+  const compiledPlanWire = descriptors.compiledPlanWire.value as string;
+  const planViewWire = descriptors.planViewWire.value as string;
   if (typeof programCid !== 'string' ||
       [compiledPlanWire, planViewWire].some(wire => typeof wire !== 'string' ||
         wire.length > maxWireBytes)) {
@@ -1354,9 +1985,11 @@ export function readStoredRunPlanOriginal(original, definition, programCid, limi
 
 // The caller must retain the checked admission and the current physical
 // observation. A state wire is a projection, never Run or read authority.
-export function issueUnpublishedRunStateWire(prepared, compilation,
-  admission, definition, observedAt, observation) {
-  const task = taskCompilations.has(compilation);
+export function issueUnpublishedRunStateWire(prepared: PreparedProgram, compilation: ValuesCompilation | TaskCompilation,
+  admission: RunAdmission, definition: RunDefinition, observedAt: string, observation: Readonly<{dispatchReserved: boolean;
+    preDispatchFailureConfirmed: boolean; cancelledBeforeStart?: boolean;
+    executionUnknown?: boolean}>): string {
+  const task = taskCompilations.has(compilation as TaskCompilation);
   const compiled = requireHandle(task ? taskCompilations : compilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
@@ -1375,8 +2008,10 @@ export function issueUnpublishedRunStateWire(prepared, compilation,
     throw new TypeError('InvalidRunHostStateObservation');
   }
   checkRunBinding(prepared, admission, definition);
-  const issue = task ? owner.clientValuesHostIssueTaskUnpublishedRunStateWire
-    : owner.clientValuesHostIssueUnpublishedRunStateWire;
+  const issue = (task ? owner.clientValuesHostIssueTaskUnpublishedRunStateWire
+    : owner.clientValuesHostIssueUnpublishedRunStateWire) as SelectedOwnerCall<
+      typeof owner.clientValuesHostIssueTaskUnpublishedRunStateWire, typeof owner.clientValuesHostIssueUnpublishedRunStateWire
+    >;
   const wire = issue(
     requireHandle(definitions, definition), compiled.value, observedAt,
     dispatchReserved, preDispatchFailureConfirmed, cancelledBeforeStart,
@@ -1388,14 +2023,26 @@ export function issueUnpublishedRunStateWire(prepared, compilation,
   return wire;
 }
 
-export function issueSucceededRunStateWire(prepared, compilation,
-  admission, definition, observedAt, observations, effectFinalReceipt) {
-  const task = taskCompilations.has(compilation);
-  const effect = effectCompilations.has(compilation);
+export function issueSucceededRunStateWire(prepared: PreparedProgram,
+  compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, observedAt: string,
+  observations: readonly RunResultStateObservation[]): string;
+/** Requires the same admitted successful Effect outcome and checked publication
+ * inputs. The Host still supplies the actual committed index/current observations. */
+export function issueSucceededRunStateWire(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation, admission: AllowedEffectRun,
+  definition: RunDefinition, observedAt: string,
+  observations: readonly RunResultStateObservation[], finalReceipt: PublicationContract): string;
+export function issueSucceededRunStateWire(prepared: PreparedProgram | PreparedEffectProgram,
+  compilation: ValuesCompilation | TaskCompilation | EffectCompilation, admission: RunAdmission | AllowedEffectRun,
+  definition: RunDefinition, observedAt: string, observations: readonly RunResultStateObservation[],
+  effectFinalReceipt?: PublicationContract): string {
+  const task = taskCompilations.has(compilation as TaskCompilation);
+  const effect = effectCompilations.has(compilation as EffectCompilation);
   const compiled = requireHandle(effect ? effectCompilations : task ? taskCompilations : compilations, compilation);
   const admitted = requireHandle(effect ? effectAllowedRuns : admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared ||
-      effect && admitted.compilation !== compilation) {
+      effect && (admitted as CustodyValue<typeof effectAllowedRuns>).compilation !== compilation) {
     throw new TypeError('ForeignRunHostCompilation');
   }
   if (typeof observedAt !== 'string' || !Array.isArray(observations) ||
@@ -1411,7 +2058,7 @@ export function issueSucceededRunStateWire(prepared, compilation,
       throw new TypeError('RunHostEffectPublicationEvidenceRequired');
     }
     const wire = owner.clientValuesHostIssueEffectSucceededRunStateWire(
-      requireHandle(effectPreparations, prepared), admitted.value,
+      requireHandle(effectPreparations, prepared), (admitted as CustodyValue<typeof effectAllowedRuns>).value,
       requireHandle(definitions, definition), retained.value, observedAt,
       observations.map(value => value.name), observations.map(value => value.state),
       observations.map(value => value.reason), observations.map(value => value.observedAt));
@@ -1420,11 +2067,13 @@ export function issueSucceededRunStateWire(prepared, compilation,
     }
     return wire;
   }
-  checkRunBinding(prepared, admission, definition);
-  const issue = task ? owner.clientValuesHostIssueTaskSucceededRunStateWire
-    : owner.clientValuesHostIssueSucceededRunStateWire;
+  checkRunBinding(prepared as PreparedProgram, admission as RunAdmission, definition);
+  const issue = (task ? owner.clientValuesHostIssueTaskSucceededRunStateWire
+    : owner.clientValuesHostIssueSucceededRunStateWire) as SelectedOwnerCall<
+      typeof owner.clientValuesHostIssueTaskSucceededRunStateWire, typeof owner.clientValuesHostIssueSucceededRunStateWire
+    >;
   const wire = issue(
-    requireHandle(definitions, definition), compiled.value, observedAt,
+    requireHandle(definitions, definition), compiled.value as owner.ClientValuesCompilation | owner.ClientTaskCompilation, observedAt,
     observations.map(value => value.name),
     observations.map(value => value.state),
     observations.map(value => value.reason),
@@ -1436,20 +2085,36 @@ export function issueSucceededRunStateWire(prepared, compilation,
   return wire;
 }
 
-export function resultReadAvailability(manifest, resultName, retention,
-  observedAt) {
+export function resultReadAvailability(manifest: PublicationContract, resultName: string, retention: PublicationContract,
+  observedAt: string): 'available' | 'retention_expired' | 'delete_due' {
   if (typeof resultName !== 'string' || typeof observedAt !== 'string') {
     throw new TypeError('InvalidRunHostAvailabilityObservation');
   }
   return checked(owner.clientValuesHostResultReadAvailability(
     publicationToken(manifest), resultName, publicationToken(retention),
-    observedAt), 'RunHostAvailabilityRejected');
+    observedAt), 'RunHostAvailabilityRejected') as ReturnType<typeof resultReadAvailability>;
 }
 
 // The common publication owner selects and checks every listed binding.
 // CIDs returned here identify physical custody; they grant no read access.
-export function projectCommittedResultRead(index, manifest, resultName,
-  bindings) {
+export function projectCommittedResultRead(index: PublicationContract, manifest: PublicationContract, resultName: string,
+  bindings: readonly PublicationContract[]): Readonly<{
+    resultName: string;
+    resultArtifactCid: string;
+    resultDefinitionCid: string;
+    logicalResultCid: string;
+    resultSchemaCid: string;
+    orderingEvidenceCid: string;
+    effectiveRetentionPolicyCid: string;
+    durableResultBindingCid: string;
+    materialGenerationCid: string;
+    storeAuthorityCid: string;
+    codecContractCid: string;
+    resultFields: readonly string[];
+    rowCount: number;
+    byteCount: number;
+    physicalSha256: string;
+  }> {
   if (typeof resultName !== 'string' || !Array.isArray(bindings)) {
     throw new TypeError('InvalidRunHostResultSelection');
   }
@@ -1460,21 +2125,27 @@ export function projectCommittedResultRead(index, manifest, resultName,
     throw Object.assign(new Error('RunHostResultSelectionRejected'),
       {code: 'RunHostResultSelectionRejected'});
   }
-  const value = JSON.parse(wire);
-  const cid = value => typeof value === 'string' &&
+  const value = JSON.parse(wire) as {
+    result_name: string; result_artifact_cid: string; result_definition_cid: string;
+    logical_result_cid: string; result_schema_cid: string; ordering_evidence_cid: string;
+    effective_retention_policy_cid: string; durable_result_binding_cid: string;
+    material_generation_cid: string; store_authority_cid: string; codec_contract_cid: string;
+    result_fields: readonly string[]; row_count: number; byte_count: number; physical_sha256: string;
+  };
+  const cid = (value: unknown) => typeof value === 'string' &&
     /^sha256:[0-9a-f]{64}$/u.test(value);
   if (value === null || typeof value !== 'object' ||
-      !['codec_contract_cid', 'durable_result_binding_cid',
+      !(['codec_contract_cid', 'durable_result_binding_cid',
         'effective_retention_policy_cid', 'logical_result_cid',
         'material_generation_cid', 'ordering_evidence_cid',
         'result_artifact_cid', 'result_definition_cid',
-        'result_schema_cid', 'store_authority_cid'].every(key =>
+        'result_schema_cid', 'store_authority_cid'] as const).every(key =>
         cid(value[key])) ||
       typeof value.physical_sha256 !== 'string' ||
       !/^[0-9a-f]{64}$/u.test(value.physical_sha256) ||
       value.result_name !== resultName ||
       !Array.isArray(value.result_fields) ||
-      !value.result_fields.every(field => typeof field === 'string') ||
+      !value.result_fields.every((field: unknown) => typeof field === 'string') ||
       !Number.isSafeInteger(value.row_count) || value.row_count < 0 ||
       !Number.isSafeInteger(value.byte_count) || value.byte_count < 0) {
     throw new Error('RunHostResultSelectionInvalid');
@@ -1495,8 +2166,8 @@ export function projectCommittedResultRead(index, manifest, resultName,
     physicalSha256: value.physical_sha256});
 }
 
-export function describeCommittedResult(index, manifest, resultName,
-  bindings, definition, schemaWire, format, limits) {
+export function describeCommittedResult(index: PublicationContract, manifest: PublicationContract, resultName: string,
+  bindings: readonly PublicationContract[], definition: PublicationContract, schemaWire: string, format: string, limits: PublicationLimits): Omit<import('@actql/client-wire').WireResultDescription, 'ref'> {
   const bounds = publicationLimits(limits);
   const wire = owner.clientValuesHostDescribeCommittedResult(
     publicationToken(index), publicationToken(manifest), resultName,
@@ -1509,15 +2180,15 @@ export function describeCommittedResult(index, manifest, resultName,
   return JSON.parse(wire);
 }
 
-export function admitRunDefinition(wire) {
+export function admitRunDefinition(wire: string): RunDefinition {
   if (typeof wire !== 'string') throw new TypeError('InvalidRunHostDefinition');
   const value = checked(owner.clientValuesHostAdmitRunDefinition(wire),
     'RunHostDefinitionRejected');
   return handle(definitions, value, 'run-definition');
 }
 
-export function admitSourceFreeRunDefinition(prepared, compilation,
-  admission, wire) {
+export function admitSourceFreeRunDefinition(prepared: PreparedProgram, compilation: ValuesCompilation,
+  admission: RunAdmission, wire: string): RunDefinition {
   const compiled = requireHandle(compilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
@@ -1531,8 +2202,8 @@ export function admitSourceFreeRunDefinition(prepared, compilation,
 }
 
 /** Project the original Run; this does not compile or issue authorization. */
-export function issueSourceFreeRunMaterials(prepared, compilation, admission,
-  definition, retained) {
+export function issueSourceFreeRunMaterials(prepared: PreparedProgram, compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, retained: SourceFreeRunMaterialsInput): string {
   const compiled = requireHandle(compilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
@@ -1548,8 +2219,8 @@ export function issueSourceFreeRunMaterials(prepared, compilation, admission,
 }
 
 /** Project the original checked task Run; Source bindings stay at the Site. */
-export function issueTaskRunMaterials(prepared, compilation, admission,
-  definition, retained) {
+export function issueTaskRunMaterials(prepared: PreparedProgram, compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, retained: SourceFreeRunMaterialsInput): string {
   const compiled = requireHandle(taskCompilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
@@ -1564,7 +2235,7 @@ export function issueTaskRunMaterials(prepared, compilation, admission,
   'RunHostRunMaterialsRejected');
 }
 
-function validateRunMaterialsInput(retained) {
+function validateRunMaterialsInput(retained: SourceFreeRunMaterialsInput) {
   if (retained === null || typeof retained !== 'object' ||
       Array.isArray(retained) || retained.format !== 'json' ||
       typeof retained.document !== 'string' ||
@@ -1577,8 +2248,9 @@ function validateRunMaterialsInput(retained) {
   }
 }
 
-export function prepareRunStart(requested, retained, definition,
-  retainedRunDefinitionCid, dispatchReserved, currentAuthorization) {
+export function prepareRunStart(requested: RequestIdentity, retained: RequestIdentity, definition: RunDefinition,
+  retainedRunDefinitionCid: string, dispatchReserved: boolean, currentAuthorization: boolean): 'reserve_dispatch' |
+  'reconcile_reserved_dispatch' {
   if (typeof retainedRunDefinitionCid !== 'string' ||
       typeof dispatchReserved !== 'boolean' ||
       typeof currentAuthorization !== 'boolean') {
@@ -1595,7 +2267,7 @@ export function prepareRunStart(requested, retained, definition,
   }
 }
 
-export function checkRunBinding(prepared, admission, definition) {
+export function checkRunBinding(prepared: PreparedProgram, admission: RunAdmission, definition: RunDefinition): void {
   const admitted = requireHandle(admissions, admission);
   if (admitted.prepared !== prepared) {
     throw new TypeError('ForeignRunHostAdmission');
@@ -1605,8 +2277,11 @@ export function checkRunBinding(prepared, admission, definition) {
     requireHandle(definitions, definition)), 'RunHostBindingRejected');
 }
 
-export function issueSourceFreeInvocation(prepared, compilation, admission,
-  definition, dataPolicyCid, limits) {
+export function issueSourceFreeInvocation(prepared: PreparedProgram, compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, dataPolicyCid: string, limits: PublicationLimits): Readonly<{
+    observation: RunEvidence;
+    invocation: PublicationContract;
+  }> {
   if (typeof dataPolicyCid !== 'string') {
     throw new TypeError('InvalidRunHostDataPolicy');
   }
@@ -1633,8 +2308,11 @@ export function issueSourceFreeInvocation(prepared, compilation, admission,
   return Object.freeze({observation, invocation});
 }
 
-export function issueSourceFreeTaskInvocation(prepared, compilation,
-  admission, definition, dataPolicyCid, limits) {
+export function issueSourceFreeTaskInvocation(prepared: PreparedProgram, compilation: TaskCompilation,
+  admission: RunAdmission, definition: RunDefinition, dataPolicyCid: string, limits: PublicationLimits): Readonly<{
+    observation: RunEvidence;
+    invocation: PublicationContract;
+  }> {
   if (typeof dataPolicyCid !== 'string') {
     throw new TypeError('InvalidRunHostDataPolicy');
   }
@@ -1667,7 +2345,15 @@ export function issueSourceFreeTaskInvocation(prepared, compilation,
 export function admitCompletedSourceObservation({sourceEvidenceWire,
   inputLogicalWire, sourceRef, sourceContractCid, authorityScopeCid,
   effectiveDataPolicyCid,
-  limits}) {
+  limits}: Readonly<{
+  sourceEvidenceWire: string;
+  inputLogicalWire: string;
+  sourceRef: string;
+  sourceContractCid: string;
+  authorityScopeCid: string;
+  effectiveDataPolicyCid: string;
+  limits: PublicationLimits;
+}>): string {
   if ([sourceEvidenceWire, inputLogicalWire, sourceRef,
     sourceContractCid, authorityScopeCid, effectiveDataPolicyCid].some(value =>
     typeof value !== 'string')) {
@@ -1681,10 +2367,22 @@ export function admitCompletedSourceObservation({sourceEvidenceWire,
   'RunHostSourceObservationRejected');
 }
 
-export function issueTaskInvocation(prepared, compilation, admission,
-  definition, {sourceEvidenceWire, inputLogicalWire, sourceRef,
+export function issueTaskInvocation(prepared: PreparedProgram, compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, {sourceEvidenceWire, inputLogicalWire, sourceRef,
     sourceContractCid, authorityScopeCid, dataPolicyCid,
-    captureStartedAt, captureCompletedAt}, limits) {
+    captureStartedAt, captureCompletedAt}: Readonly<{
+    sourceEvidenceWire: string;
+    inputLogicalWire: string;
+    sourceRef: string;
+    sourceContractCid: string;
+    authorityScopeCid: string;
+    dataPolicyCid: string;
+    captureStartedAt: string;
+    captureCompletedAt: string;
+  }>, limits: PublicationLimits): Readonly<{
+    observation: RunEvidence;
+    invocation: PublicationContract;
+  }> {
   const compiled = requireHandle(taskCompilations, compilation);
   if (compiled.prepared !== prepared) {
     throw new TypeError('ForeignRunHostCompilation');
@@ -1726,11 +2424,11 @@ export function issueTaskInvocation(prepared, compilation, admission,
 const siteSelectionKeys = ['taskAttempt', 'dispatchId', 'siteKey',
   'siteGeneration', 'runtimeBundleCid', 'connectorRegistration',
   'connectorRevision', 'strategyRevision', 'obligationsCid', 'budgetCid',
-  'evidenceIssuerCapabilityCid', 'grantCid'];
+  'evidenceIssuerCapabilityCid', 'grantCid'] as const;
 
 /** Checked topology only: no producer completion, holding or start authority. */
-export function prepareRetainedTaskInputEdge(prepared, compilation, admission,
-  definition, consumerTask, inputIndex) {
+export function prepareRetainedTaskInputEdge(prepared: PreparedProgram, compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, consumerTask: number, inputIndex: number): RetainedTaskInputEdge {
   if (![consumerTask, inputIndex].every(value => Number.isSafeInteger(value) &&
       value >= 0 && value <= 2147483647)) {
     throw new TypeError('InvalidRunHostRetainedInputEdge');
@@ -1748,7 +2446,17 @@ export function prepareRetainedTaskInputEdge(prepared, compilation, admission,
 }
 
 /** Carrier port identity and physical schema identity remain distinct. */
-export function retainedTaskInputEdgeFacts(edge) {
+export function retainedTaskInputEdgeFacts(edge: RetainedTaskInputEdge): Readonly<{
+  runDefinitionCid: string;
+  producerTaskKey: string;
+  producerOutputPort: string;
+  producerLogicalCid: string;
+  carrierContractCid: string;
+  consumerTaskKey: string;
+  consumerLogicalCid: string;
+  consumerInputPort: string;
+  physicalSchemaCid: string;
+}> {
   const values = owner.clientValuesHostRetainedInputEdgeFacts(
     requireHandle(retainedInputEdges, edge));
   if (!Array.isArray(values) || values.length !== 9 ||
@@ -1764,7 +2472,8 @@ export function retainedTaskInputEdgeFacts(edge) {
 }
 
 /** The trusted Host must read its current durable Coordinator owner here. */
-export function prepareRetainedInputProducer(edge, readCurrent) {
+export function prepareRetainedInputProducer(edge: RetainedTaskInputEdge, readCurrent: () => Readonly<{authority: string;
+    durableRecordWire: string}>): RetainedInputProducer {
   const ownedEdge = requireHandle(retainedInputEdges, edge);
   if (typeof readCurrent !== 'function') {
     throw new TypeError('InvalidRunHostRetainedProducerCurrent');
@@ -1784,13 +2493,17 @@ export function prepareRetainedInputProducer(edge, readCurrent) {
   return handle(retainedInputProducers, producer, 'retained-input-producer');
 }
 
-export function retainedInputProducerAvailable(producer) {
+export function retainedInputProducerAvailable(producer: RetainedInputProducer): boolean {
   return owner.clientValuesHostRetainedInputProducerAvailable(
     requireHandle(retainedInputProducers, producer));
 }
 
 /** Historical canonical evidence; it grants no read, borrow or dispatch. */
-export function retainedInputProducerFacts(producer) {
+export function retainedInputProducerFacts(producer: RetainedInputProducer): Readonly<{
+  dispatch: Readonly<{cid: string; wire: string}>;
+  evidence: Readonly<{cid: string; wire: string}>;
+  subject: Readonly<{cid: string; wire: string}>;
+}> {
   const values = checked(owner.clientValuesHostRetainedInputProducerFacts(
     requireHandle(retainedInputProducers, producer)),
   'RunHostRetainedProducerRejected');
@@ -1806,22 +2519,22 @@ export function retainedInputProducerFacts(producer) {
 }
 
 const retainedPlanPolicyKeys = ['destinationGrantCid', 'routeCapabilityCid',
-  'sourceGrantCid', 'transferAttempt', 'transferExpiresUnixMs', 'transferMaxBytes'];
-const retainedPlanCurrentKeys = ['siteBindingCurrent', 'authority', 'nowUnixMs', 'authorized'];
-const retainedPlanLimitKeys = ['maxChunks', 'maxManifestBytes', 'maxReferencedBytes'];
+  'sourceGrantCid', 'transferAttempt', 'transferExpiresUnixMs', 'transferMaxBytes'] as const;
+const retainedPlanCurrentKeys = ['siteBindingCurrent', 'authority', 'nowUnixMs', 'authorized'] as const;
+const retainedPlanLimitKeys = ['maxChunks', 'maxManifestBytes', 'maxReferencedBytes'] as const;
 const retainedInt64Maximum = 9223372036854775807n;
-const exactRetainedFields = (value, keys) => value !== null &&
+const exactRetainedFields = <Key extends string>(value: unknown, keys: readonly Key[]): value is Record<Key, unknown> => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-const retainedWire = value => exactRetainedFields(value, ['cid', 'wire']) &&
+const retainedWire = (value: unknown): value is Readonly<{cid: string; wire: string}> => exactRetainedFields(value, ['cid', 'wire']) &&
   typeof value.cid === 'string' && typeof value.wire === 'string';
 
 /** The checked producer supplies every edge and completion field. */
-export function prepareRetainedInputIntent(producer, policy) {
+export function prepareRetainedInputIntent(producer: RetainedInputProducer, policy: RetainedInputTransferPolicy): RetainedInputIntent {
   const owned = requireHandle(retainedInputProducers, producer);
   if (!exactRetainedFields(policy, retainedPlanPolicyKeys) ||
       retainedPlanPolicyKeys.slice(0, 4).some(key => typeof policy[key] !== 'string') ||
-      ['transferExpiresUnixMs', 'transferMaxBytes'].some(key =>
+      (['transferExpiresUnixMs', 'transferMaxBytes'] as const).some(key =>
         typeof policy[key] !== 'bigint' || policy[key] < 1n ||
         policy[key] > retainedInt64Maximum)) {
     throw new TypeError('InvalidRunHostRetainedInputPolicy');
@@ -1834,7 +2547,7 @@ export function prepareRetainedInputIntent(producer, policy) {
 }
 
 /** Restore original saved bytes, not another intent or refreshed lifetime. */
-export function admitRetainedInputIntent(producer, saved) {
+export function admitRetainedInputIntent(producer: RetainedInputProducer, saved: Readonly<{cid: string; wire: string}>): RetainedInputIntent {
   const owned = requireHandle(retainedInputProducers, producer);
   if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputIntentWire');
   const value = checked(owner.clientValuesHostAdmitRetainedInputIntent(
@@ -1843,7 +2556,9 @@ export function admitRetainedInputIntent(producer, saved) {
 }
 
 /** Historical projection only; it is not current delivery permission. */
-export function retainedInputIntentFacts(intent) {
+export function retainedInputIntentFacts(intent: RetainedInputIntent): Readonly<{
+  cid: string; wire: string;
+}> {
   const values = owner.clientValuesHostRetainedInputIntentFacts(
     requireHandle(retainedInputIntents, intent).value);
   if (!Array.isArray(values) || values.length !== 2 ||
@@ -1854,14 +2569,14 @@ export function retainedInputIntentFacts(intent) {
 }
 
 /** Checked original poll envelope, before the Native physical manifest exists. */
-export function retainedInputPlanEnvelope(intent) {
+export function retainedInputPlanEnvelope(intent: RetainedInputIntent): string {
   const owned = requireHandle(retainedInputIntents, intent);
   return checked(owner.clientValuesHostRetainedInputPlanEnvelope(
     owned.producer, owned.value), 'RunHostRetainedInputIntentRejected');
 }
 
 /** Current trusted scope is required even when restoring a saved Native plan. */
-export function admitRetainedInputPlan(intent, saved, current, limits) {
+export function admitRetainedInputPlan(intent: RetainedInputIntent, saved: Readonly<{cid: string; wire: string}>, current: RetainedInputPlanCurrent, limits: RetainedInputPlanLimits): RetainedInputPlan {
   const owned = requireHandle(retainedInputIntents, intent);
   if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputPlanWire');
   if (!exactRetainedFields(current, retainedPlanCurrentKeys) ||
@@ -1869,7 +2584,7 @@ export function admitRetainedInputPlan(intent, saved, current, limits) {
     throw new TypeError('InvalidRunHostRetainedPlanCurrent');
   }
   if (!exactRetainedFields(limits, retainedPlanLimitKeys) ||
-      ['maxChunks', 'maxManifestBytes'].some(key =>
+      (['maxChunks', 'maxManifestBytes'] as const).some(key =>
         !Number.isSafeInteger(limits[key]) || limits[key] < 1 || limits[key] > 2147483647) ||
       typeof limits.maxReferencedBytes !== 'bigint' || limits.maxReferencedBytes < 1n ||
       limits.maxReferencedBytes > retainedInt64Maximum) {
@@ -1878,7 +2593,7 @@ export function admitRetainedInputPlan(intent, saved, current, limits) {
   // Capture ports, not their first successful answers. Every validation reads
   // current trusted state; changing an object's properties cannot swap ports.
   const {siteBindingCurrent, authority, nowUnixMs, authorized} = current;
-  const booleanResult = (value, code) => {
+  const booleanResult = (value: unknown, code: string) => {
     if (typeof value !== 'boolean') throw new TypeError(code);
     return value;
   };
@@ -1906,13 +2621,17 @@ export function admitRetainedInputPlan(intent, saved, current, limits) {
 }
 
 /** Revalidate after persistence and immediately before delivery. */
-export function validateRetainedInputPlan(plan) {
+export function validateRetainedInputPlan(plan: RetainedInputPlan): void {
   checked(owner.clientValuesHostValidateRetainedInputPlan(
     requireHandle(retainedInputPlans, plan)), 'RunHostRetainedInputPlanRejected');
 }
 
 /** Immutable originals only; no reservation, borrow, payload or start claim. */
-export function retainedInputPlanFacts(plan) {
+export function retainedInputPlanFacts(plan: RetainedInputPlan): Readonly<{
+  cid: string; wire: string;
+  transfer: Readonly<{cid: string; wire: string}>;
+  manifest: Readonly<{cid: string; wire: string}>;
+}> {
   const values = checked(owner.clientValuesHostRetainedInputPlanFacts(
     requireHandle(retainedInputPlans, plan)), 'RunHostRetainedInputPlanRejected');
   if (!Array.isArray(values) || values.length !== 6 ||
@@ -1925,13 +2644,13 @@ export function retainedInputPlanFacts(plan) {
 }
 
 /** Revalidate the original checked plan against live Owners before delivery. */
-export function retainedInputTransferEnvelope(plan) {
+export function retainedInputTransferEnvelope(plan: RetainedInputPlan): string {
   return checked(owner.clientValuesHostRetainedInputTransferEnvelope(
     requireHandle(retainedInputPlans, plan)), 'RunHostRetainedInputPlanRejected');
 }
 
 /** Historical committed receipt, never current custody or consumer authority. */
-export function admitRetainedInputResult(plan, saved) {
+export function admitRetainedInputResult(plan: RetainedInputPlan, saved: Readonly<{cid: string; wire: string}>): RetainedInputResult {
   const owned = requireHandle(retainedInputPlans, plan);
   if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputResultWire');
   const value = checked(owner.clientValuesHostAdmitRetainedInputResult(
@@ -1940,7 +2659,11 @@ export function admitRetainedInputResult(plan, saved) {
 }
 
 /** These immutable facts must be persisted and joined to current trusted Owners. */
-export function retainedInputResultFacts(result) {
+export function retainedInputResultFacts(result: RetainedInputResult): Readonly<{
+  cid: string; wire: string; planCid: string;
+  transferReply: Readonly<{requestCid: string; wire: string}>;
+  receipt: Readonly<{cid: string; wire: string}>;
+}> {
   const values = checked(owner.clientValuesHostRetainedInputResultFacts(
     requireHandle(retainedInputResults, result)), 'RunHostRetainedInputResultRejected');
   if (!Array.isArray(values) || values.length !== 7 ||
@@ -1953,7 +2676,7 @@ export function retainedInputResultFacts(result) {
 }
 
 /** The caller uses a new challenge for each authenticated live receiver query. */
-export function prepareRetainedInputCurrentQuery(plan, queryId) {
+export function prepareRetainedInputCurrentQuery(plan: RetainedInputPlan, queryId: string): RetainedInputCurrentQuery {
   if (typeof queryId !== 'string') throw new TypeError('InvalidRunHostRetainedInputQuery');
   const value = checked(owner.clientValuesHostPrepareRetainedInputCurrentQuery(
     requireHandle(retainedInputPlans, plan), queryId), 'RunHostRetainedInputCurrentRejected');
@@ -1961,17 +2684,17 @@ export function prepareRetainedInputCurrentQuery(plan, queryId) {
 }
 
 /** Revalidate current plan authority before offering the same exact query. */
-export function retainedInputCurrentEnvelope(query) {
+export function retainedInputCurrentEnvelope(query: RetainedInputCurrentQuery): string {
   return checked(owner.clientValuesHostRetainedInputCurrentEnvelope(
     requireHandle(retainedInputCurrentQueries, query)), 'RunHostRetainedInputCurrentRejected');
 }
 
 /** Admit an exact live response; a stored reply never becomes current authority. */
-export function admitRetainedInputCurrentReply(query, saved, limits) {
+export function admitRetainedInputCurrentReply(query: RetainedInputCurrentQuery, saved: Readonly<{cid: string; wire: string}>, limits: RetainedInputPlanLimits): RetainedInputCurrentReply {
   const owned = requireHandle(retainedInputCurrentQueries, query);
   if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputCurrentWire');
   if (!exactRetainedFields(limits, retainedPlanLimitKeys) ||
-      ['maxChunks', 'maxManifestBytes'].some(key =>
+      (['maxChunks', 'maxManifestBytes'] as const).some(key =>
         !Number.isSafeInteger(limits[key]) || limits[key] < 1 || limits[key] > 2147483647) ||
       typeof limits.maxReferencedBytes !== 'bigint' || limits.maxReferencedBytes < 1n ||
       limits.maxReferencedBytes > retainedInt64Maximum) {
@@ -1984,7 +2707,10 @@ export function admitRetainedInputCurrentReply(query, saved, limits) {
 }
 
 /** Immutable snapshot, not permission to borrow, reserve, start or replay. */
-export function retainedInputCurrentReplyFacts(reply) {
+export function retainedInputCurrentReplyFacts(reply: RetainedInputCurrentReply): Readonly<{
+  cid: string; wire: string; transferRecordWire: string;
+  receipt: Readonly<{cid: string; wire: string}>;
+}> {
   const values = checked(owner.clientValuesHostRetainedInputCurrentReplyFacts(
     requireHandle(retainedInputCurrentReplies, reply)), 'RunHostRetainedInputCurrentRejected');
   if (!Array.isArray(values) || values.length !== 5 ||
@@ -1996,11 +2722,11 @@ export function retainedInputCurrentReplyFacts(reply) {
 }
 
 const retainedCurrentKeys = ['readTransfer', 'siteBindingCurrent', 'authority',
-  'nowUnixMs', 'authorized'];
+  'nowUnixMs', 'authorized'] as const;
 
 /** Ports must query existing current owners, never the saved binding itself. */
-export function prepareRetainedTaskInput(producer, receipt, destinationUseId,
-  current, limits) {
+export function prepareRetainedTaskInput(producer: RetainedInputProducer, receipt: Readonly<{cid: string; wire: string}>, destinationUseId: string,
+  current: RetainedInputCurrent, limits: RetainedInputLimits): RetainedTaskInput {
   const owned = requireHandle(retainedInputProducers, producer);
   if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt) ||
       Object.keys(receipt).sort().join('\0') !== 'cid\0wire' ||
@@ -2014,7 +2740,7 @@ export function prepareRetainedTaskInput(producer, receipt, destinationUseId,
   if (limits === null || typeof limits !== 'object' || Array.isArray(limits) ||
       Object.keys(limits).sort().join('\0') !==
         'maxBindingBytes\0maxChunks\0maxManifestBytes\0maxReferencedBytes' ||
-      ['maxBindingBytes', 'maxChunks', 'maxManifestBytes'].some(key =>
+      (['maxBindingBytes', 'maxChunks', 'maxManifestBytes'] as const).some(key =>
         !Number.isSafeInteger(limits[key]) || limits[key] < 1 || limits[key] > 2147483647) ||
       typeof limits.maxReferencedBytes !== 'bigint' || limits.maxReferencedBytes < 1n ||
       limits.maxReferencedBytes > 9223372036854775807n) {
@@ -2023,12 +2749,12 @@ export function prepareRetainedTaskInput(producer, receipt, destinationUseId,
   // Capture the installed functions so replacing properties cannot replace an
   // Owner port; each invocation still reads that Owner's current live state.
   const {readTransfer, siteBindingCurrent, authority, nowUnixMs, authorized} = current;
-  const stringResult = (read, code) => () => {
+  const stringResult = (read: () => unknown, code: string) => () => {
     const value = read();
     if (typeof value !== 'string') throw new TypeError(code);
     return value;
   };
-  const booleanResult = (value, code) => {
+  const booleanResult = (value: unknown, code: string) => {
     if (typeof value !== 'boolean') throw new TypeError(code);
     return value;
   };
@@ -2055,8 +2781,8 @@ export function prepareRetainedTaskInput(producer, receipt, destinationUseId,
 }
 
 /** Restore the exact saved binding against newly installed current owners. */
-export function admitRetainedTaskInput(producer, saved, receipt,
-  destinationUseId, current, limits) {
+export function admitRetainedTaskInput(producer: RetainedInputProducer, saved: Readonly<{cid: string; wire: string}>, receipt: Readonly<{cid: string; wire: string}>,
+  destinationUseId: string, current: RetainedInputCurrent, limits: RetainedInputLimits): RetainedTaskInput {
   if (saved === null || typeof saved !== 'object' || Array.isArray(saved) ||
       Object.keys(saved).sort().join('\0') !== 'cid\0wire' ||
       typeof saved.cid !== 'string' || typeof saved.wire !== 'string') {
@@ -2070,13 +2796,15 @@ export function admitRetainedTaskInput(producer, saved, receipt,
   return handle(retainedTaskInputs, value, 'retained-task-input');
 }
 
-export function validateRetainedTaskInput(input) {
+export function validateRetainedTaskInput(input: RetainedTaskInput): void {
   checked(owner.clientValuesHostValidateRetainedTaskInput(
     requireHandle(retainedTaskInputs, input)), 'RunHostRetainedTaskInputRejected');
 }
 
 /** Historical wire grants no physical material access or start claim. */
-export function retainedTaskInputFacts(input) {
+export function retainedTaskInputFacts(input: RetainedTaskInput): Readonly<{
+  cid: string; wire: string;
+}> {
   const values = owner.clientValuesHostRetainedTaskInputFacts(
     requireHandle(retainedTaskInputs, input));
   if (!Array.isArray(values) || values.length !== 2 ||
@@ -2086,8 +2814,10 @@ export function retainedTaskInputFacts(input) {
   return Object.freeze({cid: values[0], wire: values[1]});
 }
 
-export function issueRetainedTaskDispatch(prepared, compilation, admission,
-  definition, request, task, selection, input) {
+export function issueRetainedTaskDispatch(prepared: PreparedProgram, compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, request: RequestIdentity, task: number, selection: ValuesSiteSelection, input: RetainedTaskInput): Readonly<{
+  cid: string; wire: string;
+}> {
   if (!Number.isSafeInteger(task) || task < 0 || task > 2147483647 ||
       selection === null || typeof selection !== 'object' || Array.isArray(selection) ||
       Object.keys(selection).sort().join('\0') !== [...siteSelectionKeys].sort().join('\0') ||
@@ -2111,7 +2841,7 @@ export function issueRetainedTaskDispatch(prepared, compilation, admission,
     selection.connectorRegistration, selection.connectorRevision,
     selection.strategyRevision, selection.obligationsCid, selection.budgetCid,
     selection.evidenceIssuerCapabilityCid, selection.grantCid,
-    requireHandle(retainedTaskInputs, input)];
+    requireHandle(retainedTaskInputs, input)] as const;
   const dispatch = checked(source === undefined
     ? owner.clientValuesHostPrepareRetainedTaskDispatch(...args)
     : owner.clientValuesHostPrepareRetainedTaskDispatchWithSource(...args, source.value), 'RunHostRetainedTaskDispatchRejected');
@@ -2120,8 +2850,8 @@ export function issueRetainedTaskDispatch(prepared, compilation, admission,
       'RunHostRetainedTaskDispatchRejected')});
 }
 
-export function issueTaskDispatch(prepared, compilation, admission,
-  definition, request, task, selection) {
+export function issueTaskDispatch(prepared: PreparedProgram, compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, request: RequestIdentity, task: number, selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}> {
   if (!Number.isSafeInteger(task) || task < 0 || task > 2147483647 ||
       selection === null || typeof selection !== 'object' ||
       Array.isArray(selection) ||
@@ -2147,7 +2877,7 @@ export function issueTaskDispatch(prepared, compilation, admission,
     selection.connectorRegistration, selection.connectorRevision,
     selection.strategyRevision, selection.obligationsCid,
     selection.budgetCid, selection.evidenceIssuerCapabilityCid,
-    selection.grantCid];
+    selection.grantCid] as const;
   const dispatch = checked(source === undefined
     ? owner.clientValuesHostPrepareTaskDispatch(...args)
     : owner.clientValuesHostPrepareTaskDispatchWithSource(...args, source.value), 'RunHostDispatchRejected');
@@ -2158,8 +2888,8 @@ export function issueTaskDispatch(prepared, compilation, admission,
 
 // The current Host authorization and Site policy decision precede issuance.
 // The returned canonical wire is identity material, not a Site credential.
-export function issueSourceFreeDispatch(prepared, compilation, admission,
-  definition, request, selection) {
+export function issueSourceFreeDispatch(prepared: PreparedProgram, compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, request: RequestIdentity, selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}> {
   if (selection === null || typeof selection !== 'object' ||
       Array.isArray(selection) ||
       Object.keys(selection).sort().join('\0') !==
@@ -2189,9 +2919,9 @@ export function issueSourceFreeDispatch(prepared, compilation, admission,
       'RunHostDispatchRejected')});
 }
 
-function publicationLimits(limits) {
+function publicationLimits(limits: PublicationLimits) {
   if (limits === null || typeof limits !== 'object' ||
-      !['maxWireBytes', 'maxNodes', 'maxDepth'].every(key =>
+      !(['maxWireBytes', 'maxNodes', 'maxDepth'] as const).every(key =>
         Number.isSafeInteger(limits[key]) && limits[key] > 0 &&
         limits[key] <= 2147483647)) {
     throw new TypeError('InvalidRunHostPublicationLimits');
@@ -2199,8 +2929,8 @@ function publicationLimits(limits) {
   return limits;
 }
 
-function publicationContract(value) {
-  const token = handle(publicationContracts, value, 'publication-contract');
+function publicationContract<Kind extends string = string>(value: owner.PublicationContract): PublicationContract<Kind> {
+  const token = handle(publicationContracts, value, 'publication-contract') as PublicationContract<Kind>['token'];
   const contract = Object.freeze({token,
     cid: owner.clientValuesHostPublicationContractIdentity(value),
     wire: owner.clientValuesHostPublicationContractWire(value)});
@@ -2209,14 +2939,14 @@ function publicationContract(value) {
   return contract;
 }
 
-function runEvidence(value) {
+function runEvidence(value: owner.RunEvidenceValue) {
   const token = handle(runEvidences, value, 'run-evidence');
   return Object.freeze({token,
     cid: owner.clientValuesHostRunEvidenceValueIdentity(value),
     wire: owner.clientValuesHostRunEvidenceValueWire(value)});
 }
 
-export function admitRunEvidenceValue(name, wire, limits) {
+export function admitRunEvidenceValue(name: string, wire: string, limits: PublicationLimits): RunEvidence {
   if (typeof name !== 'string' || typeof wire !== 'string') {
     throw new TypeError('InvalidRunHostEvidence');
   }
@@ -2228,7 +2958,12 @@ export function admitRunEvidenceValue(name, wire, limits) {
 
 /** Binding DATA from the same admitted Review. No parsing, admission, current
  * permission or outcome follows from this immutable projection. */
-export function effectReviewProjectionBindingFacts(review) {
+export function effectReviewProjectionBindingFacts(review: RunEvidence): Readonly<{
+  previewCid: string;
+  authoringContextCid: string;
+  authorityScopeCid: string;
+  approvalClaims: readonly string[];
+}> {
   const fields = owner.clientValuesHostEffectReviewProjectionBindingFacts(
     requireHandle(runEvidences, review?.token));
   if (!Array.isArray(fields) || fields.length < 3 ||
@@ -2239,7 +2974,7 @@ export function effectReviewProjectionBindingFacts(review) {
     authorityScopeCid: fields[2], approvalClaims: Object.freeze(fields.slice(3))});
 }
 
-export function sealRunEvidenceValue(name, bodyWire, limits) {
+export function sealRunEvidenceValue(name: string, bodyWire: string, limits: PublicationLimits): RunEvidence {
   if (typeof name !== 'string' || typeof bodyWire !== 'string') {
     throw new TypeError('InvalidRunHostEvidence');
   }
@@ -2251,7 +2986,7 @@ export function sealRunEvidenceValue(name, bodyWire, limits) {
 
 // Canonical admission and chain decisions belong to the portable owner.
 // A contract handle is in-process only and conveys no publication authority.
-export function admitPublicationContract(name, wire, limits) {
+export function admitPublicationContract<Name extends string>(name: Name, wire: string, limits: PublicationLimits): PublicationContract<Name> {
   if (typeof name !== 'string' || typeof wire !== 'string') {
     throw new TypeError('InvalidRunHostPublicationContract');
   }
@@ -2262,11 +2997,15 @@ export function admitPublicationContract(name, wire, limits) {
   return publicationContract(value);
 }
 
-function publicationToken(contract) {
+function publicationToken(contract: PublicationContract) {
   return requireHandle(publicationContracts, contract?.token);
 }
 
-export function projectPublicationSnapshot(record, index) {
+export function projectPublicationSnapshot(record: PublicationContract | undefined, index: PublicationIndexObservation): Readonly<{
+    state: 'not_started' | 'preparing' | 'committing' |
+      'publication_unknown' | 'succeeded' | 'failed' | 'cancelled';
+    evidenceCid: string | undefined;
+  }> {
   if (index === null || typeof index !== 'object' ||
       Array.isArray(index) ||
       !['absent', 'unknown', 'committed'].includes(index.kind) ||
@@ -2278,21 +3017,25 @@ export function projectPublicationSnapshot(record, index) {
     index.kind === 'unknown' ? 1 : 2;
   const facts = checked(owner.clientValuesHostProjectPublicationSnapshot(
     record === undefined ? undefined : publicationToken(record), mode,
-    mode === 2 ? publicationToken(index.entry) : undefined),
+    mode === 2 ? publicationToken((index as Extract<PublicationIndexObservation, {kind: 'committed'}>).entry): undefined),
   'RunHostPublicationSnapshotRejected');
   if (!Array.isArray(facts) || facts.length !== 2 ||
       !facts.every(value => typeof value === 'string')) {
     throw new Error('InvalidRunHostPublicationSnapshot');
   }
-  return Object.freeze({state: facts[0],
+  return Object.freeze({state: facts[0] as ReturnType<typeof projectPublicationSnapshot>['state'],
     evidenceCid: facts[1] || undefined});
 }
 
-export function publicationIndexScopeKey(ref, limits) {
+export function publicationIndexScopeKey(ref: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>, limits: PublicationLimits): string {
   if (ref === null || typeof ref !== 'object' || Array.isArray(ref) ||
       Object.keys(ref).sort().join('\0') !==
         'authorityScopeCid\0namespaceId\0runDefinitionCid' ||
-      !['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
+      !(['namespaceId', 'authorityScopeCid', 'runDefinitionCid'] as const)
         .every(key => typeof ref[key] === 'string')) {
     throw new TypeError('InvalidRunHostPublicationIndexScope');
   }
@@ -2303,18 +3046,30 @@ export function publicationIndexScopeKey(ref, limits) {
   'RunHostPublicationIndexScopeRejected');
 }
 
-function nonnegativeCount(value) {
+function nonnegativeCount(value: number): number;
+function nonnegativeCount(value: bigint): bigint;
+function nonnegativeCount(value: bigint | number): bigint | number;
+function nonnegativeCount(value: bigint | number) {
   if (!Number.isSafeInteger(value) || value < 0 || value > 2147483647) {
     throw new TypeError('InvalidRunHostPublicationCount');
   }
   return value;
 }
 
-export function issueResultOccurrenceEvidence(definition, facts, limits) {
+export function issueResultOccurrenceEvidence(definition: PublicationContract, facts: Readonly<{
+    logicalValueCid: string;
+    resultSchemaCid: string;
+    computationContractCid: string;
+    inputRelationCids: readonly string[];
+    scopeCid: string;
+    effectiveDataPolicyCid: string;
+    issuerId: string;
+    authorityScopeCid: string;
+  }>, limits: PublicationLimits): ResultOccurrenceEvidence {
   if (facts === null || typeof facts !== 'object' ||
-      !['logicalValueCid', 'resultSchemaCid', 'computationContractCid',
+      !(['logicalValueCid', 'resultSchemaCid', 'computationContractCid',
         'scopeCid', 'effectiveDataPolicyCid', 'issuerId',
-        'authorityScopeCid'].every(key => typeof facts[key] === 'string') ||
+        'authorityScopeCid'] as const).every(key => typeof facts[key] === 'string') ||
       !Array.isArray(facts.inputRelationCids) ||
       !facts.inputRelationCids.every(value => typeof value === 'string')) {
     throw new TypeError('InvalidRunHostResultEvidence');
@@ -2332,8 +3087,9 @@ export function issueResultOccurrenceEvidence(definition, facts, limits) {
 
 /** Admit the original saved evidence against independently observed facts.
  * This does not issue replacement scope, issuer, derivation or ordering. */
-export function admitOriginalResultOccurrenceEvidence(definition, artifact,
-  derivation, ordering, retention, facts) {
+export function admitOriginalResultOccurrenceEvidence(definition: PublicationContract, artifact: PublicationContract,
+  derivation: PublicationContract, ordering: PublicationContract, retention: PublicationContract, facts: Readonly<{logicalValueCid: string; resultSchemaCid: string;
+    effectiveDataPolicyCid: string}>): ResultOccurrenceEvidence {
   if (facts === null || typeof facts !== 'object' ||
       Object.keys(facts).sort().join('\0') !==
         'effectiveDataPolicyCid\0logicalValueCid\0resultSchemaCid') {
@@ -2346,14 +3102,14 @@ export function admitOriginalResultOccurrenceEvidence(definition, artifact,
       throw new TypeError('InvalidRunHostOriginalResultEvidence');
     }
     return field.value;
-  });
+  }) as [string, string, string];
   return resultOccurrence(checked(owner.clientValuesHostAdmitOriginalResultOccurrenceEvidence(
     publicationToken(definition), publicationToken(artifact), publicationToken(derivation),
     publicationToken(ordering), publicationToken(retention), ...fields),
   'RunHostOriginalResultEvidenceRejected'));
 }
 
-function resultOccurrence(value) {
+function resultOccurrence(value: owner.ResultOrderingEvidence) {
   const token = handle(resultOccurrences, value, 'result-occurrence');
   return Object.freeze({token,
     derivation: publicationContract(
@@ -2362,8 +3118,15 @@ function resultOccurrence(value) {
       owner.clientValuesHostResultOccurrenceOrdering(value))});
 }
 
-export function issueCheckedValuesResultOccurrenceEvidence(prepared,
-  compilation, definition, facts, limits) {
+export function issueCheckedValuesResultOccurrenceEvidence(prepared: PreparedProgram,
+  compilation: ValuesCompilation, definition: PublicationContract, facts: Readonly<{
+    logicalValueCid: string;
+    resultSchemaCid: string;
+    scopeCid: string;
+    effectiveDataPolicyCid: string;
+    issuerId: string;
+    authorityScopeCid: string;
+  }>, limits: PublicationLimits): ResultOccurrenceEvidence {
   if (facts === null || typeof facts !== 'object' ||
       Object.keys(facts).sort().join('\0') !==
         ['logicalValueCid', 'resultSchemaCid', 'scopeCid',
@@ -2388,8 +3151,8 @@ export function issueCheckedValuesResultOccurrenceEvidence(prepared,
   return resultOccurrence(value);
 }
 
-export function issueCompleteResultArtifact(definition, invocation,
-  evidence, retention, actualRowCount, limits) {
+export function issueCompleteResultArtifact(definition: PublicationContract, invocation: PublicationContract,
+  evidence: ResultOccurrenceEvidence, retention: PublicationContract, actualRowCount: number, limits: PublicationLimits): PublicationContract {
   const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
   return publicationContract(checked(
     owner.clientValuesHostIssueCompleteResultArtifact(
@@ -2400,11 +3163,20 @@ export function issueCompleteResultArtifact(definition, invocation,
     'RunHostResultArtifactRejected'));
 }
 
-export function issueDurableResultBinding(runDefinition, definition,
-  invocation, artifact, ordering, retention, physical, limits) {
+export function issueDurableResultBinding(runDefinition: PublicationContract, definition: PublicationContract,
+  invocation: PublicationContract, artifact: PublicationContract, ordering: PublicationContract, retention: PublicationContract, physical: Readonly<{
+    codecContractCid: string;
+    resultFields: readonly string[];
+    resultSchemaWire: string;
+    materialGenerationCid: string;
+    storeAuthorityCid: string;
+    rowCount: number;
+    byteCount: number;
+    physicalSha256: string;
+  }>, limits: PublicationLimits): PublicationContract {
   if (physical === null || typeof physical !== 'object' ||
-      !['codecContractCid', 'resultSchemaWire', 'materialGenerationCid',
-        'storeAuthorityCid', 'physicalSha256'].every(key =>
+      !(['codecContractCid', 'resultSchemaWire', 'materialGenerationCid',
+        'storeAuthorityCid', 'physicalSha256'] as const).every(key =>
         typeof physical[key] === 'string') ||
       !Array.isArray(physical.resultFields) ||
       !physical.resultFields.every(value => typeof value === 'string')) {
@@ -2424,7 +3196,7 @@ export function issueDurableResultBinding(runDefinition, definition,
     'RunHostDurableBindingRejected'));
 }
 
-export function inspectCanonicalResultRows(rowsWire, fields, limits) {
+export function inspectCanonicalResultRows(rowsWire: string, fields: readonly string[], limits: PublicationLimits): Readonly<{logicalRelationCid: string; rowCount: number}> {
   if (typeof rowsWire !== 'string' || !Array.isArray(fields) ||
       !fields.every(value => typeof value === 'string')) {
     throw new TypeError('InvalidRunHostResultRows');
@@ -2447,8 +3219,8 @@ export function inspectCanonicalResultRows(rowsWire, fields, limits) {
   return Object.freeze({logicalRelationCid: result[0], rowCount});
 }
 
-export function issueResultManifest(runDefinition, invocation,
-  definitions, artifacts, limits) {
+export function issueResultManifest(runDefinition: PublicationContract, invocation: PublicationContract,
+  definitions: readonly PublicationContract[], artifacts: readonly PublicationContract[], limits: PublicationLimits): PublicationContract {
   if (!Array.isArray(definitions) || !Array.isArray(artifacts)) {
     throw new TypeError('InvalidRunHostPublicationChain');
   }
@@ -2459,8 +3231,8 @@ export function issueResultManifest(runDefinition, invocation,
     maxWireBytes, maxNodes, maxDepth), 'RunHostResultManifestRejected'));
 }
 
-export function validatePublicationChain(runDefinition, invocation,
-  definitions, artifacts, manifest, limits) {
+export function validatePublicationChain(runDefinition: PublicationContract, invocation: PublicationContract,
+  definitions: readonly PublicationContract[], artifacts: readonly PublicationContract[], manifest: PublicationContract, limits: PublicationLimits): void {
   if (!Array.isArray(definitions) || !Array.isArray(artifacts)) {
     throw new TypeError('InvalidRunHostPublicationChain');
   }
@@ -2472,8 +3244,8 @@ export function validatePublicationChain(runDefinition, invocation,
   'RunHostPublicationChainRejected');
 }
 
-export function validatePublicationRecordTransition(previous, next,
-  uncommittedConfirmed) {
+export function validatePublicationRecordTransition(previous: PublicationRecordContract | undefined, next: PublicationRecordContract,
+  uncommittedConfirmed: boolean): void {
   if (typeof uncommittedConfirmed !== 'boolean') {
     throw new TypeError('InvalidRunHostPublicationTransition');
   }
@@ -2483,16 +3255,22 @@ export function validatePublicationRecordTransition(previous, next,
   'RunHostPublicationTransitionRejected');
 }
 
-function publicationItems(values) {
+function publicationItems(values: readonly PublicationContract[]) {
   if (!Array.isArray(values)) throw new TypeError('InvalidRunHostInventory');
   return values.map(publicationToken);
 }
 
-export function issuePublicationRequest(runDefinition, definitions, facts,
-  limits) {
+export function issuePublicationRequest(runDefinition: PublicationContract, definitions: readonly PublicationContract[], facts: Readonly<{
+    namespaceId: string;
+    authorityScopeCid: string;
+    publicationPolicyCid: string;
+    publicationTargetCid: string;
+    requestedAt: string;
+  }>,
+  limits: PublicationLimits): PublicationRequestContract {
   if (facts === null || typeof facts !== 'object' ||
-      ['namespaceId', 'authorityScopeCid', 'publicationPolicyCid',
-        'publicationTargetCid', 'requestedAt'].some(key =>
+      (['namespaceId', 'authorityScopeCid', 'publicationPolicyCid',
+        'publicationTargetCid', 'requestedAt'] as const).some(key =>
         typeof facts[key] !== 'string')) {
     throw new TypeError('InvalidRunHostPublicationRequest');
   }
@@ -2506,10 +3284,15 @@ export function issuePublicationRequest(runDefinition, definitions, facts,
     'RunHostPublicationRequestRejected'));
 }
 
-export function issuePublicationAttempt(request, runDefinition, facts,
-  limits) {
+export function issuePublicationAttempt(request: PublicationRequestContract, runDefinition: PublicationContract, facts: Readonly<{
+    attemptId: string;
+    fenceCid: string;
+    externalIdempotencyKey?: string;
+    startedAt: string;
+  }>,
+  limits: PublicationLimits): PublicationAttemptContract {
   if (facts === null || typeof facts !== 'object' ||
-      ['attemptId', 'fenceCid', 'startedAt'].some(key =>
+      (['attemptId', 'fenceCid', 'startedAt'] as const).some(key =>
         typeof facts[key] !== 'string') ||
       facts.externalIdempotencyKey !== undefined &&
         typeof facts.externalIdempotencyKey !== 'string') {
@@ -2524,9 +3307,9 @@ export function issuePublicationAttempt(request, runDefinition, facts,
     'RunHostPublicationAttemptRejected'));
 }
 
-export function issuePublicIndexEntry(runDefinition, invocation, manifest,
-  receipt, capturedRun, durableBindings, request, attempt, committedAt,
-  limits) {
+export function issuePublicIndexEntry(runDefinition: PublicationContract, invocation: PublicationContract, manifest: PublicationContract,
+  receipt: PublicationContract, capturedRun: PublicationContract, durableBindings: readonly PublicationContract[], request: PublicationRequestContract, attempt: PublicationAttemptContract, committedAt: string,
+  limits: PublicationLimits): PublicIndexEntryContract {
   if (typeof committedAt !== 'string') {
     throw new TypeError('InvalidRunHostPublicIndexEntry');
   }
@@ -2539,8 +3322,20 @@ export function issuePublicIndexEntry(runDefinition, invocation, manifest,
     maxWireBytes, maxNodes, maxDepth), 'RunHostPublicIndexEntryRejected'));
 }
 
-export function validateEffectFreePublicationCommit(evidence, request,
-  attempt, indexEntry, limits) {
+export function validateEffectFreePublicationCommit(evidence: Readonly<{
+  runDefinition: PublicationContract;
+  invocation: PublicationContract;
+  definitions: readonly PublicationContract[];
+  artifacts: readonly PublicationContract[];
+  derivations: readonly PublicationContract[];
+  orderings: readonly PublicationContract[];
+  retentions: readonly PublicationContract[];
+  durableBindings: readonly PublicationContract[];
+  manifest: PublicationContract;
+  receipt: PublicationContract;
+  capturedRun: PublicationContract;
+}>, request: PublicationRequestContract,
+  attempt: PublicationAttemptContract, indexEntry: PublicIndexEntryContract, limits: PublicationLimits): void {
   if (evidence === null || typeof evidence !== 'object' ||
       !Array.isArray(evidence.definitions) ||
       !Array.isArray(evidence.artifacts) ||
@@ -2570,8 +3365,8 @@ export function validateEffectFreePublicationCommit(evidence, request,
 
 // Historical semantic DATA only. Current apply permission, physical outcomes
 // and Store commit remain duties of their original owners.
-export function admitEffectPreviewIdentity(wire, expectedRunIdentityCid,
-  expectedAuthoringContextCid, limits) {
+export function admitEffectPreviewIdentity(wire: string, expectedRunIdentityCid: string,
+  expectedAuthoringContextCid: string, limits: PublicationLimits): EffectPreviewIdentity {
   if (typeof wire !== 'string' || typeof expectedRunIdentityCid !== 'string' ||
       typeof expectedAuthoringContextCid !== 'string') {
     throw new TypeError('InvalidRunHostEffectPreview');
@@ -2586,12 +3381,13 @@ export function admitEffectPreviewIdentity(wire, expectedRunIdentityCid,
   'effect-preview-identity');
 }
 
-export function effectPreviewIdentityCid(preview) {
+export function effectPreviewIdentityCid(preview: EffectPreviewIdentity): string {
   return owner.clientValuesHostEffectPreviewSemanticIdentity(
     requireHandle(effectPreviewIdentities, preview).value);
 }
 
-function effectReceiptWires(preview, setReceiptWire, memberReceiptWires) {
+function effectReceiptWires(preview: Readonly<{memberCount: number}>, setReceiptWire: string,
+  memberReceiptWires: readonly string[]) {
   if (typeof setReceiptWire !== 'string' || !Array.isArray(memberReceiptWires) ||
       memberReceiptWires.length !== preview.memberCount) {
     throw new TypeError('InvalidRunHostEffectReceipts');
@@ -2607,8 +3403,8 @@ function effectReceiptWires(preview, setReceiptWire, memberReceiptWires) {
   return {setReceiptWire, memberReceiptWires: members};
 }
 
-export function issueEffectfulFinalRunReceipt(runDefinition, computationReceipt,
-  capturedRun, preview, setReceiptWire, memberReceiptWires, limits) {
+export function issueEffectfulFinalRunReceipt(runDefinition: PublicationContract, computationReceipt: PublicationContract,
+  capturedRun: PublicationContract, preview: EffectPreviewIdentity, setReceiptWire: string, memberReceiptWires: readonly string[], limits: PublicationLimits): PublicationContract {
   const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
   const originalPreview = requireHandle(effectPreviewIdentities, preview);
   const receipts = effectReceiptWires(originalPreview, setReceiptWire, memberReceiptWires);
@@ -2620,12 +3416,13 @@ export function issueEffectfulFinalRunReceipt(runDefinition, computationReceipt,
       maxWireBytes, maxNodes, maxDepth), 'RunHostEffectfulFinalReceiptRejected'));
 }
 
-function effectFinalOriginals(evidence) {
+type EffectFinalOriginals = Omit<EffectfulPublicationCommitEvidence, 'durableBindings'>;
+function effectFinalOriginals(evidence: EffectFinalOriginals): EffectFinalOriginals {
   if (evidence === null || typeof evidence !== 'object' || Array.isArray(evidence)) {
     throw new TypeError('InvalidRunHostEffectfulPublicationCommit');
   }
-  const fields = Object.getOwnPropertyDescriptors(evidence), selected = {};
-  const own = name => {
+  const fields = Object.getOwnPropertyDescriptors(evidence), selected: Partial<Record<keyof EffectFinalOriginals, unknown>> = {};
+  const own = (name: keyof EffectFinalOriginals) => {
     const field = fields[name];
     if (!field?.enumerable || !Object.hasOwn(field,'value')) {
       throw new TypeError('InvalidRunHostEffectfulPublicationCommit');
@@ -2633,15 +3430,15 @@ function effectFinalOriginals(evidence) {
     return field.value;
   };
   for (const name of ['runDefinition','invocation','manifest','computationReceipt',
-    'capturedRun','preview','setReceiptWire','finalReceipt']) selected[name] = own(name);
-  for (const name of ['definitions','artifacts','derivations','orderings','retentions','memberReceiptWires']) {
+    'capturedRun','preview','setReceiptWire','finalReceipt'] as const) selected[name] = own(name);
+  for (const name of ['definitions','artifacts','derivations','orderings','retentions','memberReceiptWires'] as const) {
     const values = own(name), length = Object.getOwnPropertyDescriptor(values ?? {},'length');
     if (!Array.isArray(values) || !Object.hasOwn(length ?? {},'value') ||
-        !Number.isSafeInteger(length.value) || length.value < 0 || length.value > 2147483647) {
+        !Number.isSafeInteger(length!.value) || length!.value < 0 || length!.value > 2147483647) {
       throw new TypeError('InvalidRunHostEffectfulPublicationCommit');
     }
     const items = [];
-    for (let index = 0; index < length.value; index++) {
+    for (let index = 0; index < length!.value; index++) {
       const field = Object.getOwnPropertyDescriptor(values,index);
       if (!field?.enumerable || !Object.hasOwn(field,'value')) {
         throw new TypeError('InvalidRunHostEffectfulPublicationCommit');
@@ -2650,12 +3447,12 @@ function effectFinalOriginals(evidence) {
     }
     selected[name] = Object.freeze(items);
   }
-  return Object.freeze(selected);
+  return Object.freeze(selected) as EffectFinalOriginals;
 }
 
 /** Complete original computation/Result/Set admission once. The returned
  * existing final Receipt retains that proof privately; it grants no action. */
-export function admitEffectfulFinalRunEvidence(evidence, limits) {
+export function admitEffectfulFinalRunEvidence(evidence: Omit<EffectfulPublicationCommitEvidence,'durableBindings'>, limits: PublicationLimits): PublicationContract {
   const {maxWireBytes,maxNodes,maxDepth} = publicationLimits(limits);
   const original = effectFinalOriginals(evidence);
   const preview = requireHandle(effectPreviewIdentities,original.preview);
@@ -2669,33 +3466,34 @@ export function admitEffectfulFinalRunEvidence(evidence, limits) {
     receipts.setReceiptWire,receipts.memberReceiptWires,publicationToken(original.finalReceipt),
     maxWireBytes,maxNodes,maxDepth),'RunHostEffectfulFinalEvidenceRejected');
   const receipt = publicationContract(owner.clientValuesHostEffectfulFinalRunReceipt(value));
-  const returned = publicationOriginals.get(receipt);
+  const returned = publicationOriginals.get(receipt)!;
   publicationOriginals.set(receipt,Object.freeze({...returned,effect:{value,original,
     validatedPublication:undefined}}));
   return receipt;
 }
 
-function retainedEffectFinal(receipt) {
-  const retained = publicationOriginals.get(receipt)?.effect;
+function retainedEffectFinal(receipt: PublicationContract | undefined) {
+  const retained = publicationOriginals.get(receipt as PublicationContract)?.effect;
   if (retained === undefined) throw new TypeError('ForeignRunHostEffectFinalEvidence');
   return retained;
 }
 
 /** Immutable admitted outcome only. No raw receipt parsing, current/permission
  * check, retry, Store observation or physical acknowledgement occurs here. */
-export function effectfulFinalRunOutcome(receipt) {
+export function effectfulFinalRunOutcome(receipt: PublicationContract): Readonly<{
+  status: 'succeeded' | 'needs_reconciliation' | 'failed'; allUnattempted: boolean}> {
   const value = retainedEffectFinal(receipt).value;
   const status = owner.clientValuesHostEffectfulFinalRunStatus(value);
   const allUnattempted = owner.clientValuesHostEffectfulFinalRunAllUnattempted(value);
   if (!['succeeded','needs_reconciliation','failed'].includes(status) || typeof allUnattempted !== 'boolean') {
     throw new TypeError('InvalidRunHostEffectFinalOutcome');
   }
-  return Object.freeze({status,allUnattempted});
+  return Object.freeze({status: status as ReturnType<typeof effectfulFinalRunOutcome>['status'], allUnattempted});
 }
 
 /** Existing Unknown-only writer over the same complete admitted partition.
  * This is historical Run state DATA, never a retry, current grant or ACK. */
-export function effectfulFinalRunReconciliationState(receipt, updatedAt, limits) {
+export function effectfulFinalRunReconciliationState(receipt: PublicationContract, updatedAt: string, limits: PublicationLimits): string {
   if (typeof updatedAt !== 'string') throw new TypeError('InvalidRunHostStateObservation');
   const {maxWireBytes,maxNodes,maxDepth} = publicationLimits(limits);
   return checked(owner.clientValuesHostEffectfulFinalRunReconciliationState(
@@ -2705,7 +3503,7 @@ export function effectfulFinalRunReconciliationState(receipt, updatedAt, limits)
 
 /** Known failure from the same complete admitted final chain and original
  * manifest. No current grant, publication, resend or cleanup acknowledgement. */
-export function effectfulFinalRunFailedState(receipt, updatedAt, limits) {
+export function effectfulFinalRunFailedState(receipt: PublicationContract, updatedAt: string, limits: PublicationLimits): string {
   if (typeof updatedAt !== 'string') throw new TypeError('InvalidRunHostStateObservation');
   const {maxWireBytes,maxNodes,maxDepth} = publicationLimits(limits);
   return checked(owner.clientValuesHostEffectfulFinalRunFailedState(
@@ -2713,8 +3511,8 @@ export function effectfulFinalRunFailedState(receipt, updatedAt, limits) {
   'RunHostEffectFailedStateRejected');
 }
 
-export function validateEffectfulPublicationCommit(evidence, request,
-  attempt, indexEntry, limits) {
+export function validateEffectfulPublicationCommit(evidence: EffectfulPublicationCommitEvidence, request: PublicationRequestContract,
+  attempt: PublicationAttemptContract, indexEntry: PublicIndexEntryContract, limits: PublicationLimits): void {
   if (evidence === null || typeof evidence !== 'object') {
     throw new TypeError('InvalidRunHostEffectfulPublicationCommit');
   }
@@ -2734,9 +3532,9 @@ export function validateEffectfulPublicationCommit(evidence, request,
     const selected = effectFinalOriginals(evidence);
     for (const [name,original] of Object.entries(retained.original)) {
       if (name === 'finalReceipt') continue;
-      const value = selected[name];
-      if (Array.isArray(original) ? value.length !== original.length ||
-          original.some((item,index) => item !== value[index]) : original !== value) {
+      const value = selected[name as keyof EffectFinalOriginals];
+      if (Array.isArray(original) ? (value as readonly unknown[]).length !== original.length ||
+          original.some((item,index) => item !== (value as readonly unknown[])[index]): original !== value) {
         throw new TypeError('ForeignRunHostEffectFinalEvidence');
       }
     }
@@ -2762,7 +3560,14 @@ export function validateEffectfulPublicationCommit(evidence, request,
     maxWireBytes, maxNodes, maxDepth), 'RunHostEffectfulPublicationCommitRejected');
 }
 
-export function issuePublicationRecord(attempt, previous, facts, limits) {
+export function issuePublicationRecord(attempt: PublicationAttemptContract, previous: PublicationRecordContract | undefined, facts: Readonly<{
+    state: string;
+    observedAt: string;
+    publicIndexEntry?: PublicIndexEntryContract;
+    failureCid?: string;
+    cleanupOwnerCids: readonly string[];
+    uncommittedConfirmed: boolean;
+  }>, limits: PublicationLimits): PublicationRecordContract {
   if (facts === null || typeof facts !== 'object' ||
       typeof facts.state !== 'string' ||
       typeof facts.observedAt !== 'string' ||
@@ -2783,16 +3588,22 @@ export function issuePublicationRecord(attempt, previous, facts, limits) {
     maxWireBytes, maxNodes, maxDepth), 'RunHostPublicationRecordRejected'));
 }
 
-function evidenceItems(values) {
+function evidenceItems(values: readonly RunEvidence[]) {
   if (!Array.isArray(values)) {
     throw new TypeError('InvalidRunHostEvidenceInventory');
   }
   return values.map(value => requireHandle(runEvidences, value?.token));
 }
 
-export function issueEffectFreeRunReceipt(admission, runDefinition,
-  invocation, observation, definitions, artifacts, manifest,
-  normalizationJournal, facts, limits) {
+export function issueEffectFreeRunReceipt(admission: RunAdmission, runDefinition: PublicationContract,
+  invocation: PublicationContract, observation: RunEvidence, definitions: readonly PublicationContract[], artifacts: readonly PublicationContract[], manifest: PublicationContract,
+  normalizationJournal: RunEvidence, facts: Readonly<{
+    bindingNames: readonly string[];
+    bindingDigests: readonly string[];
+    sourceEvidence: readonly RunEvidence[];
+    modelEvidence: readonly RunEvidence[];
+    barrierAttemptReceiptCids: readonly string[];
+  }>, limits: PublicationLimits): PublicationContract {
   if (facts === null || typeof facts !== 'object' ||
       !Array.isArray(facts.bindingNames) ||
       !facts.bindingNames.every(value => typeof value === 'string') ||
@@ -2820,8 +3631,8 @@ export function issueEffectFreeRunReceipt(admission, runDefinition,
     'RunHostReceiptRejected'));
 }
 
-export function admitCapturedResultSnapshot(definition, artifact, rowsWire,
-  fields, limits) {
+export function admitCapturedResultSnapshot(definition: PublicationContract, artifact: PublicationContract, rowsWire: string,
+  fields: readonly string[], limits: PublicationLimits): CapturedResultSnapshot {
   if (typeof rowsWire !== 'string' || !Array.isArray(fields) ||
       !fields.every(value => typeof value === 'string')) {
     throw new TypeError('InvalidRunHostCapturedRows');
@@ -2834,18 +3645,18 @@ export function admitCapturedResultSnapshot(definition, artifact, rowsWire,
   return handle(capturedSnapshots, snapshot, 'captured-result-snapshot');
 }
 
-export function issueSourceFreeCapturedRun(runDefinition, invocation,
-  definitions, artifacts, manifest, receipt, snapshots, authoring, models,
-  limits) {
+export function issueSourceFreeCapturedRun(runDefinition: PublicationContract, invocation: PublicationContract,
+  definitions: readonly PublicationContract[], artifacts: readonly PublicationContract[], manifest: PublicationContract, receipt: PublicationContract, snapshots: readonly CapturedResultSnapshot[], authoring: RunEvidence, models: readonly RunEvidence[],
+  limits: PublicationLimits): PublicationContract {
   return issueReadOnlyCapturedRun(runDefinition, invocation, definitions,
     artifacts, manifest, receipt, snapshots, authoring, models, limits);
 }
 
 // Read-only Sources, like Values, have no pending source-state advances.
 // The same receipt and captured-computation owner validates the full chain.
-export function issueReadOnlyCapturedRun(runDefinition, invocation,
-  definitions, artifacts, manifest, receipt, snapshots, authoring, models,
-  limits) {
+export function issueReadOnlyCapturedRun(runDefinition: PublicationContract, invocation: PublicationContract,
+  definitions: readonly PublicationContract[], artifacts: readonly PublicationContract[], manifest: PublicationContract, receipt: PublicationContract, snapshots: readonly CapturedResultSnapshot[], authoring: RunEvidence, models: readonly RunEvidence[],
+  limits: PublicationLimits): PublicationContract {
   if (!Array.isArray(snapshots)) {
     throw new TypeError('InvalidRunHostCapturedInventory');
   }
@@ -2863,67 +3674,94 @@ export function issueReadOnlyCapturedRun(runDefinition, invocation,
 
 // The portable publication service consumes this shape. Each view keeps its
 // MoonBit handle in this instance; wire bytes and CIDs alone grant no access.
-const deliveryViews = new WeakMap();
-const accessProgress = new WeakMap();
-const deliverySerializers = new WeakMap();
-const durableRowFrames = new WeakMap();
+const deliveryViews = new WeakMap<DeliveryContractView, PublicationContract>();
+const accessProgress = new WeakMap<ResultAccessProgress, owner.ResultAccessProgress>();
+const deliverySerializers = new WeakMap<ResultDeliverySerializer, owner.ResultDeliverySerializer>();
+const durableRowFrames = new WeakMap<DurableResultRowFrames, owner.DurableResultRowFrames>();
 
-function deliveryCall(method, ...args) {
-  try { return owner[method](...args); }
+type OwnerMethod = {
+  [Name in keyof typeof owner]: (typeof owner)[Name] extends (...arguments_: never[]) => unknown ? Name : never;
+}[keyof typeof owner];
+type OwnerFunction<Name extends OwnerMethod> = Extract<(typeof owner)[Name], (...arguments_: never[]) => unknown>;
+type OwnerArguments<Name extends OwnerMethod> = Parameters<OwnerFunction<Name>>;
+type OwnerReturn<Name extends OwnerMethod> = ReturnType<OwnerFunction<Name>>;
+type OwnerResultMethod<Value> = {
+  [Name in OwnerMethod]: OwnerReturn<Name> extends owner.Result<Value> ? Name : never;
+}[OwnerMethod];
+type ResultValue<Result> = Extract<Result, {readonly $tag: 1}> extends {readonly _0: infer Value}
+  ? Value : never;
+
+function deliveryCall<Name extends OwnerMethod>(method: Name, ...args: OwnerArguments<Name>): OwnerReturn<Name> {
+  // The original indexed call retains the namespace receiver and selected ABI signature.
+  try { return (owner[method] as (...arguments_: OwnerArguments<Name>) => OwnerReturn<Name>)(...args); }
   catch (cause) {
     throw Object.assign(new Error('RunHostDeliveryRejected', {cause}),
       {code: 'RunHostDeliveryRejected'});
   }
 }
 
-function deliveryResult(method, ...args) {
-  return checked(deliveryCall(method, ...args), 'RunHostDeliveryRejected');
+function deliveryResult<Name extends OwnerResultMethod<unknown>>(method: Name, ...args: OwnerArguments<Name>): ResultValue<OwnerReturn<Name>> {
+  return checked(deliveryCall(method, ...args) as owner.Result<ResultValue<OwnerReturn<Name>>>, 'RunHostDeliveryRejected');
 }
 
-function deliveryView(contract, original) {
+function deliveryView<Kind extends string>(contract: PublicationContract<Kind>,
+  original?: CustodyValue<typeof publicationOriginals>): DeliveryContractView<Kind> {
   const value = original === undefined
-    ? publicationToken(contract) : original.value;
+    ? publicationToken(contract): original.value;
   const view = Object.freeze({
     name: owner.clientValuesHostPublicationContractName(value),
     identityField:
       owner.clientValuesHostPublicationContractIdentityField(value),
     identity: original === undefined ? contract.cid : original.cid,
     wire: original === undefined ? contract.wire : original.wire,
-  });
+  }) as DeliveryContractView<Kind>;
   deliveryViews.set(view, contract);
   return view;
 }
 
-function deliveryToken(view) {
+function deliveryToken(view: DeliveryContractView) {
   return publicationToken(deliveryContract(view));
 }
 
-function deliveryContract(view) {
+function deliveryContract(view: DeliveryContractView) {
   const contract = deliveryViews.get(view);
   if (contract === undefined) throw new TypeError('ForeignRunHostDelivery');
   return contract;
 }
 
-function issuedDelivery(method, ...args) {
-  return deliveryView(publicationContract(deliveryResult(method, ...args)));
+type IssuedDeliveryKind = {
+  clientValuesHostIssueManifestReadGrant: 'manifest_read_grant';
+  clientValuesHostIssueResultReadGrant: 'result_read_grant';
+  clientValuesHostIssueDeliveryAttempt: 'delivery_attempt';
+  clientValuesHostIssueResultDeliveryReceipt: 'result_delivery_receipt';
+  clientValuesHostIssueDeliveryRecord: 'delivery_record';
+};
+function issuedDelivery<Name extends keyof IssuedDeliveryKind>(
+  method: Name, ...args: OwnerArguments<Name>
+): DeliveryContractView<IssuedDeliveryKind[Name]> {
+  return deliveryView(publicationContract(deliveryResult(method, ...args) as owner.PublicationContract)) as DeliveryContractView<IssuedDeliveryKind[Name]>;
 }
 
 // This is a semantic port for the existing common Result access service.
 // The Host still supplies current authorization, trusted time, Store and sink.
-export function openResultDeliveryControl() {
-  const issuedGrantBounds = new WeakMap();
-  const issuedAttempts = new WeakMap();
-  const originalAttempts = new WeakMap();
-  const sameBounds = (first, second) => first.length === second.length &&
+export function openResultDeliveryControl(): ResultDeliveryControl {
+  type Bounds = readonly [number, number, number];
+  const issuedGrantBounds = new WeakMap<GrantView, Bounds>();
+  const issuedAttempts = new WeakMap<AttemptView, {index: PublicationContract; manifest: PublicationContract;
+    grant: PublicationContract; bounds: Bounds; original: IssuedDeliveryAttemptOriginal}>();
+  const originalAttempts = new WeakMap<IssuedDeliveryAttemptOriginal, IssuedDeliveryAttemptFacts>();
+  const sameBounds = (first: Bounds, second: Bounds) => first.length === second.length &&
     first.every((value, index) => value === second[index]);
-  const limitsOf = limits => {
+  const limitsOf = (limits: PublicationLimits) => {
     const value = publicationLimits(limits);
-    return [value.maxWireBytes, value.maxNodes, value.maxDepth];
+    return [value.maxWireBytes, value.maxNodes, value.maxDepth] as const;
   };
-  const progressToken = progress => requireHandle(accessProgress, progress);
-  const mark = (method, progress, value) =>
-    deliveryCall(method, progressToken(progress), value);
-  return Object.freeze({
+  const progressToken = (progress: ResultAccessProgress) => requireHandle(accessProgress, progress);
+  type MarkMethod = Extract<OwnerMethod, `clientValuesHostRecordResultAccess${string}`>;
+  const mark = <Name extends MarkMethod>(method: Name, progress: ResultAccessProgress, value: OwnerArguments<Name>[1]) =>
+    (deliveryCall as (method: Name, original: owner.ResultAccessProgress, value: OwnerArguments<Name>[1]) =>
+      OwnerReturn<Name>)(method, progressToken(progress), value);
+  return Object.freeze<ResultDeliveryControl>({
     describeCommittedResult(index, manifest, resultName, bindings,
       definition, schemaWire, format, limits) {
       return describeCommittedResult(deliveryContract(index),
@@ -2934,10 +3772,10 @@ export function openResultDeliveryControl() {
     resultMetadataRetentionState(retention, observedAt) {
       const value = owner.clientValuesHostResultMetadataRetentionState(
         deliveryToken(retention), observedAt);
-      if (!['retained', 'delete_due'].includes(value)) {
+      if (!['retained', 'delete_due'].includes(value as string)) {
         throw new Error('RunHostMetadataRetentionRejected');
       }
-      return value;
+      return value as ReturnType<ResultDeliveryControl['resultMetadataRetentionState']>;
     },
     issueManifestReadGrant(index, manifest, grant, limits) {
       return issuedDelivery('clientValuesHostIssueManifestReadGrant',
@@ -2957,7 +3795,7 @@ export function openResultDeliveryControl() {
     admit(name, wire, limits) {
       return deliveryView(admitPublicationContract(name, wire, limits));
     },
-    fromPublication(contract, expectedName) {
+    fromPublication<Kind extends string>(contract: PublicationContract, expectedName?: Kind): DeliveryContractView<Kind> {
       const original = publicationOriginals.get(contract);
       if (original === undefined) {
         throw new TypeError('ForeignRunHostPublication');
@@ -2966,7 +3804,7 @@ export function openResultDeliveryControl() {
       if (expectedName !== undefined && view.name !== expectedName) {
         throw new TypeError('RunHostPublicationKindMismatch');
       }
-      return view;
+      return view as DeliveryContractView<Kind>;
     },
     beginResultAccessProgress() {
       return handle(accessProgress,
@@ -3046,7 +3884,7 @@ export function openResultDeliveryControl() {
         deliveryToken(index), deliveryToken(manifest), deliveryToken(grant),
         request.resultName, request.format, request.attemptId,
         request.requestedAt, ...bounds);
-      const original = Object.freeze({kind: 'issued-delivery-attempt'});
+      const original = Object.freeze({kind: 'issued-delivery-attempt'}) as unknown as IssuedDeliveryAttemptOriginal;
       const facts = Object.freeze({index, manifest, grant, attempt: result,
         request, limits: Object.freeze({maxWireBytes: bounds[0],
           maxNodes: bounds[1], maxDepth: bounds[2]})});
@@ -3179,8 +4017,8 @@ export function openResultDeliveryControl() {
   });
 }
 
-function admittedTaskProgress(prepared, compilation, admission, definition,
-  authority, durableWires) {
+function admittedTaskProgress(prepared: PreparedProgram, compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, authority: string, durableWires: readonly string[]) {
   const compiled = requireHandle(taskCompilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
@@ -3197,7 +4035,7 @@ function admittedTaskProgress(prepared, compilation, admission, definition,
   'RunHostTaskProgressRejected');
 }
 
-function taskProgressSnapshot(value) {
+function taskProgressSnapshot(value: owner.ClientRemoteTaskProgress) {
   const scopes = owner.clientValuesHostTaskProgressScopes(value);
   const next = owner.clientValuesHostTaskProgressNext(value);
   return Object.freeze({
@@ -3209,17 +4047,27 @@ function taskProgressSnapshot(value) {
       Object.freeze({ordinal: Number(row[0]), taskKey: row[1], execution: row[2],
         cleanup: row[3], revision: Number(row[4]), dispatchCid: row[5] || undefined,
         executionScope: Object.freeze(scopes[index])}))),
-  });
+  }) as ReturnType<typeof inspectTaskProgress>;
 }
 
 /** Inspect checked task readiness. A snapshot grants no start or input custody. */
-export function inspectTaskProgress(prepared, compilation, admission, definition,
-  authority, durableWires) {
+export function inspectTaskProgress(prepared: PreparedProgram, compilation: TaskCompilation, admission: RunAdmission, definition: RunDefinition,
+  authority: string, durableWires: readonly string[]): Readonly<{
+    nextTask: number | undefined; executionComplete: boolean;
+    cleanupComplete: boolean; resultTasks: readonly number[];
+    tasks: readonly Readonly<{ordinal: number; taskKey: string;
+      execution: 'unobserved' | 'accepted' | 'provisioning' | 'running' |
+        'settled' | 'failed' | 'cancelled' | 'unknown';
+      cleanup: 'unobserved' | 'active' | 'releasing' | 'released' |
+        'unknown' | 'force_lost' | 'recovered_after_loss';
+      revision: number; dispatchCid: string | undefined;
+      executionScope: readonly string[]}>[];
+  }> {
   return taskProgressSnapshot(admittedTaskProgress(prepared, compilation,
     admission, definition, authority, durableWires));
 }
 
-function validateTaskPhysicalStartClaim(claim) {
+function validateTaskPhysicalStartClaim(claim: Parameters<typeof prepareTaskPhysicalStart>[8]) {
   const keys = ['taskKey', 'dispatchCid', 'definitionCid', 'reserved',
     'unstarted', 'authorized', 'cancelled', 'failed'];
   if (claim === null || typeof claim !== 'object' || Array.isArray(claim) ||
@@ -3232,8 +4080,10 @@ function validateTaskPhysicalStartClaim(claim) {
 }
 
 /** Prepare a checked task claim. The Host must commit it before any send. */
-export function prepareTaskPhysicalStart(prepared, compilation, admission, definition,
-  authority, durableWires, requested, retained, claim) {
+export function prepareTaskPhysicalStart(prepared: PreparedProgram, compilation: TaskCompilation, admission: RunAdmission, definition: RunDefinition,
+  authority: string, durableWires: readonly string[], requested: RequestIdentity, retained: RequestIdentity, claim: Readonly<{taskKey: string; dispatchCid: string;
+    definitionCid: string; reserved: boolean; unstarted: boolean;
+    authorized: boolean; cancelled: boolean; failed: boolean}>): boolean {
   validateTaskPhysicalStartClaim(claim);
   const progress = admittedTaskProgress(prepared, compilation, admission, definition,
     authority, durableWires);
@@ -3244,7 +4094,8 @@ export function prepareTaskPhysicalStart(prepared, compilation, admission, defin
   'RunHostTaskStartRejected');
 }
 
-function admittedEffectTaskProgress(allowed, definition, authority, durableWires) {
+function admittedEffectTaskProgress(allowed: AllowedEffectRun, definition: RunDefinition,
+  authority: string, durableWires: readonly string[]) {
   const {value} = requireHandle(effectAllowedRuns, allowed);
   if (typeof authority !== 'string' || !Array.isArray(durableWires) ||
       durableWires.some(wire => typeof wire !== 'string')) {
@@ -3256,11 +4107,15 @@ function admittedEffectTaskProgress(allowed, definition, authority, durableWires
 }
 
 /** Computation/output facts only: this is not Effect or Run completion. */
-export function inspectEffectTaskProgress(allowed, definition, authority, durableWires) {
+export function inspectEffectTaskProgress(allowed: AllowedEffectRun, definition: RunDefinition, authority: string, durableWires: readonly string[]): Readonly<{
+    nextTask: number | undefined; computationComplete: boolean;
+    taskCleanupComplete: boolean; resultTasks: readonly number[];
+    tasks: ReturnType<typeof inspectTaskProgress>['tasks'];
+  }> {
   return effectTaskProgressSnapshot(admittedEffectTaskProgress(allowed, definition, authority, durableWires));
 }
 
-function effectTaskProgressSnapshot(value) {
+function effectTaskProgressSnapshot(value: owner.ClientRemoteEffectTaskProgress) {
   const scopes = owner.clientValuesHostEffectTaskProgressScopes(value);
   const next = owner.clientValuesHostEffectTaskProgressNext(value);
   return Object.freeze({
@@ -3272,12 +4127,12 @@ function effectTaskProgressSnapshot(value) {
       Object.freeze({ordinal: Number(row[0]), taskKey: row[1], execution: row[2],
         cleanup: row[3], revision: Number(row[4]), dispatchCid: row[5] || undefined,
         executionScope: Object.freeze(scopes[index])}))),
-  });
+  }) as ReturnType<typeof inspectEffectTaskProgress>;
 }
 
 // Read each native Array element once. Caller-owned iteration, some and slice
 // methods are not the supplier of the captured durable/claim facts.
-function effectProjectionArray(value, maximum) {
+function effectProjectionArray<Value>(value: readonly Value[], maximum: number): Value[] {
   if (!Array.isArray(value)) throw new TypeError('InvalidRunHostEffectRunProjection');
   const length = value.length;
   if (!Number.isSafeInteger(length) || length < 0 || length > maximum) {
@@ -3290,8 +4145,15 @@ function effectProjectionArray(value, maximum) {
 
 /** Unpublished same-Run computation observation. Task cleanup and cancellation
  * are not a whole Effect/producer/Transfer stop, publication or release ACK. */
-export function projectEffectSiteRun(allowed, definition, authority, durableWires,
-  observedAt, cancellationRequested, savedClaims) {
+export function projectEffectSiteRun(allowed: AllowedEffectRun, definition: RunDefinition, authority: string, durableWires: readonly string[],
+  observedAt: string, cancellationRequested: boolean, savedClaims: readonly Readonly<{taskKey: string; dispatchCid: string | null;
+    dispatchReserved: boolean; physicalStartClaimed: boolean}>[]): Readonly<
+    Omit<ReturnType<typeof inspectEffectTaskProgress>, 'tasks'> & {
+      stateWire: string; publicationReady: false;
+      execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';
+      tasks: readonly Readonly<ReturnType<typeof inspectTaskProgress>['tasks'][number] & {
+        nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>[];
+    }> {
   // The original checked graph bounds both complete claims and the at-most
   // one durable Coordinator record for each task, before reading elements.
   const {prepared, compilation} = requireHandle(effectAllowedRuns, allowed);
@@ -3326,12 +4188,14 @@ export function projectEffectSiteRun(allowed, definition, authority, durableWire
     nextTask: next < 0 ? undefined : next, publicationReady: false,
     tasks: Object.freeze(progress.tasks.map((task, index) =>
       Object.freeze({...task, nextWork: work[index]}))),
-  });
+  }) as ReturnType<typeof projectEffectSiteRun>;
 }
 
 /** Prepare the existing saved task claim; no Effect approval or physical apply. */
-export function prepareEffectTaskPhysicalStart(allowed, definition, authority, durableWires,
-  requested, retained, claim) {
+export function prepareEffectTaskPhysicalStart(allowed: AllowedEffectRun, definition: RunDefinition, authority: string, durableWires: readonly string[],
+  requested: RequestIdentity, retained: RequestIdentity, claim: Readonly<{taskKey: string; dispatchCid: string; definitionCid: string;
+    reserved: boolean; unstarted: boolean; authorized: boolean;
+    cancelled: boolean; failed: boolean}>): boolean {
   validateTaskPhysicalStartClaim(claim);
   const value = admittedEffectTaskProgress(allowed, definition, authority, durableWires);
   return checked(owner.clientValuesHostPrepareEffectTaskPhysicalStart(value,
@@ -3342,9 +4206,21 @@ export function prepareEffectTaskPhysicalStart(allowed, definition, authority, d
 }
 
 /** Project the unpublished whole Run without committing, starting or releasing it. */
-export function projectTaskSiteRun(prepared, compilation, admission, definition,
-  authority, durableWires, observedAt, cancellationRequested = false,
-  claimedTaskKeys = []) {
+export function projectTaskSiteRun(prepared: PreparedProgram, compilation: TaskCompilation, admission: RunAdmission, definition: RunDefinition,
+  authority: string, durableWires: readonly string[], observedAt: string, cancellationRequested: boolean = false,
+  claimedTaskKeys: readonly string[] = []): Readonly<{
+    stateWire: string; publicationReady: boolean;
+    nextTask: number | undefined; executionComplete: boolean; cleanupComplete: boolean;
+    resultTasks: readonly number[];
+    execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';
+    tasks: readonly Readonly<{ordinal: number; taskKey: string;
+      execution: 'unobserved' | 'accepted' | 'provisioning' | 'running' |
+        'settled' | 'failed' | 'cancelled' | 'unknown';
+      cleanup: 'unobserved' | 'active' | 'releasing' | 'released' |
+        'unknown' | 'force_lost' | 'recovered_after_loss';
+      revision: number; dispatchCid: string | undefined; executionScope: readonly string[];
+      nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>[];
+  }> {
   if (typeof observedAt !== 'string' || typeof cancellationRequested !== 'boolean' ||
       !Array.isArray(claimedTaskKeys) ||
       claimedTaskKeys.some(key => typeof key !== 'string')) {
@@ -3364,14 +4240,18 @@ export function projectTaskSiteRun(prepared, compilation, admission, definition,
     cleanupComplete: fields[4] === '1',
     tasks: Object.freeze(progress.tasks.map((task, index) =>
       Object.freeze({...task, nextWork: work[index]}))),
-  });
+  }) as ReturnType<typeof projectTaskSiteRun>;
 }
 
 /** Project an admitted durable Site record bound to this checked Run. */
-export function projectSiteRun(prepared, compilation, admission, definition,
-  authority, durableWire, observedAt, cancellationRequested = false,
-  physicalStartClaimed = false) {
-  const task = taskCompilations.has(compilation);
+export function projectSiteRun(prepared: PreparedProgram, compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission, definition: RunDefinition,
+  authority: string, durableWire: string, observedAt: string, cancellationRequested: boolean = false,
+  physicalStartClaimed: boolean = false): Readonly<{stateWire: string;
+    execution: 'unobserved' | 'running' | 'settled' | 'failed' |
+      'cancelled' | 'unknown';
+    cleanup: 'complete' | 'pending'; revision: number;
+    nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}> {
+  const task = taskCompilations.has(compilation as TaskCompilation);
   const compiled = requireHandle(task ? taskCompilations : compilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
@@ -3384,11 +4264,11 @@ export function projectSiteRun(prepared, compilation, admission, definition,
   }
   checkRunBinding(prepared, admission, definition);
   const fields = checked(task ? owner.clientValuesHostProjectTaskSiteRun(
-    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    requireHandle(preparations, prepared), compiled.value as owner.ClientTaskCompilation, admitted.value,
     requireHandle(definitions, definition), authority, durableWire, observedAt,
     cancellationRequested, physicalStartClaimed)
     : owner.clientValuesHostProjectSiteRun(
-      requireHandle(definitions, definition), compiled.value,
+      requireHandle(definitions, definition), compiled.value as owner.ClientValuesCompilation,
       authority, durableWire, observedAt, cancellationRequested,
       physicalStartClaimed),
   'RunHostSiteProjectionRejected');
@@ -3397,11 +4277,11 @@ export function projectSiteRun(prepared, compilation, admission, definition,
       {code: 'RunHostSiteProjectionRejected'});
   }
   return Object.freeze({stateWire: fields[0], execution: fields[1],
-    cleanup: fields[2], revision: Number(fields[3]), nextWork: fields[4]});
+    cleanup: fields[2], revision: Number(fields[3]), nextWork: fields[4]}) as ReturnType<typeof projectSiteRun>;
 }
 
-export function prepareRunPhysicalStart(requested, retained, definition,
-  definitionCid, reserved, unstarted, authorized, cancelled, failed = false) {
+export function prepareRunPhysicalStart(requested: RequestIdentity, retained: RequestIdentity, definition: RunDefinition,
+  definitionCid: string, reserved: boolean, unstarted: boolean, authorized: boolean, cancelled: boolean, failed: boolean = false): boolean {
   if (typeof definitionCid !== 'string' ||
       [reserved, unstarted, authorized, cancelled, failed].some(value =>
         typeof value !== 'boolean')) throw new TypeError('InvalidRunHostStart');
@@ -3411,8 +4291,8 @@ export function prepareRunPhysicalStart(requested, retained, definition,
     unstarted, authorized, cancelled, failed), 'RunHostStartRejected');
 }
 
-export function prepareRunPreStartFailure(requested, retained, definition,
-  definitionCid, reserved, unstarted, admissionDenied, cancelled) {
+export function prepareRunPreStartFailure(requested: RequestIdentity, retained: RequestIdentity, definition: RunDefinition,
+  definitionCid: string, reserved: boolean, unstarted: boolean, admissionDenied: boolean, cancelled: boolean): boolean {
   if (typeof definitionCid !== 'string' ||
       [reserved, unstarted, admissionDenied, cancelled].some(value =>
         typeof value !== 'boolean')) throw new TypeError('InvalidRunHostStart');
@@ -3422,18 +4302,19 @@ export function prepareRunPreStartFailure(requested, retained, definition,
     unstarted, admissionDenied, cancelled), 'RunHostStartRejected');
 }
 
-export function prepareRunCancellation(definition, definitionCid,
-  authorized, terminal, requested) {
+export function prepareRunCancellation(definition: RunDefinition, definitionCid: string,
+  authorized: boolean, terminal: boolean, requested: boolean): 'accepted' | 'already_requested' | 'already_terminal' {
   if (typeof definitionCid !== 'string' ||
       [authorized, terminal, requested].some(value =>
         typeof value !== 'boolean')) throw new TypeError('InvalidRunCancellation');
   return checked(owner.clientValuesHostPrepareCancellation(
     requireHandle(definitions, definition), definitionCid, authorized,
-    terminal, requested), 'RunHostCancellationRejected');
+    terminal, requested), 'RunHostCancellationRejected') as ReturnType<typeof prepareRunCancellation>;
 }
 
 /** Identity only; this does not request physical stop or return capacity. */
-export function prepareRunCancellationIdentity(definition, scope) {
+export function prepareRunCancellationIdentity(definition: RunDefinition, scope: Readonly<{namespaceId: string; authorityScopeCid: string;
+    cancelId: string; expectedRevision: number}>): RunCancellationIdentity {
   const {namespaceId, authorityScopeCid, cancelId, expectedRevision} = scope ?? {};
   if ([namespaceId, authorityScopeCid, cancelId].some(value => typeof value !== 'string') ||
       !Number.isSafeInteger(expectedRevision) || expectedRevision < 0 ||
@@ -3448,13 +4329,17 @@ export function prepareRunCancellationIdentity(definition, scope) {
 }
 
 /** Stored identity checksum; never storage provenance or execution authority. */
-export function runCancellationIntentCid(identity) {
+export function runCancellationIntentCid(identity: RunCancellationIdentity): string {
   return owner.clientValuesHostCancellationIntentCid(
     requireHandle(cancellationIdentities, identity));
 }
 
 /** Replay requires the saved immutable outcome, rather than today's Run flags. */
-export function prepareRunCancellationOperation(definition, requested, facts) {
+export function prepareRunCancellationOperation(definition: RunDefinition, requested: RunCancellationIdentity, facts: Readonly<{
+    retained?: RunCancellationIdentity; currentRevision: number;
+    currentAuthorization: boolean; terminalObserved: boolean;
+    cancellationRequested: boolean;
+  }>): 'accepted' | 'already_requested' | 'already_terminal' | 'replay_original' {
   const {retained, currentRevision, currentAuthorization,
     terminalObserved, cancellationRequested} = facts ?? {};
   if (!Number.isSafeInteger(currentRevision) || currentRevision < 0 ||
@@ -3470,17 +4355,20 @@ export function prepareRunCancellationOperation(definition, requested, facts) {
     currentAuthorization, terminalObserved, cancellationRequested);
   if (runtimeIsError(result) && ['ClientCancellationIntentConflict',
     'ClientCancellationOperationMismatch', 'ClientCancellationRevisionConflict',
-    'ClientCancellationDenied', 'ClientCancellationRunMismatch'].includes(runtimeField(result, 0))) {
-    throw Object.assign(new Error(runtimeField(result, 0)), {code: runtimeField(result, 0)});
+    'ClientCancellationDenied', 'ClientCancellationRunMismatch'].includes(runtimeField(result, 0) as string)) {
+    throw Object.assign(new Error(runtimeField(result, 0) as string), {code: runtimeField(result, 0) as string});
   }
   const action = checked(result, 'RunHostCancellationOperationRejected');
   if (!['accepted', 'already_requested', 'already_terminal', 'replay_original'].includes(action)) {
     throw new Error('InvalidRunHostCancellationOperation');
   }
-  return action;
+  return action as ReturnType<typeof prepareRunCancellationOperation>;
 }
 
-export function issueRunControlObservation(revision, observation) {
+export function issueRunControlObservation(revision: number, observation: Readonly<{requested: boolean; unstarted: boolean;
+    stopped: boolean}>): Readonly<{
+    revision: number; cancellation_requested: boolean;
+    physical_stop: 'unknown' | 'confirmed'}> {
   const {requested, unstarted, stopped} = observation ?? {};
   if (!Number.isSafeInteger(revision) || revision < 0 || revision > 2147483647 ||
       observation === null || typeof observation !== 'object' ||
@@ -3495,7 +4383,8 @@ export function issueRunControlObservation(revision, observation) {
 
 // The common identity Owner does not authenticate an epoch or retain its
 // validation material. A physical Host must establish those facts separately.
-export function prepareSubmissionEpoch(scope) {
+export function prepareSubmissionEpoch(scope: Readonly<{authorityScopeCid: string;
+  epochNonce: string; notBefore: number; expiresAt: number}>): SubmissionEpoch {
   const {authorityScopeCid, epochNonce, notBefore, expiresAt} = scope ?? {};
   if (typeof authorityScopeCid !== 'string' || typeof epochNonce !== 'string' ||
       !Number.isSafeInteger(notBefore) || !Number.isSafeInteger(expiresAt)) {
@@ -3507,13 +4396,13 @@ export function prepareSubmissionEpoch(scope) {
   return handle(submissionEpochs, value, 'submission-epoch');
 }
 
-export function submissionEpochFacts(epoch) {
+export function submissionEpochFacts(epoch: SubmissionEpoch): Readonly<{wire: string; cid: string}> {
   const value = requireHandle(submissionEpochs, epoch);
   return Object.freeze({wire: owner.clientValuesHostSubmissionEpochWire(value),
     cid: owner.clientValuesHostSubmissionEpochCid(value)});
 }
 
-export function submissionEpochValidity(epoch, now) {
+export function submissionEpochValidity(epoch: SubmissionEpoch, now: number): 'admissible' | 'not_yet_valid' | 'expired' {
   if (!Number.isSafeInteger(now)) throw new TypeError('InvalidSubmissionClock');
   const value = owner.clientValuesHostSubmissionEpochValidity(
     requireHandle(submissionEpochs, epoch), now);
@@ -3521,10 +4410,10 @@ export function submissionEpochValidity(epoch, now) {
   if (!['admissible', 'not_yet_valid', 'expired'].includes(value)) {
     throw new Error('InvalidSubmissionOwnerReply');
   }
-  return value;
+  return value as ReturnType<typeof submissionEpochValidity>;
 }
 
-export function submissionRequestId(epoch, nonce) {
+export function submissionRequestId(epoch: SubmissionEpoch, nonce: string): string {
   if (typeof nonce !== 'string') throw new TypeError('InvalidSubmissionNonce');
   const value = owner.clientValuesHostSubmissionRequestId(
     requireHandle(submissionEpochs, epoch), nonce);
@@ -3532,7 +4421,8 @@ export function submissionRequestId(epoch, nonce) {
   return value;
 }
 
-export function prepareSubmittedIntent(wire, limits) {
+export function prepareSubmittedIntent(wire: string, limits: Readonly<{
+  maxWireBytes: number; maxNodes: number; maxDepth: number}>): SubmittedIntent {
   const {maxWireBytes, maxNodes, maxDepth} = limits ?? {};
   if (typeof wire !== 'string' ||
       !Number.isInteger(maxWireBytes) || maxWireBytes < 1 || maxWireBytes > 1048576 ||
@@ -3545,13 +4435,13 @@ export function prepareSubmittedIntent(wire, limits) {
   return handle(submittedIntents, value, 'submitted-intent');
 }
 
-export function submittedIntentFacts(intent) {
+export function submittedIntentFacts(intent: SubmittedIntent): Readonly<{wire: string; cid: string}> {
   const value = requireHandle(submittedIntents, intent);
   return Object.freeze({wire: owner.clientValuesHostSubmittedIntentWire(value),
     cid: owner.clientValuesHostSubmittedIntentCid(value)});
 }
 
-export function submittedIntentTransition(before, after) {
+export function submittedIntentTransition(before: string, after: string): boolean {
   if (typeof before !== 'string' || typeof after !== 'string') {
     throw new TypeError('InvalidSubmittedIntentPhase');
   }
