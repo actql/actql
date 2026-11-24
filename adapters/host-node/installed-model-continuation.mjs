@@ -7,10 +7,10 @@ import {assertAuthorizationAccountCurrent, authorizationDispatchFacts, Execution
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {bytesCid, contentCid} from './local-account-config.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
-import {createInstalledModelInputCustody} from './installed-model-input-custody.mjs';
+import {checkCapturedInventory, createInstalledModelInputCustody, MAX_MODEL_INPUT_BYTES} from
+  './installed-model-input-custody.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
-import {MAX_MODEL_INPUT_BYTES} from './client-checkpoints.mjs';
 import {withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
 import {createNodeInferEntryPersistence} from './infer-entry-persistence.mjs';
 import {createInferPhysicalObservation} from './infer-physical-observation.mjs';
@@ -58,37 +58,6 @@ const originalKeys = ['originalRunWire', 'preparedInvocationWire', 'scopeWire',
   'providerBindingWire', 'inputArtifactWire', 'slotWires', 'expectedBoundary'];
 // Hash opaque original wires without the configuration canonicalizer's text normalization.
 const originalDigest = originals => bytesCid(Buffer.from(canonicalJson(select(originals, originalKeys))));
-// This validates only the closed durable transport. Current Source authority,
-// typed reference admission and actual Store custody remain receiving duties.
-const checkCapturedInventory = (value, runDefinitionCid, binding) => {
-  if (value === undefined) return;
-  const closed = (item, keys) => item !== null && typeof item === 'object' &&
-    !Array.isArray(item) && Object.keys(item).sort().join(',') === keys;
-  if (!closed(value, 'entries,runDefinitionCid,version') ||
-      value.version !== 'actql-installed-captured-content-inventory/0.1' ||
-      value.runDefinitionCid !== runDefinitionCid || !Array.isArray(value.entries)) {
-    fail('ModelCapturedInventoryMismatch');
-  }
-  const seen = new Set();
-  if (!closed(binding, 'bindingCid,connection,connectorRegistration,connectorRevision,physicalBindingCid,selectionCid,version') ||
-      binding.version !== 'actql-installed-keyed-read-binding/0.1' ||
-      ['selectionCid', 'physicalBindingCid', 'bindingCid'].some(key =>
-        !/^sha256:[0-9a-f]{64}$/u.test(binding[key] ?? '')) ||
-      ['connection', 'connectorRegistration', 'connectorRevision'].some(key =>
-        typeof binding[key] !== 'string' || binding[key].length === 0)) {
-    fail('ModelCapturedBindingMismatch');
-  }
-  for (const entry of value.entries) {
-    if (!closed(entry, 'captureAuthorityCid,referenceWire') ||
-        typeof entry.referenceWire !== 'string' || entry.referenceWire.length === 0 ||
-        Buffer.byteLength(entry.referenceWire) > MAX_MODEL_INPUT_BYTES ||
-        typeof entry.captureAuthorityCid !== 'string' ||
-        !/^sha256:[0-9a-f]{64}$/u.test(entry.captureAuthorityCid) || seen.has(entry.referenceWire)) {
-      fail('ModelCapturedInventoryMismatch');
-    }
-    seen.add(entry.referenceWire);
-  }
-};
 const roles = ['model_call_attempt', 'model_attempt_accounting', 'model_attempt_outcome',
   'model_dispatch_authority', 'model_slot_capture', 'model_capture_bundle', 'model_attachment_admission'];
 
@@ -286,7 +255,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     if (snapshot.version !== 'actql-installed-model-input/0.1' ||
         snapshot.scopeCid !== record.scopeCid || receipt.runId !== record.inventory.runId ||
         receipt.runDefinitionCid !== record.inventory.runDefinitionCid) fail('ModelSnapshotBindingMismatch');
-    checkCapturedInventory(snapshot.capturedContent, receipt.runDefinitionCid, snapshot.capturedContentBinding);
+    checkCapturedInventory(snapshot.capturedContent, receipt.runDefinitionCid,
+      snapshot.capturedContentBinding, fail);
     const token = retain(receiptWire, receipt, snapshot, bytes.byteLength);
     try {
       admittedInventory(record.originals, record.checkpointCid === null, token);
@@ -390,7 +360,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       const contentGeneration = operation.contentRecovery?.();
       const capturedContent = operation.capturedContentRecovery?.();
       const capturedContentBinding = operation.capturedContentBinding?.();
-      checkCapturedInventory(capturedContent, plan.runDefinition.identity, capturedContentBinding);
+      checkCapturedInventory(capturedContent, plan.runDefinition.identity, capturedContentBinding, fail);
       if (operation.contentGenerationCount > 0 && contentGeneration === undefined) {
         fail('ModelContentGenerationCustodyMissing');
       }

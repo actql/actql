@@ -87269,27 +87269,13 @@
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b322c58c4c8215aaad3d9fcfa6fc9c2407adf0217b38ec98ff64060725fec6f3",
+      "sha256": "69b22b2d59b9e5dde351f2fa491639c58ead0cfe4892ea8ac5985d673d775329",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "installNodeModelContinuation"
       ],
       "operations": [
-        {
-          "name": "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
         {
           "name": "fail/fail",
           "parameters": [
@@ -87852,119 +87838,6 @@
         }
       ],
       "contracts": [
-        {
-          "operations": [
-            "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory",
-            "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory#2"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "checkCapturedInventory"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "checkCapturedInventory"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "checkCapturedInventory"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "checkCapturedInventory"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "checkCapturedInventory"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "checkCapturedInventory"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "checkCapturedInventory"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "checkCapturedInventory"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "checkCapturedInventory"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "checkCapturedInventory"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
         {
           "operations": [],
           "exports": [],
@@ -89037,7 +88910,6 @@
         "../host-common/diagnostic-observer.mjs",
         "../host-common/runtime-result.mjs",
         "./checkpoint-runtime.mjs",
-        "./client-checkpoints.mjs",
         "./infer-entry-persistence.mjs",
         "./infer-evaluation-evidence.mjs",
         "./infer-original-installation.mjs",
@@ -89049,6 +88921,331 @@
         "./local-account-config.mjs",
         "node:timers/promises"
       ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/installed-model-input-custody.mjs",
+      "responsibilityFacet": "supplemental",
+      "sha256": "b9bdd470d973afe1a518b9596d0c5ee17de663ef750f8281827f087067b130a0",
+      "role": "physical-io",
+      "owner": "A \u2014 existing JS/Core projection boundary",
+      "exports": [
+        "MAX_MODEL_INPUT_BYTES",
+        "checkCapturedInventory",
+        "createInstalledModelInputCustody"
+      ],
+      "operations": [
+        {
+          "name": "checkCapturedInventory/checkCapturedInventory",
+          "parameters": [
+            "value",
+            "runDefinitionCid",
+            "binding",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelInputCustody",
+          "parameters": [
+            "inventorySize",
+            "retireReceipt",
+            "diagnostic",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelInputCustody/changed/changed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelInputCustody/createInstalledModelInputCustody",
+          "parameters": [
+            "receiptWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelInputCustody/createInstalledModelInputCustody#2",
+          "parameters": [
+            "receiptWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelInputCustody/createInstalledModelInputCustody#3",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelInputCustody/ownedInput",
+          "parameters": [
+            "token",
+            "runDefinitionCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelInputCustody/release",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelInputCustody/retain",
+          "parameters": [
+            "receiptWire",
+            "receipt",
+            "snapshot",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelInputCustody/retain/token/token",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelInputCustody/retain/token/token#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelInputCustody/usage/usage",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "checkCapturedInventory/checkCapturedInventory",
+            "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory",
+            "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory#2"
+          ],
+          "exports": [
+            "MAX_MODEL_INPUT_BYTES",
+            "checkCapturedInventory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const checkCapturedInventory = (value: unknown"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const checkCapturedInventory = (value: unknown"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const checkCapturedInventory = (value: unknown"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const checkCapturedInventory = (value: unknown"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const checkCapturedInventory = (value: unknown"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const checkCapturedInventory = (value: unknown"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const checkCapturedInventory = (value: unknown"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const checkCapturedInventory = (value: unknown"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const checkCapturedInventory = (value: unknown"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const checkCapturedInventory = (value: unknown"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>",
+            "createInstalledModelInputCustody",
+            "createInstalledModelInputCustody/changed/changed",
+            "createInstalledModelInputCustody/createInstalledModelInputCustody",
+            "createInstalledModelInputCustody/createInstalledModelInputCustody#2",
+            "createInstalledModelInputCustody/createInstalledModelInputCustody#3",
+            "createInstalledModelInputCustody/ownedInput",
+            "createInstalledModelInputCustody/release",
+            "createInstalledModelInputCustody/retain",
+            "createInstalledModelInputCustody/retain/token/token",
+            "createInstalledModelInputCustody/retain/token/token#2",
+            "createInstalledModelInputCustody/usage/usage"
+          ],
+          "exports": [
+            "createInstalledModelInputCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export function createInstalledModelInputCustody"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "function retain(receiptWire:"
+              },
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "function ownedInput(token:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "lease.tokens.has(token) !== true"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "const leases = new WeakMap<Token, Lease>()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "lease.state.available = false;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "fail('ModelFixedInputCustodyUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "function release(token:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "retainedInputBytes -= lease.bytes;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "// Journal retirement, durable Store custody, and send admission belong to"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-retention.test.mjs",
+                "anchor": "Model input release is exact-token guarded and preserves another consumer"
+              },
+              {
+                "path": "adapters/host-node/installed-model-retention.test.mjs",
+                "anchor": "released Model token retires its snapshot without erasing another lease or waiting proof"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": []
     },

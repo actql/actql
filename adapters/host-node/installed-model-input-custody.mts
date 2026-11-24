@@ -27,6 +27,42 @@ type Inputs = Readonly<{
   fail(code: string): never;
 }>;
 
+export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;
+
+// This validates only the closed durable transport. Current Source authority,
+// typed reference admission and actual Store custody remain receiving duties.
+export const checkCapturedInventory = (value: unknown, runDefinitionCid: string, binding: unknown,
+  fail: (code: string) => never): void => {
+  if (value === undefined) return;
+  const closed = (item: unknown, keys: string): item is Record<string, unknown> =>
+    item !== null && typeof item === 'object' &&
+    !Array.isArray(item) && Object.keys(item).sort().join(',') === keys;
+  if (!closed(value, 'entries,runDefinitionCid,version') ||
+      value.version !== 'actql-installed-captured-content-inventory/0.1' ||
+      value.runDefinitionCid !== runDefinitionCid || !Array.isArray(value.entries)) {
+    fail('ModelCapturedInventoryMismatch');
+  }
+  const seen = new Set();
+  // The CID pattern uses the original RegExp coercion of the decoded fields.
+  if (!closed(binding, 'bindingCid,connection,connectorRegistration,connectorRevision,physicalBindingCid,selectionCid,version') ||
+      binding.version !== 'actql-installed-keyed-read-binding/0.1' ||
+      ['selectionCid', 'physicalBindingCid', 'bindingCid'].some(key =>
+        !/^sha256:[0-9a-f]{64}$/u.test((binding[key] ?? '') as string)) ||
+      ['connection', 'connectorRegistration', 'connectorRevision'].some(key =>
+        typeof binding[key] !== 'string' || binding[key].length === 0)) {
+    fail('ModelCapturedBindingMismatch');
+  }
+  for (const entry of value.entries) {
+    if (!closed(entry, 'captureAuthorityCid,referenceWire') ||
+        typeof entry.referenceWire !== 'string' || entry.referenceWire.length === 0 ||
+        Buffer.byteLength(entry.referenceWire) > MAX_MODEL_INPUT_BYTES ||
+        typeof entry.captureAuthorityCid !== 'string' ||
+        !/^sha256:[0-9a-f]{64}$/u.test(entry.captureAuthorityCid) || seen.has(entry.referenceWire)) {
+      fail('ModelCapturedInventoryMismatch');
+    }
+    seen.add(entry.referenceWire);
+  }
+};
 // The input lease owns only the decoded payload and its local accounting.
 // Journal retirement, durable Store custody, and send admission belong to
 // the installed continuation's existing owners.

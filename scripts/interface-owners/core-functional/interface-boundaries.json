@@ -30483,26 +30483,12 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "b322c58c4c8215aaad3d9fcfa6fc9c2407adf0217b38ec98ff64060725fec6f3",
+      "sha256": "69b22b2d59b9e5dde351f2fa491639c58ead0cfe4892ea8ac5985d673d775329",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
       ],
       "operations": [
-        {
-          "name": "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
         {
           "name": "fail/fail",
           "parameters": [
@@ -31069,8 +31055,6 @@
       "contracts": [
         {
           "operations": [
-            "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory",
-            "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory#2",
             "installNodeModelContinuation",
             "installNodeModelContinuation/admittedInventory/admittedInventory",
             "installNodeModelContinuation/checkpoints/checkpoints",
@@ -31229,7 +31213,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-input-custody.mts",
                 "anchor": "// This validates only the closed durable transport. Current Source authority,"
               },
               {
@@ -31431,7 +31415,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "path": "adapters/host-node/installed-model-input-custody.mts",
                 "anchor": "// This validates only the closed durable transport. Current Source authority,"
               },
               {
@@ -31479,7 +31463,6 @@
         "../host-common/diagnostic-observer.mjs",
         "../host-common/runtime-result.mjs",
         "./checkpoint-runtime.mjs",
-        "./client-checkpoints.mjs",
         "./infer-entry-persistence.mjs",
         "./infer-evaluation-evidence.mjs",
         "./infer-original-installation.mjs",
@@ -31496,12 +31479,38 @@
     },
     {
       "module": "adapters/host-node/installed-model-input-custody.mjs",
-      "sha256": "a2ea322c9a993a152cae000f0a4cb1a1438545eb5ff6d64532a4732b524da604",
+      "sha256": "b9bdd470d973afe1a518b9596d0c5ee17de663ef750f8281827f087067b130a0",
       "role": "physical-io",
       "exports": [
+        "MAX_MODEL_INPUT_BYTES",
+        "checkCapturedInventory",
         "createInstalledModelInputCustody"
       ],
       "operations": [
+        {
+          "name": "checkCapturedInventory/checkCapturedInventory",
+          "parameters": [
+            "value",
+            "runDefinitionCid",
+            "binding",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
         {
           "name": "createInstalledModelInputCustody",
           "parameters": [
@@ -31667,6 +31676,83 @@
               {
                 "path": "adapters/host-node/installed-model-retention.test.mjs",
                 "anchor": "released Model token retires its snapshot without erasing another lease or waiting proof"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "checkCapturedInventory/checkCapturedInventory",
+            "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory",
+            "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory#2"
+          ],
+          "exports": [
+            "MAX_MODEL_INPUT_BYTES",
+            "checkCapturedInventory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const checkCapturedInventory = (value: unknown"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;"
+              },
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "if (value === undefined) return;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "value.version !== 'actql-installed-captured-content-inventory/0.1'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "// typed reference admission and actual Store custody remain receiving duties."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "checkCapturedInventory(snapshot.capturedContent, receipt.runDefinitionCid,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "fail('ModelCapturedBindingMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "if (value === undefined) return;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-input-custody.mts",
+                "anchor": "Buffer.byteLength(entry.referenceWire) > MAX_MODEL_INPUT_BYTES"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "maxWireBytes: Math.min(MAX_MODEL_INPUT_BYTES, parse.max_input_bytes)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-retention.test.mjs",
+                "anchor": "Model fixed input preserves the exact captured Content inventory without deriving read authority"
               }
             ]
           }

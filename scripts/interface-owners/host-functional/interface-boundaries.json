@@ -19408,11 +19408,10 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4c4c1257df9bbdaba5621f2ee725a7052f1ff95669b9961ccfcc1bf50fc48a88",
+      "sha256": "78e3178cc10495935b722e50180c6894f32fdadd662b28bcd39879d134fdc2c0",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
-        "MAX_MODEL_INPUT_BYTES",
         "installHostRunAcceptance",
         "installRemoteCheckpoints"
       ],
@@ -20708,13 +20707,12 @@
             "without/without/without"
           ],
           "exports": [
-            "MAX_MODEL_INPUT_BYTES",
             "installRemoteCheckpoints"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/installed-model-input-custody.mts",
                 "anchor": "export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;"
               },
               {
@@ -20748,7 +20746,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/installed-model-input-custody.mts",
                 "anchor": "export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;"
               },
               {
@@ -21403,7 +21401,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/installed-model-input-custody.mts",
                 "anchor": "export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;"
               },
               {
@@ -21437,7 +21435,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/installed-model-input-custody.mts",
                 "anchor": "export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;"
               },
               {
@@ -21769,6 +21767,7 @@
         "./infer-operation.mjs",
         "./installed-effect-limits.mjs",
         "./installed-host-cleanup.mjs",
+        "./installed-model-input-custody.mjs",
         "./local-account-config.mjs",
         "./local-continuation-evidence.mjs",
         "./model-checkpoint-metadata.mjs",

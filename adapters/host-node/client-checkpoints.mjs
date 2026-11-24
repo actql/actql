@@ -27,6 +27,7 @@ import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
 import {openSqliteCheckpointJournal} from
   './sqlite-checkpoint-journal.mjs';
 import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
+import {MAX_MODEL_INPUT_BYTES} from './installed-model-input-custody.mjs';
 import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
 import {modelCheckpointMetadata} from './model-checkpoint-metadata.mjs';
@@ -57,7 +58,6 @@ function computationSourceCheckpointId(runId, scopeCid) {
 }
 
 const MODEL_CHECKPOINT_STORAGE = 'actql-installed-model-checkpoint-storage/0.1';
-export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;
 
 function coded(code, detail) {
   return Object.assign(new Error(code, detail === undefined ? undefined
