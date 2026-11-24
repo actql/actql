@@ -19370,8 +19370,8 @@
                 "path": "adapters/host-node/client-program-preparation.mts"
               },
               {
-                "anchor": "const restoredInferRuns = new WeakSet();",
-                "path": "adapters/host-common/runtime-core.mjs"
+                "anchor": "const restoredInferRuns = new WeakSet<object>();",
+                "path": "adapters/host-common/runtime-core.mts"
               },
               {
                 "anchor": "Reference ownership follows the actual Host record and its real children.",

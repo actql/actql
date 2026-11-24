@@ -22588,8 +22588,8 @@
                 "anchor": "pub fn gcs_collection_issue_reference"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
+                "anchor": "issueOriginalCollectionReference(pair: unknown, maxWork: number)"
               },
               {
                 "path": "adapters/host-node/installed-row-source-credential-site.mts",
@@ -22638,7 +22638,7 @@
                 "anchor": "exact version/target text"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "installationCid: bindingCid"
               },
               {
@@ -22716,7 +22716,7 @@
                 "anchor": "startInstalledRowRun"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "site.referenceCurrent()"
               },
               {
@@ -22790,7 +22790,7 @@
                 "anchor": "closing = true"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "const current = () => site.referenceCurrent();"
               },
               {
@@ -22868,7 +22868,7 @@
                 "anchor": "Completion is never"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "GcsCollectionProviderUnavailable"
               },
               {
@@ -22976,7 +22976,7 @@
                 "anchor": "maxPageBytes"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "const declarationLimits"
               },
               {
@@ -23552,8 +23552,8 @@
                 "anchor": "pub fn gcs_collection_issue_reference"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
+                "anchor": "issueOriginalCollectionReference(pair: unknown, maxWork: number)"
               },
               {
                 "path": "adapters/host-node/installed-row-source-credential-site.mts",
@@ -23586,7 +23586,7 @@
                 "anchor": "exact version/target text"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "installationCid: bindingCid"
               },
               {
@@ -23640,7 +23640,7 @@
                 "anchor": "startInstalledRowRun"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "site.referenceCurrent()"
               },
               {
@@ -23752,7 +23752,7 @@
                 "anchor": "Completion is never"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "GcsCollectionProviderUnavailable"
               },
               {
@@ -23836,7 +23836,7 @@
                 "anchor": "maxPageBytes"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "const declarationLimits"
               },
               {
@@ -24591,8 +24591,8 @@
                 "anchor": "pub fn gcs_collection_issue_reference"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
+                "anchor": "issueOriginalCollectionReference(pair: unknown, maxWork: number)"
               },
               {
                 "path": "adapters/host-node/installed-row-source-credential-site.mts",
@@ -24625,7 +24625,7 @@
                 "anchor": "exact version/target text"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "installationCid: bindingCid"
               },
               {
@@ -24671,7 +24671,7 @@
                 "anchor": "startInstalledRowRun"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "site.referenceCurrent()"
               },
               {
@@ -24721,7 +24721,7 @@
                 "anchor": "closing = true"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "const current = () => site.referenceCurrent();"
               },
               {
@@ -24771,7 +24771,7 @@
                 "anchor": "Completion is never"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "GcsCollectionProviderUnavailable"
               },
               {
@@ -24851,7 +24851,7 @@
                 "anchor": "maxPageBytes"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "const declarationLimits"
               },
               {

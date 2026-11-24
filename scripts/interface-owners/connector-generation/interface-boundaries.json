@@ -382,8 +382,8 @@
                 "anchor": "pub fn gcs_collection_issue_reference"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
+                "anchor": "issueOriginalCollectionReference(pair: unknown, maxWork: number)"
               },
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mts",
@@ -436,7 +436,7 @@
                 "anchor": "export const installedConnectors = Object.freeze(["
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "installationCid: bindingCid"
               },
               {
@@ -494,7 +494,7 @@
                 "anchor": "export const installedConnectors = Object.freeze(["
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "site.referenceCurrent()"
               },
               {
@@ -598,7 +598,7 @@
                 "anchor": "export const installedConnectors = Object.freeze(["
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "GcsCollectionProviderUnavailable"
               },
               {
@@ -694,7 +694,7 @@
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "const declarationLimits"
               },
               {
