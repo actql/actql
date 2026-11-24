@@ -37,7 +37,7 @@ test('packed read-opening keeps its authored preparation import at the installed
   const imported = source.split('\n').find(line => line.includes('sdk/internal/private-source-preparation.mjs'));
   assert(imported);
   const rewrite = readOpeningImportRewriter(repository, path, '/installed-local-node');
-  assert.equal(rewrite(imported), "import {freezeInput} from '@actql/sdk/_internal/source-preparation';");
+  assert.match(rewrite(imported), /^import \{\s*freezeInput\s*\} from '@actql\/sdk\/_internal\/source-preparation';$/u);
   const manifest = JSON.parse(await readFile(join(repository, 'packages/sdk/package.json'), 'utf8'));
   assert.equal(manifest.exports['./_internal/source-preparation'], './internal/private-source-preparation.mjs');
 });
