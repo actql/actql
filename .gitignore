@@ -1889,6 +1889,10 @@ target/
 /adapters/connectors/duckdb/node/examples/managed-reader.d.mts
 /adapters/connectors/duckdb/node/examples/local-account-context.mjs
 /adapters/connectors/duckdb/node/examples/local-account-context.d.mts
+/adapters/connectors/duckdb/node/examples/local-host.mjs
+/adapters/connectors/duckdb/node/examples/local-host.d.mts
+/adapters/connectors/duckdb/node/examples/local-host-cli.mjs
+/adapters/connectors/duckdb/node/examples/local-host-cli.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts
 /adapters/host-node/result-transformation-control.test.mjs

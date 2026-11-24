@@ -28,14 +28,26 @@
 import {parseArgs} from 'node:util';
 import {initializeLocalHost, openLocalHost, readSigner} from './local-host.mjs';
 
-const usage = code => Object.assign(new Error(code), {code, usage: true});
+type Host = Awaited<ReturnType<typeof openLocalHost>>;
+type CliValues = Parameters<Host['run']>[0] & Readonly<{
+  'environment-cid'?: string; 'native-ms'?: string; 'decided-at'?: string; claimant?: string;
+}>;
+type CliError = Readonly<{code?: string; message?: string; usage?: boolean;
+  cleanupError?: string; runtimeCode?: string;
+  cause?: Readonly<{message?: string}>}>;
+type Retention = Partial<Awaited<ReturnType<Host['retire']>>> & Readonly<{
+  error?: string; cleanup_pending?: boolean; cleanup_error?: string;
+}>;
+type CommandResult = {exit: number; output: Readonly<Record<string, unknown>> & {retention?: Retention}};
+
+const usage = (code: string) => Object.assign(new Error(code), {code, usage: true});
 
 const COMMANDS = new Set(['init', 'run', 'list', 'inspect', 'approve', 'reject',
   'resume', 'status', 'cancel', 'retire']);
 // Commands after which a continuation can have ended.
 const SETTLES = new Set(['run', 'list', 'approve', 'reject', 'resume', 'cancel']);
 
-async function main(argv) {
+async function main(argv: string[]) {
   const [command, ...rest] = argv;
   if (!COMMANDS.has(command)) throw usage('UnknownCommand');
   let parsed;
@@ -62,7 +74,7 @@ async function main(argv) {
       json: {type: 'boolean', default: true},
     }});
   } catch (error) {
-    throw usage(error.code ?? 'InvalidArguments');
+    throw usage((error as CliError).code ?? 'InvalidArguments');
   }
   const {values, positionals} = parsed;
   if (command === 'init') {
@@ -83,7 +95,7 @@ async function main(argv) {
     : undefined;
   if (command === 'run') {
     for (const key of ['database', 'environment', 'environment-cid', 'program',
-      'parameters']) {
+      'parameters'] as const) {
       if (!values[key]) throw usage(`Required --${key}`);
     }
     if (positionals.length > 0) throw usage('UnexpectedArgument');
@@ -94,24 +106,25 @@ async function main(argv) {
     if (!Number.isSafeInteger(leaseMs) || leaseMs < 1) throw usage('Invalid --lease-ms');
   }
   const host = await openLocalHost(values.config);
-  let result, commandFailure, commandFailed = false;
+  let result: CommandResult | undefined, commandFailure: CliError | null | undefined, commandFailed = false;
   try {
     result = await dispatch(host, command, values, positionals, one,
       signer, leaseMs);
     if (SETTLES.has(command)) {
-      let retention;
+      let retention: Retention;
       try { retention = await host.retire(); }
-      catch (error) { retention = {error: error.code ?? error.message}; }
-      if (retention.error !== undefined || retention.pending.length !== 0) {
+      catch (error) { retention = {error: (error as CliError).code ?? (error as CliError).message}; }
+      if (retention.error !== undefined || retention.pending!.length !== 0) {
         result = {...result, output: {...result.output, retention}};
       }
     }
   } catch (error) {
     commandFailed = true;
-    commandFailure = error;
+    commandFailure = error as CliError | null | undefined;
   }
   try {await host.close();} catch (cleanupFailure) {
-    const cleanupError = cleanupFailure?.code ?? cleanupFailure?.message ?? 'LocalHostCleanupFailed';
+    const cleanupError = (cleanupFailure as CliError | null | undefined)?.code ??
+      (cleanupFailure as CliError | null | undefined)?.message ?? 'LocalHostCleanupFailed';
     if (commandFailed) {
       // Keep both original failures without substituting cleanup for the
       // command's outcome or treating the failed close as an acknowledgement.
@@ -119,15 +132,16 @@ async function main(argv) {
         commandFailure?.message ?? 'LocalHostCommandFailed', {cause: commandFailure}),
       {code: commandFailure?.code, cleanupError});
     }
-    return {exit: 1, output: {...result.output, retention: {
-      ...result.output.retention, cleanup_pending: true, cleanup_error: cleanupError,
+    return {exit: 1, output: {...result!.output, retention: {
+      ...result!.output.retention, cleanup_pending: true, cleanup_error: cleanupError,
     }}};
   }
   if (commandFailed) throw commandFailure;
-  return result;
+  return result!;
 }
 
-async function dispatch(host, command, values, positionals, one, signer, leaseMs) {
+async function dispatch(host: Host, command: string, values: CliValues, positionals: string[],
+  one: () => string, signer: unknown, leaseMs: number | undefined): Promise<CommandResult> {
   switch (command) {
     case 'run': {
       const output = await host.run({
@@ -198,10 +212,10 @@ try {
   process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
   process.exitCode = exit;
 } catch (error) {
-  process.stderr.write(`${JSON.stringify({error: error.code ?? error.message,
-    ...(error.cleanupError ? {cleanup_error: error.cleanupError} : {}),
-    ...(error.runtimeCode ? {runtime_code: error.runtimeCode} : {}),
-    ...(error.cause ? {detail: String(error.cause?.message ?? error.cause)} : {}),
+  process.stderr.write(`${JSON.stringify({error: (error as CliError).code ?? (error as CliError).message,
+    ...((error as CliError).cleanupError ? {cleanup_error: (error as CliError).cleanupError} : {}),
+    ...((error as CliError).runtimeCode ? {runtime_code: (error as CliError).runtimeCode} : {}),
+    ...((error as CliError).cause ? {detail: String((error as CliError).cause?.message ?? (error as CliError).cause)} : {}),
   })}\n`);
-  process.exitCode = error.usage ? 2 : 1;
+  process.exitCode = (error as CliError).usage ? 2 : 1;
 }

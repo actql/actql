@@ -47,6 +47,47 @@ import {
   openContinuationEvidence,
 } from '../../../../host-node/local-continuation-evidence.mjs';
 
+import type {KeyObject} from 'node:crypto';
+import type {snapshotProcessUsage} from '../../../../host-node/process-accounting.mjs';
+
+type AuthorizationOptions = NonNullable<Parameters<typeof createLocalAuthorizationGate>[0]>;
+type Gate = Awaited<ReturnType<typeof createLocalAuthorizationGate>>;
+type GateDecision = Awaited<ReturnType<Gate['authorize']>>;
+type Deferral = NonNullable<AuthorizationOptions['deferral']>;
+type Decide = NonNullable<AuthorizationOptions['decide']>;
+type ResumeDecide = (view: Parameters<Decide>[0]) => ReturnType<Decide>;
+type Subject = Parameters<Decide>[0]['subject'];
+type SubjectFacts = Readonly<Partial<Subject>>;
+type ApprovedSubject = Readonly<{subject: SubjectFacts; actor?: string;
+  invocation_cid?: string; checkpoint_cid?: string}>;
+type Journal = ReturnType<typeof openSqliteCheckpointJournal>;
+type CheckpointView = NonNullable<ReturnType<Journal['inspect']>>;
+type ResolutionSubmission = Parameters<Journal['submitResolution']>[0];
+type ResumeOptions = NonNullable<Parameters<typeof admitResumedDispatch>[2]>;
+type Admission = Extract<ReturnType<typeof admitResumedDispatch>, {admission: object}>['admission'];
+type ExampleOptions = Parameters<typeof runExample>[0];
+type ExampleResult = Awaited<ReturnType<typeof runExample>>;
+type InvocationOptions = Readonly<{
+  database?: string; environment?: string; environmentCid?: string; program?: string;
+  parameters?: string; schema?: string; table?: string; nativeMilliseconds?: string; resident?: boolean;
+}>;
+type CapturedTexts = NonNullable<NonNullable<ExampleOptions['invocation']>['texts']>;
+type TextCapture = {current: CapturedTexts | undefined};
+type ConfigurationDocument = Readonly<{
+  state_directory?: string; account_config?: string | null; principal?: string;
+  reviewers?: readonly Readonly<{key_id: string; reviewer_id: string; public_key: string}>[];
+  host_key?: Readonly<{key_id: string; private_key: string}>;
+  checkpoint_ttl_ms?: number;
+}>;
+type Installation = Readonly<{directory: string; accountConfig?: string; reviewer?: string; principal?: string}>;
+type ErrorFields = Readonly<{code?: string; runtimeCode?: string;
+  priorAdmission?: Readonly<{generation?: number}>}>;
+type ApprovalDecision = 'approved' | 'rejected';
+type SignerDocument = Readonly<{key_id: string; reviewer_id: string; private_key_pem: string}>;
+type Signature = Readonly<{scheme: string; key_id: string; signature: string}>;
+type ParsedWire<Value> = Value extends bigint ? string :
+  Value extends object ? {[Key in keyof Value]: ParsedWire<Value[Key]>} : Value;
+
 const storeRuntimeUrl = new URL(
   '../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
   import.meta.url);
@@ -56,25 +97,25 @@ const MAX_INPUT_BYTES = 1_000_000;
 const SUBJECT_FIELDS = Object.freeze([
   'account_id', 'configuration_cid', 'entry_id', 'principal', 'connection',
   'resource', 'operation', 'boundary', 'subject_cid', 'context_cid',
-]);
+] as const);
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/;
 
-const fail = (code, cause) => {
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const without = (value, ...keys) => Object.fromEntries(
+const without = (value: Readonly<Record<string, unknown>>, ...keys: string[]) => Object.fromEntries(
   Object.entries(value).filter(([key]) => !keys.includes(key)));
-const plain = value => JSON.parse(JSON.stringify(value, (_, item) =>
+const plain = <Value,>(value: Value): ParsedWire<Value> => JSON.parse(JSON.stringify(value, (_, item) =>
   typeof item === 'bigint' ? item.toString() : item));
 
 // Host configuration. Relative paths resolve against the configuration file.
-export async function loadHostConfig(path) {
+export async function loadHostConfig(path: string) {
   if (typeof path !== 'string' || path.length === 0) fail('HostConfigRequired');
   const file = resolve(path);
   const base = dirname(file);
-  const at = value => value === undefined || value === null ? undefined
+  const at = (value: string | null | undefined) => value === undefined || value === null ? undefined
     : isAbsolute(value) ? value : resolve(base, value);
-  let raw;
+  let raw: ConfigurationDocument;
   try { raw = JSON.parse(await readFile(file, 'utf8')); }
   catch (error) { fail('InvalidHostConfig', error); }
   if (raw === null || typeof raw !== 'object' ||
@@ -93,7 +134,7 @@ export async function loadHostConfig(path) {
     return Object.freeze({
       keyId: reviewer.key_id,
       reviewerId: reviewer.reviewer_id,
-      publicKey: createPublicKey(await readFile(at(reviewer.public_key))),
+      publicKey: createPublicKey(await readFile(at(reviewer.public_key)!)),
     });
   }));
   if (new Set(reviewers.map(item => item.keyId)).size !== reviewers.length) {
@@ -103,14 +144,14 @@ export async function loadHostConfig(path) {
   if (!Number.isSafeInteger(ttl) || ttl < 1000) fail('InvalidHostConfig');
   return Object.freeze({
     path: file,
-    stateDirectory: at(raw.state_directory),
+    stateDirectory: at(raw.state_directory)!,
     // Absent means no configuration: every protected boundary is denied.
     accountConfig: at(raw.account_config),
     principal: raw.principal ?? 'local-operator',
     reviewers: Object.freeze(reviewers),
     hostKey: Object.freeze({
       keyId: raw.host_key.key_id,
-      privateKey: createPrivateKey(await readFile(at(raw.host_key.private_key))),
+      privateKey: createPrivateKey(await readFile(at(raw.host_key.private_key)!)),
     }),
     checkpointTtlMs: ttl,
   });
@@ -121,21 +162,21 @@ export async function loadHostConfig(path) {
 // directory and the Host configuration. The account configuration is
 // referenced, never generated here.
 export async function initializeLocalHost({directory, accountConfig,
-  reviewer = 'reviewer', principal = 'local-operator'}) {
+  reviewer = 'reviewer', principal = 'local-operator'}: Installation) {
   if (!IDENTIFIER.test(reviewer)) fail('InvalidReviewerId');
   const root = resolve(directory);
   await mkdir(root, {recursive: true, mode: 0o700});
   const host = generateKeyPairSync('ed25519');
   const signer = generateKeyPairSync('ed25519');
-  const pem = key => key.export({type: 'pkcs8', format: 'pem'});
+  const pem = (key: KeyObject) => key.export({type: 'pkcs8', format: 'pem'});
   const files = {
     config: join(root, 'host.json'),
     hostKey: join(root, 'host-key.pem'),
     reviewerPublicKey: join(root, `${reviewer}.pub.pem`),
     signer: join(root, `${reviewer}.signer.json`),
-    privateEvidenceKey: undefined,
+    privateEvidenceKey: undefined as string | undefined,
   };
-  const create = (path, text) => writeFile(path, text, {flag: 'wx', mode: 0o600});
+  const create = (path: string, text: string | Buffer) => writeFile(path, text, {flag: 'wx', mode: 0o600});
   await create(files.hostKey, pem(host.privateKey));
   await create(files.reviewerPublicKey,
     signer.publicKey.export({type: 'spki', format: 'pem'}));
@@ -153,14 +194,14 @@ export async function initializeLocalHost({directory, accountConfig,
   return Object.freeze(files);
 }
 
-async function boundedBytes(path) {
+async function boundedBytes(path: string) {
   if ((await stat(path)).size > MAX_INPUT_BYTES) fail('InputTooLarge');
   const bytes = await readFile(path);
   if (bytes.length > MAX_INPUT_BYTES) fail('InputTooLarge');
   return bytes;
 }
 
-const sameSubject = (left, right) =>
+const sameSubject = (left: SubjectFacts | undefined, right: SubjectFacts | undefined) =>
   SUBJECT_FIELDS.every(name => left?.[name] === right?.[name]);
 
 // Local Host delegated-decision policy for an approved preparation: a
@@ -168,7 +209,7 @@ const sameSubject = (left, right) =>
 // acquisition of X's declared source in the same prepare attempt, under the
 // same account entry, configuration, context and tuple. It covers no other
 // boundary, invocation, tuple or Checkpoint.
-function approvedBy(item, subject) {
+function approvedBy(item: ApprovedSubject, subject: Subject) {
   if (sameSubject(item.subject, subject)) return true;
   return item.subject.boundary === 'preparation' &&
     subject.boundary === 'acquisition' &&
@@ -180,11 +221,11 @@ function approvedBy(item, subject) {
 // `coverage(item, subject)` is the Host's delegated-decision coverage policy
 // for approved subjects (default `approvedBy`); a Host that answers only the
 // exact approved subjects passes `exactApprovedSubject`.
-export const exactApprovedSubject = (item, subject) =>
+export const exactApprovedSubject = (item: ApprovedSubject, subject: Subject) =>
   sameSubject(item.subject, subject);
 
-export async function openLocalHost(configPath, {now = () => Date.now(),
-  coverage = approvedBy} = {}) {
+export async function openLocalHost(configPath: string, {now = () => Date.now(),
+  coverage = approvedBy}: Readonly<{now?: () => number; coverage?: typeof approvedBy}> = {}) {
   if (typeof coverage !== 'function') fail('InvalidApprovalCoverage');
   const config = await loadHostConfig(configPath);
   const state = config.stateDirectory;
@@ -194,7 +235,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
   const reviewerIds = config.reviewers.map(item => item.reviewerId);
   const runtime = await loadCheckpointRuntime();
   const privateKey = await loadPrivateEvidenceKey(state);
-  const strategyRuntime = await import(storeRuntimeUrl.href);
+  const strategyRuntime: Parameters<typeof localHostAccountContext>[1] = await import(storeRuntimeUrl.href);
 
   // Current trusted context: the admitted configuration text/CID (if any),
   // the context CID and the bound authorization-context CID for resumption.
@@ -260,36 +301,38 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
     },
   });
 
-  async function environmentBinding(request) {
+  async function environmentBinding(request: InvocationRequest) {
     let source = null;
     try { source = await realpath(request.database); } catch {}
     return contentCid({environment_cid: request.environment_cid, source,
       schema: request.schema, table: request.table});
   }
 
-  function requestOf(options) {
+  function requestOf(options: InvocationOptions) {
     for (const key of ['database', 'environment', 'program', 'parameters',
-      'environmentCid']) {
-      if (typeof options?.[key] !== 'string' || options[key].length === 0) {
+      'environmentCid'] as const) {
+      if (typeof options?.[key] !== 'string' || options[key]!.length === 0) {
         fail('InvalidInvocation', key);
       }
     }
     return Object.freeze({
       kind: 'local-example-invocation-request',
-      database: resolve(options.database),
+      database: resolve(options.database!),
       schema: options.schema ?? 'main',
       table: options.table ?? 'records',
       native_ms: options.nativeMilliseconds ?? '5',
       resident: options.resident === true,
-      environment_cid: options.environmentCid,
-      program: resolve(options.program),
-      environment: resolve(options.environment),
-      parameters: resolve(options.parameters),
+      environment_cid: options.environmentCid!,
+      program: resolve(options.program!),
+      environment: resolve(options.environment!),
+      parameters: resolve(options.parameters!),
       principal: config.principal,
     });
   }
 
-  const invocationOf = (request, requestCid, texts) => ({
+  type InvocationRequest = ReturnType<typeof requestOf>;
+
+  const invocationOf = (request: InvocationRequest, requestCid: string, texts: CapturedTexts) => ({
     kind: 'local-example-prepared-invocation',
     request,
     request_cid: requestCid,
@@ -300,7 +343,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
 
   // The private evidence of one prepared invocation: captured input bytes,
   // the request and the prepared invocation that binds them.
-  const invocationEvidence = (request, read) => [
+  const invocationEvidence = (request: InvocationRequest, read: CapturedTexts) => [
     ...[read.programText, read.environmentText, read.parameterText]
       .map(wire => ({name: 'captured_input', wire})),
     {name: 'invocation_request', wire: canonicalJson(request)},
@@ -310,7 +353,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
   // once, capture them and seal the prepared invocation. Called by the gate
   // only on the defer path, after the request subject was decided. The
   // captured bytes are held by `describe`, before the Checkpoint commits.
-  function sealerFor(request, requestCid, texts) {
+  function sealerFor(request: InvocationRequest, requestCid: string, texts: TextCapture) {
     return async () => {
       const read = texts.current ?? {
         programText: (await boundedBytes(request.program)).toString('utf8'),
@@ -329,7 +372,11 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
   // evidence, and returns the Checkpoint body requiring that prepared
   // invocation. The gate persists it through `journal` before reporting a wait.
   function deferralFor({prepareAttemptId, request, requestCid, texts,
-    approved, binding, port}) {
+    approved, binding, port}: Readonly<{
+    prepareAttemptId: string; request: InvocationRequest; requestCid: string; texts: TextCapture;
+    approved: readonly ApprovedSubject[]; binding: Parameters<Journal['claimPreparationResume']>[1]['binding'];
+    port: Deferral['journal'];
+  }>): Deferral {
     return {
       journal: port,
       authorities,
@@ -397,7 +444,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
   // Counts provider sessions and records every boundary this attempt
   // crossed on an admitted Host permit, so that a continuation persisted at
   // a later boundary resumes past it without asking again.
-  function counting(gate, counts, permitted) {
+  function counting(gate: Gate, counts: Counts, permitted: ApprovedSubject[]): Gate {
     return Object.freeze({
       ...gate,
       async authorize(boundary, scope, options) {
@@ -426,7 +473,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
     });
   }
 
-  function exampleOptions(request) {
+  function exampleOptions(request: InvocationRequest) {
     return {
       database: request.database,
       environment: request.environment,
@@ -440,15 +487,15 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
     };
   }
 
-  async function completed(result, runId, counts, extra = {}) {
+  async function completed(result: ExampleResult, runId: string, counts: Counts, extra: object = {}) {
     const report = result.report;
     const failed = report.status !== 'host-tasks-completed' ||
       result.execution.failure !== undefined && result.execution.failure !== null;
-    const usage = result.execution.usage();
+    const usage = result.execution.usage() as Pick<ReturnType<typeof snapshotProcessUsage>, 'attempts'>;
     await result.close();
     const run = journal.finishRun(runId, {status: failed ? 'failed' : 'succeeded'});
     return plain({
-      status: run.status,
+      status: run!.status,
       run_id: runId,
       result_cid: contentCid(plain(report.internal_output_cids)),
       internal_output_cids: report.internal_output_cids,
@@ -461,30 +508,30 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
     });
   }
 
-  function refusal(error, counts, extra = {}) {
-    const decision = error.authorization;
+  function refusal(error: ExecutionAuthorizationError, counts: Counts, extra: object = {}) {
+    const decision = error.authorization as GateDecision | null | undefined;
     if (decision?.action === 'waiting') {
-      const checkpoint = journal.inspect(decision.checkpoint.checkpointCid);
+      const checkpoint = journal.inspect(decision.checkpoint!.checkpointCid);
       return plain({
         status: 'waiting_checkpoint',
-        prepare_attempt_id: checkpoint.prepareAttemptId,
+        prepare_attempt_id: checkpoint!.prepareAttemptId,
         checkpoint: {
-          checkpoint_id: checkpoint.checkpointId,
-          checkpoint_cid: checkpoint.checkpointCid,
-          kind: checkpoint.kind,
+          checkpoint_id: checkpoint!.checkpointId,
+          checkpoint_cid: checkpoint!.checkpointCid,
+          kind: checkpoint!.kind,
           boundary: decision.boundary,
-          expires_at: checkpoint.expiresAt,
+          expires_at: checkpoint!.expiresAt,
         },
         next_action: {kind: 'resolve_checkpoint',
-          checkpoint_id: checkpoint.checkpointId},
+          checkpoint_id: checkpoint!.checkpointId},
         counters: counts,
         ...extra,
       });
     }
     return plain({
       status: 'refused',
-      runtime_code: error.runtimeCode,
-      code: error.code,
+      runtime_code: (error as ErrorFields).runtimeCode,
+      code: (error as ErrorFields).code,
       boundary: decision?.boundary,
       reason: decision?.reason,
       counters: counts,
@@ -494,13 +541,17 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
 
   const newCounts = () => ({provider_sessions: 0, continuation_starts: 0});
 
+  type Counts = ReturnType<typeof newCounts>;
+
   return Object.freeze({
     journal,
     config,
 
     // Run one example invocation. Allow runs to completion; a deferred
     // delegated decision returns `waiting_checkpoint` with no provider I/O.
-    async run(options, {signal, decide, answeringAuthorities} = {}) {
+    async run(options: InvocationOptions, {signal, decide, answeringAuthorities}: Readonly<{
+      signal?: AbortSignal; decide?: Decide; answeringAuthorities?: readonly string[];
+    }> = {}) {
       context = await currentContext();
       if (context.unreadable) {
         return plain({status: 'refused', runtime_code: 'ACTQL_E_ACCOUNT_CONFIG_INVALID',
@@ -510,13 +561,13 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       const request = requestOf(options);
       const requestCid = contentCid(request);
       const prepareAttemptId = `prepare-${randomUUID()}`;
-      const texts = {current: undefined};
+      const texts: TextCapture = {current: undefined};
       const counts = newCounts();
       const binding = {
         authorizationContextCid: context.authorizationContextCid,
         environmentBindingCid: await environmentBinding(request),
       };
-      const permitted = [];
+      const permitted: ApprovedSubject[] = [];
       let gate;
       try {
         gate = counting(await createLocalAuthorizationGate({
@@ -530,11 +581,11 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
             approved: permitted, binding, port: journal}),
         }), counts, permitted);
       } catch (error) {
-        return plain({status: 'refused', runtime_code: error.runtimeCode ??
-          'ACTQL_E_ACCOUNT_CONFIG_INVALID', code: error.code,
+        return plain({status: 'refused', runtime_code: (error as ErrorFields).runtimeCode ??
+          'ACTQL_E_ACCOUNT_CONFIG_INVALID', code: (error as ErrorFields).code,
         boundary: 'preparation', reason: 'configuration_rejected', counters: counts});
       }
-      let runId;
+      let runId: string | undefined;
       try {
         const result = await runExample({
           ...exampleOptions(request),
@@ -555,11 +606,11 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
             },
           },
         });
-        return await completed(result, runId, counts);
+        return await completed(result, runId!, counts);
       } catch (error) {
         if (runId !== undefined) {
           journal.finishRun(runId, {status: 'failed'});
-          return plain({status: 'failed', run_id: runId, code: error.code,
+          return plain({status: 'failed', run_id: runId, code: (error as ErrorFields).code,
             counters: counts});
         }
         // Evidence held for a Checkpoint that was never committed has no
@@ -576,7 +627,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       return journal.listPending().map(view => plain(view));
     },
 
-    inspect(reference) {
+    inspect(reference: string) {
       const view = journal.inspect(reference);
       if (view === undefined) return undefined;
       return plain({
@@ -587,7 +638,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       });
     },
 
-    status(reference) {
+    status(reference: string) {
       if (typeof reference !== 'string' || reference.length === 0) {
         fail('InvalidReference');
       }
@@ -596,7 +647,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       const preparation = journal.getPreparation(reference);
       if (preparation !== undefined) {
         return plain({preparation, run: preparation.runId === null ? undefined
-          : journal.getRunState(preparation.runId).runState});
+          : journal.getRunState(preparation.runId)!.runState});
       }
       const view = journal.inspect(reference);
       if (view !== undefined) return this.inspect(reference);
@@ -606,21 +657,22 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
     // Answer one or more waiting Checkpoints with the signer's Host-trusted
     // key. Each Checkpoint receives its own Resolution and, for approval,
     // its own run-scope approval evidence; results are per item.
-    async answer(references, decision, {signer, decidedAt} = {}) {
+    async answer(references: readonly string[], decision: ApprovalDecision,
+      {signer, decidedAt}: Readonly<{signer?: unknown; decidedAt?: string}> = {}) {
       if (decision !== 'approved' && decision !== 'rejected') fail('InvalidDecision');
       if (!Array.isArray(references) || references.length === 0) {
         fail('CheckpointReferenceRequired');
       }
-      const key = parseSigner(signer);
+      const key = parseSigner(signer as SignerDocument | null | undefined);
       const decided = decidedAt ?? new Date(now()).toISOString();
-      const results = new Array(references.length);
-      const items = [];
-      const positions = [];
+      const results = new Array<Readonly<{reference: string; status: string; reason?: string}>>(references.length);
+      const items: ResolutionSubmission[] = [];
+      const positions: [number, string][] = [];
       references.forEach((reference, index) => {
         let view;
         try { view = journal.inspect(reference); }
         catch (error) {
-          results[index] = {reference, status: 'invalid', reason: error.code};
+          results[index] = {reference, status: 'invalid', reason: (error as ErrorFields).code};
           return;
         }
         if (view === undefined) {
@@ -642,7 +694,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       return plain(results);
     },
 
-    cancel(reference) {
+    cancel(reference: string) {
       let target = reference;
       const preparation = typeof reference === 'string'
         ? journal.getPreparation(reference) : undefined;
@@ -656,8 +708,10 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
     },
 
     // Resume an approved preparation continuation after any restart.
-    async resume(reference, {claimant = `host-${process.pid}-${randomUUID()}`,
-      leaseMs = 60_000, signal, decide, holdAfterClaimMs = 0} = {}) {
+    async resume(reference: string, {claimant = `host-${process.pid}-${randomUUID()}`,
+      leaseMs = 60_000, signal, decide, holdAfterClaimMs = 0}: Readonly<{
+      claimant?: string; leaseMs?: number; signal?: AbortSignal; decide?: ResumeDecide; holdAfterClaimMs?: number;
+    }> = {}) {
       journal.expire();
       let prepareAttemptId = reference;
       if (journal.getPreparation(reference) === undefined) {
@@ -667,7 +721,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       }
       const held = await evidence.open(prepareAttemptId);
       const requestCid = held.requestCid;
-      const request = await held.record('invocation_request', requestCid);
+      const request = await held.record('invocation_request', requestCid) as InvocationRequest;
       if (contentCid(request) !== requestCid) fail('ArtifactIntegrityFailed');
       context = await currentContext();
       const binding = {
@@ -695,26 +749,26 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       // wherever the fence refuses it: here when it tries to end the
       // continuation (for example after the winner's terminal exit retired
       // the private evidence it could no longer read).
-      const staleClaim = code => plain({status: 'stale_claim',
+      const staleClaim = (code: string | undefined) => plain({status: 'stale_claim',
         prepare_attempt_id: prepareAttemptId, code, counters: counts});
-      const end = async (status, extra) => {
+      const end = async (status: 'failed' | 'cancelled', extra: object) => {
         try {
           journal.completeResume(fence.claim, {status});
         } catch (error) {
-          if (error?.code === 'ResumeClaimStale') return staleClaim(error.code);
+          if ((error as ErrorFields | null | undefined)?.code === 'ResumeClaimStale') return staleClaim((error as ErrorFields).code);
           throw error;
         }
         return plain({status: 'ended', prepare_attempt_id: prepareAttemptId,
           run_created: false, end_reason: status, counters: counts, ...extra});
       };
-      let continuation;
-      let texts;
+      let continuation: Readonly<{invocation_cid: string; delegated_subject: Subject; approved: readonly ApprovedSubject[]}>;
+      let texts: CapturedTexts;
       try {
         continuation = await held.record('continuation_record',
-          claimed.continuationStateCid);
+          claimed.continuationStateCid) as typeof continuation;
         const invocation = await held.record('prepared_invocation',
-          continuation.invocation_cid);
-        const input = async cid =>
+          continuation.invocation_cid) as ReturnType<typeof invocationOf>;
+        const input = async (cid: string) =>
           (await held.bytes('captured_input', cid)).toString('utf8');
         texts = {
           programText: await input(invocation.program_cid),
@@ -736,13 +790,13 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
           fail('ResolutionSubjectMismatch');
         }
       } catch (error) {
-        return end('failed', {code: error.code ?? 'ContinuationUnavailable'});
+        return end('failed', {code: (error as ErrorFields).code ?? 'ContinuationUnavailable'});
       }
       // The approved subjects of this attempt, each with its answering actor
       // and, for a reviewer approval, the Checkpoint it answered.
       const answer = journal.resolutionOf(claimed.checkpointCid);
-      const approved = [...continuation.approved, {subject:
-        continuation.delegated_subject, actor: answer.actor,
+      const approved: ApprovedSubject[] = [...continuation.approved, {subject:
+        continuation.delegated_subject, actor: answer!.actor,
       invocation_cid: continuation.invocation_cid,
       checkpoint_cid: claimed.checkpointCid}];
       // Approvals this attempt answered before the claimed Checkpoint are
@@ -763,21 +817,23 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
           if (!approval.current) fail('ApprovalExpired');
         }
       };
-      const port = {
+      const port: Deferral['journal'] = {
         persistCheckpoint: ({body, authorities: reviewers, binding: bound,
           decisionSubjectCid, requestedClaims, configurationCid}) =>
+          // A preparation claim completed with a successor Checkpoint returns
+          // the committed waiting receipt, as opposed to a Run or terminal exit.
           journal.completeResume(fence.claim, {checkpoint: {body,
             authorities: reviewers, binding: bound, decisionSubjectCid,
-            requestedClaims, configurationCid}}),
-        submitResolution: item => journal.submitResolution(item),
+            requestedClaims, configurationCid}}) as Awaited<ReturnType<Deferral['journal']['persistCheckpoint']>>,
+        submitResolution: (item: ResolutionSubmission) => journal.submitResolution(item),
       };
       // An approved subject is permitted only through the common resumed
       // admission: the live claim, the committed approval still valid at the
       // Host trusted time and the claims its evidence established.
-      let admission;
-      let admissionRefusal;
+      let admission: Admission | undefined;
+      let admissionRefusal: string | undefined;
       const configurationCid = context.configuration?.configurationCid;
-      const admit = options => {
+      const admit = (options: ResumeOptions) => {
         const admitted = admitResumedDispatch(journal, {claim: {
           checkpointCid: claimed.checkpointCid, claim: fence.claim}},
         {configurationCid, ...options});
@@ -787,7 +843,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
         }
         return admitted;
       };
-      const resumeDecide = view => {
+      const resumeDecide: Decide = view => {
         const match = approved.find(item => coverage(item, view.subject));
         // An earlier immediate permit (no Checkpoint) was the Host's own
         // answer for this attempt. When the Host supplies a decision
@@ -800,7 +856,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
         if (match !== undefined) {
           try { earlierApprovalsCurrent(); }
           catch (error) {
-            admissionRefusal = error.code;
+            admissionRefusal = (error as ErrorFields).code;
             throw error;
           }
           const admitted = admit({requiredClaims: view.requiredClaims});
@@ -822,7 +878,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
         deferral: deferralFor({prepareAttemptId, request, requestCid,
           texts: {current: texts}, approved, binding, port}),
       }), counts, approved);
-      let runId;
+      let runId: string | undefined;
       try {
         const result = await runExample({
           ...exampleOptions(request),
@@ -838,7 +894,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
             // Re-prove the fence before any provider I/O: a superseded
             // claimant stops here.
             beforeAcquisition() {
-              fence.claim = journal.renewResume(fence.claim, leaseMs);
+              fence.claim = journal.renewResume(fence.claim, leaseMs) as typeof fence.claim;
               earlierApprovalsCurrent();
               // The provider session is the protected send: enter the
               // admission (fence, approval validity, single start per claim
@@ -849,7 +905,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
               // With every boundary now allowed there is no approval
               // admission, but the same ownership admission still applies.
               admission ??= admit({approvalClaims: false}).admission;
-              admission.enter();
+              admission!.enter();
             },
             // Preparation completed: the continuation creates its Run
             // directly in `running`, atomically with the intent completion.
@@ -861,24 +917,24 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
             },
           },
         });
-        return await completed(result, runId, counts,
+        return await completed(result, runId!, counts,
           {prepare_attempt_id: prepareAttemptId});
       } catch (error) {
         if (runId !== undefined) {
           journal.finishRun(runId, {status: 'failed'});
-          return plain({status: 'failed', run_id: runId, code: error.code,
+          return plain({status: 'failed', run_id: runId, code: (error as ErrorFields).code,
             prepare_attempt_id: prepareAttemptId, counters: counts});
         }
         // An earlier claim generation entered its provider session and its
         // outcome is unknown: the intent is neither completed nor failed
         // here. It stays for reconciliation or that generation's completion.
-        if (error?.code === 'PriorAdmissionUnresolved') {
+        if ((error as ErrorFields | null | undefined)?.code === 'PriorAdmissionUnresolved') {
           return plain({status: 'reconciliation_required',
-            prepare_attempt_id: prepareAttemptId, code: error.code,
-            prior_generation: error.priorAdmission?.generation,
+            prepare_attempt_id: prepareAttemptId, code: (error as ErrorFields).code,
+            prior_generation: (error as ErrorFields).priorAdmission?.generation,
             counters: counts});
         }
-        if (error?.code === 'ResumeClaimStale' ||
+        if ((error as ErrorFields | null | undefined)?.code === 'ResumeClaimStale' ||
             admissionRefusal === 'ResumeClaimStale') {
           return staleClaim('ResumeClaimStale');
         }
@@ -886,13 +942,13 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
           if (error.authorization?.action === 'waiting') {
             return refusal(error, counts);
           }
-          return end('failed', {runtime_code: error.runtimeCode,
-            boundary: error.authorization?.boundary,
+          return end('failed', {runtime_code: (error as ErrorFields).runtimeCode,
+            boundary: (error.authorization as GateDecision | null | undefined)?.boundary,
             reason: error.authorization?.reason,
             ...(admissionRefusal === undefined ? {}
               : {code: admissionRefusal})});
         }
-        try { return await end('failed', {code: error.code}); }
+        try { return await end('failed', {code: (error as ErrorFields).code}); }
         catch { throw error; }
       }
     },
@@ -914,7 +970,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
   });
 }
 
-function parseSigner(signer) {
+function parseSigner(signer: SignerDocument | null | undefined) {
   if (signer === null || typeof signer !== 'object' ||
       !IDENTIFIER.test(signer.key_id ?? '') ||
       !IDENTIFIER.test(signer.reviewer_id ?? '') ||
@@ -925,19 +981,19 @@ function parseSigner(signer) {
     privateKey: createPrivateKey(signer.private_key_pem)});
 }
 
-export async function readSigner(path) {
+export async function readSigner(path: string): Promise<unknown> {
   if (typeof path !== 'string' || path.length === 0) fail('SignerRequired');
   try { return JSON.parse(await readFile(resolve(path), 'utf8')); }
   catch (error) { fail('InvalidSigner', error); }
 }
 
-const signText = (text, key) =>
+const signText = (text: string, key: ReturnType<typeof parseSigner>) =>
   sign(null, Buffer.from(text, 'utf8'), key.privateKey).toString('base64');
 
 // One Resolution for one Checkpoint, signed per the pinned preimage rule:
 // Ed25519 over the unsigned Resolution CID text. An approval carries its own
 // run-scope approval evidence bound to this Checkpoint only.
-function resolutionFor(view, decision, key, decidedAt) {
+function resolutionFor(view: CheckpointView, decision: ApprovalDecision, key: ReturnType<typeof parseSigner>, decidedAt: string) {
   let evidence;
   if (decision === 'approved') {
     const approval = {
@@ -948,7 +1004,7 @@ function resolutionFor(view, decision, key, decidedAt) {
       approver: key.reviewerId,
       approved_at: decidedAt,
       expires_at: view.expiresAt,
-    };
+    } as {proof?: Signature; run_scope_approval_cid?: string} & Readonly<Record<string, unknown>>;
     approval.proof = {scheme: 'ed25519-v1', key_id: key.keyId,
       signature: signText(contentCid(approval), key)};
     approval.run_scope_approval_cid = contentCid(approval);
@@ -975,7 +1031,7 @@ function resolutionFor(view, decision, key, decidedAt) {
     required_artifact_cid: view.requiredArtifact.cid,
     review_projection_cid: view.reviewProjectionCid,
     ...(evidence === undefined ? {} : {approval_evidence_cid: contentCid(evidence)}),
-  };
+  } as {proof?: Signature; resolution_cid?: string} & Readonly<Record<string, unknown>>;
   body.proof = {scheme: 'ed25519-v1', key_id: key.keyId,
     signature: signText(contentCid(body), key)};
   body.resolution_cid = contentCid(body);
