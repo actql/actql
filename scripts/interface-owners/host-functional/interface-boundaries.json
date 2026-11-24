@@ -19408,7 +19408,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "79c288c5b510d8dddd330573be7ace911a78009c51dcb43f5f58ff91e12d5358",
+      "sha256": "ef5af1072f02e402080ae2619629c465aa7cabca8644fcd268079f46c9f440af",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -19511,16 +19511,9 @@
           "async": false
         },
         {
-          "name": "installRemoteCheckpoints/continuationOf/references/references",
+          "name": "installRemoteCheckpoints/captureInventory",
           "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/continuedOccurrence/occurrence/occurrence",
-          "parameters": [
-            "item"
+            "captured"
           ],
           "async": false
         },
@@ -19540,14 +19533,6 @@
           "name": "installRemoteCheckpoints/effectTargetAuthorities/effectTargetAuthorities",
           "parameters": [
             "installed"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/held",
-          "parameters": [
-            "prepareAttemptId",
-            "requestId"
           ],
           "async": false
         },
@@ -20286,14 +20271,6 @@
           "async": false
         },
         {
-          "name": "installRemoteCheckpoints/recordHeld",
-          "parameters": [
-            "prepareAttemptId",
-            "requestId"
-          ],
-          "async": true
-        },
-        {
           "name": "installRemoteCheckpoints/resumeGate/init:describe/init:describe",
           "parameters": [],
           "async": false
@@ -20399,12 +20376,9 @@
             "installRemoteCheckpoints/binding/binding",
             "installRemoteCheckpoints/binding/binding#2",
             "installRemoteCheckpoints/binding/binding/binding",
-            "installRemoteCheckpoints/continuationOf/references/references",
-            "installRemoteCheckpoints/continuedOccurrence/occurrence/occurrence",
             "installRemoteCheckpoints/decideRead/answering/answering",
             "installRemoteCheckpoints/drain",
             "installRemoteCheckpoints/effectTargetAuthorities/effectTargetAuthorities",
-            "installRemoteCheckpoints/held",
             "installRemoteCheckpoints/init:acceptAcquisition/init:acceptAcquisition",
             "installRemoteCheckpoints/init:acceptRun/init:acceptRun",
             "installRemoteCheckpoints/init:acceptRun/init:acceptRun/answering/answering",
@@ -20518,7 +20492,7 @@
             "installRemoteCheckpoints/sweep/sweep/sweep",
             "installRemoteCheckpoints/modelCustody/modelCustody",
             "installRemoteCheckpoints/installedSource",
-            "installRemoteCheckpoints/recordHeld"
+            "installRemoteCheckpoints/captureInventory"
           ],
           "exports": [
             "installRemoteCheckpoints"
@@ -21579,6 +21553,7 @@
         "./checkpoint-runtime.mjs",
         "./client-checkpoint-admission-inputs.mjs",
         "./client-checkpoint-held-deferral.mjs",
+        "./client-checkpoint-held-recovery.mjs",
         "./client-checkpoint-model-custody.mjs",
         "./effect-target-read-inventory.mjs",
         "./installed-host-cleanup.mjs",
@@ -21587,6 +21562,224 @@
         "./model-checkpoint-metadata.mjs",
         "./sqlite-checkpoint-journal.mjs",
         "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/client-checkpoint-held-recovery.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "f239e7d2faa26015ad97fb4523c3affe3a0468989e05f5b0d001fbf12f59307d",
+      "role": "physical-io",
+      "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
+      "exports": [
+        "createCheckpointHeldIndex",
+        "createCheckpointHeldRecovery"
+      ],
+      "operations": [
+        {
+          "name": "createCheckpointHeldIndex",
+          "parameters": [
+            "heldIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointHeldIndex/indexedRequestId",
+          "parameters": [
+            "prepareAttemptId"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointHeldIndex/recordHeld",
+          "parameters": [
+            "prepareAttemptId",
+            "requestId"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointHeldRecovery",
+          "parameters": [
+            "captureInventory",
+            "evidence",
+            "acquisitionIntent",
+            "journal",
+            "indexedRequestId",
+            "recordHeld",
+            "now"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointHeldRecovery/admittedRead",
+          "parameters": [
+            "captured",
+            "occurrence",
+            "checkpointCid",
+            "earlier",
+            "prepareAttemptId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointHeldRecovery/continuationOf",
+          "parameters": [
+            "prepareAttemptId",
+            "continuationStateCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointHeldRecovery/continuationOf/references/references",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointHeldRecovery/continuedOccurrence",
+          "parameters": [
+            "captured",
+            "continuation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointHeldRecovery/continuedOccurrence/occurrence/occurrence",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointHeldRecovery/earlierReadApprovals",
+          "parameters": [
+            "prepareAttemptId",
+            "captured",
+            "earlier"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointHeldRecovery/held",
+          "parameters": [
+            "prepareAttemptId",
+            "requestId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointHeldRecovery/heldRequestId",
+          "parameters": [
+            "prepareAttemptId"
+          ],
+          "async": true
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createCheckpointHeldIndex",
+            "createCheckpointHeldIndex/indexedRequestId",
+            "createCheckpointHeldIndex/recordHeld",
+            "createCheckpointHeldRecovery",
+            "createCheckpointHeldRecovery/admittedRead",
+            "createCheckpointHeldRecovery/continuationOf",
+            "createCheckpointHeldRecovery/continuationOf/references/references",
+            "createCheckpointHeldRecovery/continuedOccurrence",
+            "createCheckpointHeldRecovery/continuedOccurrence/occurrence/occurrence",
+            "createCheckpointHeldRecovery/earlierReadApprovals",
+            "createCheckpointHeldRecovery/held",
+            "createCheckpointHeldRecovery/heldRequestId"
+          ],
+          "exports": [
+            "createCheckpointHeldIndex",
+            "createCheckpointHeldRecovery"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-recovery.mts",
+                "anchor": "export function createCheckpointHeldRecovery({captureInventory, evidence,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoint-held-recovery.mts",
+                "anchor": "export function createCheckpointHeldIndex(heldIndex: string)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-recovery.mts",
+                "anchor": "type Continuation = Readonly<{"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-recovery.mts",
+                "anchor": "contentCid(request) !== opened.requestCid ||"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "heldRequestId, held} = createCheckpointHeldRecovery({captureInventory,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-recovery.mts",
+                "anchor": "await syncDirectory(heldIndex);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-recovery.mts",
+                "anchor": "fail('ArtifactIntegrityFailed');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-two-source-checkpoints.test.mjs",
+                "anchor": "cancelling after the first source approval starts neither source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-recovery.mts",
+                "anchor": "const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-recovery.mts",
+                "anchor": "approved.set(key, admittedRead(captured, occurrence, {checkpointCid,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/remote-acquisition-checkpoint.test.mjs",
+                "anchor": "A3: a held read survives a Host restart and resumes by itself"
+              },
+              {
+                "path": "adapters/host-node/client-two-source-checkpoints.test.mjs",
+                "anchor": "an earlier occurrence approval is rechecked immediately before physical start"
+              },
+              {
+                "path": "adapters/host-node/client-two-source-checkpoints.test.mjs",
+                "anchor": "repeated view approvals resume distinct slots after restart"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./client-checkpoint-admission-inputs.mjs",
+        "./local-account-config.mjs",
         "node:fs/promises",
         "node:path"
       ],

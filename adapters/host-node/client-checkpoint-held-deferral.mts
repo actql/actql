@@ -17,7 +17,7 @@ type GateOptions = NonNullable<Parameters<typeof createLocalAuthorizationGate>[0
 type AuthorizationView = Parameters<NonNullable<GateOptions['deferral']>['describe']>[0];
 type Gate = Pick<Awaited<ReturnType<typeof createLocalAuthorizationGate>>, 'contextCid' | 'configurationCid'>;
 type RequestIdentity = Readonly<{logicalRequestScopeCid: string; intentFingerprintCid: string}>;
-type CapturedRequest = SourceCapture & Readonly<{
+export type CapturedRequest = SourceCapture & Readonly<{
   requestId: string; principalId: string; parameters: unknown; resultNames: readonly string[];
 }> & (Readonly<{kind: 'aql'; input: Readonly<{format: string; text: string}>}> |
   Readonly<{kind: 'program'; input: unknown}>);
