@@ -23056,7 +23056,7 @@
                 "anchor": "## Installed RowSource lookup execution evidence"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "public Local installer funds and forwards its same installed row read profile and transport"
               }
             ],
@@ -23304,11 +23304,11 @@
                 "anchor": "identity response encoder ignores Object and Array prototype toJSON hooks"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "public Local profile constructor refuses before projection on the original Source budget"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "public Local profile construction observes original retirement before authorization or Source publication"
               },
               {

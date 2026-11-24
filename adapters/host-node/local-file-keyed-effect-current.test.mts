@@ -4,21 +4,26 @@ import {readFile} from 'node:fs/promises';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {installPreparedProjectLocalFiles} from '../connectors/local/host/installed-project-files.mjs';
 
-const ok = value => ({$tag: 1, _0: value});
+import type {TestContext} from 'node:test';
+
+type Install = Parameters<typeof installPreparedProjectLocalFiles>[0];
+type HostError = Readonly<{message: string; cause?: Error; primaryFailure?: unknown}>;
+
+const ok = (value?: unknown) => ({$tag: 1, _0: value});
 const cid = 'sha256:' + 'a'.repeat(64);
 
 // Imported installer and row-source caller with explicit nominal Core/Account
 // ports. This tests handoff and cleanup ordering, not Resource admission,
 // authorization, native I/O or a physical cleanup ACK.
-async function fixture(t, {loseCurrent = false} = {}) {
+async function fixture(t: TestContext, {loseCurrent = false} = {}) {
   const prepared = {}, keyed = {}, intent = {}, request = {}, declaration = {}, managed = {};
-  const directRead = {}, coreRead = {}, requirement = {}, capacity = {}, events = [];
+  const directRead = {}, coreRead = {}, requirement = {}, capacity = {}, events: string[] = [];
   const stop = new Error('StopAfterOriginalKeyedRead');
   let current = true;
-  const facts = ref => [ref, cid, cid, cid, 'public', cid];
-  const raw = name => ({retainChild() {assert.fail('No native child is opened');},
+  const facts = (ref: string) => [ref, cid, cid, cid, 'public', cid];
+  const raw = (name: string) => ({retainChild() {assert.fail('No native child is opened');},
     close() {events.push(name + '-close'); return {pending: false};}});
-  const checkManaged = (value, owner, selected) => {
+  const checkManaged = (value: unknown, owner: unknown, selected: unknown) => {
     assert.strictEqual(value, managed); assert.strictEqual(owner, prepared);
     assert.strictEqual(selected, intent); return ok();
   };
@@ -35,7 +40,7 @@ async function fixture(t, {loseCurrent = false} = {}) {
     clientProgramInstalledSourceReadBindProgram: () => assert.fail('No Pure parent'),
     clientProgramInstalledSourceReadAttachAcquisition: () => assert.fail('No replacement acquisition'),
     clientProgramInstalledSourceReadCheckCurrent: () => ok(),
-    clientProgramInstalledSourceReadRetire(value) {
+    clientProgramInstalledSourceReadRetire(value: unknown) {
       assert.strictEqual(value, directRead); events.push('direct-retire'); return ok();
     },
     clientProgramQueryRequirementSourceEvidenceFacts: () => ok(facts('local:files')),
@@ -44,7 +49,7 @@ async function fixture(t, {loseCurrent = false} = {}) {
     clientProgramQueryRequirementOutputContractCid: () => cid,
     clientProgramRowSourceTarget: () => ok(['files', 'path']),
     clientProgramEffectRequestScope: () => ({}),
-    clientProgramKeyedAcquisitionMatchesEffectProgram(k, p) {
+    clientProgramKeyedAcquisitionMatchesEffectProgram(k: unknown, p: unknown) {
       assert.strictEqual(k, keyed); assert.strictEqual(p, prepared); return true;
     },
     clientProgramKeyedRowPrepareCapacity: () => ok(capacity),
@@ -53,16 +58,16 @@ async function fixture(t, {loseCurrent = false} = {}) {
     clientProgramKeyedRowCapacityTarget: () => ok(['contents', 'content']),
     clientRequestProgramCid: () => cid,
     clientRequestParametersCid: () => cid,
-    clientProgramInstalledManagedEffectKeyedSourceRead(...args) {
+    clientProgramInstalledManagedEffectKeyedSourceRead(...args: unknown[]) {
       assert.deepEqual(args, [managed, keyed, request, declaration, 1024, 1024, 1000000]);
       events.push('core-read'); return ok(coreRead);
     },
     clientProgramInstalledManagedKeyedSourceRead() {assert.fail('No Pure content recipe');},
-    clientProgramInstalledKeyedSourceReadCheckCurrent(value) {
+    clientProgramInstalledKeyedSourceReadCheckCurrent(value: unknown) {
       assert.strictEqual(value, coreRead); throw stop;
     },
     clientProgramInstalledKeyedSourceReadAcquisition() {assert.fail('Stop before row acquisition');},
-    clientProgramInstalledKeyedSourceReadRetire(value) {
+    clientProgramInstalledKeyedSourceReadRetire(value: unknown) {
       assert.strictEqual(value, coreRead); events.push('keyed-retire'); return ok();
     },
   };
@@ -83,25 +88,25 @@ async function fixture(t, {loseCurrent = false} = {}) {
       authorize: async () => ({action: 'dispatch'}), assertAccountCurrent() {}}),
     sourceManaged: {assertCurrent() {if (!current) throw new Error('OriginalCurrentLost');},
       prepareRead: () => raw('direct'),
-      prepareKeyedRead(...args) {
+      prepareKeyedRead(...args: unknown[]) {
         assert.deepEqual(args, [prepared, declaration, managed, request]);
         events.push('retain-physical-duty');
         if (loseCurrent) current = false;
         return raw('keyed');
       }},
-  }).catch(error => {throw error.primaryFailure ?? error;});
+  } as unknown as Install).catch((error: HostError) => {throw error.primaryFailure ?? error;});
   t.after(() => profile.close());
   const source = profile.sources[0];
-  await source.prepare({preparedEffect: prepared, managedRun: managed, requestIdentity: intent});
-  const selected = await source.prepareKeyed({preparedEffect: prepared, keyedAcquisition: keyed,
+  await source.prepare({preparedEffect: prepared, managedRun: managed, requestIdentity: intent} as Parameters<typeof source.prepare>[0]);
+  const selected = await source.prepareKeyed!({preparedEffect: prepared, keyedAcquisition: keyed,
     requestIdentity: intent});
-  return {events, stop, profile, invoke: () => source.openKeyed({preparedEffect: prepared,
+  return {events, stop, profile, invoke: () => source.openKeyed!({preparedEffect: prepared,
     managedRun: managed, keyedAcquisition: keyed, request, ledger: {}, preparedKeyed: selected.prepared})};
 }
 
 test('Local File Effect keyed read retains its original child before the existing typed parent port', async t => {
   const f = await fixture(t);
-  await assert.rejects(f.invoke, error => error.cause === f.stop || error === f.stop);
+  await assert.rejects(f.invoke, (error: unknown) => (error as HostError).cause === f.stop || error === f.stop);
   assert.deepEqual(f.events.slice(0, 2), ['retain-physical-duty', 'core-read']);
   assert(f.events.indexOf('keyed-close') > f.events.indexOf('core-read'));
   await f.profile.close();
@@ -115,8 +120,8 @@ test('Local File Effect keyed read retains its original child before the existin
 
 test('Local File Effect keyed read retains partial child custody when original current is lost', async t => {
   const f = await fixture(t, {loseCurrent: true});
-  await assert.rejects(f.invoke, error => /OriginalCurrentLost/u.test(error.message) ||
-    /OriginalCurrentLost/u.test(error.cause?.message));
+  await assert.rejects(f.invoke, (error: unknown) => /OriginalCurrentLost/u.test((error as HostError).message) ||
+    /OriginalCurrentLost/u.test((error as HostError).cause?.message!));
   assert.deepEqual(f.events, ['retain-physical-duty']);
   await f.profile.close();
   assert.deepEqual(f.events, ['retain-physical-duty', 'direct-close', 'direct-retire', 'keyed-close']);

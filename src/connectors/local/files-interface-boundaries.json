@@ -1178,7 +1178,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "test("
               },
               {
@@ -1226,19 +1226,19 @@
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "public Local installer funds and forwards its same installed row read profile and transport"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "public Local profile constructor refuses before projection on the original Source budget"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "public Local profile construction observes original retirement before authorization or Source publication"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "combined Local Source and STORE initialization retain the same original connection binding"
               }
             ]
@@ -1475,7 +1475,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "test("
               },
               {
@@ -2039,7 +2039,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "test("
               },
               {
@@ -2278,7 +2278,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "test('actual Common Local preparation preserves original Project bytes"
               }
             ]
@@ -2974,7 +2974,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "combined Local Source and STORE initialization retain the same original connection binding"
               },
               {

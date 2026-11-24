@@ -3196,3 +3196,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs
 /adapters/connectors/local/host/installed-project-files.mjs
 /adapters/connectors/local/host/installed-project-files.d.mts
+/adapters/connectors/local/host/installed-project-files.actual.test.mjs
+/adapters/connectors/local/host/installed-project-files.actual.test.d.mts
+/adapters/host-node/local-file-keyed-effect-current.test.mjs
+/adapters/host-node/local-file-keyed-effect-current.test.d.mts
