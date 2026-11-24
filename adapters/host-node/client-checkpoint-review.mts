@@ -199,26 +199,19 @@ export function createCheckpointReview(ports: Ports) {
         } else if (view.kind === 'effect_set' && view.prepareAttemptId === null) {
           const opened = await evidence.open(`effect-${view.runId}`);
           if (opened.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
-          // Old pending checkpoints retain their original full-byte identity;
-          // this read never upgrades their evidence or reissues a checkpoint.
-          if (opened.held('review_projection').includes(view.reviewProjectionCid)) {
-            bytes = await opened.bytes('review_projection', view.reviewProjectionCid,
-              {maxBytes: bound});
-          } else {
-            bytes = await opened.artifactBytes('review_projection', view.reviewProjectionCid,
-              {maxBytes: bound});
-            const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
-            const review = contractControl.admitRunEvidence('review_projection', wire,
-              {...INSTALLED_EFFECT_CHECKPOINT_LIMITS, maxWireBytes: bound});
-            if (review.wire !== wire || review.identity !== view.reviewProjectionCid) {
-              fail('EffectReviewProjectionMismatch');
-            }
-            const body = JSON.parse(wire);
-            if (body.effect_preview_cid !== view.requiredArtifact.cid ||
-                body.authority_scope_cid !== authorityScopeCid ||
-                JSON.stringify(body.approval_claims) !== JSON.stringify(view.requirements)) {
-              fail('EffectReviewProjectionMismatch');
-            }
+          bytes = await opened.artifactBytes('review_projection', view.reviewProjectionCid,
+            {maxBytes: bound});
+          const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
+          const review = contractControl.admitRunEvidence('review_projection', wire,
+            {...INSTALLED_EFFECT_CHECKPOINT_LIMITS, maxWireBytes: bound});
+          if (review.wire !== wire || review.identity !== view.reviewProjectionCid) {
+            fail('EffectReviewProjectionMismatch');
+          }
+          const body = JSON.parse(wire);
+          if (body.effect_preview_cid !== view.requiredArtifact.cid ||
+              body.authority_scope_cid !== authorityScopeCid ||
+              JSON.stringify(body.approval_claims) !== JSON.stringify(view.requirements)) {
+            fail('EffectReviewProjectionMismatch');
           }
         } else {
           const opened = await evidence.open(view.prepareAttemptId ?? `effect-${view.runId}`);

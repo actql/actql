@@ -21472,7 +21472,7 @@
     {
       "module": "adapters/host-node/client-checkpoint-review.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fe53571754129718835e64098ff6c7d09db38b3af3c718dd8417e1b5ed2d52cb",
+      "sha256": "f460e30c3ce41cecbe02ee00047617c0c7ee6cfa64740546083f824fcc2b36d3",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -21676,6 +21676,10 @@
               {
                 "path": "adapters/host-node/local-checkpoint-answer.actual.test.mjs",
                 "anchor": "actual Local Mock answers its original Checkpoint after reopen and applies the same Run once"
+              },
+              {
+                "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
+                "anchor": "Effect review refuses a retained full-byte CID without artifact custody"
               }
             ]
           }

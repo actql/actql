@@ -22,6 +22,8 @@ import * as moon from
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {loadPrivateEvidenceKey, openContinuationEvidence} from './local-continuation-evidence.mjs';
+import {INSTALLED_EFFECT_CHECKPOINT_LIMITS} from '../host-common/installed-checkpoint-codec-limits.mjs';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
 import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 import {authorizationDispatchFacts} from
@@ -642,6 +644,52 @@ test('Effect review and signed answer survive installed service restart',
       {...scope, operation: 'effect'}, {subjectCid: cid('2')}),
     {code: 'AuthorizationDecisionScopeClosed'});
   });
+
+test('Effect review refuses a retained full-byte CID without artifact custody', async t => {
+  const {open, root, clock} = await fixture(t);
+  const installed = await open();
+  const contractControl = runtimeCore(moon).publicationControl;
+  const stateDirectory = join(root, 'checkpoints');
+  const runId = 'unsupported-review';
+  const runDefinitionCid = cid('1');
+  const storageId = `effect-${runId}`;
+  const requirements = ['effect_scope_approved'];
+  const review = checkpointEffectReviewDouble(contractControl, cid('2'))({
+    authorityScopeCid: cid('3'), approvalClaims: requirements, redactionPolicyCid: cid('7'),
+  }, INSTALLED_EFFECT_CHECKPOINT_LIMITS);
+  const fullCid = 'sha256:' + createHash('sha256').update(review.wire).digest('hex');
+  assert.notEqual(fullCid, review.identity);
+  const evidence = openContinuationEvidence({stateDirectory,
+    ...await loadPrivateEvidenceKey(stateDirectory), contractControl,
+    preparation() {return undefined;}, isTerminalRunOutcome: installed.journal.isTerminalRunOutcome});
+  t.after(() => evidence.close());
+  // Import unsupported evidence as fixture data in a fresh original. There
+  // is no current artifact association and no existing holding is changed.
+  const [savedCid, continuationCid] = await evidence.hold(storageId, runDefinitionCid, [
+    {name: 'review_projection', wire: review.wire},
+    {name: 'continuation_record', wire: canonicalJson({requestId: 'unsupported-review'})},
+  ]);
+  assert.equal(savedCid, fullCid);
+  const {checkpointCid} = installed.journal.persistCheckpoint({
+    body: {version: 'actql-execution-checkpoint/0.1', checkpoint_id: 'unsupported-review-checkpoint',
+      run_id: runId, run_definition_cid: runDefinitionCid, continuation_state_cid: continuationCid,
+      subject: {kind: 'run_unit', run_id: runId, unit_id: 'unit-a', continuation: 'resume_unit'},
+      phase: 'commit', kind: 'effect_set',
+      required_artifact: {artifact_type: 'effect_set_preview', artifact_cid: cid('2')},
+      requirements, review_projection_cid: fullCid, reason_code: 'user_requested_stop',
+      human_summary: 'Unsupported full-byte Effect review',
+      created_at: new Date(clock).toISOString(), expires_at: new Date(clock + 86_400_000).toISOString()},
+    priorStatus: 'running', declaredResults: ['answer'],
+    authorities: [{keyId: 'reviewer-key', reviewerId: 'reviewer'}],
+    binding: installed.binding, decisionSubjectCid: cid('2'), requestedClaims: [],
+  });
+  const original = installed.journal.originalCheckpointForSigning(checkpointCid);
+  await assert.rejects(installed.reviewCheckpoint({principalId: 'reviewer', checkpointCid, maxBytes: 4096}),
+    error => error.code === 'CheckpointReviewUnavailable' && error.cause?.code === 'ContinuationEvidenceNotHeld');
+  assert.deepEqual(installed.journal.originalCheckpointForSigning(checkpointCid), original);
+  const held = await evidence.open(storageId);
+  assert.deepEqual(await held.bytes('review_projection', fullCid), Buffer.from(review.wire));
+});
 
 test('only explicit Host policy requests partial-application acceptance',
   async t => {
