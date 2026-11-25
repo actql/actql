@@ -1,6 +1,6 @@
 // SQLite readOnly connections may create -shm or checkpoint during close.
-// Never open an unclassified source database with SQLite. Pin read-only file
-// descriptors, inspect an isolated DB+WAL copy, and refuse concurrent changes.
+// Pin read-only file descriptors and inspect an isolated DB+WAL copy. An
+// exclusively owned original with no WAL can be inspected immutably in place.
 import {DatabaseSync} from 'node:sqlite';
 import type {DatabaseSyncOptions} from 'node:sqlite';
 import type {BigIntStats, Dir, Dirent} from 'node:fs';
@@ -8,6 +8,7 @@ import {closeSync, constants, existsSync, fstatSync, lstatSync, mkdtempSync,
   openSync, opendirSync, readSync, realpathSync, rmSync, writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, isAbsolute, sep} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';
 import {type SqliteSchemaReadLimits, snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport,
   inspectBoundedSqliteSchema} from './sqlite-schema-resource-bounds.mjs';
@@ -17,6 +18,8 @@ type DirectoryOptions = Readonly<{maxEntries?: number; unavailableCode?: string;
 type SnapshotOptions = Readonly<{
   code?: string; validateSource?: () => boolean; maxSourceBytes?: number; unavailableCode?: string;
   schemaReadLimits?: unknown; schemaSqlSupport?: unknown; assertCurrent?: () => SynchronousRuntimeData;
+  assertExclusiveSource?: () => void;
+  checkUserVersion?: (version: number) => void;
   temporaryDirectory?: string;
 }>;
 type FileOriginal = {
@@ -107,11 +110,15 @@ export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>(
   schemaReadLimits,
   schemaSqlSupport,
   assertCurrent,
+  assertExclusiveSource,
+  checkUserVersion,
   temporaryDirectory,
 }: SnapshotOptions = {}): Result {
   if (!Number.isSafeInteger(maxSourceBytes) || maxSourceBytes < 1 ||
       typeof unavailableCode !== 'string' || unavailableCode.length === 0 ||
       assertCurrent !== undefined && typeof assertCurrent !== 'function' ||
+      assertExclusiveSource !== undefined && typeof assertExclusiveSource !== 'function' ||
+      checkUserVersion !== undefined && typeof checkUserVersion !== 'function' ||
       temporaryDirectory !== undefined && (typeof temporaryDirectory !== 'string' ||
         temporaryDirectory.length === 0 || temporaryDirectory.length > 4096 ||
         !isAbsolute(temporaryDirectory) || temporaryDirectory.includes('\0'))) {
@@ -194,6 +201,7 @@ export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>(
     },
   };
   try {
+    assertExclusiveSource?.();
     if (existsSync(`${databasePath}-journal`)) fail();
     const hadWal = existsSync(walPath);
     let retainedSourceBytes = 0n;
@@ -214,46 +222,56 @@ export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>(
         throw Object.assign(new Error(unavailableCode), {code: unavailableCode});
       }
     }
-    // The selected original avoids the JS symlink walk's growing managed
-    // path history. Native path/allocator/stack coverage is still required.
-    // A selected Root retains this original before native image acquisition.
-    // Do not reacquire ambient TMPDIR after that selection. The path itself
-    // is neither a filesystem supplier nor an operational admission.
-    const scratchOriginal = temporaryDirectory === undefined ? tmpdir() : temporaryDirectory;
-    const scratch = assertCurrent === undefined ? realpathSync(scratchOriginal) :
-      nativePathApply(originalNativeRealpath!, originalRealpath, [scratchOriginal, nativePathOptions]) as string;
-    const sourceDirectory = assertCurrent === undefined ? realpathSync(dirname(databasePath)) :
-      nativePathApply(originalNativeRealpath!, originalRealpath, [dirname(databasePath), nativePathOptions]) as string;
-    const withinSource = relative(sourceDirectory, scratch);
-    if (withinSource === '' ||
-        (withinSource !== '..' && !withinSource.startsWith(`..${sep}`) &&
-          !isAbsolute(withinSource))) fail();
-    isolated = mkdtempSync(join(scratch, 'actql-journal-format-'));
-    // One original backing serves both DB and WAL copying. Falling out of a
-    // loop iteration is not a physical release of a previous Buffer backing.
-    const chunk = Buffer.allocUnsafe(64 * 1024);
-    for (const source of sources) {
-      const output = openSync(join(isolated, basename(source.path)), 'wx', 0o600);
-      const originalOutput = {fd: output, close: closeSync};
-      outputs.push(originalOutput);
-      try {
-        let offset = 0;
-        while (offset < Number(source.identity!.size)) {
-          const count = readSync(source.fd, chunk, 0,
-            Math.min(chunk.length, Number(source.identity!.size) - offset),
-            offset);
-          if (count === 0) fail();
-          let written = 0;
-          while (written < count) {
-            const countWritten = writeSync(output, chunk, written, count - written);
-            if (countWritten === 0) fail();
-            written += countWritten;
+    let inspectionPath: string;
+    if (assertExclusiveSource !== undefined && !hadWal) {
+      // Immutable mode bypasses SQLite's auxiliary writes but ignores WAL.
+      // Assert the same exclusive owner again before opening this exact file.
+      assertExclusiveSource();
+      if (existsSync(walPath) || existsSync(`${databasePath}-journal`)) fail();
+      inspectionPath = pathToFileURL(databasePath).href + '?mode=ro&immutable=1';
+    } else {
+      // The selected original avoids the JS symlink walk's growing managed
+      // path history. Native path/allocator/stack coverage is still required.
+      // A selected Root retains this original before native image acquisition.
+      // Do not reacquire ambient TMPDIR after that selection. The path itself
+      // is neither a filesystem supplier nor an operational admission.
+      const scratchOriginal = temporaryDirectory === undefined ? tmpdir() : temporaryDirectory;
+      const scratch = assertCurrent === undefined ? realpathSync(scratchOriginal) :
+        nativePathApply(originalNativeRealpath!, originalRealpath, [scratchOriginal, nativePathOptions]) as string;
+      const sourceDirectory = assertCurrent === undefined ? realpathSync(dirname(databasePath)) :
+        nativePathApply(originalNativeRealpath!, originalRealpath, [dirname(databasePath), nativePathOptions]) as string;
+      const withinSource = relative(sourceDirectory, scratch);
+      if (withinSource === '' ||
+          (withinSource !== '..' && !withinSource.startsWith(`..${sep}`) &&
+            !isAbsolute(withinSource))) fail();
+      isolated = mkdtempSync(join(scratch, 'actql-journal-format-'));
+      inspectionPath = join(isolated, basename(databasePath));
+      // One original backing serves both DB and WAL copying. Falling out of a
+      // loop iteration is not a physical release of a previous Buffer backing.
+      const chunk = Buffer.allocUnsafe(64 * 1024);
+      for (const source of sources) {
+        const output = openSync(join(isolated, basename(source.path)), 'wx', 0o600);
+        const originalOutput = {fd: output, close: closeSync};
+        outputs.push(originalOutput);
+        try {
+          let offset = 0;
+          while (offset < Number(source.identity!.size)) {
+            const count = readSync(source.fd, chunk, 0,
+              Math.min(chunk.length, Number(source.identity!.size) - offset),
+              offset);
+            if (count === 0) fail();
+            let written = 0;
+            while (written < count) {
+              const countWritten = writeSync(output, chunk, written, count - written);
+              if (countWritten === 0) fail();
+              written += countWritten;
+            }
+            offset += count;
           }
-          offset += count;
+        } finally {
+          closeFile(originalOutput);
+          outputs.pop();
         }
-      } finally {
-        closeFile(originalOutput);
-        outputs.pop();
       }
     }
     if (schemaReadLimits !== undefined) {
@@ -261,14 +279,18 @@ export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>(
       // the schema walk. They coexist with the pinned source FDs, and close
       // before native SQLite construction; failure stays under cleanup below.
       const copies = [];
-      for (const source of sources) {
-        const fd = openSync(join(isolated, basename(source.path)), constants.O_RDONLY |
-          (constants.O_NOFOLLOW ?? 0));
-        outputs.push({fd, close: closeSync});
-        copies.push({fd, bytes: Number(source.identity!.size)});
+      if (isolated === undefined) {
+        copies.push({fd: sources[0].fd, bytes: Number(sources[0].identity!.size)});
+      } else {
+        for (const source of sources) {
+          const fd = openSync(join(isolated, basename(source.path)), constants.O_RDONLY |
+            (constants.O_NOFOLLOW ?? 0));
+          outputs.push({fd, close: closeSync});
+          copies.push({fd, bytes: Number(source.identity!.size)});
+        }
       }
       inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits as SqliteSchemaReadLimits,
-        maxSourceBytes, schemaSqlSupport as readonly string[] | undefined);
+        maxSourceBytes, schemaSqlSupport as readonly string[] | undefined, checkUserVersion);
       while (outputs.length !== 0) {
         closeFile(outputs.at(-1)!);
         outputs.pop();
@@ -277,7 +299,7 @@ export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>(
     assertCurrent?.();
     // Keep the selected constructor's internal options closed: native Get
     // otherwise consults inherited callbacks before its wrapper is returned.
-    database = new DatabaseSync(join(isolated, basename(databasePath)),
+    database = new DatabaseSync(inspectionPath,
       assertCurrent === undefined ? {open: false, readOnly: true} :
         {__proto__: null, open: false, readOnly: true} as DatabaseSyncOptions & {__proto__: null});
     // The original wrapper and cleanup are retained before native open can
@@ -322,6 +344,7 @@ export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>(
       assertCurrent?.();
     }
     result = inspect(database);
+    assertExclusiveSource?.();
     if (existsSync(`${databasePath}-journal`) ||
         existsSync(walPath) !== hadWal || !validateSource() ||
         sources.some(source => !sameFile(source.identity!,

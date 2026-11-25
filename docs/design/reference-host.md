@@ -215,40 +215,25 @@ same-transaction retained count at the capacity decision. Name startup checks
 the exact schema/triggers and original counters without another global census;
 name use still checks issued/retained custody and authenticates its target.
 
-A bounded one-time legacy adoption derives usage from the original
-issuance/retirement prefix and detects extra or missing rows. The private
-SQLite `user_version` transition commits in the same transaction as those
-tables, triggers and singleton rows; it is not a public wire version. No
-subsequent filesystem marker is needed to complete that adoption. Complete
-metadata from the prior two-step format preserves its already derived intent
-and restart usage without reaggregating those bodies or changing issuance or
-retirement. The private v2-to-v3 change replaces only the two derived counter
-tables and their triggers in the same transaction, preserving exact count,
-bytes and revision, all original histories and existing request/cancel indices.
-It refuses a smaller selected parent before DDL; an interrupted migration rolls
-back under the same original Journal cleanup owner. The additive request/cancellation-count extension counts only each
-original issued prefix once, with one lookahead row to detect lost coverage,
-and commits both new singleton tables/triggers and its private header in the
-same transaction. It adds no per-Run durable transition. An
-absent or partial old derived marker neither issues authority nor blocks that
-bounded completion. Missing adopted tables, rows or triggers still refuse.
-Later ordinary opens and admissions
-read only the singleton usage rows and selected original, not aggregate
-historical request, cancellation, intent, name or restart bodies. This removes
-those SQL censuses. An ordinary Local Host also passes its existing same-root
-Store exclusion original to the Journal before native open. Under that
-exclusion, supported SQLite is the format authority: admission checks bounded
-schema/version metadata and singleton custody using the actual retained native
-connection, without copying all DB/WAL bytes or scanning historical bodies.
-Configured file extents, supported schema, selected-row authentication and
-native partial-open/close duties still apply. Internally owned SHM/WAL creation
-is normal SQLite resource management, not business authority. Standalone
-inspection without that same nominal exclusion retains the isolated strict
-snapshot path; deep whole-store inspection is not an ordinary-open prerequisite.
-Failed row changes roll back their usage;
-an unknown COMMIT remains unknown and cannot certify another insertion or a
-safe resend. This does not replace the original Run/intent reconstruction or
-any real native close acknowledgement.
+The Node Journal initializes these tables, triggers and singleton rows with
+private SQLite `user_version` 3 in the original fresh transaction. Reopen
+requires the current header, exact owned schema and its retained counters.
+It refuses v0, v1 and v2 before opening a writable original. The ordinary
+Local Host supplies its original same-root Store exclusion. With that
+exclusion and no retained WAL, immutable SQLite checks bounded metadata
+on the original read-only database without copying its bytes. Standalone
+inspection and inspection with a retained WAL use the isolated DB/WAL
+snapshot. Refusal preserves the original database, sidecars and markers.
+Reopen under the same owner also checks the configured schema and file
+extents, singleton custody and the existing selected-row authentication.
+Later admissions read the singleton usage rows and selected original
+without aggregating historical request, cancellation, intent, name or
+restart bodies.
+
+Failed row changes roll back their usage. An unknown COMMIT remains
+unknown and cannot certify another insertion or a safe resend. Original
+Run and intent reconstruction and native close acknowledgement continue
+under their existing owners.
 
 ## Original query evaluation time
 

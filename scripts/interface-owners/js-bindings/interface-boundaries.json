@@ -50683,7 +50683,7 @@
     },
     {
       "module": "adapters/host-node/client-source-operation.mjs",
-      "sha256": "a43eecb9342afc255ab33553c1f94afb17af46a029125af45c80a2586a0050fb",
+      "sha256": "b4e48bdfa385fdf4da2860932017f41421cf755fcc52359d32243ba5b6d7bf43",
       "exports": [
         "bindClientSourceOperation",
         "bindClientSourceOperationRowRun",

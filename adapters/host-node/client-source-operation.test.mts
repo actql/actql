@@ -258,8 +258,8 @@ test('private source-operation bounds refuse accessors and unknown fields before
 
 // Physical SQLite/Store originals are real; semantic compiler controls below
 // are explicit stand-ins. Public process-kill tests separately exercise Common.
-async function localOwnerFixture(t: TestContext, {legacy = false, beforeOpen}:
-  Readonly<{legacy?: boolean; beforeOpen?: (directory: string) => void | Promise<void>}> = {}) {
+async function localOwnerFixture(t: TestContext, {standalone = false, beforeOpen}:
+  Readonly<{standalone?: boolean; beforeOpen?: (directory: string) => void | Promise<void>}> = {}) {
   const parent = fileURLToPath(new URL('../../_build/local-owner-journal-fixtures/', import.meta.url));
   fs.mkdirSync(parent, {recursive: true});
   const root = fs.mkdtempSync(join(parent, 'case-'));
@@ -288,7 +288,7 @@ async function localOwnerFixture(t: TestContext, {legacy = false, beforeOpen}:
       !current ? 5 : reserved && fresh && !cancelled ? 1 : 0};
   if (beforeOpen !== undefined) await beforeOpen(publicationDirectory);
   let owner = await prepareLocalPublicationStoreOwnership(publicationDirectory);
-  let journal: Journal = openClientRequestJournal(directory, {}, legacy ? undefined : owner);
+  let journal: Journal = openClientRequestJournal(directory, {}, standalone ? undefined : owner);
   let store = await openLocalPublicationStore(storeConfiguration, storeControl,
     undefined, undefined, owner);
   const accepted = journal.acceptDefinition(request, options, control, publication);
@@ -353,11 +353,21 @@ test('local execution owner receipt rolls back with an uncommitted physical-star
   assert.equal(f.start(), true); assert.equal(f.rows().length, 1);
 });
 
-test('legacy started originals have no local execution owner proof after lease adoption', async t => {
-  const f = await localOwnerFixture(t, {legacy: true});
-  assert.equal(f.start(), true); await f.reopen();
-  assert.equal(f.rows().length, 0);
-  assert.equal(f.journal.observeStoppedLocalExecutionOwner(f.ref, f.frame()), false);
+test('owned Journal refuses to add a missing execution-owner table during reopen', async t => {
+  const f = await localOwnerFixture(t, {standalone: true});
+  assert.equal(f.start(), true);
+  f.journal.close();
+  const original = () => fs.readdirSync(f.directory).sort()
+    .map(name => [name, fs.readFileSync(join(f.directory, name))]);
+  const before = original();
+  await assert.rejects(f.reopen(), {code: 'UnknownClientRequestJournalFormat'});
+  assert.deepEqual(original(), before);
+  const standalone = openClientRequestJournal(f.directory);
+  try {
+    const frame = standalone.lookupRunDefinition(f.ref, f.control, f.publication)!;
+    assert.equal(frame.physicalStartReserved, true);
+    assert.equal(standalone.observeStoppedLocalExecutionOwner(f.ref, frame), false);
+  } finally {standalone.close();}
 });
 
 test('local execution owner observation rejects a changed retained frame instead of overwriting a stop', async t => {
