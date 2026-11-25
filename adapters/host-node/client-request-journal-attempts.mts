@@ -239,6 +239,14 @@ export function createJournalCancellation(database: JournalSqlConnection,
     }
     return {row, facts: retainedRunFacts(row, publicationControl, maxRunDefinitionWireBytes, updateOriginalControl)};
   };
+  const commitRunCancellation = (ref: WireRunRef, revision: number): void => {
+    const changed = database.prepare(`UPDATE client_requests SET
+      cancellation_requested = 1, revision = revision + 1
+      WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?
+        AND revision = ? AND cancellation_requested = 0`).run(
+      ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid, revision);
+    if (changed.changes !== 1) fail('ClientRequestJournalCorrupt');
+  };
   const cancellationIdentity = (ref: WireCancellationRef, definition: RunFacts['runDefinition'], control: CancellationRequestControl) => {
     const identity = control.clientCancellationAdmitRecord(ref.namespaceId,
       ref.authorityScopeCid, ref.cancelId, definition, ref.expectedRevision);
@@ -323,13 +331,7 @@ export function createJournalCancellation(database: JournalSqlConnection,
               facts.observedTerminalOutcome !== null,
           facts.cancellationRequested);
         if (![0, 1, 2].includes(action)) fail('ClientRunCancellationDenied');
-        if (action === 0) {
-          database.prepare(`UPDATE client_requests SET
-            cancellation_requested = 1, revision = revision + 1
-            WHERE namespace_id = ? AND authority_scope_cid = ? AND
-              run_definition_cid = ?`).run(ref.namespaceId,
-            ref.authorityScopeCid, ref.runDefinitionCid);
-        }
+        if (action === 0) commitRunCancellation(ref, row.revision);
         return Object.freeze({ref: admission(row).ref,
           kind: (['accepted', 'already_requested', 'already_terminal'] as const)[action],
           revision: Number(row.revision) + (action === 0 ? 1 : 0)});
@@ -401,10 +403,7 @@ export function createJournalCancellation(database: JournalSqlConnection,
           facts.cancellationRequested);
         if (![0, 1, 2].includes(action)) fail('ClientCancellationDenied');
         if (action === 0 && row.revision >= 2147483647) fail('ClientCancellationRevisionConflict');
-        if (action === 0) database.prepare(`UPDATE client_requests SET
-          cancellation_requested = 1, revision = revision + 1
-          WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?`).run(
-          ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+        if (action === 0) commitRunCancellation(ref, row.revision);
         const outcome = Object.freeze({ref: admission(row).ref, cancelRef: retained.cancelRef,
           kind: (['accepted', 'already_requested', 'already_terminal'] as const)[action],
           revision: Number(row.revision) + (action === 0 ? 1 : 0)});

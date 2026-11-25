@@ -33564,7 +33564,7 @@
     {
       "module": "adapters/host-node/client-request-journal-attempts.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a65fb9e9a73ee6703514c854c1c8c213a1778bbba76c4f53f84f42b5473d70ef",
+      "sha256": "4945af3674f9eb953fbd15a19069cf5021f638152a16b9e677442c1df2571f4e",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -33847,6 +33847,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-attempts.mts",
                 "anchor": "const pending = transact('cancel_admission', 'ClientCancellationUnknown',"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "AND revision = ? AND cancellation_requested = 0"
               }
             ],
             "failure": [

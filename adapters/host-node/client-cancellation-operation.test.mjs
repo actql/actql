@@ -201,6 +201,38 @@ test('failed final cancellation transaction retains pending identity without acc
   assert.equal(cancel(f.journal, ref).kind, 'accepted');
 });
 
+for (const named of [false, true]) {
+  test(`${named ? 'named' : 'unnamed'} cancellation cannot accept a skipped Run update`, async t => {
+    const f = await fixture(t);
+    const ref = admitRun(f.journal);
+    const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+    t.after(() => db.close());
+    db.exec(`CREATE TRIGGER ignore_cancel BEFORE UPDATE OF cancellation_requested
+      ON client_requests BEGIN SELECT RAISE(IGNORE); END`);
+    const request = () => named ? cancel(f.journal, ref) :
+      f.journal.requestCancellation(ref, {currentAuthorization: true,
+        publicationCommitted: false}, moon, publication);
+    assert.throws(request, {code: named ? 'ClientCancellationUnknown' : 'ClientRunCancellationUnknown',
+      outcome: 'failed', connectionUsable: true});
+    const original = f.reopen().lookupRunDefinition(ref, moon, publication);
+    assert.equal(original.revision, 19);
+    assert.equal(original.cancellationRequested, false);
+    if (named) {
+      const cancelRef = {...ref, cancelId: 'original-cancel', expectedRevision: 19};
+      assert.deepEqual(lookup(f.journal, cancelRef), {kind: 'unknown', cancelRef});
+    }
+    db.exec('DROP TRIGGER ignore_cancel');
+    const accepted = request();
+    assert.equal(accepted.kind, 'accepted');
+    assert.equal(accepted.revision, 20);
+    const reopened = f.reopen().lookupRunDefinition(ref, moon, publication);
+    assert.equal(reopened.revision, 20);
+    assert.equal(reopened.cancellationRequested, true);
+    if (named) assert.deepEqual(lookup(f.journal, accepted.cancelRef),
+      {kind: 'found', cancellation: accepted});
+  });
+}
+
 for (const afterCommit of [false, true]) {
   test(`lost final COMMIT reply ${afterCommit ? 'after' : 'before'} durable commit uses original lookup`, async t => {
     const f = await fixture(t);
