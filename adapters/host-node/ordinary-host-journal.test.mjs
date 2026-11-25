@@ -72,7 +72,7 @@ test('legacy Journal refusal issues no marker file or directory acknowledgement'
   const names = fs.readdirSync(directory).sort();
   const bytes = names.map(name => fs.readFileSync(join(directory, name)));
   const observed = initializationSyncs(directory, () =>
-    assert.throws(() => openClientRequestJournal(directory), {code: 'LegacyClientRequestJournalFormat'}));
+    assert.throws(() => openClientRequestJournal(directory), {code: 'UnknownClientRequestJournalFormat'}));
   assert.deepEqual(observed.files, []);
   assert.deepEqual(observed.directories, []);
   assert.deepEqual(fs.readdirSync(directory).sort(), names);
@@ -279,27 +279,21 @@ test('owned native admission requires the same live Store original and preserves
   assert.equal((await b.view.close()).pending, false);
 });
 
-for (const mutation of ['PRAGMA user_version=99', 'DROP TABLE client_submitted_intent_usage']) {
-  test('owned native admission refuses adopted metadata loss without recreating it: ' + mutation, async () => {
-    const a = await fixture();
-    await a.view.openRequestJournal(join(a.root, 'requests'), {});
-    assert.equal((await a.view.close()).pending, false);
-    const path = join(a.root, 'requests', 'client-requests.sqlite3');
-    const database = new DatabaseSync(path);
-    try {database.exec(mutation);} finally {database.close();}
-    const reopened = await prepareHostJournalInstallation({...a.originals, host: {}, generation: {}});
-    await assert.rejects(reopened.openRequestJournal(join(a.root, 'requests'), {}));
-    assert.equal((await reopened.close()).pending, false);
-    const observed = new DatabaseSync(path, {readOnly: true});
-    try {
-      if (mutation.startsWith('PRAGMA')) {
-        assert.equal(observed.prepare('PRAGMA user_version').get().user_version, 99);
-      } else {
-        assert.equal(observed.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='client_submitted_intent_usage'").get().n, 0);
-      }
-    } finally {observed.close();}
-  });
-}
+test('owned native admission refuses adopted metadata loss without recreating it', async () => {
+  const a = await fixture();
+  await a.view.openRequestJournal(join(a.root, 'requests'), {});
+  assert.equal((await a.view.close()).pending, false);
+  const path = join(a.root, 'requests', 'client-requests.sqlite3');
+  const database = new DatabaseSync(path);
+  try {database.exec('DROP TABLE client_submitted_intent_usage');} finally {database.close();}
+  const reopened = await prepareHostJournalInstallation({...a.originals, host: {}, generation: {}});
+  await assert.rejects(reopened.openRequestJournal(join(a.root, 'requests'), {}));
+  assert.equal((await reopened.close()).pending, false);
+  const observed = new DatabaseSync(path, {readOnly: true});
+  try {
+    assert.equal(observed.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='client_submitted_intent_usage'").get().n, 0);
+  } finally {observed.close();}
+});
 
 test('owned native format refusal retains the captured close and Store exclusion until its real ACK', () => {
   const script = `
@@ -316,7 +310,7 @@ test('owned native format refusal retains the captured close and Store exclusion
     await first.openRequestJournal(join(root,'requests'),{});
     assert.equal((await first.close()).pending,false);
     const db=new DatabaseSync(join(root,'requests','client-requests.sqlite3'));
-    // Current version and valid DDL reach the captured native reader. Its
+    // The current marker and valid DDL reach the captured native reader. Its
     // original singleton refusal must retain that reader until real close.
     db.exec('DELETE FROM client_submission_custody');db.close();
     const nativeClose=DatabaseSync.prototype.close,nativeOpen=DatabaseSync.prototype.open;
