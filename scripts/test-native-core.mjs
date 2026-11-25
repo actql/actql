@@ -123,7 +123,7 @@ const privateHost = requiresFixture('src/platform_native/filesystem', 'src/platf
 const originalSigning = requiresFixture('src/platform_native/signature')
   ? nativeOriginalSigningFixture(namespace) : {};
 const processRegion = requiresFixture('src/platform_native/host_bootstrap')
-  ? nativeProcessRegionFixture(root, namespace) : {};
+  && process.platform !== 'linux' ? nativeProcessRegionFixture(root, namespace) : {};
 const clientCheckpoint = (full ? !partition || nativeCoreCheckpointRequired(selection.profiles) :
   args.some(arg => arg.includes('platform_native/client_host')))
   // Match optimization, debug and warning modes before the original producers
