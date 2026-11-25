@@ -507,6 +507,45 @@ test('revision exhaustion refuses before retaining cancellation custody or touch
   assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).cancellationRequested, false);
 });
 
+test('unnamed cancellation refuses to advance an exhausted safe Run revision', async t => {
+  const f = await fixture(t);
+  const limit = Number.MAX_SAFE_INTEGER;
+  const ref = admitRun(f.journal, 'maximum-request', 'maximum-run', {initialRevision: limit - 2});
+  let failure;
+  try {
+    f.journal.requestCancellation(ref, {currentAuthorization: true, publicationCommitted: false},
+      moon, publication);
+  } catch (error) {
+    failure = error;
+  }
+  const database = new DatabaseSync(join(f.path, 'client-requests.sqlite3'), {readOnly: true});
+  try {
+    const select = database.prepare('SELECT revision, cancellation_requested FROM client_requests');
+    select.setReadBigInts(true);
+    assert.deepEqual({...select.get()}, {revision: BigInt(limit), cancellation_requested: 0n});
+  } finally {
+    database.close();
+  }
+  assert.equal(failure?.code, 'ClientRunCancellationDenied');
+  assert.equal(f.reopen().lookupRunDefinition(ref, moon, publication).revision, limit);
+});
+
+test('unnamed cancellation can reach the last safe revision and observe the same Run after reopen', async t => {
+  const f = await fixture(t);
+  const limit = Number.MAX_SAFE_INTEGER;
+  const ref = admitRun(f.journal, 'near-maximum-request', 'near-maximum-run',
+    {initialRevision: limit - 3});
+  const cancelOriginal = publicationCommitted => f.journal.requestCancellation(ref,
+    {currentAuthorization: true, publicationCommitted}, moon, publication);
+  assert.deepEqual(cancelOriginal(false), {ref, kind: 'accepted', revision: limit});
+  const row = f.reopen().lookupRunDefinition(ref, moon, publication);
+  assert.equal(row.revision, limit);
+  assert.equal(row.cancellationRequested, true);
+  assert.deepEqual(cancelOriginal(false), {ref, kind: 'already_requested', revision: limit});
+  assert.deepEqual(cancelOriginal(true), {ref, kind: 'already_terminal', revision: limit});
+  assert.equal(f.reopen().lookupRunDefinition(ref, moon, publication).revision, limit);
+});
+
 for (const [name, text] of [['composed', 'é'], ['decomposed', 'e\u0301'],
   ['CR', 'a\rb'], ['LF', 'a\nb'], ['CRLF', 'a\r\nb']]) {
   test(`Model original ${name} values survive request-journal retention and restart exactly`, async t => {

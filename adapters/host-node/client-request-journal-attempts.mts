@@ -332,10 +332,13 @@ export function createJournalCancellation(database: JournalSqlConnection,
               facts.observedTerminalOutcome !== null,
           facts.cancellationRequested);
         if (![0, 1, 2].includes(action)) fail('ClientRunCancellationDenied');
-        if (action === 0) commitRunCancellation(ref, row.revision);
-        return Object.freeze({ref: admission(row).ref,
+        const original = admission(row);
+        const revision = original.revision + (action === 0 ? 1 : 0);
+        if (!Number.isSafeInteger(revision)) fail('ClientRunCancellationDenied');
+        if (action === 0) commitRunCancellation(original.ref, original.revision);
+        return Object.freeze({ref: original.ref,
           kind: (['accepted', 'already_requested', 'already_terminal'] as const)[action],
-          revision: Number(row.revision) + (action === 0 ? 1 : 0)});
+          revision});
       });
     },
     // Persist the immutable operation before touching the Model fence journal.
