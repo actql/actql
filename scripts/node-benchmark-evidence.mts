@@ -25,6 +25,18 @@ type ErrorEntry = {
 
 export const hash = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
 
+export function nodeBenchmarkInstrumentation({execArgv = process.execArgv,
+  nodeOptions = process.env.NODE_OPTIONS ?? '', coverage = process.env.NODE_V8_COVERAGE}: {
+    execArgv?: readonly string[];
+    nodeOptions?: string;
+    coverage?: string | undefined;
+  } = {}) {
+  // Known startup instrumentation is evidence against unprofiled acceptance.
+  // This is not whole-runtime provenance or hostile embedding detection.
+  const flags = [...execArgv, nodeOptions].join(' ');
+  return {profiled: /--(?:cpu-prof|heap-prof|prof|inspect|perf-basic-prof|trace-events-enabled|trace-event-categories)(?:[=\s-]|$)/u.test(flags) || Boolean(coverage)};
+}
+
 // Keep failure inspection outside successful sample timing. Read only bounded
 // public data: never call execution/status/result/cleanup methods to diagnose it.
 export function nodeBenchmarkFailure(error: unknown) {
