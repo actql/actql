@@ -5,8 +5,24 @@ import {gunzipSync} from 'node:zlib';
 import {verifyIdentity} from './check-canonical-json.mjs';
 import { generateIdentityTests, projectedBody, project, identityDefinitions, valuesSchema, checkIdentitySchema } from './parameter-identity.mjs';
 
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
-const corpus = () => read('portability/corpus/parameter-identities.json');
+type Corpus = Parameters<typeof generateIdentityTests>[0];
+type IdentityCase = Corpus['cases'][number];
+type MutableCorpus = Omit<Corpus, 'cases'> & {
+  cases: (Omit<IdentityCase, 'expected_canonical_json' | 'expected_cid'>
+    & Partial<Pick<IdentityCase, 'expected_canonical_json' | 'expected_cid'>>)[];
+};
+type Registry = Parameters<typeof checkIdentitySchema>[0];
+type Branch = ReturnType<typeof identityDefinitions>['projected_value']['oneOf'][number];
+type Tagged<Kind extends string> = Extract<Branch, {
+  properties: {$actql_value: {prefixItems: readonly [{const: Kind}, unknown]}};
+}>;
+type Signed64Corpus = {parameterIdentities: {integer: string; body: unknown; cid: string; canonicalPreimage: string}[]};
+type PriorIdentitySnapshot = {records: Record<string, {
+  artifact_schemas: {parameter_values: {$defs: {projected_value: {oneOf: unknown[]}}}};
+}>};
+
+const read = <Data,>(path: string): Data => JSON.parse(readFileSync(path, 'utf8'));
+const corpus = () => read<Corpus>('portability/corpus/parameter-identities.json');
 
 test('fixed Parameter identities are reproducible and do not silently follow changed expectations', () => {
   assert.equal(generateIdentityTests(corpus()), generateIdentityTests(structuredClone(corpus())));
@@ -17,13 +33,13 @@ test('fixed Parameter identities are reproducible and do not silently follow cha
     c => { delete c.cases[0].expected_cid; },
     c => { c.cases.push(c.cases[0]); },
     c => { c.cases[0].supplied.s = 'changed'; },
-  ]) {
+  ] satisfies ((c: MutableCorpus) => unknown)[]) {
     const c = corpus(); change(c); assert.throws(() => generateIdentityTests(c));
   }
 });
 
 test('projection separates special values from business markers and excludes provenance', () => {
-  const duration = { type: 'string', format: 'duration' };
+  const duration = { type: 'string', format: 'duration' } as const;
   const baseline = project(duration, '1s');
   for (const text of ['01S', '1000ms', '01000MS']) assert.deepEqual(project(duration, text), baseline);
   assert.notDeepEqual(project(duration, '1001ms'), baseline);
@@ -40,8 +56,9 @@ test('projection separates special values from business markers and excludes pro
 test('identity schema closes tag tuples and preserves recursive references and decimal bounds', () => {
   const definitions = identityDefinitions();
   const branches = definitions.projected_value.oneOf;
-  const tag = kind => branches.find(b => b.properties?.$actql_value?.prefixItems[0].const === kind);
-  for (const kind of ['decimal', 'duration', 'object']) {
+  const tag = <Kind extends string>(kind: Kind) =>
+    branches.find(b => (b as Tagged<string>).properties?.$actql_value?.prefixItems[0].const === kind) as Tagged<Kind>;
+  for (const kind of ['decimal', 'duration', 'object'] as const) {
     const b = tag(kind);
     assert.equal(b.additionalProperties, false);
     assert.deepEqual(b.required, ['$actql_value']);
@@ -76,16 +93,16 @@ test('identity schema checker rejects representation drift and stale artifact pi
     r => { r.artifact_schemas.parameter_values.properties.values = { type: 'object' }; },
     r => { r.artifact_schema_cids.parameter_values = 'sha256:' + '0'.repeat(64); },
     r => { r.artifact_registry_cid = 'sha256:' + '0'.repeat(64); },
-  ]) {
-    const r = read('spec/contracts/actql-protocol-schemas.json');
+  ] satisfies ((r: Registry) => unknown)[]) {
+    const r = read<Registry>('spec/contracts/actql-protocol-schemas.json');
     change(r); assert.throws(() => checkIdentitySchema(r));
   }
 });
 
 
 test('independent signed64 identity projection preserves exact range and adjacent binary64 integers', () => {
-  const type = {type: 'int64'};
-  const identities = read('portability/corpus/signed64-identities.json').parameterIdentities;
+  const type = {type: 'int64'} as const;
+  const identities = read<Signed64Corpus>('portability/corpus/signed64-identities.json').parameterIdentities;
   for (const vector of identities) {
     assert.deepEqual(projectedBody({n: type}, {n: vector.integer}), vector.body);
     verifyIdentity(vector.body, vector.cid, vector.canonicalPreimage);
@@ -106,12 +123,13 @@ test('independent signed64 identity projection preserves exact range and adjacen
 });
 
 test('signed64 identity adds one closed tag without changing legacy alternatives', () => {
-  const prior = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/pre-signed64-type-closure.json.gz'))).records;
+  const prior = (JSON.parse(gunzipSync(readFileSync('scripts/fixtures/pre-signed64-type-closure.json.gz'))
+    .toString('utf8')) as PriorIdentitySnapshot).records;
   const old = prior['spec/contracts/actql-protocol-schemas.json'].artifact_schemas.parameter_values.$defs;
   const current = identityDefinitions();
   const branches = current.projected_value.oneOf;
   assert.deepEqual(branches.slice(0, -1), old.projected_value.oneOf);
-  const tag = branches.at(-1);
+  const tag = branches.at(-1) as Tagged<'int64'>;
   assert.equal(tag.properties.$actql_value.prefixItems[0].const, 'int64');
   assert.equal(tag.additionalProperties, false);
   assert.equal(tag.properties.$actql_value.items, false);

@@ -4,11 +4,17 @@ import test from 'node:test';
 import {profile} from './numeric-reduction-contract.mjs';
 import {machineCid as cid} from './actql-spec-family.mjs';
 
+type Algorithm = keyof typeof profile.contracts;
+type ReductionOutcome = {sum: number | null; avg: number | null} | {failure: 'nonfinite'};
+type ReductionCorpus = {
+  cases: ({name: string; contributors: readonly number[]} & Record<Algorithm, ReductionOutcome>)[];
+};
+
 // Independent finite model of the prescribed operations, not a product lowerer.
-function reduce(input, algorithm) {
-  assert(input.every(x => typeof x === 'number' && Number.isFinite(x) && !Object.is(x, -0)));
+function reduce(input: readonly unknown[], algorithm: Algorithm): ReductionOutcome {
+  assert(input.every((x): x is number => typeof x === 'number' && Number.isFinite(x) && !Object.is(x, -0)));
   if (!input.length) return {sum:null, avg:null};
-  const add = (a,b) => { const n = a+b; if (!Number.isFinite(n)) throw Error('nonfinite'); return n; };
+  const add = (a: number,b: number) => { const n = a+b; if (!Number.isFinite(n)) throw Error('nonfinite'); return n; };
   try {
     let sum;
     if (algorithm === 'left_fold') sum = input.reduce(add, 0);
@@ -25,13 +31,13 @@ function reduce(input, algorithm) {
     assert(Number.isFinite(avg));
     return {sum:sum===0?0:sum, avg:avg===0?0:avg};
   } catch(e) {
-    if (e.message !== 'nonfinite') throw e;
+    if ((e as Error).message !== 'nonfinite') throw e;
     return {failure:'nonfinite'};
   }
 }
 test('fixed reduction vectors distinguish algorithm, sequence and failure', () => {
-  const corpus = JSON.parse(readFileSync('portability/corpus/numeric-reduction.json','utf8'));
-  for (const row of corpus.cases) for (const algorithm of Object.keys(profile.contracts)) {
+  const corpus: ReductionCorpus = JSON.parse(readFileSync('portability/corpus/numeric-reduction.json','utf8'));
+  for (const row of corpus.cases) for (const algorithm of Object.keys(profile.contracts) as Algorithm[]) {
     assert.deepEqual(reduce(row.contributors,algorithm),row[algorithm],row.name+':'+algorithm);
   }
 });

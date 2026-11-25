@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
 import {open} from '@actql/node';
+import type {Execution, LocalSession, RunReference} from '@actql/node';
 
 // The parent never opens a Host. Each phase imports the selected ordinary
 // package in its own process; only the public Run reference crosses restart.
@@ -17,7 +18,7 @@ const installation = count === 100000 ? {
   sourceFreeMaxWork: 30000000,
 } : undefined;
 
-async function assertAllRows(run) {
+async function assertAllRows(run: Execution) {
   let read = 0, sum = 0n, squares = 0n;
   for await (const row of run.result('answer0').rows()) {
     assert.deepEqual(Object.keys(row), ['v0']);
@@ -31,7 +32,7 @@ async function assertAllRows(run) {
   assert.equal(squares, n * (n - 1n) * (2n * n - 1n) / 6n);
 }
 
-let db, primary, failed = false, inputWireBytes;
+let db: LocalSession | undefined, primary: unknown, failed = false, inputWireBytes: number | undefined;
 try {
   db = await open({stateDir: directory,
     ...(installation === undefined ? {} : {installation})});
@@ -61,8 +62,8 @@ try {
     await assertAllRows(run);
     await writeFile(referencePath, JSON.stringify(run.ref), {flag: 'wx', mode: 0o600});
   } else {
-    run = await db.attach(JSON.parse(await readFile(referencePath, 'utf8')));
-    assert.equal((await run.status()).control.physical_stop, 'confirmed');
+    run = await db.attach(JSON.parse(await readFile(referencePath, 'utf8')) as RunReference);
+    assert.equal((await run.status()).control!.physical_stop, 'confirmed');
     await assertAllRows(run);
   }
 } catch (cause) {failed = true; primary = cause;}
