@@ -24,24 +24,16 @@ const fail = (code, cause) => {
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
-const journalVersion = 'actql-remote-coordinator-history-journal/0.1';
 const historyBytes = 131_072;
 // Same bound as the existing materials poll encoder (binding + quoted
 // materials + framing). Configured receivers may impose a smaller bound.
 const deliveryBytes = 1_442_816;
-const deliveryVersion = 'actql-remote-coordinator-delivery/0.1';
-const deliverySchemaSql = `CREATE TABLE IF NOT EXISTS dispatch_deliveries (
-        dispatch_request_cid TEXT PRIMARY KEY NOT NULL,
-        envelope_json TEXT NOT NULL,
-        FOREIGN KEY (dispatch_request_cid)
-          REFERENCES dispatch_intents (dispatch_request_cid)
-      ) STRICT;`;
 const schemaSql = `
-      CREATE TABLE IF NOT EXISTS journal_metadata (
+      CREATE TABLE journal_metadata (
         key TEXT PRIMARY KEY NOT NULL,
         value TEXT NOT NULL
       ) STRICT;
-      CREATE TABLE IF NOT EXISTS dispatch_intents (
+      CREATE TABLE dispatch_intents (
         coordinator_authority TEXT NOT NULL,
         site_key TEXT NOT NULL,
         site_generation INTEGER NOT NULL,
@@ -80,7 +72,7 @@ const schemaSql = `
         ),
         UNIQUE (dispatch_request_cid)
       ) STRICT;
-      CREATE TABLE IF NOT EXISTS output_operations (
+      CREATE TABLE output_operations (
         coordinator_authority TEXT NOT NULL,
         site_key TEXT NOT NULL,
         site_generation INTEGER NOT NULL,
@@ -119,20 +111,33 @@ const schemaSql = `
           dispatch_id
         )
       ) STRICT;
+      CREATE TABLE dispatch_deliveries (
+        dispatch_request_cid TEXT PRIMARY KEY NOT NULL,
+        envelope_json TEXT NOT NULL,
+        FOREIGN KEY (dispatch_request_cid)
+          REFERENCES dispatch_intents (dispatch_request_cid)
+      ) STRICT;
     `;
-// The new persistent format is the schema emitted by this owner, including
+// The current persistent format is the schema emitted by this owner, including
 // strict types, primary/unique keys and foreign keys, not just column names.
 const tableDefinitions = [...schemaSql.matchAll(
-  /CREATE TABLE IF NOT EXISTS (\w+) \([\s\S]*?\) STRICT;/gu,
-)].map(([sql, name]) => [name,
-  sql.replace(' IF NOT EXISTS', '').replace(/;$/u, '')]);
+  /CREATE TABLE (\w+) \([\s\S]*?\) STRICT;/gu,
+)].map(([sql, name]) => [name, sql.slice(0, -1)]);
 
-// Admit the closed plain metadata table BEFORE selecting any of its values.
-// A small file can otherwise substitute a VIEW or generated-column expression
-// whose SQL executes during classification. Only whitespace may differ between
-// the existing generated and legacy two-column STRICT table spellings; no
-// expression, virtual table, collation or extra column inherits that format.
-const metadataTableDefinition = /^CREATE\s+TABLE\s+journal_metadata\s*\(\s*key\s+TEXT\s+PRIMARY\s+KEY\s+NOT\s+NULL\s*,\s*value\s+TEXT\s+NOT\s+NULL\s*\)\s*STRICT$/u;
+function assertCurrentCoordinatorLayout(database, coordinatorAuthority) {
+  // Validate every required table, including the exact plain metadata
+  // table, before selecting values. Comparisons cannot execute a view or
+  // generated column or materialize an oversized schema definition.
+  const schema = database.prepare(`SELECT CASE WHEN length(sql) <= ? THEN sql END AS sql
+    FROM sqlite_schema WHERE type = 'table' AND name = ?`);
+  for (const [name, expected] of tableDefinitions) {
+    if (schema.get(expected.length, name)?.sql !== expected) fail('UnknownCoordinatorJournalFormat');
+  }
+  const metadata = database.prepare('SELECT 1 FROM journal_metadata WHERE key = ? AND value = ?');
+  if (metadata.get('coordinator_authority', coordinatorAuthority) === undefined) {
+    fail('CoordinatorJournalAuthorityMismatch');
+  }
+}
 
 function inspectCoordinatorFormat(root, coordinatorAuthority, maxInspectionEntries, maxInspectionBytes) {
   const path = join(root, 'coordinator-dispatch-journal.sqlite3');
@@ -145,43 +150,11 @@ function inspectCoordinatorFormat(root, coordinatorAuthority, maxInspectionEntri
     if (entries.length !== 0) fail('UnknownCoordinatorJournalFormat');
     return false;
   }
-  inspectSqliteSnapshot(path, database => {
-    const metadataTable = database.prepare(
-      "SELECT type, CASE WHEN length(sql) <= 512 THEN sql ELSE NULL END AS sql FROM sqlite_schema WHERE name = ?",
-    ).get('journal_metadata');
-    if (metadataTable?.type !== 'table' || typeof metadataTable.sql !== 'string' ||
-        !metadataTableDefinition.test(metadataTable.sql)) fail('UnknownCoordinatorJournalFormat');
-    const metadata = database.prepare(
-      'SELECT value FROM journal_metadata WHERE key = ?');
-    const version = metadata.get('schema_version')?.value;
-    if (typeof version === 'string' &&
-        /^actql-remote-coordinator-journal\/0\.[1-5]$/u.test(version)) {
-      fail('CoordinatorJournalObservationHistoryRequired');
-    }
-    if (version !== journalVersion) fail('UnsupportedCoordinatorJournalVersion');
-    if (metadata.get('coordinator_authority')?.value !== coordinatorAuthority) {
-      fail('CoordinatorJournalAuthorityMismatch');
-    }
-    for (const [name, expected] of tableDefinitions) {
-      const actual = database.prepare(
-        "SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = ?",
-      ).get(name)?.sql;
-      if (actual !== expected) fail('UnknownCoordinatorJournalFormat');
-    }
-    const deliverySql = database.prepare(
-      "SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = ?",
-    ).get('dispatch_deliveries')?.sql;
-    const capability = metadata.get('dispatch_delivery')?.value;
-    if (deliverySql !== undefined || capability !== undefined) {
-      if (capability !== deliveryVersion || deliverySql !==
-          deliverySchemaSql.replace(' IF NOT EXISTS', '').replace(/;$/u, '')) {
-        fail('UnknownCoordinatorJournalDeliveryFormat');
-      }
-    }
-  }, {code: 'UnknownCoordinatorJournalFormat', maxSourceBytes: maxInspectionBytes,
-    unavailableCode: 'CoordinatorJournalInspectionUnavailable',
-    validateSource: () => JSON.stringify(inspectEntries()) ===
-      JSON.stringify(entries)});
+  inspectSqliteSnapshot(path, database => assertCurrentCoordinatorLayout(database, coordinatorAuthority),
+    {code: 'UnknownCoordinatorJournalFormat', maxSourceBytes: maxInspectionBytes,
+      unavailableCode: 'CoordinatorJournalInspectionUnavailable',
+      validateSource: () => JSON.stringify(inspectEntries()) ===
+        JSON.stringify(entries)});
   return true;
 }
 
@@ -235,35 +208,21 @@ export function openSqliteCoordinatorDispatchJournal(root, {
   let closed = false;
   let databaseClosed = false;
   try {
+    if (existed) {
+      database.exec('BEGIN');
+      assertCurrentCoordinatorLayout(database, coordinatorAuthority);
+      database.exec('ROLLBACK');
+    }
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
-    database.exec(schemaSql);
-    transaction.run(() => {
-      // Add a distinguishable optional capability, never fabricate delivery
-      // material for an existing intent. Old intent/history rows stay intact.
-      database.exec(deliverySchemaSql);
-      database.prepare('INSERT OR IGNORE INTO journal_metadata (key, value) VALUES (?, ?)')
-        .run('dispatch_delivery', deliveryVersion);
-      const version = database.prepare(
-        'SELECT value FROM journal_metadata WHERE key = ?',
-      ).get('schema_version');
-      if (version === undefined) {
-        const insert = database.prepare(
-          'INSERT INTO journal_metadata (key, value) VALUES (?, ?)',
-        );
-        insert.run('schema_version', journalVersion);
+    if (!existed) {
+      transaction.run(() => {
+        database.exec(schemaSql);
+        const insert = database.prepare('INSERT INTO journal_metadata (key, value) VALUES (?, ?)');
         insert.run('coordinator_authority', coordinatorAuthority);
-      } else if (version.value !== journalVersion) {
-        fail('UnsupportedCoordinatorJournalVersion');
-      }
-      const authority = database.prepare(
-        'SELECT value FROM journal_metadata WHERE key = ?',
-      ).get('coordinator_authority');
-      if (authority?.value !== coordinatorAuthority) {
-        fail('CoordinatorJournalAuthorityMismatch');
-      }
-    });
-    if (!existed) syncDirectory(directory);
+      });
+      syncDirectory(directory);
+    }
   } catch (error) {
     throwSqliteInitializationFailure(database, error, 'coordinator-journal');
   }

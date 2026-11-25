@@ -15,7 +15,7 @@ facts; its result is not a Run result, approval or physical-release ACK.
 | Failure | `adapters/host-common/sqlite-transaction.mjs`: `outcome`; `adapters/host-common/sqlite-transaction.test.mjs`: `lost physical COMMIT reply`; `adapters/host-node/remote-site-coordinator.test.mjs`: `failed/unknown first material save` |
 | Cancellation | `adapters/site-node/sqlite-dispatch-journal.test.mjs`: `evidence and cleanup planes`; `adapters/host-node/remote-site-coordinator.test.mjs`: `output cleanup owner retries`; `adapters/host-common/observation.test.mjs`: `failed optional storage initialization` |
 | Resources | `adapters/site-node/sqlite-transfer-journal.test.mjs`: `concurrent journal handles`; `adapters/host-common/observation.mjs`: `observationLimits`; `adapters/host-common/observation.test.mjs`: `queue overflow` |
-| Extension | `adapters/site-node/sqlite-dispatch-journal.test.mjs`: `journal migration`; `adapters/host-node/sqlite-coordinator-journal.test.mjs`: `legacy records`; `adapters/host-common/observation.test.mjs`: `unknown event content` |
+| Extension | `adapters/site-node/sqlite-dispatch-journal.test.mjs`: `journal migration`; `adapters/host-node/sqlite-coordinator-journal.test.mjs`: `refuses legacy records`; `adapters/host-common/observation.test.mjs`: `unknown event content` |
 | Verification | `scripts/owner-fault-mutations.test.mjs`; the exact source-qualified journal, Coordinator and observation test selections recorded separately in execution receipts |
 
 The physical COMMIT-reply test writes to real SQLite, loses only the returned

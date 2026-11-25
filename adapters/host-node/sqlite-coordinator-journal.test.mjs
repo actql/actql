@@ -72,7 +72,7 @@ test('R2 delivery and initial intent are atomic immutable and survive reopen', a
   assert.equal(store.deliveryEnvelope(dispatch, control), envelope);
 });
 
-test('R2 missing legacy delivery refuses attachment but preserves query history and cleanup', async t => {
+test('current query-only intent preserves history without attaching delivery materials', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-delivery-missing-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const {dispatch, envelope} = deliveryFixture('delivery-missing');
@@ -80,12 +80,6 @@ test('R2 missing legacy delivery refuses attachment but preserves query history 
   const record = store.accept(control.prepareCoordinatorIntent(control.createCoordinatorJournal('coordinator-a'), dispatch), dispatch, control);
   store.advance(control.prepareCoordinatorObservation(record, {revision: 0, state: [0, 0, 0, 0, 0]}), record, control);
   store.close();
-  // Exact R1 schema, before the additive delivery capability existed. Neither
-  // a saved envelope nor historical send bytes can be inferred from its intent.
-  const legacy = new DatabaseSync(join(root, 'coordinator-dispatch-journal.sqlite3'));
-  legacy.exec('DROP TABLE dispatch_deliveries');
-  legacy.prepare('DELETE FROM journal_metadata WHERE key = ?').run('dispatch_delivery');
-  legacy.close();
   store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
   t.after(() => store.close());
   const journal = control.createCoordinatorJournal('coordinator-a');
@@ -332,7 +326,7 @@ test('Coordinator journal refuses legacy records without inventing observation h
   const bytes = await readFile(join(root, names[0]));
   assert.throws(() => openSqliteCoordinatorDispatchJournal(root, {
     coordinatorAuthority: 'coordinator-a',
-  }), {code: 'CoordinatorJournalObservationHistoryRequired'});
+  }), {code: 'UnknownCoordinatorJournalFormat'});
   assert.deepEqual(await readdir(root), names);
   assert.deepEqual(await readFile(join(root, names[0])), bytes);
   // The old request and its custody remain available to the legacy owner.
@@ -432,8 +426,9 @@ test('a separate Coordinator process restores exact receipts without pending mem
   assert.match(result.stdout, /separate-process-replay-verified/u);
 });
 
-for (const mismatch of ['legacy-version', 'current-version-wrong-schema',
-  'missing-metadata', 'missing-output-table', 'missing-output-constraints']) {
+for (const mismatch of ['wrong-dispatch-history-column',
+  'missing-metadata', 'missing-output-table', 'missing-output-constraints',
+  'missing-delivery-constraint', 'missing-delivery-table']) {
   test(`Coordinator refuses ${mismatch} with uncheckpointed WAL and no SHM without source mutation`, async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-wal-refusal-'));
     t.after(() => rm(root, {recursive: true, force: true}));
@@ -447,15 +442,17 @@ for (const mismatch of ['legacy-version', 'current-version-wrong-schema',
       import {DatabaseSync} from 'node:sqlite';
       const database = new DatabaseSync(process.argv[1]);
       database.exec('PRAGMA wal_autocheckpoint = 0');
-      if (process.argv[2] === 'legacy-version') {
-        database.prepare('UPDATE journal_metadata SET value = ? WHERE key = ?')
-          .run('actql-remote-coordinator-journal/0.1', 'schema_version');
-      } else if (process.argv[2] === 'current-version-wrong-schema') {
+      if (process.argv[2] === 'wrong-dispatch-history-column') {
         database.exec('ALTER TABLE dispatch_intents RENAME COLUMN observation_history_json TO unsupported_history');
       } else if (process.argv[2] === 'missing-metadata') {
         database.exec('DROP TABLE journal_metadata');
       } else if (process.argv[2] === 'missing-output-table') {
         database.exec('DROP TABLE output_operations');
+      } else if (process.argv[2] === 'missing-delivery-table') {
+        database.exec('DROP TABLE dispatch_deliveries');
+      } else if (process.argv[2] === 'missing-delivery-constraint') {
+        database.exec('DROP TABLE dispatch_deliveries');
+        database.exec('CREATE TABLE dispatch_deliveries (dispatch_request_cid TEXT PRIMARY KEY NOT NULL, envelope_json TEXT NOT NULL) STRICT');
       } else {
         // Keep every column name but remove types/constraints. Comparing only
         // PRAGMA table_info names would silently accept this different format.
@@ -473,7 +470,7 @@ for (const mismatch of ['legacy-version', 'current-version-wrong-schema',
     const before = await snapshot();
     assert.ok(before['coordinator-dispatch-journal.sqlite3-wal'].length > 0);
     assert.throws(() => openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'}), {
-      code: mismatch === 'legacy-version' ? 'CoordinatorJournalObservationHistoryRequired' : 'UnknownCoordinatorJournalFormat',
+      code: 'UnknownCoordinatorJournalFormat',
     });
     assert.deepEqual(await snapshot(), before);
   });

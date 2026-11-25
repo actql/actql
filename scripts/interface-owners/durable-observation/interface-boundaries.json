@@ -5512,7 +5512,7 @@
     {
       "module": "adapters/host-node/sqlite-coordinator-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "015e759ddb4a64a69c361a7721df95410109412eb96d377afd5004aa0637394c",
+      "sha256": "19693330a7f014e88ba99cae34b501f58aeda02c593f0d6a6ada5c05b60180e7",
       "exports": [
         "openSqliteCoordinatorDispatchJournal"
       ],
@@ -5864,7 +5864,7 @@
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-                "anchor": "if (metadataTable?.type !== 'table' || typeof metadataTable.sql !== 'string' ||"
+                "anchor": "if (schema.get(expected.length, name)?.sql !== expected)"
               }
             ],
             "ownership": [
@@ -5888,7 +5888,7 @@
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-                "anchor": "// Admit the closed plain metadata table BEFORE selecting any of its values."
+                "anchor": "// Validate every required table, including the exact plain metadata"
               }
             ],
             "failure": [
@@ -5902,7 +5902,7 @@
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-                "anchor": "// A small file can otherwise substitute a VIEW or generated-column expression"
+                "anchor": "// table, before selecting values. Comparisons cannot execute a view or"
               }
             ],
             "cancellation": [
@@ -5930,7 +5930,7 @@
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-                "anchor": "SELECT type, CASE WHEN length(sql) <= 512 THEN sql ELSE NULL END AS sql FROM sqlite_schema"
+                "anchor": "SELECT CASE WHEN length(sql) <= ? THEN sql END AS sql"
               }
             ],
             "extension": [
@@ -6000,7 +6000,7 @@
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-                "anchor": "if (metadataTable?.type !== 'table' || typeof metadataTable.sql !== 'string' ||"
+                "anchor": "if (schema.get(expected.length, name)?.sql !== expected)"
               }
             ],
             "ownership": [
@@ -6024,7 +6024,7 @@
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-                "anchor": "// Admit the closed plain metadata table BEFORE selecting any of its values."
+                "anchor": "// Validate every required table, including the exact plain metadata"
               }
             ],
             "failure": [
@@ -6038,7 +6038,7 @@
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-                "anchor": "// A small file can otherwise substitute a VIEW or generated-column expression"
+                "anchor": "// table, before selecting values. Comparisons cannot execute a view or"
               }
             ],
             "cancellation": [
@@ -6066,7 +6066,7 @@
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-                "anchor": "SELECT type, CASE WHEN length(sql) <= 512 THEN sql ELSE NULL END AS sql FROM sqlite_schema"
+                "anchor": "SELECT CASE WHEN length(sql) <= ? THEN sql END AS sql"
               }
             ],
             "extension": [
