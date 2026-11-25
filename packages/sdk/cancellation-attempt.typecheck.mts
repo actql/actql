@@ -1,4 +1,4 @@
-import type {Execution} from './index.js';
+import type {Execution} from './index.mjs';
 
 declare const run: Execution;
 const outcome = await run.cancel({cancelId: 'original', expectedRevision: 7,

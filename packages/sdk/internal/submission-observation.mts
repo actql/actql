@@ -17,8 +17,9 @@ import {clientSourceFormats, snapshotClientRequest, validClientAdmission, validO
   validSubmissionLookup, validSubmissionRef, validSubmissionRestart} from '@actql/client-wire';
 
 import type {Client, CheckOutcome, ConfirmedProfile, Execution, OperationExplanationOptions,
-  RequestLookup, RequestLookupTarget, RequestRecovery, SubmissionAttempt, SubmissionInput, SubmissionOptions, SubmissionOutcome,
-  SubmissionReference} from '../index.d.ts';
+  RequestCancellationExplanation, RequestLookup, RequestLookupExplanation, RequestLookupTarget, RequestRecovery,
+  SubmissionAttempt, SubmissionExplanation, SubmissionInput, SubmissionOptions, SubmissionOutcome,
+  SubmissionReference} from '../index.mjs';
 import type {ClientHostOperation, ClientSourceFormat, WireClientAdmission, WireOperationAttemptRef} from '@actql/client-wire';
 import type {SelectedConnection} from './connection-options.mjs';
 import type {captureSourcePreparation} from './private-source-preparation.mjs';
@@ -106,17 +107,17 @@ export function getSubmissionAttempt(result: unknown): SubmissionAttempt | undef
   return submissionAttempts.get(result as object);
 }
 
-export function explainSubmission(result: unknown, options?: OperationExplanationOptions) {
+export function explainSubmission(result: unknown, options?: OperationExplanationOptions): SubmissionExplanation | undefined {
   return localizeOperation(submissionExplanations.get(result as object), 'submission', options);
 }
 
 // Only this call's admitted lookup supplies Owner facts. A rejected observation
 // retains its original lookup target, never unvalidated response fields.
-export function explainRequestLookup(result: unknown, options?: OperationExplanationOptions) {
+export function explainRequestLookup(result: unknown, options?: OperationExplanationOptions): RequestLookupExplanation | undefined {
   return localizeOperation(requestLookupExplanations.get(result as object), 'request', options);
 }
 
-export function explainRequestCancellation(result: unknown, options?: OperationExplanationOptions) {
+export function explainRequestCancellation(result: unknown, options?: OperationExplanationOptions): RequestCancellationExplanation | undefined {
   return localizeOperation(requestCancellationExplanations.get(result as object), 'requestCancellation', options);
 }
 

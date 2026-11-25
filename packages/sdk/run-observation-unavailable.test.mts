@@ -1,5 +1,5 @@
 import type {TestContext} from 'node:test';
-import type {ClientError as SdkFailure} from './index.d.ts';
+import type {ClientError as SdkFailure} from './index.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {inspect} from 'node:util';
@@ -102,7 +102,7 @@ test('a closed Client supplies unavailable observation without claiming dispatch
 
 test('typed Run observation failures separate unavailable from protocol rejection', () => {
   execFileSync(process.execPath, [fileURLToPath(new URL('../../node_modules/typescript/bin/tsc', import.meta.url)),
-    '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--target', 'ES2022',
+    '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--target', 'ES2022', '--lib', 'ES2022,DOM,DOM.Iterable,DOM.AsyncIterable,ES2024.String',
     fileURLToPath(new URL('./run-observation-protocol.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });

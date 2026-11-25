@@ -1,5 +1,5 @@
 import type {TestContext} from 'node:test';
-import type {ClientError as SdkFailure, Client, Reader, StandardSchemaV1} from './index.d.ts';
+import type {ClientError as SdkFailure, Client, Reader, StandardSchemaV1} from './index.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connectInProcess} from './host-port.mjs';

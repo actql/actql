@@ -15,7 +15,7 @@ import {commentSends, graphqlRoute} from
 
 import type {KeyObject} from 'node:crypto';
 import type {AddressInfo} from 'node:net';
-import type {Client, Execution, RunReference, SubmissionReference, connect} from '../../packages/sdk/index.js';
+import type {Client, Execution, RunReference, SubmissionReference, connect} from '../../packages/sdk/index.mjs';
 import type {publishEffect} from '../../packages/local-node/index.js';
 import type {openInstalledRemoteHttpHost} from '../../packages/local-node/http-host.js';
 

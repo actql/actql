@@ -141,14 +141,27 @@ export function typescriptInterface(source: string, filename = 'interface.ts') {
     ...(unresolvedSyntax.length ? {unresolvedSyntax: [...new Set(unresolvedSyntax)].sort()} : {})};
 }
 
-export function typescriptInterfaceClosure(root: string, entrances: readonly string[]) {
-  return typescriptInterfaceInputs(root, entrances).modules;
+export function typescriptInterfaceClosure(root: string, entrances: readonly string[],
+  publishedDeclarations: readonly string[] = []) {
+  return typescriptInterfaceInputs(root, entrances, publishedDeclarations).modules;
 }
 
 // Keep TypeScript's real config/path resolution and non-code inputs visible.
 // Actual web asset/plugin inputs still come from the configured Vite build.
-export function typescriptInterfaceInputs(root: string, entrances: readonly string[]) {
+export function typescriptInterfaceInputs(root: string, entrances: readonly string[],
+  publishedDeclarations: readonly string[] = []) {
   const base = realpathSync(root), pending = [...entrances], modules = new Map<string, ReturnType<typeof typescriptInterface> & {module: string; sha256: string}>(), assets = new Map<string, {module: string; sha256: string}>();
+  const selectedEmits = new Set(publishedDeclarations.map(path => {
+    assert(entrances.includes(path) && /\.d\.[cm]ts$/u.test(path), 'Unknown public TypeScript declaration entrance');
+    return resolve(base, path.replace(/\.d(\.[cm]ts)$/u, '$1'));
+  }));
+  // Source discovery also checks the corresponding executable entrance. For
+  // these manifest-selected public declarations, inspect the same declaration
+  // edge as the installed package. The release gate binds its bytes to the
+  // original semantic compiler emit independently.
+  const publishedHost = {...ts.sys, fileExists(path: string) {
+    return !selectedEmits.has(resolve(path)) && ts.sys.fileExists(path);
+  }};
   const configs = new Map<string, ts.CompilerOptions>(), external: {module: string; specifier: string; qualification: string}[] = [];
   const options = (path: string): ts.CompilerOptions => {
     const file = ts.findConfigFile(dirname(path), ts.sys.fileExists);
@@ -179,7 +192,8 @@ export function typescriptInterfaceInputs(root: string, entrances: readonly stri
     modules.set(module, {module, sha256: createHash('sha256').update(bytes).digest('hex'), ...syntax});
     for (const specifier of syntax.imports) {
       const local = specifier.startsWith('.');
-      const result = ts.resolveModuleName(specifier, path, options(path), ts.sys).resolvedModule;
+      const result = ts.resolveModuleName(specifier, path, options(path),
+        local && /\.d\.[cm]?ts$/u.test(module) ? publishedHost : ts.sys).resolvedModule;
       // TypeScript also sets this flag on relative edges inside node_modules.
       // The same realpath containment check still applies to every local edge.
       if (result && (local || !result.isExternalLibraryImport)) pending.push(result.resolvedFileName);

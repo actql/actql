@@ -97,6 +97,9 @@ test('emitted declaration uses its Git author and original inferred dependency b
     'interface Function {} interface IArguments {} interface NewableFunction {} interface Number {} ' +
     'interface Object {} interface RegExp {} interface String {}\n');
   f.put(base + 'model.mts', 'export const original = "original" as const;\n');
+  const context = base + 'other-preparation-root.mts';
+  const originalContext = 'export const checkedOnlyByPreparation = true;\n';
+  f.put(context, originalContext);
   const author = base + 'projected.mts', declaration = base + 'projected.d.mts', runtime = base + 'projected.mjs';
   f.put(author, '/// <reference path="./globals.d.ts" />\nimport {original} from "./model.mjs";\n' +
     'export const read = () => original;\n');
@@ -108,6 +111,10 @@ test('emitted declaration uses its Git author and original inferred dependency b
   assert.deepEqual(installedDeclarationEmits(f.repository, source, [declaration, runtime]).get(declaration),
     {author, sha256: hash('export declare const read: () => "original";\n')});
   assert.throws(() => installedDeclarationEmits(f.repository, source, [declaration]), /paired runtime/u);
+  f.put(context, 'export const checkedOnlyByPreparation = false;\n');
+  assert.throws(() => installedDeclarationEmits(f.repository, source, [declaration, runtime]),
+    /Changed original TypeScript dependency: packages\/client-wire\/other-preparation-root\.mts/u);
+  f.put(context, originalContext);
   f.put(base + 'model.mts', 'export const original = "changed" as const;\n');
   assert.throws(() => installedDeclarationEmits(f.repository, source, [declaration, runtime]),
     /Changed original TypeScript dependency/u);

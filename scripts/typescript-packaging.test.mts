@@ -28,7 +28,7 @@ test('SDK npm file selection keeps executable emit and declarations without main
     assert(file && typeof file === 'object' && 'path' in file && typeof file.path === 'string');
     return file.path;
   }));
-  for (const required of ['index.mjs', 'index.d.ts', 'host-port.mjs', 'host-port.d.ts',
+  for (const required of ['index.mjs', 'index.d.mts', 'host-port.mjs', 'host-port.d.mts',
     'loopback-http.mjs', 'loopback-http-unavailable.mjs', 'internal/data.mjs', 'internal/data.d.mts', 'internal/README.md']) {
     assert(files.has(required), `Missing installed SDK member: ${required}`);
   }

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import type {EmbeddedLocalOptions} from '../packages/node/index.d.ts';
 import type {CheckOutcome, CheckpointSummary, Client, Execution, Result, RunReference, RunState,
-  getCheckInput as publicGetCheckInput} from '../packages/sdk/index.d.ts';
+  getCheckInput as publicGetCheckInput} from '../packages/sdk/index.mjs';
 
 type Original = {ref: RunReference; runId: string; checkpointId?: string;
   checkpointCid?: string; summary?: CheckpointSummary; reviewBase64?: string};

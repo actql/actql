@@ -162,7 +162,7 @@ test('pinned TypeScript parser inventories named declaration roles and relative 
   assert.deepEqual(result.exports, ['Host']);
   assert.deepEqual(result.operations[0], {name: 'Host/read',
     parameters: ['run: string', 'task: string'], result: 'Promise<void>'});
-  assert(typescriptInterfaceClosure(process.cwd(), ['packages/sdk/index.d.ts'])
+  assert(typescriptInterfaceClosure(process.cwd(), ['packages/sdk/index.d.mts'])
     .some(value => value.module === 'packages/sdk/standard-schema.d.ts'));
 });
 

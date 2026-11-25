@@ -2,9 +2,9 @@
 // external installation consumer. No runtime package or Connector is invoked.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {cp, mkdir, readdir, writeFile} from 'node:fs/promises';
+import {cp, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from './owned-scratch.mjs';
@@ -19,12 +19,14 @@ test('external installed helper types retain their public declarations after rel
   for (const name of ['client-wire', 'sdk', 'local-node']) {
     const source = join(repository, 'packages', name);
     const target = join(consumer, 'node_modules', '@actql', name);
+    const manifest = await readFile(join(source, 'package.json'), 'utf8');
     await mkdir(target, {recursive: true});
-    await cp(join(source, 'package.json'), join(target, 'package.json'));
-    for (const entry of await readdir(source, {withFileTypes: true})) {
-      if (entry.isFile() && /\.d\.(?:ts|mts)$/u.test(entry.name)) {
-        await cp(join(source, entry.name), join(target, entry.name));
-      }
+    await writeFile(join(target, 'package.json'), manifest);
+    for (const path of JSON.parse(manifest).files) {
+      if (!/\.d\.[cm]?ts$/u.test(path)) continue;
+      const destination = join(target, path);
+      await mkdir(dirname(destination), {recursive: true});
+      await cp(join(source, path), destination);
     }
   }
   await cp(join(repository, 'packages/local-node/connector-installation.typecheck.mts'),

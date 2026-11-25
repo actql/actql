@@ -1,5 +1,5 @@
 // Authorized Resource catalog/metadata/sample views; no execution authority.
-import type {Client} from '../index.d.ts';
+import type {Client} from '../index.mjs';
 import type {WireConnection} from '@actql/client-wire';
 import {ClientError, fail} from './errors.mjs';
 import {jsonPayloadWireBytes} from './transport-response.mjs';
