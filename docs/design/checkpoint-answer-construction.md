@@ -94,12 +94,13 @@ weakening the Common window.
 
 The existing Client–Host generator emits Common profile selection and the JS
 codec; the existing Python Client generator emits its codec from the same
-recipe/protocol projection. Their read-only checks verify actual outputs.
-Handwritten renderers remain implementation source; generated comments alone
-prove neither source correspondence nor binary/runtime acceptance.
+recipe/protocol projection. A strict TypeScript program combines the projected
+registry and shared summary validator with the authored candidate template,
+then emits both the executable module and its declaration. The read-only check
+compares both outputs with the registered files.
 
-The same generator emits TypeScript declaration mirrors for the JS validator
-and candidate codec. Resolution types expose conservative structural fields;
+The JS Resolution and Evidence validators retain their generated declaration
+mirrors. Resolution types expose conservative structural fields;
 conditional field relationships, bounded canonical admission and identities
 remain checks in the unchanged runtime validator. Candidate and resolution
 stage brands distinguish the two stage kinds at compile time. They do not

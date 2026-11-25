@@ -198,6 +198,8 @@ test('generated Client–Host guards and types match the machine contract',
       '../packages/sdk/internal/checkpoint-answer-contract.generated.mjs', import.meta.url), 'utf8'));
     assert.equal(outputs.checkpointAnswerTypes, await readFile(new URL(
       '../packages/sdk/internal/checkpoint-answer-contract.generated.d.mts', import.meta.url), 'utf8'));
+    assert.equal(outputs.checkpointConstruction, await readFile(new URL(
+      '../packages/sdk/internal/checkpoint-answer-construction.generated.mjs', import.meta.url), 'utf8'));
     assert.equal(outputs.checkpointConstructionTypes, await readFile(new URL(
       '../packages/sdk/internal/checkpoint-answer-construction.generated.d.mts', import.meta.url), 'utf8'));
     assert.equal(outputs.runWait, await readFile(new URL(

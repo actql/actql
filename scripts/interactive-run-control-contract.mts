@@ -4,13 +4,18 @@ import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {explanationFactSchemas} from './explanation-facts-contract.mjs';
 
+import type {loadSpecFamily} from './actql-spec-family.mjs';
+import type {project} from './generate-client-publication-wire.mjs';
+
+type Schema = ReturnType<typeof project>;
+
 export const controlRegistryPath =
   'spec/contracts/actql-interactive-run-control.json';
-const cid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'};
-const text = {type: 'string', minLength: 1};
-const integer = {type: 'integer', minimum: 0, maximum: 2147483647};
+const cid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'} satisfies Schema;
+const text = {type: 'string', minLength: 1} satisfies Schema;
+const integer = {type: 'integer', minimum: 0, maximum: 2147483647} satisfies Schema;
 const positive = {...integer, minimum: 1};
-const decimal = {type: 'string', pattern: '^(0|[1-9][0-9]*)$(?![\\s\\S])'};
+const decimal = {type: 'string', pattern: '^(0|[1-9][0-9]*)$(?![\\s\\S])'} satisfies Schema;
 // The negotiated amount domain uses the existing checked Int64 ledger range.
 // Wire amounts remain decimal strings, including above MAX_SAFE_INTEGER.
 export const maxAmountMicro = '9223372036854775807';
@@ -26,24 +31,26 @@ export const amountMicroPattern = '^(' + [
       (suffix ? `[0-9]{${suffix}}` : '')];
   }), maxAmountMicro,
 ].join('|') + ')$(?![\\s\\S])';
-const timestamp = {type: 'string', format: 'date-time'};
-const bool = {type: 'boolean'};
-const nullable = schema => ({oneOf: [{type: 'null'}, schema]});
-const list = (items, minItems = 0) => ({type: 'array', items, minItems});
-const choice = (...values) => ({type: 'string', enum: values});
-const ref = name => ({$ref: `#/schemas/${name}`});
-const object = (properties, optional = [], allOf) => ({
-  type: 'object', additionalProperties: false,
+const timestamp = {type: 'string', format: 'date-time'} satisfies Schema;
+const bool = {type: 'boolean'} satisfies Schema;
+const nullable = (schema: Schema): Schema => ({oneOf: [{type: 'null'}, schema]});
+const list = (items: Schema, minItems = 0) => ({type: 'array' as const, items, minItems});
+const choice = (...values: string[]): Schema => ({type: 'string', enum: values});
+const ref = (name: string) => ({$ref: `#/schemas/${name}`});
+const object = <Fields extends Record<string, Schema>>(properties: Fields,
+  optional: readonly string[] = [], allOf?: Schema[]) => ({
+  type: 'object' as const, additionalProperties: false,
   required: Object.keys(properties).filter(name => !optional.includes(name)),
   properties, ...(allOf ? {allOf} : {}),
 });
-const envelope = (name, fields, optional = [], allOf) => ({
+const envelope = (name: string, fields: Record<string, Schema>,
+  optional: readonly string[] = [], allOf?: Schema[]) => ({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   $id: `https://smooth.dev/schemas/actql-${name.replaceAll('_', '-')}-0.1.json`,
   ...object({version: {const: `actql-${name.replaceAll('_', '-')}/0.1`},
     ...fields}, optional, allOf),
 });
-const when = (field, value, then, otherwise) => ({
+const when = (field: string, value: Schema['const'], then: Schema, otherwise?: Schema): Schema => ({
   if: {properties: {[field]: {const: value}}, required: [field]}, then,
   ...(otherwise ? {else: otherwise} : {}),
 });
@@ -80,7 +87,7 @@ const breakpoint = {oneOf: [
 // Schemas describe wire admission, not installed execution capabilities.
 // Shared identity, authorization and material Owners validate referenced facts.
 export function interactiveRunControlSchemas() {
-  const schemas = {};
+  const schemas: Record<string, Schema> = {};
   schemas.control_quantity = {oneOf: [
     object({kind: choice('exact', 'bound', 'estimate'), value: decimal,
       unit: text, scope_cid: cid, basis_cid: cid}),
@@ -368,8 +375,8 @@ export function interactiveRunControlSchemas() {
       permission: unobserved, gate: unobserved, approval: unobserved,
       preview: object({state: {const: 'unavailable'}, reason: {const: 'not_sealed'}})}),
   });
-  const effectDeclaration = schemas.effectful_static_plan_view.properties
-    .effect_set.properties.members.items;
+  const effectDeclaration = schemas.effectful_static_plan_view.properties!
+    .effect_set.properties!.members.items!;
   return Object.assign(schemas, explanationFactSchemas({logicalOperators, effectDeclaration}));
 }
 
@@ -393,7 +400,7 @@ export function buildControlRegistry() {
     identity_domains: Object.fromEntries(Object.entries(schemas)
       .filter(([, schema]) => schema.properties?.self_cid)
       .map(([name, schema]) => [name, {
-        version: schema.properties.version.const, identity_field: 'self_cid',
+        version: schema.properties!.version.const, identity_field: 'self_cid',
         preimage: 'complete_body_except_self_cid', algorithm: 'sha256',
       }])),
     errors: [...controlErrors],
@@ -413,24 +420,24 @@ export function buildControlRegistry() {
 
 // Registration is generated from this reviewed shape source. Independent
 // semantic vectors have a separate authored source and are never overwritten.
-function install(registry) {
+function install(registry: ReturnType<typeof buildControlRegistry>) {
   writeFileSync(controlRegistryPath, JSON.stringify(registry, null, 2) + '\n');
   const manifestPath = 'spec/spec-family.json';
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const manifest: ReturnType<typeof loadSpecFamily>['manifest'] = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const owner = manifest.documents.find(entry => entry.document_id === 'run');
   assert.ok(owner);
   let source = readFileSync(owner.path, 'utf8');
   for (const [name, schema] of [...Object.entries(registry.schemas), ['', registry]]) {
     const pointer = name ? `/schemas/${name}` : '';
     const pin = machineCid(schema);
-    const reference = owner.machine_contracts.find(entry =>
+    const reference = owner.machine_contracts!.find(entry =>
       entry.path === controlRegistryPath && entry.pointer === pointer);
     const prefix = `../../../${controlRegistryPath}#${pointer} `;
     if (reference) {
       source = source.replace(prefix + reference.cid, prefix + pin);
       reference.cid = pin;
     } else {
-      owner.machine_contracts.push({path: controlRegistryPath,
+      owner.machine_contracts!.push({path: controlRegistryPath,
         pointer, cid: pin, version: registry.version});
       const anchor = '<!-- page-contents:start -->';
       source = source.replace(anchor,
