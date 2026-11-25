@@ -2,6 +2,7 @@
 pub fn construction_work_active(writer : Writer) -> Bool {
   writer.output is WorkGeometryOutput(_, _, _) ||
   writer.output is WorkTextOutput(_, _) ||
+  writer.output is WorkHashOutput(_, _) ||
   writer.output is WorkCompareOutput(_, _)
 }
 

@@ -15,6 +15,7 @@ import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
   settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
 import type {ManagedFailureOperations} from '../host-common/managed-failure.mjs';
+import type {RelationSampleControl} from '../host-common/strategy.mjs';
 import type {SynchronousResultCheck, SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
 type RetainedRead = Parameters<typeof readLocalRetainedInput>;
@@ -107,6 +108,11 @@ type LocalBindings = RetainedRead[0] & Parameters<typeof checkedLocalManagedAdva
   strategyModule_local_ManagedDuration(configuration: object): bigint | null | undefined;
   strategyModule_local_ManagedStart(configuration: object): unknown;
   strategyModule_local_ManagedStartRetained?(configuration: object): unknown;
+  strategyModule_local_ManagedStartSample?(configuration: object, retained: boolean, owner: object, profile: object,
+    task: number, maxBytes: number, maxNodes: number, maxDepth: number, current: () => boolean,
+    adopt: (prefix: object) => boolean, retainPending: (prefix: object) => void,
+    observe: (result: unknown, required: boolean, cleanupPending: boolean) => void): unknown;
+  strategyModule_local_ReturnPendingSample?(prefix: object): unknown;
   strategyModule_local_Dispatch(setup: unknown, task: unknown): unknown;
 }>;
 type LocalOutput = ReturnType<typeof prepareLocalRetainedOutput>;
@@ -260,10 +266,13 @@ export function localStrategyContribution(moon: LocalBindings, setup: unknown,
   const handlePause = localExecutionPauseHandler(configuration);
   const beforePrepare = localExecutionBeforePrepare(configuration);
   const registration = moon.strategyModule_local_Registration(setup);
+  const startSample = moon.strategyModule_local_ManagedStartSample;
+  const returnPendingSample = moon.strategyModule_local_ReturnPendingSample;
   let nextMaterial = 1;
   return Object.freeze({
     registration,
     managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
+    relationSample: typeof startSample === 'function' && typeof returnPendingSample === 'function',
     async beforeNext(physicalSource?: unknown) {
       if (beforePrepare === undefined) return;
       const task = moon.strategyHostNextTask(setup);
@@ -399,7 +408,7 @@ export function localStrategyContribution(moon: LocalBindings, setup: unknown,
         rowPlan,
       });
     },
-    async runPrepared(prepared: PreparedTask, signal?: AbortSignal) {
+    async runPrepared(prepared: PreparedTask, signal?: AbortSignal, relationSample?: RelationSampleControl) {
       signal?.throwIfAborted();
       const dispatchInputs = prepared.dispatchInputs ?? prepared.inputs;
       const plannedMaterials = dispatchInputs.map(input =>
@@ -413,15 +422,50 @@ export function localStrategyContribution(moon: LocalBindings, setup: unknown,
       if (preparedRowPlan === undefined) {
         throw new Error('UnsupportedManagedRowRepresentation');
       }
-      const operations = checked(
-        (createLease != null &&
-          typeof moon.strategyModule_local_ManagedStartRetained === 'function'
-          ? moon.strategyModule_local_ManagedStartRetained
-          : moon.strategyModule_local_ManagedStart)(prepared.configuration),
-      ) as ManagedExecution;
+      const retained = createLease != null &&
+        typeof moon.strategyModule_local_ManagedStartRetained === 'function';
+      let sampleFailure: unknown, pendingSample: object | undefined;
+      let operations: ManagedExecution;
+      if (relationSample === undefined) {
+        const start = retained ? moon.strategyModule_local_ManagedStartRetained! : moon.strategyModule_local_ManagedStart;
+        operations = checked(start(prepared.configuration)) as ManagedExecution;
+      } else {
+        const sampleOwner = relationSample.owner, sampleProfile = relationSample.profile;
+        if (sampleOwner === undefined || sampleProfile === undefined ||
+            typeof startSample !== 'function' || typeof returnPendingSample !== 'function') {
+          throw new Error('InstalledRelationSampleControlUnavailable');
+        }
+        operations = checked(startSample.call(moon, prepared.configuration, retained,
+          sampleOwner, sampleProfile, prepared.task,
+          relationSample.maxWireBytes, relationSample.maxNodes, relationSample.maxDepth,
+          () => {
+            try {return relationSample.current() === true;}
+            catch (cause) {sampleFailure ??= cause; return false;}
+          },
+          prefix => {
+            try {relationSample.adopt(prefix); return true;}
+            catch (cause) {sampleFailure ??= cause; return false;}
+          },
+          prefix => {pendingSample = prefix;},
+          (result, required, cleanupPending) => {
+            // Optional definite refusals leave no public Sample. An uncertain
+            // write or pending prefix return must retain the original failure.
+            const pending = pendingSample !== undefined || cleanupPending;
+            if (!required && !pending && (sampleFailure as {outcome?: unknown} | undefined)?.outcome !== 'unknown') {
+              sampleFailure = undefined;
+              return;
+            }
+            try {checked(result);}
+            catch (cause) {
+              const code = pending ? 'ClientRelationSampleCleanupPending' : 'SampleCaptureRequiredFailed';
+              sampleFailure ??= Object.assign(new Error(code, {cause}), {code});
+            }
+          })) as ManagedExecution;
+      }
       const failureProgress = beginManagedFailureProgress(
         moon,
-        createSnapshotLease == null || typeof operations.prepare_carrier_snapshot !== 'function',
+        relationSample === undefined &&
+          (createSnapshotLease == null || typeof operations.prepare_carrier_snapshot !== 'function'),
         false,
       );
       let available = true;
@@ -561,6 +605,7 @@ export function localStrategyContribution(moon: LocalBindings, setup: unknown,
                 () => available,
               ), checked, prepared.task)
               : checkedLocalManagedAdvance(moon, operations.complete_carrier(), checked, prepared.task);
+            if (sampleFailure !== undefined) throw sampleFailure;
           },
           resolvedRowPlan,
         );
@@ -646,11 +691,19 @@ export function localStrategyContribution(moon: LocalBindings, setup: unknown,
       } catch (error) {
         available = false;
         stopBoundedExecution(operations, checked);
+        const additionalCleanup = [];
+        if (pendingSample !== undefined) {
+          additionalCleanup.push({close() {
+            if (pendingSample === undefined) return;
+            checked(returnPendingSample!.call(moon, pendingSample));
+            pendingSample = undefined;
+          }});
+        }
+        if (snapshot != null) {
+          additionalCleanup.push({close: snapshot.close, cleanupHandle: snapshot.cleanupHandle});
+        }
         const stopped = settleFailedManagedOperations(
-          operations, checked, error, failureProgress,
-          snapshot == null ? [] : [{
-            close: snapshot.close, cleanupHandle: snapshot.cleanupHandle,
-          }],
+          operations, checked, error, failureProgress, additionalCleanup,
         );
         await continueLocalManagedFailureCleanup(stopped, operations);
         if (checkpointPause !== undefined) return Object.freeze({

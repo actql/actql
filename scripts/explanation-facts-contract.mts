@@ -39,6 +39,7 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}: Re
     object({form: {const: 'field'}, scope: choice('fields', 'left', 'right'),
       name: text, type: ref('explanation_type')}),
     object({form: {const: 'parameter'}, name: text, type: ref('explanation_type')}),
+    object({form: {const: 'property'}, name: text, receiver: integer, type: ref('explanation_type')}),
     object({form: {const: 'operation'}, operator: choice(...explanationPredicateOperators),
       children: list(integer), type: ref('explanation_type')}),
   ]};
@@ -122,7 +123,7 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}: Re
     object({kind: {const: 'effect_set'}, unit_id: text,
       members: {...list(member), minItems: 1, maxItems: 64}}),
   ]};
-  schemas.explanation_context = {
+  const context: Schema = {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     $id: 'https://smooth.dev/schemas/actql-explanation-context-0.1.json',
     ...object({version: {const: 'actql-explanation-context/0.1'}, disclosure: {const: 'structural'},
@@ -130,6 +131,12 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}: Re
         check_environment_cid: cid, compiled_plan_cid: cid, logical_map_cid: cid}),
       items: list(item)}),
   };
+  // The same Context can lack these links when its issuer did not retain
+  // them. Original stored bytes stay valid and do not acquire new provenance.
+  context.properties!.stage_result_links = list(object({
+    producer: consumer, consumer, result_projection: {type: 'boolean'},
+  }));
+  schemas.explanation_context = context;
   // A transport envelope around the original Plan and its two facets. Its
   // references share the Plan and Map binding; the reader checks that binding.
   const explanationView = (plan: Schema) => object({version: {const: 'actql-static-explanation/0.1'},

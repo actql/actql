@@ -341,11 +341,13 @@ pub fn cancel_client_model_current_state_write(@physical_resources.OriginalCurre
 
 pub fn capture_client_effect_run_observation_originals(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
 
+pub fn[T] capture_client_logical_managed_relation_sample_prefix(ClientLogicalTaskBoundary, ClientCompiledRun, PreparedClientProgram, @physical_strategy_host.CapturedDAG, @execution_relation.ManagedCompletedOutput[T], @execution_relation.CompletedOutput, Int, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int, () -> Bool) -> Result[@physical_strategy_host.CapturedRelationSamplePrefix, @physical_strategy_host.CapturedRelationSamplePrefixIssue]
+
 pub fn capture_client_run_observation_originals(ClientCompiledRun, @run_publication.PublicationContract) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
 
 pub fn capture_client_static_effect_explanation_original(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int, computation_wire? : @ref.Ref[String?]?) -> Result[(ClientStaticEffectExplanationOriginal, String), ClientStaticExplanationSourceIssue]
 
-pub fn capture_client_static_pure_explanation_original(PreparedClientProgram, ClientRunCompilation, Int, Int, Int) -> Result[(ClientStaticPureExplanationOriginal, String), ClientStaticExplanationSourceIssue]
+pub fn capture_client_static_pure_explanation_original(PreparedClientProgram, ClientRunCompilation, Int, Int, Int, debug_entry? : Bool) -> Result[(ClientStaticPureExplanationOriginal, String), ClientStaticExplanationSourceIssue]
 
 pub fn capture_client_structural_explanation_original(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientStructuralExplanationOriginal, ClientExplanationFactsIssue]
 
@@ -1251,6 +1253,8 @@ pub fn client_logical_task_boundary_key_json(ClientLogicalTaskBoundary, ClientCo
 
 pub fn client_logical_task_boundary_output_port_id(ClientLogicalTaskBoundary, ClientCompiledRun, PreparedClientProgram, Int, Int) -> Result[String?, ClientLogicalTaskBoundaryIssue]
 
+pub fn client_logical_task_boundary_relation_output(ClientLogicalTaskBoundary, ClientCompiledRun, PreparedClientProgram, @physical_strategy_host.CapturedDAG, String) -> Result[(String, String, String)?, ClientLogicalTaskBoundaryIssue]
+
 pub fn client_logical_task_boundary_step_id(ClientLogicalTaskBoundary, ClientCompiledRun, PreparedClientProgram) -> Result[String, ClientLogicalTaskBoundaryIssue]
 
 pub fn client_model_current_state_match_current(@physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin], @physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin]?
@@ -1407,7 +1411,7 @@ pub fn client_publication_witness_bodies(ClientPublicationWitnesses) -> Array[St
 
 pub fn client_publication_witness_cids(ClientPublicationWitnesses) -> Array[String]
 
-pub fn client_pure_compilation_static_plan_view(ClientRunCompilation, PreparedClientProgram, Int, Int, Int) -> Result[String, ClientCompiledRunPlanIssue]
+pub fn client_pure_compilation_static_plan_view(ClientRunCompilation, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, debug_entry? : Bool) -> Result[String, ClientCompiledRunPlanIssue]
 
 pub fn client_query_requirement_matches_effect_program(PreparedClientEffectComputation, Int, Int, @query_planning.QueryRequirement) -> Bool
 
@@ -1652,6 +1656,8 @@ pub fn client_standard_pure_compilation_limits() -> ClientPureCompilationLimits
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
 
 pub fn client_static_plan_measurement_writers_extent() -> @decode_shape.CollectionConstructionExtent?
+
+pub fn client_structural_explanation_map_matches(ClientStructuralExplanationOriginal, ClientCompiledRun, PreparedClientProgram, @run_publication.RunEvidenceValue) -> Bool
 
 pub fn client_submission_epoch_token_authority_scope_cid(ClientSubmissionEpochToken) -> String
 
@@ -1911,6 +1917,8 @@ pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanF
 
 pub fn enter_client_model_read_consumer(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
 
+pub fn explanation_narrative_map(@canonical_json.CanonicalValue) -> @canonical_json.CanonicalValue?
+
 pub fn fail_client_keyed_request_io(ClientKeyedRequest) -> Unit
 
 pub fn find_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest) -> Result[Int, ClientKeyedRequestIssue]
@@ -1950,6 +1958,8 @@ pub fn handoff_client_model_read_capacity(ClientModelReadPreparation, ClientComp
 pub fn handoff_client_model_read_consumer_input_capacity(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelInputCapacityIssue]
 
 pub fn handoff_client_model_read_input_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelInputCapacityIssue]
+
+pub fn index_client_logical_relation_sample_outputs(ClientStructuralExplanationOriginal, ClientCompiledRun, PreparedClientProgram, @run_publication.InteractiveRelationSampleSelection) -> Result[Map[Int, (String, String, String)], ClientLogicalTaskBoundaryIssue]
 
 pub fn[E] inspect_client_cancellation_journal_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientCancellationRunJournalInspection, E], E) -> Result[(Int, Int64), E]
 
@@ -2265,7 +2275,7 @@ pub fn lower_client_source_input_query(ClientSourceInput, @client_source_publica
 
 pub fn measure_client_compiled_explanation_facts(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
 
-pub fn measure_client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
+pub fn measure_client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, debug_entry? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
 pub fn measure_client_debug_graph_construction(@program_check.CheckedProgram, Int, Int, @ref.Ref[Int64]) -> Result[(Int64, Int), ClientProgramPreparationIssue]
 
@@ -2281,7 +2291,7 @@ pub fn measure_client_operation_explanation_structural(ClientOperationExplanatio
 
 pub fn measure_client_pure_compilation_explanation_facts(ClientRunCompilation, PreparedClientProgram, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
 
-pub fn measure_client_pure_compilation_static_plan_view(ClientRunCompilation, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
+pub fn measure_client_pure_compilation_static_plan_view(ClientRunCompilation, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, debug_entry? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
 pub fn measure_client_static_effect_explanation_context(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, ClientStaticExplanationSourceIssue]
 
@@ -2861,7 +2871,7 @@ pub fn release_recovered_client_effect_command_content(RecoveredClientEffectComm
 
 pub fn release_recovered_client_effect_source_command_content(RecoveredClientEffectSourceCommandContent) -> Unit
 
-pub fn render_client_explanation_narrative(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, ClientExplanationLanguage, Int) -> ClientExplanationNarrative raise ClientExplanationNarrativeIssue
+pub fn render_client_explanation_narrative(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue?, ClientExplanationLanguage, Int, logical_map? : @canonical_json.CanonicalValue?) -> ClientExplanationNarrative raise ClientExplanationNarrativeIssue
 
 pub fn render_client_static_explanation_narrative_wire(String, String) -> Result[String, Int]
 
@@ -3074,8 +3084,6 @@ pub fn with_client_source_free_result_policy(ClientCompiledRun, String, String, 
 pub fn with_prepared_client_values_row_limit(PreparedClientProgram, Int) -> PreparedClientProgram?
 
 pub fn write_client_static_effect_explanation_context(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, @encode_core.Writer, Int) -> Result[Unit, ClientStaticExplanationSourceIssue]
-
-pub fn write_client_static_effect_explanation_transfers(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, @encode_core.Writer, Int) -> Result[Unit, ClientStaticExplanationSourceIssue]
 
 pub fn write_client_static_pure_explanation_context(ClientStaticPureExplanationOriginal, @encode_core.Writer, Int) -> Result[Unit, ClientStaticExplanationSourceIssue]
 
@@ -3901,6 +3909,14 @@ pub enum ClientExplanationMeaning {
 pub struct ClientExplanationNarrative {
   context : Array[String]
   steps : Array[String]
+  summary : String
+  clauses : Array[ClientExplanationSummaryClause]
+  items : Array[ClientExplanationNarrativeItem]
+}
+
+pub enum ClientExplanationNarrativeItem {
+  ContextItem(Int)
+  FactStep(Int, String)
 }
 
 pub(all) struct ClientExplanationOccurrence {
@@ -3918,6 +3934,13 @@ pub(all) enum ClientExplanationProjectionIssue {
   MalformedCheckedExpression
   Encoding(@encode_core.EncodeFailure)
 } derive(Eq, @debug.Debug)
+
+pub struct ClientExplanationSummaryClause {
+  kind : String
+  text : String
+  context_items : Array[Int]
+  step_ids : Array[String]
+}
 
 type ClientHostSignerConfiguration
 pub fn ClientHostSignerConfiguration::has_explicit_signers(Self) -> Bool
@@ -5683,6 +5706,7 @@ pub struct ClientStructuralExplanationOriginal {
   compiled : ClientCompiledRun
   prepared : PreparedClientProgram
   map : @canonical_json.CanonicalValue
+  sealed_map : @run_publication.RunEvidenceValue
 }
 
 pub struct ClientSubmissionEpochToken {

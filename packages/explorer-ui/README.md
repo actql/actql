@@ -26,13 +26,13 @@ runtime capability. Typed expression/Task details and authoring meta not present
 in the original projection are not reconstructed here. This presentation unit
 does not install Samples, pause/step/breakpoints or shared-process Host support.
 
-`explanationStoryModel(view, facts, {locale})` additionally consumes the separate
+`explanationStoryModel(view, facts, {locale, render})` consumes the separate
 SDK-admitted structural Explanation Facts. It checks the original map, Step
 keys and each input/output port occurrence before displaying schema fields,
 ordered projection, JOIN keys and typed predicate/parameter structure. Literal
 values remain redacted; unsupported meaning stays explicitly unprojected.
-This is deterministic formatting of compiler facts, not another expression
-parser or semantic checker. Finite node, depth and text bounds refuse malformed
+Pass the Common narrative renderer as `render`. It supplies the bilingual
+summary and Step descriptions from the admitted compiler facts. Finite node, depth and text bounds refuse malformed
 or oversized presentation instead of truncating it under an original CID.
 Text pieces, escaped names and each cached-child copy consume the remaining
 construction allowance before quoting, concatenation or joining; checking the

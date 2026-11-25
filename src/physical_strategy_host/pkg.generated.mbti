@@ -33,6 +33,8 @@ pub fn abort_captured_managed_transfer(CapturedDAG, ManagedTransfer, Bool) -> Re
 
 pub fn abort_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
 
+pub fn acknowledge_captured_relation_sample_start(CapturedDAG, CapturedTaskBoundaryHooks, String, String, Int) -> Result[Unit, CapturedTaskControlIssue]
+
 pub fn admit_operational_estimate_sidecar_json(String, PolicyRequest, PolicyCandidateSet, String, String, Int64) -> Result[OperationalEstimateSidecar, SearchIssue]
 
 pub fn admit_placement_policy_response_json(String, PolicyRequest, String) -> Result[PolicyResponse, SearchIssue]
@@ -98,6 +100,10 @@ pub fn cancel_captured_effect_proposal_plan(CapturedEffectProposalPlan) -> Unit
 pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn cancel_resident_table_preparation(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn[T] capture_captured_managed_relation_sample_prefix(CapturedDAG, CapturedTaskBoundary, @execution_relation.ManagedCompletedOutput[T], @execution_relation.CompletedOutput, Int, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int, () -> Bool) -> Result[CapturedRelationSamplePrefix, CapturedRelationSamplePrefixIssue]
+
+pub fn capture_captured_relation_sample_prefix(CapturedDAG, CapturedTaskBoundary, CapturedOutputPin, Int, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int) -> Result[CapturedRelationSamplePrefix, CapturedRelationSamplePrefixIssue]
 
 pub fn capture_effect_result_import(CapturedEffectInputs, Int, Int, Int) -> Result[CapturedEffectResultImport, RunIssue]
 
@@ -321,6 +327,8 @@ pub fn captured_execution_root_statistics(CapturedDAG) -> CapturedExecutionRootS
 
 pub fn captured_logical_observation_construction_bytes() -> Int64
 
+pub fn captured_managed_relation_sample_prefix_current(CapturedDAG, CapturedRelationSamplePrefix) -> (@encode_core.EncodedDocument, Int, Int, Int, Int64, Int)?
+
 pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], Int, Int, input_index? : Int) -> Result[@execution_relation.ManagedProducerRead[T], RunIssue]
 
 pub fn[T] captured_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.ManagedCompletedOutput[T]) -> Bool
@@ -351,7 +359,21 @@ pub fn captured_next_task_has_prepared_input(CapturedDAG, Int) -> Bool
 
 pub fn captured_output_pin_materialized(CapturedOutputPin) -> @execution_relation.CompletedOutput
 
+pub fn captured_paused_materialized_dependency_shape(CapturedPausedMaterializedDependency) -> (Int, Int)?
+
+pub fn captured_paused_next_dependency(CapturedDAG, CapturedTaskBoundaryHooks, Int, Int, Int) -> Result[@physical_strategy.DataEdge, CapturedPausedDependencyIssue]
+
+pub fn captured_paused_next_sample_dependency(CapturedDAG, CapturedTaskBoundaryHooks, Int, Int, Int) -> Result[(@physical_strategy.DataEdge, Int, Int, Int), CapturedPausedDependencyIssue]
+
+pub fn captured_paused_next_sample_input(CapturedDAG, CapturedTaskBoundaryHooks, Int, Int, Int, Int) -> Result[(@physical_strategy.DataEdge, Int, Int, Int), CapturedPausedDependencyIssue]
+
 pub fn captured_pending_task_input_output(CapturedDAG, Int, Int) -> @execution_relation.CompletedOutput?
+
+pub fn captured_relation_sample_prefix_current(CapturedDAG, CapturedRelationSamplePrefix, CapturedOutputPin) -> (@encode_core.EncodedDocument, Int, Int, Int, Int64, Int)?
+
+pub fn captured_relation_sample_start_matches_revision(CapturedDAG, Int) -> Bool
+
+pub fn captured_relation_sample_start_selected(CapturedDAG) -> Bool
 
 pub fn captured_releasable_managed_producers(CapturedDAG) -> Array[Int]
 
@@ -439,7 +461,9 @@ pub fn captured_task_boundary_task(CapturedTaskBoundary) -> Int
 
 pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
-pub fn captured_task_control_construction_bytes() -> Int64
+pub fn captured_task_control_construction_bytes(Int) -> Int64
+
+pub fn captured_task_control_paused_task(CapturedDAG, CapturedTaskBoundaryHooks) -> Result[(Int, Int, Int?, Int), CapturedTaskControlIssue]
 
 pub fn captured_task_control_state(CapturedDAG, CapturedTaskBoundaryHooks) -> Result[(Int, CapturedTaskControlPhase), CapturedTaskControlIssue]
 
@@ -456,6 +480,8 @@ pub fn captured_task_join_output_count(CapturedDAG, Int) -> Int?
 pub fn captured_task_join_output_limit(CapturedDAG, Int, Int) -> Int64?
 
 pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execution_relation.CompletedOutput?
+
+pub fn captured_task_output_pin_matches_committed_relation(CapturedDAG, CapturedTaskBoundary, CapturedOutputPin) -> Bool
 
 pub fn captured_task_retirement_pending(CapturedDAG) -> Bool
 
@@ -528,6 +554,8 @@ pub fn checked_effect_table_input_member(@physical_strategy.CheckedEffectTableIn
 pub fn checked_effect_table_input_stage(@physical_strategy.CheckedEffectTableInputPort) -> Int
 
 pub fn checked_effect_table_input_task(@physical_strategy.CheckedEffectTableInputPort) -> Int
+
+pub fn checked_task_control_entry_boundary_issue(@physical_strategy.CheckedDAG) -> Int?
 
 pub fn checked_task_identity(@physical_strategy.CheckedTaskReference) -> @physical_strategy.CheckedTaskIdentity
 
@@ -821,6 +849,8 @@ pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonic
 
 pub fn rank_operational_candidates(PolicyCandidateSet, OperationalEstimateSidecar, Int, String, Int64, quantity? : String) -> Result[EmpiricalRanking, SearchIssue]
 
+pub fn read_captured_paused_materialized_dependency_cell(CapturedPausedMaterializedDependency, Int, Int) -> Result[@execution_relation.Value?, CapturedPausedDependencyIssue]
+
 pub fn read_captured_task_boundary(CapturedDAG, CapturedTaskBoundaryHooks, CapturedTaskBoundaryPhase) -> Result[CapturedTaskBoundary?, CapturedTaskBoundaryIssue]
 
 pub fn record_host_cleanup_closes_awaited(HostCleanupProgress) -> Bool
@@ -959,6 +989,8 @@ pub fn retire_captured_task_outputs(CapturedDAG) -> Bool
 
 pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn return_captured_relation_sample_prefix(CapturedRelationSamplePrefix) -> Result[Unit, CapturedTaskBoundaryIssue]
+
 pub fn return_captured_task_boundary(CapturedTaskBoundary) -> Result[Unit, CapturedTaskBoundaryIssue]
 
 pub fn return_resident_read(ResidentRead) -> Result[Unit, @physical_resources.LedgerIssue]
@@ -1092,6 +1124,8 @@ pub fn task_numeric_observation_step(@physical_strategy.TaskNumericObservation) 
 pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, TaskOffer) -> Bool
 
 pub fn validate_strategy_policy_request(StrategyChoiceSet, PolicyRequest, Int64) -> Result[Unit, SearchIssue]
+
+pub fn with_captured_paused_materialized_dependency(CapturedDAG, CapturedTaskBoundary, Int, Int, Int, (@physical_strategy.DataEdge, CapturedPausedMaterializedDependency) -> Unit) -> Result[Unit, CapturedPausedDependencyIssue]
 
 // Errors
 
@@ -1255,6 +1289,31 @@ pub struct CapturedExecutionRootStatistics {
 }
 
 type CapturedOutputPin
+
+pub(all) enum CapturedPausedDependencyIssue {
+  Boundary(CapturedTaskBoundaryIssue)
+  InvalidDependency
+  InputWorkLimit
+  DependencyUnavailable(RunIssue)
+  Cell(@execution_relation.RelationPresenceIssue)
+}
+
+type CapturedPausedMaterializedDependency
+
+type CapturedRelationSamplePrefix
+
+pub(all) enum CapturedRelationSamplePrefixIssue {
+  NotSelected
+  StartUnavailable
+  AttemptUnavailable
+  StaleOriginal
+  AuthorityLost
+  Work(@physical_resources.LedgerIssue)
+  Resident(RunIssue)
+  InvalidLimits
+  Boundary(CapturedTaskBoundaryIssue)
+  Prefix(@execution_relation.RelationSamplePrefixIssue)
+}
 
 type CapturedResidentResultBorrow
 

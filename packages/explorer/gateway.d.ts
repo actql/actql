@@ -10,9 +10,10 @@ export type ExplorerLaunchInput = Readonly<{
   kind: 'program'; text: string; format: 'sql' | 'aql' | 'aql-text' | 'program';
 }> | Readonly<{kind: 'run'; ref: RunReference}>;
 export type ExplorerGatewayOptions = Readonly<{
-  client: Pick<Client, 'attach'> & Partial<Pick<Client, 'plan'|'explain'|'checkpoints'|'reviewCheckpoint'>>;
+  client: Pick<Client, 'attach'> & Partial<Pick<Client, 'plan'|'explain'|'checkpoints'|'reviewCheckpoint'|
+    'newSubmission'|'startSource'|'lookupSubmission'>>;
   assets?: ReadonlyMap<string, ExplorerAsset>; now?: () => number;
-  sessionMs?: number; bootstrapMs?: number; allowCancellation?: boolean;
+  sessionMs?: number; bootstrapMs?: number; allowCancellation?: boolean; allowRunStart?: boolean; allowSamples?: boolean; allowDebugResume?: boolean;
   launchInput?: ExplorerLaunchInput | null;
 }>;
 export type ExplorerBootstrap = Readonly<{origin: string; bootstrap: string; expiresAt: number}>;

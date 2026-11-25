@@ -23,11 +23,12 @@ type StaticPlanInstallation<Request, Prepared> = Readonly<{
     kindOf(prepared: Awaited<Prepared>): 'effectful' | 'effect_free';
   }>;
   authorize: (request: Request) => boolean | PromiseLike<boolean>;
+  authorizeDebugEntry?: (request: Request) => boolean;
   readOriginal?: (request: Request) => unknown;
 }>;
 
 export function installClientStaticPlan<Request extends StaticPlanRequest, Prepared>(
-  {moon, control, prepare, authorize, readOriginal}: StaticPlanInstallation<Request, Prepared>,
+  {moon, control, prepare, authorize, authorizeDebugEntry, readOriginal}: StaticPlanInstallation<Request, Prepared>,
 ): (request: Request) => Promise<StaticPlanView> {
   if (typeof prepare !== 'function' || typeof prepare.assertOwned !== 'function' ||
       typeof prepare.kindOf !== 'function' || typeof authorize !== 'function' ||
@@ -56,14 +57,15 @@ export function installClientStaticPlan<Request extends StaticPlanRequest, Prepa
       throw new TypeError('InvalidClientHostPlanView');
     }
     const view: unknown = JSON.parse(wire);
-    if (!(kind === 'effects' ? validWireEffectfulStaticPlanViewShape(view)
-      : validWirePlanViewShape(view) || kind === undefined && validWireEffectfulStaticPlanViewShape(view))) {
+    const pure = kind !== 'effects' && validWirePlanViewShape(view);
+    if (!pure && !(kind !== 'tasks' && kind !== 'values' && validWireEffectfulStaticPlanViewShape(view))) {
       throw new TypeError('InvalidClientHostPlanView');
     }
     // No prepared handle or Plan authority crosses the read boundary. Current
     // access is checked again after asynchronous preparation.
     request.signal?.throwIfAborted();
-    if (await authorize(request) !== true) throw denied();
+    if (await authorize(request) !== true ||
+        pure && view.capabilities.debug_entry === true && authorizeDebugEntry?.(request) !== true) throw denied();
     return view as StaticPlanView;
   };
 }
@@ -76,6 +78,7 @@ type StaticCurrent = () => unknown;
 type StaticExplanationInstallation<Request> = Readonly<{
   authorize(request: Request): unknown;
   authorizeEgress(request: Request): unknown;
+  authorizeDebugEntry?: (request: Request) => boolean;
   withOriginal<Value>(request: Request,
     visit: (wires: StaticExplanationWires, assertCurrent: StaticCurrent) => Promise<Value>): Value | PromiseLike<Value>;
 }>;
@@ -93,7 +96,7 @@ function assertSynchronousStaticCurrent(assertCurrent: StaticCurrent) {
 // preparation owner backs decoding, the combined response and consumption,
 // retains that reservation until this visitor finishes, and supplies a
 // synchronous assertion for the same original's current state.
-export function installClientStaticEffectExplanation<Request extends StaticPlanRequest>({authorize, authorizeEgress, withOriginal}:
+export function installClientStaticEffectExplanation<Request extends StaticPlanRequest>({authorize, authorizeEgress, authorizeDebugEntry, withOriginal}:
   StaticExplanationInstallation<Request>) {
   if (typeof authorize !== 'function' || typeof authorizeEgress !== 'function' ||
       typeof withOriginal !== 'function') {
@@ -181,6 +184,8 @@ export function installClientStaticEffectExplanation<Request extends StaticPlanR
       assertSynchronousStaticCurrent(assertCurrent);
       // Keep the current Account observation in the same turn as the sink.
       requireCurrentEgress();
+      if (view.plan.version === 'actql-plan-view/0.1' && view.plan.capabilities.debug_entry === true &&
+          authorizeDebugEntry?.(request) !== true) throw staticExplanationFailure('StaticExplanationAccessDenied');
       const delivery = await consume(view);
       assertActive();
       completed = true;

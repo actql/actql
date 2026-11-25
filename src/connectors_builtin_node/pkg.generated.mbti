@@ -254,6 +254,8 @@ pub fn client_program_acknowledge_infer_call_settlement(@model_execution.ModelCa
 
 pub fn client_program_acknowledge_original_explanation_capture(@client_local_host.ClientOriginalExplanationCapture) -> Result[Unit, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
+pub fn client_program_acknowledge_relation_sample_start(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue]
+
 pub fn client_program_acknowledge_saved_infer_call_entry(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet) -> @model_execution.ModelCallEntryAcknowledgement?
 
 pub fn client_program_acknowledge_saved_infer_raw_capture(@model_execution.ModelRawCaptureSave) -> Result[@model_execution.ModelSavedRawReceipt, @model_execution.ModelRawCaptureSaveIssue]
@@ -423,6 +425,10 @@ pub fn client_program_advance_native_decision_projection(@model_execution.Native
 pub fn client_program_advance_openai_chat_projection(@model_execution.OpenAIChatProjection) -> Result[(String, String, String, String, String, String, String)?, @model_execution.OpenAIChatProjectionIssue]
 
 pub fn client_program_advance_program_json_preparation(@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit], Int) -> Result[@source_value.JsonSourcePreflightPoll, @client_local_host.ClientProgramJsonPreparationIssue]
+
+pub fn client_program_advance_relation_sample_debug_entry(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], AuthorizationAccount, String, String, String, Int) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue]
+
+pub fn client_program_advance_relation_sample_start_control(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], AuthorizationAccount, String, String, Bool) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue]
 
 pub fn client_program_advance_request_result_read_wire_row(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[(Bool, Int, Int), @client_local_host.ClientRequestPreparationIssue]
 
@@ -768,6 +774,8 @@ pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.Ef
 
 pub fn client_program_check_recovered_table_schema_wire(@run_publication_host.RecoveredClientTablePreview, String, Int, Int, Int) -> Result[Unit, @run_publication_host.ClientTableInputIssue]
 
+pub fn client_program_check_relation_sample_profile(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @client_local_host.ClientLogicalObservation, String, @client_local_host.InstalledRelationSampleProfileEvidence, Int, Int, Int) -> Result[(@client_local_host.ClientCheckedRelationSampleProfile, String, String, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, String), @client_local_host.InstalledRelationSampleProfileIssue]
+
 pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Bool
 
 pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?, String, String, @client_local_preparation.ClientCheckSourceNamespace?) -> String
@@ -936,7 +944,7 @@ pub fn client_program_continue_installed_source_material(@physical_resources.Pre
 
 pub fn client_program_create_infer_call_entry_persistence(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet, () -> @model_execution.ModelEntryPersistenceObservation) -> @model_execution.ModelCallEntryPersistence?
 
-pub fn client_program_current_run_view(@run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, Int, Int, Int) -> Result[String, @run_publication.RunControlReadIssue]
+pub fn client_program_current_run_view(@run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, Int, Int, Int, String) -> Result[String, @run_publication.RunControlReadIssue]
 
 pub fn client_program_definition_cid(@run_publication_host.PreparedClientProgram) -> String
 
@@ -2414,6 +2422,8 @@ pub fn client_program_issue_installed_keyed_source_effect_local_result_artifact(
 
 pub fn client_program_issue_installed_whole_effect_source_unit(@client_local_host.ClientInstalledEffectManagedPlan, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @client_local_host.ClientInstalledWholeSourceCapacity, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
+pub fn client_program_issue_local_debug_resume_receipt(@run_publication.PublicationContract, @run_publication.RunEvidenceValue, String, Int, String, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunControlReadIssue]
+
 pub fn client_program_issue_local_effect_result_definition(@run_publication_host.PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
 
 pub fn client_program_issue_local_effect_result_manifest(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalManifestIssue]
@@ -2445,6 +2455,8 @@ pub fn client_program_issue_publication_invocation(@client_local_host.ClientInst
 pub fn client_program_issue_publication_plan_facts(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientPublicationPlanFacts, @run_publication_host.ClientPublicationPlanFactIssue]
 
 pub fn client_program_issue_publication_witnesses(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientPublicationWitnesses, @run_publication_host.ClientPublicationWitnessIssue]
+
+pub fn client_program_issue_relation_sample_profile(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @client_local_host.ClientLogicalObservation, String, String, Int, Int, Int) -> Result[(@client_local_host.ClientCheckedRelationSampleProfile, String, String, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, String), @client_local_host.InstalledRelationSampleProfileIssue]
 
 pub fn client_program_issue_request_effect_prepared_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectCompilation) -> Result[String, ClientRequestProgramModuleBridgeIssue]
 
@@ -3079,6 +3091,8 @@ pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgra
 pub fn client_program_local_csv_page(Bytes, Array[String], Array[Bool], Array[String], Int, Int, Int, Int) -> Result[String, String]
 
 pub fn client_program_local_csv_relation_view(String, Array[String], Array[Bool], Array[String]) -> Result[(String, String, String), @client_row_source_host.RowHostIssue]
+
+pub fn client_program_local_debug_resume_receipt_construction_bytes(Int, Int, Int, Bool) -> Int64
 
 pub fn client_program_local_effect_host_run(ClientLocalEffectHost) -> @physical_strategy_host.CapturedEffectRunDAG
 
@@ -3776,7 +3790,7 @@ pub fn client_program_prepare_request_node_model_source_free_plan(@client_local_
 
 pub fn client_program_prepare_request_node_models_source_free_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedSourceFreePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@run_publication_host.ClientInferOccurrence], Array[@run_publication_host.ClientInferPlanGraph], Array[@client_infer_host.Limits], (Int, (@run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int64, Int64, Int, Int, Int, Int64, Int64, Int64, Int64, Int64) -> Result[ClientNodeGroupModelDemand, @client_local_host.ClientInstalledManagedRunIssue]) -> Result[ClientNodeGroupModelDemand, @client_local_host.ClientInstalledManagedRunIssue]) -> Result[@client_local_host.ClientInstalledManagedModelPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
-pub fn client_program_prepare_request_original_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int) -> Result[@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal]?, @client_local_host.ClientOriginalExplanationCaptureIssue]
+pub fn client_program_prepare_request_original_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Bool) -> Result[@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal]?, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
 pub fn client_program_prepare_request_policy_subjects(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment) -> Result[Int, @client_local_host.ClientRequestTerminalIssue]
 
@@ -3962,9 +3976,9 @@ pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int,
 
 pub fn client_program_read_reconciled_infer_raw_usage(@model_execution.ModelPhysicalCall, @model_execution.ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), @model_execution.ModelExecutionIssue]
 
-pub fn client_program_read_request_checked_static_effect_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[@client_local_host.ClientRequestStaticEffectExplanation, ClientRequestStaticExplanationBridgeIssue]
+pub fn client_program_read_request_checked_static_effect_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph], Bool) -> Result[@client_local_host.ClientRequestStaticEffectExplanation, ClientRequestStaticExplanationBridgeIssue]
 
-pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticPlanBridgeIssue]
+pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph], Bool) -> Result[String, ClientRequestStaticPlanBridgeIssue]
 
 pub fn client_program_read_request_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue]
 
@@ -4094,6 +4108,16 @@ pub fn client_program_relation_project_target_document(@client_row_source_host.R
 
 pub fn client_program_relation_restore_construction_capacity(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_relation_sample_adoption_matches_profile(@client_local_host.ClientCheckedRelationSampleProfile, String, String, String, String, String, String, Bool) -> Bool
+
+pub fn client_program_relation_sample_debug_entry_runnable(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int) -> Result[Bool, @client_local_host.InstalledRelationSampleStartIssue]
+
+pub fn client_program_relation_sample_debug_next_input(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int, Int, String, Int, Int) -> Result[(String, String, String, Int, Int)?, String]
+
+pub fn client_program_relation_sample_debug_resume_allowed(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], AuthorizationAccount, String, String) -> Bool
+
+pub fn client_program_relation_sample_debug_task_pause(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int) -> Result[(Int, String, String, Int), @client_local_host.InstalledRelationSampleStartIssue]
+
 pub fn client_program_relation_target_before(@client_row_source_host.RelationTargetRow) -> String?
 
 pub fn client_program_relation_target_row_count(@client_row_source_host.RelationTargetDocument) -> Int?
@@ -4148,7 +4172,7 @@ pub fn client_program_request_model_recovery_source_coordinates(@client_local_ho
 
 pub fn client_program_request_model_recovery_usage_isolated(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG) -> Bool
 
-pub fn client_program_request_original_static_plan_wire(@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal]) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue]
+pub fn client_program_request_original_static_plan_wire(@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal], Bool) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
 pub fn client_program_request_parameters_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@decode_core.Cursor?, @client_local_host.ClientRequestPreparationIssue]
 
@@ -4210,6 +4234,8 @@ pub fn client_program_reserve_original_infer_publication_capacity(@client_infer_
 
 pub fn client_program_reserve_publication(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[@client_local_host.ClientProgramPublication, @client_local_host.ClientClosedValuesPreparationIssue]
 
+pub fn client_program_reserve_relation_sample_start(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Bool, Int) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue]
+
 pub fn client_program_reserve_request_effect_capture_decoded(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_reserve_request_effect_capture_encrypted(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
@@ -4229,6 +4255,8 @@ pub fn client_program_reserve_request_http_input(@client_local_host.ClientReques
 pub fn client_program_reserve_request_model_recovery_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, (Int) -> String, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_reserve_request_query_time_invocation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRunCompilation) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_reserve_request_result_construction(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_reserve_request_result_metadata(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
@@ -4283,6 +4311,8 @@ pub fn client_program_result_row_contract_name(@run_publication_host.ClientResul
 pub fn client_program_result_row_contract_unit_cid(@run_publication_host.ClientResultRowContractIdentity) -> String
 
 pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResultRowContractIdentity) -> String
+
+pub fn client_program_resume_relation_sample_debug_task(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], AuthorizationAccount, String, String, Int, Int, String, String, Int, Bool) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue]
 
 pub fn client_program_retain_request_result_metadata_contract(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, @run_publication.PublicationContract, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
@@ -4964,6 +4994,8 @@ pub fn client_program_whole_source_request_wire(@client_row_source_host.RowInput
 
 pub fn client_program_whole_source_target(@client_row_source_host.RowInputAcquisition) -> Array[String]
 
+pub fn client_program_with_relation_sample_journal(@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.InstalledRelationSamplePrefix, () -> Bool, (String, String, String, String, String, () -> Bool, Int) -> Bool) -> Result[Unit, @client_local_host.InstalledRelationSampleAdoptionIssue]
+
 pub fn client_program_with_values_row_limit(@run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PreparedClientProgram?
 
 pub fn client_project_catalog_admission_construction_capacity(String) -> @execution_relation.ExecutionCapacity?
@@ -5194,9 +5226,13 @@ pub fn local_managed_has_prepared_relation_input(@connectors_builtin.ConfiguredC
 
 pub fn local_managed_relation_output(@execution_relation.ManagedCompletedOutput[Int]) -> @actql/actql/connectors/local/driver.LocalManagedAvailableOutput[Int]
 
+pub fn local_managed_return_pending_sample(@client_local_host.InstalledRelationSamplePrefix) -> Result[Unit, @physical_strategy_host.CapturedTaskBoundaryIssue]
+
 pub fn local_managed_start(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> @actql/actql/connectors/local/driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure
 
 pub fn local_managed_start_retained(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> @actql/actql/connectors/local/driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure
+
+pub fn local_managed_start_sample(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int], Bool, @client_local_host.ClientInstalledManagedRun, @client_local_host.ClientCheckedRelationSampleProfile, Int, Int, Int, Int, () -> Bool, (@client_local_host.InstalledRelationSamplePrefix) -> Bool, (@client_local_host.InstalledRelationSamplePrefix) -> Unit, (Result[Bool, @client_local_host.InstalledRelationSamplePrefixIssue], Bool, Bool) -> Unit) -> @actql/actql/connectors/local/driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure
 
 pub fn local_managed_supplied_relation_input() -> @actql/actql/connectors/local/driver.LocalManagedAvailableOutput[Int]
 

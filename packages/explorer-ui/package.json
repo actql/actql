@@ -49,14 +49,11 @@
     "ELKJS-LICENSE.md",
     "run-observation.mjs",
     "run-observation.d.ts",
-    "run-inspector.d.ts",
-    "cancellation-panel.d.ts",
     "cancellation-types.d.ts",
     "cancellation.mjs",
     "cancellation.d.ts",
     "checkpoint-review.mjs",
-    "checkpoint-review.d.ts",
-    "checkpoint-panel.d.ts"
+    "checkpoint-review.d.ts"
   ],
   "scripts": {
     "build": "vite build --config vite.config.mts",

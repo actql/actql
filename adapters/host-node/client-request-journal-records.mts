@@ -706,6 +706,7 @@ type RunRecordStatements = Readonly<{
 }>;
 export type ExplanationOriginal = Readonly<{
   factsWire: string; contextWire?: string; contextWireSha256?: string; invocationTemplateWire?: string;
+  plan?: Readonly<{compiledPlanWire: string; planViewWire: string}>;
 }>;
 type RunRecordOwners = Readonly<{
   ensureOpen: () => void; transact: ReturnType<typeof createJournalAttempts>['transact'];
@@ -716,6 +717,7 @@ type RunRecordOwners = Readonly<{
   readExplanationOriginal: (ref: WireRunRef) => ReturnType<typeof readJournalExplanationOriginal>;
   insertExplanationOriginal: (ref: WireRunRef, original: ExplanationOriginal) => void;
   verifyExplanationContext: (runDefinitionCid: string, original: ExplanationOriginal) => void;
+  verifyExplanationPlan: (runDefinitionCid: string, original: NonNullable<ExplanationOriginal['plan']>) => void;
 }>;
 type RequestRelation = Readonly<{clientRequestRelation(original: unknown, retained: unknown): number}>;
 type LookupControl = RequestIdentityAdmission<unknown> & Pick<RequestIdentityRead, 'clientRequestScopeCid'>;
@@ -742,7 +744,7 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
   cancellationIssued, intentSelect, insert, advanceSubmissionCustody}: RunRecordStatements,
   {ensureOpen, transact, checkSubmissionBinding, refuseEpoch, retainedIntent,
     assertJournalSubmissionCustody, assertJournalCancellationCustody,
-    readExplanationOriginal, insertExplanationOriginal, verifyExplanationContext}: RunRecordOwners,
+    readExplanationOriginal, insertExplanationOriginal, verifyExplanationContext, verifyExplanationPlan}: RunRecordOwners,
   {maxRecords, maxRunDefinitionWireBytes, maxOriginalExplanationWireBytes, updateOriginalControl}: Pick<ReturnType<typeof snapshotJournalConfiguration>,
     'maxRecords' | 'maxRunDefinitionWireBytes'> & Readonly<{maxOriginalExplanationWireBytes: number; updateOriginalControl?: UpdateOriginalControl}>) {
   const acceptRecord = (identity: unknown, {namespaceId, runDefinitionCid,
@@ -830,15 +832,6 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
         // return the loser's loan without comparing or backfilling its facets.
         const compareOriginal = originalExplanation?.contextWire === undefined ||
           existing.run_definition_cid === runDefinitionCid;
-        const proposedPlan = admittedEvidence?.logicalPlanOriginal;
-        if (compareOriginal && proposedPlan !== undefined) {
-          const originalPlan = existingEvidence?.logicalPlanOriginal;
-          if (originalPlan === undefined) fail('ClientRequestPlanEvidenceMissing');
-          if (originalPlan.compiledPlanWire !== proposedPlan.compiledPlanWire ||
-              originalPlan.planViewWire !== proposedPlan.planViewWire) {
-            fail('ClientRequestPlanEvidenceMismatch');
-          }
-        }
         if (compareOriginal && originalExplanation !== undefined) {
           const original = readExplanationOriginal({namespaceId,
             authorityScopeCid: fields.authorityScopeCid, runDefinitionCid: existing.run_definition_cid});
@@ -846,6 +839,18 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
           if (original.factsWire !== originalExplanation.factsWire) fail('ClientRequestExplanationEvidenceMismatch');
           if (originalExplanation.contextWire !== undefined) {
             verifyExplanationContext(existing.run_definition_cid, originalExplanation);
+          }
+        }
+        const proposedPlan = originalExplanation?.plan ?? admittedEvidence?.logicalPlanOriginal;
+        if (compareOriginal && originalExplanation?.plan !== undefined) {
+          verifyExplanationPlan(existing.run_definition_cid, originalExplanation.plan);
+          if (existingEvidence?.logicalPlanOriginal !== undefined) fail('ClientRequestPlanEvidenceMismatch');
+        } else if (compareOriginal && proposedPlan !== undefined) {
+          const originalPlan = existingEvidence?.logicalPlanOriginal;
+          if (originalPlan === undefined) fail('ClientRequestPlanEvidenceMissing');
+          if (originalPlan.compiledPlanWire !== proposedPlan.compiledPlanWire ||
+              originalPlan.planViewWire !== proposedPlan.planViewWire) {
+            fail('ClientRequestPlanEvidenceMismatch');
           }
         }
         const proposedInfer = admittedEvidence?.inferRunOriginal;
@@ -1150,13 +1155,38 @@ type DispatchStartControl = RequestIdentityRead & Readonly<{
   clientRunStartAction(original: unknown, retained: unknown, definition: RunDefinition, runDefinitionCid: string,
     dispatchReserved: boolean, currentAuthorization: boolean): unknown;
 }>;
+type SampleOriginalWriter = Parameters<ReturnType<typeof import('./client-relation-sample-adoption.mjs')
+  .clientRelationSampleAdoptionStorage>['writer']>[1];
+type SampleAdoptionWriter = ReturnType<ReturnType<typeof import('./client-relation-sample-adoption.mjs')
+  .clientRelationSampleAdoptionStorage>['writer']>;
 type CompiledProgram = Readonly<{program: unknown; compiled: unknown}>;
 type SourceCapture = CompiledProgram & Readonly<{
   store: SourceRunOriginal['store'] & {privateEvidenceWireLimit?: SourceRunOriginal['checkStore']};
   capture(scope: ReturnType<SourceOperationStorage['issue']>): SynchronousRuntimeData;
 }>;
+type DebugStart = Readonly<{commandCid: string; until: 'step' | 'terminal';
+  acceptedRevision: number; physicalStartRevision: number}>;
+type DebugStartSelection = Readonly<{commandCid: string; current(): unknown;
+  capture(original: DebugStart): void}>;
+type CaptureSampleStart = CompiledProgram & Readonly<{startTicket: object;
+  captureRevision(revision: number): void; captureAdoption?(writer: SampleAdoptionWriter): void}>;
+export type SampleStartClaim = Partial<Pick<SampleOriginalWriter, 'matchesAdoption' | 'visitAdoption'>> & Readonly<{
+  identity: unknown; requestControl: unknown; publicationControl: unknown; namespaceId: string;
+  sampleDefinitionCid: string; intentCid: string; controlAdmissionCid: string; resolvedProfileCid: string;
+  matchesStart(program: unknown, compiled: unknown): boolean;
+  reserveCurrentRow(): void; currentRow(): RunLookupRow | undefined;
+}>;
+export type InteractivePhysicalStart = Readonly<{
+  takeSample(ticket: object, accept: (claim: SampleStartClaim) => boolean): SampleStartClaim;
+  selectDebug(ref: WireRunRef, revision: number, selection: DebugStartSelection | undefined,
+    publication: PhysicalStartPublication): DebugStart | false | undefined;
+  persistSample(row: RunLookupRow, sample: SampleStartClaim, revision: number): void;
+  sampleWriter(ref: WireRunRef, claim: SampleStartClaim, revision: number, publication: PhysicalStartPublication): SampleAdoptionWriter;
+  requireDebugCurrent(current: () => unknown): void;
+}>;
 type PhysicalStartOptions = RunStartOptions & Readonly<{
   ref: WireRunRef; captureSourceOperation?: SourceCapture; localExecutionOwner?: CompiledProgram;
+  captureSampleStart?: CaptureSampleStart; debugResume?: DebugStartSelection;
 }>;
 type PhysicalStartControl = RequestIdentityRead & Partial<SourceRunOriginal['requestControl']> & Readonly<{
   clientRunPhysicalStartWithCancellationAction(original: unknown, retained: unknown, definition: RunDefinition,
@@ -1181,11 +1211,24 @@ type RunStartOwners = Readonly<{
   ownedOriginal?: object;
   captureOriginalLocalExecutionOwner: (original: object) => LocalExecutionReceipt | undefined;
   validLocalExecutionOwnerReceipt: typeof validLocalExecutionOwnerReceipt;
+  interactive: InteractivePhysicalStart;
 }>;
+
+function checkSourceFreeExecutionOriginal(program: unknown, compiled: unknown, definition: RunDefinition,
+  requestControl: PhysicalStartControl, publicationControl: PhysicalStartPublication) {
+  publicationControl.checkClientCompiledRunDefinition!(compiled, definition);
+  publicationControl.checkClientCompiledLocalExecutionOwner!(compiled, definition);
+  const inferred = checked(requestControl.clientProgramComposedInferOccurrences!(program));
+  const serialized = requestControl.clientProgramSerializationOccurrences!(program);
+  if (requestControl.clientProgramAcquisitionCount!(program) !== 0 ||
+      !Array.isArray(inferred) || inferred.length !== 0 || !Array.isArray(serialized) || serialized.length !== 0) {
+    fail('ForeignClientLocalExecutionOwner');
+  }
+}
 
 export function createJournalRunStart({select, selectRef, reserve, reservePhysicalStart, localExecutionOwnerInsert}: RunStartStatements,
   {ensureOpen, transact, getDeliveredJournal, sourceOperations, ownedOriginal,
-    captureOriginalLocalExecutionOwner, validLocalExecutionOwnerReceipt}: RunStartOwners, maxRunDefinitionWireBytes: number) {
+    captureOriginalLocalExecutionOwner, validLocalExecutionOwnerReceipt, interactive}: RunStartOwners, maxRunDefinitionWireBytes: number) {
   return {
     // One physical transaction applies the common MoonBit start decision.
     // A committed reservation records possible dispatch before any work. A
@@ -1232,17 +1275,42 @@ export function createJournalRunStart({select, selectRef, reserve, reservePhysic
     // Compute. A missing claim is safe to resume; a claim or legacy unknown
     // is never evidence that Compute did not run.
     reservePhysicalStart(identity: unknown, {namespaceId, ref, currentAuthorization,
-      captureSourceOperation, localExecutionOwner}: PhysicalStartOptions,
+      captureSourceOperation, localExecutionOwner, captureSampleStart, debugResume}: PhysicalStartOptions,
       requestControl: PhysicalStartControl, publicationControl: PhysicalStartPublication) {
       ensureOpen();
       if (!text(namespaceId) || !text(ref?.namespaceId) ||
           !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
           typeof currentAuthorization !== 'boolean' ||
+          debugResume !== undefined && (!cid(debugResume.commandCid) || typeof debugResume.current !== 'function' ||
+            typeof debugResume.capture !== 'function') ||
           typeof requestControl?.clientRunPhysicalStartWithCancellationAction !==
             'function') {
         fail('InvalidClientRunPhysicalStart');
       }
       const fields = checkedIdentity(identity, requestControl);
+      let debugStart: DebugStart | undefined;
+      const debugSelection = debugResume === undefined ? undefined : Object.freeze({commandCid: debugResume.commandCid, current: debugResume.current, capture: debugResume.capture});
+      const debugReceiver = debugSelection?.capture;
+      let sampleClaim: SampleStartClaim | undefined;
+      const sampleCapture = captureSampleStart?.captureRevision;
+      const sampleAdoption = captureSampleStart?.captureAdoption;
+      const sampleProgram = captureSampleStart?.program;
+      const sampleCompiled = captureSampleStart?.compiled;
+      if (captureSampleStart !== undefined) {
+        const {startTicket} = captureSampleStart;
+        if (typeof sampleCapture !== 'function' || sampleAdoption !== undefined && typeof sampleAdoption !== 'function' ||
+            captureSourceOperation !== undefined || localExecutionOwner === undefined ||
+            sampleProgram !== localExecutionOwner.program || sampleCompiled !== localExecutionOwner.compiled) {
+          fail('ClientRunSampleStartOriginalUnavailable');
+        }
+        sampleClaim = interactive.takeSample(startTicket, claim =>
+          (sampleAdoption === undefined || typeof claim.matchesAdoption === 'function' &&
+            typeof claim.visitAdoption === 'function') &&
+          claim.identity === identity && claim.requestControl === requestControl && claim.publicationControl === publicationControl &&
+          claim.namespaceId === namespaceId && ref.namespaceId === namespaceId &&
+          claim.sampleDefinitionCid === ref.runDefinitionCid && fields.authorityScopeCid === ref.authorityScopeCid &&
+          claim.matchesStart(sampleProgram, sampleCompiled) === true);
+      }
       let sourceOriginal: SourceRunOriginal | undefined;
       let captureOriginal: SourceCapture['capture'] | undefined, captureReceiver: SourceCapture | undefined;
       if (captureSourceOperation !== undefined) {
@@ -1278,7 +1346,7 @@ export function createJournalRunStart({select, selectRef, reserve, reservePhysic
       // Only the actual compiled effect-free Prepared original can qualify;
       // source text, a caller boolean or an empty local worker map cannot.
       let localOwnerProgram: unknown, localOwnerCompiled: unknown;
-      if (localExecutionOwner !== undefined && ownedOriginal !== undefined) {
+      if (sampleClaim === undefined && localExecutionOwner !== undefined && ownedOriginal !== undefined) {
         const {program, compiled} = localExecutionOwner;
         try {
           if (requestControl.clientProgramMatchesRequestIdentity!(program, identity) !== true) {
@@ -1288,23 +1356,19 @@ export function createJournalRunStart({select, selectRef, reserve, reservePhysic
           const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid) as RunDefinitionRow | undefined;
           if (row === undefined) fail('ForeignClientLocalExecutionOwner');
           const definition = retainedRunDefinition(row, publicationControl, maxRunDefinitionWireBytes);
-          publicationControl.checkClientCompiledRunDefinition!(compiled, definition);
-          publicationControl.checkClientCompiledLocalExecutionOwner!(compiled, definition);
-          const inferred = checked(requestControl.clientProgramComposedInferOccurrences!(program));
-          const serialized = requestControl.clientProgramSerializationOccurrences!(program);
-          if (requestControl.clientProgramAcquisitionCount!(program) !== 0 ||
-              !Array.isArray(inferred) || inferred.length !== 0 ||
-              !Array.isArray(serialized) || serialized.length !== 0) {
-            fail('ForeignClientLocalExecutionOwner');
-          }
+          checkSourceFreeExecutionOriginal(program, compiled, definition, requestControl, publicationControl);
           localOwnerProgram = program; localOwnerCompiled = compiled;
         } catch (cause) {fail('ForeignClientLocalExecutionOwner', cause);}
       }
+      if (debugSelection !== undefined) sampleClaim?.reserveCurrentRow();
       const started = transact('physical_start', 'ClientRunPhysicalStartUnknown',
         error => typeof (error as ObservedFailure)?.code === 'string' &&
           ((error as NonNullable<ObservedFailure>).code!.startsWith('ClientRun') ||
-            (error as NonNullable<ObservedFailure>).code!.startsWith('ClientRequest')), () => {
-        const row = select.get(fields.authorityScopeCid, fields.requestId) as RunLookupRow | undefined;
+            (error as NonNullable<ObservedFailure>).code!.startsWith('ClientRequest') ||
+            sampleClaim !== undefined && ((error as NonNullable<ObservedFailure>).code!.startsWith('ClientSubmittedIntent') ||
+              (error as NonNullable<ObservedFailure>).code!.startsWith('ClientSubmissionEpoch'))), () => {
+        const row = sampleClaim === undefined ? select.get(fields.authorityScopeCid, fields.requestId) as RunLookupRow | undefined
+          : sampleClaim.currentRow();
         if (row === undefined || row.namespace_id !== namespaceId ||
             ref.namespaceId !== namespaceId ||
             ref.authorityScopeCid !== fields.authorityScopeCid ||
@@ -1328,6 +1392,28 @@ export function createJournalRunStart({select, selectRef, reserve, reservePhysic
             action === 5 ? 'ClientRunPhysicalStartDenied' :
             'ClientRequestJournalCorrupt');
         }
+        const revision = row.revision;
+        if (typeof revision !== 'number' || !Number.isSafeInteger(revision) || revision < 0) {
+          fail('ClientRequestJournalCorrupt');
+        }
+        const physicalStartRevision = revision + 1;
+        const selectedDebug = interactive.selectDebug(ref, revision, debugSelection, publicationControl);
+        if (selectedDebug === false) return false;
+        debugStart = selectedDebug;
+        let sampleRevision: number | undefined;
+        if (sampleClaim !== undefined) {
+          if (requestControl.clientProgramMatchesRequestIdentity?.(sampleProgram, identity) !== true) {
+            fail('ClientRunSampleStartOriginalUnavailable');
+          }
+          publicationControl.checkClientCompiledRunOwner!(sampleCompiled, sampleProgram);
+          if (ownedOriginal === undefined) publicationControl.checkClientCompiledRunDefinition!(sampleCompiled, definition);
+          else {
+            checkSourceFreeExecutionOriginal(sampleProgram, sampleCompiled, definition, requestControl, publicationControl);
+            localOwnerProgram = sampleProgram; localOwnerCompiled = sampleCompiled;
+          }
+          if (revision >= 2147483647) fail('ClientRunSampleStartRevisionExhausted');
+          sampleRevision = physicalStartRevision;
+        }
         if (localOwnerProgram !== undefined) {
           publicationControl.checkClientCompiledRunOwner!(localOwnerCompiled, localOwnerProgram);
           publicationControl.checkClientCompiledRunDefinition!(localOwnerCompiled, definition);
@@ -1346,14 +1432,26 @@ export function createJournalRunStart({select, selectRef, reserve, reservePhysic
           ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
           fail('ClientRequestJournalCorrupt');
         }
-        return true;
+        if (sampleRevision !== undefined) interactive.persistSample(row, sampleClaim!, sampleRevision);
+        if (debugStart !== undefined) interactive.requireDebugCurrent(debugSelection!.current);
+        return sampleRevision ?? true;
       });
-      // No lookup/recovery API exposes this issuer. In particular a lost COMMIT
-      // response throws before a scope can reach physical Source dispatch.
-      if (started && sourceOriginal !== undefined) {
+      // Only this original transaction's ACK can issue a physical receiver.
+      if (started === false) return false;
+      if (sourceOriginal !== undefined) {
         Reflect.apply(captureOriginal!, captureReceiver, [sourceOperations!.issue(sourceOriginal)]);
       }
-      return started;
+      if (sampleClaim !== undefined && typeof started === 'number') {
+        Reflect.apply(sampleCapture!, captureSampleStart, [started]);
+        if (sampleAdoption !== undefined) {
+          const ownedRef = Object.freeze({namespaceId, authorityScopeCid: fields.authorityScopeCid,
+            runDefinitionCid: sampleClaim.sampleDefinitionCid});
+          Reflect.apply(sampleAdoption, captureSampleStart,
+            [interactive.sampleWriter(ownedRef, sampleClaim, started, publicationControl)]);
+        }
+      }
+      if (debugReceiver !== undefined) debugReceiver(debugStart!);
+      return true;
     },
   };
 }

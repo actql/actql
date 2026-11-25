@@ -9,14 +9,18 @@ import {types as nodeTypes} from 'node:util';
 import type {RequestPreparationState} from '../local-node/request-preparation-adapter.mjs';
 import type {installResultAccessService} from '../host-common/result-access.mjs';
 import type {installClientRunExplanation} from './client-run-explanation.mjs';
+import type {installClientControlOperationLookup, installClientRunSample} from './client-run-plan.mjs';
+import type {installClientRunInspect} from './client-run-inspect.mjs';
 
 type ResultWorkspace = NonNullable<Parameters<typeof installResultAccessService>[0]['readWorkspace']>;
 type ResultRequest = Parameters<ResultWorkspace['begin']>[0];
 type ExplanationRequest = Parameters<Parameters<typeof installClientRunExplanation>[0]['authorize']>[0];
-type Request = ResultRequest | ExplanationRequest;
+type InspectionRequest = Parameters<Parameters<typeof installClientRunInspect>[0]['authorize']>[0];
+type ControlRequest = Parameters<Parameters<typeof installClientControlOperationLookup>[0]['authorize']>[0];
+type SampleRequest = Parameters<Parameters<typeof installClientRunSample>[0]['authorize']>[0];
+type Request = ResultRequest | ExplanationRequest | InspectionRequest | ControlRequest | SampleRequest;
 type ExplanationKind = 'run-explanation' | 'run-explanation-context';
 type ExplanationExtent = Readonly<{storedBytes: number; contextBytes?: number; invocationTemplateBytes?: number}>;
-type Control = Parameters<ResultWorkspace['begin']>[1];
 type RowAdmission = Awaited<ReturnType<ResultWorkspace['row']>>;
 type RowResult<Value extends number | string> = Value extends number ? RowAdmission : Promise<RowAdmission>;
 type Limits = Parameters<ResultWorkspace['prepare']>[2];
@@ -35,6 +39,7 @@ type Runtime = Readonly<{
   clientProgramBeginRequestResultReadWireRow: ReadBinding<[wire: string]>;
   clientProgramAdvanceRequestResultReadWireRow: ReadBinding<[quantum: number]>;
   clientProgramReserveRequestResultMetadata: ReadBinding<[bytes: number]>;
+  clientProgramReserveRequestResultConstruction?: ReadBinding<[peak: number]>;
   clientProgramRetainRequestResultMetadataData: ReadBinding<[slot: number, nodes: number, textUnits: number]>;
   clientProgramReleaseRequestResultMetadata: ReadBinding<[slot: number]>;
   clientProgramFinishRequestResultMetadata: ReadBinding;
@@ -72,7 +77,7 @@ type ExplanationOperation = Readonly<{
 type Entry = {
   request: Request;
   state: RequestPreparationState;
-  control?: Control;
+  control?: object;
   retained: unknown;
   active: boolean;
   rowUnits: number;
@@ -120,6 +125,7 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
   const beginRow = runtime.clientProgramBeginRequestResultReadWireRow;
   const advanceRow = runtime.clientProgramAdvanceRequestResultReadWireRow;
   const metadata = runtime.clientProgramReserveRequestResultMetadata;
+  const construction = runtime.clientProgramReserveRequestResultConstruction;
   const retainData = runtime.clientProgramRetainRequestResultMetadataData;
   const releaseMetadata = runtime.clientProgramReleaseRequestResultMetadata;
   const finishMetadata = runtime.clientProgramFinishRequestResultMetadata;
@@ -175,9 +181,9 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
     });
     return error;
   }
-  function beginEntry(request: ResultRequest, control: Control, explanation: false): undefined;
+  function beginEntry(request: Request, control: object | undefined, explanation: false): undefined;
   function beginEntry(request: ExplanationRequest, control: undefined, explanation: ExplanationKind): ExplanationOperation;
-  function beginEntry(request: Request, control: Control | undefined, explanation: false | ExplanationKind) {
+  function beginEntry(request: Request, control: object | undefined, explanation: false | ExplanationKind) {
     if (closing || reads.has(request)) unavailable();
     assertCurrent();
     const retained = control === undefined ? undefined : Object.getOwnPropertyDescriptor(control, 'retainResultReadMetadata')?.value;
@@ -210,7 +216,7 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
     }
   }
   return Object.freeze({
-    begin(request: ResultRequest, control: Control) {
+    begin(request: Request, control?: object) {
       if (closing || reads.has(request)) unavailable();
       if ([reserve, grow, beginWire, beginRow, advanceRow, metadata, retainData, releaseMetadata, finishMetadata, reconcileSerializer].some(method => typeof method !== 'function')) {
         throw Object.assign(new Error('ResultReadCapacityUnavailable'), {code: 'ResultReadCapacityUnavailable'});
@@ -269,8 +275,9 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       const rejected = (cause?: unknown) => Object.assign(new Error('RunExplanationEncodingRejected', {cause}),
         {code: 'RunExplanationEncodingRejected'});
       if (stored === null || typeof stored !== 'object' || nodeTypes.isProxy(stored)) throw rejected();
-      const own = (name: string): unknown => {
+      const own = (name: string, optional = false): unknown => {
         const field = Object.getOwnPropertyDescriptor(stored, name);
+        if (field === undefined && optional) return undefined;
         if (field === undefined || !Object.hasOwn(field, 'value')) throw rejected();
         return field.value;
       };
@@ -283,13 +290,22 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       const companion = operation.purpose === 'run-explanation-context';
       const contextWire = companion ? own('contextWire') : undefined;
       const templateWire = companion ? own('invocationTemplateWire') : undefined;
+      const storedCompiledPlan = own('compiledPlanWire', true);
+      const storedPlanView = own('planViewWire', true);
       if (contextWire !== undefined && typeof contextWire !== 'string' ||
-          templateWire !== undefined && typeof templateWire !== 'string') throw rejected();
+          templateWire !== undefined && typeof templateWire !== 'string' ||
+          (storedCompiledPlan === undefined) !== (storedPlanView === undefined) ||
+          storedCompiledPlan !== undefined && (typeof storedCompiledPlan !== 'string' ||
+            typeof storedPlanView !== 'string' || facts === undefined || companion && contextWire === undefined)) throw rejected();
       let plan;
       if (facts !== undefined && (!companion || contextWire !== undefined)) {
-        try {plan = JSON.parse(evidence!)?.logicalPlanOriginal;}
+        let inline;
+        try {inline = JSON.parse(evidence!)?.logicalPlanOriginal;}
         catch (cause) {throw Object.assign(new Error('RunExplanationEncodingRejected', {cause}),
           {code: 'RunExplanationEncodingRejected'});}
+        if (storedCompiledPlan !== undefined && inline !== undefined) throw rejected();
+        plan = storedCompiledPlan === undefined ? inline :
+          {compiledPlanWire: storedCompiledPlan, planViewWire: storedPlanView};
         if (plan === null || typeof plan !== 'object' || Array.isArray(plan) ||
             Object.keys(plan).length !== 2 || typeof plan.compiledPlanWire !== 'string' ||
             typeof plan.planViewWire !== 'string') throw rejected();
@@ -305,12 +321,20 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
             entry.explanation.storedBytes, selected.maxWireBytes, selected.maxNodes, selected.maxDepth]);
       return checkedExplanation(result, runtime, explanationIssueCode) as string;
     },
-    metadata(request: ResultRequest, bytes: number): undefined {
+    metadata(request: Request, bytes: number): undefined {
       const entry = original(request);
       if (!entry.active || !Number.isSafeInteger(bytes) || bytes < 0 || bytes > 2147483647) unavailable();
       assertCurrent();
       checked(Reflect.apply(metadata, runtime,
         [entry.state.parent, request, bytes]));
+      entry.metadataActive = true;
+    },
+    construction(request: Request, peak: number): undefined {
+      const entry = original(request);
+      if (!entry.active || typeof construction !== 'function' ||
+          !Number.isSafeInteger(peak) || peak < 1 || peak > 2147483647) unavailable();
+      assertCurrent();
+      checked(Reflect.apply(construction, runtime, [entry.state.parent, request, peak]));
       entry.metadataActive = true;
     },
     metadataRetain(request: ResultRequest, slot: number, originalContract: Parameters<ResultWorkspace['metadataRetain']>[2], mode: number) {
@@ -330,7 +354,7 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       checked(Reflect.apply(releaseMetadata, runtime,
         [entry.state.parent, request, slot]));
     },
-    metadataFinish(request: ResultRequest) {
+    metadataFinish(request: Request) {
       const entry = original(request);
       if (!entry.active) unavailable();
       if (!entry.metadataActive) return;

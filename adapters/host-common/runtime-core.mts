@@ -405,7 +405,32 @@ type DirectCommonBindings = Readonly<{
   strategyRunPublicationAdmit(template: unknown, prepared: unknown, authorization: unknown,
     compiled_plan: unknown): unknown;
 }>;
-type RuntimeBindings = DirectCommonBindings &
+type SampleEvidenceLoan = {
+  ticket: object; generation: string; capture: string; emission: string; reference: string; relation: string;
+  current(): unknown; fundedBytes: number; consumed: boolean;
+};
+type SampleJournalVisitor = (generation: string, capture: string, emission: string, reference: string,
+  relation: string, current: () => unknown, fundedBytes: number) => boolean;
+type CheckRelationProfile = (run: unknown, request: unknown, definition: unknown, observation: unknown,
+  referenceWire: string, records: unknown, bytes: number, nodes: number, depth: number) => unknown;
+type RelationSampleBindings = Readonly<{
+  clientProgramCheckRelationSampleProfile?: CheckRelationProfile;
+  clientProgramIssueRelationSampleProfile?: CheckRelationProfile;
+  clientProgramRelationSampleAdoptionMatchesProfile?(profile: unknown, logicalMapCid: string, outputPortId: string,
+    maxItems: string, maxBytes: string, maxArtifacts: string, ttlSeconds: string, required: boolean): boolean;
+  clientProgramWithRelationSampleJournal?(run: unknown, profile: unknown, prefix: unknown,
+    current: () => boolean, visit: SampleJournalVisitor): unknown;
+  clientProgramReserveRelationSampleStart?(run: unknown, prepared: unknown, request: unknown,
+    compiled: unknown, definition: unknown, setup: unknown, bytes: number, debug: boolean, previousBytes: number): unknown;
+  clientProgramAcknowledgeRelationSampleStart?(run: unknown, prepared: unknown, request: unknown,
+    compiled: unknown, definition: unknown, captured: unknown, revision: number): unknown;
+}>;
+type SampleExecutionOwner = Readonly<{compiled: unknown; program: unknown}>;
+type SampleSourceBinding = Readonly<{logical_map_cid: string; output_port_id: string}>;
+type SampleCaptureBounds = Readonly<{max_items: number; max_bytes: string; max_artifacts: number;
+  ttl_seconds: number; required: boolean}>;
+
+type RuntimeBindings = DirectCommonBindings & RelationSampleBindings &
   Parameters<typeof outputExportControl>[0] &
   Parameters<typeof contentGenerationControl>[0] &
   Parameters<typeof contentCaptureControl>[0] &
@@ -452,6 +477,76 @@ export {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources};
 const publicationControls: TokenTable<unknown> = new WeakMap<object, unknown>();
 
+// One synchronous loan per exact checked profile. Only the Common bridge can
+// open it from the same profile's live committed prefix. The two operations
+// are split between the capture receiver and the original Journal writer.
+function relationSampleJournalScope(moon: RelationSampleBindings,
+  visit: RelationSampleBindings['clientProgramWithRelationSampleJournal'], run: unknown, profile: unknown,
+  checkResult: (result: unknown, code: string) => unknown) {
+  if (typeof visit !== 'function') return undefined;
+  let active: SampleEvidenceLoan | undefined;
+  let visiting = false;
+  return Object.freeze({
+    withAdoption(prefix: unknown, requireCurrent: () => unknown, consume: (ticket: object) => unknown) {
+      if (visiting || typeof requireCurrent !== 'function' || typeof consume !== 'function') {
+        throw new Error('ClientRelationSampleVisitUnavailable');
+      }
+      visiting = true;
+      let primary: unknown, failed = false, entered = false;
+      const allowed = () => {
+        try {
+          const value = requireCurrent();
+          if (typeof (value as {then?: unknown} | null)?.then === 'function') void Promise.resolve(value).catch(() => {});
+          return value === true;
+        } catch (cause) {
+          if (!failed) {failed = true; primary = cause;}
+          return false;
+        }
+      };
+      try {
+        const result = visit.call(moon, run, profile, prefix, allowed,
+          (generation, capture, emission, reference, relation, current, fundedBytes) => {
+            if (entered) return false;
+            entered = true;
+            const ticket = Object.freeze({});
+            const original = {ticket, generation, capture, emission, reference, relation, current, fundedBytes,
+              consumed: false};
+            active = original;
+            try {
+              const value = consume(ticket);
+              if (value !== undefined) {
+                if (typeof (value as {then?: unknown} | null)?.then === 'function') void Promise.resolve(value).catch(() => {});
+                throw new Error('ClientRelationSampleVisitMustBeSynchronous');
+              }
+              if (!original.consumed) throw new Error('ClientRelationSampleVisitUnconsumed');
+              return !failed;
+            } catch (cause) {
+              if (!failed) {failed = true; primary = cause;}
+              return false;
+            } finally {
+              // An escaped ticket contains no bytes, funding or current grant.
+              active = undefined;
+            }
+          });
+        if (failed) throw primary;
+        checkResult(result, 'RunHostRelationSampleJournalRejected');
+        if (!entered) throw new Error('ClientRelationSampleVisitUnavailable');
+      } finally {
+        active = undefined;
+        visiting = false;
+      }
+    },
+    visitAdoption<Result>(ticket: object, consume: (loan: Readonly<SampleEvidenceLoan>) => Result): Result {
+      const original = active;
+      if (original === undefined || original.ticket !== ticket || original.consumed) {
+        throw Object.assign(new Error('ClientRelationSampleForeignLoan'), {code: 'ClientRelationSampleForeignLoan'});
+      }
+      original.consumed = true;
+      return consume(original);
+    },
+  });
+}
+
 function publicationControl(moon: RuntimeBindings) {
   let control = publicationControls.get(moon) as LatePublicationPorts | undefined;
   if (control !== undefined) return control as typeof assembled;
@@ -478,6 +573,12 @@ function publicationControl(moon: RuntimeBindings) {
   const observeOriginalDispatchFailure = moon.clientProgramObserveOriginalDispatchFailure;
   const describeExecutionFailure = moon.strategyModule_local_ManagedFailureExplanation;
   const prepareLogicalObservation = moon.clientProgramPrepareLogicalObservation;
+  const checkRelationSampleProfile = moon.clientProgramCheckRelationSampleProfile;
+  const issueRelationSampleProfile = moon.clientProgramIssueRelationSampleProfile;
+  const matchRelationSampleAdoption = moon.clientProgramRelationSampleAdoptionMatchesProfile;
+  const visitRelationSampleJournal = moon.clientProgramWithRelationSampleJournal;
+  const reserveRelationSampleStart = moon.clientProgramReserveRelationSampleStart;
+  const acknowledgeRelationSampleStart = moon.clientProgramAcknowledgeRelationSampleStart;
   const originalInferRunTokens: TokenTable<WeakValue<Parameters<typeof createInferAdmissionControls>[1]['originalInferRunTokens']>> =
     new WeakMap<object, WeakValue<Parameters<typeof createInferAdmissionControls>[1]['originalInferRunTokens']>>();
   const restoredInferRuns = new WeakSet<object>();
@@ -895,6 +996,75 @@ function publicationControl(moon: RuntimeBindings) {
         throw new TypeError('Publication evidence differs from checked Program');
       }
       return inspectAdmission(admission);
+    },
+    localDebugResumeReceiptConstructionBytes(limits: WireLimits, issuing: boolean) {
+      const bytes = Number(moon.clientProgramLocalDebugResumeReceiptConstructionBytes(
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth, issuing));
+      if (!Number.isSafeInteger(bytes) || bytes < 1) throw new TypeError('Invalid Debug resume receipt limits');
+      return bytes;
+    },
+    issueLocalDebugResumeReceipt(runDefinition: unknown, command: unknown, parkWire: string,
+      acceptedRevision: number, acceptedAt: string, limits: WireLimits) {
+      return inspectEvidence(compiledRunResult(moon.clientProgramIssueLocalDebugResumeReceipt(
+        token(runDefinition), evidenceToken(command), parkWire, acceptedRevision, acceptedAt,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostDebugResumeReceiptRejected'));
+    },
+    checkClientRelationSampleProfile(run: unknown, request: unknown, definition: unknown, observation: unknown,
+      referenceWire: string, records: unknown, limits: WireLimits) {
+      issuanceLimits(limits, 'Original Relation Sample profile');
+      const check = typeof records === 'string' ? issueRelationSampleProfile : checkRelationSampleProfile;
+      if (typeof check !== 'function') {
+        throw new TypeError('ClientRunSampleProfileUnavailable');
+      }
+      const original = compiledRunResult(check.call(moon, run, request, token(definition),
+        observation, referenceWire, records, limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+      'RunHostRelationSampleProfileRejected');
+      const prepared = runtimeField(original, 3), compiled = runtimeField(original, 4);
+      const profile = runtimeField(original, 0);
+      return Object.freeze({profile,
+        controlAdmissionCid: runtimeField(original, 1),
+        resolvedProfileCid: runtimeField(original, 2),
+        logicalMapCid: runtimeField(original, 5),
+        ...relationSampleJournalScope(moon, visitRelationSampleJournal, run, profile, compiledRunResult),
+        matchesStart(program: unknown, candidate: unknown) {
+          return prepared !== undefined && compiled !== undefined && program === prepared &&
+            compiledRunTokens.get(candidate) === compiled;
+        },
+        matchesAdoption(source: SampleSourceBinding, capture: SampleCaptureBounds) {
+          return typeof matchRelationSampleAdoption === 'function' &&
+            matchRelationSampleAdoption.call(moon, profile, source.logical_map_cid, source.output_port_id,
+              String(capture.max_items), capture.max_bytes, String(capture.max_artifacts),
+              String(capture.ttl_seconds), capture.required) === true;
+        },
+      });
+    },
+    reserveClientRelationSampleStart(run: unknown, request: unknown, executionOwner: SampleExecutionOwner, definition: unknown, setup: unknown,
+      journalBytes = 0, debugEntry = false, previousJournalBytes = 0) {
+      const compiled = compiledRunTokens.get(executionOwner?.compiled);
+      const prepared = executionOwner?.program;
+      if (compiled === undefined || prepared === undefined ||
+          !Number.isInteger(journalBytes) || journalBytes < 0 || journalBytes > 2147483519 ||
+          !Number.isInteger(previousJournalBytes) || previousJournalBytes < 0 || previousJournalBytes > 2147483519 ||
+          typeof debugEntry !== 'boolean' || typeof reserveRelationSampleStart !== 'function') {
+        throw new TypeError('Foreign Client Relation Sample start');
+      }
+      // The fixed bootstrap calls the original owner positionally. The
+      // dynamic argument vector for acknowledgement is allocated after this.
+      compiledRunResult(reserveRelationSampleStart.call(moon,
+        run, prepared, request, compiled, token(definition), setup, journalBytes, debugEntry, previousJournalBytes),
+      'RunHostRelationSampleStartCapacityRejected');
+    },
+    acknowledgeClientRelationSampleStart(run: unknown, request: unknown, executionOwner: SampleExecutionOwner,
+      definition: unknown, captured: unknown, revision: number) {
+      const compiled = compiledRunTokens.get(executionOwner?.compiled);
+      const prepared = executionOwner?.program;
+      if (compiled === undefined || prepared === undefined ||
+          typeof acknowledgeRelationSampleStart !== 'function') {
+        throw new TypeError('Foreign Client Relation Sample start');
+      }
+      compiledRunResult(Reflect.apply(acknowledgeRelationSampleStart, moon,
+        [run, prepared, request, compiled, token(definition), captured, revision]),
+      'RunHostRelationSampleStartRejected');
     },
     ...contentInferenceControls,
     ...runPlanControls,

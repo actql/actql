@@ -25,7 +25,30 @@ type CleanupHandle = Readonly<{
   status: () => Readonly<{pending: boolean}> | undefined;
   retry: () => unknown;
 }>;
-type CleanupEntry<Ref> = DispatchPreparationCustody & {
+type DebugCleanup = {debugControl?: Readonly<{close?(): void}>};
+type SampleCleanup = {sampleAdoption?: Readonly<{close(): void}>};
+
+export function closeDebugControl(entry: DebugCleanup) {
+  entry.debugControl?.close?.();
+  entry.debugControl = undefined;
+}
+
+export function closeSampleAdoption(entry: SampleCleanup) {
+  entry.sampleAdoption?.close();
+  entry.sampleAdoption = undefined;
+}
+
+export function returnSampleProfileObservation(entry: {sampleProfileObservation?: unknown},
+  moon: {clientProgramReturnLogicalObservation?: (observation: unknown) => unknown}) {
+  if (entry.sampleProfileObservation === undefined) return;
+  if (typeof moon.clientProgramReturnLogicalObservation !== 'function') {
+    throw new TypeError('ClientDispatchSampleProfileCleanupUnavailable');
+  }
+  checked(moon.clientProgramReturnLogicalObservation(entry.sampleProfileObservation));
+  entry.sampleProfileObservation = undefined;
+}
+
+type CleanupEntry<Ref> = DispatchPreparationCustody & DebugCleanup & SampleCleanup & {
   ref: Ref;
   settled?: boolean;
   cleanupOwner?: CleanupExecution;
@@ -38,6 +61,7 @@ type CleanupEntry<Ref> = DispatchPreparationCustody & {
     retire: (prepared: unknown) => SynchronousRuntimeData;
   }>[];
   pendingSetup?: unknown;
+  sampleProfileObservation?: unknown;
   stopObservationPending?: boolean;
   failureObservationPending?: boolean;
   finishPending?: boolean;
@@ -85,6 +109,7 @@ type CleanupMoon = Parameters<typeof issueInstalledUnpublishedRunState>[0] &
   strategyHostUsage: (setup: unknown) => unknown;
   strategyHostRun: (setup: unknown) => unknown;
   clientProgramPreparationBorrowUsageIsolated?: (holder: unknown, run: unknown) => boolean;
+  clientProgramReturnLogicalObservation?: (observation: unknown) => unknown;
 }>;
 type CleanupJournalControl = BudgetControl & Parameters<CleanupJournal['publishRunState']>[3] &
   Parameters<ReturnType<typeof import('./client-request-journal.mjs').openClientRequestJournal>['lookupRunDefinition']>[2];
@@ -151,7 +176,8 @@ export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>({ent
     return entry.settled && entry.cleanupOwner === undefined &&
         entry.cleanupHandle === undefined && !entry.unresolvedCleanup &&
         entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&
-        entry.pendingSetup === undefined &&
+        entry.pendingSetup === undefined && entry.sampleProfileObservation === undefined &&
+        entry.sampleAdoption === undefined && entry.debugControl === undefined &&
         !entry.stopObservationPending &&
         !entry.failureObservationPending && !entry.finishPending &&
         !entry.releasePending &&
@@ -223,6 +249,9 @@ export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>({ent
   }
 
   async function settleCleanup(entry: CleanupEntry<Ref>) {
+    closeDebugControl(entry);
+    closeSampleAdoption(entry);
+    returnSampleProfileObservation(entry, moon);
     const execution = entry.cleanupOwner;
     if (entry.borrowedSources && entry.sourceCapture !== undefined) {
       // Stop Compute before closing any borrowed native input. The same

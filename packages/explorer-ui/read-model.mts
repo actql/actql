@@ -1,13 +1,10 @@
 import type * as Public from './read-model.js';
 import type {Client,Execution,RunReference} from '@actql/sdk';
 import type {WirePlanView,WireEffectfulStaticPlanView,WireExplanationFacts,
-  WireExplanationContext,WireStaticExplanationView} from '@actql/client-wire';
+  WireExplanationContext,WireStaticExplanationView,WireExplanationNarrative,WireRunSample,WireSampleCapture} from '@actql/client-wire';
 type StaticPlan = WirePlanView|WireEffectfulStaticPlanView;
 type Step = WirePlanView['logical_map']['steps'][number];
 type Port = Step['ports'][number];
-type Meaning = WireExplanationFacts['steps'][number]['meaning'];
-type Predicate = Extract<Meaning,{kind:'filter'}>['predicate'];
-type FieldType = Extract<Meaning,{kind:'values'}>['schema']['fields'][number]['type'];
 type StepKey = Step['key'];
 type LocaleOptions = Parameters<typeof Public.planStoryModel>[1];
 type ExplanationPresentation = Parameters<typeof Public.staticExplanationReadModel>[1];
@@ -16,7 +13,7 @@ interface PlanInputFields {logical_map?:WirePlanView['logical_map']}
 interface MeaningCollections {schema?:{fields?:readonly unknown[]};fields?:readonly unknown[];keys?:readonly unknown[]}
 
 import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';
-import {validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireStaticExplanationViewShape, withinResultDescriptionLimits} from '@actql/client-wire';
+import {validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireStaticExplanationViewShape, validWireRunSampleShape, withinResultDescriptionLimits} from '@actql/client-wire';
 
 import {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
 export {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
@@ -40,6 +37,7 @@ export function planReadModel(view:StaticPlan):Public.PlanReadModel {
     }
     const computation = planReadModel(view.computation.plan_view);
     // Declared Effects have no graph edges or resolved physical observations.
+    if (computation.debugEntry === true) refuse('ExplorerInvalidPlan');
     return freeze({...computation, effectful: {
       scope: 'computation_component', parameterValuesCid: view.parameter_values_cid,
       checkEnvironmentCid: view.check_environment_cid, unitId: view.effect_set.unit_id,
@@ -97,6 +95,7 @@ export function planReadModel(view:StaticPlan):Public.PlanReadModel {
     logicalMapCid: view.logical_map.self_cid,
     programDefinitionCid: view.logical_map.program_definition_cid,
     observation: view.observation, providerIO: view.provider_io,
+    ...(view.capabilities.debug_entry === true ? {debugEntry: true} : {}),
     nodes: steps.map((step:Step) => ({id: step.step_id, key: structuredClone(step.key),
       names: [...step.names], operator: step.operator,
       kind: step.key.occurrence.kind,
@@ -151,150 +150,6 @@ function planStory(view: StaticPlan, model: Public.PlanReadModel, locale: NonNul
 
 // These finite presentation bounds do not change the Core expression language.
 const explanationLimits = Object.freeze({nodes: 1024, depth: 64, characters: 65536});
-const explanationText = Object.freeze({
-  en: Object.freeze({values: 'Declared input fields', input: 'Original input/output binding',
-    filter: 'Keep rows where', select: 'Select output fields', rename: 'Rename output fields',
-    drop: 'Output fields after dropping', join: 'join on', nullKey: 'Null keys',
-    no_match: 'do not match', fail: 'fail', redacted: 'redacted',
-    unprojected: 'Meaning not projected', predicate: 'Predicate form not projected',
-    conditional: 'conditional',
-    operators: Object.freeze({and: 'AND', or: 'OR', not: 'NOT', eq: '=', neq: '≠',
-      lt: '<', lte: '≤', gt: '>', gte: '≥', is_null: 'IS NULL', not_null: 'IS NOT NULL',
-      is_distinct_from: 'IS DISTINCT FROM'})}),
-  ja: Object.freeze({values: '宣言された入力フィールド', input: '元の入力と出力の対応',
-    filter: 'この条件を満たす行を残す', select: '出力するフィールド', rename: '出力フィールド名の変更',
-    drop: '削除後の出力フィールド', join: '結合のキー', nullKey: 'NULLキー',
-    no_match: '一致させない', fail: '失敗', redacted: '非開示',
-    unprojected: '意味の説明は未提供', predicate: 'この述語形式の説明は未提供',
-    conditional: '条件付き',
-    operators: Object.freeze({and: 'かつ', or: 'または', not: '否定', eq: '=', neq: '≠',
-      lt: '<', lte: '≤', gt: '>', gte: '≥', is_null: 'NULLである', not_null: 'NULLではない',
-      is_distinct_from: 'NULLを区別して異なる'})}),
-});
-// Debit before quoting or copying a child into a parent. The final join only
-// combines already-admitted pieces; it cannot first create an oversized text.
-function storyConstructionBudget() {
-  let remaining = explanationLimits.characters;
-  const reserve = (size:number) => {
-    if (!Number.isSafeInteger(size) || size < 0 || size > remaining) refuse('ExplorerExplanationLimit');
-    remaining -= size;
-  };
-  function quoteSize(value:string) {
-    let size = 2;
-    if (value.length > remaining - size) refuse('ExplorerExplanationLimit');
-    for (let index = 0; index < value.length; index++) {
-      const code = value.charCodeAt(index);
-      if (code === 34 || code === 92 || code === 8 || code === 9 ||
-          code === 10 || code === 12 || code === 13) size += 2;
-      else if (code < 32) size += 6;
-      else if (code >= 0xd800 && code <= 0xdbff) {
-        const next = value.charCodeAt(index + 1);
-        if (next >= 0xdc00 && next <= 0xdfff) {size += 2; index++;}
-        else size += 6;
-      } else size += code >= 0xdc00 && code <= 0xdfff ? 6 : 1;
-      if (size > remaining) refuse('ExplorerExplanationLimit');
-    }
-    return size;
-  }
-  return {text() {
-    const parts:string[] = [];
-    return {
-      append(value:string) {reserve(value.length); parts.push(value);},
-      quote(value:string) {reserve(quoteSize(value)); parts.push(JSON.stringify(value));},
-      finish() {return parts.join('');},
-    };
-  }};
-}
-function appendType(output:ReturnType<ReturnType<typeof storyConstructionBudget>['text']>, type:FieldType) {
-  output.append(type.kind);
-  if (type.nullable) output.append('?');
-}
-function predicateStory(predicate:Predicate, text:typeof explanationText[keyof typeof explanationText], budget:ReturnType<typeof storyConstructionBudget>):string {
-  if (predicate.state === 'not_projected') return text.predicate;
-  const nodes = predicate.nodes;
-  const states = new Uint8Array(nodes.length), rendered:string[] = new Array(nodes.length);
-  function render(index:number, depth:number):string {
-    if (!Number.isSafeInteger(index) || index < 0 || index >= nodes.length ||
-        states[index] === 1) refuse('ExplorerInvalidExplanation');
-    if (depth > explanationLimits.depth) refuse('ExplorerExplanationLimit');
-    if (states[index] === 2) return rendered[index];
-    states[index] = 1;
-    const node = nodes[index], output = budget.text();
-    if (node.form === 'literal_redacted') {
-      output.append('['); output.append(text.redacted); output.append(' ');
-      appendType(output, node.type); output.append(']');
-    } else if (node.form === 'field') {
-      output.append(node.scope); output.append('.'); output.quote(node.name); output.append(':');
-      appendType(output, node.type);
-    } else if (node.form === 'parameter') {
-      output.append('$'); output.append(node.name); output.append(':'); appendType(output, node.type);
-    } else {
-      const children = node.children, operator = text.operators[node.operator];
-      if (['not', 'is_null', 'not_null'].includes(node.operator)) {
-        if (children.length !== 1) refuse('ExplorerInvalidExplanation');
-        if (node.operator === 'not') {output.append(operator); output.append(' ');}
-        output.append('('); output.append(render(children[0], depth + 1)); output.append(')');
-        if (node.operator !== 'not') {output.append(' '); output.append(operator);}
-      } else if (node.operator === 'and' || node.operator === 'or') {
-        if (children.length === 0) refuse('ExplorerInvalidExplanation');
-        for (let i = 0; i < children.length; i++) {
-          if (i > 0) {output.append(' '); output.append(operator); output.append(' ');}
-          output.append('('); output.append(render(children[i], depth + 1)); output.append(')');
-        }
-      } else {
-        if (children.length !== 2) refuse('ExplorerInvalidExplanation');
-        output.append('('); output.append(render(children[0], depth + 1)); output.append(' ');
-        output.append(operator); output.append(' '); output.append(render(children[1], depth + 1)); output.append(')');
-      }
-    }
-    rendered[index] = output.finish();
-    states[index] = 2;
-    return rendered[index];
-  }
-  const result = render(predicate.root, 0);
-  // The supplied projection cannot hide an unrelated node outside its root.
-  if (states.some(state => state !== 2)) refuse('ExplorerInvalidExplanation');
-  return result;
-}
-function meaningStory(meaning:Meaning, text:typeof explanationText[keyof typeof explanationText], budget:ReturnType<typeof storyConstructionBudget>):string {
-  const output = budget.text();
-  switch (meaning.kind) {
-    case 'input_output': output.append(text.input); break;
-    case 'values':
-      output.append(text.values); output.append(': ');
-      for (let i = 0; i < meaning.schema.fields.length; i++) {
-        const field = meaning.schema.fields[i];
-        if (i > 0) output.append(', ');
-        output.quote(field.name); output.append(':'); appendType(output, field.type);
-        if (field.presence === 'conditional') {
-          output.append(' ('); output.append(text.conditional); output.append(')');
-        }
-      }
-      break;
-    case 'filter':
-      output.append(text.filter); output.append(': ');
-      output.append(predicateStory(meaning.predicate, text, budget)); break;
-    case 'projection':
-      output.append(text[meaning.operation]); output.append(': ');
-      for (let i = 0; i < meaning.fields.length; i++) {
-        if (i > 0) output.append(', ');
-        output.quote(meaning.fields[i].output); output.append(' ← '); output.quote(meaning.fields[i].input);
-      }
-      break;
-    case 'join':
-      output.append(meaning.join_kind); output.append(' '); output.append(text.join); output.append(': ');
-      for (let i = 0; i < meaning.keys.length; i++) {
-        if (i > 0) output.append(', ');
-        output.append('left.'); output.quote(meaning.keys[i].left);
-        output.append(' = right.'); output.quote(meaning.keys[i].right);
-      }
-      output.append('; '); output.append(text.nullKey); output.append(': '); output.append(text[meaning.null_key]);
-      break;
-    case 'not_projected': output.append(text.unprojected); break;
-    default: refuse('ExplorerInvalidExplanation');
-  }
-  return output.finish();
-}
 const sameKey = (a:StepKey, b:StepKey) => a.self_cid === b.self_cid &&
   a.compiled_plan_cid === b.compiled_plan_cid && a.stage_ordinal === b.stage_ordinal &&
   a.occurrence.kind === b.occurrence.kind &&
@@ -309,15 +164,17 @@ const sameIds = (ids:readonly string[], ports:readonly Port[], role:'input'|'out
 // Consume SDK-admitted facts and original Plan DATA only. Shape/CID equality
 // here protects presentation correspondence; it cannot replace Host current
 // read/egress admission or establish compiler provenance by itself.
-export function explanationStoryModel(view:StaticPlan, facts:WireExplanationFacts, {locale = 'en'}:LocaleOptions = {}):Public.ExplanationStoryModel {
+export function explanationStoryModel(view: StaticPlan, facts: WireExplanationFacts,
+  {locale = 'en', render}: Parameters<typeof Public.explanationStoryModel>[2]): Public.ExplanationStoryModel {
   const story = planStoryModel(view, {locale});
   checkExplanationFacts(story, facts);
-  const text = explanationText[locale], budget = storyConstructionBudget();
-  return attachExplanationFacts(story, facts, index => meaningStory(facts.steps[index].meaning, text, budget));
+  const {lines, presentation} = renderExplanation(render, facts, locale, facts, []);
+  return attachExplanationFacts({...story, narrative: presentation}, facts, index => lines.steps[index]);
 }
 
 function checkExplanationFacts(story: Public.PlanStoryModel, facts: WireExplanationFacts) {
   if (!Array.isArray(facts?.steps) || facts.steps.length > graphViewLimits.steps) refuse('ExplorerExplanationLimit');
+  if (!withinResultDescriptionLimits(facts, projectionLimits)) refuse('ExplorerExplanationLimit');
   let nodes = 0, edges = 0, fields = 0;
   for (const step of facts.steps) {
     const meaning = step?.meaning;
@@ -327,6 +184,7 @@ function checkExplanationFacts(story: Public.PlanStoryModel, facts: WireExplanat
       for (const node of meaning.predicate.nodes) {
         if (node?.form === 'operation' && (!Array.isArray(node.children) ||
             (edges += node.children.length) > explanationLimits.nodes)) refuse('ExplorerExplanationLimit');
+        if (node?.form === 'property' && ++edges > explanationLimits.nodes) refuse('ExplorerExplanationLimit');
       }
     }
     const collection = (meaning as MeaningCollections)?.schema?.fields ?? (meaning as MeaningCollections)?.fields ?? (meaning as MeaningCollections)?.keys ?? [];
@@ -348,7 +206,7 @@ function checkExplanationFacts(story: Public.PlanStoryModel, facts: WireExplanat
   }
 }
 
-function attachExplanationFacts(story: Public.PlanStoryModel, facts: WireExplanationFacts,
+function attachExplanationFacts(story: Public.PlanStoryModel & Pick<Public.ExplanationStoryModel, 'narrative'>, facts: WireExplanationFacts,
   describe: (index: number) => string): Public.ExplanationStoryModel {
   return freeze<Public.ExplanationStoryModel>({...story, factsCid: facts.self_cid, parameterValuesCid: facts.parameter_values_cid,
     occurrences: story.occurrences.map((occurrence, index) => {
@@ -381,6 +239,23 @@ function checkedContext(story: Public.PlanStoryModel, facts: WireExplanationFact
     inputs.get(key)!.push({step_id: stepId, port_id: inputPortId});
   }
   const steps = new Map(story.occurrences.map(step => [step.stepId, step]));
+  if (context.stage_result_links !== undefined) {
+    const imported = new Set();
+    for (const {producer, consumer, result_projection} of context.stage_result_links) {
+      const original = steps.get(producer.step_id), destination = steps.get(consumer.step_id);
+      if (original === undefined || destination === undefined) refuse('ExplorerInvalidExplanation');
+      const output = original.ports.find(port => port.port_id === producer.port_id);
+      const input = destination.ports.find(port => port.port_id === consumer.port_id);
+      if (output?.role !== 'output' || input?.role !== 'input' ||
+          input.source.kind !== 'stage_input' ||
+          input.source.stage_ordinal !== destination.key.stage_ordinal ||
+          original.key.stage_ordinal >= destination.key.stage_ordinal ||
+          output.carrier !== input.carrier ||
+          (!result_projection && output.carrier_contract_cid !== input.carrier_contract_cid) ||
+          imported.has(consumer.port_id)) refuse('ExplorerInvalidExplanation');
+      imported.add(consumer.port_id);
+    }
+  }
   const sources = new Set();
   let sawEffects = false;
   for (const item of context.items) {
@@ -417,26 +292,86 @@ export function staticExplanationReadModel(view: WireStaticExplanationView,
   return explanationContextReadModel(view, locale, render, false);
 }
 
+// The already admitted Context and Facts retain the original indices and
+// Step IDs. A presenter cannot point its summary at a different item or Step.
+function renderExplanation<Input>(render: (wire: Input, locale: 'en' | 'ja') => WireExplanationNarrative,
+  wire: Input, locale: NonNullable<ExplanationPresentation['locale']>,
+  facts: WireExplanationFacts, context: WireExplanationContext['items']) {
+  let narrative: WireExplanationNarrative;
+  try {
+    narrative = render(wire, locale);
+  } catch (error) {
+    if ((error as {code?: string} | null)?.code === 'StaticExplanationNarrativeLimit') refuse('ExplorerExplanationLimit');
+    if ((error as {code?: string} | null)?.code === 'InvalidStaticExplanationNarrative') refuse('ExplorerInvalidExplanation');
+    throw error;
+  }
+  const steps = facts.steps;
+  if (!Array.isArray(narrative?.steps) || narrative.steps.length !== steps.length ||
+      !Array.isArray(narrative.context) || narrative.context.length !== context.length) {
+    refuse('ExplorerInvalidExplanation');
+  }
+  const {version, summary, clauses, items} = narrative;
+  if (version !== 'actql-explanation-narrative/0.1' || typeof summary !== 'string' || summary.length === 0 ||
+      !Array.isArray(clauses) || clauses.length > 6 ||
+      !Array.isArray(items) || items.length !== context.length + steps.length) refuse('ExplorerInvalidExplanation');
+  const exactSteps = new Map(steps.map(step => [step.step_id, step.operator]));
+  for (const [index, item] of items.entries()) {
+    if (index < context.length) {
+      if (item?.kind !== 'context' || item.index !== index) refuse('ExplorerInvalidExplanation');
+    } else {
+      const ordinal = index - context.length;
+      if (item?.kind !== 'step' || item.index !== ordinal || item.step_id !== steps[ordinal].step_id) {
+        refuse('ExplorerInvalidExplanation');
+      }
+    }
+  }
+  let characters = summary.length;
+  for (const lines of [narrative.context, narrative.steps]) for (const line of lines) {
+    if (typeof line !== 'string') refuse('ExplorerInvalidExplanation');
+    if ((characters += line.length) > explanationLimits.characters) refuse('ExplorerExplanationLimit');
+  }
+  const kinds = new Set();
+  for (const clause of clauses) {
+    const {kind, text, context_items: indices, step_ids: ids} = clause ?? {};
+    if (typeof text !== 'string' || !Array.isArray(indices) || !Array.isArray(ids) ||
+        indices.length > context.length || ids.length > steps.length || kinds.has(kind)) refuse('ExplorerInvalidExplanation');
+    kinds.add(kind);
+    if (kind === 'join' || kind === 'filter') {
+      if (indices.length !== 0 || !ids.length || new Set(ids).size !== ids.length ||
+          ids.some(id => exactSteps.get(id) !== kind)) refuse('ExplorerInvalidExplanation');
+    } else {
+      const origin = kind === 'effect' ? 'effect_set' : kind;
+      if (!['source', 'model_task', 'result', 'effect_set'].includes(origin) || ids.length !== 0 ||
+          !indices.length || new Set(indices).size !== indices.length ||
+          indices.some(index => !Number.isSafeInteger(index) || context[index]?.kind !== origin)) {
+        refuse('ExplorerInvalidExplanation');
+      }
+    }
+    characters += text.length;
+  }
+  if (characters > explanationLimits.characters) refuse('ExplorerExplanationLimit');
+  const presentation: Public.ExplanationStoryModel['narrative'] = {version, summary,
+    clauses: clauses.map(({kind, text, context_items, step_ids}) =>
+      ({kind, text, context_items: [...context_items], step_ids: [...step_ids]})),
+    items: items.map(item => item.kind === 'context' ? {kind: item.kind, index: item.index}
+      : {kind: item.kind, index: item.index, step_id: item.step_id})};
+  return {lines: narrative, presentation};
+}
+
 function explanationContextReadModel(view: WireStaticExplanationView, locale: NonNullable<ExplanationPresentation['locale']>,
   render: ExplanationPresentation['render'], saved: boolean): Public.StaticExplanationReadModel {
   const plan = planReadModel(view.plan), original = planStory(view.plan, plan, locale);
   checkExplanationFacts(original, view.facts);
   checkedContext(original, view.facts, view.context, saved);
-  const narrative = render(view, locale);
-  if (!Array.isArray(narrative?.steps) || narrative.steps.length !== view.facts.steps.length ||
-      !Array.isArray(narrative.context) || narrative.context.length !== view.context.items.length) {
-    refuse('ExplorerInvalidExplanation');
-  }
-  let characters = 0;
-  for (const lines of [narrative.context, narrative.steps]) for (const line of lines) {
-    if (typeof line !== 'string') refuse('ExplorerInvalidExplanation');
-    if ((characters += line.length) > explanationLimits.characters) refuse('ExplorerExplanationLimit');
-  }
+  const {lines, presentation} = renderExplanation(render, view, locale, view.facts, view.context.items);
   const scope = saved && view.context.items.some(item => item.kind === 'effect_set')
     ? 'computation_component' : original.scope;
-  const story = attachExplanationFacts({...original, scope}, view.facts, index => narrative.steps[index]);
-  return freeze({plan, story, context: view.context.items.map((item, index) =>
-    ({origin: structuredClone(item), text: narrative.context[index]}))});
+  const story = attachExplanationFacts({...original, scope, narrative: presentation},
+    view.facts, index => lines.steps[index]);
+  const projectedPlan = view.context.stage_result_links === undefined ? plan
+    : {...plan, stageResultLinks: structuredClone(view.context.stage_result_links)};
+  return freeze({plan: projectedPlan, story, context: view.context.items.map((item, index) =>
+    ({origin: structuredClone(item), text: lines.context[index]}))});
 }
 
 // A UI epoch only discards stale presentation. It is not a Host permission,
@@ -566,8 +501,10 @@ async function originalRunExplanationOnExecution(run:Execution, original:RunRefe
 
 // A private presentation composition of two existing public reads. It does
 // not change either closed wire family or recover originals from UI cards.
-export async function readExistingRunPresentation(client:Parameters<typeof Public.readExistingRunPresentation>[0], ref:Parameters<typeof Public.readExistingRunPresentation>[1], options:Parameters<typeof Public.readExistingRunPresentation>[2], ticket:Parameters<typeof Public.readExistingRunPresentation>[3]):ReturnType<typeof Public.readExistingRunPresentation> {
-  const locale = options?.locale ?? 'en';
+export async function readExistingRunPresentation(client: Parameters<typeof Public.readExistingRunPresentation>[0],
+  ref: Parameters<typeof Public.readExistingRunPresentation>[1],
+  {locale = 'en', render}: Parameters<typeof Public.readExistingRunPresentation>[2],
+  ticket: Parameters<typeof Public.readExistingRunPresentation>[3]): ReturnType<typeof Public.readExistingRunPresentation> {
   if (!Object.hasOwn(storyText, locale)) refuse('ExplorerUnsupportedLocale');
   const original = Object.freeze({...ref});
   if (!validRunRef(original)) refuse('ExplorerInvalidExplanation');
@@ -580,7 +517,7 @@ export async function readExistingRunPresentation(client:Parameters<typeof Publi
   const view = await originalRunPlanOnExecution(run, original, ticket);
   // This original renderer checks the actual map/key/port anchors, and the
   // parameter binding where declared Effects supply it. IDs grant nothing.
-  const story = explanationStoryModel(view.plan_view, explanation.explanation.facts, {locale});
+  const story = explanationStoryModel(view.plan_view, explanation.explanation.facts, {locale, render});
   const plan = planReadModel(view.plan_view);
   ticket.assertCurrent();
   return freeze({runRef: original, plan, explanation: {state: 'projected', story}});
@@ -624,6 +561,111 @@ export async function readExistingRunStory(client:Parameters<typeof Public.readE
 
 // Metadata only: no payload read attempt/grant/open is allocated. A later
 // explicit bounded Result read must retain its original attempt and receipt.
+// Use only a complete column list projected for this exact original carrier.
+export function expectedStoryPortColumns(
+  steps: ReadonlyMap<string, Public.ExplanationStoryModel['occurrences'][number]>,
+  step: Public.ExplanationStoryModel['occurrences'][number], port: Port | undefined,
+) {
+  if (port?.carrier !== 'relation' || !step.ports.includes(port)) return undefined;
+  const origin = port.role === 'input' ? port.source : undefined;
+  if (origin !== undefined && origin.kind !== 'logical_output') return undefined;
+  const producer = origin === undefined ? step : steps.get(origin.step_id);
+  if (producer === undefined) return undefined;
+  const outputs = producer.ports.filter(item => item.role === 'output');
+  const output = outputs[0];
+  const outputId = origin === undefined ? port.port_id : origin.output_port_id;
+  if (outputs.length !== 1 || output.port_id !== outputId ||
+      output.carrier !== port.carrier || output.carrier_contract_cid !== port.carrier_contract_cid) return undefined;
+  const meaning = producer.explanation.meaning;
+  if (meaning.kind === 'values') return meaning.schema.fields.map(field => field.name);
+  if (meaning.kind === 'projection' && meaning.operation === 'select') return meaning.fields.map(field => field.output);
+  return undefined;
+}
+
+// The installed compiler issues ordinal zero as the only output. The
+// selector names an exact input port but selects an output by Step alone.
+export function storySamplePorts(step: Pick<Step, 'ports'>) {
+  const outputs = step.ports.filter(port => port.role === 'output');
+  return step.ports.filter(port => port.carrier === 'relation' &&
+    (port.role === 'input' ? port.source.kind === 'logical_output' :
+      outputs.length === 1 && port.port_ordinal === 0));
+}
+
+export function sampleCaptureCaption({strategy, sampled_items: sampled, total, completeness, truncation}: WireSampleCapture) {
+  const exactTotal = total.kind === 'exact' && total.unit === 'rows' ? total.value : undefined;
+  if (exactTotal === sampled && completeness === 'complete' && truncation !== 'confirmed') {
+    return `All ${sampled} rows captured`;
+  }
+  const prefix = strategy === 'execution_prefix' && completeness !== 'complete' &&
+    truncation !== 'not_truncated' && (completeness === 'partial' || truncation === 'confirmed');
+  const belowTotal = exactTotal !== undefined &&
+    (sampled.length < exactTotal.length || sampled.length === exactTotal.length && sampled < exactTotal);
+  if (prefix && belowTotal) return `First ${sampled} of ${exactTotal} rows captured`;
+  if (prefix && total.kind === 'unknown' && total.unit === 'rows') {
+    return `First ${sampled} rows captured · total unknown`;
+  }
+  const observation = belowTotal || exactTotal === sampled ? `${exactTotal} total rows` :
+    exactTotal === undefined ? 'Exact total rows not observed' : 'Reported total is below captured rows';
+  return `${sampled} rows captured · ${observation}`;
+}
+
+export function sampleCellPreview(text: string) {
+  let count = 0, end = 0;
+  for (const character of text) {
+    if (count === 200) return text.slice(0, end);
+    count++;
+    end += character.length;
+  }
+  return text;
+}
+
+// Presentation correlation only. These IDs identify the card the operator
+// selected. The SDK and its current Sample/Run authority still own the read.
+export function validSamplePortSelection(value: unknown): value is Public.SamplePortSelection {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const fields = value as Record<string, unknown>;
+  const next = Object.hasOwn(fields, 'nextRevision');
+  return Object.keys(fields).length === (next ? 7 : 6) &&
+    (fields.role === 'input' || fields.role === 'output') &&
+    (!next || fields.role === 'input' && typeof fields.nextRevision === 'number' &&
+      Number.isInteger(fields.nextRevision) && fields.nextRevision >= 1 && fields.nextRevision <= 2147483647) &&
+    ['stepId', 'portId', 'compiledPlanCid', 'logicalMapCid', 'carrierContractCid'].every(key =>
+      Object.hasOwn(fields, key) && typeof fields[key] === 'string' && /^sha256:[0-9a-f]{64}$/u.test(fields[key]));
+}
+
+export function sampleMatchesPort(value: unknown, ref: RunReference,
+  port: Public.SamplePortSelection): value is WireRunSample {
+  if (!withinResultDescriptionLimits(value, projectionLimits) || !validWireRunSampleShape(value)) return false;
+  if (value.state !== 'available') return true;
+  const {source, capture, data} = value;
+  return source.run_ref.namespaceId === ref.namespaceId &&
+    source.run_ref.authorityScopeCid === ref.authorityScopeCid &&
+    source.run_ref.runDefinitionCid === ref.runDefinitionCid &&
+    source.compiled_plan_cid === port.compiledPlanCid && source.logical_map_cid === port.logicalMapCid &&
+    source.step_id === port.stepId && source.role === port.role && source.port_id === port.portId &&
+    source.carrier_contract_cid === port.carrierContractCid &&
+    source.carrier === 'relation' && data.kind === 'relation' &&
+    capture.sampled_items === String(data.rows.length) &&
+    data.columns.every((column, index) => column.position === index) &&
+    data.rows.every(row => row.length === data.columns.length);
+}
+
+export async function readExistingRunSample(client: Pick<Client, 'attach'>, ref: RunReference,
+  port: Public.SamplePortSelection, ticket: Public.ReadTicket): Promise<WireRunSample> {
+  const original = Object.freeze({...ref}), selected = Object.freeze({...port});
+  if (!validRunRef(original) || !validSamplePortSelection(selected)) refuse('ExplorerInvalidRequest');
+  const run = await currentRead(ticket, () => client.attach(original));
+  if (typeof run.sample !== 'function') return Object.freeze({state: 'unavailable', reason: 'not_supported'});
+  const selector = {step: {by: 'id' as const, step_id: selected.stepId}, role: selected.role,
+    ...(selected.role === 'input' ? {input_port_id: selected.portId} : {})};
+  const limits = selected.nextRevision === undefined ? projectionLimits
+    : {...projectionLimits, nextRevision: selected.nextRevision};
+  const value = await currentRead(ticket, () => run.sample(selector, limits));
+  if (!sampleMatchesPort(value, original, selected)) refuse('ExplorerInvalidSample');
+  ticket.assertCurrent();
+  return freeze(value);
+}
+
 export async function describeExistingResult(client:Parameters<typeof Public.describeExistingResult>[0], ref:Parameters<typeof Public.describeExistingResult>[1], name:Parameters<typeof Public.describeExistingResult>[2], ticket:Parameters<typeof Public.describeExistingResult>[3]):ReturnType<typeof Public.describeExistingResult> {
   const original = Object.freeze({...ref});
   const run = await currentRead(ticket, () => client.attach(original));
