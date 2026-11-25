@@ -228,30 +228,25 @@ test('submission custody loss while issuance awaits is checked again at commit',
   assert.equal(database.prepare('SELECT issued_count FROM client_submission_custody').get().issued_count, 1);
 });
 
-test('existing marked journal gains submission custody without rewriting original admission', async t => {
+test('existing marked Journal with absent submission custody refuses without rewriting original admission', async t => {
   const path = await directory(t);
   const previous = openClientRequestJournal(path);
-  const accepted = previous.acceptDefinition(identity(), {namespaceId: 'namespace-a',
+  previous.acceptDefinition(identity(), {namespaceId: 'namespace-a',
     runDefinition: runDefinition(), lookupExpiresAt: expires}, moon, publicationControl);
   previous.close();
-  // Construct the previously supported schema, preserving its admission and
-  // original journal marker. This establishes no pre-upgrade history claim.
   const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
   const original = database.prepare('SELECT * FROM client_requests').get();
   database.exec('DROP TABLE client_submission_custody');
   database.close();
   await rm(join(path, 'submission-custody-format.json'));
-  const marker = await readFile(join(path, 'journal-format.json'));
-  const journal = openClientRequestJournal(path);
-  t.after(() => journal.close());
-  assert.deepEqual((journal.lookupDefinition({namespaceId: 'namespace-a',
-    authorityScopeCid: fixture.authorityScopeCid, requestId: fixture.requestId}, moon, publicationControl)).ref,
-  accepted.ref);
+  const before = await readdir(path);
+  const bytes = await Promise.all(before.map(name => readFile(join(path, name))));
+  assert.throws(() => openClientRequestJournal(path), {code: 'UnknownClientRequestJournalFormat'});
+  assert.deepEqual(await readdir(path), before);
+  assert.deepEqual(await Promise.all(before.map(name => readFile(join(path, name)))), bytes);
   const observer = new DatabaseSync(join(path, 'client-requests.sqlite3'));
   t.after(() => observer.close());
   assert.deepEqual(observer.prepare('SELECT * FROM client_requests').get(), original);
-  assert.equal(observer.prepare('SELECT issued_count FROM client_submission_custody').get().issued_count, 1);
-  assert.deepEqual(await readFile(join(path, 'journal-format.json')), marker);
 });
 
 for (const loss of ['marker', 'record', 'schema']) {

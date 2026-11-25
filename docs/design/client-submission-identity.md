@@ -16,9 +16,9 @@ An unverified ticket must not be passed to execution as an authenticated fact.
 
 A fresh request Journal builds the current tables, indexes, triggers, initial
 counters and private schema version in one original SQLite FULL transaction.
-It uses the same DDL definitions as additive adoption of older admitted formats;
-only genuinely older data needs the bounded historical custody census. The
-optional selected Source-operation table joins that same fresh transaction.
+The same DDL defines the retained v3 schema check. The selected Source
+operation and local execution owner tables join that same fresh transaction
+when their original capabilities require them.
 
 No format marker is published before that schema commit. Each original marker
 file still completes its write, fsync and close, followed by the existing final
@@ -27,9 +27,9 @@ all required markers are complete leaves an unready state that the next open
 refuses without deleting, resetting or reconstructing its original database.
 A current-format reopen neither repeats schema transactions nor issues a key.
 These names belong to one unpublished initialization, not business commits.
-An existing database's additive format adoption retains its immediate per-marker
-directory acknowledgement. Unchanged reopening does not repeat initialization
-writes or issue another epoch key. A failed final directory acknowledgement
+Reopening checks the current v3 header and exact supported schema before
+opening the writable original. Versions 0, 1 and 2 return the explicit
+legacy-format refusal and retain their original files. A failed final directory acknowledgement
 returns no Journal and follows the same captured native-connection cleanup;
 neither cleanup nor visible files stand for that failed acknowledgement. The
 original typed format, key, current authorization and business transaction

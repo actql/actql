@@ -80,9 +80,8 @@ export const sourceOperationTable = `CREATE TABLE client_source_operation_origin
   PRIMARY KEY (namespace_id, authority_scope_cid, run_definition_cid, stage, input_index, task)
 ) STRICT`;
 
-// Absence is compatible with old journals, not proof of an unattempted Source.
-// The existing physical-start fence still prevents issuing a fresh live scope
-// for a restored/Unknown Run, whether this optional DATA table exists or not.
+// Check the exact table when present. The current Journal profile requires
+// this retained DATA when it selects Source-operation custody.
 export function inspectClientSourceOperationStorage(database: Readonly<{
   prepare(sql: string): Readonly<{get(maxSqlLength: number): ReturnType<ReturnType<DatabaseSync['prepare']>['get']>}>;
 }>) {
@@ -91,6 +90,7 @@ export function inspectClientSourceOperationStorage(database: Readonly<{
   if (row !== undefined && row.sql !== sourceOperationTable) {
     fail('UnknownClientRequestJournalFormat');
   }
+  return row !== undefined;
 }
 
 export function snapshotClientSourceOperationLimits(limits: unknown): SourceOperationLimits | undefined {

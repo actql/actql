@@ -2033,7 +2033,7 @@ test('distribution mutation matrix executes each unchanged script once after its
 });
 
 // These actual Core/SQLite cases use the existing distribution runtime setup.
-test('Journal same-parent retention and exact legacy adoption run once in distribution', () => {
+test('Journal same-parent retention and current custody tests run once in distribution', () => {
   const command = JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).scripts['check:distribution-client'];
   const commands = runs('client-distribution');
   for (const path of ['adapters/host-node/client-request-journal-parent-budget.test.mjs',

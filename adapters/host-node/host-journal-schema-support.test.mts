@@ -64,10 +64,7 @@ test('selected own-DDL bytes cover the actual primary, Source and observation sc
   // their optional originals.
   const selectedSql = support.sql.filter(sql => !sql.startsWith('CREATE TABLE client_local_execution_owners (') &&
     !sql.startsWith('CREATE TABLE client_run_explanation_originals (') &&
-    !sql.startsWith('CREATE TABLE client_run_explanation_context_originals (') &&
-    !((sql.startsWith('CREATE TABLE client_submitted_intent_usage (') ||
-      sql.startsWith('CREATE TABLE client_submission_restart_usage (')) &&
-      sql.includes('retained_bytes <= 67108864')));
+    !sql.startsWith('CREATE TABLE client_run_explanation_context_originals ('));
   assert.deepEqual(actual, [...selectedSql].sort());
   const before = snapshot(directory);
   const restored = openClientRequestJournal(directory, selected);

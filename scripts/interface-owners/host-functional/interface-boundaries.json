@@ -14512,7 +14512,7 @@
     {
       "module": "adapters/host-common/sqlite-format-inspection.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "72d5854bc276e748e11a9db32da40ff0a11f1ea49ea3c04d42644f925a455514",
+      "sha256": "32ac390d80f48d85389c96449bc933d5c809b16696e91209d89f73435c7fe3a0",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -14557,6 +14557,8 @@
             "schemaReadLimits",
             "schemaSqlSupport",
             "assertCurrent",
+            "assertExclusiveSource",
+            "checkUserVersion",
             "temporaryDirectory"
           ],
           "async": false
@@ -14725,7 +14727,7 @@
             "failure": [
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
-                "anchor": "// descriptors, inspect an isolated DB+WAL copy, and refuse concurrent changes."
+                "anchor": "// Pin read-only file descriptors and inspect an isolated DB+WAL copy."
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -14870,6 +14872,10 @@
               {
                 "path": "adapters/host-common/sqlite-inspection-temporary.test.mts",
                 "anchor": "selected inspection retains original prepare and exec before native open callbacks"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mts",
+                "anchor": "test('owned Journal does not recreate missing SHM while refusing a retained v2 WAL'"
               }
             ]
           }
@@ -15001,7 +15007,7 @@
             "failure": [
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
-                "anchor": "// descriptors, inspect an isolated DB+WAL copy, and refuse concurrent changes."
+                "anchor": "// Pin read-only file descriptors and inspect an isolated DB+WAL copy."
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -15158,7 +15164,8 @@
         "node:fs",
         "node:os",
         "node:path",
-        "node:sqlite"
+        "node:sqlite",
+        "node:url"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -15166,7 +15173,7 @@
     {
       "module": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5ac6c3b37c277db855cca725c3da583ae3b0e1fda6da1defb137d343abc12a21",
+      "sha256": "3360004e2e08aaed5c6ec057ace8b0d512ba72005db4b1b4c2556794e12f4800",
       "exports": [
         "inspectBoundedSqliteSchema",
         "snapshotSqliteSchemaReadLimits",
@@ -15180,7 +15187,8 @@
             "wal",
             "limits",
             "maxSourceBytes",
-            "schemaSqlSupport"
+            "schemaSqlSupport",
+            "checkUserVersion"
           ],
           "async": false
         },
@@ -15329,6 +15337,10 @@
               {
                 "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "if (payload.value > maxRecordBytes) unavailable();"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "checkUserVersion?.(be(page, 60) | 0);"
               }
             ],
             "cancellation": [
@@ -15409,6 +15421,10 @@
               {
                 "path": "adapters/host-common/sqlite-record-resource-bounds.test.mts",
                 "anchor": "test('selected record extent uses the original committed WAL page rather than stale main bytes', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mts",
+                "anchor": "test('owned Journal does not recreate missing SHM while refusing a retained v2 WAL'"
               }
             ]
           }
@@ -29736,7 +29752,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b23bb2b01e9d4e686bcb3447f0b50362b95dfb45e927f8b2435fae6006e1d714",
+      "sha256": "b9e36c1fa52290042cd8ee791480843676633e5a16a25706739f54f56e9713cd",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -31441,13 +31457,13 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Store exclusion original to the Journal before native open."
+                "anchor": "Local Host supplies its original same-root Store exclusion."
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "export function inspectJournalNativeStorage(database: JournalSqlConnection, features: FormatFeatures) {"
+                "anchor": "export function inspectJournalNativeStorage(database: JournalSqlConnection,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
@@ -31473,13 +31489,13 @@
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "exclusion, supported SQLite is the format authority: admission checks bounded"
+                "anchor": "immutable SQLite checks bounded metadata"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "if (![0,1,2,3].includes(version as number)) fail('UnknownClientRequestJournalFormat');"
+                "anchor": "if (version !== currentJournalVersion) fail('UnknownClientRequestJournalFormat');"
               },
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
@@ -31505,7 +31521,7 @@
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "snapshot path; deep whole-store inspection is not an ordinary-open prerequisite."
+                "anchor": "inspection and inspection with a retained WAL use the isolated DB/WAL"
               }
             ],
             "verification": [
@@ -32918,7 +32934,6 @@
         "./client-request-journal-submission-originals.mjs",
         "./client-source-operation.mjs",
         "./host-journal-facility-fields.cjs",
-        "./local-account-config.mjs",
         "node:crypto",
         "node:fs",
         "node:path"
@@ -34125,12 +34140,11 @@
     {
       "module": "adapters/host-node/client-request-journal-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9f921f330a55302f895a8504a321c5eb56802877fd7d22afb24e6b6253116faa",
+      "sha256": "082f65871c29051d330293959fbf6a491502350e31a1bd8531279d92579406ff",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
         "admitJournalDirectory",
-        "adoptSubmissionUsageStorage",
         "assertJournalCancellationCustody",
         "assertJournalIntentCustody",
         "assertJournalNameCustody",
@@ -34169,7 +34183,6 @@
         "probeJournalExplanation",
         "readJournalExplanation",
         "readJournalExplanationOriginal",
-        "readJournalFormatFeatures",
         "restartMarker",
         "restartMarkerName",
         "retirementMarker",
@@ -34179,7 +34192,6 @@
         "submissionMarker",
         "submissionMarkerName",
         "syncDirectory",
-        "usageMarkerName",
         "validEpochAuthority",
         "validJournalRowUsage",
         "validLocalExecutionOwnerReceipt",
@@ -34199,56 +34211,14 @@
             "primaryCurrent",
             "primaryDirectoryInspection",
             "inspectionTemporaryDirectory",
-            "ownedOriginal"
+            "ownedOriginal",
+            "requireSourceOperations"
           ],
           "async": false
         },
         {
-          "name": "adoptSubmissionUsageStorage",
-          "parameters": [
-            "database",
-            "transact",
-            "previousMarker",
-            "fresh",
-            "parentByteLimit"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
+          "name": "admitJournalDirectory/assertExclusiveSource/assertExclusiveSource",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
-          "parameters": [
-            "n"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retained/retained",
-          "parameters": [
-            "table",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retained/retained#2",
-          "parameters": [
-            "table",
-            "wire",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retainedRows/retainedRows",
-          "parameters": [
-            "table",
-            "custody"
-          ],
           "async": false
         },
         {
@@ -34302,30 +34272,10 @@
           "async": false
         },
         {
-          "name": "createJournalRowUsageStorage/createJournalRowUsageStorage",
+          "name": "currentJournalMarkersMatch/currentJournalMarkersMatch",
           "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "createJournalRowUsageStorage/createJournalRowUsageStorage#2",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSubmissionUsageStorage/createSubmissionUsageStorage",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSubmissionUsageStorage/createSubmissionUsageStorage#2",
-          "parameters": [
-            "sql"
+            "name",
+            "bytes"
           ],
           "async": false
         },
@@ -34344,7 +34294,6 @@
             "root",
             "directory",
             "existed",
-            "directoryAdmission",
             "configuration",
             "selectedSql",
             "ownedOriginal"
@@ -34364,86 +34313,13 @@
             "database",
             "transaction",
             "root",
-            "existed",
-            "inspectionBytes",
             "sourceOperationLimits",
             "ownedOriginal"
           ],
           "async": false
         },
         {
-          "name": "initializeJournalSchema/initializeFeature/initializeFeature",
-          "parameters": [
-            "action"
-          ],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema/initializeSchema",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema/initializeSchema#2",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#10",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#6",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#7",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#8",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#9",
+          "name": "initializeJournalSchema/initializeJournalSchema",
           "parameters": [],
           "async": false
         },
@@ -34509,42 +34385,9 @@
           "name": "inspectJournalNativeStorage",
           "parameters": [
             "database",
-            "features"
+            "requireSourceOperations",
+            "requireLocalExecutionOwners"
           ],
-          "async": false
-        },
-        {
-          "name": "inspectJournalNativeStorage/fields/fields",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectJournalRowUsage/inspectJournalRowUsage",
-          "parameters": [
-            "name",
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectJournalRowUsage/inspectJournalRowUsage/inspectJournalRowUsage",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectJournalRowUsage/names/names",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectJournalRowUsage/schema/schema",
-          "parameters": [],
           "async": false
         },
         {
@@ -34552,7 +34395,7 @@
           "parameters": [
             "directory",
             "databasePath",
-            "markerPath",
+            "entries",
             "maxInspectionEntries",
             "maxInspectionBytes",
             "primarySqlLimits",
@@ -34561,7 +34404,9 @@
             "primarySchemaSqlSupport",
             "primaryCurrent",
             "primaryDirectoryInspection",
-            "inspectionTemporaryDirectory"
+            "inspectionTemporaryDirectory",
+            "requireSourceOperations",
+            "assertExclusiveSource"
           ],
           "async": false
         },
@@ -34630,40 +34475,6 @@
           "async": false
         },
         {
-          "name": "inspectSubmissionUsageStorage/inspectSubmissionUsageStorage",
-          "parameters": [
-            "name",
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectSubmissionUsageStorage/inspectSubmissionUsageStorage/inspectSubmissionUsageStorage",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectSubmissionUsageStorage/names/names",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectSubmissionUsageStorage/schema/schema",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "journalColumns/journalColumns",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "journalDirectoryEntries",
           "parameters": [
             "directory",
@@ -34723,14 +34534,6 @@
           "async": false
         },
         {
-          "name": "legacySubmissionUsageTables/legacySubmissionUsageTables",
-          "parameters": [
-            "name",
-            "sql"
-          ],
-          "async": false
-        },
-        {
           "name": "probeJournalExplanation",
           "parameters": [
             "database",
@@ -34785,10 +34588,9 @@
           "async": false
         },
         {
-          "name": "readJournalFormatFeatures",
+          "name": "requireCurrentJournalVersion",
           "parameters": [
-            "directory",
-            "entries"
+            "version"
           ],
           "async": false
         },
@@ -34886,14 +34688,15 @@
             "inspectRestartStorage/custodyFields/custodyFields",
             "inspectRestartStorage/fields/fields",
             "inspectSubmissionStorage/fields/fields",
-            "journalColumns/journalColumns",
             "journalMarkerMatches",
             "journalMarkerMatches/journalMarkerMatches",
             "journalMarkerMatches/journalMarkerMatches#2",
             "journalMarkerMatches/status/status",
             "initializeJournalPrimaryStorage",
             "initializeJournalPrimaryStorage/initializeJournalPrimaryStorage",
-            "snapshotJournalConfiguration"
+            "snapshotJournalConfiguration",
+            "admitJournalDirectory/assertExclusiveSource/assertExclusiveSource",
+            "currentJournalMarkersMatch/currentJournalMarkersMatch"
           ],
           "exports": [
             "admitJournalDirectory",
@@ -36030,27 +35833,8 @@
         },
         {
           "operations": [
-            "adoptSubmissionUsageStorage",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retained/retained",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retained/retained#2",
-            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retainedRows/retainedRows",
-            "createJournalRowUsageStorage/createJournalRowUsageStorage",
-            "createJournalRowUsageStorage/createJournalRowUsageStorage#2",
-            "createSubmissionUsageStorage/createSubmissionUsageStorage",
-            "createSubmissionUsageStorage/createSubmissionUsageStorage#2",
-            "inspectJournalRowUsage/inspectJournalRowUsage",
-            "inspectJournalRowUsage/inspectJournalRowUsage/inspectJournalRowUsage",
-            "inspectJournalRowUsage/names/names",
-            "inspectJournalRowUsage/schema/schema",
-            "inspectSubmissionUsageStorage/inspectSubmissionUsageStorage",
-            "inspectSubmissionUsageStorage/inspectSubmissionUsageStorage/inspectSubmissionUsageStorage",
-            "inspectSubmissionUsageStorage/names/names",
-            "inspectSubmissionUsageStorage/schema/schema",
             "journalRowUsageTables/journalRowUsageTables",
             "journalRowUsageTriggers/journalRowUsageTriggers",
-            "legacySubmissionUsageTables/legacySubmissionUsageTables",
             "submissionUsageTables/submissionUsageTables",
             "submissionUsageTriggers/submissionUsageTriggers",
             "assertJournalRestartCustody",
@@ -36058,7 +35842,6 @@
             "journalIntentWireBytes"
           ],
           "exports": [
-            "adoptSubmissionUsageStorage",
             "assertJournalRestartCustody",
             "assertJournalIntentCustody",
             "journalIntentWireBytes"
@@ -36073,11 +35856,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "function inspectSubmissionUsageStorage(database: JournalSqlConnection, enabled: boolean)"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "export function adoptSubmissionUsageStorage(database: JournalSqlConnection, transact: (action: () => void) => void,"
+                "anchor": "function inspectJournalUsageStorage(database: JournalSqlConnection)"
               },
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
@@ -36095,7 +35874,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "const counts = [(issued as number)-(retired as number),restarts as number];"
+                "anchor": "(retained.n + retired) || retained.n + retired !== issued)"
               }
             ],
             "ownership": [
@@ -36117,7 +35896,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "if (schema.length !== originals.length || originals.some(([name,sql]) =>"
+                "anchor": "if (select.get(sql.length + 1, name)?.sql !== sql) fail('UnknownClientRequestJournalFormat');"
               }
             ],
             "cancellation": [
@@ -36130,24 +35909,12 @@
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "retained_bytes INTEGER NOT NULL CHECK (retained_bytes >= 0 AND retained_bytes <= 9007199254740991)"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "row.n !== counts[index]"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "FROM (SELECT 1 FROM ${table} LIMIT ?)"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Indexed submission retention usage"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "if ((database.prepare('PRAGMA user_version').get()!.user_version as number) < 3) {"
               }
             ],
             "verification": [
@@ -36173,7 +35940,7 @@
         {
           "operations": [
             "inspectJournalNativeStorage",
-            "inspectJournalNativeStorage/fields/fields"
+            "requireCurrentJournalVersion"
           ],
           "exports": [
             "inspectJournalNativeStorage"
@@ -36182,13 +35949,13 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Store exclusion original to the Journal before native open."
+                "anchor": "Local Host supplies its original same-root Store exclusion."
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "export function inspectJournalNativeStorage(database: JournalSqlConnection, features: FormatFeatures) {"
+                "anchor": "export function inspectJournalNativeStorage(database: JournalSqlConnection,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
@@ -36214,13 +35981,13 @@
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "exclusion, supported SQLite is the format authority: admission checks bounded"
+                "anchor": "immutable SQLite checks bounded metadata"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "if (![0,1,2,3].includes(version as number)) fail('UnknownClientRequestJournalFormat');"
+                "anchor": "if (version !== currentJournalVersion) fail('UnknownClientRequestJournalFormat');"
               },
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
@@ -36246,7 +36013,7 @@
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "snapshot path; deep whole-store inspection is not an ordinary-open prerequisite."
+                "anchor": "inspection and inspection with a retained WAL use the isolated DB/WAL"
               }
             ],
             "verification": [
@@ -36257,6 +36024,10 @@
               {
                 "path": "adapters/host-node/ordinary-host-journal.test.mjs",
                 "anchor": "test('owned native format refusal retains the captured close and Store exclusion until its real ACK'"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mts",
+                "anchor": "test('owned Journal does not recreate missing SHM while refusing a retained v2 WAL'"
               }
             ]
           }
@@ -36268,7 +36039,6 @@
             "inspectExplanationOriginalStorage",
             "inspectLocalExecutionOwnerStorage",
             "journalDirectoryEntries",
-            "readJournalFormatFeatures",
             "syncDirectory",
             "validEpochAuthority",
             "validJournalRowUsage/validJournalRowUsage",
@@ -36301,7 +36071,6 @@
             "nameMarkerName",
             "nameTables",
             "nameTriggers",
-            "readJournalFormatFeatures",
             "restartMarker",
             "restartMarkerName",
             "retirementMarker",
@@ -36310,7 +36079,6 @@
             "submissionMarker",
             "submissionMarkerName",
             "syncDirectory",
-            "usageMarkerName",
             "validEpochAuthority",
             "validJournalRowUsage",
             "validLocalExecutionOwnerReceipt",
@@ -37114,13 +36882,7 @@
           }
         },
         {
-          "operations": [
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema",
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#2",
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#3",
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#4",
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#5"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -37942,11 +37704,7 @@
           }
         },
         {
-          "operations": [
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#6",
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema/initializeSchema",
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema/initializeSchema#2"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -38056,9 +37814,7 @@
           }
         },
         {
-          "operations": [
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#7"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -38128,9 +37884,7 @@
           }
         },
         {
-          "operations": [
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#8"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -38286,9 +38040,7 @@
         {
           "operations": [
             "initializeJournalSchema",
-            "initializeJournalSchema/initializeFeature/initializeFeature",
-            "initializeJournalSchema/initializeSchema/initializeSchema",
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#10"
+            "initializeJournalSchema/initializeJournalSchema"
           ],
           "exports": [
             "initializeJournalSchema"
@@ -38303,11 +38055,11 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "const initializeSchema = (): undefined => {"
+                "anchor": "export function initializeJournalSchema(database: JournalSqlConnection,"
               },
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "function createSubmissionUsageStorage(database: JournalSqlConnection, retained: readonly Usage[]) {"
+                "anchor": "for (const [, sql] of currentJournalSchema) database.exec(sql);"
               }
             ],
             "identity": [
@@ -38329,7 +38081,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "transaction.run(initializeSchema);"
+                "anchor": "transaction.run(() => {"
               },
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
@@ -38369,11 +38121,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "initializeFeature(() => database.exec(sourceOperationTable));"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "An existing database's additive format adoption retains its immediate per-marker"
+                "anchor": "if (sourceOperationLimits !== undefined) database.exec(sourceOperationTable);"
               }
             ],
             "verification": [
@@ -38387,15 +38135,13 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal-fresh-schema.test.mts",
-                "anchor": "test('actual older base format adopts the same DDL"
+                "anchor": "test(`existing Journal v${version} refuses before opening the writable original`"
               }
             ]
           }
         },
         {
-          "operations": [
-            "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#9"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -43412,7 +43158,7 @@
     },
     {
       "module": "adapters/host-node/client-source-operation.mjs",
-      "sha256": "a43eecb9342afc255ab33553c1f94afb17af46a029125af45c80a2586a0050fb",
+      "sha256": "b4e48bdfa385fdf4da2860932017f41421cf755fcc52359d32243ba5b6d7bf43",
       "exports": [
         "bindClientSourceOperation",
         "bindClientSourceOperationRowRun",
@@ -55246,26 +54992,11 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "d07ba8b162fb2ed727b62e777ba711b781d29467e9c1bc8db95e9cb0fed54944",
+      "sha256": "6695b96d9e8076ed1b72b1318d9d1d2a4b2e12c6ca60c60d0299feab587d5ea3",
       "exports": [
         "commonjs:sql"
       ],
-      "operations": [
-        {
-          "name": "parentBoundedCounters/parentBoundedCounters",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "parentBoundedCounters/parentBoundedCounters#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        }
-      ],
+      "operations": [],
       "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -55300,7 +55031,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/host-journal-schema-support.cts",
-                "anchor": "export = Object.freeze({sql: Object.freeze([...sql,...parentBoundedCounters])});"
+                "anchor": "export = Object.freeze({sql});"
               }
             ],
             "synchronization": [
@@ -55351,9 +55082,7 @@
         },
         {
           "operations": [
-            "<module>",
-            "parentBoundedCounters/parentBoundedCounters",
-            "parentBoundedCounters/parentBoundedCounters#2"
+            "<module>"
           ],
           "exports": [],
           "attributes": {
@@ -55378,7 +55107,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/host-journal-schema-support.cts",
-                "anchor": "export = Object.freeze({sql: Object.freeze([...sql,...parentBoundedCounters])});"
+                "anchor": "export = Object.freeze({sql});"
               }
             ],
             "synchronization": [
