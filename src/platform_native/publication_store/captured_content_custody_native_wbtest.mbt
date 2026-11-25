@@ -172,43 +172,12 @@ fn native_generated_jsonl(
   authority : String,
   reference_limits : @admitted.ReferenceLimits,
 ) -> (@publication.GeneratedContentReference, NativeGeneratedContentOutput) raise {
-  let number = @contract.primitive(@contract.NumberType, nullable=false)
-  let schema = @schema.from_presence_fields(
-    [(@schema.Unqualified("id"), number, @schema.Required)],
-    max_fields=1,
-    max_name_bytes=64,
-  ).unwrap()
-  let profile = @publication.prepare_content_serialization_profile(
-    ContentJsonl,
-    schema,
-    ["id"],
-    "{\"name\":\"two.jsonl\"}",
-    {
-      max_fields: 1,
-      max_name_bytes: 64,
-      max_work: 1000,
-      max_options_bytes: 128,
-      max_options_nodes: 16,
-      max_options_depth: 4,
-    },
-  ).captured_content_stage("admit the checked byte profile")
-  let encoder = @publication.start_content_byte_encoder(
-    profile,
-    max_rows=2,
-    max_bytes=64,
-    max_value_nodes=16,
-    max_value_depth=4,
-    max_frames=16,
-  ).captured_content_stage("start the Common encoder")
-  @publication.bind_content_byte_input(encoder, 2, () => true).captured_content_stage(
-    "bind the original input extent",
-  )
+  let (encoder, rows) = generated_jsonl_test_input()
   let output = start_native_generated_content_output(encoder).captured_content_stage(
     "retain the fixed Native encoder backing",
   )
   assert_true(output.advance(64).0 is Ok(true))
-  for id in [1.0, 2.0] {
-    let value = @admitted.checked_number_value(id, number).unwrap()
+  for value in rows {
     @publication.start_content_byte_row(encoder, _ => Some(value)).captured_content_stage(
       "start the original row",
     )
