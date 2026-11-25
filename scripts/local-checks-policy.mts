@@ -4,6 +4,15 @@
 import {posix} from 'node:path';
 import {partJobs} from '../proofs/relation-pipeline/proof-parts.mjs';
 
+type MoonClassification = 'focused' | 'reporting' | 'full' | 'unknown';
+type JobClassification = 'ci-only' | 'heavy' | 'light' | 'unknown';
+export type LocalCheckPolicy<Classification extends string = MoonClassification | JobClassification> = {
+  heavy: boolean;
+  classification: Classification;
+  reason: string;
+  alternatives: string[];
+};
+
 export const heavyJobs = Object.freeze([
   'core', 'host', 'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'native-http', 'session-evidence', 'session-controls',
   'client-packages', 'client-readme-packed', 'client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce',
@@ -15,7 +24,7 @@ export const heavyJobs = Object.freeze([
 // These workflow wrappers require hosted Actions provenance, not just a cost
 // override. The underlying proof campaigns remain ordinary heavy work; this
 // registry does not classify or intercept their raw commands.
-export const ciOnlyPipelineJobs = Object.freeze({
+export const ciOnlyPipelineJobs: Readonly<Partial<Record<string, string>>> = Object.freeze({
   'native-workloads': 'requires the owned hosted background command group lifecycle',
   'native-macos-workloads': 'requires the owned hosted macOS background command group lifecycle',
   'client-supported-versions': 'requires exact same-run normal tarballs and the selected compatibility interpreter',
@@ -44,7 +53,7 @@ const testValues = new Set([
   '--patch-file', '-f', '--filter',
 ]);
 
-function moonAlternatives(kind) {
+function moonAlternatives(kind: string) {
   return kind === 'test' ? [
     'node scripts/local-checks.mjs changed',
     'node scripts/local-checks.mjs test moon -- --target js -p <package>',
@@ -56,7 +65,7 @@ function moonAlternatives(kind) {
   ];
 }
 
-function concreteScope(value) {
+function concreteScope(value: string) {
   if (!value || /[\s*?\[\]{}$`]/u.test(value)) return false;
   const normalized = posix.normalize(value).replace(/\/$/u, '') || '/';
   return !['.', '..', '/', 'src'].includes(normalized);
@@ -65,9 +74,9 @@ function concreteScope(value) {
 // Unknown options are conservative in the wrapper: they do not turn a value
 // into a positional package path. Consumers must inspect classification when
 // they need to distinguish a known full run from an unclassified invocation.
-export function classifyMoon(kind, args) {
+export function classifyMoon(kind: string, args: readonly string[]): LocalCheckPolicy<MoonClassification> {
   const alternatives = moonAlternatives(kind);
-  const result = (classification, reason) => ({
+  const result = (classification: MoonClassification, reason: string) => ({
     heavy: !['focused', 'reporting'].includes(classification),
     classification, reason, alternatives,
   });
@@ -119,7 +128,7 @@ export function classifyMoon(kind, args) {
 
 // Keep this reviewed alongside .github/workflows/ci.yml. Workflow timeouts are
 // execution budgets, not evidence that an unfamiliar job is cheap or heavy.
-export function classifyJob(name) {
+export function classifyJob(name: string): LocalCheckPolicy<JobClassification> {
   const alternatives = ['node scripts/local-checks.mjs changed',
     'node scripts/local-checks.mjs run <job> --dry-run'];
   if (Object.hasOwn(ciOnlyPipelineJobs, name)) return {

@@ -9,7 +9,7 @@ import {nativeCoreLinuxCommonArguments} from './ci-core-partitions.mjs';
 import {nativeCoreTestCaseInventory} from './native-core-test-selection.mjs';
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {runMeasuredNativeTests} from './native-core-measured-tests.mjs';
-import {runLocalCheck, type LocalCheckConfig} from './local-checks-guard.mjs';
+import {runLocalCheck} from './local-checks-guard.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {commandSource} from './packed-query-evidence.mjs';
 
@@ -46,6 +46,7 @@ export const reviewedNativeCoreFiles = Object.freeze([
     'Native file Content refuses unavailable fields retired originals and invalid constructor bounds',
   ])}),
 ]);
+type LocalCheckConfig = Parameters<typeof runLocalCheck>[0];
 type CompilerRecord = ReturnType<typeof nativeCoreTestCaseInventory>['records'][number];
 type ReviewedSuiteOptions = {
   root?: string;

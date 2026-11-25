@@ -86,6 +86,8 @@ target/
 /scripts/native-client-file-fixture.d.mts
 /scripts/native-core-reviewed-suite.mjs
 /scripts/native-core-reviewed-suite.d.mts
+/scripts/local-checks-policy.mjs
+/scripts/local-checks-policy.d.mts
 /scripts/test-native-core-linux-common.mjs
 /scripts/test-native-core-linux-common.d.mts
 /scripts/native-core-linux-common.test.mjs
