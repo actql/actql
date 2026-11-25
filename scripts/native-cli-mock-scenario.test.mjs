@@ -206,12 +206,12 @@ test('installed Native shared-file selection preserves its own original Run and 
   const fixture = threeWriteMockProject(), checkpoint = 'unit-checkpoint', runId = 'unit-run';
   const cid = observedCid('a'), resultWire = JSON.stringify(fixture.rows[0]) + '\n';
   const data = JSON.parse(fixture.before);
-  for (const orphan of [false, true]) {
+  for (const fault of ['none', 'orphan-lock', 'unfinished-close', 'missing-close', 'repeated-close', 'reused-pid']) {
     const root = await mkdtemp(join(tmpdir(), 'actql-shared-file-mock-unit-'));
     t.after(() => rm(root, {recursive: true, force: true}));
     const calls = [];
     let approved = false;
-    const exercise = runNativeSharedFileMockScenario({root, async run(args, cwd) {
+    const exercise = runNativeSharedFileMockScenario({root, launcherTimings: 'required', async run(args, cwd) {
       calls.push([...args]);
       const file = join(cwd, 'mock/data.json');
       const events = [];
@@ -246,7 +246,7 @@ test('installed Native shared-file selection preserves its own original Run and 
         assert.deepEqual(args, ['approve', checkpoint, '--wait', '--json']);
         approved = true;
         await writeFile(file, fixture.after);
-        if (orphan) await writeFile(file + '.actql-write.lock', '');
+        if (fault === 'orphan-lock') await writeFile(file + '.actql-write.lock', '');
         for (const ordinal of [0, 1, 2]) for (const tag of [5, 6, 7, 8, 9, 10, 11]) {
           events.push({tag, ordinal: tag === 6 || tag === 7 ? -1 : 0,
             identity: tag === 6 || tag === 7 ? '' : 'sha256:' + (ordinal * 16 + (tag === 8 ? 5 : tag))
@@ -258,9 +258,26 @@ test('installed Native shared-file selection preserves its own original Run and 
         assert.deepEqual(args, ['result', runId, '--result', 'updates', '--format', 'jsonl']);
         stdout = resultWire;
       }
-      return {code: 0, signal: null, stdout, stderr: observation(100 + calls.length, events)};
+      const call = calls.length;
+      const closeFault = call === 1 ? fault : 'none';
+      const pid = fault === 'reused-pid' ? 101 : 100 + call;
+      const native = observation(pid, events).replace(/^ACTQL_NATIVE_PHASE (\{"tag":5,[^\n]+\})\n/mu,
+        (_line, body) => {
+          if (closeFault === 'missing-close') return '';
+          const begins = closeFault === 'repeated-close' ? 2 : 1;
+          const active = closeFault === 'unfinished-close' ? 1 : 0;
+          return 'ACTQL_NATIVE_PHASE ' + JSON.stringify({...JSON.parse(body), begins, ends: begins - active, active}) + '\n';
+        });
+      return {code: 0, signal: null, stdout, stderr: native + launcherTimingTrailer()};
     }});
-    if (orphan) {
+    if (['unfinished-close', 'missing-close', 'repeated-close'].includes(fault)) {
+      await assert.rejects(exercise, fault === 'missing-close' ? /Incomplete Native phase rows/u :
+        /return from its first Host close/u);
+      assert.deepEqual(calls.map(args => args[0]), ['--mode']);
+    } else if (fault === 'reused-pid') {
+      await assert.rejects(exercise, /require separate Native processes/u);
+      assert.deepEqual(calls.map(args => args[0]), ['--mode', 'run']);
+    } else if (fault === 'orphan-lock') {
       await assert.rejects(exercise, /target lock path must be absent/u);
       assert.deepEqual(calls.map(args => args[0]), ['--mode', 'run', 'status', 'status', 'approve']);
     } else {
@@ -278,7 +295,7 @@ test('installed Native shared-file selection preserves its own original Run and 
 test('Native mixed file harness checks the original DELETE diff and both decision paths', async t => {
   const fixture = mixedDeleteUpdateMockProject();
   const original = JSON.parse(fixture.before);
-  for (const wrongAfter of [false, true]) {
+  for (const fault of [undefined, 'wrong-after', 'wrong-result-refusal', 'rejected-result-rows']) {
     const root = await mkdtemp(join(tmpdir(), 'actql-native-mixed-file-unit-'));
     t.after(() => rm(root, {recursive: true, force: true}));
     const calls = [], statuses = new Map();
@@ -289,7 +306,7 @@ test('Native mixed file harness checks the original DELETE diff and both decisio
       const state = () => JSON.stringify({version: 'actql-run-state/0.1', run_id: runId,
         status: statuses.get(cwd) ?? 'waiting_checkpoint', checkpoint: {checkpoint_id: checkpoint, checkpoint_cid: cid}});
       calls.push([cwd, args[0]]);
-      let stdout = '', events = [];
+      let stdout = '', primary = '', code = 0, events = [];
       if (args[0] === '--mode') {
         assert.equal(await readFile(file, 'utf8'), fixture.before);
       } else if (args[0] === 'run') {
@@ -304,7 +321,7 @@ test('Native mixed file harness checks the original DELETE diff and both decisio
           assert.equal(args[1], runId);
           stdout = [`Run: "${runId}"`, `Checkpoint: "${checkpoint}"`, `  Original CID: "${cid}"`,
             'Stored Effect Preview (read-only; not approval):',
-            ...[['delete', 'Account', 'a1', wrongAfter ? {state: 'present', value: null} : {state: 'absent'}],
+            ...[['delete', 'Account', 'a1', fault === 'wrong-after' ? {state: 'present', value: null} : {state: 'absent'}],
               ['update', 'Contact', 'c1', {state: 'present', value: {value: 'C-new'}}]]
               .flatMap(([kind, resource, id, after]) => [
                 `  Effect: "${kind}"  Target: "connector://salesforce/${resource}"`,
@@ -326,23 +343,36 @@ test('Native mixed file harness checks the original DELETE diff and both decisio
           }
         } else {
           assert.deepEqual(args, ['result', runId, '--result', 'updates', '--format', 'jsonl']);
-          assert.equal(decision, 'approve');
-          stdout = JSON.stringify(fixture.rows[0]) + '\n';
+          if (decision === 'approve' || fault === 'rejected-result-rows')
+            stdout = JSON.stringify(fixture.rows[0]) + '\n';
+          if (decision === 'reject') {
+            assert.equal(statuses.get(cwd), 'cancelled');
+            code = 1;
+            primary = 'actql-native-client: ' +
+              (fault === 'wrong-result-refusal' ? 'LocalResultNotDeclared' : 'LocalResultPublicationUnavailable') + '\n';
+          }
         }
       }
-      return {code: 0, signal: null, stdout, stderr: observation(200 + calls.length, events)};
+      return {code, signal: null, stdout, stderr: primary + observation(200 + calls.length, events)};
     }});
-    if (wrongAfter) {
+    if (fault === 'wrong-after') {
       await assert.rejects(proof, /Original Review must preserve ordered targets/u);
       assert.equal(statuses.size, 0);
     } else {
-      const [approved, rejected] = await proof;
-      assert.equal(approved.resultRows, 1);
-      assert.notEqual(approved.beforeSha256, approved.afterSha256);
-      assert.equal(rejected.beforeSha256, rejected.afterSha256);
-      assert(approved.lockPathAbsent && rejected.lockPathAbsent);
+      if (fault === 'wrong-result-refusal') {
+        await assert.rejects(proof, /must refuse the original named Result/u);
+      } else if (fault === 'rejected-result-rows') {
+        await assert.rejects(proof, /must not disclose Result rows/u);
+      } else {
+        const [approved, rejected] = await proof;
+        assert.equal(approved.resultRows, 1);
+        assert.notEqual(approved.beforeSha256, approved.afterSha256);
+        assert.equal(rejected.beforeSha256, rejected.afterSha256);
+        assert.equal(rejected.resultRefusal, 'LocalResultPublicationUnavailable');
+        assert(approved.lockPathAbsent && rejected.lockPathAbsent);
+      }
       assert.deepEqual(calls.filter(([cwd]) => cwd.endsWith('-reject')).map(([, command]) => command),
-        ['--mode', 'run', 'status', 'status', 'reject', 'status']);
+        ['--mode', 'run', 'status', 'status', 'reject', 'status', 'result']);
     }
   }
 });

@@ -50,10 +50,9 @@ type SubjectTarget = Readonly<{connection: string; resource: string; mappingCid:
 type SubjectBundle = Readonly<{
   sources: readonly Readonly<{catalogue: Catalog; wire: string}>[];
   writables: readonly Readonly<{
-    source: Readonly<{catalogue: Catalog; effectPrepared: Readonly<{
-      mappings: readonly Readonly<{resource: string; mappingCid?: unknown}>[];
-    }>}>;
+    source: Readonly<{catalogue: Catalog}>;
     write: Readonly<{resource: string}>;
+    mapping?: Readonly<{mappingCid?: unknown}>;
     physical: Pick<SubjectTarget, 'itemsPath' | 'keyPath' | 'primaryIdentity'>;
   }>[];
 }>;
@@ -153,17 +152,21 @@ export function prepareOrdinaryMockAccountSubjects(frame: Frame, bundle: Subject
   const tasks = originalTasks.map(entry => entry.taskCid);
   const sources = bundle.sources.flatMap<Pair>(entry => entry.catalogue.views.map(view =>
     [entry.catalogue.connection, view.resource]));
-  const updates = bundle.writables.map<Pair>(target =>
-    [target.source.catalogue.connection, target.write.resource]);
+  const updates: Pair[] = [];
+  for (const {source, write} of bundle.writables) {
+    const connection = source.catalogue.connection, resource = write.resource;
+    if (!updates.some(tuple => tuple[0] === connection && tuple[1] === resource)) {
+      updates.push([connection, resource]);
+    }
+  }
   const subject: CatalogSubject = {projectDirectory, configurationCid: hashOriginal(configurationWire),
     sources: bundle.sources.map(entry => ({connection: entry.catalogue.connection,
       registration: entry.catalogue.registration, declarationCid: hashOriginal(entry.wire)})),
     modelTasks: tasks, requestRealization};
-  if (updates.length > 1) subject.targets = bundle.writables.map(target => {
-    const mapping = target.source.effectPrepared.mappings.find(value => value.resource === target.write.resource);
-    if (typeof mapping?.mappingCid !== 'string') fail('InstalledMockMappingUnavailable');
+  if (bundle.writables.length > 1) subject.targets = bundle.writables.map(target => {
+    if (typeof target.mapping?.mappingCid !== 'string') fail('InstalledMockMappingUnavailable');
     return {connection: target.source.catalogue.connection, resource: target.write.resource,
-      mappingCid: mapping.mappingCid, itemsPath: target.physical.itemsPath,
+      mappingCid: target.mapping.mappingCid, itemsPath: target.physical.itemsPath,
       keyPath: target.physical.keyPath, primaryIdentity: target.physical.primaryIdentity};
   });
   // Preserve the original one-target preimage and complete plural inventory.
