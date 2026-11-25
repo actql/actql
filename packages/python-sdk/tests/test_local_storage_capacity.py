@@ -178,14 +178,13 @@ print('original reservation retained')
                 with self.store(Path(directory) / 'core.sqlite') as reopened:
                     self.assertIsNone(reopened.read_capacity('publication', 'original'))
 
-    def test_prior_format_is_refused_without_rewriting_original_bytes(self) -> None:
+    def test_missing_capacity_catalog_refuses_without_rewriting_original_bytes(self) -> None:
         with TemporaryDirectory(prefix='actql-python-capacity-') as directory:
             path = Path(directory) / 'core.sqlite'
             with self.store(path) as store:
                 store.compare_exchange('original', None, b'original Core bytes')
             connection = sqlite3.connect(path)
             connection.execute('DROP TABLE actql_capacity')
-            connection.execute('PRAGMA user_version = 1')
             connection.commit()
             connection.close()
             original = path.read_bytes()
@@ -193,6 +192,5 @@ print('original reservation retained')
                 self.store(path)
             self.assertEqual(path.read_bytes(), original)
             connection = sqlite3.connect(path)
-            self.assertEqual(connection.execute('PRAGMA user_version').fetchone()[0], 1)
             self.assertEqual(connection.execute('SELECT payload FROM core_bytes').fetchone()[0], b'original Core bytes')
             connection.close()

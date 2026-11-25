@@ -1,26 +1,37 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {pathToFileURL} from 'node:url';
-import {encodeLocalCsvPage,prepareLocalCsvTable,projectLocalCsvRelationView,type LocalCsvDeclarationRuntime,type LocalCsvRuntime} from './local-csv-table.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
+import {encodeLocalCsvPage,prepareLocalCsvProjectEntry,type LocalCsvProjectRuntime,type LocalCsvRuntime} from './local-csv-table.mjs';
 
 const moon = await import(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME === undefined
   ? new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href
-  : pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME).href) as LocalCsvRuntime & LocalCsvDeclarationRuntime;
+  : pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME).href) as LocalCsvRuntime & LocalCsvProjectRuntime & {
+    clientProjectConnectionsAdmit(wire: string): unknown;
+  };
 const declaration = {path: 'small.csv', key: ['id'], columns: {id: 'int64', name: 'string'}};
 const limits = {maxPathBytes: 100, maxDepth: 2, maxFileBytes: 256, maxPageBytes: 256,
   maxFiles: 3, maxPageRows: 3, maxBytes: 256, maxRows: 3, maxFieldBytes: 40};
-const table = prepareLocalCsvTable('small', declaration, limits);
+const connections = (entry: unknown) => checked(moon.clientProjectConnectionsAdmit(JSON.stringify({
+  version: 'actql-connectors/0.1', connections: {local: {connector: 'local', root: './data', tables: {small: entry}}},
+})));
+const select = (entry: unknown) => {
+  const [table] = prepareLocalCsvProjectEntry(moon, connections(entry), 0, limits).tables;
+  assert.ok(table);
+  return table;
+};
+const table = select(declaration);
 const decode = (text: string, overrides?: Partial<typeof limits>) => JSON.parse(encodeLocalCsvPage(moon, Buffer.from(text), {...table, ...limits, ...overrides}, 1024));
 
 test('ordinary CSV projection preserves the original schema identity and ordered key', () => {
-  const view = projectLocalCsvRelationView(moon, table);
-  assert.deepEqual(view, {
+  assert.deepEqual(table.view, {
     resource:'small', resource_kind:'record',
     schema_wire:'{"id":{"nullable":false,"type":"int64"},"name":{"nullable":false,"type":"string"}}',
     schema_cid:'sha256:cb2f3b3b1ae90e17599f0ae3f8991a68796d8a94527353dbf832eb8eb4ebfe0c',
     facts_wire:'{"relation_keys":{"candidate_keys":[["id"]]}}',
   });
-  assert.throws(() => projectLocalCsvRelationView({}, table), {code:'LocalCsvRuntimeUnavailable'});
+  assert.throws(() => prepareLocalCsvProjectEntry({}, connections(declaration), 0, limits),
+    {code:'LocalCsvRuntimeUnavailable'});
 });
 
 test('decodes the declared CSV columns in file order with exact signed 64-bit values', () => {
@@ -57,12 +68,12 @@ test('applies exact input, field and row limits and selects only the original ro
   assert.throws(() => decode(data + 'E', {maxFieldBytes:4}), {code:'LocalCsvFieldLimit'});
   assert.throws(() => decode(data + '\n2,E', {maxRows:1}), {code:'LocalCsvRowsLimit'});
   for (const path of ['../small.csv','/small.csv','a//small.csv','a/b/c/small.csv','a\0.csv']) {
-    assert.throws(() => prepareLocalCsvTable('small', {...declaration,path}, limits), {code:'InvalidLocalCsvPath'});
+    assert.throws(() => select({...declaration,path}), {code:'InvalidLocalCsvPath'});
   }
   for (const key of [[], ['other'], ['id','id']]) {
-    assert.throws(() => prepareLocalCsvTable('small', {...declaration,key}, limits), {code:'InvalidLocalCsvKey'});
+    assert.throws(() => select({...declaration,key}), {code:'InvalidLocalCsvKey'});
   }
-  assert.throws(() => prepareLocalCsvTable('small', {...declaration,columns:{id:'unknown'}}, limits),
+  assert.throws(() => select({...declaration,columns:{id:'unknown'}}),
     {code:'InvalidLocalCsvColumns'});
 });
 

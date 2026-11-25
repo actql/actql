@@ -515,8 +515,8 @@ export function createRemoteSiteCoordinator({
   const recoverDispatch = async value => {
     const request = requireIntent(value);
     if (currentDispatchContext === undefined) fail('RemoteCoordinatorRecoveryUnavailable');
-    // A legacy intent still permits query and cleanup, but no materials may be
-    // attached afterwards: we cannot prove that its first send never occurred.
+    // An intent recorded without delivery materials still permits query and
+    // cleanup. The original intent cannot acquire material after admission.
     const retained = retainedDelivery(request);
     let notSeenBody = '';
     let response;

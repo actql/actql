@@ -178,7 +178,7 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
         read_only = (command == 'SELECT' or command == 'PRAGMA' and len(actual) <= 64
             and actual.strip().rstrip(';').strip().upper() in (
                 'PRAGMA SCHEMA_VERSION', 'PRAGMA TEMP.SCHEMA_VERSION', 'PRAGMA ENCODING',
-                'PRAGMA MAIN.APPLICATION_ID', 'PRAGMA MAIN.USER_VERSION'))
+                'PRAGMA MAIN.APPLICATION_ID'))
         span = self._closed_invocation
         foreign_closed = (span is not None and span.wasm_export is not None
                           and span.admitted and get_ident() != span.thread)
@@ -275,7 +275,7 @@ class _PhysicalByteDatabase(Protocol):
 
 
 class _SQLiteByteDatabase:
-    """The same stdlib connection for legacy2 and owned indexed Journal3.
+    """The original stdlib connection for the closed indexed Journal catalog.
 
     Only LocalByteStore owns the connection and closes it. No second connection,
     implicit transaction completion, schema conversion or fallback is created.
@@ -349,17 +349,27 @@ class _SQLiteByteDatabase:
             raise ValueError('Original SQLite snapshot changed during observation')
         return connection, epoch, connection.total_changes, (schema[0], temporary[0])
 
-    def _journal_schema(self) -> int:
-        """Observe the actual same-TX physical format; no authority is returned.
+    def _require_index_expression(self) -> None:
+        try:
+            probe = self._connection.execute(_RUN_DEFINITION_PROBE).fetchone()
+        except sqlite3.OperationalError as error:
+            if (getattr(error, 'sqlite_errorcode', None) == sqlite3.SQLITE_ERROR
+                    and str(error) == 'no such function: json_extract'):
+                raise ValueError('Original Local Store index expression is unavailable') from error
+            raise
+        if probe != ('probe',):
+            raise ValueError('Original Local Store index expression is inconsistent')
 
-        The closed index distinguishes legacy absence from metadata lost after
-        format3 initialization. No open, schema repair, migration or cache runs.
+    def _journal_schema(self) -> None:
+        """Check the exact catalog in the current physical transaction.
+
+        The original application and exact catalog identify the indexed
+        Journal. Missing and colliding entries both refuse.
         """
         before = self._snapshot_identity()
         application = self._connection.execute('PRAGMA main.application_id').fetchone()
-        version = self._connection.execute('PRAGMA main.user_version').fetchone()
-        # At most four bounded catalog rows distinguish the complete two/three
-        # object formats from any extra/colliding schema without a payload scan.
+        # At most four bounded rows distinguish the exact three catalog
+        # entries from an extra or colliding schema without a payload scan.
         rows = self._read_sql(("""SELECT
             CASE WHEN length(name) <= 34 THEN name ELSE NULL END,
             type, CASE WHEN length(tbl_name) <= 16 THEN tbl_name ELSE NULL END,
@@ -371,20 +381,18 @@ class _SQLiteByteDatabase:
             WHERE name COLLATE NOCASE IN ('core_bytes', 'actql_capacity') LIMIT 1""").fetchone()
         if self._snapshot_identity() != before or shadow is not None:
             raise ValueError('Original Journal physical schema changed or was shadowed')
-        expected = [('actql_capacity', 'table', 'actql_capacity', _CAPACITY_SCHEMA),
-                    ('core_bytes', 'table', 'core_bytes', _SCHEMA)]
+        expected = [
+            ('actql_capacity', 'table', 'actql_capacity', _CAPACITY_SCHEMA),
+            ('actql_client_run_definition_unique', 'index', 'core_bytes', _RUN_DEFINITION_INDEX),
+            ('core_bytes', 'table', 'core_bytes', _SCHEMA),
+        ]
         if application != (_APPLICATION_ID,):
             raise ValueError('Original Journal physical application identity changed')
-        if version == (2,) and rows == expected:
-            return 0
-        expected.insert(1, ('actql_client_run_definition_unique', 'index',
-                            'core_bytes', _RUN_DEFINITION_INDEX))
-        if version == (3,) and rows == expected:
-            probe = self._connection.execute(_RUN_DEFINITION_PROBE).fetchone()
-            if probe != ('probe',) or self._snapshot_identity() != before:
-                raise ValueError('Original Journal index expression changed during observation')
-            return 1
-        raise ValueError('Original Journal physical format is missing or inconsistent')
+        if rows != expected:
+            raise ValueError('Original Journal physical format is missing or inconsistent')
+        self._require_index_expression()
+        if self._snapshot_identity() != before:
+            raise ValueError('Original Journal index expression changed during observation')
 
     @property
     def in_transaction(self) -> bool:
