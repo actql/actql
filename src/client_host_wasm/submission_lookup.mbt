@@ -45,7 +45,7 @@ fn observe_submission_lookup(
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
   original? : @host.ClientSavedSubmissionSnapshot? = None,
-  admitted_schema? : Int = -1,
+  catalog_checked? : Bool = false,
 ) -> Result[@host.ClientSavedSubmissionSnapshot?, Int] {
   match submission_lookup_current(value, record, configuration) {
     Ok(_) => ()
@@ -68,18 +68,10 @@ fn observe_submission_lookup(
     physical_journal_row(current.physical, check, 1, table, key)
   }
   let cancellation = () => submission_cancellation_inventory(scan, read)
-  // The original physical reader observes its actual same-transaction schema.
-  // This is only algorithm-selection DATA; every Account/current/epoch and
-  // selected nested-original validator below still runs. Errors never mean
-  // legacy absence or permission to prepare another Run.
-  // Only incremental Saved admission supplies the already checked observation
-  // from this same live current reader. All other callers observe it here.
-  let physical_schema = if record.kind == INCREMENTAL_SAVED_RESULT_KIND {
-    admitted_schema
-  } else {
-    physical_journal_schema(current.physical)
-  }
-  if physical_schema != 0 && physical_schema != 1 {
+  // Incremental Saved can reuse the catalog check already made on this
+  // same current Reader. Authorization and original row checks still run.
+  if !(record.kind == INCREMENTAL_SAVED_RESULT_KIND && catalog_checked) &&
+    physical_journal_schema(current.physical) != 1 {
     return Err(-41)
   }
   // Reuse only immutable request/Definition DATA from this already completed
@@ -139,12 +131,10 @@ fn observe_submission_lookup(
       scope,
       definition,
       original,
-      scan,
       read,
       inspect_run,
       cancellation,
       original_identity=identity,
-      physical_schema~,
     )
     return match check() {
       Ok(_) => observed
@@ -171,20 +161,14 @@ fn observe_submission_lookup(
     configuration.authority_scope_cid {
     return Err(-32)
   }
-  let observed = if physical_schema == 1 {
-    match
-      @host.read_client_saved_submission(reference, read, inspect_run, -31) {
-      Err(code) => Err(code)
-      Ok(snapshot) =>
-        match cancellation() {
-          Ok(_) => Ok(snapshot)
-          Err(code) => Err(code)
-        }
-    }
-  } else {
-    @host.inspect_client_saved_submission(
-      reference, 1024, scan, read, inspect_run, cancellation, -31,
-    )
+  let observed = match
+    @host.read_client_saved_submission(reference, read, inspect_run, -31) {
+    Err(code) => Err(code)
+    Ok(snapshot) =>
+      match cancellation() {
+        Ok(_) => Ok(snapshot)
+        Err(code) => Err(code)
+      }
   }
   if observed is Ok(Some(snapshot)) &&
     @host.client_saved_submission_run_row(snapshot) is Some(row) {
@@ -212,7 +196,6 @@ fn submission_run_reference_snapshot(
   scope : String,
   definition : String,
   original : @host.ClientSavedSubmissionSnapshot?,
-  scan : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
   inspect_run : (@host.ClientJournalPhysicalRow) -> Result[
     @host.ClientRunJournalInspection,
@@ -223,29 +206,19 @@ fn submission_run_reference_snapshot(
     @host.ClientRequestIdentity,
     @publication.PublicationContract,
   )? = None,
-  physical_schema? : Int = 0,
 ) -> Result[@host.ClientSavedSubmissionSnapshot?, Int] {
-  if physical_schema != 0 && physical_schema != 1 {
-    return Err(-41)
-  }
   guard original is Some(before) else {
-    if physical_schema == 1 {
-      let selected = match
-        @host.read_client_saved_run_reference(
-          run_namespace, scope, definition, read, inspect_run, -31,
-        ) {
-        Ok(value) => value
-        Err(code) => return Err(code)
-      }
-      return match cancellation() {
-        Ok(_) => Ok(Some(selected))
-        Err(code) => Err(code)
-      }
+    let selected = match
+      @host.read_client_saved_run_reference(
+        run_namespace, scope, definition, read, inspect_run, -31,
+      ) {
+      Ok(value) => value
+      Err(code) => return Err(code)
     }
-    return @host.inspect_client_saved_run_reference(
-      run_namespace, scope, definition, 1024, scan, read, inspect_run, cancellation,
-      -31,
-    )
+    return match cancellation() {
+      Ok(_) => Ok(Some(selected))
+      Err(code) => Err(code)
+    }
   }
   let reference = @host.client_saved_submission_record(before).reference
   // Only the actual completed saved source supplies this original identity.

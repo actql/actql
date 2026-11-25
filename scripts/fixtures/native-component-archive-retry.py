@@ -110,7 +110,7 @@ class DownloadControls(unittest.TestCase):
         self.assertEqual(list(self.output.iterdir()), [])
 
     def test_permanent_http_refusal_is_not_a_transport_retry(self):
-        for status in (403, 404):
+        for status in (403, 404, 429, 500, 504):
             with self.subTest(status=status):
                 failure = urllib.error.HTTPError(URLS[0], status, 'original refused', {}, None)
                 with self.assertRaises(urllib.error.HTTPError) as observed:
@@ -122,6 +122,49 @@ class DownloadControls(unittest.TestCase):
                 self.slept.assert_not_called()
                 self.assertEqual(list(self.output.iterdir()), [])
                 self.output.rmdir()
+
+    def test_observed_gateway_failures_retry_the_same_two_openssl_originals(self):
+        denied = {url: urllib.error.HTTPError(url, status, 'original gateway failure', {}, io.BytesIO(b'error'))
+                  for url, status in zip(URLS[1:], (502, 503))}
+        remaining = set(denied)
+        def opened(url, **args):
+            if url in remaining:
+                remaining.remove(url)
+                raise denied[url]
+            if url in denied:
+                self.assertTrue(denied[url].closed)
+                name = 'libssl-dev.deb' if url == URLS[1] else 'libssl3t64.deb'
+                self.assertFalse((self.output / name).exists())
+            return self.response(url, **args)
+        self.run_command(opened)
+        self.assert_originals()
+        self.assertEqual([call.args[0].full_url for call in self.opened.call_args_list],
+                         [URLS[0], URLS[1], URLS[1], URLS[2], URLS[2]])
+        self.assertTrue(all(0 < call.kwargs['timeout'] <= 60 for call in self.opened.call_args_list))
+        self.assertEqual([call.args[0] for call in self.slept.call_args_list], [1, 1])
+
+    def test_gateway_exhaustion_returns_the_exact_last_failure(self):
+        failures = [urllib.error.HTTPError(URLS[0], status, 'original gateway failure', {}, io.BytesIO())
+                    for status in (503, 502, 503)]
+        with self.assertRaises(urllib.error.HTTPError) as observed:
+            self.run_command(lambda *_args, **_kwargs: (_ for _ in ()).throw(failures[self.opened.call_count - 1]))
+        self.assertIs(observed.exception, failures[-1])
+        self.assertTrue(all(error.closed for error in failures[:-1]))
+        self.assertEqual([call.args[0].full_url for call in self.opened.call_args_list], [URLS[0]] * 3)
+        self.assertEqual([call.args[0] for call in self.slept.call_args_list], [1, 2])
+        self.assertEqual(list(self.output.iterdir()), [])
+
+    def test_gateway_retry_still_requires_exact_archive_bytes(self):
+        failure = urllib.error.HTTPError(URLS[0], 503, 'original gateway failure', {}, io.BytesIO())
+        def opened(url, **args):
+            if self.opened.call_count == 1:
+                raise failure
+            return io.BytesIO(b'?' * len(PAYLOADS[0]))
+        with self.assertRaises(AssertionError):
+            self.run_command(opened)
+        self.assertEqual([call.args[0].full_url for call in self.opened.call_args_list], [URLS[0]] * 2)
+        self.slept.assert_called_once_with(1)
+        self.assertEqual(list(self.output.iterdir()), [])
 
     def test_integrity_or_extent_mismatch_never_retries_or_writes(self):
         # The SHA pin is independently authored above; a same-length wrong body
@@ -153,13 +196,18 @@ class DownloadControls(unittest.TestCase):
         self.slept.assert_not_called()
 
     def test_original_deadline_refuses_a_retry_that_does_not_fit(self):
-        failure = urllib.error.URLError(ConnectionResetError(104, 'original reset'))
-        values = iter([0.0, 0.0, 59.5])
-        with self.assertRaises(urllib.error.URLError) as observed:
-            self.run_command(lambda *_args, **_kwargs: (_ for _ in ()).throw(failure), clock=lambda: next(values))
-        self.assertIs(observed.exception, failure)
-        self.assertEqual(self.opened.call_count, 1)
-        self.slept.assert_not_called()
+        reset = urllib.error.URLError(ConnectionResetError(104, 'original reset'))
+        gateway = urllib.error.HTTPError(URLS[0], 503, 'original gateway failure', {}, io.BytesIO())
+        for failure in (reset, gateway):
+            with self.subTest(failure=failure):
+                values = iter([0.0, 0.0, 59.5])
+                with self.assertRaises(urllib.error.URLError) as observed:
+                    self.run_command(lambda *_args, **_kwargs: (_ for _ in ()).throw(failure), clock=lambda: next(values))
+                self.assertIs(observed.exception, failure)
+                self.assertEqual(self.opened.call_count, 1)
+                self.slept.assert_not_called()
+                self.assertEqual(list(self.output.iterdir()), [])
+                self.output.rmdir()
 
     def test_certificate_failure_never_weakens_trust_or_retries(self):
         failure = urllib.error.URLError(ssl.SSLCertVerificationError('original trust refusal'))
@@ -171,8 +219,8 @@ class DownloadControls(unittest.TestCase):
 
 
 suite = unittest.defaultTestLoader.loadTestsFromTestCase(DownloadControls)
-assert suite.countTestCases() == 10
+assert suite.countTestCases() == 13
 result = unittest.TextTestRunner(verbosity=2).run(suite)
-if not result.wasSuccessful() or result.testsRun != 10 or result.skipped:
+if not result.wasSuccessful() or result.testsRun != 13 or result.skipped:
     raise SystemExit(1)
-print('Pinned component archive controls: 10/10')
+print('Pinned component archive controls: 13/13')

@@ -204,6 +204,7 @@ fn local_group_generated(
         assert_true(
           @lower.kernel_group(kernel) is Some(_) ||
           @lower.kernel_count_group(kernel) is Some(_) ||
+          @lower.kernel_pivot(kernel) is Some(_) ||
           @lower.kernel_is_projection(kernel) ||
           @lower.kernel_take(kernel) is Some(_) ||
           @lower.kernel_is_sort(kernel) ||

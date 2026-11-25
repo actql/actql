@@ -4,7 +4,7 @@
 import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
-import type {projectLocalCsvRelationView} from './local-csv-table.mjs';
+import type {LocalCsvRelationView} from './local-csv-table.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
 type Data = Record<string, unknown>;
@@ -121,7 +121,7 @@ type DeclarationViews = Readonly<{views: readonly Readonly<{resource: unknown; c
 
 export function restoreDeclaration(call: DeclarationCall, connection: string, rootPath: string,
   versionMode: 'content' | 'metadata', limits: LocalFileDeclarationLimits,
-  canonical: (value: unknown) => string, cid: (value: unknown) => string, csvViews: readonly ReturnType<typeof projectLocalCsvRelationView>[]) {
+  canonical: (value: unknown) => string, cid: (value: unknown) => string, csvViews: readonly LocalCsvRelationView[]) {
   const string = (nullable: boolean) => ({type:'string',nullable});
   const resource = {type:'resource_ref',resource_kind:'file',nullable:false};
   const timestamp = (nullable: boolean) => ({type:'timestamp',nullable});

@@ -1222,9 +1222,9 @@ shell without rerunning packed product acceptance or a mutation campaign.
 ## Pull request checks and main integration
 
 Normal CI runs on pull requests (`opened`, `synchronize`, `reopened`,
-`ready_for_review`, and `converted_to_draft`), pushes to `main`, a scheduled
-main run every six hours (00:17, 06:17, 12:17 and 18:17 UTC), weekly Monday
-03:23 UTC deep validation, and explicit manual dispatch. The repository must be public. No repository activation
+`ready_for_review`, and `converted_to_draft`) and explicit manual dispatch.
+Main integration runs at 00:17, 06:17, 12:17 and 18:17 UTC every day. The
+repository must be public. No repository activation
 variable is required: enable or disable the workflow through GitHub Actions.
 This workflow does not change repository visibility, permissions, branch
 protection, or release authorization.
@@ -1509,53 +1509,36 @@ coverage; local `run session-evidence` retains both sequences serially.
 
 ### Full integration and release evidence
 
-Every main push selects full runtime coverage, including all three Core
-backends on Linux. A main push runs no macOS job: the scheduled main run every
-six hours owns the macOS Core partitions, macOS workloads and macOS wheels, so
-a macOS-only regression is reported there, up to six hours after its merge and
-together with the other merges of that window. Manual dispatch on `main` with
-`native_macos=true` checks macOS immediately. Complete Session and pipeline mutation/search campaigns run
-when their actual source snapshot or safety/orchestration inputs change. Their
-snapshot includes all Core source and vendor files; ownership, resource,
-platform, build and unknown inputs conservatively select deep coverage. Other
-reviewed integration-tree changes retain runtime/package acceptance without
-repeating unrelated proof campaigns. Cheap pipeline contract/negative checks
-remain independently mandatory even when deep assembly is not selected.
+Each scheduled main run covers all three Core backends, Linux and macOS, and
+the full Session and pipeline proof campaigns on its authenticated event SHA.
+The Monday 00:17 UTC run selects thirty formal approvals per original Mock
+workflow in the existing Native job. The other slots select the ordinary
+installed Mock workflows.
 
-Only the current push event's exact `before` and tested `after` endpoints are
-compared for deep scheduling, with both sides of renames and deletions retained.
-An absent, invalid or unavailable base selects deep coverage. This is not the
-removed prior-success API/history traversal: no previous successful run or
-ancestor search chooses ordinary CI jobs. Current checkout SHA, source,
-toolchain, artifact, and execution identity checks remain required.
-
-Main also records performance from the same run's normal Client artifacts
-using the existing measurement tools. Timing regression thresholds are not
+Scheduled main runs also record health and performance from their normal Client
+artifacts using the existing measurement tools. Timing regression thresholds are not
 blocking in record-only mode; malformed measurements, setup and correctness
 failures still fail the required main aggregate. No measured speedup is claimed
 from scheduling alone.
 
-The normal main concurrency group keeps one running integration and at most
-one pending run; newer arrivals replace pending work. This does not promise
-FIFO or test every intermediate merge. An active main run validates its
-immutable event SHA and may finish after main advances. PR and working-branch
-runs still reject superseded heads. Performance/probe runs have separate groups.
+Scheduled and manual main runs have separate concurrency groups. Within each
+group the active run continues, and GitHub retains at most the latest pending
+run. An active main run validates its immutable event SHA and may finish after
+main advances. PR and working-branch runs still reject superseded heads.
+Performance and evidence probes have separate groups.
 
-Scheduled validation runs complete runtime and deep campaigns on its
-authenticated main event SHA. Scheduled runs use their own concurrency group,
-so a later main push never replaces a pending scheduled run. Only the weekly
-Monday run replaces the installed Mock workflows with thirty formal approvals. Manual normal dispatch also selects all deep
-campaigns, with optional `native_macos=true`. Scheduled receipt authentication
-retains the same source/run/attempt checks; it does not authorize new cross-run
-proof reuse.
+To start main integration on demand, select `main` in Actions → CI → Run workflow.
+Manual normal dispatch selects all deep campaigns. Use `native_macos=true` to
+include the macOS Native workload. Scheduled receipt authentication retains the
+same source, run and attempt checks.
 Performance and intentionally failing evidence probes are separate opt-in modes,
 not full integration checkpoints. The Python wheel acceptance job runs on its
 supported product platform independently of the optional native diagnostic job.
 No package publication or deployment is performed by ordinary CI.
 
 Before release, require the exact main SHA's successful full integration
-`check` with complete deep campaigns and macOS from the same attempt (use normal
-manual dispatch with `native_macos=true` if the push selected shallow proofs). Local tests, an
+`check` with complete deep campaigns and macOS from the same attempt. Use normal
+manual dispatch with `native_macos=true` to verify a SHA on demand. Local tests, an
 ancestor's green run, a Draft preparation, skipped checks, and performance
 results are not substitutes. Configure required branch checks separately under
 owner-approved repository rules; this workflow does not modify those rules.

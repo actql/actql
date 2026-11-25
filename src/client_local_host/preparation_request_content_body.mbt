@@ -388,6 +388,7 @@ pub fn[I] prepare_request_serialization_plan(
     workspace,
     None,
     None,
+    None,
   )
 }
 
@@ -423,6 +424,7 @@ pub fn[I] prepare_request_model_serialization_plan(
     workspace,
     Some(graph),
     query_time,
+    None,
   )
 }
 
@@ -438,6 +440,7 @@ fn[I] prepare_request_serialization_plan_owned(
   workspace : @execution.ExecutionCapacity?,
   model : @publication_host.ClientInferPlanGraph?,
   query_time : @publication_host.ClientQueryTimePreparation?,
+  terminal_output : ClientSerializationOutputDemand?,
 ) -> Result[
   ClientInstalledManagedSerializationPreparation,
   ClientInstalledManagedRunIssue,
@@ -472,8 +475,11 @@ fn[I] prepare_request_serialization_plan_owned(
     }
     _ => return Err(ForeignOriginal)
   }
-  // The selected record owns ten original references; its LedgerLimits owns
-  // six scalar words. Plan/Request/compiler link carriers were admitted at
+  // The selected record owns eleven original references; its LedgerLimits
+  // owns six scalar words. Terminal selection also pays for its optional
+  // demand link and the borrowed triple returned at prefix entry. The demand
+  // and its limits were already funded before projection. Plan/Request/compiler
+  // link carriers were admitted at
   // the Content input borrow. Compiler, sequence/provider and output backing
   // are separate domains: do not count them as supplied by this fixed packet.
   // Reuse the existing sequential construction quote slot. The completed
@@ -483,13 +489,15 @@ fn[I] prepare_request_serialization_plan_owned(
     guard @execution.preparation_representation_cost({
         record_headers: if model is Some(_) {
           5L
+        } else if terminal_output is Some(_) {
+          4L
         } else {
           2L
         },
-        reference_slots: if model is Some(_) {
-          14L
+        reference_slots: if model is Some(_) || terminal_output is Some(_) {
+          15L
         } else {
-          10L
+          11L
         },
         scalar_words: if model is Some(_) {
           9L
@@ -591,6 +599,7 @@ fn[I] prepare_request_serialization_plan_owned(
       execution,
       measurement,
       workspace,
+      terminal_output,
       model~,
       query_time~,
     ) {
@@ -615,6 +624,62 @@ fn[I] prepare_request_serialization_plan_owned(
   owner.program_domain_quote = None
   owner.phase = previous
   Ok(selected)
+}
+
+///|
+/// Price the terminal Content output and the retained prefix on the original
+/// Request before either can enter physical execution. The output demand uses
+/// the existing checked component, so authored generation guards can only
+/// tighten the installed profile. Prefix execution preserves its own row limit.
+pub fn[I] prepare_request_terminal_serialization_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[
+  ClientInstalledManagedSerializationPreparation,
+  ClientInstalledManagedRunIssue,
+] {
+  guard @publication_host.client_compiled_run_serialization(compiled)
+    is Some(component) &&
+    owner.compiled_program is Some(prepared) &&
+    physical_equal(component.owner, prepared) &&
+    @publication_host.validate_client_run_binding(
+      request, prepared, compiled, definition,
+    )
+    is Ok(_) else {
+    return Err(ForeignOriginal)
+  }
+  let demand = match
+    prepare_request_serialization_output_limits(
+      owner,
+      input,
+      compiled,
+      component,
+      component.max_rows,
+      () => Some(client_terminal_serialization_workspace_limits()),
+      terminal=true,
+    ) {
+    Ok(demand) => demand
+    Err(Policy) => return Err(InsufficientCapacity)
+    Err(Capacity(issue)) => return Err(Preparation(issue))
+    Err(_) => return Err(ForeignOriginal)
+  }
+  let (_, execution, measurement) = client_local_execution_limits()
+  prepare_request_serialization_plan_owned(
+    owner,
+    input,
+    request,
+    compiled,
+    definition,
+    execution,
+    measurement,
+    Some(demand.capacity),
+    None,
+    None,
+    Some(demand),
+  )
 }
 
 ///|

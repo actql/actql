@@ -123,6 +123,47 @@ fn published_preparation_close(
 }
 
 ///|
+test "published Python Local admission retains the built-in numeric profile" {
+  let nonce = 6199L
+  let (value, _, pool, capacity, slot, environment_slot) = published_preparation_fixture(
+    nonce, "SELECT 1 AS id",
+  )
+  let original = value.environments.get(1).unwrap()
+  let publication = original.publication.unwrap()
+  let (environment, _) = admit_python_local_published_input(
+    original.wire,
+    publication,
+  ).unwrap()
+  assert_eq(
+    @checked.checking_environment_cid(environment),
+    @checked.checking_environment_cid(original.environment),
+  )
+  let profiles = @checked.checking_environment_profile_selection(environment)
+  assert_eq(
+    profiles.numeric_profile_cid,
+    Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+  )
+  assert_false(profiles.expressions.text_time)
+  let report = local_check_test_report(
+    environment, "SELECT PARSE_TIMESTAMP('yyyy-MM-dd', '2026-01-02') AS x", "sql",
+  )
+  assert_eq(required_text(report, "verdict"), Some("undetermined"))
+  assert_true(
+    admit_python_local_published_input(
+      original.wire,
+      publication.replace(
+        old=@checked.checking_environment_cid(original.environment),
+        new="sha256:" + "f".repeat(64),
+      ),
+    )
+    is None,
+  )
+  published_preparation_close(nonce, pool, capacity, slot, environment_slot)
+}
+
+///|
 let published_preparation_effect_text = "SELECT 'original-id' AS id, 1 AS value |> RESULT out |> EFFECT UPDATE salesforce.Account ID id SET (Name = value)"
 
 ///|
@@ -209,4 +250,34 @@ test "published submitted refusal retains same typed issue before any executable
   assert_true(record.source_issue is Some(ReadOnly))
   assert_eq(value.runs.length(), 0)
   published_preparation_close(nonce, pool, capacity, slot, environment_slot)
+}
+
+///|
+test "published submitted collection order retains the original Problem" {
+  let source = "WITH r AS (SELECT 1 AS k, 'one' AS label UNION ALL SELECT 2, 'two') "
+  for
+    (query, code, classification) in [
+      (
+        "SELECT STRING_AGG(label, '|') AS labels FROM r", "ClientProgramAggregateOrderRequired",
+        "invalid_input",
+      ),
+      (
+        "SELECT ARRAY_AGG(k ORDER BY k) AS items FROM r", "ClientProgramOrderUnresolved",
+        "operation_failed",
+      ),
+    ] {
+    let nonce = 6184L
+    let (value, record, pool, capacity, slot, environment_slot) = published_preparation_fixture(
+      nonce,
+      source + query,
+      read_only=true,
+    )
+    assert_eq(prepare_program(nonce, 2), 0)
+    assert_eq(prepared_outcome(nonce, 2), 2)
+    assert_true(record.source_issue is Some(Frontend(_)))
+    assert_eq(preparation_failure_problem(record), Some((code, classification)))
+    assert_true(record.source is None)
+    assert_eq(value.runs.length(), 0)
+    published_preparation_close(nonce, pool, capacity, slot, environment_slot)
+  }
 }

@@ -28,10 +28,12 @@ struct CapturedContentCustody {
 }
 
 ///|
-// Two closed metadata purposes on the SAME Store file/capacity/cleanup owner.
-// A raw lookup payload never creates or substitutes a ContentRef.
+// Closed metadata purposes share the same Store file/capacity/cleanup owner.
+// A raw lookup payload cannot supply ContentRef custody.
 priv enum CapturedPayloadOriginal {
   Content(@publication.CapturedContentReference)
+  Generated(@publication.GeneratedContentReference)
+  SavedGenerated(@publication.StoredGeneratedContentReference)
   LookupRaw(@publication.PublicationContract)
 }
 
@@ -164,6 +166,69 @@ pub fn Store::prepare_captured_content_custody(
 }
 
 ///|
+/// Keep the completed encoder's candidate and the admitted Run's holding on
+/// the existing Content Store owner. The caller funds construction and keeps
+/// the original current and publication policy checks through issuance.
+pub fn Store::prepare_generated_content_custody(
+  self : Store,
+  original : @publication.GeneratedContentReference,
+  holding : String,
+) -> Result[CapturedContentCustody, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
+  let (authority, _, digest, count) = @publication.generated_content_reference_storage(
+    original,
+  )
+  guard authority == self.authority_cid &&
+    count >= 0 &&
+    valid_effect_custody_digest(holding) else {
+    return Err(StateCollision)
+  }
+  self.prepare_captured_payload_custody(
+    Generated(original),
+    holding,
+    @publication.generated_content_reference_wire(original),
+    digest,
+    count.to_int64(),
+  )
+}
+
+///|
+/// Prepare only a read of the exact stored generated holding. Its canonical
+/// reference was readmitted by Common from the original Run, with no encoder.
+pub fn Store::prepare_saved_generated_content_custody(
+  self : Store,
+  original : @publication.StoredGeneratedContentReference,
+  holding : String,
+) -> Result[CapturedContentCustody, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
+  let (_, authority, _, digest, count) = @publication.stored_generated_content_reference_storage(
+    original,
+  )
+  guard authority == self.authority_cid &&
+    count >= 0 &&
+    valid_effect_custody_digest(holding) else {
+    return Err(StateCollision)
+  }
+  self.prepare_captured_payload_custody(
+    SavedGenerated(original),
+    holding,
+    @publication.stored_generated_content_reference_wire(original),
+    digest,
+    count.to_int64(),
+  )
+}
+
+///|
 /// The authenticated Source caller supplies its original raw metadata and
 /// private holding. Only persist/confirm on this SAME owner establish byte
 /// custody; a kind, CID or Store quota is not Source permission or memory.
@@ -269,14 +334,104 @@ fn CapturedContentCustody::register(
 }
 
 ///|
-/// Persist the already selected candidate once. Equal confirmed Content may
-/// share its durable holding. Failed or uncertain writes keep this custody.
+/// Synchronous, fixed Native backing for one encoder already funded by its
+/// original Run. It consumes only the bytes returned by that encoder.
+struct NativeGeneratedContentOutput {
+  encoder : @publication.ContentByteEncoder
+  backing : FixedArray[Byte]
+  mut written : Int
+}
+
+///|
+pub fn start_native_generated_content_output(
+  encoder : @publication.ContentByteEncoder,
+) -> Result[NativeGeneratedContentOutput, NativePublicationStoreIssue] {
+  let (_, capacity) = @publication.content_byte_generation_limits(encoder)
+  Ok({ encoder, backing: FixedArray::make(capacity, 0), written: 0, })
+}
+
+///|
+/// The caller accounts for returned work before interpreting a failure. No
+/// provisional strings or mutable array aliases leave this bounded port.
+pub fn NativeGeneratedContentOutput::advance(
+  self : Self,
+  quantum : Int,
+) -> (Result[Bool, @publication.ContentSerializationIssue], Int) {
+  let (ready, piece, work) = match
+    @publication.advance_content_bytes(self.encoder, quantum) {
+    @publication.ContentBytesContinue(piece, work~) => (false, piece, work)
+    @publication.ContentBytesReady(piece, work~) => (true, piece, work)
+    @publication.ContentBytesFailed(issue, work~) => return (Err(issue), work)
+  }
+  if piece.length() == 0 {
+    return (Ok(ready), work)
+  }
+  let chunk = @utf8.encode(piece)
+  if chunk.length() > self.backing.length() - self.written {
+    @publication.cancel_content_byte_encoder(self.encoder)
+    return (Err(@publication.ContentByteLimit), work)
+  }
+  self.backing.blit_from_bytes(self.written, chunk, 0, chunk.length())
+  self.written += chunk.length()
+  (Ok(ready), work)
+}
+
+///|
+/// Captured Source and lookup bytes use the original whole-body entry point.
 pub fn CapturedContentCustody::persist(
   self : Self,
   bytes : Bytes,
 ) -> Result[Unit, NativePublicationStoreIssue] {
-  if bytes.length().to_int64() != self.bytes ||
-    "sha256:" + @sha.hex(bytes) != self.digest {
+  guard self.original is Content(_) || self.original is LookupRaw(_) else {
+    return Err(RecoveryRequired)
+  }
+  self.persist_extent(bytes, bytes.length())
+}
+
+///|
+pub fn CapturedContentCustody::matches_generated_selection(
+  self : Self,
+  store : Store,
+  candidate : @publication.GeneratedContentReference,
+  holding : String,
+) -> Bool {
+  self.original is Generated(selected) &&
+  physical_equal(selected, candidate) &&
+  physical_equal(self.store, store) &&
+  self.holding == holding &&
+  !self.closed
+}
+
+///|
+/// Consume a checked generated byte extent from the same nominal encoder as
+/// the candidate. Only this synchronous Store call borrows the backing.
+pub fn CapturedContentCustody::persist_generated_output(
+  self : Self,
+  output : NativeGeneratedContentOutput,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  guard self.original is Generated(candidate) &&
+    @publication.generated_content_reference_completion_for(
+      candidate,
+      output.encoder,
+    )
+    is Some(_) else {
+    return Err(StateCollision)
+  }
+  self.persist_extent(
+    output.backing.unsafe_reinterpret_as_bytes(),
+    output.written,
+  )
+}
+
+///|
+fn CapturedContentCustody::persist_extent(
+  self : Self,
+  bytes : Bytes,
+  count : Int,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  guard count.to_int64() == self.bytes &&
+    @sha.hex_prefix(bytes, count) is Some(digest) &&
+    "sha256:" + digest == self.digest else {
     return Err(DigestMismatch)
   }
   match self.register() {
@@ -284,7 +439,7 @@ pub fn CapturedContentCustody::persist(
     Err(issue) => return Err(issue)
   }
   self.store.with_original_read(false, false, fn() {
-    self.persist_in_scope(bytes)
+    self.persist_in_scope(bytes, count)
   })
 }
 
@@ -292,6 +447,7 @@ pub fn CapturedContentCustody::persist(
 fn CapturedContentCustody::persist_in_scope(
   self : Self,
   bytes : Bytes,
+  count : Int,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   match
     self.store.database.insert("captured_content", self.holding, self.intent) {
@@ -334,7 +490,7 @@ fn CapturedContentCustody::persist_in_scope(
     }
   }
   let writer = self.writer.unwrap()
-  match filesystem(writer.append(bytes)) {
+  match filesystem(writer.append(bytes, length=count)) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -509,20 +665,49 @@ pub fn CapturedContentCustody::confirm(
 }
 
 ///|
-/// Callback-free custody correspondence. The Source still checks its original
-/// current/Account/Run before issuance; this is no authorization or ACK.
-pub fn CapturedContentCustody::matches_confirmed(
-  self : Self,
-  original : @publication.CapturedContentReference,
-) -> Bool {
-  self.original is Content(retained) &&
-  physical_equal(retained, original) &&
+fn CapturedContentCustody::confirmed_bytes_current(self : Self) -> Bool {
   self.verified &&
   self.committed &&
   !self.store.closed &&
   !self.store.retiring &&
   self.reader is None &&
   self.failed_reader is None
+}
+
+///|
+/// Callback-free custody correspondence. The Source still checks its original
+/// current/Account/Run before issuance.
+pub fn CapturedContentCustody::matches_confirmed(
+  self : Self,
+  original : @publication.CapturedContentReference,
+) -> Bool {
+  self.original is Content(retained) &&
+  physical_equal(retained, original) &&
+  self.confirmed_bytes_current()
+}
+
+///|
+/// A physical receipt belongs to the exact generated candidate it verified.
+/// Current scope and policy still belong to the original Content issuer.
+pub fn CapturedContentCustody::matches_generated_confirmed(
+  self : Self,
+  original : @publication.GeneratedContentReference,
+) -> Bool {
+  self.original is Generated(retained) &&
+  physical_equal(retained, original) &&
+  self.confirmed_bytes_current()
+}
+
+///|
+/// Reverification of saved bytes supplies only this stored candidate's
+/// physical observation. The original issuer still checks live read access.
+pub fn CapturedContentCustody::matches_saved_generated_confirmed(
+  self : Self,
+  original : @publication.StoredGeneratedContentReference,
+) -> Bool {
+  self.original is SavedGenerated(retained) &&
+  physical_equal(retained, original) &&
+  self.confirmed_bytes_current()
 }
 
 ///|
@@ -534,12 +719,7 @@ pub fn CapturedContentCustody::matches_lookup_raw_confirmed(
 ) -> Bool {
   self.original is LookupRaw(retained) &&
   physical_equal(retained, original) &&
-  self.verified &&
-  self.committed &&
-  !self.store.closed &&
-  !self.store.retiring &&
-  self.reader is None &&
-  self.failed_reader is None
+  self.confirmed_bytes_current()
 }
 
 ///|
@@ -547,6 +727,24 @@ pub fn CapturedContentCustody::matches_lookup_raw_confirmed(
 /// removed only by their acquired Writer; absence or a filename is never ACK.
 pub fn CapturedContentCustody::retry_cleanup(
   self : Self,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  self.retire_generated_or_close(discard=false)
+}
+
+///|
+/// The command calls this only after proving its publication was never
+/// entered. A sealed private holding then has no public Result borrower.
+pub fn CapturedContentCustody::abandon_unpublished_generated(
+  self : Self,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  guard self.original is Generated(_) else { return Err(StateCollision) }
+  self.retire_generated_or_close(discard=true)
+}
+
+///|
+fn CapturedContentCustody::retire_generated_or_close(
+  self : Self,
+  discard~ : Bool,
 ) -> Result[Bool, NativePublicationStoreIssue] {
   if self.closed {
     return Ok(true)
@@ -644,6 +842,12 @@ pub fn CapturedContentCustody::retry_cleanup(
         Err(issue) => return Err(Database(issue))
       }
     }
+    if discard && self.committed {
+      match self.reclaim_generated_in_scope() {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
     if self.registered {
       self.store.active_writers.remove(self.key) |> ignore
       self.registered = false
@@ -651,6 +855,102 @@ pub fn CapturedContentCustody::retry_cleanup(
     self.closed = true
     Ok(true)
   })
+}
+
+///|
+/// Record the exact sealed generation before removing its file. Unknown
+/// replies must observe the same row and inode before proceeding; a replaced
+/// name is never removed. The original owner retains pending cleanup.
+fn CapturedContentCustody::reclaim_generated_in_scope(
+  self : Self,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  guard self.original is Generated(_) &&
+    self.intent_owned &&
+    self.generation is Some(generation) else {
+    return Err(StateCollision)
+  }
+  self.verified = false
+  let row = match
+    database(self.store.database.read("captured_content", self.holding)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if row.revision == 3L && row.body == self.retired_record {
+    return Ok(())
+  }
+  if row.revision == 1L {
+    guard captured_content_record(
+        self.holding,
+        self.wire,
+        "sealed",
+        Some(generation),
+        self.store.max_record_bytes,
+      )
+      is Ok(expected) &&
+      expected == row.body else {
+      return Err(StateCollision)
+    }
+  } else if row.revision != 2L {
+    return Err(StateCollision)
+  }
+  // Compare against one canonical state at a time. Do not retain both
+  // encoded records across the SQLite mutation.
+  guard captured_content_record(
+      self.holding,
+      self.wire,
+      "retiring",
+      Some(generation),
+      self.store.max_record_bytes,
+    )
+    is Ok(retiring) else {
+    return Err(StateCollision)
+  }
+  if row.revision == 1L {
+    match
+      database(
+        self.store.database.compare_exchange(
+          "captured_content",
+          self.holding,
+          1L,
+          retiring,
+        ),
+      ) {
+      Ok(2L) => ()
+      Ok(_) => return Err(StateCollision)
+      Err(issue) => return Err(issue)
+    }
+  } else if row.body != retiring {
+    return Err(StateCollision)
+  }
+  match filesystem(self.store.root.reclaim_generation(self.name, generation)) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match
+    database(
+      self.store.database.release_capacity(
+        "publication_payload",
+        self.key,
+        self.bytes,
+        1L,
+      ),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match
+    database(
+      self.store.database.compare_exchange(
+        "captured_content",
+        self.holding,
+        2L,
+        self.retired_record,
+      ),
+    ) {
+    Ok(3L) => Ok(())
+    Ok(_) => Err(StateCollision)
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
@@ -700,11 +1000,11 @@ fn recover_captured_content_records(
       field(3) is Some(state) else {
       return Err(StateCollision)
     }
-    if state == "pending" {
+    if state == "pending" || state == "retiring" {
       return Err(CleanupPending)
     }
     if state == "retired" &&
-      row.revision == 1L &&
+      (row.revision == 1L || row.revision == 3L) &&
       @decode.array_length(data) == Some(4) {
       match
         captured_content_record(

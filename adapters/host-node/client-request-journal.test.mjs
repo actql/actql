@@ -819,7 +819,7 @@ test('an unmarked prior journal is rejected without changing its bytes',
     const original = await readFile(databasePath);
     const names = await readdir(path);
     assert.throws(() => openClientRequestJournal(path),
-      {code: 'LegacyClientRequestJournalFormat'});
+      {code: 'UnknownClientRequestJournalFormat'});
     assert.deepEqual(await readFile(databasePath), original);
     assert.deepEqual(await readdir(path), names);
   });
@@ -855,7 +855,7 @@ test('an unmarked accepted Run is never opened for physical restart',
     const databasePath = join(path, 'client-requests.sqlite3');
     const original = await readFile(databasePath);
     assert.throws(() => openClientRequestJournal(path),
-      {code: 'LegacyClientRequestJournalFormat'});
+      {code: 'UnknownClientRequestJournalFormat'});
     assert.deepEqual(await readFile(databasePath), original);
   });
 

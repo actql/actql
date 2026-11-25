@@ -16,7 +16,7 @@ from ._local_files import LocalFileRoot, _PayloadFile
 from ._local_storage_physical import (
     _PhysicalByteDatabase, _SQLiteByteDatabase, _TrackedSQLiteConnection,
     _PhysicalCapacityCollision, _PhysicalCapacityExceeded, _RUN_DEFINITION_INDEX,
-    _APPLICATION_ID, _SCHEMA, _CAPACITY_SCHEMA, _RUN_DEFINITION_PROBE)
+    _APPLICATION_ID, _SCHEMA, _CAPACITY_SCHEMA)
 
 
 
@@ -58,9 +58,9 @@ class _NamespaceReader:
     check_inventory: Callable[['_NamespaceReader', str, tuple[tuple[str, bytes], ...],
                                Callable[[], object]], None] | None = None
 
-    # Actual same-transaction catalog observation, not an indexed-custody proof.
-    # Absence keeps existing private suppliers on their full legacy route.
-    journal_schema: Callable[['_NamespaceReader', Callable[[], object]], int] | None = None
+    # Check the closed catalog in this same transaction. A Journal consumer
+    # must have this check; it does not provide authority for any row.
+    journal_schema: Callable[['_NamespaceReader', Callable[[], object]], None] | None = None
 
     # Explicit write-free span check against this reader's original SQLite
     # snapshot. No physical-current observation or permission is returned.
@@ -212,6 +212,7 @@ class LocalByteStore:
                     self._close_descriptor()
                 except BaseException as original:
                     raise LocalStorageInitializationError(self) from original
+        self._require_rollback_header()
         # SQLite transactions are owned by explicit SQL. Keep CPython's
         # legacy isolation_level=None semantics when autocommit is available.
         transaction_mode = {}
@@ -233,43 +234,29 @@ class LocalByteStore:
             # schema observations from this same connection's constructor.
             self._connection.execute('PRAGMA temp_store = FILE')
             if self._created:
+                # Establish the selected SQLite expression before changing
+                # the fresh file's durable configuration or creating tables.
+                try:
+                    database._require_index_expression()
+                except ValueError as error:
+                    raise LocalStorageError(str(error)) from error
                 self._configure_durability()
                 self._connection.execute('BEGIN IMMEDIATE')
             else:
-                # Identify the existing format in one read snapshot before
-                # asking SQLite to set a persistent journal mode.
+                # Identify the complete existing catalog in one read snapshot
+                # before asking SQLite to set a persistent journal mode.
                 self._connection.execute('BEGIN')
             try:
-                schema = self._connection.execute('''SELECT 1 FROM main.sqlite_schema
-                    WHERE name NOT LIKE 'sqlite_%' LIMIT 1''').fetchone()
-                application = self._connection.execute('PRAGMA application_id').fetchone()[0]
-                version = self._connection.execute('PRAGMA user_version').fetchone()[0]
-                if not schema and application == 0 and version == 0:
-                    if not self._created:
-                        raise LocalStorageError('Reopened empty Local Store has no initialization custody')
+                if self._created:
+                    schema = self._connection.execute("""SELECT 1 FROM main.sqlite_schema
+                        WHERE name NOT LIKE 'sqlite_%' LIMIT 1""").fetchone()
+                    application = self._connection.execute('PRAGMA main.application_id').fetchone()
+                    if schema is not None or application != (0,):
+                        raise LocalStorageError('Original fresh Local Store is no longer empty')
                     self._connection.execute(_SCHEMA)
                     self._connection.execute(_CAPACITY_SCHEMA)
+                    self._connection.execute(_RUN_DEFINITION_INDEX)
                     self._connection.execute(f'PRAGMA application_id = {_APPLICATION_ID}')
-                    version = 2
-                    if _new_file is not None:
-                        # Probe only the original library before index mutation.
-                        # Missing optional JSON support keeps the existing full
-                        # legacy route; unrelated failure is never a fallback.
-                        try:
-                            probe = self._connection.execute(_RUN_DEFINITION_PROBE).fetchone()
-                        except sqlite3.OperationalError as error:
-                            if (getattr(error, 'sqlite_errorcode', None) != sqlite3.SQLITE_ERROR
-                                    or str(error) != 'no such function: json_extract'):
-                                raise
-                        else:
-                            if probe != ('probe',):
-                                raise LocalStorageError('Original index expression probe was inconsistent')
-                            version = 3
-                    if version == 3:
-                        # Only the existing one-time original file acquisition
-                        # creates this format. Reopen never installs or repairs it.
-                        self._connection.execute(_RUN_DEFINITION_INDEX)
-                    self._connection.execute(f'PRAGMA user_version = {version}')
                 else:
                     try:
                         database._journal_schema()
@@ -292,6 +279,37 @@ class LocalByteStore:
             except BaseException:
                 raise LocalStorageInitializationError(self) from original
             raise
+
+    def _require_rollback_header(self) -> None:
+        # SQLite may recover or checkpoint a WAL even when the SQL used to
+        # validate the catalog is read-only. Observe the same original file
+        # without SQLite before allowing a writable connection to see it.
+        expected = self._observe_generation()
+        self._opening_descriptor = os.open(
+            self._physical_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        try:
+            metadata = os.fstat(self._opening_descriptor)
+            if self._file_generation(metadata) != expected:
+                raise LocalStorageError('Original Local Store file generation changed')
+            if self._created:
+                if metadata.st_size != 0:
+                    raise LocalStorageError('Original fresh Local Store is no longer empty')
+            else:
+                header = os.pread(self._opening_descriptor, 20, 0)
+                if (len(header) != 20 or header[:16] != b'SQLite format 3\x00'
+                        or header[18:] != b'\x01\x01'):
+                    raise LocalStorageError('Unknown Local physical storage format')
+            self._observe_generation()
+        except BaseException as original:
+            try:
+                self.close()
+            except BaseException:
+                raise LocalStorageInitializationError(self) from original
+            raise
+        try:
+            self._close_descriptor()
+        except BaseException as original:
+            raise LocalStorageInitializationError(self) from original
 
     def _configure_durability(self) -> None:
         if self._connection.execute('PRAGMA main.journal_mode = DELETE').fetchone() != ('delete',):
@@ -1513,7 +1531,7 @@ class LocalByteStore:
                     failure = error
                 raise failure
 
-        def journal_schema(view: _NamespaceReader, required_current: Callable[[], object]) -> int:
+        def journal_schema(view: _NamespaceReader, required_current: Callable[[], object]) -> None:
             nonlocal failure, reading, reads
             entered = False
             try:
@@ -1524,14 +1542,15 @@ class LocalByteStore:
                     raise LocalStorageError('Local inventory inspection capacity exceeded')
                 reading = entered = True
                 fence(required_current, reuse_snapshot=True)
-                value = database._journal_schema() if type(database) is _SQLiteByteDatabase else 0
+                if type(database) is not _SQLiteByteDatabase:
+                    raise ValueError('Original Journal physical catalog is unavailable')
+                value = database._journal_schema()
                 reads += 1
                 fence(required_current, reuse_snapshot=True)
                 if failure is not None:
                     raise failure
-                if type(value) is not int or value not in (0, 1):
-                    raise ValueError('Invalid original Journal physical schema observation')
-                return value
+                if value is not None:
+                    raise ValueError('Invalid original Journal catalog check result')
             except BaseException as error:
                 if failure is None:
                     failure = error

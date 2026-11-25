@@ -147,6 +147,8 @@ pub fn admit_client_transfer_input(@remote_site_protocol.RemoteInputBinding, Int
 
 pub fn admit_client_values_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, numeric_profile_cid? : String?) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue]
 
+pub fn admit_local_relation_check_environment(String, String) -> @program_check.CheckEnvironment?
+
 pub fn admit_measured_prepared_client_local_normalization(ClientLocalNormalizationPreparation, String, ClientLocalNormalizationConstruction) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue]
 
 pub fn admit_prepared_client_direct_values_result_root(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootAdmissionIssue]
@@ -1387,6 +1389,8 @@ pub fn client_project_catalog_admission_construction_inventory(String) -> @execu
 
 pub fn client_project_connections_admission_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
 
+pub fn client_project_local_files_issue_code(ClientProjectLocalFilesIssue) -> String
+
 pub fn client_project_model_task_selection_for(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
 
 pub fn client_project_model_task_selection_usage(ClientProjectModelTaskSelection) -> Int
@@ -1972,8 +1976,6 @@ pub fn[E] inspect_client_run_journal_inventory(Int, (String, String) -> Result[C
 pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E, ClientTaskMaterialsOriginal[Plan]?) -> Result[(Int, Int64), E]
 
 pub fn inspect_client_run_materials_execution_family(String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientProgramPreparationLimits) -> Result[ClientRunExecutionFamily, ClientValuesRunMaterialsIssue]
-
-pub fn[E] inspect_client_saved_run_reference(String, String, String, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E) -> Result[ClientSavedSubmissionSnapshot?, E]
 
 pub fn[E] inspect_client_saved_submission(ClientSubmissionReferenceRecord, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E) -> Result[ClientSavedSubmissionSnapshot?, E]
 
@@ -4795,7 +4797,21 @@ pub(all) enum ClientProjectConfigurationIssue {
 type ClientProjectConnections
 pub fn ClientProjectConnections::at(Self, Int) -> (String, String, String)?
 pub fn ClientProjectConnections::count(Self) -> Int
+pub fn ClientProjectConnections::local_files(Self, Int, Int, Int) -> Result[ClientProjectLocalFiles, ClientProjectLocalFilesIssue]
 pub fn ClientProjectConnections::original_wire(Self) -> String
+
+pub(all) struct ClientProjectLocalFiles {
+  root : String
+  content_version : Bool
+  csv_tables : Array[@client_row_source_host.LocalCsvTable]
+}
+pub fn ClientProjectLocalFiles::json(Self) -> String
+
+pub(all) enum ClientProjectLocalFilesIssue {
+  InvalidLocalFilesConnection
+  LocalFilesVersionUnavailable
+  CsvTable(@client_row_source_host.LocalCsvTableIssue)
+} derive(Eq, @debug.Debug)
 
 type ClientProjectModelRegistry
 pub fn ClientProjectModelRegistry::original_wire(Self) -> String
@@ -6263,9 +6279,11 @@ pub(all) enum PublicationOutputPayloadIssue {
 }
 
 type PublicationOutputReplay
+pub fn PublicationOutputReplay::advance(Self, Int) -> (@execution_relation.CompletedOutputExportAdvance?, Int, PublicationOutputExportIssue?)
 pub fn PublicationOutputReplay::cancel(Self) -> Unit
 pub fn PublicationOutputReplay::finish(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputReplay::next(Self) -> Result[String?, PublicationOutputExportIssue]
+pub fn PublicationOutputReplay::rows_complete(Self) -> Result[Bool, PublicationOutputExportIssue]
 
 type PublicationOutputSnapshotPreparation
 pub fn PublicationOutputSnapshotPreparation::advance(Self, Int) -> Result[(Bool, Int), PublicationOutputExportIssue]

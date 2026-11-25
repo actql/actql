@@ -127,14 +127,14 @@ test('a full-name snapshot still refuses a new unrelated entry added during SQLi
   scratch.passed();
 });
 
-test('bounded inspection keeps legacy and unknown format refusal separate from resource refusal',async()=>{
+test('bounded inspection keeps unmarked and unknown format refusal separate from resource refusal',async()=>{
   const{directory,scratch}=await fixture();
   const other=join(scratch.path,'unknown');
   await mkdir(directory,{recursive:true});await mkdir(other);
   await writeFile(join(directory,'client-requests.sqlite3'),'preserve-legacy-original');
   await writeFile(join(other,'unrecognized'),'preserve-unknown-original');
   assert.throws(()=>openClientRequestJournal(directory,{maxInspectionEntries:1}),
-    {code:'LegacyClientRequestJournalFormat'});
+    {code:'UnknownClientRequestJournalFormat'});
   assert.throws(()=>openClientRequestJournal(other,{maxInspectionEntries:1}),
     {code:'UnknownClientRequestJournalFormat'});
   assert.equal(await readFile(join(directory,'client-requests.sqlite3'),'utf8'),'preserve-legacy-original');

@@ -9891,7 +9891,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -11093,7 +11093,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -11139,7 +11139,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -11185,7 +11185,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -11227,7 +11227,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -11277,7 +11277,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -11319,7 +11319,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -11365,7 +11365,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -11407,7 +11407,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -11469,7 +11469,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "packages/python-sdk/tests/test_local_owned_store.py",
@@ -32779,7 +32779,7 @@
           "parameters": []
         }
       ],
-      "sha256": "7cc541ab3bf988e492cbe5570476e4127d924347f7b8742ab23233969db76af5",
+      "sha256": "57b4d190387d9617504368de0f6a16dc2bd557fdbbe9f4f2312f57514174dd0b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -32813,7 +32813,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -32835,7 +32835,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -32861,7 +32861,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -32887,7 +32887,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -32909,7 +32909,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -32935,7 +32935,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -32957,7 +32957,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -32983,7 +32983,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -33005,7 +33005,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -33035,7 +33035,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "packages/python-sdk/tests/test_local_owned_store.py",
@@ -54450,7 +54450,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -54508,7 +54508,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -54570,7 +54570,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -54632,7 +54632,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -54690,7 +54690,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -54756,7 +54756,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -54814,7 +54814,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -54876,7 +54876,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -54934,7 +54934,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -55012,7 +55012,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "packages/python-sdk/tests/test_local_owned_store.py",
@@ -63627,6 +63627,13 @@
         },
         {
           "async": false,
+          "name": "_SQLiteByteDatabase/_require_index_expression",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_SQLiteByteDatabase/_snapshot_identity",
           "parameters": [
             "self"
@@ -63957,7 +63964,7 @@
           ]
         }
       ],
-      "sha256": "cd4be0494187e481d299f8572217ba298a94d650b72ece8a33bfa08958cff901",
+      "sha256": "c16f9c7112cb0797802fcf848bdaed4e528d7dc678875dddacec0afe3010ab3e",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -64397,7 +64404,8 @@
             "_TrackedSQLiteConnection/load_extension",
             "_TrackedSQLiteConnection/set_authorizer",
             "_TrackedSQLiteConnection/set_progress_handler",
-            "_TrackedSQLiteConnection/set_trace_callback"
+            "_TrackedSQLiteConnection/set_trace_callback",
+            "_SQLiteByteDatabase/_require_index_expression"
           ],
           "exports": [],
           "attributes": {
@@ -64416,7 +64424,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -64446,7 +64454,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -64480,7 +64488,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -64514,7 +64522,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -64544,7 +64552,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -64582,7 +64590,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -64612,7 +64620,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -64646,7 +64654,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -64676,7 +64684,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -64746,7 +64754,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "packages/python-sdk/tests/test_local_owned_store.py",
@@ -65433,6 +65441,13 @@
         },
         {
           "async": false,
+          "name": "LocalByteStore/_require_rollback_header",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalByteStore/_reserve_capacity",
           "parameters": [
             "self",
@@ -65914,7 +65929,7 @@
           "parameters": []
         }
       ],
-      "sha256": "cb3aa7b2b9384dab3f722ed326f7e90531a54cb2553190ff0d34e88f916ef68f",
+      "sha256": "4e5d67e39d7c11f08604d1f2afe2d50e3ab3d8bd0ad160d5e503d64280cfa51a",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -66551,7 +66566,8 @@
             "LocalByteStore/reserve_capacity",
             "LocalByteStore/reserve_capacity_inspected",
             "LocalByteStore/store_publication_projected_attached",
-            "LocalByteStore/store_publication_projected_inspected"
+            "LocalByteStore/store_publication_projected_inspected",
+            "LocalByteStore/_require_rollback_header"
           ],
           "exports": [
             "LocalByteStore"
@@ -66572,7 +66588,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -66610,7 +66626,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -66648,7 +66664,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -66686,7 +66702,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -66720,11 +66736,11 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The physical connection selects its existing `temp_store = FILE` configuration"
+                "anchor": "The physical connection selects `temp_store = FILE` before its first catalog"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -66766,7 +66782,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -66800,7 +66816,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -66838,7 +66854,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -66872,7 +66888,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -66958,7 +66974,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "packages/python-sdk/tests/test_local_owned_store.py",
@@ -67091,6 +67107,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_owned_store.py",
                 "anchor": "def test_durable_profile_precedes_owned_schema_and_is_verified_on_reopen("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_unsupported_wal_is_preserved_before_writable_sqlite_open("
               }
             ]
           }
@@ -80162,7 +80182,7 @@
             "extension": [
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "This retained DATA does not by itself select an indexed read or complete legacy"
+                "anchor": "The original indexed catalog and same-source mandatory atomic writer bind the"
               }
             ],
             "verification": [
@@ -80181,7 +80201,7 @@
     },
     {
       "module": "src/client_host_wasm/journal_observation.mbt",
-      "sha256": "9eb664c36a5bab82e0275ea2fb3a4039eb1a98965fffccfb9ceff22436ad67e0",
+      "sha256": "4ea162d9fc922b3d26430128274d3e08e2004992b81e602ee8b6c6d52e3cdef3",
       "exports": [],
       "operations": [
         {
@@ -80294,7 +80314,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               }
             ],
             "inputsOutputs": [
@@ -80304,7 +80324,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               }
             ],
             "identity": [
@@ -80344,7 +80364,7 @@
             "failure": [
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",
-                "anchor": "if physical_schema != 0 && physical_schema != 1"
+                "anchor": "physical_journal_schema(current.physical) != 1"
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
@@ -80374,7 +80394,7 @@
             "extension": [
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "src/client_host_wasm/version.mbt",
@@ -80503,7 +80523,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_lookup.mbt",
-      "sha256": "48f27f922986c0ec62e6c673e56a77bea5deae3416318c933c0c934d7c65391c",
+      "sha256": "35b877feeba6ea08ad3b0841521063c95c4f4c5b05ff6727ba95be678f49ffc7",
       "exports": [],
       "operations": [
         {
@@ -80536,7 +80556,7 @@
         },
         {
           "name": "submission_run_reference_snapshot",
-          "declaration": "submission_run_reference_snapshot ( run_namespace : String , scope : String , definition : String , original : @ host . ClientSavedSubmissionSnapshot ? , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , inspect_run : ( @ host . ClientJournalPhysicalRow ) - > Result [ @ host . ClientRunJournalInspection , Int , ] , cancellation : ( ) - > Result [ Unit , Int ] , original_identity ? : ( @ host . ClientRequestIdentity , @ publication . PublicationContract , ) ?"
+          "declaration": "submission_run_reference_snapshot ( run_namespace : String , scope : String , definition : String , original : @ host . ClientSavedSubmissionSnapshot ? , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , inspect_run : ( @ host . ClientJournalPhysicalRow ) - > Result [ @ host . ClientRunJournalInspection , Int , ] , cancellation : ( ) - > Result [ Unit , Int ] , original_identity ? : ( @ host . ClientRequestIdentity , @ publication . PublicationContract , ) ?"
         },
         {
           "name": "validate_submission_lookup",
@@ -80567,7 +80587,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               }
             ],
             "inputsOutputs": [
@@ -80577,7 +80597,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               }
             ],
             "identity": [
@@ -80609,7 +80629,7 @@
             "failure": [
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",
-                "anchor": "if physical_schema != 0 && physical_schema != 1"
+                "anchor": "physical_journal_schema(current.physical) != 1"
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
@@ -80639,7 +80659,7 @@
             "extension": [
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "src/client_host_wasm/version.mbt",
@@ -80829,7 +80849,7 @@
             "extension": [
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+                "anchor": "The indexed Journal owns the `core_bytes` and `actql_capacity` tables"
               },
               {
                 "path": "scripts/generate-local-wasm-abi.py",
@@ -80852,7 +80872,7 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "9a8bf8d39165c99b90d49a81320eb72a8e19cc60a4e80c36f01759b8206a36bc",
+      "sha256": "7c4409b05c42b7a35a35f56ae36e476ec4738cd65d582289f990818af9cdb2a3",
       "exports": [],
       "operations": [
         {
@@ -80885,7 +80905,7 @@
         },
         {
           "name": "rebind_saved_result_originals",
-          "declaration": "rebind_saved_result_originals ( retained : StoredSavedResultRead , schema : Int , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , census_ticket ? : Int"
+          "declaration": "rebind_saved_result_originals ( retained : StoredSavedResultRead , catalog_status : Int , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , census_ticket ? : Int"
         },
         {
           "name": "reobserve_saved_result_read",
@@ -81040,7 +81060,7 @@
               },
               {
                 "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
-                "anchor": "test \"saved continuation refuses a changed supported schema with identical originals\""
+                "anchor": "test \"saved continuation refuses an unsupported catalog before reading originals\""
               },
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
@@ -81073,12 +81093,12 @@
     },
     {
       "module": "src/client_host_wasm/preparation.mbt",
-      "sha256": "61b7402075e5a489913f1b9df97d4563ea0d2fbc4a8fff04ba0569b437ae1fab",
+      "sha256": "650c343f4be10447039ac8e84ff7f7e7ba2af9bcb0362a84781ed75950681e4a",
       "exports": [],
       "operations": [
         {
-          "name": "admit_python_local_source_free_environment",
-          "declaration": "admit_python_local_source_free_environment ( body : String , cid : String , ) - > @ checked . CheckEnvironment ?"
+          "name": "admit_python_local_published_input",
+          "declaration": "admit_python_local_published_input ( body : String , publication : String , ) - > ( @ checked . CheckEnvironment , @ preparation . LocalInputContext ) ?"
         },
         {
           "name": "bind_restored_preparation",
@@ -81174,7 +81194,7 @@
             "prepared_tasks",
             "reserve_preparation",
             "stored_preparation_input",
-            "admit_python_local_source_free_environment"
+            "admit_python_local_published_input"
           ],
           "exports": [],
           "attributes": {
@@ -81324,6 +81344,10 @@
               {
                 "path": "src/client_host_wasm/client_check_wbtest.mbt",
                 "anchor": "test \"Python Local Check admits the pinned numeric profile for PIVOT SUM and COUNT\""
+              },
+              {
+                "path": "src/client_host_wasm/published_preparation_wbtest.mbt",
+                "anchor": "test \"published Python Local admission retains the built-in numeric profile\""
               }
             ]
           }
@@ -82865,7 +82889,7 @@
     },
     {
       "module": "src/cmd/native_client/local_start.mbt",
-      "sha256": "1a2c006c93f11152971bd87f781ebe7ee754c76fc36f6b7b1e061e1a923767fb",
+      "sha256": "10c15d47d569a5e47db6b660ea9f8afe29fd61bac1fd57789c8222e879c3eb78",
       "exports": [],
       "operations": [
         {
@@ -83292,7 +83316,7 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_run.mbt",
-      "sha256": "923e0bcb65524f96539f550191f0fd3c2c8e408c9393d013efae3a31cbd86e44",
+      "sha256": "b360c9d95dd6b105656683242e18d04e720e27e6ca499cb39e372cd181bbc24a",
       "exports": [],
       "operations": [
         {
@@ -87577,7 +87601,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "3dfa1ba6f2470fe05e8ee6afd6c699c99a71c8f39daa08fa3515f4d90c09adfe",
+      "sha256": "362d7dcff52f0db6ebb9f0044c15f0f424dad3bc534f63eff402f24ed0dbf497",
       "exports": [],
       "operations": [
         {
@@ -87602,7 +87626,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::acquire_physical_read",
-          "declaration": "LocalCommandPreparationOriginal : : acquire_physical_read ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+          "declaration": "LocalCommandPreparationOriginal : : acquire_physical_read ( self : LocalCommandPreparationOriginal , remote_budget ? : @ initial_arena . InstalledArenaOriginalReadBudget ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::acquire_runtime",
@@ -94389,13 +94413,9 @@
     },
     {
       "module": "src/run_publication_host/client_saved_submission_snapshot.mbt",
-      "sha256": "4a1bf36a7ba2b74937c95f1db1975ad8a7db45126cca8ee4efa7294dcba97c82",
+      "sha256": "6fd50bd5095ca94cc74acac6c4aed370706f7c2db5778fd4102bd5ba2278d823",
       "exports": [],
       "operations": [
-        {
-          "name": "[E]inspect_client_saved_run_reference",
-          "declaration": "[ E ] inspect_client_saved_run_reference ( namespace_id : String , authority_scope_cid : String , definition_cid : String , max_records : Int , scan : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , validate_run : ( ClientJournalPhysicalRow ) - > Result [ ClientRunJournalInspection , E , ] , confirm_cancellation : ( ) - > Result [ Unit , E ] , custody_lost : E , ) - > Result [ ClientSavedSubmissionSnapshot ? , E ]"
-        },
         {
           "name": "[E]inspect_client_saved_submission",
           "declaration": "[ E ] inspect_client_saved_submission ( reference : ClientSubmissionReferenceRecord , max_records : Int , scan : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , validate_run : ( ClientJournalPhysicalRow ) - > Result [ ClientRunJournalInspection , E , ] , confirm_cancellation : ( ) - > Result [ Unit , E ] , custody_lost : E , ) - > Result [ ClientSavedSubmissionSnapshot ? , E ]"
@@ -94460,7 +94480,6 @@
         {
           "operations": [
             "<module>",
-            "[E]inspect_client_saved_run_reference",
             "[E]inspect_client_saved_submission",
             "[E]read_client_saved_submission",
             "[E]read_client_saved_submission_row",

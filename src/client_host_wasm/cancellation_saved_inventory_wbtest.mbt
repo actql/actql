@@ -2,7 +2,7 @@
 // Fixed physical rows exercise the actual shared Saved/cancellation callee.
 // No physical Host import, authentication, write, stop or ACK is supplied.
 fn cancellation_saved_rows() -> Array[(String, @host.ClientJournalPhysicalRow)] {
-  let rows = targeted_snapshot_rows()
+  let rows = indexed_targeted_rows()
   let original = original_rows_identity(rows)
   let identity = @host.prepare_client_cancellation_identity(
     "scope",
@@ -53,7 +53,6 @@ fn cancellation_saved_observe(
     "sha256:" + "b".repeat(64),
     "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
     original,
-    (table, cursor) => targeted_row_scan(rows, table, cursor),
     (table, key) => targeted_row_read(rows, table, key),
     submission_append_run_inspection,
     () => {
@@ -151,7 +150,7 @@ test "Saved rebind observes the fresh cancellation witness on every invocation" 
     finite: None,
     owner: None,
     view: None,
-    schema_phase: -3,
+    commit_observation: true,
     advances_remaining: 1,
   }
   let scan = (table, cursor) => targeted_row_scan(rows, table, cursor)
@@ -184,7 +183,7 @@ test "Saved input reuses checked fence rows only within the same proven reader" 
     finite: None,
     owner: None,
     view: None,
-    schema_phase: -3,
+    commit_observation: true,
     advances_remaining: 0,
   }
   let scans = Ref(0)

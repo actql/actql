@@ -123,8 +123,7 @@ test('Core runner aggregate requires every selected matrix and refuses missing f
   assert.equal(core['timeout-minutes'], 5);
   const step = core.steps[0];
   assert.deepEqual(step.env, {CORE_TARGETS: '${{ needs.select-targets.outputs.targets }}',
-    JS_RESULT: '${{ needs.core-js.result }}', COMMON_RESULT: '${{ needs.core-common.result }}', DARWIN_RESULT: '${{ needs.core-darwin.result }}',
-    DARWIN_DEFERRED: "${{ github.event_name == 'push' }}"});
+    JS_RESULT: '${{ needs.core-js.result }}', COMMON_RESULT: '${{ needs.core-common.result }}', DARWIN_RESULT: '${{ needs.core-darwin.result }}'});
   const run = values => spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
     encoding: 'utf8', timeout: 5000, env: {...process.env, ...values},
   });
@@ -138,14 +137,6 @@ test('Core runner aggregate requires every selected matrix and refuses missing f
       for (const value of ['success', 'failure', 'cancelled', 'skipped', ''])
         if (value !== success[key]) assert.notEqual(run({...success, [key]: value}).status, 0);
   }
-  // A main push defers the macOS matrix to the schedule: it must be skipped, never silently accepted or missing.
-  const deferred = {CORE_TARGETS: '["js","wasm","native"]', JS_RESULT: 'success', COMMON_RESULT: 'success',
-    DARWIN_RESULT: 'skipped', DARWIN_DEFERRED: 'true'};
-  assert.equal(run(deferred).status, 0);
-  assert.notEqual(run({...deferred, DARWIN_DEFERRED: 'false'}).status, 0);
-  for (const value of ['success', 'failure', 'cancelled', ''])
-    assert.notEqual(run({...deferred, DARWIN_RESULT: value}).status, 0);
-  for (const value of ['failure', 'skipped']) assert.notEqual(run({...deferred, COMMON_RESULT: value}).status, 0);
   for (const targets of ['', '[]', 'null', '["other"]', '["native","native"]', 'invalid'])
     assert.notEqual(run({CORE_TARGETS: targets, JS_RESULT: 'success', COMMON_RESULT: 'success', DARWIN_RESULT: 'success'}).status, 0);
   // Early execution changes no final prerequisite or accepted result.

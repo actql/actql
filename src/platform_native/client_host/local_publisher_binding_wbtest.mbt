@@ -339,3 +339,35 @@ test "Native Local publisher rejects a foreign Store even with the same authorit
   host.close().unwrap()
   assert_true(store.close().unwrap())
 }
+
+///|
+test "Native terminal Content policy preimages preserve the installed Run and scope" {
+  let version = "actql-installed-local-policy/0.1"
+  let store = "sha256:" + "1".repeat(64)
+  let definition = "sha256:" + "2".repeat(64)
+  let scope = "sha256:" + "3".repeat(64)
+  // Independent canonical UTF-8 JSON and SHA-256 from Node crypto.
+  assert_eq(
+    native_terminal_content_policy_cid([
+      ("expiresAt", "2099-01-01T00:00:00.000Z"),
+      ("name", "content-availability"),
+      ("runDefinitionCid", definition),
+      ("storeAuthorityCid", store),
+      ("version", version),
+    ]),
+    Some(
+      "sha256:f01ab9aadaa638064b58191284e4c96b7deb60bccc81fbfdf90b94cf2d01ce5c",
+    ),
+  )
+  assert_eq(
+    native_terminal_content_policy_cid([
+      ("authorityScopeCid", scope),
+      ("name", "content-issuer"),
+      ("storeAuthorityCid", store),
+      ("version", version),
+    ]),
+    Some(
+      "sha256:368ebff49261645efea7cf79ae9320e1f2a0c9f7ce497d8abde3317644b3ae88",
+    ),
+  )
+}

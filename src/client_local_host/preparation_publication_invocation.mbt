@@ -169,3 +169,74 @@ pub fn issue_program_captured_publication_invocation(
     }
   }
 }
+
+///|
+/// Issue only the terminal generation of this adopted Request/Run. Retain
+/// the single publication transition before the generation's availability
+/// callback may reenter. Neither caller-authored invocation DATA nor a
+/// released prefix can become publication evidence.
+pub fn issue_program_terminal_serialization_invocation(
+  owner : ClientInstalledManagedRun,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  generation : @publication_host.ClientSerializationGeneration,
+  demand : ClientSerializationOutputDemand,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (
+    @publication.RunEvidenceValue,
+    @publication.PublicationContract,
+    @publication.BoundContentGeneration,
+  ),
+  ClientClosedValuesPreparationIssue,
+] {
+  guard owner.content is SerializationContent(selected) &&
+    selected.terminal_output is Some(original_demand) &&
+    physical_equal(original_demand, demand) &&
+    demand.result_limits is Some(_) &&
+    physical_equal(selected.request, request) &&
+    physical_equal(owner.request, request) &&
+    physical_equal(selected._observed_compiled, compiled) &&
+    physical_equal(selected._observed_definition, definition) &&
+    owner.preparation is Some(PreparationContentManaged(_, prepared)) &&
+    physical_equal(prepared, selected.prepared) &&
+    owner.serialization_prefix is Some(prefix) &&
+    !prefix.released else {
+    return Err(ForeignOriginal)
+  }
+  if owner.publication_invocation_started {
+    return Err(WrongPhase)
+  }
+  owner.publication_invocation_started = true
+  if require_installed_managed_run(owner) is Err(_) {
+    return Err(ForeignOriginal)
+  }
+  guard @publication_host.client_serialization_generation_capture_for(
+      generation, compiled, definition,
+    )
+    is Some(content) else {
+    return Err(ForeignOriginal)
+  }
+  let issued = @publication_host.issue_client_serialization_invocation(
+    compiled, definition, generation, max_wire_bytes, max_nodes, max_depth,
+  )
+  let (observation, invocation) = match issued {
+    Ok(value) => value
+    Err(issue) => return Err(PublicationInvocation(issue))
+  }
+  guard owner.content is SerializationContent(original) &&
+    physical_equal(original, selected) &&
+    owner.serialization_prefix is Some(original_prefix) &&
+    physical_equal(original_prefix, prefix) &&
+    !prefix.released &&
+    require_installed_managed_run(owner) is Ok(_) &&
+    !prefix.released else {
+    return Err(ForeignOriginal)
+  }
+  owner.publication_definition = Some(definition)
+  owner.publication_invocation = Some(invocation)
+  Ok((observation, invocation, content))
+}

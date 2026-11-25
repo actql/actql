@@ -108,9 +108,9 @@ export function gateJobRequired(selection, name) {
   if (['select-targets', 'preflight', 'lint', 'spec'].includes(name)) return true;
   if (selection.profile === 'documentation') return false;
   if (name === 'client-readme-packed') return selection.profile === 'full';
-  if (name === 'main-performance') return selection.event === 'push' ||
-    selection.event === 'pull_request' && selection.profile === 'full';
-  if (name === 'health-quick') return selection.event === 'push';
+  if (name === 'main-performance') return selection.profile === 'full' &&
+    ['schedule', 'pull_request'].includes(selection.event);
+  if (name === 'health-quick') return selection.profile === 'full' && selection.event === 'schedule';
   if (name === 'focused-tests') return ['focused-tests', 'draft-focused'].includes(selection.profile);
   if (name === 'python-wheels') return pythonWheelAcceptanceRequired(selection);
   if (['session-evidence', 'session-controls', 'pipeline-evidence'].includes(name)) return deepProofRequired(selection);
@@ -231,13 +231,11 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
   const changedPaths = validPaths && !failure ? [...paths] : [];
   const unknown = changedPaths.length === 0;
   const workflowChanged = changedPaths.includes(ciWorkflow);
-  // A main push runs no macOS job: the scheduled main run owns macOS Core,
-  // workloads and wheels, so a macOS-only regression is reported there.
   const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], reason,
-    macos: event !== 'push' && (event !== 'pull_request' || unknown || changedPaths.some(darwinWorkloadInput)
-      || workflowChanged && darwinWorkflowChanges?.workloads !== false),
-    darwinWheels: event !== 'push' && (event !== 'pull_request' || unknown || changedPaths.some(darwinWheelInput)
-      || workflowChanged && darwinWorkflowChanges?.wheels !== false),
+    macos: event !== 'pull_request' || unknown || changedPaths.some(darwinWorkloadInput)
+      || workflowChanged && darwinWorkflowChanges?.workloads !== false,
+    darwinWheels: event !== 'pull_request' || unknown || changedPaths.some(darwinWheelInput)
+      || workflowChanged && darwinWorkflowChanges?.wheels !== false,
     profile: 'full', event, paths: changedPaths, maintenanceChanges: null, focusedChanges: null, focusedTests: null});
   const docs = () => ({...full('Reviewed prose-only modifications: document validation, links, metadata and current-source admission; no runtime evidence'),
     profile: 'documentation', targets: ['js'], macos: false, darwinWheels: false, maintenanceChanges});
@@ -247,7 +245,7 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
   if (mainIntegration) {
     assert(['push', 'workflow_dispatch'].includes(event), 'Invalid main integration event');
     if (event === 'push' && docsOnly) return docs();
-    const result = full('Main integration requires every runtime family; deep campaigns follow their inputs; macOS runs on the main schedule');
+    const result = full('Main integration requires every runtime family; deep campaigns follow their inputs');
     if (event === 'workflow_dispatch') result.macos = nativeMacos;
     return result;
   }
@@ -371,9 +369,6 @@ export function validateSelection(selection) {
   if (selection.profile !== 'full' || selection.targets.length === 1) {
     assert.equal(selection.darwinWheels, false);
     assert.equal(selection.macos, false);
-  } else if (selection.event === 'push') {
-    assert.equal(selection.darwinWheels, false, 'A main push defers macOS wheels to the schedule');
-    assert.equal(selection.macos, false, 'A main push defers macOS workloads to the schedule');
   } else {
     const nonPR = selection.event !== 'pull_request';
     if (nonPR || !selection.paths.length || selection.paths.some(darwinWheelInput)) {
@@ -385,7 +380,7 @@ export function validateSelection(selection) {
   }
   if (selection.event !== 'pull_request' && selection.profile === 'full') {
     assert.deepEqual(selection.targets, all, 'Non-PR targets must remain full');
-    if (!['workflow_dispatch', 'push'].includes(selection.event)) assert.equal(selection.macos, true);
+    if (selection.event !== 'workflow_dispatch') assert.equal(selection.macos, true);
   }
   return selection;
 }
