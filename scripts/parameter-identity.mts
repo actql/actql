@@ -5,13 +5,40 @@ import { fileURLToPath } from 'node:url';
 import { verifyIdentity } from './check-canonical-json.mjs';
 import { machineCid } from './actql-spec-family.mjs';
 
+type ParameterType = (
+  | {type: 'decimal'; precision: number; scale: number}
+  | {type: 'array'; items: ParameterType}
+  | {type: 'object'; fields: Record<string, ParameterType>}
+  | {type: 'string'; format?: string}
+  | {type: 'number' | 'int64' | 'boolean' | 'timestamp' | 'date'}
+) & {default?: unknown; integer?: boolean; meta?: unknown};
+type Declarations = Record<string, ParameterType>;
+type Supplied = Record<string, unknown>;
+type IdentityCorpus = {
+  version: string;
+  cases: {
+    id: string;
+    declarations: Declarations;
+    supplied: Supplied;
+    expected_canonical_json: string;
+    expected_cid: string;
+  }[];
+};
+type IdentityRegistry = {
+  artifact_schemas: Record<string, unknown> & {
+    parameter_values: {$defs?: unknown; properties: {values: unknown}};
+  };
+  artifact_schema_cids: Record<string, string>;
+  artifact_registry_cid: string;
+};
+
 const marker = '$actql_value';
 const version = 'actql-parameter-values/0.1';
 const decimalVersion = 'aoa-decimal-value/0.1';
 const fieldPattern = '^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$';
 const valueRef = { $ref: '#/$defs/projected_value' };
-const tuple = prefixItems => ({ type: 'array', prefixItems, items: false, minItems: prefixItems.length, maxItems: prefixItems.length });
-const tagged = (kind, value) => ({ type: 'object', additionalProperties: false, required: [marker], properties: { [marker]: tuple([{ const: kind }, value]) } });
+const tuple = <const Items extends readonly unknown[]>(prefixItems: Items) => ({ type: 'array', prefixItems, items: false, minItems: prefixItems.length, maxItems: prefixItems.length });
+const tagged = <Kind extends string, Value>(kind: Kind, value: Value) => ({ type: 'object', additionalProperties: false, required: [marker], properties: { [marker]: tuple([{ const: kind }, value]) } });
 
 export function identityDefinitions() {
   const decimal = {
@@ -43,14 +70,14 @@ export function identityDefinitions() {
     tagged('duration', { type: 'integer', minimum: 1, maximum: 9007199254740991 }),
     tagged('object', escapedPairs),
     tagged('int64', {type: 'string', pattern: '^(?:0|-?[1-9][0-9]*)(?![\\s\\S])', maxLength: 20}),
-  ] } };
+  ] as const } };
 }
 
 export function valuesSchema() {
   return { type: 'object', propertyNames: { pattern: '^[A-Za-z_][A-Za-z0-9_]*$' }, additionalProperties: valueRef };
 }
 
-export function checkIdentitySchema(registry) {
+export function checkIdentitySchema(registry: IdentityRegistry) {
   const schema = registry.artifact_schemas.parameter_values;
   assert.deepEqual(schema.$defs, identityDefinitions());
   assert.deepEqual(schema.properties.values, valuesSchema());
@@ -58,17 +85,17 @@ export function checkIdentitySchema(registry) {
   assert.equal(registry.artifact_registry_cid, machineCid(registry.artifact_schemas));
 }
 
-const normalize = s => { assert.ok(s.isWellFormed()); return s.normalize('NFC').replace(/\r\n?/g, '\n'); };
+const normalize = (s: string) => { assert.ok(s.isWellFormed()); return s.normalize('NFC').replace(/\r\n?/g, '\n'); };
 
 // Independent small-fixture projection. This is not a Parameter admission engine.
 // BigInt checks signed64/decimal/duration semantics without invoking product code.
-export function project(type, value) {
+export function project(type: ParameterType, value: unknown): unknown {
   if (value === null) return null;
   if (type.type === 'int64') {
     assert.equal(typeof value, 'string');
-    assert.match(value, /^(?:0|-?[1-9][0-9]*)(?![\s\S])/u);
-    assert.ok(value.length <= 20);
-    const integer = BigInt(value);
+    assert.match(value as string, /^(?:0|-?[1-9][0-9]*)(?![\s\S])/u);
+    assert.ok((value as string).length <= 20);
+    const integer = BigInt(value as string);
     assert.ok(integer >= -9223372036854775808n && integer <= 9223372036854775807n);
     return { [marker]: ['int64', value] };
   }
@@ -76,26 +103,26 @@ export function project(type, value) {
     assert.equal(typeof value, 'string');
     const p = type.precision, s = type.scale;
     assert.ok(Number.isInteger(p) && p >= 1 && p <= 38 && Number.isInteger(s) && s >= 0 && s <= p);
-    assert.match(value, new RegExp(`^-?(?:0|[1-9][0-9]*)${s ? `\\.[0-9]{${s}}` : ''}(?![\\s\\S])`));
-    const coefficient = BigInt(value.replace('.', '')).toString();
-    assert.ok(!(coefficient === '0' && value.startsWith('-')));
+    assert.match(value as string, new RegExp(`^-?(?:0|[1-9][0-9]*)${s ? `\\.[0-9]{${s}}` : ''}(?![\\s\\S])`));
+    const coefficient = BigInt((value as string).replace('.', '')).toString();
+    assert.ok(!(coefficient === '0' && (value as string).startsWith('-')));
     assert.ok(coefficient.replace('-', '').length <= p);
     return { [marker]: ['decimal', { version: decimalVersion, precision: p, scale: s, coefficient }] };
   }
   if (type.type === 'string' && type.format === 'duration') {
     assert.equal(typeof value, 'string');
-    const match = /^([0-9]+)(ms|s|m|h|d)(?![\s\S])/i.exec(value);
+    const match = /^([0-9]+)(ms|s|m|h|d)(?![\s\S])/i.exec(value as string);
     assert.ok(match);
-    const ms = BigInt(match[1]) * { ms: 1n, s: 1000n, m: 60000n, h: 3600000n, d: 86400000n }[match[2].toLowerCase()];
+    const ms = BigInt(match[1]) * { ms: 1n, s: 1000n, m: 60000n, h: 3600000n, d: 86400000n }[match[2].toLowerCase() as 'ms' | 's' | 'm' | 'h' | 'd'];
     assert.ok(ms > 0n && ms <= 9007199254740991n);
     return { [marker]: ['duration', Number(ms)] };
   }
-  if (type.type === 'array') return value.map(v => project(type.items, v));
+  if (type.type === 'array') return (value as unknown[]).map(v => project(type.items, v));
   if (type.type === 'object') {
     const fields = new Map(Object.entries(type.fields).map(([k, v]) => [normalize(k), v]));
-    const pairs = Object.entries(value).map(([k, v]) => {
+    const pairs = Object.entries(value as Record<string, unknown>).map(([k, v]) => {
       const name = normalize(k); assert.ok(fields.has(name));
-      return [name, project(fields.get(name), v)];
+      return [name, project(fields.get(name)!, v)] as const;
     }).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
     assert.equal(new Set(pairs.map(([k]) => k)).size, pairs.length);
     assert.equal(pairs.length, fields.size);
@@ -105,25 +132,25 @@ export function project(type, value) {
   return value;
 }
 
-export function projectedBody(declarations, supplied) {
+export function projectedBody(declarations: Declarations, supplied: Supplied) {
   const entries = Object.entries(declarations).map(([name, type]) => {
     assert.match(name, /^[A-Za-z_][A-Za-z0-9_]*$/);
     assert.ok(Object.hasOwn(supplied, name) || Object.hasOwn(type, 'default'));
-    return [name, project(type, Object.hasOwn(supplied, name) ? supplied[name] : type.default)];
+    return [name, project(type, Object.hasOwn(supplied, name) ? supplied[name] : type.default)] as const;
   });
   assert.ok(Object.keys(supplied).every(k => Object.hasOwn(declarations, k)));
   return { version, values: Object.fromEntries(entries) };
 }
 
-const literal = s => '"' + [...s].map(c => c.codePointAt(0) < 32 || c.codePointAt(0) > 126 ? `\\u{${c.codePointAt(0).toString(16)}}` : c === '"' || c === '\\' ? '\\' + c : c).join('') + '"';
-function budget(value, depth = 0) {
+const literal = (s: string) => '"' + [...s].map(c => c.codePointAt(0)! < 32 || c.codePointAt(0)! > 126 ? `\\u{${c.codePointAt(0)!.toString(16)}}` : c === '"' || c === '\\' ? '\\' + c : c).join('') + '"';
+function budget(value: unknown, depth = 0): {nodes: number; depth: number} {
   if (value === null || typeof value !== 'object') return { nodes: 1, depth };
   let nodes = 1, peak = depth + 1;
   for (const child of Object.values(value)) { const b = budget(child, depth + 1); nodes += b.nodes; peak = Math.max(peak, b.depth); }
   return { nodes, depth: peak };
 }
 
-export function generateIdentityTests(corpus) {
+export function generateIdentityTests(corpus: IdentityCorpus) {
   assert.equal(corpus.version, 'actql-parameter-identity-vectors/0.1');
   assert.ok(Array.isArray(corpus.cases) && corpus.cases.length > 0);
   const ids = new Set();
@@ -149,7 +176,7 @@ export function generateIdentityTests(corpus) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const path = 'spec/contracts/actql-protocol-schemas.json';
-  const registry = JSON.parse(readFileSync(path, 'utf8'));
+  const registry: IdentityRegistry = JSON.parse(readFileSync(path, 'utf8'));
   if (process.argv.includes('--write-schema')) {
     registry.artifact_schemas.parameter_values.properties.values = valuesSchema();
     registry.artifact_schemas.parameter_values.$defs = identityDefinitions();
@@ -159,7 +186,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
   checkIdentitySchema(registry);
   if (!process.argv.includes('--write-schema')) {
-    const corpus = JSON.parse(readFileSync('portability/corpus/parameter-identities.json', 'utf8'));
+    const corpus: IdentityCorpus = JSON.parse(readFileSync('portability/corpus/parameter-identities.json', 'utf8'));
     const generated = generateIdentityTests(corpus);
     const target = 'src/parameter_binding/identity.generated_test.mbt';
     if (process.argv.includes('--write')) writeFileSync(target, generated);

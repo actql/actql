@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {machineCid as cid} from './actql-spec-family.mjs';
-const hash={type:'string',pattern:'^sha256:[0-9a-f]{64}$'};
+
+type SlotProperty = {const?: string; pattern?: string; minLength?: number}
+  & ({type: 'integer'; minimum: number} | {type?: 'string'; minimum?: never});
+export type NumericSlotSchema = {
+  required: readonly string[];
+  properties: Readonly<Record<string, SlotProperty>>;
+};
+const hash={type:'string',pattern:'^sha256:[0-9a-f]{64}$'} as const;
 export const contract={
   version:'actql-numeric-slot-contract/0.1',
   schemas:{group_slot:{
@@ -14,7 +21,7 @@ export const contract={
       source_ordinal:{type:'integer',minimum:0,maximum:Number.MAX_SAFE_INTEGER},
       aggregate_name:{type:'string',minLength:1},
       reduction_profile_cid:hash,
-    },
+    } as const,
   }},
   semantics:{
     identity:'sha256_entire_canonical_json_body_no_self_cid',

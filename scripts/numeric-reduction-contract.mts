@@ -23,7 +23,7 @@ const contracts = {
 export const profile = {
   version: 'actql-numeric-reduction-profile/0.1',
   contracts,
-  contract_cids: Object.fromEntries(Object.entries(contracts).map(([name, body]) => [name, cid(body)])),
+  contract_cids: Object.fromEntries(Object.entries(contracts).map(([name, body]) => [name, cid(body)] as const)),
   observation_schema: {
     path: 'spec/contracts/actql-stage-contracts.json', pointer: '/schemas/numeric_observation',
     cid: cid(JSON.parse(readFileSync('spec/contracts/actql-stage-contracts.json', 'utf8')).schemas.numeric_observation),
@@ -40,9 +40,9 @@ export const profile = {
 const path = 'spec/contracts/actql-numeric-reduction.json';
 if (process.argv.includes('--write')) writeFileSync(path, JSON.stringify(profile, null, 2) + '\n');
 assert.deepEqual(JSON.parse(readFileSync(path, 'utf8')), profile);
-const canonical = value => {
+const canonical = (value: unknown): string => {
   if (Array.isArray(value)) return '[' + value.map(canonical).join(',') + ']';
-  if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + canonical(value[k])).join(',') + '}';
+  if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + canonical((value as Record<string, unknown>)[k])).join(',') + '}';
   return JSON.stringify(value);
 };
 const pins = `// Generated from the registered numeric reduction profile.\n///|\nfn supported_profile_cid() -> String { ${JSON.stringify(cid(profile))} }\n///|\nfn left_fold_cid() -> String { ${JSON.stringify(profile.contract_cids.left_fold)} }\n///|\nfn adjacent_pairs_cid() -> String { ${JSON.stringify(profile.contract_cids.adjacent_pairs)} }\n`;
