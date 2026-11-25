@@ -11,7 +11,31 @@ import {nativeClientWire, formatMoonBit, responseRules, jsResponseRules,
   requestResponseRules, jsRequestResponseRules} from './generate-native-client-wire.mjs';
 import {checkReportRules, jsCheckReportRules} from './client-check-report-rules.mjs';
 import {checkpointAnswerContract, commonCheckpointProfileSource} from './checkpoint-answer-wire.mjs';
-import {checkpointAnswerJavaScriptSource, checkpointAnswerTypeScriptSource} from './checkpoint-answer-wire-js.mjs';
+import {compileCheckpointAnswer} from './checkpoint-answer-compiler.mjs';
+
+type Schema = ReturnType<typeof project>;
+type OptionalFieldsInput = Readonly<{
+  request_optional_fields?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  operations: Readonly<Record<string, readonly string[]>>;
+  schemas?: Readonly<Record<string, Schema>>;
+}>;
+type Registry = OptionalFieldsInput & Parameters<typeof checkpointAnswerContract>[0] &
+  Parameters<typeof responseRules>[0] & Parameters<typeof checkReportRules>[0] &
+  Parameters<typeof requestResponseRules>[0] & Readonly<{version: unknown}>;
+type ProgramSchemaInput = Readonly<{
+  artifact_schemas?: Readonly<{
+    executable_plan?: Readonly<{
+      properties?: Readonly<{
+        execution_material?: Readonly<{properties?: Readonly<{program?: unknown}>}>;
+      }>;
+    }>;
+  }>;
+}>;
+type Protocol = Parameters<typeof checkpointAnswerContract>[1] & ProgramSchemaInput & Readonly<{
+  artifact_schemas: Readonly<Record<string, Schema>>;
+  schemas: Readonly<{canonical_value_contract: Readonly<{$defs: Readonly<{value_contract: unknown}>}>}>;
+  artifact_schema_cids: Readonly<{check_reason: string; check_outcome: string}>;
+}>;
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = 'spec/contracts/actql-client-host.json';
@@ -37,7 +61,7 @@ const exports = ['SubmissionEpoch', 'SubmissionRef', 'SubmissionOutcome', 'Submi
 // Public language discovery exports the complete existing Program schema,
 // including its metadata and local definitions. The validator projection below
 // intentionally discards annotations and cannot serve as the discovery body.
-export function nativeProgramSchema(protocol) {
+export function nativeProgramSchema(protocol?: ProgramSchemaInput) {
   const original = protocol?.artifact_schemas?.executable_plan?.properties
     ?.execution_material?.properties?.program;
   if (original === null || typeof original !== 'object' || Array.isArray(original)) {
@@ -50,7 +74,7 @@ export function nativeProgramSchema(protocol) {
   // Keep each compiler text segment below its column limit without splitting
   // a Unicode scalar; the concatenated discovery bytes remain unchanged.
   const scalars = Array.from(body);
-  const chunks = [];
+  const chunks: string[] = [];
   for (let offset = 0; offset < scalars.length; offset += 4096) {
     chunks.push(JSON.stringify(scalars.slice(offset, offset + 4096).join('')));
   }
@@ -61,7 +85,7 @@ export function nativeProgramSchema(protocol) {
     chunks.join(' +\n  ') + '\n}\n';
 }
 
-export function projectClientHostOptionalFields(registry) {
+export function projectClientHostOptionalFields(registry: OptionalFieldsInput) {
   const fieldsByOperation = registry.request_optional_fields;
   if (fieldsByOperation === null || typeof fieldsByOperation !== 'object' ||
       Array.isArray(fieldsByOperation) || Object.entries(fieldsByOperation).some(([name, fields]) =>
@@ -75,8 +99,8 @@ export function projectClientHostOptionalFields(registry) {
   // permissive identifier spelling maintained by a transport consumer.
   const lookup = fieldsByOperation.checkpoints;
   if (lookup !== undefined) {
-    const canonical = value => value !== null && typeof value === 'object' && !Array.isArray(value)
-      ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+    const canonical = (value: unknown): unknown => value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical((value as Readonly<Record<string, unknown>>)[key])])) : value;
     const expected = registry.schemas?.checkpoint_summary?.oneOf?.map(branch => branch.properties?.checkpointId);
     if (Object.keys(lookup).join() !== 'checkpointId' || !expected?.length || expected.some(rule =>
       JSON.stringify(canonical(rule)) !== JSON.stringify(canonical(lookup.checkpointId)))) {
@@ -87,7 +111,7 @@ export function projectClientHostOptionalFields(registry) {
     [name, Object.fromEntries(Object.entries(fields).map(([field, schema]) => [field, project(schema)]))]));
 }
 
-export function buildClientHostWire(registry, protocol) {
+export function buildClientHostWire(registry: Registry, protocol: Protocol) {
   if (registry.version !== 'actql-client-host/0.1' ||
       registry.operations === null ||
       typeof registry.operations !== 'object' ||
@@ -100,7 +124,7 @@ export function buildClientHostWire(registry, protocol) {
   if (operations.length === 0 || operations.some(([name, keys]) =>
     !/^[a-z][a-z-]*$/u.test(name) || !Array.isArray(keys) ||
     keys.length === 0 || new Set(keys).size !== keys.length ||
-    keys.some(key => !/^[a-zA-Z][a-zA-Z]*$/u.test(key)))) {
+    keys.some((key: string) => !/^[a-zA-Z][a-zA-Z]*$/u.test(key)))) {
     throw new Error('InvalidClientHostOperations');
   }
   const optionalSchemas = projectClientHostOptionalFields(registry);
@@ -132,7 +156,7 @@ export function buildClientHostWire(registry, protocol) {
   if (typeof checkVersion !== 'string' || !checkVariants?.length ||
       checkVariants.some(value => typeof value !== 'string') ||
       new Set(checkVariants).size !== checkVariants.length ||
-      checkBranches.some(branch => branch.properties?.version?.const !== checkVersion)) {
+      checkBranches!.some(branch => branch.properties?.version?.const !== checkVersion)) {
     throw new Error('InvalidCheckOutcomeDiscriminants');
   }
   schemas.value_contract = project(
@@ -140,9 +164,9 @@ export function buildClientHostWire(registry, protocol) {
   const interactive = buildControlRegistry();
   // The existing Native generator admits null literals. Preserve the exact
   // null-only branches of the resolved interactive schema as const:null.
-  const nullLiterals = value => Array.isArray(value) ? value.map(nullLiterals) :
+  const nullLiterals = (value: unknown): unknown => Array.isArray(value) ? value.map(nullLiterals) :
     value !== null && typeof value === 'object' ?
-      value.type === 'null' && Object.keys(value).length === 1 ? {const: null} :
+      (value as {type?: unknown}).type === 'null' && Object.keys(value).length === 1 ? {const: null} :
         Object.fromEntries(Object.entries(value).map(([key, child]) => [key, nullLiterals(child)])) : value;
   for (const name of ['run_plan_view', 'run_explanation_view']) {
     schemas[name] = project(nullLiterals(resolveControlSchema(
@@ -200,8 +224,8 @@ export function buildClientHostWire(registry, protocol) {
     ).join('\n') +
     `\nexport type WireRunStateShape = ${typeOf(schemas.run_state)};\n` +
     `export type WireCheckOutcomeShape = ${typeOf(schemas.check_outcome)};\n` +
-    `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.location))};\n` +
-    `export type WireCheckFixShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.fixes.items))};\n` +
+    `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties!.location))};\n` +
+    `export type WireCheckFixShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties!.fixes.items))};\n` +
     `export declare function validRunStateShape(value: unknown): value is WireRunStateShape;\n` +
     `export declare function validCheckOutcomeShape(value: unknown): value is WireCheckOutcomeShape;\n` +
     `export declare function validProfileContract(value: unknown, selected: WireConnectionShape): value is WireProfileShape;\n` +
@@ -215,7 +239,7 @@ export function buildClientHostWire(registry, protocol) {
   // admission only; the actual Host still owns authentication and authority.
   const answerSchemas = {
     resolution: project(protocol.artifact_schemas.checkpoint_resolution, {extended: true}),
-    evidence: project(protocol.artifact_schemas.verified_checkpoint_resolution.properties.approval_evidence,
+    evidence: project(protocol.artifact_schemas.verified_checkpoint_resolution.properties!.approval_evidence,
       {extended: true}),
   };
   const checkpointAnswers = '// Generated by scripts/generate-client-host-wire.mjs.\n' +
@@ -239,9 +263,10 @@ export function buildClientHostWire(registry, protocol) {
     '///|\nfn generated_run_wait_stable(status : String) -> Bool {\n  ' +
     wait.stableStatuses.map(status => `status == ${JSON.stringify(status)}`).join(' ||\n  ') + '\n}\n';
   const answerConstruction = checkpointAnswerContract(registry, protocol);
+  const compiledAnswer = compileCheckpointAnswer(answerConstruction);
   return {runWait, checkpointAnswers, checkpointAnswerTypes,
-    checkpointConstructionTypes: checkpointAnswerTypeScriptSource(answerConstruction),
-    checkpointConstruction: checkpointAnswerJavaScriptSource(answerConstruction),
+    checkpointConstructionTypes: compiledAnswer.declarations,
+    checkpointConstruction: compiledAnswer.module,
     checkpointProfile: commonCheckpointProfileSource(answerConstruction), module: module + jsResponseRules(rules) +
     jsRequestResponseRules(schemas, requestRules) + jsCheckReportRules(reportRules), types, native, nativeTests, nativeCheckOutcome};
 }

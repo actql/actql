@@ -118,14 +118,21 @@ export function typeOf(schema: ProjectedSchema): string | undefined {
   throw new Error('UnsupportedPublicationType');
 }
 
-export function structuralValidatorSource({extended = false, compositeConstants = false} = {}) {
-  return finiteWireNumberSource('js') + (compositeConstants ?
-`function sameConstant(value, expected) {\n` +
+export function structuralValidatorSource({extended = false, compositeConstants = false, inlineTypeScript = false} = {}) {
+  const valueAnnotation = inlineTypeScript ? ': unknown' : '';
+  const schemaAnnotation = inlineTypeScript ? ': SummarySchema' : '';
+  const record = (value: string) => inlineTypeScript ? `(${value} as Readonly<Record<string, unknown>>)` : value;
+  const present = inlineTypeScript ? '!' : '';
+  const resultAnnotation = inlineTypeScript ? ': boolean' : '';
+  const number = inlineTypeScript ? '(value as number)' : 'value';
+  const options = inlineTypeScript ? '(schema.enum as readonly unknown[])' : 'schema.enum';
+  return finiteWireNumberSource(inlineTypeScript ? 'typescript' : 'js') + (compositeConstants ?
+`function sameConstant(value${valueAnnotation}, expected${valueAnnotation})${resultAnnotation} {\n` +
 `  if (value === expected) return true;\n` +
 `  if (Array.isArray(expected)) return Array.isArray(value) && value.length === expected.length && expected.every((item, index) => sameConstant(value[index], item));\n` +
-`  if (expected !== null && typeof expected === 'object') return value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === Object.keys(expected).length && Object.keys(expected).every(key => Object.hasOwn(value, key) && sameConstant(value[key], expected[key]));\n` +
+`  if (expected !== null && typeof expected === 'object') return value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === Object.keys(expected).length && Object.keys(expected).every(key => Object.hasOwn(value, key) && sameConstant(${record('value')}[key], ${record('expected')}[key]));\n` +
 `  return false;\n` +
-`}\n\n` : '') + `function valid(value, schema) {\n` +
+`}\n\n` : '') + `function valid(value${valueAnnotation}, schema${schemaAnnotation})${resultAnnotation} {\n` +
 `  if (typeof value === 'number' && !finiteWireNumber(value)) return false;\n` +
 `  if (typeof value === 'string' && !value.isWellFormed()) return false;\n` +
     (extended ?
@@ -134,13 +141,13 @@ export function structuralValidatorSource({extended = false, compositeConstants 
 `  if (schema.type === 'null') return value === null;\n` +
 `  if (schema.format === 'date-time' && (typeof value !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/u.test(value) || Number.isNaN(Date.parse(value)))) return false;\n`
       : '') +
-`  if (schema.$ref) return valid(value, schemas[schema.$ref]);\n` +
+    (inlineTypeScript ? '' : `  if (schema.$ref) return valid(value, schemas[schema.$ref]);\n`) +
 `  if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;\n` +
 `  if (schema.not && valid(value, schema.not)) return false;\n` +
-`  if (schema.if && valid(value, schema.if) && !valid(value, schema.then)) return false;\n` +
+`  if (schema.if && valid(value, schema.if) && !valid(value, schema.then${present})) return false;\n` +
 `  if (schema.allOf && !schema.allOf.every(rule => valid(value, rule))) return false;\n` +
 `  if (Object.hasOwn(schema, 'const') && ${compositeConstants ? '!sameConstant(value, schema.const)' : 'value !== schema.const'}) return false;\n` +
-`  if (schema.enum && !schema.enum.includes(value)) return false;\n` +
+`  if (schema.enum && !${options}.includes(value)) return false;\n` +
 `  if (typeof value === 'number' &&\n` +
 `      (schema.minimum !== undefined && value < schema.minimum ||\n` +
 `       schema.maximum !== undefined && value > schema.maximum)) return false;\n` +
@@ -152,13 +159,13 @@ export function structuralValidatorSource({extended = false, compositeConstants 
 `  if (schema.type === 'string') return typeof value === 'string';\n` +
 `  if (schema.type === 'number') return typeof value === 'number';\n` +
 `  if (schema.type === 'integer') return Number.isSafeInteger(value) &&\n` +
-`    (schema.minimum === undefined || value >= schema.minimum) &&\n` +
-`    (schema.maximum === undefined || value <= schema.maximum);\n` +
+`    (schema.minimum === undefined || ${number} >= schema.minimum) &&\n` +
+`    (schema.maximum === undefined || ${number} <= schema.maximum);\n` +
 `  if (schema.type === 'boolean') return typeof value === 'boolean';\n` +
 `  if (schema.type === 'array') return Array.isArray(value) &&\n` +
 `    (schema.minItems === undefined || value.length >= schema.minItems) &&\n` +
 `    (schema.maxItems === undefined || value.length <= schema.maxItems) &&\n` +
-`    value.every(item => valid(item, schema.items)) &&\n` +
+`    value.every(item => valid(item, schema.items${present})) &&\n` +
 `    (!schema.uniqueItems || new Set(value).size === value.length);\n` +
 `  if (value !== null && typeof value === 'object' && !Array.isArray(value) &&\n` +
 `      ((schema.minProperties !== undefined && Object.keys(value).length < schema.minProperties) ||\n` +
@@ -167,16 +174,16 @@ export function structuralValidatorSource({extended = false, compositeConstants 
 `    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;\n` +
 `    if (schema.required?.some(key => !Object.hasOwn(value, key))) return false;\n` +
 `    if (schema.propertyNames && Object.keys(value).some(key =>\n` +
-`        !valid(key, schema.propertyNames))) return false;\n` +
+`        !valid(key, schema.propertyNames${present}))) return false;\n` +
 `    if (schema.additionalProperties === false &&\n` +
-`        Object.keys(value).some(key => !Object.hasOwn(schema.properties, key))) return false;\n` +
+`        Object.keys(value).some(key => !Object.hasOwn(schema.properties${present}, key))) return false;\n` +
 `    if (schema.additionalProperties &&\n` +
 `        typeof schema.additionalProperties === 'object' &&\n` +
 `        Object.entries(value).some(([key, item]) =>\n` +
 `          !Object.hasOwn(schema.properties ?? {}, key) &&\n` +
-`          !valid(item, schema.additionalProperties))) return false;\n` +
+`          !valid(item, schema.additionalProperties${inlineTypeScript ? " as SummarySchema" : ""}))) return false;\n` +
 `    return Object.entries(schema.properties ?? {}).every(([key, field]) =>\n` +
-`      !Object.hasOwn(value, key) || valid(value[key], field));\n` +
+`      !Object.hasOwn(value, key) || valid(${record('value')}[key], field));\n` +
 `  }\n` +
 `  return true;\n` +
 `}\n\n`;

@@ -105,17 +105,20 @@ const rules = {
   },
 };
 
-export function checkReportRules(registry) {
+type ReportRule = keyof typeof rules;
+export type CheckReportRules = readonly ReportRule[];
+
+export function checkReportRules(registry: Readonly<{check_report_rules?: unknown}>): CheckReportRules {
   const selected = registry.check_report_rules;
   if (!Array.isArray(selected) || selected.length !== Object.keys(rules).length ||
       new Set(selected).size !== selected.length ||
       selected.some(name => !Object.hasOwn(rules, name))) {
     throw new Error('InvalidClientCheckReportRules');
   }
-  return selected;
+  return selected as CheckReportRules;
 }
 
-export function jsCheckReportRules(selected) {
+export function jsCheckReportRules(selected: CheckReportRules) {
   return `export const validCheckOutcomeContract = value => {
   if (!validCheckOutcomeShape(value)) return false;
   const report = value.report ?? value.partial_report;
@@ -127,7 +130,7 @@ export function jsCheckReportRules(selected) {
 };\n`;
 }
 
-export function nativeCheckReportRules(selected) {
+export function nativeCheckReportRules(selected: CheckReportRules) {
   return `///|
 fn wire_check_report_contract(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
@@ -156,7 +159,7 @@ fn wire_check_report_contract(value : Json) -> Bool {
 }
 
 // The same registered relationships project to the lightweight Python codec.
-export function pythonCheckReportRules(selected) {
+export function pythonCheckReportRules(selected: CheckReportRules) {
   return `def check_outcome(value):
     if not valid(value, 'check_outcome') or value['outcome_schema_cid'] != CONTRACT['check_outcome_schema_cid']:
         return False

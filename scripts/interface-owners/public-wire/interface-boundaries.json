@@ -717,7 +717,7 @@
                 "anchor": "\"response_rules\""
               },
               {
-                "path": "scripts/generate-native-client-wire.mjs",
+                "path": "scripts/generate-native-client-wire.mts",
                 "anchor": "jsResponseRules"
               }
             ],
@@ -821,7 +821,7 @@
                 "anchor": "\"request_response_rules\""
               },
               {
-                "path": "scripts/generate-native-client-wire.mjs",
+                "path": "scripts/generate-native-client-wire.mts",
                 "anchor": "jsRequestResponseRules"
               }
             ],
@@ -928,7 +928,7 @@
                 "anchor": "\"check_report_rules\""
               },
               {
-                "path": "scripts/client-check-report-rules.mjs",
+                "path": "scripts/client-check-report-rules.mts",
                 "anchor": "jsCheckReportRules"
               },
               {
@@ -1332,7 +1332,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "buildClientHostWire"
               },
               {
@@ -1450,7 +1450,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "checkOutcomeProtocol"
               },
               {
@@ -1594,7 +1594,7 @@
                 "anchor": "| extension |"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               },
               {
@@ -1704,7 +1704,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -3859,7 +3859,7 @@
                 "anchor": "\"check_report_rules\""
               },
               {
-                "path": "scripts/client-check-report-rules.mjs",
+                "path": "scripts/client-check-report-rules.mts",
                 "anchor": "pythonCheckReportRules"
               }
             ],
