@@ -70,10 +70,7 @@ test('selected own-DDL bytes cover the actual primary, Source and observation sc
     !sql.startsWith('CREATE TABLE client_debug_entry_parks (') &&
     !sql.startsWith('CREATE TABLE client_debug_task_pauses (') &&
     !sql.startsWith('CREATE TABLE client_relation_sample_starts (') &&
-    !sql.startsWith('CREATE TABLE client_relation_sample_adoptions (') &&
-    !((sql.startsWith('CREATE TABLE client_submitted_intent_usage (') ||
-      sql.startsWith('CREATE TABLE client_submission_restart_usage (')) &&
-      sql.includes('retained_bytes <= 67108864')));
+    !sql.startsWith('CREATE TABLE client_relation_sample_adoptions ('));
   assert.deepEqual(actual, [...selectedSql].sort());
   const before = snapshot(directory);
   const restored = openClientRequestJournal(directory, selected);

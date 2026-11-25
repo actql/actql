@@ -182,7 +182,7 @@ try {
         const originalIds = staticSteps.locator('.occurrence-origin details > code');
         assert.deepEqual((await originalIds.allTextContents()).sort(),
           beforeRun.story.occurrences.map(step => step.stepId).sort());
-        const originalPorts = staticSteps.locator('.occurrence-origin details li > code');
+        const originalPorts = staticSteps.locator('.occurrence-origin details > code + ul > li > code');
         assert.deepEqual((await originalPorts.allTextContents()).sort(), beforeRun.story.occurrences
           .flatMap(step => step.ports.map(port => port.port_id)).sort());
         assert.equal(await staticSteps.locator('details.story-card[open]').count(), 1);

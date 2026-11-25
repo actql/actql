@@ -296,10 +296,9 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
   if (primaryCurrent !== undefined && typeof facilityNativeRealpath !== 'function') {
     fail('ClientRequestJournalFacilityUnavailable');
   }
-  const directoryAdmission = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes,
+  const current = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes,
     primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
-    primaryDirectoryInspection, inspectionTemporaryDirectory, ownedOriginal);
-  const current = directoryAdmission !== false;
+    primaryDirectoryInspection, inspectionTemporaryDirectory, ownedOriginal, sourceOperationLimits !== undefined);
   mkdirSync(directory, {recursive: true, mode: 0o700});
   // Avoid the stock JS symlink walk's intermediate path/Map/Set history in
   // the selected recipe. Native libc/libuv path holdings remain distinct
@@ -317,7 +316,7 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
     const transaction = initializationCleanup.open(primarySqlLimits, primaryExecutionLimits, walFrames);
     const {database, selectedSql} = initializationCleanup;
     initializeJournalPrimaryStorage(database, transaction, root, directory, existed,
-      directoryAdmission, configuration, selectedSql, ownedOriginal);
+      configuration, selectedSql, ownedOriginal);
   // Statement preparation is part of initialization: no journal owner has
   // been returned yet. Keep it under the same single cleanup boundary.
   const ensureOpen = (): undefined => {
