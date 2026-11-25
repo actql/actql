@@ -1,4 +1,11 @@
 ///|
+fn saved_reference_rows() -> Array[(String, ClientJournalPhysicalRow)] {
+  saved_snapshot_rows(
+    saved_submission_ready.replace(old="9007199254740993", new="0"),
+  )
+}
+
+///|
 fn saved_locator_rows() -> (Array[(String, ClientJournalPhysicalRow)], String) {
   let run = saved_snapshot_run()
   let (key, body) = client_saved_run_reference_locator(
@@ -44,6 +51,15 @@ test "saved Run reference locator reads one selected original without unrelated 
   )
   let calls : Array[String] = []
   let snapshot = saved_locator_read(rows, calls).unwrap()
+  assert_eq(
+    client_saved_submission_admission_wire(snapshot).unwrap(),
+    saved_admission_public_wire,
+  )
+  assert_eq(client_saved_submission_revision(snapshot), 6L)
+  assert_eq(
+    client_saved_submission_run_row(snapshot).unwrap().body,
+    b"actual-original-run",
+  )
   assert_eq(
     client_submission_reference_record_wire(snapshot.record.reference),
     client_submission_reference_record_wire(saved_snapshot_reference()),

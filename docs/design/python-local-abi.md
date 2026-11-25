@@ -673,41 +673,28 @@ successful Run recovery.
 
 ### Durable physical capacity
 
-Private byte-store format 2 adds the existing Native SQLite `actql_capacity`
-reservation fields alongside `core_bytes`. Format 1 is refused without migration
-or deletion; retained evidence and saved records are not relabeled. This is the
-Python byte store's closed physical format, not Native publication Store format
-interoperability.
+The indexed Journal owns the `core_bytes` and `actql_capacity` tables
+and the unique Run Definition index. The application identity, exact closed
+catalog, and supported SQLite index expression identify the Store. The
+index uses the nested Run Definition CID, independently of Program and
+user-supplied Run names. SQL NULL and index entries confer no Run admission.
 
-The physical connection selects its existing `temp_store = FILE` configuration
-before its first catalog or snapshot observation, including on reopen. Later
-TEMP configuration changes may discard the schema underneath prepared SQLite
-observations; the constructor does not change that configuration after any
-such observation has begun. This ordering adds no schema, Owner or authority.
+The physical connection selects `temp_store = FILE` before its first catalog
+or snapshot observation. A fresh file requires the index expression before
+its one-time durable initialization. Before opening a writable SQLite
+connection, the Store checks the same owned file's header for rollback-journal
+format. A WAL file and its retained sidecars are left untouched. An existing
+rollback-journal catalog is authenticated in a read transaction before
+configuring durability. Missing, extra or conflicting
+catalog entries refuse before initialization, repair or migration. Original
+bytes and physical CAS generations retain their meaning.
 
-The existing one-time owned-file initializer selects private format 3 when the
-same SQLite library supports the existing Run-Definition expression. It adds
-only the actual UNIQUE index over the nested Run Definition CID, adapted from
-the Native physical index to `core_bytes`. It is not uniqueness by Program or
-user-supplied Run name. A distinct Definition remains distinct; SQL NULL or an
-index entry is never typed Run admission. Fresh writes still pass the complete
-existing Core registration checks before their original transaction.
-
-The raw constructor and existing format-2 files retain their closed legacy
-format. A known missing optional `json_extract` function selects that existing
-format before any index mutation; other probe errors propagate unchanged and
-never select a fallback. Reopen performs no index installation, metadata repair,
-backfill or migration. Missing or colliding format-3 catalog entries refuse.
-
-A same-reader catalog observation compares the original application identity,
-version, complete bounded main catalog, required expression and absence of TEMP
-shadowing. It retains the same physical transaction, thread, original current
-callbacks, query-work ceiling and failure latch. Its scalar selects an existing
-read algorithm; it is not an Account Allow, custody proof, reusable current token
-or a substitute for selected nested-original validation. Unknown observations
-refuse rather than imply legacy absence. Private ABI84 adds this physical scalar
-import and keeps exact generated Python and compiler-C declarations; older
-installed modules are refused through the existing ABI/source binding.
+The same-reader catalog check preserves the original transaction, thread,
+current callbacks, query-work ceiling and failure latch. It compares the
+application identity, complete bounded main catalog, required expression and
+absence of TEMP shadowing. Passing the check selects the original indexed
+read. Account authorization, original custody and selected nested-original
+validation still belong to their existing owners.
 
 The private `reserve_capacity`, `read_capacity`, `capacity_usage` and
 `release_capacity` port preserves the Native physical contract: namespace and
@@ -1870,7 +1857,7 @@ authority remain prerequisites owned by their existing Owners. This physical
 transaction does not parse a contract, decide publication, or assert a Run
 state. A lost commit acknowledgement is propagated without repeating writes;
 the caller observes exact successors and lets the original Owner decide the
-meaning. Schema format 2 and its bounds remain unchanged. Retained caller bytes
+meaning. Retained caller bytes
 and SQLite workspace require their existing Host reservations.
 
 The exact successor of an opaque metadata batch is observed with
@@ -3970,18 +3957,15 @@ current authority, an admission, a completeness witness or COMMIT acknowledgemen
 A locator insert conflict rolls back the same transaction; attempted-COMMIT
 uncertainty retains the same original output and never repeats the write.
 
-This retained DATA does not by itself select an indexed read or complete legacy
-coverage. The actual original format-3 catalog and same-source mandatory atomic
-writer supply that connection; an expired reference still selects its saved
+The original indexed catalog and same-source mandatory atomic writer bind the
+retained data to the selected read; an expired reference still selects its saved
 original and never renews admission. A cold Run reference reads the exact tuple
 locator, original Submission and linked Run, including their bounded task
 materials and complete selected nested validator. Missing, ambiguous, corrupt or
 foreign locators refuse; an indexed-read error never falls through to a scan,
 fresh preparation, reissue or resend. Explicit unrelated integrity inspection
-is separate from this selected read. The existing complete Python route remains
-unchanged for legacy format 2 and private physical suppliers without the new
-catalog port. Absent historical locators are not reconstructed on a read.
-Native's explicitly indexed route and maintenance keep their separate profile.
+is separate from this selected read. The catalog check and locator are both
+required. A read never reconstructs an absent locator.
 
 A saved Result read validates the complete stored publication graph and the
 selected manifest occurrence through the existing publication Owner. Its nominal
@@ -4199,8 +4183,8 @@ An eligible guest can ask the existing current operation import about
 optional unchanged-reader proof
 support using ticket zero, which cannot name a loan. Result 1 opts in. Result 0
 or the original unallocated-ticket refusal leaves full validation active. The
-schema query continues to return physical schema 0 or 1 unchanged, and previous
-guests keep their existing positive-ticket calls.
+separate catalog check acknowledges the exact current schema on that Reader
+and refuses unsupported catalogs before selecting a row.
 
 Only after opt-in does the guest ask for proof with its negated live ticket.
 This query returns 1 for the same unchanged read, 0 after proof becomes
