@@ -8,17 +8,18 @@ test('cross join has no equality keys and requires explicit singleton spelling',
   assert.equal(s.additionalProperties,false);
   assert.deepEqual(s.required,['with']);
   assert.deepEqual(s.properties.right_rows,{const:'one'});
-  assert.equal(s.properties.on,undefined);
+  assert.equal((s.properties as typeof s.properties & {on?: unknown}).on,undefined);
   assert.equal(s.properties.select.minProperties,1);
   const ref=new RegExp(s.properties.select.additionalProperties.pattern);
   assert.ok(ref.test('left.id'));assert.ok(ref.test('right.line\nname'));assert.ok(!ref.test('id'));
 });
 test('embedded cross join contracts and pins reject stale constraints',()=>{
-  const r=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  const r: Parameters<typeof checkCrossJoinSchemas>[0] = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   checkCrossJoinSchemas(r);
   for(const index of [0,1]) {
     const changed=structuredClone(r);
-    parameterPrograms(changed)[index].properties.steps.items.properties.cross_join.properties.right_rows={type:'string'};
+    (parameterPrograms(changed)[index].properties.steps.items.properties.cross_join.properties as
+      Record<string, unknown>).right_rows={type:'string'};
     assert.throws(()=>checkCrossJoinSchemas(changed));
   }
 });

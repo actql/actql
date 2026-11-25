@@ -1,18 +1,19 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
-import {parameterPrograms} from './parameter-schema.mjs';
+import {parameterPrograms, type ProgramRegistry} from './parameter-schema.mjs';
 import {operationInventory} from './operation-inventory.mjs';
 
-const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+type OperationProgram = {properties: {steps: {items: {properties: Record<string, unknown>}}}};
+const read = (path: string) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const scope = read('docs/design/pure-operation-checking.md');
 const inventory = read('docs/design/pure-operation-test-inventory.md');
 // Reuse the existing authoritative profile classification, not a second
 // operation support list maintained by this navigation index.
-const graphClassification = JSON.parse(read(
+const graphClassification: Record<string, string> = JSON.parse(read(
   'docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json',
 )).current_graph_profile.classification;
-const refused = name => graphClassification[name] === 'blocked';
+const refused = (name: string) => graphClassification[name] === 'blocked';
 const rows = inventory.split('\n').filter(line => /^\| [a-z_]+(?:,| \|)/.test(line))
   .map(line => line.split('|').slice(1, -1).map(cell => cell.trim()));
 
@@ -27,7 +28,7 @@ test('acceptance evidence index covers the complete operation scope exactly once
 });
 
 test('evidence paths exist and both embedded Program schemas contain each operation', () => {
-  const registry = JSON.parse(read('spec/contracts/actql-protocol-schemas.json'));
+  const registry: ProgramRegistry<OperationProgram> = JSON.parse(read('spec/contracts/actql-protocol-schemas.json'));
   assert.deepEqual(Object.keys(graphClassification).filter(refused).toSorted(),
     [],
     'Current bounded Graph connections are partial, not completed coverage');
@@ -83,7 +84,7 @@ test('evidence paths exist and both embedded Program schemas contain each operat
   }
 });
 
-function assertSourceGate(source) {
+function assertSourceGate(source: string) {
   const publicOperations = operationInventory(read('docs/spec/language.md'));
   const excluded = ['infer', 'search_candidates', 'serialize'];
   const exclusionParagraph = scope.split('\n\n').find(paragraph => paragraph.startsWith('No evaluator,'));

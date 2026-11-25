@@ -2,36 +2,58 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFileSync} from 'node:fs';
 import {graphSchemas, baseGraphOperationSchemas, checkGraphSchemas} from './graph-schema.mjs';
-import {parameterPrograms} from './parameter-schema.mjs';
+import {parameterPrograms, type ProgramRegistry} from './parameter-schema.mjs';
+
+type GraphSubset = {
+  type?: 'object' | 'array' | 'integer' | 'string';
+  const?: unknown;
+  enum?: readonly unknown[];
+  oneOf?: GraphSubset[];
+  anyOf?: GraphSubset[];
+  not?: GraphSubset;
+  properties?: Record<string, GraphSubset>;
+  required?: string[];
+  additionalProperties?: boolean | GraphSubset;
+  items?: GraphSubset;
+  uniqueItems?: boolean;
+  minItems?: number;
+  maxItems?: number;
+  minimum?: number;
+  maximum?: number;
+  minLength?: number;
+  minProperties?: number;
+  maxProperties?: number;
+};
+type ProbeProgram = {properties: {steps: {items: {properties: Record<string, GraphSubset>}}}};
 
 test('graph bodies preserve literal options and optional positive component guards', () => {
   const s = baseGraphOperationSchemas();
   assert.equal(s.mean_graphs.additionalProperties, false);
   assert.deepEqual(s.mean_graphs.required, ['with','weights','support','properties']);
-  assert.equal(s.mean_graphs.properties.with.uniqueItems, undefined);
+  assert.equal((s.mean_graphs.properties.with as Record<string, unknown>).uniqueItems, undefined);
   assert.equal(s.mean_graphs.properties.weights.contains.exclusiveMinimum, 0);
   assert.equal(s.shortest_path.additionalProperties, false);
   assert.deepEqual(s.shortest_path.required, ['source','target','direction','max_hops']);
   assert.deepEqual(s.shortest_path.then, {required:['selection']});
   assert.deepEqual(s.shortest_path.else, {not:{required:['selection']}});
   assert.equal(s.shortest_path.properties.max_hops.minimum, 1);
-  assert.equal(s.shortest_path.properties.max_paths, undefined);
+  assert.equal((s.shortest_path.properties as Record<string, unknown>).max_paths, undefined);
   assert.equal(s.traverse.additionalProperties, false);
   assert.deepEqual(s.traverse.required, ['start','emit']);
   assert.equal(s.traverse.properties.hops.minItems, 1);
   assert.equal(s.traverse.properties.hops.items.additionalProperties, false);
   assert.equal(s.traverse.oneOf.length, 2);
-  assert.equal(s.traverse.properties.max_paths, undefined);
+  assert.equal((s.traverse.properties as Record<string, unknown>).max_paths, undefined);
   assert.deepEqual(s.reach.required, ['start','direction','max_depth']);
   assert.equal(s.reach.additionalProperties, false);
   assert.deepEqual(s.reach.properties.max_depth, {type:'integer',minimum:1});
-  assert.equal(s.reach.properties.max_paths, undefined);
+  assert.equal((s.reach.properties as Record<string, unknown>).max_paths, undefined);
   assert.deepEqual(s.subgraph.required, ['nodes']);
   assert.equal(s.subgraph.additionalProperties, false);
   assert.equal(s.subgraph.properties.nodes.oneOf.length, 3);
   for (const alternative of s.subgraph.properties.nodes.oneOf) assert.equal(alternative.additionalProperties, false);
   assert.deepEqual(s.subgraph.properties.nodes.oneOf[1].required, ['from','id']);
-  for (const name of ['match_nodes','match_edges']) {
+  for (const name of ['match_nodes','match_edges'] as const) {
     assert.deepEqual(s[name].required, ['fields']);
     assert.equal(s[name].additionalProperties, false);
     assert.equal(s[name].properties.fields.minItems, 1);
@@ -39,10 +61,10 @@ test('graph bodies preserve literal options and optional positive component guar
   }
   assert.equal(s.match_nodes.oneOf.length, 2);
   assert.equal(s.match_nodes.properties.ids.minItems, 1);
-  assert.equal(s.match_nodes.properties.ids.uniqueItems, undefined);
-  assert.equal(s.match_edges.properties.types.minItems, undefined);
-  assert.equal(s.match_edges.properties.types.uniqueItems, undefined);
-  for (const name of ['graphs_equal','graph_diff','graft_graph','subtract_graphs']) {
+  assert.equal((s.match_nodes.properties.ids as Record<string, unknown>).uniqueItems, undefined);
+  assert.equal((s.match_edges.properties.types as Record<string, unknown>).minItems, undefined);
+  assert.equal((s.match_edges.properties.types as Record<string, unknown>).uniqueItems, undefined);
+  for (const name of ['graphs_equal','graph_diff','graft_graph','subtract_graphs'] as const) {
     assert.deepEqual(s[name].required, ['with']);
     assert.equal(s[name].additionalProperties, false);
     assert.deepEqual(s[name].properties.with, {type:'string',minLength:1});
@@ -53,12 +75,12 @@ test('graph bodies preserve literal options and optional positive component guar
     {type:'string',minLength:1},
     {type:'array',minItems:1,items:{type:'string',minLength:1}},
   ]});
-  assert.equal(s.graft_graph.properties.merge, undefined);
-  for (const name of ['union_graphs','subtract_graphs']) {
+  assert.equal((s.graft_graph.properties as Record<string, unknown>).merge, undefined);
+  for (const name of ['union_graphs','subtract_graphs'] as const) {
     const merge = s[name].properties.merge;
     assert.equal(merge.additionalProperties, false);
-    for (const entity of ['node_properties','edge_properties']) {
-      assert.equal(merge.properties[entity].minProperties, undefined);
+    for (const entity of ['node_properties','edge_properties'] as const) {
+      assert.equal((merge.properties[entity] as Record<string, unknown>).minProperties, undefined);
       assert.deepEqual(merge.properties[entity].additionalProperties.enum,
         ['exact_equal','set_union','set_difference','number_sum','number_mean','number_min','number_max']);
     }
@@ -67,12 +89,12 @@ test('graph bodies preserve literal options and optional positive component guar
   assert.deepEqual(s.degree.properties.direction.enum, ['in','out','both']);
   assert.deepEqual(s.components.required, ['kind']);
   assert.deepEqual(s.components.properties.kind.enum, ['weak','strong']);
-  assert.equal(s.components.properties.max_nodes, undefined);
+  assert.equal((s.components.properties as Record<string, unknown>).max_nodes, undefined);
   assert.equal(s.components.properties.max_output_rows.oneOf[0].minimum, 1);
   assert.equal(s.components.properties.max_output_rows.oneOf[0].maximum, 9007199254740991);
   assert.equal(s.graph_bounds.minProperties, 1);
   assert.equal(s.graph_bounds.additionalProperties, false);
-  for (const name of ['max_nodes','max_edges','max_degree']) {
+  for (const name of ['max_nodes','max_edges','max_degree'] as const) {
     assert.equal(s.graph_bounds.properties[name].oneOf[0].minimum, 0);
     assert.equal(s.graph_bounds.properties[name].oneOf[0].maximum, 9007199254740991);
   }
@@ -80,28 +102,28 @@ test('graph bodies preserve literal options and optional positive component guar
 
 test('current graph schemas require scoped matches and explicit path modes', () => {
   const base = baseGraphOperationSchemas(), current = graphSchemas();
-  for (const name of Object.keys(base)) {
+  for (const name of Object.keys(base) as (keyof typeof base)[]) {
     if (['node_rows','edge_rows'].includes(name)) {
-      assert.equal(current[name].oneOf.length, 3);
-      assert.deepEqual(current[name].oneOf[0], base[name]);
-      assert.deepEqual(current[name].oneOf[1], {type:'object',additionalProperties:false,
+      assert.equal(current[name as 'node_rows' | 'edge_rows'].oneOf.length, 3);
+      assert.deepEqual(current[name as 'node_rows' | 'edge_rows'].oneOf[0], base[name]);
+      assert.deepEqual(current[name as 'node_rows' | 'edge_rows'].oneOf[1], {type:'object',additionalProperties:false,
         required:['definition'],properties:{definition:{type:'string',minLength:1}}});
-      assert.deepEqual(current[name].oneOf[2], {type:'object',additionalProperties:false,
+      assert.deepEqual(current[name as 'node_rows' | 'edge_rows'].oneOf[2], {type:'object',additionalProperties:false,
         required:['label'],properties:{label:{type:'string',minLength:1}}});
     } else if (['match_nodes','match_edges','traverse'].includes(name)) {
-      const keyed = current[name];
+      const keyed = current[name as 'match_nodes' | 'match_edges' | 'traverse'];
       assert.equal(keyed.additionalProperties, false);
       assert.ok(keyed.required.includes(name === 'traverse' ? 'path_mode' : 'definition'));
-      assert.equal(base[name].properties.definition, undefined);
-      assert.equal(base[name].properties.path_mode, undefined);
+      assert.equal((base[name as 'match_nodes' | 'match_edges' | 'traverse'].properties as Record<string, unknown>).definition, undefined);
+      assert.equal((base[name as 'match_nodes' | 'match_edges' | 'traverse'].properties as Record<string, unknown>).path_mode, undefined);
     } else assert.deepEqual(current[name], base[name]);
   }
   const c = current.graph;
   assert.equal(c.additionalProperties, false);
   assert.deepEqual(c.required, ['version','nodes','edges']);
   assert.equal(c.properties.version.const, 'actql-graph-constructor/0.1');
-  assert.equal(c.properties.domain, undefined);
-  for (const kind of ['nodes','edges']) {
+  assert.equal((c.properties as Record<string, unknown>).domain, undefined);
+  for (const kind of ['nodes','edges'] as const) {
     const element = c.properties[kind].items;
     assert.equal(element.additionalProperties, false);
     assert.equal(element.properties.key.minItems, 1);
@@ -112,14 +134,14 @@ test('current graph schemas require scoped matches and explicit path modes', () 
     }
   }
   assert.deepEqual(c.properties.edges.items.required, ['name','from','key','source','target']);
-  for (const role of ['source','target']) {
+  for (const role of ['source','target'] as const) {
     assert.equal(c.properties.edges.items.properties[role].additionalProperties, false);
     assert.deepEqual(c.properties.edges.items.properties[role].required, ['definition','key']);
   }
   const traversal = current.traverse;
-  assert.deepEqual(traversal.properties.path_mode.enum, ['walk','trail','acyclic']);
+  assert.deepEqual(traversal.properties.path_mode!.enum, ['walk','trail','acyclic']);
   assert.deepEqual(traversal.properties.emit, {enum:['nodes','paths']});
-  for (const filter of ['edge_where','node_where']) {
+  for (const filter of ['edge_where','node_where'] as const) {
     assert.deepEqual(traversal.properties[filter],
       base.traverse.properties.hops.items.properties[filter]);
     assert.ok(traversal.oneOf[0].not.anyOf.some(term=>term.required[0]===filter));
@@ -128,7 +150,7 @@ test('current graph schemas require scoped matches and explicit path modes', () 
 });
 
 test('embedded graph schemas and pins reject drift', () => {
-  const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  const registry: ProgramRegistry<ProbeProgram> = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   checkGraphSchemas(registry);
   for (const index of [0,1]) for (const name of Object.keys(graphSchemas())) {
     const copy = structuredClone(registry);
@@ -139,7 +161,7 @@ test('embedded graph schemas and pins reject drift', () => {
 
 // Independent JSON Schema subset for the closed operation fixtures below.
 // Unknown keywords fail rather than silently weakening the registered schema.
-function accepts(schema, value) {
+function accepts(schema: GraphSubset, value: unknown): boolean {
   const known = new Set(['type', 'const', 'enum', 'oneOf', 'anyOf', 'not',
     'properties', 'required', 'additionalProperties', 'items', 'uniqueItems',
     'minItems', 'maxItems', 'minimum', 'maximum', 'minLength', 'minProperties', 'maxProperties']);
@@ -157,8 +179,8 @@ function accepts(schema, value) {
       (value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity))) return false;
   if (Array.isArray(value)) {
     if (value.length < (schema.minItems ?? 0) || value.length > (schema.maxItems ?? Infinity)) return false;
-    if (schema.uniqueItems && new Set(value.map(JSON.stringify)).size !== value.length) return false;
-    if (schema.items && !value.every(item => accepts(schema.items, item))) return false;
+    if (schema.uniqueItems && new Set(value.map(item => JSON.stringify(item))).size !== value.length) return false;
+    if (schema.items && !value.every(item => accepts(schema.items!, item))) return false;
   }
   if (object) {
     if (Object.keys(value).length < (schema.minProperties ?? 0) ||
@@ -175,7 +197,7 @@ function accepts(schema, value) {
   return true;
 }
 
-const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+const registry: ProgramRegistry<ProbeProgram> = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
 const programNames = ['executable_plan', 'plan_document'];
 for (const [index, program] of parameterPrograms(registry).entries()) {
   const schemas = program.properties.steps.items.properties;
@@ -189,7 +211,7 @@ for (const [index, program] of parameterPrograms(registry).entries()) {
       ['match_edges', {fields: ['edge_id', 'source_id', 'target_id'], types: [],
         where: {eq: [{field: 'active'}, {literal: true}]},
         bindings: {identity: 'edge_id', source: 'source_id', target: 'target_id'}}],
-    ];
+    ] as const;
     for (const [name, body] of cases) {
       assert.equal(accepts(schemas[name], body), false, `${name}: missing definition`);
       const current = {...body, definition: name === 'match_nodes' ? 'N' : 'E'};

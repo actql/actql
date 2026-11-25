@@ -8,9 +8,14 @@ export const pointer = '/execution_contracts/ACTQL.expression_fragment~10.1';
 const path = 'spec/contracts/actql-aoa.json';
 const expressionPath = 'spec/contracts/actql-expressions.json';
 const registryPath = 'spec/dependencies/aoa-pipeline-registry.json';
-const read = p => JSON.parse(readFileSync(p, 'utf8'));
+const read = <Value,>(p: string): Value => JSON.parse(readFileSync(p, 'utf8'));
 
-export function executionContract(expressions) {
+type Expressions = {schemas: {fragment: {$id: string}}};
+type Owner = {execution_contracts: Record<string, unknown>;
+  expression_contract_cid: string; target_registry_requirements: Record<string, unknown>;
+  pipeline_registry_file: string; pipeline_registry_cid: string};
+
+export function executionContract(expressions: Expressions) {
   return {
     version: 'actql-expression-fragment-execution/0.1',
     operation, inputs: ['relation'], output: 'relation',
@@ -40,7 +45,7 @@ export function executionContract(expressions) {
   };
 }
 
-export function checkRegistration(aoa, expressions, registry) {
+export function checkRegistration(aoa: Owner, expressions: Expressions, registry: Record<string, unknown>) {
   const body = executionContract(expressions);
   const ref = {pointer, cid: machineCid(body)};
   assert.deepEqual(aoa.execution_contracts[operation], body);
@@ -58,7 +63,7 @@ export function checkRegistration(aoa, expressions, registry) {
 
 // One mutation path for the CLI and containing contract writers. A root
 // expression-law update must retain this exact registered dependency closure.
-export function registerExpressionFragment(aoa, expressions, registry) {
+export function registerExpressionFragment(aoa: Owner, expressions: Expressions, registry: Record<string, unknown>) {
   const body = executionContract(expressions), ref = {pointer, cid: machineCid(body)};
   aoa.execution_contracts[operation] = body;
   aoa.expression_contract_cid = machineCid(expressions);
@@ -71,7 +76,7 @@ export function registerExpressionFragment(aoa, expressions, registry) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const aoa = read(path), expressions = read(expressionPath), registry = read(registryPath);
+  const aoa = read<Owner>(path), expressions = read<Expressions>(expressionPath), registry = read<Record<string, unknown>>(registryPath);
   if (process.argv.includes('--write')) {
     registerExpressionFragment(aoa, expressions, registry);
     writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');

@@ -2,9 +2,17 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {parameterPrograms} from './parameter-schema.mjs';
+import {parameterPrograms, type ProgramRegistry} from './parameter-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 import {groupSchema,orderKeys,positive,fieldPattern,parameter} from './aggregate-schema.mjs';
+
+type WindowProgram = {properties: {steps: {items: {properties: {
+  row_window: ReturnType<typeof windowSchema>;
+  window_events: ReturnType<typeof windowSchema>;
+  window_group: ReturnType<typeof groupSchema>;
+  lag: ReturnType<typeof lagSchema>;
+  watermark_rows: ReturnType<typeof watermarkRowsSchema>;
+}}}}};
 
 export function watermarkRowsSchema() {
   return {type:'object',additionalProperties:false,required:['time','late_policy'],
@@ -31,10 +39,10 @@ export function millisecondsSchema(signed=false) {
     {type:'object',additionalProperties:false,required:['$param'],properties:{
       $param:{type:'string',pattern:'^[A-Za-z_][A-Za-z0-9_]*$(?![\\s\\S])'},
     }},
-  ]};
+  ] as const};
 }
 
-export function windowSchema(relation) {
+export function windowSchema(relation: boolean) {
   return {type:'object',additionalProperties:false,
     required:relation?['kind','time','size']:['kind','size'],
     properties:{kind:{enum:['fixed','sliding']},
@@ -44,7 +52,7 @@ export function windowSchema(relation) {
   };
 }
 
-export function checkWindowSchemas(registry) {
+export function checkWindowSchemas(registry: ProgramRegistry<WindowProgram>) {
   for(const p of parameterPrograms(registry)) {
     assert.deepEqual(p.properties.steps.items.properties.row_window,windowSchema(true));
     assert.deepEqual(p.properties.steps.items.properties.window_events,windowSchema(false));
@@ -58,7 +66,7 @@ export function checkWindowSchemas(registry) {
 
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   const path='spec/contracts/actql-protocol-schemas.json';
-  const registry=JSON.parse(readFileSync(path,'utf8'));
+  const registry: ProgramRegistry<WindowProgram> = JSON.parse(readFileSync(path,'utf8'));
   if(process.argv.includes('--write')) {
     for(const p of parameterPrograms(registry)) {
       p.properties.steps.items.properties.row_window=windowSchema(true);

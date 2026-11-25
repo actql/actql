@@ -2,12 +2,18 @@ import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {parameterPrograms} from './parameter-schema.mjs';
+import {parameterPrograms, type ProgramRegistry} from './parameter-schema.mjs';
 import {positive, parameter} from './aggregate-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
+type GraphProgram = {properties: {steps: {items: {properties: Record<string, unknown>}}}};
+type BaseGraphSchemas = ReturnType<typeof baseGraphOperationSchemas>;
+type BaseTraversal = BaseGraphSchemas['traverse'];
+type TraversalPredicate = BaseTraversal['properties']['hops']['items']['properties']['edge_where'];
+type Requirement = {required: string[]};
+
 export function baseGraphOperationSchemas() {
-  const nonnegative = {oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter]};
+  const nonnegative = {oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter] as const};
   const field = {type:'string',minLength:1};
   const fields = {type:'array',items:field,uniqueItems:true};
   const projectedFields = {...fields,minItems:1};
@@ -50,7 +56,7 @@ export function baseGraphOperationSchemas() {
     },oneOf:[
       {required:['hops'],not:{anyOf:['direction','edge_types','min_hops','max_hops'].map(name => ({required:[name]}))}},
       {required:['direction','min_hops','max_hops'],not:{required:['hops']}},
-    ]},
+    ] as const},
     reach:{type:'object',additionalProperties:false,required:['start','direction','max_depth'],properties:{start:{},direction:{enum:['in','out','both']},max_depth:{type:'integer',minimum:1}}},
     subgraph:{type:'object',additionalProperties:false,required:['nodes'],properties:{nodes:selector,edges:predicate}},
     match_nodes: {type:'object',additionalProperties:false,required:['fields'],
@@ -111,7 +117,7 @@ export function graphSchemas() {
       edges:{type:'array',items:{...element,required:[...element.required,'source','target'],properties:{...element.properties,source:endpoint,target:endpoint}}},
     }},
   };
-  for (const name of ['match_nodes','match_edges']) {
+  for (const name of ['match_nodes','match_edges'] as const) {
     const keyed = structuredClone(base[name]);
     keyed.required.push('definition');
     Object.assign(keyed.properties, {
@@ -119,9 +125,22 @@ export function graphSchemas() {
       bindings:{type:'object',additionalProperties:false,properties:Object.fromEntries(
         (name === 'match_nodes' ? ['identity'] : ['identity','source','target']).map(role => [role,field]))},
     });
-    result[name] = keyed;
+    (result as Record<typeof name, BaseGraphSchemas[typeof name]>)[name] = keyed;
   }
-  const traversal = structuredClone(base.traverse);
+  const traversal: BaseTraversal & {
+    properties: {
+      path_mode?: {enum: string[]};
+      edge_where?: TraversalPredicate;
+      node_where?: TraversalPredicate;
+      endpoint_properties?: {
+        type: string; additionalProperties: boolean; minProperties: number;
+        properties: Record<'start' | 'end', typeof endpointProperties>;
+      };
+    };
+    anyOf?: ({not: Requirement} | (Requirement & {
+      properties: {emit: {const: string}; hops: {minItems: number; maxItems: number}};
+    }))[];
+  } = structuredClone(base.traverse);
   traversal.required.push('path_mode');
   traversal.properties.path_mode = {enum:['walk','trail','acyclic']};
   traversal.properties.emit = {enum:['nodes','paths']};
@@ -142,10 +161,10 @@ export function graphSchemas() {
     {required:['hops'],properties:{emit:{const:'paths'},hops:{minItems:1,maxItems:1}}},
   ];
   result.traverse = traversal;
-  return result;
+  return result as typeof result & {traverse: typeof traversal};
 }
 
-export function checkGraphSchemas(registry) {
+export function checkGraphSchemas(registry: ProgramRegistry<GraphProgram>) {
   for (const program of parameterPrograms(registry)) {
     for (const [name, schema] of Object.entries(graphSchemas())) {
       assert.deepEqual(program.properties.steps.items.properties[name], schema);
@@ -159,7 +178,7 @@ export function checkGraphSchemas(registry) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const path = 'spec/contracts/actql-protocol-schemas.json';
-  const registry = JSON.parse(readFileSync(path, 'utf8'));
+  const registry: ProgramRegistry<GraphProgram> = JSON.parse(readFileSync(path, 'utf8'));
   if (process.argv.includes('--write')) {
     for (const program of parameterPrograms(registry)) {
       Object.assign(program.properties.steps.items.properties, graphSchemas());

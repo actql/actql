@@ -14,24 +14,40 @@ const manifests = [
   ['sgaStructural', 'aoa-sga-structural-laws', 'sga_structural_law_manifest_cid', 'aoa-sga-structural-laws/0.1'],
   ['graphIdentity', 'aoa-sga-identity-laws', 'sga_identity_law_manifest_cid', 'aoa-sga-identity-laws/0.1'],
   ['graph', 'actql-graph-laws', 'graph_law_manifest_cid', 'actql-graph-laws/0.1'],
-];
+] as const;
 
-export function checkVersionTokens(text, context = 'AoA identifier') {
+type LawName = (typeof manifests)[number][0];
+type LawPin = (typeof manifests)[number][2];
+type LawBody = {manifest_version?: string; version?: string};
+type LawBodies = Record<LawName, LawBody> & {
+  pipeline: LawBody & {laws: {law_id: string}[]};
+};
+type Contract = Record<LawPin, string> & {
+  kernel_law_manifest: string;
+  pipeline_law_manifest: string;
+  pipeline_ir_version: string;
+  effect_plan_law: string;
+  target_registry_requirements: Record<string, {policy_inputs?: unknown; input_alternatives?: unknown}>;
+  non_authoring_registry_operations: string[];
+};
+type Dependencies = {contract: Contract; bodies: LawBodies};
+
+export function checkVersionTokens(text: string, context = 'AoA identifier') {
   const pattern = /\baoa-[A-Za-z0-9_-]+\/([0-9]+(?:\.[0-9]+)*)|\baoa\.[A-Za-z0-9_.-]+\.v([0-9]+(?:\.[0-9]+)*)/g;
   for (const match of text.matchAll(pattern)) {
     assert.equal(match[1] ?? match[2], '0.1', `${context}: unexpected version in ${match[0]}`);
   }
 }
 
-export function loadDependencies(directory = root) {
-  const read = p => JSON.parse(readFileSync(join(directory, p), 'utf8'));
+export function loadDependencies(directory = root): Dependencies {
+  const read = <Value,>(p: string): Value => JSON.parse(readFileSync(join(directory, p), 'utf8'));
   return {
     contract: read('spec/contracts/actql-aoa.json'),
-    bodies: Object.fromEntries(manifests.map(([key, file]) => [key, read(`spec/dependencies/${file}.json`)])),
+    bodies: Object.fromEntries(manifests.map(([key, file]) => [key, read(`spec/dependencies/${file}.json`)])) as LawBodies,
   };
 }
 
-export function checkDependencies({ contract, bodies }) {
+export function checkDependencies({ contract, bodies }: Dependencies) {
   checkVersionTokens(JSON.stringify({ contract, bodies }));
   for (const [key, , pin, version] of manifests) {
     const body = bodies[key];
@@ -47,7 +63,7 @@ export function checkDependencies({ contract, bodies }) {
 
 export function checkRepository(directory = root) {
   checkDependencies(loadDependencies(directory));
-  const scan = path => {
+  const scan = (path: string): void => {
     for (const entry of readdirSync(join(directory, path), { withFileTypes: true })) {
       const file = join(path, entry.name);
       if (entry.isDirectory()) scan(file);

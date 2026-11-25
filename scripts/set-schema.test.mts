@@ -12,9 +12,9 @@ test('set bodies require explicit literal multiplicity and reject extra members'
   assert.deepEqual(s.properties.with,{type:'string',minLength:1});
 });
 test('embedded set schemas and pins reject drift',()=>{
-  const r=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  const r: Parameters<typeof checkSetSchemas>[0] = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   checkSetSchemas(r);
-  for (const index of [0,1]) for (const op of ['except','intersect']) {
+  for (const index of [0,1]) for (const op of ['except','intersect'] as const) {
     const changed=structuredClone(r);
     parameterPrograms(changed)[index].properties.steps.items.properties[op].properties.duplicates.enum.push('ALL');
     assert.throws(()=>checkSetSchemas(changed));

@@ -16,7 +16,7 @@ test('window options distinguish signed offsets and positive durations',()=>{
 });
 
 test('embedded window schema and pins reject drift',()=>{
-  const r=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  const r: Parameters<typeof checkWindowSchemas>[0] = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   checkWindowSchemas(r);
   for(const index of [0,1]) {
     const copy=structuredClone(r);
@@ -31,7 +31,7 @@ test('fixed step is an optional positive option without an inserted default',()=
     assert.ok(!schema.required.includes('step'));
     assert.equal(schema.allOf[0].if.properties.kind.const,'sliding');
     assert.deepEqual(schema.properties.step,millisecondsSchema());
-    assert.equal(schema.properties.step.default,undefined);
+    assert.equal((schema.properties.step as {default?: unknown} & typeof schema.properties.step).default,undefined);
     assert.equal(schema.properties.step.oneOf[0].minimum,1);
   }
 });
@@ -40,7 +40,7 @@ test('lag requires explicit nonempty order and admits omitted or positive offset
   const s=lagSchema();
   assert.deepEqual(s.required,['partition_by','order_by','field','output']);
   assert.equal(s.properties.order_by.minItems,1);
-  assert.equal(s.properties.partition_by.minItems,undefined);
+  assert.equal((s.properties.partition_by as {minItems?: number} & typeof s.properties.partition_by).minItems,undefined);
   assert.equal(s.properties.offset.oneOf[0].minimum,1);
   assert.equal(s.properties.offset.oneOf[0].maximum,9007199254740991);
   assert.equal(s.additionalProperties,false);

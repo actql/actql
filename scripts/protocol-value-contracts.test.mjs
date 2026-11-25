@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {valueBodyContract,generateValueKinds,commandInputPresenceBody,commandInputPresenceSchemas,textEnumerationBody,signed64Body,byteValuesBody} from './protocol-value-contracts.mjs';
+import {valueBodyContract,generateValueKinds,commandInputPresenceBody,commandInputPresenceSchemas,textEnumerationBody,signed64Body} from './protocol-value-contracts.mjs';
+import {byteValuesBody} from './byte-values-contract.mjs';
 const protocol=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'));
 test('all eight legacy value roles use the checked grammar, never the carrier grammar',()=>{
   const body=valueBodyContract(protocol);

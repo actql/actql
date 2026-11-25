@@ -6,19 +6,36 @@ import {eventSchemas} from './event-schema.mjs';
 
 const ownerPath = 'spec/contracts/actql-aoa.json';
 const registryPath = 'spec/dependencies/aoa-pipeline-registry.json';
-export const operations = ['TEA.calendar.bucket', 'TEA.calendar.series'];
-const signature = operation => ({
+export const operations = ['TEA.calendar.bucket', 'TEA.calendar.series'] as const;
+type Operation = (typeof operations)[number];
+type EventSchemas = ReturnType<typeof eventSchemas>;
+type SeriesProperties = EventSchemas['calendar_series']['properties'];
+type CalendarParams = Omit<EventSchemas['calendar_bucket'], 'properties'> & {
+  $schema?: string;
+  $id?: string;
+  properties: Pick<SeriesProperties, 'unit' | 'timezone' | 'week_start'> & {
+    profile?: {type: string; additionalProperties: boolean; required: string[];
+      properties: {conversion_law: {const: string}; table_bytes_cid: {type: string; pattern: string};
+        tzdb_version: {type: string; minLength: number}}};
+    start?: SeriesProperties['start'] | SeriesProperties['start']['oneOf'][0];
+    end?: SeriesProperties['end'] | SeriesProperties['end']['oneOf'][0];
+  };
+};
+type Owner = {execution_contracts: Record<string, unknown>;
+  target_registry_requirements: Record<string, unknown>; pipeline_registry_file: string; pipeline_registry_cid: string};
+
+const signature = (operation: Operation) => ({
   inputs: operation === operations[0] ? ['relation'] : [], output: 'relation',
 });
 
 // Compiled parameters bind endpoint Parameters through their existing owner
 // and identify the selected original profile. They never carry table rows or
 // authority, and do not replace the authored Calendar option schemas.
-export function executionContract(operation) {
+export function executionContract(operation: Operation) {
   assert(operations.includes(operation));
   const series = operation === operations[1];
   const source = eventSchemas()[series ? 'calendar_series' : 'calendar_bucket'];
-  const params = structuredClone(source);
+  const params: CalendarParams = structuredClone(source);
   params.$schema = 'https://json-schema.org/draft/2020-12/schema';
   params.$id = `urn:actql:calendar-${series ? 'series' : 'bucket'}-params:0.1`;
   params.required.push('profile');
@@ -32,8 +49,8 @@ export function executionContract(operation) {
     },
   };
   if (series) {
-    params.properties.start = structuredClone(source.properties.start.oneOf[0]);
-    params.properties.end = structuredClone(source.properties.end.oneOf[0]);
+    params.properties.start = structuredClone((source as EventSchemas['calendar_series']).properties.start.oneOf[0]);
+    params.properties.end = structuredClone((source as EventSchemas['calendar_series']).properties.end.oneOf[0]);
   }
   return {
     operation, ...signature(operation), params_schema: params,
@@ -49,7 +66,7 @@ export function executionContract(operation) {
   };
 }
 
-export function checkRegistration(aoa, registry) {
+export function checkRegistration(aoa: Owner, registry: Record<string, unknown>) {
   for (const operation of operations) {
     const body = executionContract(operation);
     const ref = {pointer: `/execution_contracts/${operation}`, cid: machineCid(body)};
@@ -66,8 +83,8 @@ export function checkRegistration(aoa, registry) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const read = path => JSON.parse(readFileSync(path, 'utf8'));
-  const aoa = read(ownerPath), registry = read(registryPath);
+  const read = <Value,>(path: string): Value => JSON.parse(readFileSync(path, 'utf8'));
+  const aoa = read<Owner>(ownerPath), registry = read<Record<string, unknown>>(registryPath);
   if (process.argv.includes('--write')) {
     for (const operation of operations) {
       const body = executionContract(operation);

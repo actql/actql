@@ -28,13 +28,13 @@ test('sequence shares predicate grammar and never inserts implicit match limits'
   assert.equal(s.properties.overlap.default,'disallow');
   assert.equal(s.properties.contiguity.default,'adjacent');
   assert.equal(s.additionalProperties,false);
-  assert.equal(s.properties.by.minItems,undefined);
-  assert.equal(s.properties.by.uniqueItems,undefined);
+  assert.equal((s.properties.by as typeof s.properties.by & {minItems?: number; uniqueItems?: boolean}).minItems,undefined);
+  assert.equal((s.properties.by as typeof s.properties.by & {minItems?: number; uniqueItems?: boolean}).uniqueItems,undefined);
   assert.equal(s.properties.pattern.minItems,2);
   assert.deepEqual(s.properties.pattern.items.properties.where,{$ref:'#/$defs/predicate'});
   assert.equal(s.properties.pattern.items.additionalProperties,false);
-  for(const key of ['max_matches_per_key','max_output_rows']) {
-    assert.equal(s.properties[key].default,undefined);
+  for(const key of ['max_matches_per_key','max_output_rows'] as const) {
+    assert.equal((s.properties[key] as typeof s.properties[typeof key] & {default?: unknown}).default,undefined);
     assert.equal(s.properties[key].oneOf[0].minimum,1);
   }
 });
@@ -45,14 +45,14 @@ test('as-of source syntax separates temporal keys, identity evidence and project
   assert.deepEqual(s.required,['with','kind','by','left_time','right_time','direction','tolerance','select']);
   assert.deepEqual(s.properties.kind.enum,['left','inner']);
   assert.deepEqual(s.properties.direction.enum,['backward','forward','nearest']);
-  for(const name of ['by','right_tie_break']) {
-    assert.equal(s.properties[name].minItems,undefined);
-    assert.equal(s.properties[name].uniqueItems,undefined);
+  for(const name of ['by','right_tie_break'] as const) {
+    assert.equal((s.properties[name] as typeof s.properties[typeof name] & {minItems?: number; uniqueItems?: boolean}).minItems,undefined);
+    assert.equal((s.properties[name] as typeof s.properties[typeof name] & {minItems?: number; uniqueItems?: boolean}).uniqueItems,undefined);
   }
   assert.deepEqual(s.properties.by.items.required,['left','right']);
   assert.equal(s.properties.by.items.additionalProperties,false);
   assert.equal(s.properties.select.minProperties,1);
-  assert.equal(s.properties.null_key,undefined);
+  assert.equal((s.properties as typeof s.properties & {null_key?: unknown}).null_key,undefined);
   assert.equal(s.properties.tolerance.oneOf[0].minimum,1);
   assert.equal(s.properties.tolerance.oneOf[0].maximum,Number.MAX_SAFE_INTEGER);
 });
@@ -61,8 +61,8 @@ test('event dedupe preserves empty and repeated partition keys but requires orde
   const s=eventSchemas().dedupe_events;
   assert.equal(s.additionalProperties,false);
   assert.deepEqual(s.required,['by','order_by']);
-  assert.equal(s.properties.by.minItems,undefined);
-  assert.equal(s.properties.by.uniqueItems,undefined);
+  assert.equal((s.properties.by as typeof s.properties.by & {minItems?: number; uniqueItems?: boolean}).minItems,undefined);
+  assert.equal((s.properties.by as typeof s.properties.by & {minItems?: number; uniqueItems?: boolean}).uniqueItems,undefined);
   assert.equal(s.properties.order_by.minItems,1);
 });
 
@@ -72,7 +72,7 @@ test('session schema pairs relation roles and shares positive millisecond syntax
   assert.deepEqual(s.dependentRequired,{id:['time'],time:['id']});
   assert.equal(s.additionalProperties,false);
   assert.equal(s.properties.gap.oneOf[0].minimum,1);
-  assert.equal(s.properties.by.minItems,undefined);
+  assert.equal((s.properties.by as typeof s.properties.by & {minItems?: number; uniqueItems?: boolean}).minItems,undefined);
 });
 
 test('watermark event options admit a whole Parameter and require explicit policy',()=>{
@@ -82,10 +82,10 @@ test('watermark event options admit a whole Parameter and require explicit polic
   });
 });
 test('embedded event schemas and identity pins reject drift',()=>{
-  const registry=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  const registry: Parameters<typeof checkEventSchemas>[0] = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   checkEventSchemas(registry);
   for (const index of [0,1]) {
-    for (const name of Object.keys(eventSchemas())) {
+    for (const name of Object.keys(eventSchemas()) as (keyof ReturnType<typeof eventSchemas>)[]) {
       const copy=structuredClone(registry);
       parameterPrograms(copy)[index].properties.steps.items.properties[name]={};
       assert.throws(()=>checkEventSchemas(copy));
@@ -98,8 +98,8 @@ test('interval joins require closed temporal operands and preserve repeated equa
   assert.deepEqual(s.required,['with','kind','mode','on','left','right']);
   assert.deepEqual(s.properties.kind.enum,['inner','left','semi','anti']);
   assert.equal(s.additionalProperties,false);
-  assert.equal(s.properties.on.minItems,undefined);
-  assert.equal(s.properties.on.uniqueItems,undefined);
+  assert.equal((s.properties.on as typeof s.properties.on & {minItems?: number; uniqueItems?: boolean}).minItems,undefined);
+  assert.equal((s.properties.on as typeof s.properties.on & {minItems?: number; uniqueItems?: boolean}).uniqueItems,undefined);
   assert.deepEqual(s.properties.on.items.required,['left','right']);
   assert.equal(s.properties.on.items.additionalProperties,false);
   assert.deepEqual(s.allOf[0].then.properties.left.required,['time']);
@@ -114,7 +114,7 @@ test('interval joins require closed temporal operands and preserve repeated equa
 // instant semantics remain with the existing Common Timestamp owner.
 test('authored event endpoints extend precision without widening operational clocks',()=>{
   const schemas=eventSchemas();
-  for(const name of ['time_series','calendar_series']) {
+  for(const name of ['time_series','calendar_series'] as const) {
     const stamp=new RegExp(schemas[name].properties.start.oneOf[0].pattern);
     for(const fraction of ['000','123','1234','123456','123456789'])
       assert.ok(stamp.test(`1970-01-01T00:00:00.${fraction}Z`),fraction);
@@ -126,11 +126,11 @@ test('authored event endpoints extend precision without widening operational clo
     assert.deepEqual(schemas[name].properties.start.oneOf[1],
       schemas[name].properties.end.oneOf[1]);
   }
-  const registry=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  const registry: Parameters<typeof checkEventSchemas>[0] = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   let operational=0;
-  function visit(value) {
+  function visit(value: unknown) {
     if(!value||typeof value!=='object')return;
-    for(const [key,child] of Object.entries(value)) {
+    for(const [key,child] of Object.entries(value) as [string, {pattern?: string} | null][]) {
       if(key==='observed_at'&&child?.pattern) {
         const stamp=new RegExp(child.pattern);
         assert.ok(stamp.test('1970-01-01T00:00:00.123Z'));

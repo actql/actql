@@ -7,11 +7,31 @@ import { checkDependencies, loadDependencies } from './check-aoa-versions.mjs';
 // Small independent oracles for explicit specification examples. These neither
 // execute MoonBit nor demonstrate runtime profile conformance. Expected values
 // are fixed in the corpus, never generated from a product evaluator.
-const read = path => JSON.parse(readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
-const corpus = read('portability/corpus/pure-operation-laws.json');
-const meanCorpus = read('portability/corpus/structural-pairwise-mean.json');
+type Example = {name: string; error?: string; expected?: unknown};
+type Vector = {op: string; members?: {id: string; value: number[]}[]; a?: number[]; b?: number[]};
+type Ranking = {op: string; scores: (number | null)[]; weights?: number[]};
+type GraphId = string | number;
+type GraphBounds = {nodes: GraphId[]; edges: [GraphId, GraphId][];
+  bounds: {max_nodes?: number; max_edges?: number; max_degree?: number}};
+type Window = {kind: string; size: number; step?: number; time: number; offset: number};
+type Watermark = {times: number[]; max_skew: number; policy: string};
+type GraphValue = null | number | string | string[];
+type NumericStrategy = 'number_sum' | 'number_mean' | 'number_min' | 'number_max';
+type Strategy = NumericStrategy | 'exact_equal' | 'set_union' | 'set_difference';
+type Graph = {op: string; left: Record<string, Record<string, GraphValue>>;
+  right: Record<string, Record<string, GraphValue>>; merge: Record<string, Strategy>};
+type EndpointClosure = {remaining_edges: [GraphId, GraphId][]; retained_nodes: GraphId[]};
+type Inputs = {vectors: Vector; rankings: Ranking; windows: Window; watermarks: Watermark;
+  graphs: Graph; graph_bounds: GraphBounds; endpoint_closure: EndpointClosure};
+type Examples = {[Key in keyof Inputs]: (Example & Inputs[Key])[]};
+type Corpus = Examples & {version: string; status: string};
+type MeanCorpus = {cases: {id: string; left: string; right: string; issue?: string; expected?: string}[]};
+
+const read = <Value,>(path: string): Value => JSON.parse(readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
+const corpus = read<Corpus>('portability/corpus/pure-operation-laws.json');
+const meanCorpus = read<MeanCorpus>('portability/corpus/structural-pairwise-mean.json');
 test('event identity contract preserves typed equality and separates uniqueness and lowering', () => {
-  assert.deepEqual(read('spec/contracts/actql-aoa.json').event_identity_contract, {
+  assert.deepEqual(read<{event_identity_contract: unknown}>('spec/contracts/actql-aoa.json').event_identity_contract, {
     domain: 'complete_non_null_KeyComparable',
     representation: 'preserve_semantic_type_and_value',
     uniqueness: 'separate_data_validation',
@@ -25,18 +45,18 @@ test('event identity contract preserves typed equality and separates uniqueness 
     implicit_cid_substitution: false,
   });
 });
-const fail = kind => { throw new Error(kind); };
-const finite = value => Number.isFinite(value) ? value : fail('NonFinite');
-const zero = value => value === 0 ? 0 : value;
-const q = value => finite(Math.fround(finite(value)));
-const fold = xs => xs.reduce((sum, value) => finite(sum + value), 0);
-const square = xs => fold(xs.map(value => finite(value * value)));
+const fail = (kind: string): never => { throw new Error(kind); };
+const finite = (value: number) => Number.isFinite(value) ? value : fail('NonFinite');
+const zero = (value: number) => value === 0 ? 0 : value;
+const q = (value: number) => finite(Math.fround(finite(value)));
+const fold = (xs: number[]) => xs.reduce((sum, value) => finite(sum + value), 0);
+const square = (xs: number[]) => fold(xs.map(value => finite(value * value)));
 
-function pairwiseMean(left, right) {
+function pairwiseMean(left: number, right: number) {
   finite(left);
   finite(right);
   const view = new DataView(new ArrayBuffer(8));
-  const units = value => {
+  const units = (value: number) => {
     view.setFloat64(0, value, false);
     const bits = view.getBigUint64(0, false);
     const exponent = Number((bits >> 52n) & 0x7ffn);
@@ -50,7 +70,7 @@ function pairwiseMean(left, right) {
   if (numerator === 0n) return 0;
   const negative = numerator < 0n;
   const magnitude = negative ? -numerator : numerator;
-  const roundEven = (value, shift) => {
+  const roundEven = (value: bigint, shift: bigint) => {
     const divisor = 1n << shift;
     const quotient = value / divisor;
     const remainder = value % divisor;
@@ -78,9 +98,9 @@ function pairwiseMean(left, right) {
   return zero(view.getFloat64(0, false));
 }
 
-function vector(f) {
+function vector(f: Vector) {
   if (f.op.startsWith('pool_')) {
-    const members = [...f.members].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+    const members = [...f.members!].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     assert.ok(members.length > 0);
     assert.equal(new Set(members.map(m => m.id)).size, members.length);
     const values = members.map(m => m.value.map(q));
@@ -92,14 +112,14 @@ function vector(f) {
       return zero(q(result));
     });
   }
-  const a = f.a.map(q);
+  const a = f.a!.map(q);
   assert.ok(a.length > 0);
   if (f.op === 'normalize') {
     const norm = finite(Math.sqrt(square(a)));
     if (norm === 0) fail('ZeroNorm');
     return a.map(value => zero(q(finite(value / norm))));
   }
-  const b = f.b.map(q);
+  const b = f.b!.map(q);
   assert.equal(a.length, b.length);
   if (f.op === 'l2') {
     return zero(-finite(Math.sqrt(square(a.map((value, i) => finite(value - b[i]))))));
@@ -112,16 +132,16 @@ function vector(f) {
   return zero(finite(dot / finite(finite(Math.sqrt(left)) * finite(Math.sqrt(right)))));
 }
 
-function ranking(f) {
+function ranking(f: Ranking) {
   if (f.op === 'max') return Math.max(...f.scores.filter(s => s !== null));
   assert.equal(f.op, 'weighted_sum');
-  const [left, right] = f.scores.map((s, i) => finite((s ?? 0) * f.weights[i]));
+  const [left, right] = f.scores.map((s, i) => finite((s ?? 0) * f.weights![i]));
   return zero(finite(left + right));
 }
 
-function graphBounds(f) {
-  const out = [];
-  const add = (kind, node_id, actual, max) => {
+function graphBounds(f: GraphBounds) {
+  const out: {kind: string; node_id: GraphId | null; actual: number; max: number}[] = [];
+  const add = (kind: string, node_id: GraphId | null, actual: number, max?: number) => {
     if (max !== undefined && actual > max) out.push({kind, node_id, actual, max});
   };
   add('nodes', null, f.nodes.length, f.bounds.max_nodes);
@@ -135,8 +155,8 @@ function graphBounds(f) {
   return out;
 }
 
-function windows(f) {
-  const step = f.kind === 'fixed' ? f.size : f.step;
+function windows(f: Window) {
+  const step = f.kind === 'fixed' ? f.size : f.step!;
   const last = Math.floor((f.time - f.offset) / step);
   const first = Math.floor((f.time - f.offset - f.size) / step) + 1;
   const result = [];
@@ -147,8 +167,8 @@ function windows(f) {
   return result;
 }
 
-function watermark(f) {
-  let maximum;
+function watermark(f: Watermark) {
+  let maximum: number | undefined;
   const result = [];
   for (const time of f.times) {
     maximum = maximum === undefined ? time : Math.max(maximum, time);
@@ -160,7 +180,7 @@ function watermark(f) {
   return result;
 }
 
-function property(left, right, strategy) {
+function property(left: GraphValue, right: GraphValue, strategy: Strategy) {
   if (strategy === 'exact_equal') {
     if (canonicalText(left) !== canonicalText(right)) fail('Conflict');
     return left;
@@ -169,10 +189,10 @@ function property(left, right, strategy) {
   if (strategy.startsWith('number_')) {
     assert.equal(typeof left, 'number'); assert.equal(typeof right, 'number');
     const operations = {
-      number_sum: () => left + right, number_mean: () => pairwiseMean(left, right),
-      number_min: () => Math.min(left, right), number_max: () => Math.max(left, right),
+      number_sum: () => (left as number) + (right as number), number_mean: () => pairwiseMean(left as number, right as number),
+      number_min: () => Math.min(left as number, right as number), number_max: () => Math.max(left as number, right as number),
     };
-    return zero(finite(operations[strategy]()));
+    return zero(finite(operations[strategy as NumericStrategy]()));
   }
   assert.ok(Array.isArray(left) && Array.isArray(right));
   // This fixture subset uses only string members; it does not implement the
@@ -183,8 +203,8 @@ function property(left, right, strategy) {
   return [...new Set(values)].sort();
 }
 
-function graph(f) {
-  const result = Object.create(null);
+function graph(f: Graph) {
+  const result: Record<string, Record<string, GraphValue>> = Object.create(null);
   const names = f.op === 'union' ? new Set([...Object.keys(f.left), ...Object.keys(f.right)]) : new Set(Object.keys(f.left));
   for (const id of names) {
     const l = Object.hasOwn(f.left, id), r = Object.hasOwn(f.right, id);
@@ -203,7 +223,7 @@ function graph(f) {
 test('pure operation fixtures have the current version and distinct case identities', () => {
   assert.equal(corpus.version, 'actql-pure-operation-law-vectors/0.1');
   assert.equal(corpus.status, 'specification-only');
-  const cases = ['vectors', 'rankings', 'windows', 'watermarks', 'graphs', 'endpoint_closure', 'graph_bounds'].flatMap(k => {
+  const cases = (['vectors', 'rankings', 'windows', 'watermarks', 'graphs', 'endpoint_closure', 'graph_bounds'] as const).flatMap<Example>(k => {
     assert.ok(Array.isArray(corpus[k]) && corpus[k].length > 0);
     return corpus[k];
   });
@@ -212,11 +232,11 @@ test('pure operation fixtures have the current version and distinct case identit
 
 test('pure operation mean oracle agrees with independent binary64 vectors', () => {
   const view = new DataView(new ArrayBuffer(8));
-  const decode = hex => {
+  const decode = (hex: string) => {
     view.setBigUint64(0, BigInt(`0x${hex}`), false);
     return view.getFloat64(0, false);
   };
-  const encode = value => {
+  const encode = (value: number) => {
     view.setFloat64(0, value, false);
     return view.getBigUint64(0, false).toString(16).padStart(16, '0');
   };
@@ -233,11 +253,13 @@ test('pure operation mean oracle agrees with independent binary64 vectors', () =
   }
 });
 
+// Each oracle and its input array are selected through the same corpus key.
 for (const [key, oracle] of Object.entries({vectors:vector, rankings:ranking, windows, watermarks:watermark, graphs:graph, graph_bounds:graphBounds,
   endpoint_closure:f => f.remaining_edges.filter(([a, b]) => f.retained_nodes.includes(a) && f.retained_nodes.includes(b)),
-})) for (const f of corpus[key]) {
+} satisfies {[Key in keyof Inputs]: (fixture: Inputs[Key]) => unknown}) as
+  [keyof Inputs, (fixture: Inputs[keyof Inputs]) => unknown][]) for (const f of corpus[key]) {
   test(f.name, () => {
-    if (f.error) assert.throws(() => oracle(f), error => error.message === f.error);
+    if (f.error) assert.throws(() => oracle(f), error => (error as Error).message === f.error);
     else assert.deepEqual(oracle(f), f.expected);
   });
 }

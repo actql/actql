@@ -4,10 +4,45 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
 import {rowKernelSchemas} from './ordered-derive-contract.mjs';
-const read=p=>JSON.parse(readFileSync(p,'utf8'));
-const v=read('portability/corpus/ordered-derive-fragment.json');
-const aoa=read('spec/contracts/actql-aoa.json');
-const expressions=read('spec/contracts/actql-expressions.json');
+type Shape = {
+  $ref?: string; oneOf?: Shape[]; const?: unknown; type?: string; required?: string[];
+  properties?: Record<string, Shape>; additionalProperties?: boolean | Shape;
+  minItems?: number; maxItems?: number; items?: Shape; minLength?: number;
+  pattern?: string; minimum?: number; maximum?: number;
+};
+type StepConstraints = {steps: {items: {allOf: {if: unknown; then: {properties: {params: Shape & {oneOf: Shape[]}}}}[]}}};
+type Expressions = {schemas: {
+  expression: {$id: string}; expression_node: {$id: string};
+  fragment: {properties: {
+    request: {properties: {pipeline: {properties: StepConstraints}}};
+    graph: {properties: StepConstraints};
+  }};
+}};
+type GraphStep = {id: string; in: string[]; params: {
+  row_kernel_contract_cid: string;
+  bindings: [{expr: {body: [unknown, {body: number}]}}, ...{expr: unknown}[]];
+  references?: unknown[];
+}};
+type Preimage<Id extends string> = {id: Id; canonical: string; cid: string};
+type Fragment = {
+  extension_cid: string; expected_aoa_node_cid: string;
+  source_step: {params: {bindings: [{expr: {add: unknown[]}}, ...{expr: unknown}[]]}};
+  graph_step: GraphStep;
+  parameters: {delta: {value: number}};
+  preimages: Preimage<'source_step' | 'graph_step'>[];
+};
+type Identity = {bytes: number} & (
+  (Preimage<'ordered_node'> & {body: {params: {row_kernel_contract_cid: string}}})
+  | (Preimage<'complete_fragment'> & {body: {
+    request: {pipeline: {steps: {params: {exprs: {x: {literal: number}}}}[]}};
+    roots: {contract: unknown}[];
+  }})
+);
+
+const read=<Value,>(p: string): Value=>JSON.parse(readFileSync(p,'utf8'));
+const v=read<Fragment>('portability/corpus/ordered-derive-fragment.json');
+const aoa=read<{execution_contracts: Record<string, unknown>}>('spec/contracts/actql-aoa.json');
+const expressions=read<Expressions>('spec/contracts/actql-expressions.json');
 const schemas=rowKernelSchemas(read('spec/contracts/actql-protocol-schemas.json'));
 
 test('fixed source and graph preimages bind distinct exact step bodies',()=>{
@@ -21,7 +56,7 @@ test('fixed source and graph preimages bind distinct exact step bodies',()=>{
     assert.equal(machineCid(v[p.id]),p.cid);
   }
   assert.notEqual(v.preimages[0].cid,v.preimages[1].cid);
-  assert.equal(v.expected_aoa_node_cid,v.preimages.find(p=>p.id==='graph_step').cid);
+  assert.equal(v.expected_aoa_node_cid,v.preimages.find(p=>p.id==='graph_step')!.cid);
   assert.deepEqual(v.source_step.params.bindings[0].expr.add[1],{$param:'delta'});
   assert.deepEqual(v.graph_step.params.bindings[0].expr.body[1],{op:'literal',body:v.parameters.delta.value});
   assert.deepEqual(v.graph_step.params.references,[
@@ -31,21 +66,21 @@ test('fixed source and graph preimages bind distinct exact step bodies',()=>{
 });
 
 test('node identity includes names, edges and full params but not external evidence',()=>{
-  const expected=v.preimages.find(p=>p.id==='graph_step').cid;
+  const expected=v.preimages.find(p=>p.id==='graph_step')!.cid;
   for(const mutate of [
     s=>{s.id='other';},s=>{s.in=['previous'];},
     s=>{s.params.row_kernel_contract_cid='sha256:'+'0'.repeat(64);},
-    s=>{s.params.bindings.reverse();},s=>{s.params.references.reverse();},
+    s=>{s.params.bindings.reverse();},s=>{s.params.references!.reverse();},
     s=>{s.params.bindings[0].expr.body[1].body=2;},
     s=>{delete s.params.references;},
-  ]){const changed=structuredClone(v.graph_step);mutate(changed);assert.notEqual(machineCid(changed),expected);}
+  ] satisfies ((step: GraphStep) => void)[]){const changed=structuredClone(v.graph_step);mutate(changed);assert.notEqual(machineCid(changed),expected);}
   for(const wrong of [v.source_step,v.graph_step.params,{node:v.graph_step},
     {version:'aoa-pipeline/0.1',sources:{input:{sort:'relation'}},steps:[v.graph_step],output:'derive'},
     {...v.graph_step,input_sorts:['relation'],output_sort:'relation'}])assert.notEqual(machineCid(wrong),expected);
-  const reverseKeys=x=>Array.isArray(x)?x.map(reverseKeys):x&&typeof x==='object'?
+  const reverseKeys=(x: unknown): unknown=>Array.isArray(x)?x.map(reverseKeys):x&&typeof x==='object'?
     Object.fromEntries(Object.entries(x).reverse().map(([k,y])=>[k,reverseKeys(y)])):x;
   assert.equal(machineCid(reverseKeys(v.graph_step)),expected);
-  const fragment={graph:{steps:[v.graph_step]},row_kernel_evidence:{bindings:[]}};
+  const fragment={graph:{steps:[v.graph_step]},row_kernel_evidence:{bindings:[] as {aoa_node_cid: string}[]}};
   const before=machineCid(fragment);
   fragment.row_kernel_evidence.bindings.push({aoa_node_cid:expected});
   assert.equal(machineCid(fragment.graph.steps[0]),expected);
@@ -54,18 +89,19 @@ test('node identity includes names, edges and full params but not external evide
 
 // Shape interpreter for these new schema surfaces only. External expressions
 // use an explicit fixture subset; this is not a general expression checker.
-function expression(x,machine){
+function expression(x: unknown,machine: boolean): boolean{
   if(!x||typeof x!=='object'||Array.isArray(x))return false;
   const keys=Object.keys(x);
   if(machine&&!(keys.length===2&&keys.includes('op')&&keys.includes('body')))return false;
   if(!machine&&keys.length!==1)return false;
-  const op=machine?x.op:keys[0],body=machine?x.body:x[op];
+  const op=machine?(x as {op: string}).op:keys[0],
+    body=machine?(x as {body: unknown}).body:(x as Record<string, unknown>)[op];
   if(op==='literal')return true; // opaque business data, never traversed
   if(op==='field'||(!machine&&op==='$param'))return typeof body==='string';
   if(op==='add')return Array.isArray(body)&&body.length===2&&body.every(e=>expression(e,machine));
   return false;
 }
-function valid(s,x){
+function valid(s: Shape,x: unknown): boolean{
   for(const k of Object.keys(s))assert.ok(['$id','$schema','$ref','type','const','properties','required','additionalProperties','items','minItems','maxItems','minLength','pattern','minimum','maximum','oneOf'].includes(k),k);
   if(s.$ref===expressions.schemas.expression.$id)return expression(x,false);
   if(s.$ref===expressions.schemas.expression_node.$id)return expression(x,true);
@@ -76,12 +112,12 @@ function valid(s,x){
   if(s.type==='object'){
     if(x===null||typeof x!=='object'||Array.isArray(x))return false;
     if((s.required??[]).some(k=>!Object.hasOwn(x,k)))return false;
-    return Object.entries(x).every(([k,y])=>Object.hasOwn(s.properties??{},k)?valid(s.properties[k],y):
+    return Object.entries(x).every(([k,y])=>Object.hasOwn(s.properties??{},k)?valid(s.properties![k],y):
       s.additionalProperties===false?false:typeof s.additionalProperties==='object'?valid(s.additionalProperties,y):true);
   }
-  if(s.type==='array')return Array.isArray(x)&&x.length>=(s.minItems??0)&&x.length<=(s.maxItems??Infinity)&&x.every(y=>valid(s.items,y));
+  if(s.type==='array')return Array.isArray(x)&&x.length>=(s.minItems??0)&&x.length<=(s.maxItems??Infinity)&&x.every(y=>valid(s.items!,y));
   if(s.type==='string')return typeof x==='string'&&x.length>=(s.minLength??0)&&(!s.pattern||new RegExp(s.pattern).test(x));
-  if(s.type==='integer')return Number.isSafeInteger(x)&&x>=(s.minimum??-Infinity)&&x<=(s.maximum??Infinity);
+  if(s.type==='integer')return Number.isSafeInteger(x)&&(x as number)>=(s.minimum??-Infinity)&&(x as number)<=(s.maximum??Infinity);
   return true;
 }
 
@@ -111,7 +147,7 @@ test('source and graph schemas distinguish closed params without changing legacy
 // Fixed bodies are independently assembled from authored row operations and
 // capacity forms, then hashed with Python json/hashlib. No runtime output is
 // used to manufacture these expected identities.
-const identities = read('portability/corpus/expression-fragment-identities.json');
+const identities = read<{cases: Identity[]}>('portability/corpus/expression-fragment-identities.json');
 for (const fixture of identities.cases) test(`independent ${fixture.id} retains its complete fixed identity`, () => {
   assert.deepEqual(JSON.parse(fixture.canonical), fixture.body);
   assert.equal(Buffer.byteLength(fixture.canonical), fixture.bytes);

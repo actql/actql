@@ -3,10 +3,17 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
 import {rowKernelSchemas, prepareExpressionEvidence, executionContract, checkOrderedRegistration} from './ordered-derive-contract.mjs';
-const read = p => JSON.parse(readFileSync(p,'utf8'));
-const expressions=read('spec/contracts/actql-expressions.json');
-const stages=read('spec/contracts/actql-stage-contracts.json');
-const protocol=read('spec/contracts/actql-protocol-schemas.json');
+type Registration = Parameters<typeof checkOrderedRegistration>;
+type Owner = Registration[0] & {execution_contracts: {'REL.derive.ordered': ReturnType<typeof executionContract>}};
+type Registry = Registration[4];
+type Shape = {type?: string; oneOf?: Shape[]; const?: unknown; minimum?: number; maximum?: number;
+  minLength?: number; pattern?: string; required?: string[]; properties?: Record<string, Shape>;
+  additionalProperties?: boolean};
+
+const read = <Value,>(p: string): Value => JSON.parse(readFileSync(p,'utf8'));
+const expressions=read<Registration[1]>('spec/contracts/actql-expressions.json');
+const stages=read<Registration[2]>('spec/contracts/actql-stage-contracts.json');
+const protocol=read<Registration[3]>('spec/contracts/actql-protocol-schemas.json');
 
 test('candidate ordered params are closed, nonempty and do not redefine expression nodes', () => {
   const {params}=rowKernelSchemas(protocol);
@@ -36,14 +43,14 @@ test('candidate evidence augments but does not replace the existing fragment and
   const {row_kernel_evidence:existing,...originalProperties}=expressions.schemas.fragment.properties;
   assert.deepEqual(rest,originalProperties);
   assert.deepEqual(prepared.schemas.fragment.required,expressions.schemas.fragment.required);
-  assert.deepEqual(evidence.properties.bindings.items,stages.schemas.derive_binding);
-  assert.equal(evidence.additionalProperties,false);
-  assert.deepEqual(evidence.required,['bindings','contexts','limits','shapes']);
+  assert.deepEqual(evidence!.properties.bindings.items,stages.schemas.derive_binding);
+  assert.equal(evidence!.additionalProperties,false);
+  assert.deepEqual(evidence!.required,['bindings','contexts','limits','shapes']);
 });
 
 test('candidate limits distinguish logical bytes and work and permit exact zero ceilings', () => {
   const {limits}=rowKernelSchemas(protocol);
-  for (const k of ['max_input_rows','max_value_bytes','max_live_value_bytes','max_work']) {
+  for (const k of ['max_input_rows','max_value_bytes','max_live_value_bytes','max_work'] as const) {
     assert.deepEqual(limits.properties[k],{type:'integer',minimum:0,maximum:9007199254740991});
   }
   const body=executionContract(prepareExpressionEvidence(structuredClone(expressions),stages,protocol),stages,protocol);
@@ -56,13 +63,13 @@ test('candidate limits distinguish logical bytes and work and permit exact zero 
 });
 
 test('selected row kernel resolves exact bodies and rejects incompatible pins', () => {
-  const aoa=read('spec/contracts/actql-aoa.json'),registry=read(aoa.pipeline_registry_file);
+  const aoa=read<Owner>('spec/contracts/actql-aoa.json'),registry=read<Registry>(aoa.pipeline_registry_file);
   checkOrderedRegistration(aoa,expressions,stages,protocol,registry);
   for(const mutate of [
     r=>{delete r['REL.derive'].execution_extensions;},
-    r=>{r['REL.derive'].execution_extensions.ordered_bindings.cid='sha256:'+'0'.repeat(64);},
-    r=>{r['REL.derive'].execution_extensions.ordered_bindings.pointer='/execution_contracts/REL.values';},
-  ]) {
+    r=>{r['REL.derive'].execution_extensions!.ordered_bindings.cid='sha256:'+'0'.repeat(64);},
+    r=>{r['REL.derive'].execution_extensions!.ordered_bindings.pointer='/execution_contracts/REL.values';},
+  ] satisfies ((registry: Registry) => void)[]) {
     const bad=structuredClone(registry);mutate(bad);
     assert.throws(()=>checkOrderedRegistration(aoa,expressions,stages,protocol,bad));
   }
@@ -71,11 +78,11 @@ test('selected row kernel resolves exact bodies and rejects incompatible pins', 
 });
 
 test('historical fragment registry retains its identity but cannot select ordered bindings', () => {
-  const historical=read('portability/fixtures/pipeline-registry-fragment.json');
+  const historical=read<Registry & {'ACTQL.expression_fragment/0.1': object}>('portability/fixtures/pipeline-registry-fragment.json');
   assert.equal(machineCid(historical),'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
   assert.ok(historical['ACTQL.expression_fragment/0.1']);
   assert.equal(historical['REL.derive'].execution_extensions,undefined);
-  const aoa=read('spec/contracts/actql-aoa.json');
+  const aoa=read<Owner>('spec/contracts/actql-aoa.json');
   assert.throws(()=>checkOrderedRegistration(aoa,expressions,stages,protocol,historical));
   aoa.pipeline_registry_cid=machineCid(historical);
   assert.throws(()=>checkOrderedRegistration(aoa,expressions,stages,protocol,historical));
@@ -83,17 +90,17 @@ test('historical fragment registry retains its identity but cannot select ordere
 
 // A deliberately limited schema interpreter for the new limits and reference
 // alternatives. Unrecognized keywords fail the test instead of being ignored.
-function validShape(s,v) {
+function validShape(s: Shape,v: unknown): boolean {
   const keywords=['$id','type','properties','additionalProperties','required','const','minimum','maximum','pattern','minLength','oneOf'];
   for(const key of Object.keys(s))assert.ok(keywords.includes(key),key);
   if(s.oneOf)return s.oneOf.filter(x=>validShape(x,v)).length===1;
   if(Object.hasOwn(s,'const')&&v!==s.const)return false;
-  if(s.type==='integer')return Number.isSafeInteger(v)&&v>=s.minimum&&v<=s.maximum;
+  if(s.type==='integer')return Number.isSafeInteger(v)&&(v as number)>=s.minimum!&&(v as number)<=s.maximum!;
   if(s.type==='string')return typeof v==='string'&&v.length>=(s.minLength??0)&&(!s.pattern||new RegExp(s.pattern).test(v));
   if(s.type==='object'){
     if(v===null||typeof v!=='object'||Array.isArray(v))return false;
-    if(s.required.some(k=>!Object.hasOwn(v,k)))return false;
-    return Object.entries(v).every(([k,x])=>Object.hasOwn(s.properties,k)?validShape(s.properties[k],x):s.additionalProperties!==false);
+    if(s.required!.some(k=>!Object.hasOwn(v,k)))return false;
+    return Object.entries(v).every(([k,x])=>Object.hasOwn(s.properties!,k)?validShape(s.properties![k],x):s.additionalProperties!==false);
   }
   return true;
 }
@@ -103,7 +110,7 @@ test('resource limit schema accepts exact endpoints and rejects missing or malfo
   const base={version:'actql-derive-row-limits/0.1',self_cid:'sha256:'+'a'.repeat(64),
     max_input_rows:0,max_value_bytes:0,max_live_value_bytes:0,max_work:0};
   assert.equal(validShape(schema,base),true);
-  for(const key of schema.required){const bad={...base};delete bad[key];assert.equal(validShape(schema,bad),false,key);}
+  for(const key of schema.required){const bad: Partial<typeof base>={...base};delete bad[key as keyof typeof bad];assert.equal(validShape(schema,bad),false,key);}
   for(const key of ['max_input_rows','max_value_bytes','max_live_value_bytes','max_work']){
     for(const value of [0,1,9007199254740991])assert.equal(validShape(schema,{...base,[key]:value}),true);
     for(const value of [-1,0.5,9007199254740992,'1',null])assert.equal(validShape(schema,{...base,[key]:value}),false);

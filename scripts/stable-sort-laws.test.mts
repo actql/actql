@@ -4,8 +4,24 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {canonicalText} from './check-canonical-json.mjs';
 import {checkDependencies,loadDependencies} from './check-aoa-versions.mjs';
-const read=p=>JSON.parse(readFileSync(p,'utf8'));
-const corpus=read('portability/corpus/stable-sort-laws.json');
+type Corpus = {
+  cases: {
+    id: string; rows: Record<string, number | null>[]; keys: {field: string; dir: string; nulls?: string}[];
+    expected_indices: number[]; cid_order_must_differ?: boolean; expected_value_cids?: string[];
+    expected_cid_indices?: number[];
+  }[];
+  evidence_cases: {
+    id: string; authored_keys: string[]; eligible_candidate: string[] | null;
+    completed_keys: string[]; completion_record: string[]; prior_total: boolean;
+    tie_strategy: string; new_order_evidence: boolean;
+  }[];
+};
+type PrimitiveLaws = {operators: {'REL.orderByStable': {
+  ordering_law: string; proof_status: string; theorem_root?: string; conformance_cases?: unknown;
+  reference_evidence: {lean: {scope: string}}; fixed_vectors: string;
+}}};
+const read=<Value,>(p: string): Value=>JSON.parse(readFileSync(p,'utf8'));
+const corpus=read<Corpus>('portability/corpus/stable-sort-laws.json');
 // Independent numeric/null fixture oracle, not a product evaluator or backend
 // conformance test. Explicit original occurrence indices avoid sort stability
 // assumptions in the host implementation and retain duplicate row occurrences.
@@ -43,7 +59,7 @@ test('shared law pin and limited proof claims match stable tie semantics',()=>{
   const stale=loadDependencies();
   stale.contract.rela_primitive_law_manifest_cid='sha256:a2a14eb0cca10f73ad577406a124f388cdde295cb6263e645675e967bcfa8b4d';
   assert.throws(()=>checkDependencies(stale),/primitive law body CID/);
-  const law=read('spec/dependencies/aoa-rela-primitive-laws.json').operators['REL.orderByStable'];
+  const law=read<PrimitiveLaws>('spec/dependencies/aoa-rela-primitive-laws.json').operators['REL.orderByStable'];
   assert.match(law.ordering_law,/relative input order/);
   assert.match(law.ordering_law,/no implicit valueCID/);
   assert.equal(law.proof_status,'specification-only');

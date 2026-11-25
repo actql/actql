@@ -17,12 +17,12 @@ test('legacy contract and law versions are rejected while external versions are 
 });
 
 test('missing manifests and modified preimages cannot keep their old pins', () => {
-  for (const key of ['kernel', 'pipeline', 'scalar', 'primitive', 'vector', 'graph', 'graphIdentity', 'graph']) {
+  for (const key of ['kernel', 'pipeline', 'scalar', 'primitive', 'vector', 'graph', 'graphIdentity', 'graph'] as const) {
     const missing = loadDependencies();
-    delete missing.bodies[key];
+    delete (missing.bodies as Partial<typeof missing.bodies>)[key];
     assert.throws(() => checkDependencies(missing));
     const changed = loadDependencies();
-    changed.bodies[key].unexpected = true;
+    (changed.bodies[key] as typeof changed.bodies[typeof key] & {unexpected?: boolean}).unexpected = true;
     assert.throws(() => checkDependencies(changed));
   }
 });
@@ -54,7 +54,7 @@ test('old String law pins cannot admit current bodies', () => {
   for (const [member, old] of [
     ['kernel_law_manifest_cid', 'sha256:5a79d6cb9b012d0c3871c72e496eec7183948ac81d8ebff91b4f7ee6a59ae19d'],
     ['rela_scalar_law_manifest_cid', 'sha256:a866ed224e15da7e25b45d4e166b25b6bd6749a31bd7dfacb185391ad3f80122'],
-  ]) {
+  ] as const) {
     const dependencies = loadDependencies();
     dependencies.contract[member] = old;
     assert.throws(() => checkDependencies(dependencies), /law body CID/);

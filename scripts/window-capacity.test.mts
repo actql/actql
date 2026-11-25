@@ -2,10 +2,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 
-const read = p => JSON.parse(readFileSync(p, 'utf8'));
-const corpus = read('portability/corpus/window-capacity.json');
+type CapacityCase = {
+  name: string; carrier: 'relation' | 'events'; times: number[]; size: number;
+  input_bound: number | null; relation_host: number; events_host: number;
+  factor: number; program_bound: number | null; maximum: number; memberships: number; accepted: boolean;
+} & ({kind: 'fixed'} | {kind: 'sliding'; step: number});
+type HostPolicy = {host_witness_laws: Record<string, unknown>; schema: {required: string[]}};
+
+const read = <T,>(p: string): T => JSON.parse(readFileSync(p, 'utf8'));
+const corpus = read<{cases: CapacityCase[]}>('portability/corpus/window-capacity.json');
 // Independent finite interval enumeration; no compiler or lowerer output.
-function count(c) {
+function count(c: CapacityCase) {
   const stride = c.kind === 'fixed' ? c.size : c.step;
   let n = 0;
   for (const time of c.times) {
@@ -29,7 +36,7 @@ test('window output scopes count memberships and keep unknown inputs separate', 
   }
 });
 test('window consumers select existing row-unit Host laws without changing policy wire', () => {
-  const c = read('spec/contracts/actql-capacity-host-policy.json');
+  const c = read<HostPolicy>('spec/contracts/actql-capacity-host-policy.json');
   assert.deepEqual(c.host_witness_laws.max_relation_output_rows, {unit:'rows',law_id:'actql.host.relation-output'});
   assert.deepEqual(c.host_witness_laws.max_temporal_output_rows, {unit:'rows',law_id:'actql.host.temporal-output'});
   for (const field of ['max_relation_output_rows','max_temporal_output_rows']) assert(c.schema.required.includes(field));

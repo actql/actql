@@ -3,13 +3,28 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {productionPackageImports, productionDependencyClosure} from './source-dependency-closure.mjs';
 
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
-const contract = read('spec/contracts/actql-aoa.json');
-const registry = read(contract.pipeline_registry_file);
-const coverage = read(
+type Contract = {
+  pipeline_registry_file: string;
+  local_family_execution_profile: {
+    version: string; registry_operations: string[]; input_contract: unknown;
+    parameter_contract: unknown; required_obligations: string[]; law_manifest_cids: unknown;
+  };
+  target_registry_requirements: Record<string, unknown>;
+  pipeline_law_manifest_cid: string;
+  rela_primitive_law_manifest_cid: string;
+  veca_numeric_law_manifest_cid: string;
+  sga_structural_law_manifest_cid: string;
+  sga_identity_law_manifest_cid: string;
+};
+
+const read = <Value,>(path: string): Value => JSON.parse(readFileSync(path, 'utf8'));
+const contract = read<Contract>('spec/contracts/actql-aoa.json');
+const registry = read<Record<string, unknown>>(contract.pipeline_registry_file);
+const coverage = read<{operations: {family: string; canonical: string[]}[]}>(
   'docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json',
 );
-const vectors = read('spec/operation-integration-vectors.json');
+const vectors = read<{wiring: {operation: string; operation_base: string; expected: {in: string[]; id: string}[]}[]}>(
+  'spec/operation-integration-vectors.json');
 const language = readFileSync('docs/spec/language.md', 'utf8');
 
 const expectedOperations = [
@@ -190,7 +205,7 @@ test('family artifact closure follows production edges, not whitebox provider fi
     ['local_veca_provider', 'import { "actql/actql/local_veca" }'],
     ['local_veca', ''],
   ]);
-  const closure = () => productionDependencyClosure('entry', name => sources.get(name));
+  const closure = () => productionDependencyClosure('entry', name => sources.get(name)!);
   assert.deepEqual(closure(), ['host']);
   sources.set('host', 'import { "actql/actql/local_veca_provider" @nearest }');
   assert.deepEqual(closure(), ['host', 'local_veca_provider', 'local_veca']);

@@ -3,16 +3,27 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 
+type GraphProtocol<Definitions> = {
+  schemas: {canonical_value_contract: {$defs: Definitions}};
+};
+type RegistrationOwner = {
+  execution_contracts: Record<string, unknown>;
+  graph_law_manifest_cid: string;
+  target_registry_requirements: Record<string, unknown>;
+  pipeline_registry_file: string;
+  pipeline_registry_cid: string;
+};
+
 export const operation = 'BRIDGE.rows.to_graph';
 export const pointer = `/execution_contracts/${operation}`;
 const ownerPath = 'spec/contracts/actql-aoa.json';
 const registryPath = 'spec/dependencies/aoa-pipeline-registry.json';
 const lawPath = 'spec/dependencies/actql-graph-laws.json';
 const valuePath = 'spec/contracts/actql-protocol-schemas.json';
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
-const closed = properties => ({type: 'object', additionalProperties: false,
+const read = <Value,>(path: string): Value => JSON.parse(readFileSync(path, 'utf8'));
+const closed = <Properties extends Record<string, unknown>>(properties: Properties) => ({type: 'object', additionalProperties: false,
   required: Object.keys(properties), properties});
-const array = items => ({type: 'array', items});
+const array = <Item,>(items: Item) => ({type: 'array', items});
 const name = {type: 'string', minLength: 1};
 const index = {type: 'integer', minimum: 0, maximum: 9007199254740991};
 const cid = {type: 'string', pattern: '^sha256:[a-f0-9]{64}$'};
@@ -20,12 +31,12 @@ const columns = {...array(index), minItems: 1, uniqueItems: true};
 const signature = () => ({finite_inputs: {repeated_input: 'relation', minimum_inputs: 0},
   output: 'graph'});
 
-export function executionContract(law, protocol) {
+export function executionContract<Definitions>(law: unknown, protocol: GraphProtocol<Definitions>) {
   const lawCid = machineCid(law);
   const value = {$ref: '#/$defs/value_contract'};
   const definition = {
     key_columns: {...array({type: ['string', 'null'], minLength: 1}), minItems: 1},
-    key_contracts: {...array({allOf: [value, {properties: {nullable: {const: false}}}]}), minItems: 1},
+    key_contracts: {...array({allOf: [value, {properties: {nullable: {const: false}}}] as const}), minItems: 1},
     labels: {type: 'object', additionalProperties: {...array(name), uniqueItems: true}},
     name,
     properties: {type: 'object', additionalProperties: value},
@@ -76,7 +87,9 @@ export function executionContract(law, protocol) {
   };
 }
 
-export function checkRegistration(aoa, law, protocol, registry) {
+export function checkRegistration<Definitions>(
+  aoa: RegistrationOwner, law: unknown, protocol: GraphProtocol<Definitions>, registry: Record<string, unknown>,
+) {
   const body = executionContract(law, protocol);
   const ref = {pointer, cid: machineCid(body)};
   assert.deepEqual(aoa.execution_contracts[operation], body);
@@ -89,7 +102,8 @@ export function checkRegistration(aoa, law, protocol, registry) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const aoa = read(ownerPath), law = read(lawPath), protocol = read(valuePath), registry = read(registryPath);
+  const aoa = read<RegistrationOwner>(ownerPath), law = read<unknown>(lawPath),
+    protocol = read<GraphProtocol<Record<string, unknown>>>(valuePath), registry = read<Record<string, unknown>>(registryPath);
   if (process.argv.includes('--write')) {
     const body = executionContract(law, protocol), ref = {pointer, cid: machineCid(body)};
     aoa.execution_contracts[operation] = body;
