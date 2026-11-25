@@ -296,17 +296,7 @@ fn LocalProjectPortableModel::checked_environment(
   local_project_model_fund_extent(
     @run_host.client_check_environment_wrapper_construction_extent(true),
   )
-  guard @decode.open_object(@compiler_environment.host_policy(wire))
-    is Ok(policy) &&
-    @run_host.admit_client_check_environment_from_wire_with_numeric_profile_cid(
-      wire,
-      {
-        text_time: @decode.lookup(policy, "text_time_evaluation") is Some(_),
-        veca: false,
-      },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-      @numeric.cid(@numeric.builtin_profile()),
-    )
+  guard @run_host.admit_local_relation_check_environment_from_wire(wire)
     is Some(environment) else {
     stop("InvalidLocalCheckEnvironment")
   }

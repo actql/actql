@@ -71,6 +71,15 @@ pub fn admit_local_relation_check_environment(
     is Some(wire) else {
     return None
   }
+  admit_local_relation_check_environment_from_wire(wire)
+}
+
+///|
+/// Select the same installed Local relation profile on an already admitted
+/// environment. A funded projection keeps this exact wire and its policy.
+pub fn admit_local_relation_check_environment_from_wire(
+  wire : @environment.WireEnvironment,
+) -> @checked.CheckEnvironment? {
   let policy = @environment.host_policy(wire)
   guard @decode.object_length(policy) is Some(field_count) else { return None }
   let mut text_time = false
