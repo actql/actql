@@ -4,10 +4,18 @@ import { readFileSync } from 'node:fs';
 import { generate } from './check-relation-nest.mjs';
 import { checkNestSchemas } from './nest-schema.mjs';
 import { parameterPrograms } from './parameter-schema.mjs';
-const load = path => JSON.parse(readFileSync(path, 'utf8'));
+
+type Corpus = Parameters<typeof generate>[0];
+type MutableCorpus = Omit<Corpus, 'cases'> & {
+  cases: (Omit<Corpus['cases'][number], 'output' | 'issue'> & {
+    output?: Record<string, string>;
+    issue?: string;
+  })[];
+};
+const load = <Data,>(path: string): Data => JSON.parse(readFileSync(path, 'utf8'));
 
 test('nest projection schema and pins stay consistent in both Program copies', () => {
-  const registry = load('spec/contracts/actql-protocol-schemas.json');
+  const registry = load<Parameters<typeof checkNestSchemas>[0]>('spec/contracts/actql-protocol-schemas.json');
   checkNestSchemas(registry);
   for (const index of [0, 1]) {
     const r = structuredClone(registry);
@@ -17,9 +25,9 @@ test('nest projection schema and pins stay consistent in both Program copies', (
 });
 
 test('nest fixed expectations regenerate without evaluating product code', () => {
-  const c = load('portability/corpus/actql-relation-nest-v0.1.json');
+  const c = load<Corpus>('portability/corpus/actql-relation-nest-v0.1.json');
   assert.equal(generate(c), readFileSync('src/relation_nest/corpus.generated_test.mbt', 'utf8'));
-  for (const mutate of [c => delete c.cases[0].output, c => c.cases[0].issue = 'InvalidBody', c => c.cases.push(c.cases[0]), c => c.types = {}]) {
+  for (const mutate of [c => delete c.cases[0].output, c => c.cases[0].issue = 'InvalidBody', c => c.cases.push(c.cases[0]), c => c.types = {}] satisfies ((c: MutableCorpus) => unknown)[]) {
     const next = structuredClone(c); mutate(next); assert.throws(() => generate(next));
   }
 });

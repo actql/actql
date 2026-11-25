@@ -62378,7 +62378,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               },
               {
@@ -69655,7 +69655,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               },
               {

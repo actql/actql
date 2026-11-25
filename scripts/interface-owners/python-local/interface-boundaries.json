@@ -90197,6 +90197,8 @@
             "<module>",
             "advance_managed_task",
             "advance_managed_task_finalization",
+            "bind_managed_producer_handle",
+            "bound_managed_producer",
             "close_managed_task",
             "complete_managed_task",
             "feed_managed_task",
@@ -90210,8 +90212,7 @@
             "prepare_managed_task_finalization",
             "reserve_managed_task",
             "reserve_next_sdk_task",
-            "start_managed_task",
-            "stored_producer"
+            "start_managed_task"
           ],
           "exports": [],
           "attributes": {
@@ -90418,7 +90419,7 @@
           }
         }
       ],
-      "sha256": "74720506d098afa37293bdfba917c8754b10217f373352d5d118be4dab948334",
+      "sha256": "9ea03d90a849a03723a50937fa6ad9695019113c389ebe3ef0701746ceae7311",
       "exports": [],
       "operations": [
         {
@@ -90432,6 +90433,14 @@
         {
           "name": "advance_managed_task_lifecycle",
           "declaration": "advance_managed_task_lifecycle ( nonce : Int64 , handle : Int , quantum : Int , ) - > Int"
+        },
+        {
+          "name": "bind_managed_producer_handle",
+          "declaration": "bind_managed_producer_handle ( value : Instance , compute : Int , task : Int , ) - > Int"
+        },
+        {
+          "name": "bound_managed_producer",
+          "declaration": "bound_managed_producer ( value : Instance , compute : Int , handle : Int , ) - > StoredManagedTask ?"
         },
         {
           "name": "close_managed_task",
@@ -90488,10 +90497,6 @@
         {
           "name": "start_managed_task",
           "declaration": "start_managed_task ( nonce : Int64 , handle : Int ) - > Int"
-        },
-        {
-          "name": "stored_producer",
-          "declaration": "stored_producer ( value : Instance , compute : Int , task : Int , ) - > StoredManagedTask ?"
         }
       ]
     },

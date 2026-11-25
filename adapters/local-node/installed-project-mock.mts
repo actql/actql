@@ -35,7 +35,7 @@ type Phase = Parameters<typeof declaredProjectWritableRuntimeConstructionGeometr
 type Frame = Readonly<{
   physicalKind: 'declared-json-document'; project: ProjectOriginal; configuration: unknown; selection: unknown;
   connections: ConnectionOriginal; dataFile: string; dataPath: string; catalog: Catalog;
-  sources: Catalog['sources']; writable?: Catalog['writables'][number]; writables: Catalog['writables']; mappingWire?: string;
+  sources: Catalog['sources']; writables: Catalog['writables'];
 }>;
 type Preparation = Readonly<{
   originalsForRuntime(runtime: unknown): Frame;
@@ -215,23 +215,11 @@ async function prepareProjectMockDeclarations(moon: ProjectRuntime, project: Pro
       typeof profile?.mockLocatorsForRuntime !== 'function') {
     fail('InvalidInstalledMockPreparation');
   }
-  let ports: Readonly<{restore: ProjectRuntime['clientProgramRowSourceRestoreRelationDeclaration'];
-    wire: ProjectRuntime['clientProgramRowSourceDeclarationJson']; mapping: ProjectRuntime['clientProgramRelationUpdateMapping'];
-    count: ProjectRuntime['clientProjectConnectionsCount']; name: ProjectRuntime['clientProjectConnectionsName'];
-    connector: ProjectRuntime['clientProjectConnectionsConnector']}> | undefined = Object.freeze({restore: moon?.clientProgramRowSourceRestoreRelationDeclaration,
-    wire: moon?.clientProgramRowSourceDeclarationJson,
-    mapping: moon?.clientProgramRelationUpdateMapping,
-    count: moon?.clientProjectConnectionsCount, name: moon?.clientProjectConnectionsName,
-    connector: moon?.clientProjectConnectionsConnector});
-  if (!Object.values(ports).every(port => typeof port === 'function')) {
-    fail('InstalledProjectRuntimeUnavailable');
-  }
-  let profilePorts: Readonly<{originals: Profile['originalsForRuntime']; locators: Profile['mockLocatorsForRuntime']}> | undefined =
-    Object.freeze({originals: profile.originalsForRuntime,
-    locators: profile.mockLocatorsForRuntime});
-  const call = <Name extends keyof NonNullable<typeof ports>>(name: Name,
-    ...args: Parameters<NonNullable<NonNullable<typeof ports>[Name]>>) =>
-    Reflect.apply(ports![name]!, moon, args) as ReturnType<NonNullable<NonNullable<typeof ports>[Name]>>;
+  let countConnections = moon?.clientProjectConnectionsCount;
+  if (typeof countConnections !== 'function') fail('InstalledProjectRuntimeUnavailable');
+  let profilePorts: Readonly<{originals: Profile['originalsForRuntime'];
+    locators: Profile['mockLocatorsForRuntime']}> | undefined = Object.freeze({
+    originals: profile.originalsForRuntime, locators: profile.mockLocatorsForRuntime});
   const select = <Name extends keyof NonNullable<typeof profilePorts>>(name: Name) =>
     Reflect.apply(profilePorts![name], profile, [moon]) as ReturnType<NonNullable<typeof profilePorts>[Name]>;
   let selection: ReturnType<Profile['originalsForRuntime']> | undefined = select('originals');
@@ -259,8 +247,8 @@ async function prepareProjectMockDeclarations(moon: ProjectRuntime, project: Pro
   let connectionOriginal: ConnectionOriginal | undefined = connections.originalsForRuntime(moon);
   if (connectionOriginal.project !== projectOriginal ||
       connectionOriginal.connections === undefined) fail('InstalledMockConnectionsUnavailable');
-  const count = call('count', connectionOriginal.connections);
-  if (!Number.isSafeInteger(count) || count! < 0 || count! > 128) {
+  const count = Reflect.apply(countConnections, moon, [connectionOriginal.connections]);
+  if (!Number.isSafeInteger(count) || count < 0 || count > 128) {
     fail('InstalledMockConnectionCountUnavailable');
   }
   let catalog: Catalog | undefined = await loadCatalog(moon, {directory: project!.directory as string,
@@ -269,14 +257,12 @@ async function prepareProjectMockDeclarations(moon: ProjectRuntime, project: Pro
     assertCurrent: current, openFile, installationInventory});
   let sources: Catalog['sources'] | undefined = catalog.sources;
   let writables: Catalog['writables'] | undefined = catalog.writables;
-  let writable = writables.length === 1 ? writables[0] : undefined;
-  let mappingWire = writable?.write.mappingWire;
   current();
   let originals: Frame | undefined = Object.freeze({physicalKind: 'declared-json-document',
     project: projectOriginal!, selection: selection.selection,
     configuration: selection.configuration, connections: connectionOriginal,
     dataFile: locators.dataFile, dataPath: resolve(project!.directory as string, locators.dataFile),
-    sources, mappingWire, writable, writables, catalog});
+    sources, writables, catalog});
   let retired = false, view: Preparation;
   function same(runtime: unknown, receiver: unknown) {
     if (runtime !== moon || receiver !== view) fail('ForeignInstalledMockPreparation');
@@ -327,8 +313,8 @@ async function prepareProjectMockDeclarations(moon: ProjectRuntime, project: Pro
       // Managed references only, after the actual Source parent's close. This
       // cannot settle its FD, backing bytes, RowRuns or external cleanup ACKs.
       retired = true;
-      originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;
-      projectOriginal = selection = project = profile = profilePorts = ports = undefined;
+      originals = sources = writables = catalog = connections = connectionOriginal = undefined;
+      projectOriginal = selection = project = profile = profilePorts = countConnections = undefined;
       assertCurrent = openFile = undefined;
       installationInventory = undefined;
     },
@@ -960,8 +946,6 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     return Object.freeze({realizationKey: mockRealization, environmentWire, environmentOriginal,
       fileReadDeclarations: bundle.catalog.fileReadDeclarations,
       sources: Object.freeze(sources),
-      mockWritableSource: bundle.writable === undefined ? undefined
-        : sources[bundle.sources.indexOf(bundle.writable.source)],
       connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
       queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases)),
       admitsSource: (ref: string) => sources.some(source => source.admitsSource(ref)),

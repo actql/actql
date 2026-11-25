@@ -5,19 +5,35 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {nativeCheckReportRules} from './client-check-report-rules.mjs';
 
+import type {CheckReportRules} from './client-check-report-rules.mjs';
+import type {project} from './generate-client-publication-wire.mjs';
+
+export type ProjectedWireSchema = ReturnType<typeof project>;
+type Schemas = Readonly<Record<string, ProjectedWireSchema>>;
+type ResponseRule = Readonly<{matchConnection: readonly string[]; requireRequested: Readonly<Record<string, string>>}>;
+type ResponseRules = Readonly<Record<string, ResponseRule>>;
+type ResponseInput = Readonly<{response_rules?: ResponseRules; schemas: Schemas}>;
+type RunWaitRule = Readonly<{schema: 'run_state'; revisionField: 'revision'; stableStatuses: readonly string[]}>;
+type CorrelationRule = Readonly<{matchRequest: string; schemas: readonly string[]}>;
+type ProjectedCorrelationRule = CorrelationRule & Readonly<{expectedSchema: string}>;
+type RequestRules = Readonly<{run_wait: RunWaitRule; held: ProjectedCorrelationRule; request_lookup: ProjectedCorrelationRule}>;
+type RequestRuleEntry = ['run_wait', RunWaitRule] | ['held' | 'request_lookup', ProjectedCorrelationRule];
+type CheckPins = Readonly<{reason: string; outcome: string}>;
+
 // Compile the selected wire schemas to ordinary MoonBit predicates. This is a
 // build-time projection, not a schema interpreter in the Native executable.
-export function nativeClientWire(schemas, rules, requestRules, checkPins, reportRules) {
-  const functions = [];
-  const checkOutcomePredicates = new Set();
+export function nativeClientWire(schemas: Schemas, rules: ResponseRules, requestRules: RequestRules,
+  checkPins: CheckPins | undefined, reportRules: CheckReportRules) {
+  const functions: string[] = [];
+  const checkOutcomePredicates = new Set<string>();
   let serial = 0;
   let checkDepth = 0;
-  const emitted = new Map();
+  const emitted = new Map<string, string>();
   const quote = JSON.stringify;
-  function emit(schema, name = `wire_rule_${serial++}`) {
+  function emit(schema: ProjectedWireSchema, name = `wire_rule_${serial++}`): string {
     const key = (checkDepth > 0 ? 'check:' : 'wire:') + JSON.stringify(schema);
     if (emitted.has(key)) {
-      const existing = emitted.get(key);
+      const existing = emitted.get(key)!;
       if (arguments.length > 1 && name !== existing) {
         functions.push(`///|\nfn ${name}(value : Json) -> Bool {\n  ${existing}(value)\n}\n`);
         return name;
@@ -25,7 +41,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
       return existing;
     }
     emitted.set(key, name);
-    const lines = [];
+    const lines: string[] = [];
     if (schema.$ref !== undefined) {
       if (!['check_outcome', 'value_contract', 'run_state'].includes(schema.$ref) || Object.keys(schema).length !== 1 ||
           schemas[schema.$ref] === undefined) throw new Error('UnsupportedNativeWireReference');
@@ -57,9 +73,9 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     // Conditional diagnostic constraints apply only to their JSON type.
     // Keep the existing strict rejection for unrelated untyped wire rules.
     if (checkDepth > 0 && schema.type === undefined) {
-      const constrained = [['number', ['minimum', 'maximum'], 'Number(_, ..)'],
+      const constrained = ([['number', ['minimum', 'maximum'], 'Number(_, ..)'],
         ['string', ['minLength', 'maxLength', 'pattern'], 'String(_)'],
-        ['array', ['items', 'minItems', 'maxItems'], 'Array(_)']]
+        ['array', ['items', 'minItems', 'maxItems'], 'Array(_)']] as const)
         .filter(([, keys]) => keys.some(key => Object.hasOwn(schema, key)));
       if (constrained.length > 1) throw new Error('UnsupportedNativeWireMixedConstraint');
       if (constrained.length === 1) {
@@ -72,11 +88,11 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     // Refuse combinations this bounded compiler does not implement. The JS
     // projection can express untyped conditional constraints; silently dropping
     // them here would recreate the original cross-consumer rule divergence.
-    for (const [type, keys] of [
+    for (const [type, keys] of ([
       ['string', ['minLength', 'maxLength', 'pattern']],
       ['integer', ['minimum', 'maximum']],
       ['array', ['items', 'uniqueItems', 'minItems', 'maxItems']],
-    ]) if (keys.some(key => Object.hasOwn(schema, key)) && schema.type !== type && !(checkDepth > 0 && type === 'integer' && schema.type === 'number')) {
+    ] as const)) if (keys.some(key => Object.hasOwn(schema, key)) && schema.type !== type && !(checkDepth > 0 && type === 'integer' && schema.type === 'number')) {
       throw new Error(`UnsupportedNativeWireConstraintType:${type}`);
     }
     if (schema.allOf) for (const rule of schema.allOf) lines.push(`if !${emit(rule)}(value) { return false }`);
@@ -92,7 +108,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
         lines.push('if !(value is True || value is False) { return false }',
           `if !(${values.map(value => `(value is ${value ? 'True' : 'False'})`).join(' || ')}) { return false }`);
       } else if (values.every(value => typeof value === 'number' && Number.isFinite(value))) {
-        const number = value => String(value).match(/[.e]/iu) ? String(value) : String(value) + '.0';
+        const number = (value: unknown) => String(value).match(/[.e]/iu) ? String(value) : String(value) + '.0';
         lines.push('guard value is Number(number, ..) else { return false }',
           'if !wire_finite_number(number) { return false }',
           `if !(${values.map(value => `number == ${number(value)}`).join(' || ')}) { return false }`);
@@ -105,7 +121,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
       }
     }
     if (schema.type === 'string') {
-      const needsText = ['minLength', 'maxLength', 'pattern'].some(key =>
+      const needsText = (['minLength', 'maxLength', 'pattern'] as const).some(key =>
         schema[key] !== undefined);
       lines.push(`guard value is String(${needsText ? 'text' : '_'}) else { return false }`);
       if (schema.minLength !== undefined) lines.push(`if text.iter().count() < ${schema.minLength} { return false }`);
@@ -198,12 +214,12 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     functions.push(`///|\nfn wire_${name}_issue(value : Json, selected : Json) -> WireResponseIssue? {\n  ${lines.join('\n  ')}\n  None\n}\n`);
     if (name === 'admission') functions.push(`///|\nfn wire_${name}(value : Json, selected : Json) -> Bool {\n  wire_${name}_issue(value, selected) is None\n}\n`);
   }
-  for (const [name, rule] of Object.entries(requestRules)) {
+  for (const [name, rule] of Object.entries(requestRules) as RequestRuleEntry[]) {
     if (name === 'run_wait') continue;
-    const expected = emit(schemas[rule.expectedSchema].properties[rule.matchRequest]);
+    const expected = emit(schemas[rule.expectedSchema].properties![rule.matchRequest]);
     const alternatives = rule.schemas.map(schema => {
       const shape = `wire_${schema}_shape(value)`;
-      return Object.hasOwn(schemas[schema].properties, rule.matchRequest)
+      return Object.hasOwn(schemas[schema].properties!, rule.matchRequest)
         ? `(${shape} && fields.get(${quote(rule.matchRequest)}) == Some(Json::string(expected)))`
         : shape;
     });
@@ -220,16 +236,16 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
   // output. Any helper also reached by a production validator stays there.
   const observationSet = new Set(observationFunctions);
   const candidates = new Map(observationFunctions.map(source =>
-    [/\bfn (wire_[a-z0-9_]+)\(/u.exec(source)[1], source]));
+    [/\bfn (wire_[a-z0-9_]+)\(/u.exec(source)![1], source]));
   const production = functions.filter(source => !observationSet.has(source));
   const report = nativeCheckReportRules(reportRules);
-  const reached = new Set();
+  const reached = new Set<string>();
   const pending = [production.join('\n') + report];
   while (pending.length) {
-    for (const [, name] of pending.pop().matchAll(/\b(wire_[a-z0-9_]+)\(/gu)) {
+    for (const [, name] of pending.pop()!.matchAll(/\b(wire_[a-z0-9_]+)\(/gu)) {
       if (candidates.has(name) && !reached.has(name)) {
         reached.add(name);
-        pending.push(candidates.get(name));
+        pending.push(candidates.get(name)!);
       }
     }
   }
@@ -244,7 +260,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
 
 // All generated MoonBit wire/profile outputs share the existing bounded,
 // regular-file formatter invocation and its original cleanup path.
-export function formatMoonBit(input) {
+export function formatMoonBit(input: string) {
   const formatter = process.env.MOON_HOME ? join(process.env.MOON_HOME, 'bin', 'moonfmt') : 'moonfmt';
   // The generated body exceeds ordinary pipe capacity. Supply a finite file
   // as stdin so synchronous formatting needs no concurrent input-pipe writer.
@@ -254,7 +270,7 @@ export function formatMoonBit(input) {
   const parent = tmpdir();
   mkdirSync(parent, {recursive: true});
   const directory = mkdtempSync(join(parent, 'actql-native-wire-'));
-  let fd;
+  let fd: number | undefined;
   try {
     const path = join(directory, 'stdin.mbt');
     writeFileSync(path, input, {encoding: 'utf8', mode: 0o600, flag: 'wx'});
@@ -268,32 +284,33 @@ export function formatMoonBit(input) {
   }
 }
 
-export function responseRules(registry) {
+export function responseRules(registry: ResponseInput): ResponseRules {
   const rules = registry.response_rules;
   if (!rules || Object.keys(rules).sort().join() !== 'admission,profile') throw new Error('InvalidClientHostResponseRules');
   for (const [name, rule] of Object.entries(rules)) {
     if (Object.keys(rule).sort().join() !== 'matchConnection,requireRequested' ||
         !Array.isArray(rule.matchConnection) || new Set(rule.matchConnection).size !== rule.matchConnection.length ||
-        rule.matchConnection.some(field => !registry.schemas[name].properties[field] || !registry.schemas.connection.properties[field]) ||
-        Object.entries(rule.requireRequested).some(([field,value]) => !registry.schemas[name].properties[field]?.enum?.includes(value) || !registry.schemas.connection.properties[field]?.enum?.includes(value))) throw new Error('InvalidClientHostResponseRule');
+        rule.matchConnection.some(field => !registry.schemas[name].properties![field] || !registry.schemas.connection.properties![field]) ||
+        Object.entries(rule.requireRequested).some(([field,value]) => !registry.schemas[name].properties![field]?.enum?.includes(value) || !registry.schemas.connection.properties![field]?.enum?.includes(value))) throw new Error('InvalidClientHostResponseRule');
   }
   return rules;
 }
 
-export function jsResponseRules(rules) {
+export function jsResponseRules(rules: ResponseRules) {
   return Object.entries(rules).map(([name,rule]) => `export const valid${name === 'profile' ? 'Profile' : 'Admission'}Contract = (value, selected) =>\n  validConnectionShape(selected) && valid${name === 'profile' ? 'Profile' : 'Admission'}Shape(value)${rule.matchConnection.map(field => ` &&\n  value.${field} === selected.${field}`).join('')}${Object.entries(rule.requireRequested).map(([field,value]) => ` &&\n  !(selected.${field} === ${JSON.stringify(value)} && value.${field} !== ${JSON.stringify(value)})`).join('')};\n`).join('');
 }
 
 // The requested identity uses the same field contract as the reply. Every
 // correlated variant must require that field with an identical definition;
 // uncorrelated closed variants still validate the caller's expected identity.
-export function requestResponseRules(registry, schemas) {
+export function requestResponseRules(registry: Readonly<{request_response_rules?: unknown}>, schemas: Schemas): RequestRules {
   const rules = registry.request_response_rules;
-  const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-  const canonical = value => Array.isArray(value) ? value.map(canonical) :
+  const record = (value: unknown): value is Readonly<Record<string, unknown>> =>
+    value !== null && typeof value === 'object' && !Array.isArray(value);
+  const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) :
     record(value) ? Object.fromEntries(Object.keys(value).sort().map(key =>
       [key, canonical(value[key])])) : value;
-  const invalid = () => { throw new Error('InvalidClientHostRequestResponseRule'); };
+  const invalid: () => never = () => { throw new Error('InvalidClientHostRequestResponseRule'); };
   if (!record(rules) || Object.keys(rules).sort().join() !== 'held,request_lookup,run_wait') invalid();
   return Object.fromEntries(Object.entries(rules).map(([name, rule]) => {
     if (name === 'run_wait') {
@@ -301,8 +318,8 @@ export function requestResponseRules(registry, schemas) {
           rule.schema !== 'run_state' || rule.revisionField !== 'revision' ||
           !Array.isArray(rule.stableStatuses) || rule.stableStatuses.length === 0 ||
           new Set(rule.stableStatuses).size !== rule.stableStatuses.length ||
-          rule.stableStatuses.some(status => !schemas.run_state.properties.status.enum.includes(status)) ||
-          JSON.stringify(canonical(schemas.run_state.properties.revision)) !==
+          rule.stableStatuses.some(status => !schemas.run_state.properties!.status.enum!.includes(status)) ||
+          JSON.stringify(canonical(schemas.run_state.properties!.revision)) !==
             JSON.stringify(canonical({type:'integer',minimum:0,maximum:9007199254740991}))) invalid();
       return [name, rule];
     }
@@ -314,19 +331,19 @@ export function requestResponseRules(registry, schemas) {
           schemas[schema]?.type !== 'object' || !record(schemas[schema].properties) ||
           schemas[schema].additionalProperties !== false)) invalid();
     const correlated = rule.schemas.filter(schema =>
-      Object.hasOwn(schemas[schema].properties, rule.matchRequest));
+      Object.hasOwn(schemas[schema].properties!, rule.matchRequest as string));
     if (correlated.length === 0) invalid();
-    const field = schemas[correlated[0]].properties[rule.matchRequest];
+    const field = schemas[correlated[0]].properties![rule.matchRequest];
     if (field.type !== 'string' || correlated.some(schema =>
-      !schemas[schema].required?.includes(rule.matchRequest) ||
-      JSON.stringify(canonical(schemas[schema].properties[rule.matchRequest])) !==
+      !schemas[schema].required?.includes(rule.matchRequest as string) ||
+      JSON.stringify(canonical(schemas[schema].properties![rule.matchRequest as string])) !==
         JSON.stringify(canonical(field)))) invalid();
     return [name, {...rule, expectedSchema: correlated[0]}];
-  }));
+  })) as RequestRules;
 }
 
-export function jsRequestResponseRules(schemas, rules) {
-  return Object.entries(rules).map(([name, rule]) => {
+export function jsRequestResponseRules(schemas: Schemas, rules: RequestRules) {
+  return (Object.entries(rules) as RequestRuleEntry[]).map(([name, rule]) => {
     if (name === 'run_wait') {
       return `export const validRunWaitContract = (value, since) =>\n` +
         `  valid(value, schemas.${rule.schema}) &&\n` +
@@ -337,7 +354,7 @@ export function jsRequestResponseRules(schemas, rules) {
     const exportName = name === 'held' ? 'Held' : 'RequestLookup';
     const alternatives = rule.schemas.map(schema => {
       const shape = `valid(value, schemas.${schema})`;
-      return Object.hasOwn(schemas[schema].properties, rule.matchRequest)
+      return Object.hasOwn(schemas[schema].properties!, rule.matchRequest)
         ? `(${shape} && value.${rule.matchRequest} === expected)` : shape;
     });
     return `export const valid${exportName}Contract = (value, expected) =>\n` +

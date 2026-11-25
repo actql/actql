@@ -5,9 +5,9 @@ import {cellValue,pivotSchema,checkPivotSchemas} from './pivot-schema.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 
 test('pivot schema keeps empty axes and distinguishes repeated indexes from generated names',()=>{
-  assert.equal(pivotSchema.properties.index.minItems,undefined);
-  assert.equal(pivotSchema.properties.index.uniqueItems,undefined);
-  assert.equal(pivotSchema.properties.values.minItems,undefined);
+  assert.equal((pivotSchema.properties.index as Record<string, unknown>).minItems,undefined);
+  assert.equal((pivotSchema.properties.index as Record<string, unknown>).uniqueItems,undefined);
+  assert.equal((pivotSchema.properties.values as Record<string, unknown>).minItems,undefined);
   assert.equal(pivotSchema.properties.values.uniqueItems,true);
   assert.deepEqual(pivotSchema.properties.aggregate.enum,['sum','avg','count','min','max','first']);
   assert.deepEqual(pivotSchema.properties.fill,cellValue);
@@ -18,7 +18,7 @@ test('pivot schema keeps empty axes and distinguishes repeated indexes from gene
 });
 
 test('both embedded pivot bodies and dependent pins are checked',()=>{
-  const registry=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  const registry: Parameters<typeof checkPivotSchemas>[0]=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   checkPivotSchemas(registry);
   for(const index of [0,1]) {
     const r=structuredClone(registry);

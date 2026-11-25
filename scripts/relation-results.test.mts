@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { generate } from './check-relation-results.mjs';
-const fixture = () => JSON.parse(readFileSync('portability/corpus/actql-relation-results-v0.1.json','utf8'));
+
+type Corpus = Parameters<typeof generate>[0];
+type MutableCase = {issue?: string; target?: string; fields?: string[]; order?: [string, string, string, boolean][]};
+type MutableCorpus = {version: string; cases: MutableCase[]};
+type Fixture = Corpus & MutableCorpus;
+const fixture = (): Fixture => JSON.parse(readFileSync('portability/corpus/actql-relation-results-v0.1.json','utf8'));
 test('Result expectations regenerate exactly without evaluation', () => {
   const c=fixture(), copy=structuredClone(c);
   assert.equal(generate(c),readFileSync('src/relation_results/corpus.generated_test.mbt','utf8'));
@@ -10,7 +15,7 @@ test('Result expectations regenerate exactly without evaluation', () => {
 });
 test('Result generation rejects missing expectations and invalid order tuples', () => {
   for (const edit of [c=>c.version='bad',c=>c.cases.push(c.cases[0]),c=>delete c.cases[0].fields,
-    c=>delete c.cases[0].target,c=>c.cases[3].order[0][2]='auto',c=>c.cases[7].issue='bad']) {
+    c=>delete c.cases[0].target,c=>c.cases[3].order![0][2]='auto',c=>c.cases[7].issue='bad'] satisfies ((c: MutableCorpus) => unknown)[]) {
     const c=fixture(); edit(c); assert.throws(()=>generate(c));
   }
 });
