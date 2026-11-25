@@ -7959,7 +7959,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -8147,7 +8147,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -23891,7 +23891,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -24406,7 +24406,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -28930,7 +28930,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -29725,7 +29725,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -36257,7 +36257,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -36289,11 +36289,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -37618,7 +37618,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -37650,11 +37650,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -38420,7 +38420,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -38452,11 +38452,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -39171,15 +39171,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -39255,15 +39255,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -39341,15 +39341,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -39425,15 +39425,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -39509,15 +39509,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -45799,7 +45799,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -46463,7 +46463,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -70850,7 +70850,7 @@
                 "anchor": "test('generated family refences cancellation begun during the original matcher callback'"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -72106,7 +72106,7 @@
                 "anchor": "test('generated family refences cancellation begun during the original matcher callback'"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -94952,7 +94952,7 @@
                 "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -95096,7 +95096,7 @@
                 "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -121303,7 +121303,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -121396,7 +121396,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -126764,7 +126764,7 @@
                 "anchor": "test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback'"
               },
               {
-                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mts",
                 "anchor": "// Actual imported installed static service"
               },
               {
@@ -129967,7 +129967,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary"
               },
               {
@@ -130133,7 +130133,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary"
               },
               {
@@ -130296,7 +130296,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary"
               },
               {
@@ -146877,7 +146877,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -147065,7 +147065,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -152003,7 +152003,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
               },
               {
