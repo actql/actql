@@ -2,21 +2,30 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {parameterPrograms} from './parameter-schema.mjs';
+import {parameterPrograms, type ProgramRegistry} from './parameter-schema.mjs';
 import {fieldPattern} from './aggregate-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
-const singleton = name => ({type:'object',required:[name],maxProperties:1});
+type ValueContract = {oneOf: {properties: {type: {const?: string; enum?: string[]};
+  max_items?: {maximum?: number}}; allOf?: unknown[]}[]};
+type ValuesProgram = {$defs: {value_contract: ValueContract; values_contract?: ValueContract};
+  properties: {steps: {items: {
+    properties: {values: ReturnType<typeof valuesSchema>};
+    allOf: {if?: {required?: string[]}}[];
+  }}}};
+type Protocol = ProgramRegistry<ValuesProgram>;
+
+const singleton = (name: string) => ({type:'object',required:[name],maxProperties:1});
 export function cellSchema() {
   return {oneOf:[
     {...singleton('$param'),properties:{$param:{type:'string',pattern:'^[A-Za-z_][A-Za-z0-9_]*$'}}},
     {...singleton('literal'),properties:{literal:{}}},
     {not:{anyOf:[singleton('$param'),singleton('literal')]}},
-  ]};
+  ] as const};
 }
-export function valuesContract(base) {
-  const c=JSON.parse(JSON.stringify(base).replaceAll('#/$defs/value_contract','#/$defs/values_contract'));
-  c.oneOf=c.oneOf.filter(s=>!['resource_ref','content_ref'].includes(s.properties.type.const));
+export function valuesContract(base: ValueContract) {
+  const c: ValueContract=JSON.parse(JSON.stringify(base).replaceAll('#/$defs/value_contract','#/$defs/values_contract'));
+  c.oneOf=c.oneOf.filter(s=>!(['resource_ref','content_ref'] as (string | undefined)[]).includes(s.properties.type.const));
   for(const s of c.oneOf) {
     if(s.properties.type.enum) s.properties.type.enum=s.properties.type.enum.filter(t=>t!=='json');
     if(s.properties.max_items) s.properties.max_items.maximum=9007199254740991;
@@ -30,7 +39,7 @@ export function valuesSchema() {
   }};
 }
 export const generatorRule={if:{required:['values']},then:{required:['as'],properties:{as:{type:'string',minLength:1}},not:{required:['from']}}};
-export function checkValuesSchemas(registry) {
+export function checkValuesSchemas(registry: Protocol) {
   for(const p of parameterPrograms(registry)) {
     assert.deepEqual(p.$defs.values_contract,valuesContract(p.$defs.value_contract));
     assert.deepEqual(p.properties.steps.items.properties.values,valuesSchema());
@@ -42,7 +51,7 @@ export function checkValuesSchemas(registry) {
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   const path='spec/contracts/actql-protocol-schemas.json';
-  const r=JSON.parse(readFileSync(path,'utf8'));
+  const r: Protocol=JSON.parse(readFileSync(path,'utf8'));
   if(process.argv.includes('--write')) {
     for(const p of parameterPrograms(r)) {
       p.$defs.values_contract=valuesContract(p.$defs.value_contract);

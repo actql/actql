@@ -13,17 +13,40 @@ export const valueKinds=['request_schema','command_input','command_output','idem
 const otherKinds=['carrier_schema','carrier_facts','pushdown','reconciliation','poll','cancel',
   'request_data_handling','data_policy','provider_execution_capability'];
 
-export function commandInputPresenceBody(protocol) {
+type ValueArm = {
+  properties: {type?: {const?: string}; fields?: {propertyNames: Record<string, unknown>}; enum?: unknown};
+  required: string[];
+  additionalProperties: boolean;
+};
+type ValueGrammar = {$defs: Record<string, unknown> & {value_contract: {oneOf: ValueArm[]}}};
+type ValueProtocol = {schemas: {author_value_contract: ValueGrammar; canonical_value_contract: ValueGrammar}};
+type PresenceProperties = {
+  input_contract: {
+    additionalProperties: boolean; required: string[];
+    properties: {additional_properties: unknown; fields: {additionalProperties: unknown}; required_fields?: unknown};
+  };
+};
+type PresenceProtocol = ValueProtocol & Parameters<typeof commandTargetBindingSchemas>[0] & {
+  schemas: {
+    command_contract: {properties: PresenceProperties};
+    connector_catalog: {$defs: {command_contract: {properties: PresenceProperties}}};
+  };
+};
+type RoleProtocol = ValueProtocol & {schemas: {contract_envelope: {properties: {kind: {enum: string[]}}}}};
+type Protocol = RoleProtocol & PresenceProtocol & Parameters<typeof publishedCommandTargetSchemas>[0] &
+  Parameters<typeof createValuesSchemas>[0];
+
+export function commandInputPresenceBody(protocol: ValueProtocol) {
   const checked=protocol.schemas.canonical_value_contract;
   const object=checked.$defs.value_contract.oneOf.find(value=>value.properties?.type?.const==='object');
   assert.ok(object,'existing checked Object field-name grammar');
   return {schema:{$schema:'https://json-schema.org/draft/2020-12/schema',
     type:'object',additionalProperties:false,required:['additional_properties','fields','required_fields'],
     properties:{additional_properties:{const:false},
-      fields:{type:'object',propertyNames:structuredClone(object.properties.fields.propertyNames),
+      fields:{type:'object',propertyNames:structuredClone(object.properties.fields!.propertyNames),
         additionalProperties:{$ref:'#/$defs/value_contract'}},
       required_fields:{type:'array',uniqueItems:true,items:{type:'string',
-        ...structuredClone(object.properties.fields.propertyNames)}}},
+        ...structuredClone(object.properties.fields!.propertyNames)}}},
     $defs:structuredClone(checked.$defs)},
     role:'command_input_only_other_value_roles_keep_the_legacy_checked_grammar',
     inline:'required_fields_present_only_closed_complete_record_absence_keeps_legacy_all_required',
@@ -38,7 +61,7 @@ export function commandInputPresenceBody(protocol) {
 // Keep the original Command and its Catalog-owned structural copy on the
 // same additional presence grammar. Existing required members and field types
 // remain untouched; this is not optional-property support for ValueContracts.
-export function commandInputPresenceSchemas(protocol, write=false) {
+export function commandInputPresenceSchemas(protocol: PresenceProtocol, write=false) {
   const required=commandInputPresenceBody(protocol).schema.properties.required_fields;
   const commands=[protocol.schemas.command_contract,
     protocol.schemas.connector_catalog.$defs.command_contract];
@@ -55,18 +78,18 @@ export function commandInputPresenceSchemas(protocol, write=false) {
   }
   assert.deepEqual(commands[0],commands[1]);
   if(write){
-    for(const name of ['command_contract','connector_catalog'])protocol.schema_cids[name]=machineCid(protocol.schemas[name]);
+    for(const name of ['command_contract','connector_catalog'] as const)protocol.schema_cids[name]=machineCid(protocol.schemas[name]);
     protocol.registry_cid=machineCid(protocol.schemas);
   }
-  for(const name of ['command_contract','connector_catalog'])assert.equal(protocol.schema_cids[name],machineCid(protocol.schemas[name]));
+  for(const name of ['command_contract','connector_catalog'] as const)assert.equal(protocol.schema_cids[name],machineCid(protocol.schemas[name]));
   assert.equal(protocol.registry_cid,machineCid(protocol.schemas));
 }
 
 // Text remains the original scalar; enum constrains its admitted domain.
 // The actual Common reader enforces Unicode, extent intersection and budgets.
-export function textEnumerationBody(protocol) {
+export function textEnumerationBody(protocol: ValueProtocol) {
   const enumeration={type:'array',items:{type:'string'}};
-  for(const name of ['author_value_contract','canonical_value_contract']){
+  for(const name of ['author_value_contract','canonical_value_contract'] as const){
     const branch=protocol.schemas[name].$defs.value_contract.oneOf
       .find(value=>value.properties?.type?.const==='string');
     assert.ok(branch,'separate closed Text branch: '+name);
@@ -93,10 +116,10 @@ export function textEnumerationBody(protocol) {
 
 // A logical signed domain, not a Number constraint or a Decimal alias. This
 // checks type grammar only; schema admission never supplies checked values.
-export function signed64Body(protocol) {
+export function signed64Body(protocol: Parameters<typeof byteValuesBody>[0]) {
   const grammar={type:'object',required:['type','nullable'],additionalProperties:false,
     properties:{type:{const:'int64'},nullable:{type:'boolean'}}};
-  for(const name of ['author_value_contract','canonical_value_contract']){
+  for(const name of ['author_value_contract','canonical_value_contract'] as const){
     const branches=protocol.schemas[name].$defs.value_contract.oneOf
       .filter(value=>value.properties?.type?.const==='int64');
     assert.deepEqual(branches,[grammar],'closed distinct int64 grammar: '+name);
@@ -116,7 +139,7 @@ export function signed64Body(protocol) {
   };
 }
 
-export function valueBodyContract(protocol) {
+export function valueBodyContract(protocol: RoleProtocol) {
   const kinds=protocol.schemas.contract_envelope.properties.kind.enum;
   assert.deepEqual([...kinds].sort(),[...valueKinds,...otherKinds].sort(),'Every envelope kind needs an explicit body-grammar classification');
   return {kinds:valueKinds,schema:{file:'spec/contracts/actql-protocol-schemas.json',
@@ -130,7 +153,7 @@ export function valueBodyContract(protocol) {
     bytes:byteValuesBody(protocol)};
 }
 
-export function generateValueKinds(protocol) {
+export function generateValueKinds(protocol: RoleProtocol) {
   const body = valueBodyContract(protocol);
   return ['// Generated by scripts/protocol-value-contracts.mjs; do not edit.','','///|',
     'fn protocol_value_kind(kind : String) -> Bool {','  match kind {',
@@ -141,8 +164,8 @@ export function generateValueKinds(protocol) {
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
-  const read=p=>JSON.parse(readFileSync(p,'utf8'));
-  const protocol=read('spec/contracts/actql-protocol-schemas.json');
+  const read=<Value,>(p: string): Value=>JSON.parse(readFileSync(p,'utf8'));
+  const protocol=read<Protocol>('spec/contracts/actql-protocol-schemas.json');
   if(process.argv.includes('--write-schema')){
     commandTargetBindingSchemas(protocol,true);
     publishedCommandTargetSchemas(protocol,true);
@@ -159,7 +182,8 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
     createValuesSchemas(protocol);
     assert.equal(readFileSync('src/stage_syntax/create_values.generated_test.mbt','utf8'),
       checkCreateValuesVectors(read('portability/corpus/create-values.json')));
-    assert.deepEqual(read('spec/contracts/actql-check-environment.json').value_contract_bodies,valueBodyContract(protocol));
+    assert.deepEqual(read<{value_contract_bodies: unknown}>('spec/contracts/actql-check-environment.json').value_contract_bodies,
+      valueBodyContract(protocol));
     const path='src/check_environment/value_roles.generated.mbt',text=generateValueKinds(protocol);
     if(process.argv.includes('--write'))writeFileSync(path,text);
     assert.equal(readFileSync(path,'utf8'),text);

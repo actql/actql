@@ -17,7 +17,12 @@ export function commandTargetBindingSchema() {
   ]};
 }
 
-export function commandTargetBindingSchemas(protocol, write=false) {
+type Command = {properties: {schema: {const: string};
+  target: {additionalProperties: boolean; required: string[]; properties: {binding?: unknown}}}};
+type Protocol = {schemas: {command_contract: Command; connector_catalog: {$defs: {command_contract: Command}}};
+  schema_cids: Record<string, string>; registry_cid: string};
+
+export function commandTargetBindingSchemas(protocol: Protocol, write=false) {
   const commands=[protocol.schemas.command_contract,
     protocol.schemas.connector_catalog.$defs.command_contract];
   for(const command of commands){
@@ -31,16 +36,16 @@ export function commandTargetBindingSchemas(protocol, write=false) {
   }
   assert.deepEqual(commands[0],commands[1]);
   if(write){
-    for(const name of ['command_contract','connector_catalog'])protocol.schema_cids[name]=machineCid(protocol.schemas[name]);
+    for(const name of ['command_contract','connector_catalog'] as const)protocol.schema_cids[name]=machineCid(protocol.schemas[name]);
     protocol.registry_cid=machineCid(protocol.schemas);
   }
-  for(const name of ['command_contract','connector_catalog'])assert.equal(protocol.schema_cids[name],machineCid(protocol.schemas[name]));
+  for(const name of ['command_contract','connector_catalog'] as const)assert.equal(protocol.schema_cids[name],machineCid(protocol.schemas[name]));
   assert.equal(protocol.registry_cid,machineCid(protocol.schemas));
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   const path='spec/contracts/actql-protocol-schemas.json';
-  const protocol=JSON.parse(readFileSync(path,'utf8'));
+  const protocol: Protocol=JSON.parse(readFileSync(path,'utf8'));
   commandTargetBindingSchemas(protocol,process.argv.includes('--write'));
   if(process.argv.includes('--write'))writeFileSync(path,JSON.stringify(protocol,null,2)+'\n');
   console.log('Original Command target modes and Catalog structural copy agree.');

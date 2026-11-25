@@ -3,8 +3,15 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 
-const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-const fixture = JSON.parse(read('portability/corpus/policy-candidates.json'));
+type CandidateBody = [version: string, programCid: string, ...unknown[]];
+type Fixture = {version: string; body: CandidateBody; expected_cid: string};
+type Snapshot = {source: string; program_definition_cid: string; candidate_body_cid: string;
+  expression_contract_cid: string; stage_semantics: {expression_contract_cid: string}[];
+  program_semantics: {expression_contract_cid: string; program_template: {stages: {stage_semantics_cid: string}[]}};
+  program_definition: {program_semantics_cid: string}; candidate_body: CandidateBody};
+
+const read = (path: string) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+const fixture: Fixture = JSON.parse(read('portability/corpus/policy-candidates.json'));
 assert.equal(fixture.version, 'actql-policy-candidates-vectors/0.1');
 assert.equal(fixture.body[0], 'actql-policy-candidates/0.1');
 verifyIdentity(fixture.body, fixture.expected_cid);
@@ -13,7 +20,7 @@ verifyIdentity(fixture.body, fixture.expected_cid);
 const expression_contract_cid = machineCid(JSON.parse(read('spec/contracts/actql-expressions.json')));
 const declaration = {type: 'number', nullable: false};
 const reference = {name: 'minimum', path: '/steps/0/filter/gt/1', type: declaration};
-const imported = stage => ({result: {stage, result: 'r'}});
+const imported = (stage: string) => ({result: {stage, result: 'r'}});
 const inputs = [{remote: {connector: 'crm/main', resource: 'r'}},
   {x: imported('a')}, {x: imported('a')}, {x: imported('compute_a')}];
 const stages = inputs.map((input, index) => ({
@@ -45,7 +52,7 @@ const program = {version: 'actql-program-definition/0.1', id: 'p',
 // Retain both original fixture pins with complete independent preimages. Only
 // the governing expression contract changes when projecting this fixed Program
 // into the current envelope; offers and placement expectations stay authored.
-const history = JSON.parse(read('portability/corpus/policy-candidates-history.json'));
+const history: {snapshots: Snapshot[]} = JSON.parse(read('portability/corpus/policy-candidates-history.json'));
 assert.deepEqual(history.snapshots.map(snapshot => [snapshot.source,
   snapshot.program_definition_cid, snapshot.candidate_body_cid]), [
   ['b8d02a73532e54f30b3fb50c4544d2cc22064910',
@@ -79,7 +86,7 @@ for (const snapshot of history.snapshots) {
   assert.deepEqual([snapshot.candidate_body[0], fixture.body[1],
     ...snapshot.candidate_body.slice(2)], fixture.body);
 }
-const offer = (task, duckdb) => duckdb
+const offer = (task: number, duckdb: number) => duckdb
   ? [task, 'duckdb', '21', 8, '100000', '100', '134217728', '0',
     [[[0, 2, 3, 5, 6, 7], '1'], [[1, 4], '20']], null]
   : [task, 'local', '10', 5, '0', '8000000', '64000000', '0',

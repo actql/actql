@@ -3,14 +3,20 @@ import { dirname, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import { normalizedParagraphs } from './actql-requirement-extraction.mjs';
-import { fingerprint, machineCid, documentCid } from './actql-spec-family.mjs';
+import { fingerprint, machineCid, documentCid, type FamilyManifest, type Registry } from './actql-spec-family.mjs';
+
+type Descriptor = Pick<FamilyManifest['documents'][number], 'spec_id' | 'path'>;
+type RequirementChange = {id: string; change: 'changed' | 'added' | 'removed'; before?: string; after?: string};
+type CIDChange = {before: string; after: string} & ({path: string; pointer: string} | {owner: string});
 
 // Explicit requirement IDs belong to authors. Never infer ID continuity from similar prose.
-export function updateRequirements(descriptor, source, registry) {
+export function updateRequirements<Fields extends Pick<Registry, 'requirements'>>(
+  descriptor: Descriptor, source: string, registry: Fields,
+) {
   const body = source.replace(/^---\n[\s\S]*?\n---\n/u, '');
   const marks = [...body.matchAll(/^<!-- requirement-block: ([^\n]+) -->$/gmu)];
   const old = new Map(registry.requirements.map(r => [r.requirement_id, r]));
-  const requirements = [], changes = [], ids = new Set();
+  const requirements: Registry['requirements'] = [], changes: RequirementChange[] = [], ids = new Set<string>();
   const completeEntries = normalizedParagraphs(body);
   let offset = 0;
   for (const [i, mark] of marks.entries()) {
@@ -39,14 +45,15 @@ export function updateRequirements(descriptor, source, registry) {
 }
 
 export function updateDocumentMetadata(write = false) {
-  const read = path => JSON.parse(readFileSync(path, 'utf8'));
-  const manifestPath = 'spec/spec-family.json', manifest = read(manifestPath);
-  const pending = new Map(), changes = [];
+  const read = <Value,>(path: string): Value => JSON.parse(readFileSync(path, 'utf8'));
+  const manifestPath = 'spec/spec-family.json', manifest = read<FamilyManifest>(manifestPath);
+  const pending = new Map<string, string>(), changes: (RequirementChange | CIDChange)[] = [];
   for (const d of manifest.documents) {
     let source = readFileSync(d.path, 'utf8');
     for (const ref of d.machine_contracts ?? []) {
-      const object = read(ref.path);
-      const value = ref.pointer.split('/').slice(1).reduce((v, key) => v?.[key.replace(/~1/g, '/').replace(/~0/g, '~')], object);
+      const object = read<{version?: string}>(ref.path);
+      const value = ref.pointer.split('/').slice(1).reduce<unknown>(
+        (v, key) => (v as Record<string, unknown> | null | undefined)?.[key.replace(/~1/g, '/').replace(/~0/g, '~')], object);
       assert.notEqual(value, undefined, `Missing pinned body ${ref.path}#${ref.pointer}`);
       const cid = machineCid(value);
       const prefix = `${relative(dirname(d.path), ref.path)}#${ref.pointer} `;
@@ -71,14 +78,14 @@ export function updateDocumentMetadata(write = false) {
       if (ref.version !== undefined) assert.equal(ref.version, object.version, `Review version change: ${ref.path}`);
     }
     pending.set(d.path, source);
-    const update = updateRequirements(d, source, read(d.evidence));
+    const update = updateRequirements(d, source, read<Registry>(d.evidence));
     changes.push(...update.changes);
     pending.set(d.evidence, JSON.stringify(update.registry, null, 2) + '\n');
   }
   for (const d of manifest.documents) for (const ref of d.normative_imports ?? []) {
     const owner = manifest.documents.find(other => other.spec_id === ref.owner);
     assert.ok(owner, `Missing owner ${ref.owner}`);
-    const cid = documentCid(pending.get(owner.path));
+    const cid = documentCid(pending.get(owner.path)!);
     if (cid !== ref.document_cid) changes.push({ owner: ref.owner, before: ref.document_cid, after: cid });
     ref.document_cid = cid;
   }

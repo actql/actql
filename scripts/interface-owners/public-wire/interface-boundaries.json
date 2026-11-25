@@ -1632,7 +1632,7 @@
                 "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
               },
               {
-                "path": "scripts/protocol-value-contracts.test.mjs",
+                "path": "scripts/protocol-value-contracts.test.mts",
                 "anchor": "actual generated structural type validator keeps enum shape"
               },
               {

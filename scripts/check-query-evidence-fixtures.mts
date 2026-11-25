@@ -4,6 +4,9 @@ import {machineCid} from './actql-spec-family.mjs';
 import {queryTimeAcquisitionVectors} from './query-time-acquisition-vectors.mjs';
 import {generateQueryEvidenceVectors} from './query-evidence-vectors.mjs';
 
+type Dependency = {path: string; pointer: string; cid: string};
+type Contract = {dependencies: Record<string, Dependency>};
+
 // New bound-owner examples remain independent data preimages, not product
 // compiler outputs or issued capture evidence.
 const queryTimeVectors = queryTimeAcquisitionVectors(
@@ -54,11 +57,11 @@ console.log('Query evidence fixture bodies match the shared contracts.');
 // or fixture alone must not leave the actual Owner interpreting an older body.
 const contracts = new Map(['actql-query-acquisition', 'actql-query-process-evidence',
   'actql-query-two-receipt', 'actql-query-resource-scopes'].map(name =>
-  [name, JSON.parse(readFileSync(`spec/contracts/${name}.json`, 'utf8'))]));
+  [name, JSON.parse(readFileSync(`spec/contracts/${name}.json`, 'utf8')) as Contract]));
 for (const [name, body] of contracts) for (const [key, dependency] of Object.entries(body.dependencies)) {
-  const root = JSON.parse(readFileSync(dependency.path, 'utf8'));
-  const original = dependency.pointer.split('/').slice(1).reduce((value, part) =>
-    value?.[part.replace(/~1/g, '/').replace(/~0/g, '~')], root);
+  const root: unknown = JSON.parse(readFileSync(dependency.path, 'utf8'));
+  const original = dependency.pointer.split('/').slice(1).reduce<unknown>((value, part) =>
+    (value as Record<string, unknown> | null | undefined)?.[part.replace(/~1/g, '/').replace(/~0/g, '~')], root);
   assert.notEqual(original, undefined, `${name}: missing original dependency ${key}`);
   assert.equal(machineCid(original), dependency.cid, `${name}: stale original dependency ${key}`);
 }
@@ -67,7 +70,7 @@ for (const [path, pattern, name] of [
   ['src/execution_relation/row_wire_identity.mbt', /pub fn ordered_rows_canonical_contract_cid\(\) -> String \{\s*"(sha256:[a-f0-9]{64})"\s*\}/u, 'actql-query-acquisition'],
   ['src/query_planning/evidence_contracts.mbt', /let query_evidence_contract_cid : String = "(sha256:[a-f0-9]{64})"/u, 'actql-query-process-evidence'],
   ['src/query_planning/two_receipt_contract.mbt', /let query_two_receipt_cid : String = "(sha256:[a-f0-9]{64})"/u, 'actql-query-two-receipt'],
-]) {
+] as const) {
   const match = readFileSync(path, 'utf8').match(pattern);
   assert.ok(match, `Missing original verifier pin: ${path}`);
   assert.equal(match[1], machineCid(contracts.get(name)), `Stale actual verifier pin: ${path}`);

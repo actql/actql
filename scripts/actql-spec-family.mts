@@ -12,8 +12,8 @@ type Descriptor = {document_id: string; spec_id: string; path: string; evidence:
   normative_dependencies: string[]; machine_contracts?: MachineRef[]; normative_imports?: DocumentRef[]};
 type Requirement = {requirement_id: string; statement_sha256: string; source: {anchor: string; kind: string};
   status: string; reason?: string; next_action?: string};
-type Registry = {document_id: string; version: string; requirements: Requirement[]};
-type FamilyManifest = {version: string; documents: Descriptor[]};
+export type Registry = {document_id: string; version: string; requirements: Requirement[]};
+export type FamilyManifest = {version: string; documents: Descriptor[]};
 type FamilyDocument = Descriptor & {source: string; registry: Registry};
 type MachineDocument = Pick<FamilyDocument, 'source' | 'path' | 'machine_contracts'>;
 type NormativeDocument = Pick<FamilyDocument, 'source' | 'path' | 'normative_dependencies' |

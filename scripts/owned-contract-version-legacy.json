@@ -1765,18 +1765,18 @@
       "reason": "Reviewed October 15 local verification disposition for the existing #2053 cooperative heavy pool protocol. This exact script context and count one preserve live-owner and legacy-lock compatibility; no product contract, Program, Wire, generated-runtime permission or initial 0.1 baseline changes."
     },
     {
-      "path": "scripts/fixtures/public-wire-language-vectors.mjs",
+      "path": "scripts/fixtures/public-wire-language-vectors.mts",
       "token": "actql-cancellation/0.0",
-      "contextSha256": "8e0335375ee9c09347b2ad90808daa57369e3ad91fd5fcd6daee4bd1a94906db",
-      "line": 61,
+      "contextSha256": "f10e224f90d639f49d17f5ae56f32e18ed7c5fe336b5e99b0e7482f353fe515f",
+      "line": 97,
       "count": 1,
       "reason": "Reviewed existing cross-language refusal vector only: this exact old-version context must remain rejected. No product version, parser, validator, writer, current wire or historical bytes are changed; another file/context/occurrence is not admitted."
     },
     {
-      "path": "scripts/fixtures/public-wire-language-vectors.mjs",
+      "path": "scripts/fixtures/public-wire-language-vectors.mts",
       "token": "actql-check-outcome/0.0",
-      "contextSha256": "f60f9ccf026553ac4086ea736ea9438d4b3a03e134047f9af896979ce18acc9e",
-      "line": 70,
+      "contextSha256": "014ce857e3ae05b011767c6d16e6c429ad4bf80fc5f080eef0c1d0817593f8b4",
+      "line": 106,
       "count": 1,
       "reason": "Reviewed existing cross-language refusal vector only: this exact old-version context must remain rejected. No product version, parser, validator, writer, current wire or historical bytes are changed; another file/context/occurrence is not admitted."
     },

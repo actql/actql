@@ -28,11 +28,16 @@ const profiles = {
   },
 };
 
-export function generateQueryEvidenceVectors(kind, vectors) {
+type Profile = keyof typeof profiles;
+type Vector = {body: unknown; cid: string};
+type TwoReceiptVectors = {receipts: Vector[]; records: Vector[]; observation: Vector};
+
+export function generateQueryEvidenceVectors(kind: Profile, vectors: Vector[] | TwoReceiptVectors) {
   const profile = profiles[kind];
   assert.ok(profile, 'unknown query evidence profile');
   const selected = kind === 'two_receipt'
-    ? [...vectors.receipts, ...vectors.records, vectors.observation] : vectors;
+    ? [...(vectors as TwoReceiptVectors).receipts, ...(vectors as TwoReceiptVectors).records,
+      (vectors as TwoReceiptVectors).observation] : vectors;
   assert.ok(Array.isArray(selected) && selected.length > 0);
   const moon = [`// ${profile.header}`, ''];
   for (const [i, vector] of selected.entries()) {
@@ -53,8 +58,8 @@ export function generateQueryEvidenceVectors(kind, vectors) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  for (const [kind, profile] of Object.entries(profiles)) {
-    const vectors = JSON.parse(readFileSync(`portability/corpus/${profile.corpus}.json`, 'utf8'));
+  for (const [kind, profile] of Object.entries(profiles) as [Profile, (typeof profiles)[Profile]][]) {
+    const vectors: Vector[] | TwoReceiptVectors = JSON.parse(readFileSync(`portability/corpus/${profile.corpus}.json`, 'utf8'));
     const path = `src/canonical_json/${profile.output}.generated_test.mbt`;
     const expected = generateQueryEvidenceVectors(kind, vectors);
     if (process.argv.includes('--write')) writeFileSync(path, expected);

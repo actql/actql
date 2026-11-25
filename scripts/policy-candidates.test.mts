@@ -20,7 +20,7 @@ const inputs = [
   'src/query_integration/policy_candidates_body_wbtest.mbt',
 ];
 
-function runCheck(root) {
+function runCheck(root: string) {
   const result = spawnSync(process.execPath,
     [join(root, 'scripts/check-policy-candidates.mjs')],
     {cwd: root, encoding: 'utf8', timeout: 10_000, maxBuffer: 1024 * 1024});
@@ -29,7 +29,7 @@ function runCheck(root) {
   return result;
 }
 
-function withFixture(mutate) {
+function withFixture(mutate: (root: string) => void) {
   const root = mkdtempSync(join(tmpdir(), 'actql-policy-candidate-control-'));
   try {
     for (const path of inputs) {
@@ -55,7 +55,8 @@ function withFixture(mutate) {
 test('complete historical policy preimages cannot change under retained pins', () => {
   withFixture(root => {
     const path = join(root, 'portability/corpus/policy-candidates-history.json');
-    const history = JSON.parse(readFileSync(path, 'utf8'));
+    const history: {snapshots: {stage_semantics: {local_body: {steps: {filter: {gt: {field: string}[]}}[]}}[]}[]} =
+      JSON.parse(readFileSync(path, 'utf8'));
     history.snapshots[0].stage_semantics[0].local_body.steps[0].filter.gt[0].field =
       'another_field';
     writeFileSync(path, JSON.stringify(history));
@@ -65,7 +66,7 @@ test('complete historical policy preimages cannot change under retained pins', (
 test('a self-consistent historical Program pin is not the current policy fixture', () => {
   withFixture(root => {
     const path = join(root, 'portability/corpus/policy-candidates.json');
-    const fixture = JSON.parse(readFileSync(path, 'utf8'));
+    const fixture: {body: [string, string, ...unknown[]]; expected_cid: string} = JSON.parse(readFileSync(path, 'utf8'));
     fixture.body[1] =
       'sha256:63af34b702f8d1b719cc9492d220c9c6929b2b047cd0e4837d70d1ef9d3a0dfd';
     fixture.expected_cid = machineCid(fixture.body);
