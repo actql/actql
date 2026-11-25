@@ -33554,7 +33554,7 @@
     {
       "module": "adapters/host-node/client-request-journal-attempts.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a65fb9e9a73ee6703514c854c1c8c213a1778bbba76c4f53f84f42b5473d70ef",
+      "sha256": "3e8ecf0eaaf5ffb9a9f7ef3e27e000e25f7e43a2c48e771b217874e53060a6ce",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -33813,6 +33813,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-attempts.mts",
                 "anchor": "canonicalValueJson(outcome.cancelRef) !== canonicalValueJson(cancelRef) ||"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "outcome.revision > row.revision ||"
               }
             ],
             "ownership": [
@@ -33837,6 +33841,14 @@
               {
                 "path": "adapters/host-node/client-request-journal-attempts.mts",
                 "anchor": "const pending = transact('cancel_admission', 'ClientCancellationUnknown',"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "AND revision = ? AND cancellation_requested = 0"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "if (!Number.isSafeInteger(revision)) fail"
               }
             ],
             "failure": [

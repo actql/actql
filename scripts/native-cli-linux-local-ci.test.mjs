@@ -392,7 +392,7 @@ test('CI downloads original hash-bounded archives and retains exact production a
   assert(!mockRetain.with.path.includes('mock-consumers/**'), 'Do not upload private project state or keys');
 });
 
-test('CI pinned component downloader keeps bounded reset retries and original refusals', () => {
+test('CI pinned component downloader keeps bounded reset and gateway retries and original refusals', () => {
   const command = job.steps.find(step => step.name === 'Retain exact official component archives').run;
   const inline = command.match(/^python3 - <<'PY'\n([\s\S]+)\nPY\n?$/u);
   assert(inline, 'Exercise the actual workflow caller, not a duplicate downloader');
@@ -401,7 +401,7 @@ test('CI pinned component downloader keeps bounded reset retries and original re
   assert.equal(result.error, undefined);
   assert.equal(result.signal, null);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /^Pinned component archive controls: 10\/10$/mu);
+  assert.match(result.stdout, /^Pinned component archive controls: 13\/13$/mu);
 });
 
 
