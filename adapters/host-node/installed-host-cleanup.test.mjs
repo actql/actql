@@ -121,7 +121,7 @@ for (const phase of ['schema', 'prepare']) {
       await mkdir(root, {recursive: true});
       const directory = await mkdtemp(join(root, 'request-init-'));
       t.after(() => rm(directory, {recursive: true, force: true}));
-      // Schema DDL only runs on fresh v3 initialization. Statement setup
+      // Schema DDL only runs on fresh initialization. Statement setup
       // also runs on a valid reopen.
       if (phase === 'prepare') openClientRequestJournal(directory).close();
       const fault = failRequestJournalInitialization(t, phase, closeFailures);
