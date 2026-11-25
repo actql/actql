@@ -294,7 +294,7 @@ if (full) {
         // Start from the original PATH, not the ordinary test-only compiler shim.
         scoped = prepareNativeCoreScopedProfile(root, profileNamespace,
           ['--target', 'native', ...args, ...new Set(tests.map(test => test.source))],
-          {env: fixtureEnvironment, profile,
+          {env: fixtureEnvironment, profile, ...(process.platform === 'linux' ? {linuxStockFileSlots: 170} : {}),
             ...(scopedSoftwareRoot ? {softwareDirectory: join(scopedSoftwareRoot, profile)} : {})});
         console.log(`Native Core ${profile}: ${tests.length} required cases`);
         // Each original case initializes its own physical region header. Closing

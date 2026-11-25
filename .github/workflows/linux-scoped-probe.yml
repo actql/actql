@@ -1,0 +1,237 @@
+# Temporary probe on a throwaway branch. Not for merge.
+name: Linux scoped Core probe
+on:
+  push:
+    branches:
+      - exp/scoped-linux-probe-20261125
+permissions:
+  contents: read
+jobs:
+  probe:
+    name: linux (${{ matrix.partition }})
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - native
+        partition:
+          - scoped-runtime
+          - scoped-review
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: "true"
+      - name: Test pinned Native C compiler orchestration
+        if: ${{ matrix.target == 'native' && matrix.partition == '1/2' }}
+        run: node --test scripts/native-core-c-compiler.test.mjs
+        continue-on-error: true
+      - name: Prepare pinned Native C object caching
+        id: native-c-object-cache
+        if: ${{ matrix.target == 'native' && contains(fromJSON('["1/2","2/2","scoped-runtime","scoped-review"]'), matrix.partition) }}
+        env:
+          CACHE_PARTITION: ${{ matrix.partition }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {execFileSync} from 'node:child_process';
+          import {appendFileSync, chmodSync, lstatSync, mkdirSync, readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          import {nativeCoreCCachePin as pin} from './scripts/native-core-c-compiler.mjs';
+          const tool = join(process.env.RUNNER_TEMP, 'actql-core-ordinary-c-cache-tool');
+          const cache = join(process.env.RUNNER_TEMP, 'actql-core-ordinary-c-cache');
+          mkdirSync(tool, {mode: 0o700});
+          mkdirSync(cache, {mode: 0o700});
+          const archive = join(tool, 'original.tar.gz');
+          execFileSync('/usr/bin/curl', ['--fail', '--location', '--silent', '--show-error',
+            '--connect-timeout', '20', '--max-time', '60', pin.url, '--output', archive],
+            {stdio: 'inherit', timeout: 65000});
+          const hash = value => createHash('sha256').update(value).digest('hex');
+          assert.equal(hash(readFileSync(archive)), pin.archiveSha256);
+          execFileSync('/usr/bin/tar', ['-xzf', archive, '-C', tool, '--strip-components=1',
+            `ccache-${pin.version}-darwin/ccache`], {stdio: 'inherit', timeout: 10000});
+          const binary = join(tool, 'ccache'), stat = lstatSync(binary);
+          assert(stat.isFile() && !stat.isSymbolicLink());
+          assert.equal(hash(readFileSync(binary)), pin.binarySha256);
+          chmodSync(binary, 0o700);
+          execFileSync(binary, ['--version'], {stdio: 'inherit', timeout: 5000});
+          const image = process.env.ImageVersion ?? 'unreported-image';
+          assert(/^[A-Za-z0-9_.-]+$/u.test(image));
+          assert(['1/2', '2/2', 'scoped-runtime', 'scoped-review'].includes(process.env.CACHE_PARTITION));
+          const profile = hash(Buffer.concat([readFileSync('toolchain.json'),
+            readFileSync('scripts/native-core-c-compiler.mjs'),
+            readFileSync('scripts/native-core-scoped-profile.mjs')]));
+          const prefix = `ordinary-c-v1-${process.platform}-${process.arch}-${image}-${profile}-${process.env.CACHE_PARTITION}-`;
+          appendFileSync(process.env.GITHUB_OUTPUT, `key-prefix=${prefix}\n`);
+          appendFileSync(process.env.GITHUB_ENV,
+            `ACTQL_TEST_NATIVE_CORE_CCACHE=${binary}\nACTQL_TEST_NATIVE_CORE_CCACHE_DIR=${cache}\n`);
+          if (['scoped-runtime', 'scoped-review'].includes(process.env.CACHE_PARTITION)) appendFileSync(process.env.GITHUB_ENV,
+            `ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT=${join(process.cwd(), '_build/native-core-scoped/compiler-software')}\n`);
+          NODE
+        continue-on-error: true
+      - name: Mark current-job Native C compiler diagnostics
+        if: ${{ steps.native-c-object-cache.outcome == 'success' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import {createHash} from 'node:crypto';
+          import {existsSync, readFileSync, writeFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const log = join(process.env.ACTQL_TEST_NATIVE_CORE_CCACHE_DIR, 'compiler.log');
+          const prefix = existsSync(log) ? readFileSync(log) : Buffer.alloc(0);
+          writeFileSync(join(process.env.RUNNER_TEMP, 'actql-core-c-log-baseline.json'),
+            JSON.stringify({bytes: prefix.length,
+              sha256: createHash('sha256').update(prefix).digest('hex')}), {flag: 'wx'});
+          NODE
+        continue-on-error: true
+      - name: Install existing scoped component producer dependencies
+        if: ${{ matrix.target == 'native' && (matrix.partition == 'scoped-runtime' || matrix.partition == 'scoped-review') }}
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
+        continue-on-error: true
+      - name: Check common core
+        if: ${{ matrix.target != 'native' || matrix.partition == '1/2' }}
+        run: moon check --target "${{ matrix.target }}" --deny-warn
+        continue-on-error: true
+      - name: Check independent fixed Run materials identity
+        run: node --test scripts/client-values-run-materials-vector.test.mjs scripts/client-publication-values-identity.test.mjs scripts/client-values-compilation-work.test.mjs scripts/client-source-publication-work.test.mjs
+        continue-on-error: true
+      - name: Mark original Native compiler diagnostic window
+        id: native-compiler-diagnostic-start
+        if: ${{ matrix.target == 'native' }}
+        run: python3 -B scripts/native-compiler-diagnostics.py --start --context .artifacts/native-compiler-diagnostics/context.json
+        continue-on-error: true
+      - name: Test actual Native Reader callbacks and original empty compiler driver
+        if: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') }}
+        run: node scripts/local-checks.mjs test node --timeout-seconds 300 -- --test-name-pattern '^Reader custody callbacks preserve' scripts/test-native-core.test.mjs
+        continue-on-error: true
+      - name: Test common core
+        if: |-
+          ${{ (matrix.target == 'native' && !cancelled() &&
+               steps['native-compiler-diagnostic-start'].outcome == 'success') ||
+              (matrix.target != 'native' && success()) }}
+        env:
+          ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
+          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && matrix.partition || '' }}
+          ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: ""
+          ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: "1"
+          CI_PLAN_PATH: ""
+        run: |
+          # Local full-Core execution has no hosted selection file.
+          if [ -n "$CI_PLAN_PATH" ]; then
+            cat > "$CI_PLAN_PATH" <<'ACTQL_CI_PLAN_JSON'
+
+          ACTQL_CI_PLAN_JSON
+          fi
+          if [ "${{ matrix.target }}" = native ]; then
+            # Pinned Linux Native debug codegen exceeds the default 8 MiB
+            # compiler stack. This does not change product resource budgets.
+            if [ "$(uname -s)" = Linux ]; then
+              ulimit -S -s 65536
+            fi
+            if [[ "${{ matrix.partition }}" == linux-common-* ]]; then
+              MOONBIT_NEW_NATIVE=0 node scripts/test-native-core-linux-common.mjs "${{ matrix.partition }}"
+              exit $?
+            fi
+            # Reopen remains within a run; the full run below starts fresh.
+            ACTQL_TEST_NATIVE_CORE_PARTITION= node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
+            # Optimize the test IR before emitting the large full-Core C input.
+            # Keep every test, strict warnings and the original generated-C
+            # backend; production and the focused debug prerequisite are unchanged.
+            # Compile two independent C units concurrently, while keeping
+            # physical test execution serial under the original fixture roots.
+            # Every invocation keeps its original Source/toolchain and fresh
+            # scratch/peer processes. Source follows ordinary work sequentially,
+            # without another delayed macOS runner acquisition or cache trust.
+            run_core_profile() {
+              MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
+            }
+            # The supported local runner clears both authenticated plan inputs
+            # and keeps one complete, unpartitioned original Core invocation.
+            if [ -z "${{ matrix.partition }}" ] && [ -z "${CI_PLAN_PATH:-}" ] && [ -z "${CI_PLAN:-}" ]; then
+              run_core_profile
+              exit $?
+            fi
+            profiles="$(node --input-type=module -e '
+              import {nativeCoreHostedPartitions} from "./scripts/ci-core-partitions.mjs";
+              console.log(nativeCoreHostedPartitions(process.argv[1]).join(" "));
+            ' "${{ matrix.partition }}")"
+            test -n "$profiles"
+            status=0
+            for profile in $profiles; do
+              result=0
+              if [ "$profile" = source ]; then
+                # A fresh Node entrance selects the original non-cache Source
+                # compiler, not an ordinary job's optional cached PATH wrapper.
+                (unset ACTQL_TEST_NATIVE_CORE_CCACHE ACTQL_TEST_NATIVE_CORE_CCACHE_DIR &&
+                 ACTQL_TEST_NATIVE_CORE_PARTITION="$profile" run_core_profile) || result=$?
+              else
+                ACTQL_TEST_NATIVE_CORE_PARTITION="$profile" run_core_profile || result=$?
+              fi
+              # A cancelled/signal-stopped child is never restarted or replayed.
+              if [ "$result" -ge 128 ]; then exit "$result"; fi
+              if [ "$status" -eq 0 ] && [ "$result" -ne 0 ]; then status=$result; fi
+            done
+            exit "$status"
+          else
+            if [ "false" = true ]; then
+              node scripts/ci-moon-tests.mjs "${{ matrix.target }}"
+            else
+              moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
+            fi
+            if [ "${{ matrix.target }}" = wasm ]; then
+              # The exported lookup counter retains physical imports. The
+              # existing entrance harness refuses every actual Host call.
+              moon test --target wasm --release --build-only --deny-warn -j "$(getconf _NPROCESSORS_ONLN)" src/client_host_wasm --filter '*exported validation reaches*'
+              node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json saved_lookup_validation_dispatch_wbtest.mbt
+              node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json non_sdk_source_restore_wbtest.mbt
+              node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json managed_task_current_wbtest.mbt
+              node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json sdk_row_original_wbtest.mbt
+              node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json journal_decode_originals_wbtest.mbt
+              node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json submission_decode_prefix_wbtest.mbt
+            fi
+          fi
+      - name: Report ordinary Native C cache results
+        if: ${{ !cancelled() && steps.native-c-object-cache.outcome == 'success' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {existsSync, readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const log = join(process.env.ACTQL_TEST_NATIVE_CORE_CCACHE_DIR, 'compiler.log');
+          const baseline = JSON.parse(readFileSync(join(process.env.RUNNER_TEMP, 'actql-core-c-log-baseline.json'), 'utf8'));
+          const bytes = existsSync(log) ? readFileSync(log) : Buffer.alloc(0);
+          assert(Number.isSafeInteger(baseline.bytes) && baseline.bytes >= 0 && baseline.bytes <= bytes.length,
+            'Restored compiler log prefix changed');
+          assert.equal(createHash('sha256').update(bytes.subarray(0, baseline.bytes)).digest('hex'), baseline.sha256,
+            'Restored compiler log prefix changed');
+          const text = bytes.subarray(baseline.bytes).toString('utf8');
+          const results = {};
+          for (const match of text.matchAll(/ Result: (\w+)/gu))
+            results[match[1]] = (results[match[1]] ?? 0) + 1;
+          // Each key is separate: auxiliary storage results are not compilations.
+          console.log('Current-job compiler cache result keys:', JSON.stringify(results));
+          const links = [...text.matchAll(/^ACTQL_NATIVE_C_LINK (.+)$/gmu)].map(match => JSON.parse(match[1]));
+          console.log('Current-job fresh links:', JSON.stringify({attempts: links.length,
+            succeeded: links.filter(value => value.status === 0 && !value.signal && !value.error).length}));
+          NODE
+        continue-on-error: true
+      - name: Collect only current original Native compiler crash cause metadata
+        if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
+        timeout-minutes: 1
+        run: python3 -B scripts/native-compiler-diagnostics.py --context .artifacts/native-compiler-diagnostics/context.json --collect .artifacts/native-compiler-diagnostics/sanitized.json
+        continue-on-error: true
+      - name: Retain only sanitized current Native compiler diagnostics
+        if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-compiler-cause-${{ github.job }}-${{ strategy.job-index }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .artifacts/native-compiler-diagnostics/
+            _build/native-reader-helper-tests/callbacks-*/callback-*.json
+          if-no-files-found: warn
+          retention-days: 14
