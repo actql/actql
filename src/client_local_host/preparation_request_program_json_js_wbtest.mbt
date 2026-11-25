@@ -235,6 +235,9 @@ fn request_json_expected_bootstrap_control() -> Int64 {
   // Count BOTH it and the eighth original explanation holder independently:
   // each Map entry/growth4H/11R/13W plus three scalar order words.
   let original_observation_holders = 2L * (16L * 4L + 8L * 11L + 8L * 16L)
+  // The original Request prepays the adopted Run's Sample Journal
+  // high-water extent (1W), before the JSON domain calls current.
+  let sample_start_journal_extent = 8L
   original_controls +
   original_work_issue +
   returned_code +
@@ -242,7 +245,8 @@ fn request_json_expected_bootstrap_control() -> Int64 {
   original_authoring_aliases +
   original_problem_category +
   original_parameter_projection +
-  original_observation_holders
+  original_observation_holders +
+  sample_start_journal_extent
 }
 
 ///|
