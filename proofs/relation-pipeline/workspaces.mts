@@ -3,20 +3,38 @@ import assert from 'node:assert/strict';
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import type { Stats } from 'node:fs';
 import { createOwnedScratch } from '../../scripts/owned-scratch.mjs';
 import { hash, snapshot } from './inventory.mjs';
 
-function rejectLinks(path) {
+type SourceSnapshot = { sources: Record<string, string>; digest: string };
+type WorkspaceRole = 'normal' | 'pristine' | 'mutable';
+type WorkspaceRef = { root: string; id: string };
+export type WorkspaceIdentity<Role extends WorkspaceRole = WorkspaceRole> = Readonly<WorkspaceRef & {
+  role: Role;
+  check(): SourceSnapshot;
+}>;
+type MutationWorkspaceSet = Readonly<{
+  pristine: WorkspaceIdentity<'pristine'>;
+  mutable: WorkspaceIdentity<'mutable'>;
+  source: SourceSnapshot;
+  evidence: { pristine: WorkspaceRef; mutable: WorkspaceRef };
+  passed(): void;
+}>;
+
+function rejectLinks(path: string): void {
   const entry = lstatSync(path);
   assert(!entry.isSymbolicLink(), 'Linked source or build path is not isolated');
   if (entry.isDirectory()) for (const child of readdirSync(path)) rejectLinks(join(path, child));
 }
 const sourceDirectories = ['src', 'vendor', 'proofs/bounded-session', 'proofs/relation-chain', 'proofs/relation-capacity', 'proofs/relation-pipeline'];
-export function workspaceIdentity(root, role, expectedSource = null) {
+export function workspaceIdentity<Role extends WorkspaceRole>(
+  root: string, role: Role, expectedSource: SourceSnapshot | null = null,
+): WorkspaceIdentity<Role> {
   const path = realpathSync(root);
   const identity = lstatSync(path);
   const id = randomUUID();
-  let buildRoot = null;
+  let buildRoot: Stats | null = null;
   return Object.freeze({ root: path, role, id,
     check() {
       const current = lstatSync(path);
@@ -32,7 +50,7 @@ export function workspaceIdentity(root, role, expectedSource = null) {
           'Execution build workspace was replaced');
         else buildRoot = currentBuild;
       } else assert(!buildRoot, 'Execution build workspace was removed');
-      const source = snapshot(path);
+      const source: SourceSnapshot = snapshot(path);
       // Deduplicate shared ancestors only inside this check. Every subsequent
       // check still reads all source bytes and inspects each inventoried prefix.
       const checkedPrefixes = new Set();
@@ -51,11 +69,11 @@ export function workspaceIdentity(root, role, expectedSource = null) {
   });
 }
 
-export async function mutationWorkspaces(root) {
+export async function mutationWorkspaces(root: string): Promise<MutationWorkspaceSet> {
   const source = workspaceIdentity(root, 'normal').check();
   const scratch = await createOwnedScratch({ parent: join(root, '.artifacts/relation-pipeline/workspaces'),
     prefix: 'mutation-', label: 'relation-pipeline workspaces' });
-  const materialize = role => {
+  const materialize = <Role extends 'pristine' | 'mutable'>(role: Role): WorkspaceIdentity<Role> => {
     const directory = join(scratch.path, role);
     mkdirSync(directory);
     for (const [path, expected] of Object.entries(source.sources)) {

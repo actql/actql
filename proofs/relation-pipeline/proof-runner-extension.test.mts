@@ -4,20 +4,23 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {checkBaseline} from './inventory.mjs';
 import {checkProofRunnerExtension, custodyChecker} from './proof-runner-extension.mjs';
+import type {ProofRunnerExtension} from './proof-runner-extension.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const baseline = JSON.parse(readFileSync(root + 'proofs/relation-pipeline/baseline.json'));
-const read = path => readFileSync(root + path);
+const baseline: {runnerExtension: ProofRunnerExtension} =
+  JSON.parse(readFileSync(root + 'proofs/relation-pipeline/baseline.json', 'utf8'));
+const read = (path: string) => readFileSync(root + path);
 test('runner custody extension retains all original proof/claim inputs and current Git bindings', () => {
   assert(baseline.runnerExtension);
   checkBaseline(root);
 });
-for (const [name, alter] of [
+const changes: [string, (extension: ProofRunnerExtension) => void][] = [
   ['missing proof input', e => { delete e.preserved['proofs/relation-chain/StopClaims.lean']; }],
   ['resealed model input', e => { e.preserved['proofs/relation-chain/Chain.lean'] = 'a'.repeat(64); }],
   ['different source parent', e => { e.parent = 'a'.repeat(40); }],
   ['missing runner', e => { delete e.files['proofs/bounded-session/proof-command.mjs']; }],
   ['unrelated helper digest', e => { e.files['proofs/bounded-session/proof-command.mjs'] = 'a'.repeat(64); }],
-]) test(`runner custody extension rejects ${name}`, () => {
+];
+for (const [name, alter] of changes) test(`runner custody extension rejects ${name}`, () => {
   const changed = structuredClone(baseline.runnerExtension); alter(changed);
   assert.throws(() => checkProofRunnerExtension(root, changed, read));
 });

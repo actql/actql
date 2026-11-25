@@ -97,7 +97,7 @@ test('FFI, generator, JS bridge and proof inputs keep their explicit non-Moon ow
     ['adapters/host-common/runtime-core.mjs', 'JS bridge/distribution'],
     ['packages/run-host-core/package.json', 'generator/build'],
     ['src/client_values_host_abi/entry.mbt', 'JS bridge/distribution'],
-    ['proofs/relation-pipeline/inventory.mjs', 'proof snapshot'],
+    ['proofs/relation-pipeline/inventory.mts', 'proof snapshot'],
   ]) {
     assert(nonMoonRequirements([path]).some(row => row.name === owner), path);
     assert.equal(moonGraphCandidate(['src/a/code.mbt', path]), false, path);
