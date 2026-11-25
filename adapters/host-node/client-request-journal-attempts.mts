@@ -260,7 +260,7 @@ export function createJournalCancellation(database: JournalSqlConnection,
       runDefinitionCid: record.run_definition_cid, cancelId: record.cancel_id,
       expectedRevision: record.expected_revision});
     if (!validCancellationRef(cancelRef)) fail('ClientRequestJournalCorrupt');
-    const {facts} = cancellationDefinition(cancelRef, requestControl, publicationControl);
+    const {row, facts} = cancellationDefinition(cancelRef, requestControl, publicationControl);
     const identity = cancellationIdentity(cancelRef, facts.runDefinition, requestControl);
     if (requestControl.clientCancellationIntentCid(identity) !== record.intent_fingerprint_cid) {
       fail('ClientRequestJournalCorrupt');
@@ -280,8 +280,9 @@ export function createJournalCancellation(database: JournalSqlConnection,
         Object.keys(outcome).sort().join(',') !== 'cancelRef,kind,ref,revision' ||
         !['accepted', 'already_requested', 'already_terminal'].includes(outcome.kind) ||
         !Number.isInteger(outcome.revision) || outcome.revision < cancelRef.expectedRevision ||
+        outcome.revision > row.revision ||
+        outcome.kind !== 'already_terminal' && !facts.cancellationRequested ||
         outcome.kind === 'accepted' && outcome.revision === cancelRef.expectedRevision ||
-        outcome.revision > 2147483647 ||
         canonicalValueJson(outcome.cancelRef) !== canonicalValueJson(cancelRef) ||
         canonicalValueJson(outcome.ref) !== canonicalValueJson({namespaceId: cancelRef.namespaceId,
           authorityScopeCid: cancelRef.authorityScopeCid, runDefinitionCid: cancelRef.runDefinitionCid}) ||

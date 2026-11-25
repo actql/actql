@@ -413,6 +413,58 @@ test('hash-valid accepted outcome without a revision advance is unknown on readm
   assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).revision, 20);
 });
 
+test('pending named cancellation keeps its admitted revision after a separate Run advance', async t => {
+  const f = await fixture(t);
+  const ref = admitRun(f.journal);
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  try {
+    db.exec(`CREATE TRIGGER reject_cancel BEFORE UPDATE OF cancellation_requested
+      ON client_requests BEGIN SELECT RAISE(ABORT, 'CancellationFlagWriteFailed'); END`);
+    assert.throws(() => cancel(f.journal, ref), {code: 'ClientCancellationUnknown', outcome: 'failed'});
+    db.exec('DROP TRIGGER reject_cancel');
+  } finally {
+    db.close();
+  }
+  const cancelRef = {...ref, cancelId: 'original-cancel', expectedRevision: 19};
+  f.reopen();
+  assert.deepEqual(lookup(f.journal, cancelRef), {kind: 'unknown', cancelRef});
+  f.journal.markPhysicalClose(ref);
+  const before = f.journal.lookupRunDefinition(ref, moon, publication);
+  assert.equal(before.revision, 20);
+  assert.equal(before.cancellationRequested, false);
+  assert.equal(before.physicalCloseConfirmed, true);
+  const accepted = cancel(f.journal, ref);
+  assert.deepEqual(accepted, {ref, cancelRef, kind: 'accepted', revision: 21});
+  assert.deepEqual(lookup(f.reopen(), cancelRef), {kind: 'found', cancellation: accepted});
+});
+
+for (const conflict of ['future revision', 'missing Run cancellation']) {
+  test(`accepted receipt with ${conflict} is unknown on readmission`, async t => {
+    const f = await fixture(t);
+    const ref = admitRun(f.journal);
+    const original = cancel(f.journal, ref);
+    const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+    try {
+      if (conflict === 'future revision') {
+        const {outcome_wire} = db.prepare('SELECT outcome_wire FROM client_cancellation_operations').get();
+        const wire = JSON.stringify({...JSON.parse(outcome_wire), revision: 21});
+        assert.equal(db.prepare('UPDATE client_cancellation_operations SET outcome_wire = ?, outcome_cid = ?')
+          .run(wire, `sha256:${createHash('sha256').update(wire).digest('hex')}`).changes, 1);
+      } else {
+        assert.equal(db.prepare('UPDATE client_requests SET cancellation_requested = 0').run().changes, 1);
+      }
+    } finally {
+      db.close();
+    }
+    const before = f.reopen().lookupRunDefinition(ref, moon, publication);
+    assert.equal(before.revision, 20);
+    assert.equal(before.cancellationRequested, conflict === 'future revision');
+    assert.throws(() => lookup(f.journal, original.cancelRef), {code: 'ClientCancellationLookupUnknown'});
+    assert.throws(() => cancel(f.journal, ref), {code: 'ClientCancellationUnknown'});
+    assert.deepEqual(f.journal.lookupRunDefinition(ref, moon, publication), before);
+  });
+}
+
 test('partial cancellation format is refused without recreating missing custody tables', async t => {
   const f = await fixture(t);
   const ref = admitRun(f.journal);

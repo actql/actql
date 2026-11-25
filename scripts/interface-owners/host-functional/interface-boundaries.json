@@ -33564,7 +33564,7 @@
     {
       "module": "adapters/host-node/client-request-journal-attempts.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4945af3674f9eb953fbd15a19069cf5021f638152a16b9e677442c1df2571f4e",
+      "sha256": "9c1b062757880824a65138b2cbfb9e92af7de7b48cded45f4c4e6a4c79bb3fc5",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -33823,6 +33823,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-attempts.mts",
                 "anchor": "canonicalValueJson(outcome.cancelRef) !== canonicalValueJson(cancelRef) ||"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "outcome.revision > row.revision ||"
               }
             ],
             "ownership": [
