@@ -16,6 +16,8 @@ pub fn hasher() -> Hasher
 
 pub fn hex(Bytes) -> String
 
+pub fn hex_prefix(Bytes, Int) -> String?
+
 pub fn text_hex(String) -> Result[String, TextEncodingError]
 
 pub fn update(Hasher, Bytes) -> Unit raise HashFailure

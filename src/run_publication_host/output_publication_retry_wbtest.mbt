@@ -145,9 +145,24 @@ test "publication retry counterexample preserves the parent after one work and c
   println("publication retry: parent_live=true; repeated_evidence=InvalidState")
   let replay = parent.replay().unwrap()
   let mut bytes = ""
-  while replay.next().unwrap() is Some(chunk) {
-    bytes += chunk
+  let mut complete = false
+  let mut work = 0
+  for _ in 0..<1000 {
+    let (value, used, issue) = replay.advance(1)
+    assert_true(issue is None)
+    assert_true(used >= 0 && used <= 1)
+    work += used
+    let progress = value.unwrap()
+    if progress.batch is Some(chunk) {
+      bytes += chunk
+    }
+    if progress.complete {
+      complete = true
+      break
+    }
   }
+  assert_true(complete && work > 0)
+  assert_true(replay.rows_complete().unwrap())
   bytes += replay.finish().unwrap()
   assert_eq(bytes, "[{\"id\":1},{\"id\":2}]")
   parent.cancel()

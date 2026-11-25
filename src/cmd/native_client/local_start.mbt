@@ -552,7 +552,7 @@ fn local_submission_start(
     let until = run_text(retention, "available_until")
     let compilation : @run_host.ClientRunCompilation = match (model, business) {
       (Some(model), _) => @run_host.Tasks(model.compilation)
-      (None, Some(original)) => original.request_compilation()
+      (None, Some(original)) => original.request_compilation(run)
       (None, None) => {
         let manifests = @run_host.admit_client_compilation_manifests(
           @compiler_environment.compiler_grammar_manifest_wire(),
@@ -622,8 +622,14 @@ fn local_submission_start(
       match model {
         Some(model) =>
           original.prepare_model_run(model, request, compiled, definition)
-        None => original.adopt_request_run(request)
+        None => original.adopt_request_run(request, compiled, definition)
       }
+    }
+    let terminal_content = @run_host.client_compiled_run_serialization(compiled)
+      is Some(_)
+    if terminal_content &&
+      (!source_free || model is Some(_) || business is None) {
+      stop("LocalSerializationExecutionUnavailable")
     }
     let accepted : Result[
       @local_host.NativeClientSubmittedIntentRecord,
@@ -842,7 +848,15 @@ fn local_submission_start(
             ),
           )
       }
-      if source_free {
+      if terminal_content {
+        guard business is Some(original) else {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+        local_execute_original_publish_terminal_content(
+          original, settings, run, compiled, definition, prepared, request, reference,
+          attempt, store,
+        )
+      } else if source_free {
         match business {
           Some(original) =>
             local_execute_original_publish_values(

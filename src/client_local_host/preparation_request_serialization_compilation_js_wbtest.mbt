@@ -158,10 +158,10 @@ fn request_serialization_preparation_fixture(
 
 ///|
 test "Content Plan retains its own record and limits only after both same-parent byte bounds admit them" {
-  // Actual selected record: one header and ten original references. Actual
-  // LedgerLimits: one header and six scalar words. Domain links were already
-  // admitted by borrow_request_content_plan_input; no second link charge.
-  let added = 2L * 16L + 10L * 8L + 6L * 8L
+  // The selected record keeps ten original references and the terminal
+  // demand slot, empty for this preparation. LedgerLimits keeps six scalar
+  // words. Both records have one header; the domain links are already funded.
+  let added = 2L * 16L + 11L * 8L + 6L * 8L
   for retention in [true, false] {
     let owner : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
     let original_input : Ref[Array[Int]?] = Ref(None)
@@ -289,7 +289,8 @@ test "Content Plan growth fences original-current reentry and retains its failed
   assert_true(parent.phase == ContentPlanReserved)
   assert_true(parent.program_content is NoContent)
   let absolute = parent.program_domain_quote.unwrap()
-  assert_eq(absolute, (before.4 + 160L, before.5 + 160L))
+  let plan_bytes = 2L * 16L + 11L * 8L + 6L * 8L
+  assert_eq(absolute, (before.4 + plan_bytes, before.5 + plan_bytes))
   assert_eq(request_preparation_accounting(parent), before)
   // The original resource failure is sticky; a later true callback cannot
   // authorize construction or erase it. Retain the same quote for cleanup.

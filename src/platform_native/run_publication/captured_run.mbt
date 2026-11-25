@@ -16,6 +16,9 @@ pub(all) struct NativeCapturedResultPublicationContext {
 ///|
 pub(all) enum NativeCapturedRunPublicationPrimaryIssue {
   InvalidCapturedRun
+  TerminalInvocation(@local.ClientClosedValuesPreparationIssue)
+  TerminalResult(@publication_host.ClientResultTransformationIssue)
+  TerminalWorkLimit
   Export(@publication_host.PublicationOutputExportIssue)
   Publication(NativeRunPublicationIssue)
   Output(Int, NativePublicationOutputIssue)
@@ -152,7 +155,34 @@ pub fn prepare_exported_effect_free_run_publication_native(
   NativePreparedCapturedRunPublication,
   NativeCapturedRunPublicationPreparationIssue,
 ] {
-  let graph = @strategy.captured_dag_graph(run)
+  prepare_exported_effect_free_original_graph(
+    service,
+    @strategy.captured_dag_graph(run),
+    context,
+    exports,
+    results,
+    intent,
+    occurrence,
+    publication~,
+  )
+}
+
+///|
+fn prepare_exported_effect_free_original_graph(
+  service : NativeRunPublicationService,
+  graph : @checked_strategy.CheckedDAG,
+  context : NativeEffectFreeRunContext,
+  exports : Array[@publication_host.PublicationOutputExport],
+  results : Array[NativeCapturedResultPublicationContext],
+  intent : NativeRunPublicationIntent,
+  occurrence : NativeRunPublicationOccurrence,
+  publication? : @local.ClientProgramPublication? = None,
+  content? : Array[@publication.BoundContentGeneration] = [],
+  work_remaining? : Ref[Int]? = None,
+) -> Result[
+  NativePreparedCapturedRunPublication,
+  NativeCapturedRunPublicationPreparationIssue,
+] {
   if exports.is_empty() ||
     results.length() != exports.length() ||
     exports.length() != @strategy.graph_result_count(graph) {
@@ -236,6 +266,7 @@ pub fn prepare_exported_effect_free_run_publication_native(
         service.max_nodes,
         service.max_depth,
         publication~,
+        work_remaining~,
       ) {
       Ok(value) => published.push(value)
       Err(issue) => {
@@ -262,6 +293,7 @@ pub fn prepare_exported_effect_free_run_publication_native(
       service.max_nodes,
       service.max_depth,
       publication~,
+      content~,
     ) {
     Ok(value) => value
     Err(issue) =>
@@ -348,4 +380,184 @@ pub fn NativePreparedCapturedRunPublication::cancel(
   } else {
     Err(Cleanup(failures))
   }
+}
+
+///|
+/// Non-Result evidence of the already admitted source-free Content Run. Its
+/// observation and invocation are issued from the original generation below.
+pub(all) struct NativeTerminalSerializationRunContext {
+  definition : @publication.PublicationContract
+  normalization_journal : @publication.RunEvidenceValue
+  binding_names : Array[String]
+  binding_digests : Array[String]
+  authoring : @publication.RunEvidenceValue
+}
+
+///|
+/// Build a named Result view using the same checked transformation/export as
+/// the installed Content driver. The view consumes the remaining Run work.
+fn prepare_native_terminal_result(
+  prepared : @publication_host.PreparedClientProgram,
+  output : @execution.CompletedOutput,
+  index : Int,
+  limits : @publication_host.PublicationOutputExportLimits,
+  remaining : Ref[Int],
+) -> Result[
+  @publication_host.PublicationOutputExport,
+  NativeCapturedRunPublicationPrimaryIssue,
+] {
+  let selection = match
+    @publication_host.prepare_client_result_transformation(
+      prepared,
+      index,
+      limits.schema.max_bytes,
+      limits.schema.max_nodes,
+      limits.schema.max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(TerminalResult(issue))
+  }
+  let cursor = match
+    @publication_host.start_client_result_transformation(
+      selection, output, limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(TerminalResult(issue))
+  }
+  defer cursor.cancel() |> ignore
+  let mut done = false
+  while !done {
+    if remaining.val <= 0 {
+      return Err(TerminalWorkLimit)
+    }
+    let granted = Int::min(32, remaining.val)
+    let (ready, work, issue) = cursor.advance_progress(granted)
+    if work < 0 || work > granted || (!ready && issue is None && work == 0) {
+      return Err(TerminalWorkLimit)
+    }
+    remaining.val -= work
+    if issue is Some(cause) {
+      return Err(TerminalResult(cause))
+    }
+    done = ready
+  }
+  cursor.finish().map_err(issue => TerminalResult(issue))
+}
+
+///|
+/// A generated Content row is not a captured DAG. Use the original checked
+/// graph and the adopted terminal Run's live generation to enter the same
+/// private Result/Receipt/Store path as other effect-free publications.
+pub fn prepare_native_terminal_serialization_publication(
+  service : NativeRunPublicationService,
+  owner : @local.ClientInstalledManagedRun,
+  request : @publication_host.ClientRequestIdentity,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  generation : @publication_host.ClientSerializationGeneration,
+  context : NativeTerminalSerializationRunContext,
+  results : Array[NativeCapturedResultPublicationContext],
+  intent : NativeRunPublicationIntent,
+  occurrence : NativeRunPublicationOccurrence,
+  demand : @local.ClientSerializationOutputDemand,
+  work_remaining : Int,
+) -> Result[
+  NativePreparedCapturedRunPublication,
+  NativeCapturedRunPublicationPreparationIssue,
+] {
+  guard demand.result_limits is Some(limits) &&
+    service.client_request is Some(original) &&
+    physical_equal(original, request) &&
+    @publication_host.client_compiled_run_matches(compiled, prepared) &&
+    @publication_host.client_serialization_generation_output_for(
+      generation, compiled,
+    )
+    is Some(output) else {
+    return Err(Prepare(InvalidCapturedRun))
+  }
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let count = @strategy.graph_result_count(graph)
+  if count < 1 || results.length() != count {
+    return Err(Prepare(InvalidCapturedRun))
+  }
+  let (observation, invocation, content) = match
+    @local.issue_program_terminal_serialization_invocation(
+      owner,
+      request,
+      compiled,
+      context.definition,
+      generation,
+      demand,
+      service.max_wire_bytes,
+      service.max_nodes,
+      service.max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Prepare(TerminalInvocation(issue)))
+  }
+  guard @publication.bound_content_generation_location(content)
+    is Some((store, _)) &&
+    store == intent.publication_target_cid &&
+    intent.authority_scope_cid ==
+    @publication_host.client_request_authority_scope_cid(request) &&
+    @publication.bound_content_generation_input_relation_cid(content)
+    is Some(input_cid) &&
+    @publication_host.client_compiled_run_serialization_policy_body(compiled)
+    is Some(policy) else {
+    return Err(Prepare(InvalidCapturedRun))
+  }
+  let policy_cid = @publication.captured_effect_dependency_body_cid(policy)
+  let definition_cid = @publication.publication_contract_identity(
+    context.definition,
+  )
+  let plan_cid = @publication.publication_contract_identity(
+    @publication_host.client_compiled_run_plan(compiled),
+  )
+  for result in results {
+    if result.input_relation_cids != [input_cid] ||
+      result.effective_data_policy_cid != policy_cid ||
+      result.scope_cid != definition_cid ||
+      result.store_authority_cid != store ||
+      result.computation_contract_cid != plan_cid {
+      return Err(Prepare(InvalidCapturedRun))
+    }
+  }
+  let exports : Array[@publication_host.PublicationOutputExport] = []
+  let remaining = Ref(work_remaining)
+  for index in 0..<count {
+    match
+      prepare_native_terminal_result(prepared, output, index, limits, remaining) {
+      Ok(value) => exports.push(value)
+      Err(issue) => {
+        for pending in exports {
+          pending.cancel()
+        }
+        return Err(Prepare(issue))
+      }
+    }
+  }
+  prepare_exported_effect_free_original_graph(
+    service,
+    graph,
+    {
+      admission: @publication_host.client_compiled_run_admission(compiled),
+      run_definition: context.definition,
+      observation,
+      invocation,
+      normalization_journal: context.normalization_journal,
+      binding_names: context.binding_names,
+      binding_digests: context.binding_digests,
+      source_evidence: [],
+      model_evidence: [],
+      barrier_attempt_receipt_cids: [],
+      source_advances: [],
+      authoring: context.authoring,
+    },
+    exports,
+    results,
+    intent,
+    occurrence,
+    content=[content],
+    work_remaining=Some(remaining),
+  )
 }

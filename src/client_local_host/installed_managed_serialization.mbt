@@ -22,6 +22,7 @@ struct ClientInstalledManagedSerializationPreparation {
   // The compiled original already retains its Task compiler and component.
   _observed_compiled : @publication_host.ClientCompiledRun
   _observed_definition : @publication.PublicationContract
+  terminal_output : ClientSerializationOutputDemand?
   sequence : @execution.GeneratedSequence
   provider : @local.ManagedProvider
   capacity : @execution.ExecutionCapacity
@@ -42,6 +43,7 @@ fn prepare_installed_managed_serialization(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   workspace : @execution.ExecutionCapacity?,
+  terminal_output : ClientSerializationOutputDemand?,
   model? : @publication_host.ClientInferPlanGraph? = None,
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
 ) -> Result[
@@ -136,6 +138,7 @@ fn prepare_installed_managed_serialization(
     request,
     _observed_compiled: compiled,
     _observed_definition: definition,
+    terminal_output,
     sequence,
     provider,
     capacity,
@@ -169,6 +172,57 @@ pub fn start_installed_managed_serialization_prefix(
     selected,
     None,
   )
+}
+
+///|
+/// Start the selected terminal prefix with the exact output demand previously
+/// funded on this Run's Request. The Host receives the original limits and
+/// cleanup handle together; it cannot replace the compiled plan or resize it.
+pub fn start_installed_managed_terminal_serialization(
+  owner : ClientInstalledManagedRun,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[
+  (
+    ClientInstalledManagedSerializationPreparation,
+    ClientSerializationPrefix,
+    ClientSerializationOutputDemand,
+  ),
+  ClientInstalledManagedRunIssue,
+] {
+  guard owner.content is SerializationContent(selected) &&
+    selected.terminal_output is Some(demand) &&
+    physical_equal(selected.request, request) &&
+    physical_equal(selected._observed_compiled, compiled) &&
+    physical_equal(selected._observed_definition, definition) else {
+    return Err(ForeignOriginal)
+  }
+  start_installed_managed_serialization_prefix(
+    owner,
+    selected.prepared,
+    selected,
+  ).map(prefix => (selected, prefix, demand))
+}
+
+///|
+/// Borrow the selected execution allowance from the existing prefix Plan.
+pub fn terminal_serialization_execution_work(
+  selected : ClientInstalledManagedSerializationPreparation,
+) -> Int {
+  selected.execution.max_work
+}
+
+///|
+/// The Run retained this plan even if prefix start failed before returning.
+pub fn cleanup_installed_managed_terminal_serialization(
+  owner : ClientInstalledManagedRun,
+) -> Result[Bool, ClientInstalledManagedRunIssue] {
+  guard owner.content is SerializationContent(selected) &&
+    selected.terminal_output is Some(_) else {
+    return Err(ForeignOriginal)
+  }
+  cleanup_installed_managed_serialization_prefix(owner, selected)
 }
 
 ///|
@@ -439,4 +493,89 @@ pub fn cleanup_installed_managed_serialization_prefix(
       })
     }
   }
+}
+
+///|
+/// Pure nominal admission for the Native first-start boundary.
+pub fn terminal_serialization_run_matches(
+  owner : ClientInstalledManagedRun,
+  request : @publication_host.ClientRequestIdentity,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  owner.original is Some(original) &&
+  physical_equal(owner, original) &&
+  owner.preparation is Some(PreparationContentManaged(_, current)) &&
+  physical_equal(prepared, current) &&
+  physical_equal(owner.request, request) &&
+  owner.content is SerializationContent(plan) &&
+  plan.terminal_output is Some(demand) &&
+  demand.result_limits is Some(_) &&
+  physical_equal(plan.prepared, prepared) &&
+  physical_equal(plan.request, request) &&
+  physical_equal(plan._observed_compiled, compiled) &&
+  physical_equal(plan._observed_definition, definition)
+}
+
+///|
+/// The existing prefix reservation backs the coheld Content Store
+/// construction before the trusted Native caller receives the child.
+pub fn fund_terminal_serialization_store(
+  owner : ClientInstalledManagedRun,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  units : @execution.PreparationRepresentationUnits,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard owner.content is SerializationContent(plan) &&
+    terminal_serialization_run_matches(
+      owner,
+      request,
+      plan.prepared,
+      compiled,
+      definition,
+    ) &&
+    owner.serialization_prefix is Some(prefix) &&
+    !prefix.released else {
+    return Err(ForeignOriginal)
+  }
+  let ledger = match require_installed_managed_run(owner) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard physical_equal(ledger, prefix.ledger) &&
+    @execution.preparation_representation_cost(units) is Some(bytes) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_retained_bytes(plan.capacity),
+      bytes,
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(plan.capacity),
+      bytes,
+      1L,
+    )
+    is Some(execution) else {
+    return Err(InsufficientCapacity)
+  }
+  @resources.grow_execution_reservation_capacity(
+    ledger,
+    prefix.reservation,
+    retained,
+    execution,
+  ).map_err(issue => Ledger(issue))
+}
+
+///|
+/// Receipt readback uses the selected prefix's existing evidence limit.
+pub fn terminal_serialization_evidence_entries(
+  owner : ClientInstalledManagedRun,
+) -> Int? {
+  guard owner.content is SerializationContent(plan) &&
+    plan.terminal_output is Some(_) else {
+    return None
+  }
+  Some(plan.execution.rows.retained_entries)
 }

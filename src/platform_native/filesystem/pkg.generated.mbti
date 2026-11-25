@@ -159,7 +159,7 @@ pub fn Root::verify_generation(Self, String, NativeFileGeneration) -> Bool
 
 type Writer
 pub fn Writer::adopt_name(Self, Root, String) -> Result[Unit, NativeFilesystemIssue]
-pub fn Writer::append(Self, Bytes) -> Result[Unit, NativeFilesystemIssue]
+pub fn Writer::append(Self, Bytes, length? : Int) -> Result[Unit, NativeFilesystemIssue]
 pub fn Writer::cancel(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Writer::cleanup_pending(Self) -> Bool
 pub fn Writer::close_retaining_files(Self) -> Result[Unit, NativeFilesystemIssue]
