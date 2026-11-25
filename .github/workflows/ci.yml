@@ -2673,13 +2673,15 @@ jobs:
                           data = response.read(original['bytes'] + 1)
                       break
                   except (urllib.error.URLError, ConnectionResetError, TimeoutError) as error:
+                      http_error = isinstance(error, urllib.error.HTTPError)
                       reason = error.reason if isinstance(error, urllib.error.URLError) else error
+                      transient = error.code in (502, 503) if http_error else isinstance(reason, (ConnectionResetError, TimeoutError))
                       delay = attempt + 1
-                      if (isinstance(error, urllib.error.HTTPError)
-                              or not isinstance(reason, (ConnectionResetError, TimeoutError))
-                              or attempt == 2 or delay >= deadline - time.monotonic()):
+                      if not transient or attempt == 2 or delay >= deadline - time.monotonic():
                           error.add_note(f"Original component archive: {destination.name} ({original['url']})")
                           raise
+                      if http_error:
+                          error.close()
                       last_failure = error
                       time.sleep(delay)
               assert len(data) == original['bytes'] and hashlib.sha256(data).hexdigest() == original['sha256']
