@@ -69,6 +69,7 @@ type AdmissionEvidence = Readonly<{
   logicalPlanOriginal?: LogicalPlanOriginal; valuesHostPolicyOriginal?: ValuesPolicyOriginal;
   resultPolicyOriginal?: ResultPolicyOriginal; modelOriginalRunWire?: string;
   inferRunOriginal?: Readonly<{materialsWire: string; resultPolicyOriginal: ResultPolicyOriginal}>;
+  debugEntryProfileWire?: string;
 }>;
 type UpdateOriginalControl = Readonly<{run(original: unknown, captured: RawRecord): unknown}>;
 type CapturedEvidence = Readonly<{wire: string; value: AdmissionEvidence; modelRunDefinitionWire?: string}>;
@@ -362,7 +363,7 @@ export function assertKeyedInventoryRequest(wire: string | undefined, fields: Pi
 const admissionEvidenceFields = Object.freeze(['authorization', 'prepared',
   'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
   'valuesHostPolicyOriginal', 'logicalPlanOriginal', 'updateTargetRunOriginal',
-  'submittedIntentCid', 'effectOriginalRunWire', 'inferRunOriginal']);
+  'submittedIntentCid', 'effectOriginalRunWire', 'inferRunOriginal', 'debugEntryProfileWire']);
 
 export function admissionEvidenceShape(value: RawRecord | null | undefined, updateOriginalControl?: UpdateOriginalControl,
   captured?: {modelRunDefinitionWire?: string}): value is AdmissionEvidence {
@@ -371,6 +372,9 @@ export function admissionEvidenceShape(value: RawRecord | null | undefined, upda
       !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.submittedIntentCid !== undefined && !cid(value.submittedIntentCid)) return false;
+  if (value.debugEntryProfileWire !== undefined &&
+      (typeof value.debugEntryProfileWire !== 'string' || value.debugEntryProfileWire.length === 0 ||
+       Buffer.byteLength(value.debugEntryProfileWire) > 4096)) return false;
   // Bounded original-codec DATA only. Its Common material reader must still
   // admit the full Run/request/evidence pair before a restored use. Presence
   // in this private record is neither that admission nor a resume permission.

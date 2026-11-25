@@ -360,6 +360,57 @@ test "Common Inspect admits the original park and distinguishes TTL policy from 
   )
   let boundary = @json.object_field(paused, "boundary").unwrap()
   assert_true(@json.object_field(boundary, "step_id") is Some(@json.Null))
+  fn project_entry(facts : String) -> Result[String, RunControlReadIssue] {
+    project_current_interactive_run_view(
+      run,
+      prepared,
+      authorization,
+      ref_wire,
+      entry_state,
+      entry_snapshot,
+      65536,
+      1000,
+      32,
+      debug_park_wire=facts,
+    )
+  }
+  let step = inspect_fixture_cid("c")
+  let mapped = entry.replace(
+    old="\"ttl_policy\":",
+    new="\"next_step_id\":\"" +
+      step +
+      "\",\"resume_available\":true,\"ttl_policy\":",
+  )
+  let mapped_view = parse_contract_wire(
+    project_entry(mapped).unwrap(),
+    65536,
+    1000,
+    32,
+    data_keys=true,
+  ).unwrap()
+  let mapped_boundary = @json.object_field(
+    @json.object_field(mapped_view, "run_state").unwrap(),
+    "boundary",
+  ).unwrap()
+  assert_eq(contract_string_from_value(mapped_boundary, "step_id"), Some(step))
+  assert_eq(
+    contract_string_from_value(mapped_boundary, "consumed_boundary_cid"),
+    contract_string_from_value(boundary, "consumed_boundary_cid"),
+  )
+  let mapless = entry.replace(
+    old="\"" + inspect_fixture_cid("8") + "\"",
+    new="null",
+  )
+  assert_true(project_entry(mapless) is Ok(_))
+  assert_true(
+    project_entry(
+      mapless.replace(
+        old="\"ttl_policy\":",
+        new="\"resume_available\":true,\"ttl_policy\":",
+      ),
+    )
+    is Err(ControlReadContract(InvalidField("debug_park"))),
+  )
   let malformed = state.replace(
     old="\"revision\":0",
     new="\"unexpected\":0,\"revision\":0",

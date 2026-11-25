@@ -373,6 +373,24 @@ pub fn advance_installed_relation_sample_debug_entry(
 }
 
 ///|
+/// Read the checked first Step from the original prepared controller.
+pub fn installed_relation_sample_debug_entry_step(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+) -> String {
+  guard physical_equal(profile.captured, captured) &&
+    installed_relation_sample_profile_current(owner, profile) &&
+    profile.start_mode is PausedEntry &&
+    @strategy.captured_task_boundary_hooks(captured) is Some(hooks) &&
+    @strategy.captured_task_control_entry_task(captured, hooks) is Some(task) &&
+    profile.driver_outputs.get(task) is Some((step, _, _)) else {
+    return ""
+  }
+  step
+}
+
+///|
 /// Read the actual boundary on the same acknowledged installed Debug Run.
 pub fn installed_relation_sample_debug_entry_runnable(
   profile : ClientCheckedRelationSampleProfile,

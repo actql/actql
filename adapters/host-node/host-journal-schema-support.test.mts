@@ -68,6 +68,7 @@ test('selected own-DDL bytes cover the actual primary, Source and observation sc
     !sql.startsWith('CREATE TABLE client_run_explanation_context_originals (') &&
     !sql.startsWith('CREATE TABLE client_run_explanation_plan_originals (') &&
     !sql.startsWith('CREATE TABLE client_debug_entry_parks (') &&
+    !sql.startsWith('CREATE TABLE client_debug_entry_steps (') &&
     !sql.startsWith('CREATE TABLE client_debug_task_pauses (') &&
     !sql.startsWith('CREATE TABLE client_relation_sample_starts (') &&
     !sql.startsWith('CREATE TABLE client_relation_sample_adoptions ('));

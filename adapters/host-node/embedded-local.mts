@@ -5008,7 +5008,7 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
   };
   // Admit (or look up) the request's Run Definition: the durable Run.
   type HeldAdmission = {plan?: ReturnType<typeof planFor>; preparedSource?: PreparedAcquisition;
-    preparedSources?: readonly PreparedAcquisitionMember[]; keyedSource?: PreparedKeyedSource};
+    preparedSources?: readonly PreparedAcquisitionMember[]; keyedSource?: PreparedKeyedSource; sampleProfile?: string};
   type IssuedAdmission = Awaited<ReturnType<Parameters<ClientJournal['admitOrLookupDefinition']>[1]['issueDefinition']>>;
   type IssuedAdmissionDraft = {-readonly [Key in keyof IssuedAdmission]: IssuedAdmission[Key]};
   const admitDefinition = async (submission: EmbeddedSubmission, requested: unknown,
@@ -5061,7 +5061,8 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
         if (valuesEvidence !== undefined) {
           const issued: IssuedAdmissionDraft = {
             runDefinition: held.plan.runDefinition,
-            runAdmissionEvidence: valuesEvidence,
+            runAdmissionEvidence: held.sampleProfile === undefined ? valuesEvidence :
+              {...valuesEvidence, debugEntryProfileWire: held.sampleProfile},
             originalPlan: sourceFreePlanOriginal(held.plan)};
           const explanation = sourceFreePlanExplanation(held.plan);
           if (explanation !== undefined) issued.originalExplanation = explanation;
@@ -6096,7 +6097,8 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
     const held: HeldAdmission & Pick<DispatchHeld, 'preparedSourceAccess' | 'managedRun' |
       'debugEntryExpiresAt' | 'sampleProfile'> = {preparedSource, preparedSources, keyedSource, managedRun,
       preparedSourceAccess: preparedSource === undefined ? undefined :
-        installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess};
+        installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess,
+      ...(debug ? {sampleProfile: sourceFreeDebugProfile} : {})};
     if (debug && !authorizeNewDebugEntry(submission)) {
       throw clientOperationError('ClientConnectionDenied');
     }
@@ -6111,7 +6113,6 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
       if (accepted.runDefinition === undefined) throw clientOperationError('ClientRunDebugEntryOriginalUnavailable');
       held.debugEntryExpiresAt = Math.min(Date.parse(accepted.lookupExpiresAt),
         Date.parse(JSON.parse(accepted.runDefinition.wire).valid_until));
-      held.sampleProfile = sourceFreeDebugProfile;
     }
     if (managedRun !== undefined && observation?.canMeasureResources()) {
       try {preparation.bindManagedComputeRunObservation(submission.preparedProgram, accepted.ref);}
@@ -6460,13 +6461,14 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
     error: unknown; request: unknown; adapter: unknown; sourceRef: string;
     profile: unknown; requestId: string; selection?: EffectSelectionRefusal['selection'];
   }>;
-  type PreparedAdmissionFailure = Parameters<typeof retainPreparedSubmissionFailure<EmbeddedSubmission, unknown, SourceAdmissionRefusal | undefined>>[0];
+  type PreparationAdmission = Pick<EmbeddedSubmission, 'preparedProgram' | 'requestId'>;
+  type PreparedAdmissionFailure = Parameters<typeof retainPreparedSubmissionFailure<PreparationAdmission, unknown, SourceAdmissionRefusal | undefined>>[0];
   type PreparationFailure = Readonly<{cleanupPending?: unknown; cleanupHandle?: unknown}>;
-  const admissionFailures = new WeakMap<EmbeddedSubmission, Parameters<PreparedAdmissionFailure['set']>[1]>();
+  const admissionFailures = new WeakMap<PreparationAdmission, Parameters<PreparedAdmissionFailure['set']>[1]>();
   const holderRefusal = preparation === undefined ? undefined :
     Object.getOwnPropertyDescriptor(preparation, 'isOriginalManagedComputePreparationRefusal')?.value;
   const admitPreparedSubmission = preparation === undefined ? undefined : Object.freeze(Object.assign(
-    function(submission: EmbeddedSubmission, held?: {managedRun?: unknown}) {
+    function(submission: PreparationAdmission, held?: {managedRun?: unknown}) {
       let requested: unknown, sourceRefusal: SourceAdmissionRefusal | undefined;
       try {
         const selected = requestOf(submission, (error, request, adapter, sourceRef, selection) => {
@@ -6551,7 +6553,7 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
         retainPreparedSubmissionFailure(admissionFailures, submission, error,
           requested, sourceRefusal, diagnostic);
       }
-    }, {isOriginalPreparationRefusal(error: unknown, submission: EmbeddedSubmission) {
+    }, {isOriginalPreparationRefusal(error: unknown, submission: PreparationAdmission) {
       if (this !== admitPreparedSubmission) return false;
       const original = admissionFailures.get(submission);
       admissionFailures.delete(submission);
@@ -7543,29 +7545,126 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
         request.ref, {principalId: request.principalId, connection: request.connection, authorize}),
       readWorkspace: preparation.resultReadWorkspace(moon),
     }) : undefined;
-  const authorizeDebugResume = (request: Readonly<{
-    principalId: string; connection: object; ref: WireRunRef;
-  }>) => hostConnection(request) && resumeImmediate(
-    {principalId: request.principalId, indexKey: request.ref}) === true && hostConnection(request);
-  const lookupControlOperation = preparation !== undefined && interactiveDispatch !== undefined
+  type ResumeInput = Parameters<NonNullable<Parameters<typeof installClientControlOperationLookup>[0]['resumeOriginal']>>;
+  const authorizeDebugResume = (request: HostConnectionInput & Readonly<{ref: WireRunRef}>) =>
+    hostConnection(request) && resumeImmediate({principalId: request.principalId, indexKey: request.ref}) === true &&
+    hostConnection(request);
+  const reopeningDebugEntries = new Set<string>();
+  const reopenDebugEntry = async (ref: ResumeInput[0], actor: ResumeInput[1], wire: ResumeInput[2]) => {
+    if (preparation === undefined || interactiveJournal === undefined || interactiveDispatch === undefined ||
+        admitPreparedSubmission === undefined) throw clientOperationError('ClientOperationUnavailable');
+    const key = ref.runDefinitionCid;
+    reopeningDebugEntries.add(key);
+    let input: RequestInputRetention | undefined, transferred = false;
+    try {
+      const original = interactiveJournal.restoreUnstartedDebugEntry(ref, wire,
+        {current: actor.authorize, reserve: actor.reserveOriginal}, moon, control);
+      const {accepted, park, profile, identity} = original;
+      if (profile !== sourceFreeDebugProfile) throw clientOperationError('ClientRunDebugEntryOriginalUnavailable');
+      // The accepted intent supplies the funded input. The attached
+      // connection supplies current authority and the request's abort.
+      const request = {requestId: accepted.requestId, principalId: actor.principalId,
+        connection: actor.connection, signal: actor.signal};
+      input = preparation.retainEffectRequestInput(moon, request, original.intent, undefined);
+      const prepared = await prepareSubmit(request);
+      original.assertCurrent();
+      prepareSubmit.assertSubmittedIntent(prepared, original.intent);
+      if (prepareSubmit.kindOf(prepared) !== 'effect_free' ||
+          moon.clientProgramAcquisitionCount(prepared) !== 0 ||
+          moon.clientProgramSerializationOccurrences(prepared).length !== 0) {
+        throw clientOperationError('ClientRunDebugEntryOriginalUnavailable');
+      }
+      const infers = checked(moon.clientProgramComposedInferOccurrences(prepared));
+      if (!Array.isArray(infers) || infers.length !== 0) {
+        throw clientOperationError('ClientRunDebugEntryOriginalUnavailable');
+      }
+      retainRestoredSourceFreeRequest(prepared, accepted.requestId, identity);
+      const submission = localPreparationCustody.attach(request,
+        localPreparationCustody.adopt(prepared, request));
+      if (submission.preparedProgram !== prepared) {
+        throw clientOperationError('ClientRunDebugEntryOriginalUnavailable');
+      }
+      const preparedSubmission = submission as typeof request & {preparedProgram: typeof prepared};
+      preparation.bindSourceRequest(preparedSubmission, prepared);
+      const held: HeldAdmission & DispatchHeld = {sampleProfile: profile, debugEntryExpiresAt: park.expiresAt};
+      admitPreparedSubmission(preparedSubmission, held);
+      held.plan = planFor(preparedSubmission, accepted.runDefinition.wire, identity);
+      const evidence = sourceFreeValuesAdmissionEvidence(held.plan);
+      if (held.plan.runDefinition.identity !== ref.runDefinitionCid ||
+          held.plan.runDefinition.wire !== accepted.runDefinition.wire ||
+          evidence === undefined || accepted.runAdmissionEvidence === undefined ||
+          evidence.prepared !== accepted.runAdmissionEvidence.prepared ||
+          evidence.authorization !== accepted.runAdmissionEvidence.authorization) {
+        throw clientOperationError('ClientRunDebugEntryOriginalUnavailable');
+      }
+      original.assertCurrent();
+      if (interactiveDispatch.live(ref)) throw clientOperationError('ClientRunDebugEntryRevisionConflict');
+      const ready = Promise.withResolvers<void>();
+      held.retainedDebugEntry = {park: {...park, entryStep: original.entryStep},
+        assertCurrent: original.assertCurrent, ready: ready.resolve};
+      const physical = interactiveDispatch.start(preparedSubmission, identity, accepted, held,
+        checkpoints === undefined ? undefined : () => settleHeldRun(accepted, runIdOf(accepted)));
+      transferred = true;
+      await Promise.race([ready.promise, physical.then(() => {
+        throw clientOperationError('ClientRunDebugEntryOriginalUnavailable');
+      })]);
+      input.finish('returned');
+      input = undefined;
+      actor.signal?.throwIfAborted();
+      return interactiveDispatch.resumeDebugTask(ref, actor, wire);
+    } catch (cause) {
+      const retainedInput = input;
+      if (retainedInput === undefined) throw cause;
+      throw retainInstalledHostRuntimeFailure(cause, () => retainedInput.finish(transferred ? 'returned' : 'failed'));
+    } finally {
+      reopeningDebugEntries.delete(key);
+    }
+  };
+  const lookupControlOperation = preparation !== undefined && interactiveDispatch !== undefined && interactiveJournal !== undefined
     ? installClientControlOperationLookup({
       authorize: request => hostConnection(request) && authorizeLocalRunImmediate(
         {principalId: request.principalId, indexKey: request.ref}, undefined) === true && hostConnection(request),
       authorizeResume: authorizeDebugResume,
-      resumeOriginal: interactiveDispatch.resumeDebugTask,
+      resumeOriginal(ref, actor, wire) {
+        if (reopeningDebugEntries.has(ref.runDefinitionCid)) throw clientOperationError('ClientRunDebugEntryRevisionConflict');
+        return interactiveDispatch.live(ref) ? interactiveDispatch.resumeDebugTask(ref, actor, wire) :
+          reopenDebugEntry(ref, actor, wire);
+      },
       lookupOriginal: interactiveDispatch.lookupDebugResume,
       readWorkspace: preparation.resultReadWorkspace(moon),
     }) : undefined;
-  const inspectRun = installClientRunInspect({
+  type RunInspectOriginal = NonNullable<ReturnType<ClientJournal['lookupRunDefinition']>>;
+  const inspectRun = installClientRunInspect<RunDefinitionProjection, unknown, unknown, unknown, RunInspectOriginal>({
     authorize: (request, operation) => hostConnection(request) && authorizeLocalRun(operation, operation),
     authorizeCurrent: (request, operation) => hostConnection(request) &&
       authorizeCurrentLocalRun(operation, operation) === true && hostConnection(request),
     observeOwners, control,
     lookupOriginal: ref => journal!.lookupRunDefinition(ref, moon, control),
-    ...(preparation === undefined || interactiveDispatch === undefined ? {} : {
+    ...(preparation === undefined || interactiveDispatch === undefined || interactiveJournal === undefined ? {} : {
       authorizeResume: authorizeDebugResume,
-      observeDebugPause: (request, authorize, canResume) => interactiveDispatch.observeDebugInspect(
-        request.ref, {principalId: request.principalId, connection: request.connection, authorize}, canResume),
+      observeDebugPause(request, authorize, resume, original, reserveOriginal) {
+        const {ref, principalId, connection} = request;
+        const live = interactiveDispatch.observeDebugInspect(ref, {principalId, connection, authorize}, resume);
+        if (live !== undefined || interactiveDispatch.live(ref)) return live;
+        const park = interactiveJournal.observeUnstartedDebugEntry(original, authorize);
+        if (park === undefined || interactiveDispatch.live(ref)) return undefined;
+        if (park.kind === 'unavailable') throw clientOperationError('ClientOperationUnavailable');
+        const entry = park.entryStep;
+        let resumeAvailable: boolean | undefined;
+        if (resume !== undefined) {
+          const admitted = entry !== undefined && reserveOriginal !== undefined &&
+            original.runAdmissionEvidence?.debugEntryProfileWire === sourceFreeDebugProfile &&
+            resume() === true && authorize() === true
+            ? interactiveJournal.admitUnstartedDebugEntry(original, {current: authorize, reserve: reserveOriginal}) : undefined;
+          resumeAvailable = entry !== undefined && admitted?.stepId === entry.stepId &&
+            admitted.logicalMapCid === entry.logicalMapCid && resume() === true && authorize() === true;
+        }
+        if (interactiveDispatch.live(ref)) return undefined;
+        return Object.freeze({revision: park.revision, pausedAt: park.pausedAt, expiresAt: park.expiresAt,
+          logicalMapCid: entry?.logicalMapCid ?? null, runRef: ref, ttlPolicy: 'original_debug_entry_deadline',
+          ...(entry === undefined ? {} : {nextStepId: entry.stepId}),
+          ...(resumeAvailable === undefined ? {} : {resumeAvailable})});
+      },
       readWorkspace: preparation.resultReadWorkspace(moon),
     }),
   });

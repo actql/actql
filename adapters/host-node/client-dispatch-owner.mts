@@ -49,6 +49,8 @@ type DispatchAuthority = Readonly<{principalId: string; connection: object; ref:
 type DebugActor = Omit<DispatchAuthority, 'ref'> & Readonly<{authorize(): boolean}>;
 type DebugResumeActor = DebugActor & Readonly<{reserve: NonNullable<DebugReadScope['reserve']>}>;
 type DebugPark = Parameters<Journal['debugPauseCurrent']>[1]['parked'];
+type RetainedDebugEntry = Readonly<{park: Extract<DebugPark, {controlRevision?: undefined}>;
+  assertCurrent(): true; ready(): void}>;
 type PhysicalStartOptions = Parameters<Journal['reservePhysicalStart']>[1];
 type DebugStartSelection = NonNullable<PhysicalStartOptions['debugResume']>;
 type DebugStartWitness = Parameters<DebugStartSelection['capture']>[0];
@@ -69,6 +71,7 @@ type SampleStartMoon = Readonly<{
 }>;
 type DebugMoon = Parameters<Journal['parkDebugEntry']>[2] & Readonly<{
   clientProgramAdvanceRelationSampleDebugEntry?(...args: [...DebugAccountBinding, command: DebugCommand, revision: number]): unknown;
+  clientProgramRelationSampleDebugEntryStep?(...args: DebugBinding): unknown;
   clientProgramRelationSampleDebugEntryRunnable?(...args: [...DebugBinding, startRevision: number]): unknown;
   clientProgramRelationSampleDebugTaskPause?(...args: [...DebugBinding, startRevision: number]): unknown;
   clientProgramRelationSampleDebugNextInput?(...args: [...DebugBinding, startRevision: number,
@@ -144,6 +147,7 @@ type Held = {
   sampleProfile?: string;
   prepareSampleStart?: ReturnType<typeof installNodeRelationSampleStart>;
   debugEntryExpiresAt?: number;
+  retainedDebugEntry?: RetainedDebugEntry;
   debugResumeCid?: string;
   keyedSource?: Readonly<{acquisition: unknown; prepared: Prepared; occurrence: Occurrence; requestIdentity: unknown}>;
 };
@@ -360,6 +364,7 @@ export function installNodeRelationSampleDebugEntry(moon: DebugMoon, observeAcco
   {journal, control, now}: Readonly<{journal: DebugJournal | undefined; control: DebugControl; now(): string}>) {
   const advance = moon.clientProgramAdvanceRelationSampleDebugEntry;
   const runnable = moon.clientProgramRelationSampleDebugEntryRunnable;
+  const entryStep = moon.clientProgramRelationSampleDebugEntryStep;
   const pause = moon.clientProgramRelationSampleDebugTaskPause;
   const nextInput = moon.clientProgramRelationSampleDebugNextInput;
   const resume = moon.clientProgramResumeRelationSampleDebugTask;
@@ -437,6 +442,12 @@ export function installNodeRelationSampleDebugEntry(moon: DebugMoon, observeAcco
         catch (cause) {stopWaiting(wait, cause);}
       });
     }
+    const projectEntryStep = (original: DebugLive) => {
+      if (typeof entryStep !== 'function' || original.logicalMapCid === undefined) return undefined;
+      const stepId = entryStep.call(moon, original.profile, original.owner, original.setup);
+      return typeof stepId !== 'string' || stepId === '' ? undefined :
+        Object.freeze({stepId, logicalMapCid: original.logicalMapCid});
+    };
     call(live, 'prepare', 0);
     return Object.freeze({
       current,
@@ -459,12 +470,30 @@ export function installNodeRelationSampleDebugEntry(moon: DebugMoon, observeAcco
           throw new Error('ClientRunDebugEntryOriginalUnavailable');
         }
         requireCurrent(original);
+        const projectedStep = projectEntryStep(original);
+        requireCurrent(original);
         const parked = journal.parkDebugEntry(identity, {
           ref: original.authority.ref, expectedRevision, expiresAt, current,
+          ...(projectedStep === undefined ? {} : {entryStep: projectedStep}),
         }, moon, control);
         requireCurrent(original);
         if (parked?.kind === 'expired') throw new Error('ClientRunDebugEntryExpired');
         if (parked?.kind !== 'parked' || parked.revision !== expectedRevision + 1 || parked.expiresAt !== expiresAt) {
+          throw new Error('ClientRunDebugEntryOriginalUnavailable');
+        }
+        return holdPause(projectedStep === undefined ? parked : {...parked, entryStep: projectedStep}, original.signal);
+      },
+      reopenEntry(parked: RetainedDebugEntry['park'], currentOriginal: RetainedDebugEntry['assertCurrent']) {
+        const original = live;
+        if (original === undefined || activated || waiting !== undefined || !current() ||
+            currentOriginal() !== true || !journal.debugPauseCurrent(original.authority.ref,
+              {parked, startRevision: 0, current}) || !current()) {
+          throw new Error('ClientRunDebugEntryOriginalUnavailable');
+        }
+        const projected = projectEntryStep(original);
+        if (parked.entryStep === undefined || projected?.stepId !== parked.entryStep.stepId ||
+            projected.logicalMapCid !== parked.entryStep.logicalMapCid ||
+            currentOriginal() !== true || !current() || waiting !== undefined) {
           throw new Error('ClientRunDebugEntryOriginalUnavailable');
         }
         return holdPause(parked, original.signal);
@@ -479,15 +508,17 @@ export function installNodeRelationSampleDebugEntry(moon: DebugMoon, observeAcco
             !journal.debugPauseCurrent(original.authority.ref, {
               parked: wait.parked, startRevision: original.startRevision, current: allowed, requireEntryDeadline: inspect,
             }) || !local()) return undefined;
+        const nextStepId = wait.parked.controlRevision === undefined ?
+          wait.parked.entryStep?.stepId : wait.parked.nextStepId;
         const resumeAvailable = authorizeResume === undefined ? undefined :
           authorizeResume() === true && allowed() && resumeAllowed.call(moon, original.profile,
             original.owner, original.setup, original.account, original.authority.principalId, site) === true && allowed();
         if (!allowed()) return undefined;
         return Object.freeze({revision: wait.parked.revision,
-          ...(resumeAvailable === undefined ? {} : {resumeAvailable}),
           ...(wait.parked.controlRevision === undefined ? {} : {completedStepId: wait.parked.stepId,
-            committedGeneration: wait.parked.committedGeneration,
-            ...(wait.parked.nextStepId === null ? {} : {nextStepId: wait.parked.nextStepId})}),
+            committedGeneration: wait.parked.committedGeneration}),
+          ...(nextStepId == null ? {} : {nextStepId}),
+          ...(resumeAvailable === undefined ? {} : {resumeAvailable}),
           ...(inspect ? {logicalMapCid: original.logicalMapCid, startRevision: original.startRevision,
             controlRevision: wait.parked.controlRevision, runRef: original.authority.ref,
             ttlPolicy: 'original_debug_entry_deadline'} : {}),
@@ -908,6 +939,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     }
     let debugResumeCid = held!.debugResumeCid;
     const debugEntryExpiresAt = held!.debugEntryExpiresAt;
+    let retainedDebugEntry = held!.retainedDebugEntry;
+    delete held!.retainedDebugEntry;
     const parkDebugEntry = debugEntryExpiresAt !== undefined;
     const resumesDebug = parkDebugEntry || debugResumeCid !== undefined;
     let preparationLease = preparationCustody?.begin(submission!);
@@ -1433,7 +1466,18 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             if (draining) throw new Error('ClientRunDebugEntryHostClosing');
             entry.waitingForDebugEntry = true;
             try {
-              debugResumeCid = await debugController.parkEntry(requested, claim.revision, debugEntryExpiresAt);
+              if (retainedDebugEntry === undefined) {
+                debugResumeCid = await debugController.parkEntry(requested, claim.revision, debugEntryExpiresAt);
+              } else {
+                if (claim.kind !== 'reconcile' || claim.revision !== retainedDebugEntry.park.revision ||
+                    typeof debugController.reopenEntry !== 'function') {
+                  throw new Error('ClientRunDebugEntryOriginalUnavailable');
+                }
+                const waiting = debugController.reopenEntry(retainedDebugEntry.park, retainedDebugEntry.assertCurrent);
+                retainedDebugEntry.ready();
+                retainedDebugEntry = undefined;
+                debugResumeCid = await waiting;
+              }
             } finally {entry.waitingForDebugEntry = false;}
             entry.abort.signal.throwIfAborted();
             if (!current()) throw new Error('ClientRunDebugEntryDenied');
@@ -1878,6 +1922,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       try { await finishRun(entry); }
       catch (failure) { entry.finishFailure = failure; }
     }).finally(() => {
+      retainedDebugEntry = undefined;
       entry.settled = true;
       reached('not_started');
       try { releaseAcquisition(entry); }

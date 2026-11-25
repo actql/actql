@@ -314,8 +314,9 @@ type ControlInstallation = Readonly<{
     reserve: SampleReserve; reserveConstruction: SampleReserve;
   }>): ControlReadResult | undefined;
   authorizeResume?(request: ResumeRequest): boolean | PromiseLike<boolean>;
-  resumeOriginal?(ref: WireRunRef, scope: CurrentAccess & Readonly<{reserve: SampleReserve}>,
-    wire: string): ControlAcceptance | undefined;
+  resumeOriginal?(ref: WireRunRef, scope: CurrentAccess & Readonly<{
+    reserve: SampleReserve; reserveOriginal: SampleReserve; signal?: AbortSignal;
+  }>, wire: string): ControlAcceptance | undefined | Promise<ControlAcceptance | undefined>;
   readWorkspace: Readonly<{
     begin(request: ControlRequest): unknown;
     metadata(request: ControlRequest, bytes: number): undefined;
@@ -375,7 +376,9 @@ export function installClientControlOperationLookup({authorize, lookupOriginal, 
         try {
           const wire = canonicalJson(request.command);
           if (Buffer.byteLength(wire, 'utf8') > 4096) throw failure('ClientRunDebugEntryInvalidCommand');
-          const accepted = resumeOriginal!(request.ref, {...scope, reserve: reserveConstruction}, wire);
+          const result = resumeOriginal!(request.ref, {...scope, reserve: reserveConstruction,
+            reserveOriginal: bytes => readWorkspace.metadata(request, bytes), signal: request.signal}, wire);
+          const accepted = result instanceof Promise ? await result : result;
           if (accepted?.kind === 'expired') throw failure('ClientRunDebugEntryExpired');
           if (accepted?.kind !== 'resume_accepted' || accepted.commandCid !== operationRef.command_cid ||
               accepted.revision !== operationRef.accepted_from_revision + 1) {

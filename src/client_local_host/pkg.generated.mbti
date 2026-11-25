@@ -814,6 +814,8 @@ pub fn installed_relation_sample_adoption_matches_profile(ClientCheckedRelationS
 
 pub fn installed_relation_sample_debug_entry_runnable(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, Int) -> Result[Bool, InstalledRelationSampleStartIssue]
 
+pub fn installed_relation_sample_debug_entry_step(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG) -> String
+
 pub fn installed_relation_sample_debug_next_input(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, Int, Int, Int, String, Int, Int) -> Result[(String, String, String, Int, Int)?, InstalledRelationSampleNextInputIssue]
 
 pub fn installed_relation_sample_debug_resume_allowed(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, @execution_authorization.AdmittedAccountConfiguration, String, String) -> Bool
