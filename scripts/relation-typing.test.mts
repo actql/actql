@@ -3,10 +3,23 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { generate } from './check-relation-typing.mjs';
 import { machineCid } from './actql-spec-family.mjs';
-const fixture = () => JSON.parse(readFileSync('portability/corpus/actql-relation-typing-v0.1.json', 'utf8'));
+
+type Corpus = Parameters<typeof generate>[0];
+type Fixture = Corpus & {types: {number: {nullable: boolean}}};
+type MutableCorpus = Omit<Corpus, 'accepted'> & {accepted: Partial<Corpus['accepted'][number]>[]};
+type Registry = {
+  artifact_schemas: {
+    executable_plan: {properties: {execution_material: {properties: {program: Program}}}};
+    plan_document: {properties: {plan: {properties: {execution_material: {properties: {program: Program}}}}}};
+  };
+  artifact_schema_cids: Record<string, string>;
+  artifact_registry_cid: string;
+};
+type Program = {properties: {steps: {items: {properties: {derive: unknown}}}}};
+const fixture = (): Fixture => JSON.parse(readFileSync('portability/corpus/actql-relation-typing-v0.1.json', 'utf8'));
 
 test('embedded derive map schemas admit empty maps and keep artifact pins current', () => {
-  const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
+  const registry: Registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   const a = registry.artifact_schemas;
   const programs = [a.executable_plan.properties.execution_material.properties.program,
     a.plan_document.properties.plan.properties.execution_material.properties.program];
@@ -15,7 +28,7 @@ test('embedded derive map schemas admit empty maps and keep artifact pins curren
       type: 'object', additionalProperties: { $ref: '#/$defs/value_expression' },
     });
   }
-  for (const name of ['executable_plan', 'plan_document']) {
+  for (const name of ['executable_plan', 'plan_document'] as const) {
     assert.equal(registry.artifact_schema_cids[name], machineCid(a[name]));
   }
   assert.equal(registry.artifact_registry_cid, machineCid(a));
@@ -39,7 +52,7 @@ test('generation rejects missing expectations and unknown or duplicate cases', (
     c => { c.accepted.push(c.accepted[0]); },
     c => { c.rejected[0].issue = 'wrong'; },
     c => { c.types = {}; },
-  ]) {
+  ] satisfies ((c: MutableCorpus) => unknown)[]) {
     const c = fixture(); mutate(c); assert.throws(() => generate(c));
   }
 });

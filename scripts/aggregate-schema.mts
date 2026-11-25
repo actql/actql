@@ -2,12 +2,30 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parameterPrograms } from './parameter-schema.mjs';
+import { parameterPrograms, type ProgramRegistry } from './parameter-schema.mjs';
 import { machineCid } from './actql-spec-family.mjs';
+
+type AggregateProperties = {
+  fn: {const: string};
+  field: {type: string; minLength: number};
+  expr: {$ref: string};
+  filter: {$ref: string};
+  distinct?: {type: string} | {const: boolean};
+  order_by?: typeof orderKeys;
+  max_items?: typeof positive;
+  delimiter?: {type: string};
+  max_bytes?: typeof positive;
+  fraction?: {oneOf: unknown[]};
+};
+type AggregateConditions = [{oneOf: unknown[]}, ...{if: unknown; then: unknown}[]];
+type GroupProgram = {properties: {steps: {items: {properties: {
+  group: {properties: {aggregates: {type: string; minProperties?: number}}};
+}}}}};
+type AggregateExpressions = {laws: {aggregate_binding: string}};
 
 export const functions = ['count', 'count_if', 'any_value', 'sum', 'avg', 'min', 'max', 'array_agg', 'string_agg', 'first', 'last', 'percentile_disc', 'percentile_cont', 'var_pop', 'var_samp', 'stddev_pop', 'stddev_samp'];
 export const parameter = {type:'object', additionalProperties:false, required:['$param'], properties:{$param:{type:'string',pattern:'^[A-Za-z_][A-Za-z0-9_]*$'}}};
-export const positive = {oneOf:[{type:'integer',minimum:1,maximum:9007199254740991},parameter]};
+export const positive = {oneOf:[{type:'integer',minimum:1,maximum:9007199254740991},parameter] as const};
 const field = {type:'string',minLength:1};
 export const fieldPattern = '^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$';
 export const orderKeys = {type:'array',minItems:1,items:{oneOf:[
@@ -17,9 +35,9 @@ export const orderKeys = {type:'array',minItems:1,items:{oneOf:[
 
 export function aggregateSchema(analytic = false) {
   return {oneOf:functions.filter(fn => !analytic || fn !== 'any_value').map(fn => {
-    const properties = {fn:{const:fn},field,expr:{$ref:'#/$defs/value_expression'},filter:{$ref:'#/$defs/predicate'}};
+    const properties: AggregateProperties = {fn:{const:fn},field,expr:{$ref:'#/$defs/value_expression'},filter:{$ref:'#/$defs/predicate'}};
     const required = ['fn'];
-    const allOf = [{oneOf:fn === 'count' ? [{required:['field'],not:{required:['expr']}},{required:['expr'],not:{required:['field']}},{not:{anyOf:[{required:['field']},{required:['expr']}]}}] : [{required:['field'],not:{required:['expr']}},{required:['expr'],not:{required:['field']}}]}];
+    const allOf: AggregateConditions = [{oneOf:fn === 'count' ? [{required:['field'],not:{required:['expr']}},{required:['expr'],not:{required:['field']}},{not:{anyOf:[{required:['field']},{required:['expr']}]}}] : [{required:['field'],not:{required:['expr']}},{required:['expr'],not:{required:['field']}}]}];
     if (['count','sum','avg','array_agg','string_agg'].includes(fn)) properties.distinct = {type:'boolean'};
     if (['min','max'].includes(fn)) properties.distinct = {const:false};
     if (fn === 'count') allOf.push({if:{required:['distinct'],properties:{distinct:{const:true}}},then:{anyOf:[{required:['field']},{required:['expr']}]}});
@@ -46,7 +64,7 @@ export function groupSchema() {
 
 export const aggregateBinding = 'REL.groupBy admits count, count_if, any_value, sum, avg, min, max, array_agg, string_agg, first, last, percentile_disc, percentile_cont, var_pop, var_samp, stddev_pop and stddev_samp. Authored calls have exactly one field or expr, except row-count count may omit both. Each filter is a separate root and gates demand for that call only. distinct true is admitted only for count with an argument, sum, avg, array_agg and string_agg; explicit false is additionally admitted for row-count count, min and max. Other functions reject the distinct member. Ordered functions use independent total orders, supplied by the analytic frame only in that context. avg requires number; decimal sum uses precision 38 and retains scale. array_agg excludes null and rejects recursively nonconstructible item contracts. Selected first/last/any_value values may retain reference and structured contracts. any_value returns one non-null contributor or null if none exists; it does not require a row order and is not an analytic call. Percentile and statistical laws remain their own deterministic folds; binary64 sum/avg use numeric observation slots. Empty aggregate maps and repeated grouping references are retained; output keys occur once in first-occurrence order, and the empty global group emits one empty row even for empty input. Acceptance never authorizes operation deletion or preimage deduplication.';
 
-export function checkAggregateSchemas(registry, expressions) {
+export function checkAggregateSchemas(registry: ProgramRegistry<GroupProgram>, expressions: AggregateExpressions) {
   for (const p of parameterPrograms(registry)) assert.deepEqual(p.properties.steps.items.properties.group, groupSchema());
   assert.equal(expressions.laws.aggregate_binding, aggregateBinding);
   for (const [name, body] of Object.entries(registry.artifact_schemas)) assert.equal(registry.artifact_schema_cids[name], machineCid(body));
@@ -56,8 +74,8 @@ export function checkAggregateSchemas(registry, expressions) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const registryPath = 'spec/contracts/actql-protocol-schemas.json';
   const expressionsPath = 'spec/contracts/actql-expressions.json';
-  const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
-  const expressions = JSON.parse(readFileSync(expressionsPath, 'utf8'));
+  const registry: ProgramRegistry<GroupProgram> = JSON.parse(readFileSync(registryPath, 'utf8'));
+  const expressions: AggregateExpressions = JSON.parse(readFileSync(expressionsPath, 'utf8'));
   if (process.argv.includes('--write')) {
     for (const p of parameterPrograms(registry)) p.properties.steps.items.properties.group = groupSchema();
     expressions.laws.aggregate_binding = aggregateBinding;

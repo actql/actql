@@ -8,8 +8,8 @@ const source = new URL('../src/', import.meta.url);
 // Check the production dependency direction. Explicit test composition is not
 // a dependency of the installed checker; the existing scoped reader validates
 // each import instead of treating every quoted package spelling as an edge.
-const readManifest = name => readFileSync(new URL(`${name}/moon.pkg`, source), 'utf8');
-function closure(root, read = readManifest) {
+const readManifest = (name: string) => readFileSync(new URL(`${name}/moon.pkg`, source), 'utf8');
+function closure(root: string, read = readManifest) {
   return new Set([root, ...productionDependencyClosure(root, read)]);
 }
 
@@ -44,12 +44,12 @@ test('Graph input capacity admission remains below Program applications and cons
 test('scoped test composition cannot hide a direct or transitive production facade edge', () => {
   const actual = [...closure('relation_evidence')];
   for (const scope of ['test', 'wbtest']) {
-    const read = name => readManifest(name) + (name === 'relation_evidence'
+    const read = (name: string) => readManifest(name) + (name === 'relation_evidence'
       ? `\nimport { "actql/actql/relation_join", } for "${scope}"\n` : '');
     assert.deepEqual([...closure('relation_evidence', read)], actual);
   }
   for (const owner of ['relation_evidence', 'check_environment']) {
-    const read = name => readManifest(name) + (name === owner
+    const read = (name: string) => readManifest(name) + (name === owner
       ? '\nimport { "actql/actql/relation_join", }\n' : '');
     const dependencies = closure('relation_evidence', read);
     assert.ok(dependencies.has('relation_join'), 'production facade edge remains visible');

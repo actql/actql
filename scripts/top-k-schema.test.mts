@@ -5,8 +5,8 @@ import {topKSchema,checkTopKSchemas} from './top-k-schema.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 test('top-k grammar retains distinct operators and symbolic positive bounds',()=>{
   assert.equal(topKSchema().properties.partition_by,undefined);
-  assert.equal(topKSchema(true).properties.partition_by.minItems,undefined);
-  assert.equal(topKSchema(true).properties.partition_by.uniqueItems,undefined);
+  assert.equal((topKSchema(true).properties.partition_by as Record<string, unknown>).minItems,undefined);
+  assert.equal((topKSchema(true).properties.partition_by as Record<string, unknown>).uniqueItems,undefined);
   for(const p of [false,true]) {
     const s=topKSchema(p);
     assert.equal(s.additionalProperties,false);
@@ -16,11 +16,11 @@ test('top-k grammar retains distinct operators and symbolic positive bounds',()=
   }
 });
 test('both embedded top-k schemas and pins detect drift',()=>{
-  const registry=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  const registry: Parameters<typeof checkTopKSchemas>[0]=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   checkTopKSchemas(registry);
   for(const index of [0,1]) {
     const r=structuredClone(registry);
-    parameterPrograms(r)[index].properties.steps.items.properties.top_k_by.properties.partition_by.minItems=1;
+    parameterPrograms(r)[index].properties.steps.items.properties.top_k_by.properties.partition_by!.minItems=1;
     assert.throws(()=>checkTopKSchemas(r));
   }
 });
