@@ -628,7 +628,8 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
   compiled : @run_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   request : @run_host.ClientRequestIdentity,
-) -> @local_host.NativeClientRelationFileWorkEntry raise ClientStop {
+  publisher : @local_host.NativeLocalPublisherBinding,
+) -> (@local_host.NativeClientRelationFileWorkEntry, Array[String]) raise ClientStop {
   guard self.original.business is Some(business) &&
     business.operation is Some(operation) &&
     business.execution is Some(execution) &&
@@ -662,8 +663,21 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
       )
     Project(_) => None
   }).unwrap_or_else(() => stop("LocalSourceReadCapacityUnavailable"))
-  let r = @execution.execution_capacity_retained_bytes(read_capacity)
-  let e = @execution.execution_capacity_execution_bytes(read_capacity)
+  let result_count = @strategy.graph_result_count(graph)
+  let generation_capacity = local_file_generation_capacity(result_count).unwrap_or_else(() => {
+      stop("LocalSourceReadCapacityUnavailable")
+    },
+  )
+  let r = @execution.checked_preparation_add_product(
+    @execution.execution_capacity_retained_bytes(read_capacity),
+    generation_capacity,
+    1L,
+  ).unwrap_or_else(() => stop("LocalSourceReadCapacityUnavailable"))
+  let e = @execution.checked_preparation_add_product(
+    @execution.execution_capacity_execution_bytes(read_capacity),
+    generation_capacity,
+    1L,
+  ).unwrap_or_else(() => stop("LocalSourceReadCapacityUnavailable"))
   let source_count = match selected_sources {
     Whole(_, _) => 1
     Query(sources) => sources.length()
@@ -671,7 +685,7 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
     Project(_) => 0
   }
   let raw = @local_host.native_relation_file_entries_read_raw_bytes(
-    source_count,
+    Int::max(source_count, result_count),
   ).unwrap_or_else(() => stop("LocalSourceReadPlacementUnavailable"))
   // The original consumer retains its finite base. Acquire actual backing on
   // that SAME Read before entry/provider/selection constructors; this neither
@@ -724,6 +738,16 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
       stage=Some("file-work-backing"),
     )
   }
+  // The same publisher samples once per checked Result while the Read is
+  // still entered. The vector outlives this phase and remains charged above.
+  let generations : Array[String] = []
+  for _ in 0..<result_count {
+    generations.push(
+      publisher
+      .sample_original_generation_cid()
+      .unwrap_or_else(() => stop("LocalGenerationUnavailable")),
+    )
+  }
   let outcome = (match selected_sources {
     Whole(declaration, row) => {
       guard business.file_capacity is Some(capacity) else {
@@ -774,7 +798,7 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
   match outcome {
     Ok(entry) => {
       business.file_entry = Some(entry)
-      entry
+      (entry, generations)
     }
     Err(failure) => {
       // Retain the actual typed primary before cleanup can clear its entry.

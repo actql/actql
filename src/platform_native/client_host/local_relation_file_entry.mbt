@@ -41,7 +41,7 @@ struct NativeClientRelationFileWorkEntry {
   ]
   unavailable_current : Result[Unit, NativeClientSourceWorkIssue]
   unavailable_export : Result[
-    @host.PublicationOutputExport,
+    Array[@host.PublicationOutputExport],
     NativeClientSourceWorkIssue,
   ]
   mut ready : Bool

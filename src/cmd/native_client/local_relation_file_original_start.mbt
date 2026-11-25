@@ -39,9 +39,6 @@ fn local_execute_original_publish_file_source(
     )
     .unwrap_or_else(() => stop("LocalPublisherAuthorityUnavailable"))
   business.publication_publisher = Some(publisher)
-  let generation = publisher
-    .sample_original_generation_cid()
-    .unwrap_or_else(() => stop("LocalGenerationUnavailable"))
   let authoring = selection.publication_authoring(prepared)
   let now = local_utc_now()
   let intent : @local_publication.NativeRunPublicationIntent = {
@@ -60,8 +57,8 @@ fn local_execute_original_publish_file_source(
     started_at: now,
     committed_at: now,
   }
-  let entry = selection.prepare_file_work_entry(
-    prepared, compiled, definition, request,
+  let (entry, generations) = selection.prepare_file_work_entry(
+    prepared, compiled, definition, request, publisher,
   )
   errdefer (if business.file_work is None && business.file_failure is None {
     // Only a confirmed original Read-side cancellation can discard this
@@ -103,8 +100,7 @@ fn local_execute_original_publish_file_source(
     64,
     8,
   ).unwrap_or_else(() => stop("LocalSourceResultRetentionUnavailable"))
-  let results : Array[@local_publication.NativeCapturedResultPublicationContext] = [
-    {
+  let results : Array[@local_publication.NativeCapturedResultPublicationContext] = generations.map(generation => {
       retention,
       computation_contract_cid: @publication.publication_contract_identity(
         @run_host.client_compiled_run_plan(compiled),
@@ -116,7 +112,7 @@ fn local_execute_original_publish_file_source(
       material_generation_cid: generation,
       max_payload_bytes: run.result_payload_bytes,
     },
-  ]
+  )
   business.publication_results = Some(results)
   let service = match
     work.install_publication_service(
@@ -156,4 +152,30 @@ fn local_execute_original_publish_file_source(
     selection, settings, request, reference, business, operation, publisher, pending,
     evidence_entries,
   )
+}
+
+///|
+// The generation vector and every CID survive the original Read. The existing
+// Read routing inventory covers the publisher callback; add its per-call
+// wrappers, the fixed SHA state/block/schedule and the nonce and digest buffers.
+// Account for each sample before any new string or growing vector is built.
+fn local_file_generation_capacity(count : Int) -> Int64? {
+  if count <= 0 {
+    return None
+  }
+  let count = count.to_int64()
+  guard @execution.preparation_array_representation(1L, count, true)
+    is Some(array) &&
+    @execution.preparation_representation_cost(array) is Some(vector) &&
+    @execution.preparation_representation_cost({
+      record_headers: 40L,
+      reference_slots: 64L,
+      scalar_words: 120L,
+      owned_utf16_units: 200L,
+      owned_wire_bytes: 320L,
+    })
+    is Some(sample) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(vector, count, sample)
 }
