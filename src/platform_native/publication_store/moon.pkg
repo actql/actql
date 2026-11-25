@@ -25,6 +25,9 @@ import {
 
 import {
   "actql/actql/canonical_json" @json,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_admission" @admitted,
+  "actql/actql/value_contract" @contract,
   "moonbitlang/core/env",
 } for "wbtest"
 

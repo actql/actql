@@ -16,10 +16,13 @@ import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiag
 test('Native requirements construction stays inside the original business scope with its typed failure', async () => {
   const source = await readFile(new URL('../src/cmd/native_client/local_command_business_preparation.mbt', import.meta.url), 'utf8');
   const enclosed = `let requirements = self.with_business_request(capture, () => {
+    if local_terminal_serialization_occurrence(prepared) is Some(_) {
+      return None
+    }
     match @local_values.prepare_source_free_runtime_requirements_result(
       prepared, runtime.installed_contracts, assets.values, Some(assets.fragment), assets.ordered,
     ) {
-      Ok(original) => original
+      Ok(original) => Some(original)
       Err(issue) => local_stop_runtime_requirements(issue)
     }
   })`.replace(/\s+/gu, ' ');

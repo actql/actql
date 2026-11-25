@@ -25,7 +25,8 @@ import {assertPublicQueryRows, dateLiteralOriginal, timestampLiteralOriginal,
   regexpContainsOriginal, arrayLengthOriginal, unixSecondsOriginal,
   commaJoinOriginal} from './fixtures/public-query-input.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
-import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
+import {captureNativeMockCommand, nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
+import {checkTerminalMockRows, terminalMockScenario} from '../adapters/host-node/fixtures/mock-project-terminal-public.mjs';
 import {observeNativeResourceOperatorShape} from './native-source-free-resource-shape.mjs';
 import {observeNativeUnionRows, observeNativeUnionRowPolicy} from './native-cli-union-rows.mjs';
 import {observeInstalledNativeModel} from './native-cli-model-scenario.mjs';
@@ -528,9 +529,13 @@ export async function observeNativeNumericScale({project, cli, outputDirectory =
 // same installed assets/libraries remain originals; no product default changes
 // and no accepted Host is reconfigured. The actual Owners still decide admission.
 export async function prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows,
-  journalRecordLimit = 8, includeSqlResult = false}) {
+  journalRecordLimit = 8, includeSqlResult = false, additionalResultNames = []}) {
   assert(Number.isSafeInteger(maxRows) && maxRows > 0 && maxRows <= 100000);
   assert.equal(typeof includeSqlResult, 'boolean');
+  assert(Array.isArray(additionalResultNames));
+  const resultNames = ['answer0', ...(includeSqlResult ? ['answer'] : []), ...additionalResultNames];
+  assert(resultNames.every(name => /^[a-z][a-z0-9_]*$/u.test(name)));
+  assert.equal(new Set(resultNames).size, resultNames.length);
   // These are the explicit finite acceptance fixtures, not a product limit.
   assert([1, 2, 8].includes(journalRecordLimit));
   assert(isAbsolute(project) && isAbsolute(libraries.sqlite) && isAbsolute(libraries.crypto));
@@ -576,7 +581,8 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
     'account.json': {version: 'actql-execution-account-config/0.1', account_id: principal,
       entries: [permission('numeric-result', 'result/answer0', ['read']),
         permission('numeric-run', 'run', ['cancel', 'publish', 'read', 'submit']),
-        ...(includeSqlResult ? [permission('numeric-sql-result', 'result/answer', ['read'])] : [])]},
+        ...(includeSqlResult ? [permission('numeric-sql-result', 'result/answer', ['read'])] : []),
+        ...additionalResultNames.map(name => permission(`numeric-result-${name}`, `result/${name}`, ['read']))]},
     'environment.json': environment,
     'run.json': {version: 'actql-config/0.1', native: {run: {
       namespace_id: 'numeric', store_name: 'results', store_authority_cid: storeCid,
@@ -586,7 +592,7 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
         ordered: assets.ordered, result_policy_cid: policyCid, result_policy_wire: assets['result-policy']},
     }}},
     'read.json': {version: 'actql-config/0.1', native: {result_read: {
-      enabled: true, principal, connection, result_names: includeSqlResult ? ['answer0', 'answer'] : ['answer0'], formats: ['jsonl'],
+      enabled: true, principal, connection, result_names: resultNames, formats: ['jsonl'],
       purpose: 'cli-read', sink: 'stdout', data_policy_cids: [policyCid], max_bytes: 16777216,
       max_uses: 1, run_policy_profile_cid: cid(profile),
       run_file: 'run.json', retention_file: 'retention.json', store_file: 'store.json',
@@ -614,6 +620,86 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
   await writeFile(join(project, 'runtime.json'), runtimeWire, {flag: 'wx', mode: 0o600});
   return {configuration: ['--mode', 'local', '--config-root', project, '--config-file', 'operator.json'],
     environmentCid: environment.evidence_bundle_cid, maxRows};
+}
+
+// Independently reopen the same native holding with the source removed.
+async function observeNativeTerminalContent({project, binary, environment, assets, libraries, runtimeWire, records}) {
+  const variant = 'terminal-content';
+  const {path, source, result} = terminalMockScenario(variant);
+  const {configuration} = await prepareNativeNumericOperator({project, assets, libraries, runtimeWire,
+    maxRows: 16, additionalResultNames: [result]});
+  await writeFile(join(project, path), source, {flag: 'wx', mode: 0o600});
+  const phases = [];
+  async function cli(phase, args) {
+    const record = {phase, args};
+    records.push(record);
+    try {
+      const output = await captureNativeMockCommand(binary, [...configuration, ...args], {
+        cwd: project, env: environment, stderrPath: join(project, `${phase}.stderr`),
+        timeout: 90_000, maxBuffer: 65_536,
+      });
+      Object.assign(record, output, {code: 0, signal: null});
+    } catch (error) {
+      Object.assign(record, {pid: error.pid, code: error.exitCode, signal: error.signal,
+        stdout: error.stdout, stderr: error.stderr});
+      throw error;
+    }
+    const [observation, ...extra] = nativeMockAcceptanceObservations(record.stderr);
+    assert.equal(extra.length, 0);
+    assert.equal(observation.pid, record.pid);
+    assert.deepEqual(observation.events, []);
+    assert(phases.every(original => original.pid !== record.pid), 'Use separate Native processes');
+    const lines = record.stderr.split('\n');
+    const [close] = lines.filter(line => line.startsWith('ACTQL_NATIVE_PHASE '))
+      .map(line => JSON.parse(line.slice('ACTQL_NATIVE_PHASE '.length))).filter(item => item.name === 'close');
+    assert.deepEqual([close?.begins, close?.ends, close?.active, close?.unmatched_end], [1, 1, 0, 0]);
+    if (phase === 'serialized-saved') {
+      const counters = lines.filter(line => line.startsWith('ACTQL_NATIVE_COUNTER '))
+        .map(line => JSON.parse(line.slice('ACTQL_NATIVE_COUNTER '.length)))
+        .filter(counter => [66, 67, 68, 69].includes(counter.tag))
+        .sort((left, right) => left.tag - right.tag);
+      assert.deepEqual(counters.map(({tag, count}) => [tag, count]), [[66, 0], [67, 0], [68, 0], [69, 0]]);
+    }
+    phases.push({phase, pid: record.pid, firstClose: true, workEvents: 0});
+    return record.stdout;
+  }
+  assert.equal(JSON.parse(await cli('serialized-adopt', ['adopt', '--initialize-signing', '--json'])).kind,
+    'local_host_adopted');
+  const check = JSON.parse(await cli('serialized-check', ['check', path, '--format', 'json', '--json']));
+  assert.equal(check.report.verdict, 'verified');
+  assert.equal(check.report.runnable.verdict, 'yes');
+  const state = JSON.parse(await cli('serialized-run', ['run', path, '--format', 'json', '--json']));
+  assert.equal(state.version, 'actql-run-state/0.1');
+  assert.equal(state.status, 'succeeded');
+  assert.match(state.run_id, /\S/u);
+  assert.deepEqual(Object.keys(state.result_availability), [result]);
+  const resultArgs = ['result', state.run_id, '--result', result, '--format', 'jsonl'];
+  const original = JSON.parse(await cli('serialized-result', resultArgs));
+  checkTerminalMockRows(variant, [original]);
+
+  const store = join(project, 'results');
+  const [leaf, ...other] = (await readdir(store)).filter(name => /^captured-content-[0-9a-f]{64}$/u.test(name));
+  assert(leaf, 'Expected the original Native Content payload');
+  assert.deepEqual(other, []);
+  const holding = join(store, leaf);
+  const bytes = Buffer.from('{"id":1}\n{"id":2}\n');
+  const first = await lstat(holding, {bigint: true});
+  assert(first.isFile());
+  assert.equal(first.size, BigInt(bytes.length));
+  assert.deepEqual(await readFile(holding), bytes);
+
+  await unlink(join(project, path));
+  const saved = JSON.parse(await cli('serialized-saved', resultArgs));
+  checkTerminalMockRows(variant, [saved]);
+  assert.deepEqual(saved, original);
+  const last = await lstat(holding, {bigint: true});
+  assert.deepEqual([last.dev, last.ino, last.mtimeNs, last.ctimeNs],
+    [first.dev, first.ino, first.mtimeNs, first.ctimeNs]);
+  assert.deepEqual(await readFile(holding), bytes);
+  assert.deepEqual((await readdir(store)).filter(name => /^captured-content-[0-9a-f]{64}$/u.test(name)), [leaf]);
+  return {runId: state.run_id, phases, result: saved,
+    programSha256: createHash('sha256').update(source).digest('hex'), originalPayloadBytes: bytes.length,
+    originalPayloadSha256: createHash('sha256').update(bytes).digest('hex'), coldSavedWithoutProgram: true};
 }
 
 // This reads the original closed typed diagnostic from this deliberately
@@ -1217,17 +1303,22 @@ async function observeInstalledSourceFree(input, observationPath) {
     const numericLibraries = Object.fromEntries(localRuntime.libraries.map(item =>
       [item.role, join(platformRoot, item.path)]));
     const runtimeWire = await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8');
+    const platformFacts = platform === 'darwin-arm64'
+      ? {macOS: (await execute('/usr/bin/sw_vers', ['-productVersion'], {timeout: 5000})).stdout.trim()}
+      : {glibc};
+    const environment = installedLocalRuntimeEnvironment({root: platformRoot, expected: runtimeIdentity,
+      metadata: artifact.localRuntime, platformFacts, environment: {
+        HOME: env.HOME, TMPDIR: env.TMPDIR, PATH: env.PATH,
+        ACTQL_NATIVE_TIMINGS: '1', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: '1',
+      }});
+    const binary = join(platformRoot, 'bin/actql-native-client');
+    const terminalContent = await phase('terminal-content', async () => observeNativeTerminalContent({
+      project: join(root, 'terminal-content'), binary, environment, assets: numericAssets,
+      libraries: numericLibraries, runtimeWire, records,
+    }));
     const controlledModel = await phase('controlled-model', async () => {
-      const platformFacts = platform === 'darwin-arm64'
-        ? {macOS: (await execute('/usr/bin/sw_vers', ['-productVersion'], {timeout: 5000})).stdout.trim()}
-        : {glibc};
-      const environment = installedLocalRuntimeEnvironment({root: platformRoot, expected: runtimeIdentity,
-        metadata: artifact.localRuntime, platformFacts, environment: {
-          HOME: env.HOME, TMPDIR: env.TMPDIR, PATH: env.PATH,
-          ACTQL_NATIVE_TIMINGS: '1', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: '1',
-        }});
       return observeInstalledNativeModel({root: join(root, 'controlled-model'),
-        binary: join(platformRoot, 'bin/actql-native-client'), modelImage, environment,
+        binary, modelImage, environment,
         runtimeSha256: artifact.localRuntime.sha256, assets: numericAssets, records,
         prepareProject: project => prepareNativeNumericOperator({project, assets: numericAssets,
           libraries: numericLibraries, runtimeWire, maxRows: 16, includeSqlResult: true})});
@@ -1244,7 +1335,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
       mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, defaultUnionRows, fileSourceNumeric, fileTaskBoundary,
-      controlledModel, namedResults, journalExhaustion, numericScale, resourceShapes,
+      controlledModel, terminalContent, namedResults, journalExhaustion, numericScale, resourceShapes,
       sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model failure matrix and live service', 'Effect approval', 'other platforms']};

@@ -121,11 +121,10 @@ fn native_content_funded_constructor_case(
 ///|
 // Explicit Common binding DATA for this physical Store component, not an
 // Account, Source request, Run, installed Host or normal constructor recipe.
-fn native_content_candidate(
+fn native_content_binding(
   authority : String,
-  bytes : Bytes,
-) -> @publication.CapturedContentReference raise {
-  let binding : @publication.GeneratedContentBinding = {
+) -> @publication.GeneratedContentBinding {
+  {
     content_store_id: "native-store-component",
     content_store_cid: authority,
     workspace_scope_cid: native_payload_cid("content-workspace"),
@@ -138,8 +137,15 @@ fn native_content_candidate(
     issuer_contract_cid: native_payload_cid("content-issuer"),
     capture_authority_cid: native_payload_cid("content-read-subject"),
   }
+}
+
+///|
+fn native_content_candidate(
+  authority : String,
+  bytes : Bytes,
+) -> @publication.CapturedContentReference raise {
   @publication.prepare_captured_content_reference(
-    binding,
+    native_content_binding(authority),
     "text/plain",
     "sha256:" + @sha.hex(bytes),
     bytes.length(),
@@ -158,6 +164,279 @@ test "Native captured Content Store persists exact bytes verifies original custo
   native_content_physical_case_1(library)
   // This stock Library cannot issue the selected-component cleanup ACK.
   // Store/Writer/Reader close assertions above cover their original owners.
+  assert_true(library.close_checked() is Err(@sqlite.Physical(_)))
+}
+
+///|
+fn native_generated_jsonl(
+  authority : String,
+  reference_limits : @admitted.ReferenceLimits,
+) -> (@publication.GeneratedContentReference, NativeGeneratedContentOutput) raise {
+  let number = @contract.primitive(@contract.NumberType, nullable=false)
+  let schema = @schema.from_presence_fields(
+    [(@schema.Unqualified("id"), number, @schema.Required)],
+    max_fields=1,
+    max_name_bytes=64,
+  ).unwrap()
+  let profile = @publication.prepare_content_serialization_profile(
+    ContentJsonl,
+    schema,
+    ["id"],
+    "{\"name\":\"two.jsonl\"}",
+    {
+      max_fields: 1,
+      max_name_bytes: 64,
+      max_work: 1000,
+      max_options_bytes: 128,
+      max_options_nodes: 16,
+      max_options_depth: 4,
+    },
+  ).captured_content_stage("admit the checked byte profile")
+  let encoder = @publication.start_content_byte_encoder(
+    profile,
+    max_rows=2,
+    max_bytes=64,
+    max_value_nodes=16,
+    max_value_depth=4,
+    max_frames=16,
+  ).captured_content_stage("start the Common encoder")
+  @publication.bind_content_byte_input(encoder, 2, () => true).captured_content_stage(
+    "bind the original input extent",
+  )
+  let output = start_native_generated_content_output(encoder).captured_content_stage(
+    "retain the fixed Native encoder backing",
+  )
+  assert_true(output.advance(64).0 is Ok(true))
+  for id in [1.0, 2.0] {
+    let value = @admitted.checked_number_value(id, number).unwrap()
+    @publication.start_content_byte_row(encoder, _ => Some(value)).captured_content_stage(
+      "start the original row",
+    )
+    let mut done = false
+    for _ in 0..<32 {
+      let (advance, work) = output.advance(7)
+      assert_true(work > 0 && work <= 7)
+      done = advance.captured_content_stage("advance the same Native output")
+      if done {
+        break
+      }
+    }
+    assert_true(done)
+  }
+  let complete = @publication.finish_content_bytes(encoder).captured_content_stage(
+    "finish the original encoder",
+  )
+  assert_eq((complete.row_count, complete.size_bytes), (2, 18))
+  let candidate = @publication.prepare_generated_content_reference(
+    encoder,
+    native_content_binding(authority),
+    reference_limits,
+  ).captured_content_stage("construct the Common generated candidate")
+  (candidate, output)
+}
+
+///|
+test "Native generated Content issues and reopens only under its verified Store original" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  let library = @sqlite.load_library(path).captured_content_stage(
+    "generated Content library",
+  )
+  let (store, authority, store_path) = native_content_store_fixture(
+    "generated-content-original",
+    18L,
+    library,
+    diagnostic_ceiling=Some(512),
+  )
+  let limits : @admitted.ReferenceLimits = {
+    max_bytes: 4096,
+    max_nodes: 100,
+    max_depth: 8,
+    max_text_units: 4096,
+  }
+  let (candidate, output) = native_generated_jsonl(authority, limits)
+  let (equal_candidate, equal_output) = native_generated_jsonl(
+    authority, limits,
+  )
+  let (foreign, _) = native_generated_jsonl(
+    native_payload_cid("foreign-generated-store"),
+    limits,
+  )
+  let holding = native_payload_cid("generated-content-original-holding")
+  let bytes = b"{\"id\":1}\n{\"id\":2}\n"
+  assert_eq(output.backing.length(), 64)
+  assert_eq(output.written, bytes.length())
+  assert_true(
+    output.backing
+    .unsafe_reinterpret_as_bytes()
+    .view(end=18)
+    .equal_to_bytes(bytes),
+  )
+  assert_eq(
+    @publication.generated_content_reference_storage(candidate).2,
+    "sha256:c63f6dd68b68601e7315ea40d28bc34e55379e4fa65f82b1d32228429aeafcde",
+  )
+  assert_true(
+    store.generated_content_custody_construction_inventory(4, candidate)
+    is Some(_),
+  )
+  assert_true(
+    store.generated_content_custody_construction_inventory(4, foreign) is None,
+  )
+  assert_true(
+    store.prepare_generated_content_custody(foreign, holding)
+    is Err(StateCollision),
+  )
+  let custody = store
+    .prepare_generated_content_custody(candidate, holding)
+    .captured_content_stage("retain the exact generated candidate")
+  assert_true(custody.matches_generated_selection(store, candidate, holding))
+  assert_false(
+    custody.matches_generated_selection(store, equal_candidate, holding),
+  )
+  assert_false(
+    custody.matches_generated_selection(
+      store,
+      candidate,
+      native_payload_cid("foreign-holding"),
+    ),
+  )
+  let wire = @publication.generated_content_reference_wire(candidate)
+  let authorized = Ref(true)
+  let issuer = @admitted.bind_reference_issuer(
+    (_, received) => {
+      received == wire && custody.matches_generated_confirmed(candidate)
+    },
+    _ => authorized.val,
+  )
+  assert_true(
+    @publication.issue_generated_content_reference(candidate, issuer, limits)
+    is Err(_),
+  )
+  assert_true(custody.persist(bytes) is Err(RecoveryRequired))
+  assert_true(
+    custody.persist_generated_output(equal_output) is Err(StateCollision),
+  )
+  output.written -= 1
+  assert_true(custody.persist_generated_output(output) is Err(DigestMismatch))
+  output.written += 1
+  let first = output.backing[0]
+  output.backing[0] = b'x'
+  assert_true(custody.persist_generated_output(output) is Err(DigestMismatch))
+  output.backing[0] = first
+  assert_eq(store.capacity_usage().unwrap().reserved_objects, 0L)
+  custody
+  .persist_generated_output(output)
+  .captured_content_stage("persist only the original generated prefix")
+  assert_false(custody.matches_generated_confirmed(candidate))
+  assert_true(store.close() is Err(CleanupPending))
+  custody
+  .confirm(4)
+  .captured_content_stage("verify the actual stored generation")
+  assert_true(custody.matches_generated_confirmed(candidate))
+  assert_false(custody.matches_generated_confirmed(equal_candidate))
+  let issued = @publication.issue_generated_content_reference(
+    candidate, issuer, limits,
+  ).captured_content_stage("issue the original generated reference")
+  guard issued.value is @admitted.Reference(reference) else {
+    fail("generated content was not a typed reference")
+  }
+  let saved_wire = @admitted.reference_wire(reference)
+  assert_eq(saved_wire, wire)
+  authorized.val = false
+  assert_true(
+    @publication.issue_generated_content_reference(candidate, issuer, limits)
+    is Err(_),
+  )
+  assert_true(
+    custody
+    .retry_cleanup()
+    .captured_content_stage("close original generated custody"),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 18L)
+  assert_eq(store.capacity_usage().unwrap().reserved_objects, 1L)
+  assert_true(
+    store.close().captured_content_stage("close original generated Store"),
+  )
+  assert_false(custody.matches_generated_confirmed(candidate))
+  let reopened = open_existing_store_with_custody(
+    library,
+    store_path,
+    authority,
+    18L,
+    8L,
+    65536L,
+    diagnostic_ceiling=Some(512),
+  ).captured_content_stage("reopen only the existing generated Store")
+  let binding = native_content_binding(authority)
+  assert_true(
+    @publication.prepare_stored_generated_content_reference(
+      saved_wire,
+      {
+        ..binding,
+        workspace_scope_cid: native_payload_cid("unrelated-workspace"),
+      },
+      limits,
+    )
+    is Err(_),
+  )
+  let saved = @publication.prepare_stored_generated_content_reference(
+    saved_wire, binding, limits,
+  ).captured_content_stage("readmit the saved canonical reference")
+  let equal_saved = @publication.prepare_stored_generated_content_reference(
+    saved_wire, binding, limits,
+  ).captured_content_stage("independent saved reference carrier")
+  assert_true(
+    reopened.saved_generated_content_custody_construction_inventory(4, saved)
+    is Some(_),
+  )
+  let readback = reopened
+    .prepare_saved_generated_content_custody(saved, holding)
+    .captured_content_stage("retain the original saved holding")
+  let restored_issuer = @admitted.bind_reference_issuer(
+    (_, received) => {
+      received == saved_wire &&
+      readback.matches_saved_generated_confirmed(saved)
+    },
+    _ => authorized.val,
+  )
+  authorized.val = true
+  assert_true(readback.persist(bytes) is Err(RecoveryRequired))
+  assert_true(
+    @publication.issue_stored_generated_content_reference(
+      saved, restored_issuer, limits,
+    )
+    is Err(_),
+  )
+  readback
+  .restore()
+  .captured_content_stage("restore original record without a writer")
+  assert_true(readback.writer is None)
+  assert_false(readback.matches_saved_generated_confirmed(saved))
+  readback
+  .confirm(3)
+  .captured_content_stage("verify saved original file generation")
+  assert_true(readback.matches_saved_generated_confirmed(saved))
+  assert_false(readback.matches_saved_generated_confirmed(equal_saved))
+  let restored = @publication.issue_stored_generated_content_reference(
+    saved, restored_issuer, limits,
+  ).captured_content_stage("issue exact restored Content")
+  guard restored.value is @admitted.Reference(saved_reference) else {
+    fail("saved content was not a typed reference")
+  }
+  assert_eq(@admitted.reference_wire(saved_reference), saved_wire)
+  assert_eq(
+    @admitted.reference_identity_cid(saved_reference),
+    @admitted.reference_identity_cid(reference),
+  )
+  assert_true(
+    readback.retry_cleanup().captured_content_stage("close same saved reader"),
+  )
+  assert_eq(reopened.capacity_usage().unwrap().reserved_objects, 1L)
+  assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, 18L)
+  assert_true(
+    reopened.close().captured_content_stage("close original reopened Store"),
+  )
+  assert_false(readback.matches_saved_generated_confirmed(saved))
   assert_true(library.close_checked() is Err(@sqlite.Physical(_)))
 }
 
@@ -533,6 +812,7 @@ test "Native captured Content empty bytes retain one real object through Store r
 test "Native Content canonical record geometry preserves extreme originals and malformed refusal" {
   let holding = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   assert_eq(captured_content_record_bound("x", 65536), Some(207))
+  assert_eq(captured_content_record_bound("x", 65536, retiring=true), Some(208))
   let bodies = [
     (
       "x", "[\"actql-native-captured-content-custody/0.1\",\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"x\",\"sealed\",\"18446744073709551615\",\"18446744073709551615\",\"9223372036854775807\"]",
@@ -627,4 +907,53 @@ test "Native captured Content retained inventory keeps original records and actu
   assert_true(store.close().captured_content_stage("retained Store close"))
   assert_true(child.retained_inventory() is None)
   assert_true(library.close_checked() is Err(@sqlite.Physical(_)))
+}
+
+///|
+test "Native unpublished generated Content retires its exact sealed file and quota" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  let library = @sqlite.load_library(path).captured_content_stage(
+    "generated Content library",
+  )
+  let (store, authority, store_path) = native_content_store_fixture(
+    "unpublished-generated-content",
+    18L,
+    library,
+    diagnostic_ceiling=Some(512),
+  )
+  let limits : @admitted.ReferenceLimits = {
+    max_bytes: 4096,
+    max_nodes: 100,
+    max_depth: 8,
+    max_text_units: 4096,
+  }
+  let (candidate, output) = native_generated_jsonl(authority, limits)
+  let holding = native_payload_cid("unpublished-generated-content")
+  let custody = store
+    .prepare_generated_content_custody(candidate, holding)
+    .unwrap()
+  custody.persist_generated_output(output).unwrap()
+  custody.confirm(4).unwrap()
+  let generation = custody.generation.unwrap()
+  assert_true(store.root.verify_generation(custody.name, generation))
+  assert_true(custody.matches_generated_confirmed(candidate))
+  assert_eq(store.capacity_usage().unwrap().reserved_objects, 1L)
+  assert_true(custody.abandon_unpublished_generated().unwrap())
+  assert_true(custody.abandon_unpublished_generated().unwrap())
+  assert_false(custody.matches_generated_confirmed(candidate))
+  assert_true(store.root.inspect_generation(custody.name).unwrap() is None)
+  assert_eq(store.capacity_usage().unwrap().reserved_objects, 0L)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(store.close().unwrap())
+  let reopened = open_existing_store_with_custody(
+    library,
+    store_path,
+    authority,
+    18L,
+    8L,
+    65536L,
+    diagnostic_ceiling=Some(512),
+  ).captured_content_stage("reopen after retirement")
+  assert_eq(reopened.capacity_usage().unwrap().reserved_objects, 0L)
+  assert_true(reopened.close().unwrap())
 }

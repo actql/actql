@@ -6,6 +6,7 @@ import {
   "actql/actql/capacity_graph_input",
   "actql/actql/capacity_graph_preflight",
   "actql/actql/capacity_host_witness",
+  "actql/actql/capacity_policy",
   "actql/actql/capacity_program_step",
   "actql/actql/capacity_sequence_limit",
   "actql/actql/capacity_witness",
@@ -118,6 +119,8 @@ pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @deco
 pub fn checked_catalog_references(CheckedProgram) -> @check_environment.CatalogReferences
 
 pub fn checked_environment(CheckedProgram) -> @check_environment.WireEnvironment
+
+pub fn checked_host_capacity_policy(CheckedProgram) -> @capacity_policy.Policy
 
 pub fn checked_local_catalog_dependency_body(CheckedProgram, Int, String, String, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
 

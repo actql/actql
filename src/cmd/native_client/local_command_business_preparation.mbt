@@ -178,6 +178,9 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
         // Construct sequences in that business allocator, keeping any typed
         // failure primary before the original scope/Journal return can fail.
         let requirements = self.with_business_request(capture, () => {
+          if local_terminal_serialization_occurrence(prepared) is Some(_) {
+            return None
+          }
           match
             @local_values.prepare_source_free_runtime_requirements_result(
               prepared,
@@ -186,21 +189,23 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
               Some(assets.fragment),
               assets.ordered,
             ) {
-            Ok(original) => original
+            Ok(original) => Some(original)
             Err(issue) => local_stop_runtime_requirements(issue)
           }
         })
-        command_preparation_result(
-          self.require_business_program(
-            prepared,
-            runtime.installed_contracts,
-            assets,
-            requirements,
-          ),
-          stage=Some("business-program"),
-        )
-        |> ignore
-        (Some(requirements), None)
+        if requirements is Some(requirements) {
+          command_preparation_result(
+            self.require_business_program(
+              prepared,
+              runtime.installed_contracts,
+              assets,
+              requirements,
+            ),
+            stage=Some("business-program"),
+          )
+          |> ignore
+        }
+        (requirements, None)
       }
     }
     EffectComputation(_) => (None, None)
@@ -299,6 +304,29 @@ fn LocalCommandBusinessPreparation::current(
     operation: "submit",
   })
   is Ok(Allow(_))
+}
+
+///|
+// Select the source-free terminal family. Its exact checked coordinates and
+// Result roots are verified by the existing dedicated Content Graph issuer.
+fn local_terminal_serialization_occurrence(
+  prepared : @run_host.PreparedClientProgram,
+) -> (Int, Int)? {
+  guard @run_host.prepared_client_acquisition_count(prepared) == 0 &&
+    @strategy.graph_task_count(@run_host.prepared_client_graph(prepared)) == 1 &&
+    @run_host.prepared_client_composed_infer_occurrences(prepared)
+    is Some(infers) &&
+    infers.is_empty() else {
+    return None
+  }
+  let occurrences = @run_host.prepared_client_serialization_occurrences(
+    prepared,
+  )
+  if occurrences.length() == 1 {
+    occurrences.get(0)
+  } else {
+    None
+  }
 }
 
 ///|

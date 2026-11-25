@@ -8,6 +8,7 @@ import {
   "actql/actql/platform_native/publication_store",
   "actql/actql/publication_payload",
   "actql/actql/run_publication_host",
+  "moonbitlang/core/ref",
 }
 
 // Values
@@ -29,7 +30,7 @@ pub fn install_native_run_publication_service(@publication_store.Store, NativeRu
 
 pub fn persist_effectful_result_snapshot_native(@publication_store.Store, @actql/actql/run_publication.CapturedResultSnapshot, NativeEffectfulSnapshotOutputContext, @actql/actql/run_publication.PublicationContract, String, String, Int, Int, Int, schema_original? : @actql/actql/run_publication.CapturedEffectDependencyBody?) -> Result[NativePublishedEffectfulResult, NativePublicationOutputIssue]
 
-pub fn persist_publication_output_native(@publication_store.Store, @run_publication_host.PublicationOutputExport, NativePublicationOutputContext, Int, Int, Int, publication? : @client_local_host.ClientProgramPublication?) -> Result[NativePublishedOutput, NativePublicationOutputIssue]
+pub fn persist_publication_output_native(@publication_store.Store, @run_publication_host.PublicationOutputExport, NativePublicationOutputContext, Int, Int, Int, publication? : @client_local_host.ClientProgramPublication?, work_remaining? : @ref.Ref[Int]?) -> Result[NativePublishedOutput, NativePublicationOutputIssue]
 
 pub fn prepare_captured_effect_free_run_publication_native(NativeRunPublicationService, @physical_strategy_host.CapturedDAG, NativeEffectFreeRunContext, Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits, converted_outputs? : Array[@execution_relation.CompletedOutput?]) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
 
@@ -38,6 +39,8 @@ pub fn prepare_effect_free_run_publication_native(NativeRunPublicationService, @
 pub fn prepare_effectful_run_publication_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, Array[String]) -> Result[NativeEffectfulRunPublicationPreparation, NativeRunPublicationIssue]
 
 pub fn prepare_exported_effect_free_run_publication_native(NativeRunPublicationService, @physical_strategy_host.CapturedDAG, NativeEffectFreeRunContext, Array[@run_publication_host.PublicationOutputExport], Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence, publication? : @client_local_host.ClientProgramPublication?) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
+
+pub fn prepare_native_terminal_serialization_publication(NativeRunPublicationService, @client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, NativeTerminalSerializationRunContext, Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence, @client_local_host.ClientSerializationOutputDemand, Int) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
 
 pub fn prepare_recovered_effectful_run_state_candidate(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, @actql/actql/run_publication.PublicationContract, String, Int, Int, Int) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue]
 
@@ -78,6 +81,9 @@ pub(all) enum NativeCapturedRunPublicationPreparationIssue {
 
 pub(all) enum NativeCapturedRunPublicationPrimaryIssue {
   InvalidCapturedRun
+  TerminalInvocation(@client_local_host.ClientClosedValuesPreparationIssue)
+  TerminalResult(@run_publication_host.ClientResultTransformationIssue)
+  TerminalWorkLimit
   Export(@run_publication_host.PublicationOutputExportIssue)
   Publication(NativeRunPublicationIssue)
   Output(Int, NativePublicationOutputIssue)
@@ -188,6 +194,8 @@ pub(all) enum NativePublicationOutputIssue {
   OutputCleanup(@run_publication_host.PublicationOutputExportIssue, @publication_store.NativePublicationStoreIssue)
   StoreCleanup(@publication_store.NativePublicationStoreIssue, @publication_store.NativePublicationStoreIssue)
   BindingCleanup(@actql/actql/run_publication.DurableResultBindingIssue, @publication_store.NativePublicationStoreIssue)
+  TerminalWorkLimit
+  TerminalWorkCleanup(@publication_store.NativePublicationStoreIssue)
 }
 
 pub(all) struct NativePublishedEffectfulResult {
@@ -283,6 +291,14 @@ pub(all) enum NativeRunStateCandidateIssue {
   ValidationLimit
   Publication(NativeRunPublicationIssue)
   State(@actql/actql/run_publication.ObservedPublicationRunStateIssue)
+}
+
+pub(all) struct NativeTerminalSerializationRunContext {
+  definition : @actql/actql/run_publication.PublicationContract
+  normalization_journal : @actql/actql/run_publication.RunEvidenceValue
+  binding_names : Array[String]
+  binding_digests : Array[String]
+  authoring : @actql/actql/run_publication.RunEvidenceValue
 }
 
 // Type aliases

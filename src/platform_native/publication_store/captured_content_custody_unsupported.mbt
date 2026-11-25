@@ -47,9 +47,97 @@ pub fn Store::prepare_captured_content_custody(
 }
 
 ///|
+pub fn Store::prepare_generated_content_custody(
+  _self : Store,
+  _original : @publication.GeneratedContentReference,
+  _holding : String,
+) -> Result[CapturedContentCustody, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::generated_content_custody_construction_inventory(
+  _self : Store,
+  _chunk_bytes : Int,
+  _original : @publication.GeneratedContentReference,
+) -> @execution.PreparationRepresentationUnits? {
+  None
+}
+
+///|
+pub fn CapturedContentCustody::matches_generated_confirmed(
+  _self : Self,
+  _original : @publication.GeneratedContentReference,
+) -> Bool {
+  false
+}
+
+///|
+pub fn Store::prepare_saved_generated_content_custody(
+  _self : Store,
+  _original : @publication.StoredGeneratedContentReference,
+  _holding : String,
+) -> Result[CapturedContentCustody, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::saved_generated_content_custody_construction_inventory(
+  _self : Store,
+  _chunk_bytes : Int,
+  _original : @publication.StoredGeneratedContentReference,
+) -> @execution.PreparationRepresentationUnits? {
+  None
+}
+
+///|
+pub fn CapturedContentCustody::matches_saved_generated_confirmed(
+  _self : Self,
+  _original : @publication.StoredGeneratedContentReference,
+) -> Bool {
+  false
+}
+
+///|
+type NativeGeneratedContentOutput
+
+///|
+pub fn start_native_generated_content_output(
+  _encoder : @publication.ContentByteEncoder,
+) -> Result[NativeGeneratedContentOutput, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeGeneratedContentOutput::advance(
+  _self : Self,
+  _quantum : Int,
+) -> (Result[Bool, @publication.ContentSerializationIssue], Int) {
+  (Err(@publication.ContentClosed), 0)
+}
+
+///|
 pub fn CapturedContentCustody::persist(
   _self : Self,
   _bytes : Bytes,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn CapturedContentCustody::matches_generated_selection(
+  _self : Self,
+  _store : Store,
+  _candidate : @publication.GeneratedContentReference,
+  _holding : String,
+) -> Bool {
+  false
+}
+
+///|
+pub fn CapturedContentCustody::persist_generated_output(
+  _self : Self,
+  _output : NativeGeneratedContentOutput,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
 }
@@ -75,6 +163,13 @@ pub fn CapturedContentCustody::matches_confirmed(
   _original : @publication.CapturedContentReference,
 ) -> Bool {
   false
+}
+
+///|
+pub fn CapturedContentCustody::abandon_unpublished_generated(
+  _self : Self,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
 }
 
 ///|
