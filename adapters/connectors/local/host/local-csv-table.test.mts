@@ -1,12 +1,27 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {encodeLocalCsvPage,prepareLocalCsvTable} from './local-csv-table.mjs';
+import {pathToFileURL} from 'node:url';
+import {encodeLocalCsvPage,prepareLocalCsvTable,projectLocalCsvRelationView,type LocalCsvDeclarationRuntime,type LocalCsvRuntime} from './local-csv-table.mjs';
 
+const moon = await import(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME === undefined
+  ? new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href
+  : pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME).href) as LocalCsvRuntime & LocalCsvDeclarationRuntime;
 const declaration = {path: 'small.csv', key: ['id'], columns: {id: 'int64', name: 'string'}};
 const limits = {maxPathBytes: 100, maxDepth: 2, maxFileBytes: 256, maxPageBytes: 256,
   maxFiles: 3, maxPageRows: 3, maxBytes: 256, maxRows: 3, maxFieldBytes: 40};
 const table = prepareLocalCsvTable('small', declaration, limits);
-const decode = (text: string, overrides?: Partial<typeof limits>) => JSON.parse(encodeLocalCsvPage(Buffer.from(text), {...table, ...limits, ...overrides}, 1024));
+const decode = (text: string, overrides?: Partial<typeof limits>) => JSON.parse(encodeLocalCsvPage(moon, Buffer.from(text), {...table, ...limits, ...overrides}, 1024));
+
+test('ordinary CSV projection preserves the original schema identity and ordered key', () => {
+  const view = projectLocalCsvRelationView(moon, table);
+  assert.deepEqual(view, {
+    resource:'small', resource_kind:'record',
+    schema_wire:'{"id":{"nullable":false,"type":"int64"},"name":{"nullable":false,"type":"string"}}',
+    schema_cid:'sha256:cb2f3b3b1ae90e17599f0ae3f8991a68796d8a94527353dbf832eb8eb4ebfe0c',
+    facts_wire:'{"relation_keys":{"candidate_keys":[["id"]]}}',
+  });
+  assert.throws(() => projectLocalCsvRelationView({}, table), {code:'LocalCsvRuntimeUnavailable'});
+});
 
 test('decodes the declared CSV columns in file order with exact signed 64-bit values', () => {
   assert.deepEqual(decode('id,name\n1,A\n2,B\n3,C\n'), [
@@ -32,7 +47,7 @@ test('rejects malformed CSV fields, wrong schemas and duplicates without coercio
     ['id,name\n1,A\n1,B', 'DuplicateLocalCsvKey'],
   ]) assert.throws(() => decode(wire), {code});
   const invalidEncoding = Buffer.concat([Buffer.from('id,name\n1,'), Buffer.from([0xff])]);
-  assert.throws(() => encodeLocalCsvPage(invalidEncoding, {...table,...limits}, 1024), {code:'InvalidLocalCsvEncoding'});
+  assert.throws(() => encodeLocalCsvPage(moon, invalidEncoding, {...table,...limits}, 1024), {code:'InvalidLocalCsvEncoding'});
 });
 
 test('applies exact input, field and row limits and selects only the original root-relative file', () => {
@@ -54,7 +69,7 @@ test('applies exact input, field and row limits and selects only the original ro
 test('bounds expanded JSON output independently of the original file bytes', () => {
   const file = Buffer.from('id,name\n1,😀\n2,\t');
   const wire = '[{"id":"1","name":"😀"},{"id":"2","name":"\\t"}]';
-  assert.equal(encodeLocalCsvPage(file, table, Buffer.byteLength(wire)),wire);
-  assert.throws(() => encodeLocalCsvPage(file, table, Buffer.byteLength(wire)-1),
+  assert.equal(encodeLocalCsvPage(moon, file, table, Buffer.byteLength(wire)),wire);
+  assert.throws(() => encodeLocalCsvPage(moon, file, table, Buffer.byteLength(wire)-1),
     {code:'LocalFilesPageBytesLimit'});
 });

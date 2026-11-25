@@ -358,13 +358,10 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "e18033f1251eeeda6696ee2f8ddddd03eb5ad70f60a38b6f34596d6743447b8e",
+      "sha256": "a4623741af82745ccdf0dbbba435fe5d06f94f044d0cd3c406c79bc16ba71c5e",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
-        "pub enum RowKeyedPagePoll {",
-        "pub enum RowListingPagePoll {",
-        "pub enum RowResponseSelection {",
         "pub fn abort_row_run(RowRun) -> Unit",
         "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_relation_document(RowRun, RowPageCharge, RowAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]",
@@ -436,6 +433,7 @@
         "pub fn discard_relation_document_original(RelationDocument) -> Bool",
         "pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool",
         "pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool",
+        "pub fn encode_local_csv_page(Bytes, Array[String], Array[Bool], Array[String], Int, Int, Int, Int) -> Result[String, LocalCsvPageIssue]",
         "pub fn ensure_row_run_response_transfer_capacity(RowRunResponseBorrow, Int64) -> Result[Unit, RowHostIssue]",
         "pub fn export_query_row_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
         "pub fn export_row_input_original_read(RowInputAcquisition, @execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
@@ -461,6 +459,7 @@
         "pub fn keyed_row_capture_read(RowKeyedSourceCapture) -> Result[@execution_relation.SuppliedRelationRead, RowHostIssue]",
         "pub fn keyed_row_read_facts(RowSourceRead) -> @sourceview_resolution.KeyedSourceFacts?",
         "pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)",
+        "pub fn local_csv_page_issue_code(LocalCsvPageIssue) -> String",
         "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
         "pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int",
         "pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
@@ -494,6 +493,7 @@
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
         "pub fn prepare_row_source_cursor_progress(Int, Int, Int, Int) -> Result[RowSourceCursorProgress, RowSourceCursorIssue]",
         "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
+        "pub fn project_local_csv_relation_view(String, Array[String], Array[Bool], Array[String]) -> Result[RowRelationViewSpec, RowHostIssue]",
         "pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]",
         "pub fn project_relation_declaration_wire_input(String) -> Result[String, RowHostIssue]",
         "pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]",
@@ -643,7 +643,10 @@
         "pub struct RelationTargetRow {",
         "pub struct RowDeclaration {",
         "pub struct RowDeclaredView {",
+        "pub enum RowKeyedPagePoll {",
+        "pub enum RowListingPagePoll {",
         "pub struct RowMapping {",
+        "pub enum RowResponseSelection {",
         "pub struct RowRunResponseBorrow {"
       ],
       "operations": [
@@ -932,6 +935,10 @@
           "declaration": "pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool"
         },
         {
+          "name": "encode_local_csv_page",
+          "declaration": "pub fn encode_local_csv_page(Bytes, Array[String], Array[Bool], Array[String], Int, Int, Int, Int) -> Result[String, LocalCsvPageIssue]"
+        },
+        {
           "name": "ensure_row_run_response_transfer_capacity",
           "declaration": "pub fn ensure_row_run_response_transfer_capacity(RowRunResponseBorrow, Int64) -> Result[Unit, RowHostIssue]"
         },
@@ -1030,6 +1037,10 @@
         {
           "name": "keyed_row_read_usage",
           "declaration": "pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)"
+        },
+        {
+          "name": "local_csv_page_issue_code",
+          "declaration": "pub fn local_csv_page_issue_code(LocalCsvPageIssue) -> String"
         },
         {
           "name": "mock_churn_risk_query_alias_at",
@@ -1162,6 +1173,10 @@
         {
           "name": "prepare_row_update_mapping",
           "declaration": "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]"
+        },
+        {
+          "name": "project_local_csv_relation_view",
+          "declaration": "pub fn project_local_csv_relation_view(String, Array[String], Array[Bool], Array[String]) -> Result[RowRelationViewSpec, RowHostIssue]"
         },
         {
           "name": "project_relation_declaration_input",
@@ -5640,10 +5655,12 @@
         },
         {
           "operations": [
-            "project_relation_declaration_input"
+            "project_relation_declaration_input",
+            "project_local_csv_relation_view"
           ],
           "exports": [
-            "pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]"
+            "pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]",
+            "pub fn project_local_csv_relation_view(String, Array[String], Array[Bool], Array[String]) -> Result[RowRelationViewSpec, RowHostIssue]"
           ],
           "attributes": {
             "responsibility": [
@@ -5712,6 +5729,10 @@
               {
                 "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
                 "anchor": "test \"portable public catalogue projection keeps exact and one short encoding bounds without granting capacity\""
+              },
+              {
+                "path": "src/client_row_source_host/relation_declaration_wbtest.mbt",
+                "anchor": "Local CSV view preserves original canonical schema and ordered candidate key"
               }
             ]
           }
@@ -5858,6 +5879,88 @@
               {
                 "path": "src/client_row_source_host/relation_document_construction_wbtest.mbt",
                 "anchor": "test \"relation document retained inventory refuses missing backing bounds and unsupported or writable projections\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "encode_local_csv_page",
+            "local_csv_page_issue_code"
+          ],
+          "exports": [
+            "pub fn encode_local_csv_page(Bytes, Array[String], Array[Bool], Array[String], Int, Int, Int, Int) -> Result[String, LocalCsvPageIssue]",
+            "pub fn local_csv_page_issue_code(LocalCsvPageIssue) -> String"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "## Node Local availability"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "pub fn encode_local_csv_page"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "header_positions"
+              },
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "observed_keys"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
+                "anchor": "read.reader.read(csv.path)"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous projection after admission of the same original Source child."
+            },
+            "failure": [
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "InvalidLocalCsvInt64"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Parent Source checks current and cancellation before I/O and delivery of the returned page."
+            },
+            "resources": [
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "max_field_bytes"
+              },
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "@scalar.admit_utf8_length("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "integer_columns"
+              },
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "key_fields"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/local_csv_page_wbtest.mbt",
+                "anchor": "Local CSV yields original #3740 rows"
+              },
+              {
+                "path": "src/client_row_source_host/local_csv_page_wbtest.mbt",
+                "anchor": "Local CSV uses independent exact raw record and JSON output limits"
               }
             ]
           }
@@ -7055,7 +7158,7 @@
     {
       "module": "src/client_row_source_host/relation_declaration.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "abb51abefbc4ad52104b605d1dce761ee6e60f145b8ba81ca44dfb745d5bd3cf",
+      "sha256": "806d07850d274c7e72a7c7b761822596bb14b6d6f2593bf2b8afdde00deb6ef7",
       "role": "common-semantics",
       "owner": "Existing Common original row declaration and SourceView contract Owner; not a ResourceReference or authority issuer",
       "exports": [],
@@ -7067,6 +7170,10 @@
         {
           "name": "generate_relation_row_declaration_with_resource_identities",
           "declaration": "generate_relation_row_declaration_with_resource_identities ( connector_id : String , connector_registration : String , connector_version : String , views : Array [ RowRelationViewSpec ] , limits : RowDeclarationLimits , classifications : Array [ @ environment . DataClassification ] ? , resource_identity_wires : Array [ String ? ] ? , ) - > Result [ RowDeclaration , RowHostIssue ]"
+        },
+        {
+          "name": "project_local_csv_relation_view",
+          "declaration": "project_local_csv_relation_view ( resource : String , column_names : Array [ String ] , integer_columns : Array [ Bool ] , keys : Array [ String ] , ) - > Result [ RowRelationViewSpec , RowHostIssue ]"
         },
         {
           "name": "project_relation_declaration_input",
@@ -7192,7 +7299,8 @@
         {
           "operations": [
             "project_relation_declaration_input",
-            "relation_declaration_projection_wire"
+            "relation_declaration_projection_wire",
+            "project_local_csv_relation_view"
           ],
           "exports": [],
           "attributes": {
@@ -7262,6 +7370,10 @@
               {
                 "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
                 "anchor": "test \"portable public catalogue projection keeps exact and one short encoding bounds without granting capacity\""
+              },
+              {
+                "path": "src/client_row_source_host/relation_declaration_wbtest.mbt",
+                "anchor": "Local CSV view preserves original canonical schema and ordered candidate key"
               }
             ]
           }
@@ -8415,6 +8527,116 @@
               {
                 "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
                 "anchor": "test \"public catalogue structural quote retains escaped output and SAME original resource boundaries\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/local_csv_page.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "26d88bd2fe6bb1834c46ae6b858617169e352e30978e3ee5086b746a511550af",
+      "role": "common-semantics",
+      "owner": "Existing Common Row Source",
+      "exports": [],
+      "operations": [
+        {
+          "name": "encode_local_csv_page",
+          "declaration": "encode_local_csv_page ( bytes : Bytes , column_names : Array [ String ] , integer_columns : Array [ Bool ] , keys : Array [ String ] , max_bytes : Int , max_field_bytes : Int , max_rows : Int , max_page_bytes : Int , ) - > Result [ String , LocalCsvPageIssue ]"
+        },
+        {
+          "name": "local_csv_page_issue_code",
+          "declaration": "local_csv_page_issue_code ( issue : LocalCsvPageIssue ) - > String"
+        },
+        {
+          "name": "read_local_csv_field",
+          "declaration": "read_local_csv_field ( cursor : LocalCsvCursor , ) - > Result [ String , LocalCsvPageIssue ]"
+        },
+        {
+          "name": "read_local_csv_record",
+          "declaration": "read_local_csv_record ( cursor : LocalCsvCursor , ) - > Result [ Array [ String ] , LocalCsvPageIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "encode_local_csv_page",
+            "local_csv_page_issue_code",
+            "read_local_csv_field",
+            "read_local_csv_record"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "## Node Local availability"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "pub fn encode_local_csv_page"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "header_positions"
+              },
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "observed_keys"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
+                "anchor": "read.reader.read(csv.path)"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous projection after admission of the same original Source child."
+            },
+            "failure": [
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "InvalidLocalCsvInt64"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Parent Source checks current and cancellation before I/O and delivery of the returned page."
+            },
+            "resources": [
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "max_field_bytes"
+              },
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "@scalar.admit_utf8_length("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "integer_columns"
+              },
+              {
+                "path": "src/client_row_source_host/local_csv_page.mbt",
+                "anchor": "key_fields"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/local_csv_page_wbtest.mbt",
+                "anchor": "Local CSV yields original #3740 rows"
+              },
+              {
+                "path": "src/client_row_source_host/local_csv_page_wbtest.mbt",
+                "anchor": "Local CSV uses independent exact raw record and JSON output limits"
               }
             ]
           }

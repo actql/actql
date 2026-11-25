@@ -4,7 +4,7 @@
 import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
-import type {PreparedLocalCsvTable} from './local-csv-table.mjs';
+import type {projectLocalCsvRelationView} from './local-csv-table.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
 type Data = Record<string, unknown>;
@@ -121,7 +121,7 @@ type DeclarationViews = Readonly<{views: readonly Readonly<{resource: unknown; c
 
 export function restoreDeclaration(call: DeclarationCall, connection: string, rootPath: string,
   versionMode: 'content' | 'metadata', limits: LocalFileDeclarationLimits,
-  canonical: (value: unknown) => string, cid: (value: unknown) => string, tables: readonly PreparedLocalCsvTable[]) {
+  canonical: (value: unknown) => string, cid: (value: unknown) => string, csvViews: readonly ReturnType<typeof projectLocalCsvRelationView>[]) {
   const string = (nullable: boolean) => ({type:'string',nullable});
   const resource = {type:'resource_ref',resource_kind:'file',nullable:false};
   const timestamp = (nullable: boolean) => ({type:'timestamp',nullable});
@@ -141,11 +141,7 @@ export function restoreDeclaration(call: DeclarationCall, connection: string, ro
   view('contents',contentSchema,{resource,version:string(false)},
     {kind:'fetch',authority:'read_content',correlation:{request_fields:['resource','version'],
       response_fields:['resource','version'],identity:['resource','version'],cardinality:'one'}})];
-  for (const table of tables) {
-    const schema = Object.fromEntries(Object.entries(table.columnTypes).map(([name,type]) => [name,{type,nullable:false}]));
-    views.push({resource:table.resource,resource_kind:'record',schema_wire:canonical(schema),schema_cid:cid(schema),
-      facts_wire:canonical(table.key.length === 0 ? {} : {relation_keys:{candidate_keys:[table.key]}})});
-  }
+  for (const csv of csvViews) views.push(csv);
   const restore = () => checked(call('clientProgramRowSourceRestoreRelationDeclaration',
     connection,'local','local/0.1',JSON.stringify({views}),undefined));
   const initial = JSON.parse(call('clientProgramRowSourceDeclarationJson',restore())) as DeclarationViews;

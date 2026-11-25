@@ -335,6 +335,50 @@ test('a conflicting approve/reject race has exactly one winner', async t => {
   assert.equal(input.rows().runs, 0);
 });
 
+function claimPollRead(read) {
+  try {
+    return read();
+  } catch (error) {
+    // Node's SQLite wrapper uses ERR_SQLITE_ERROR for both contention and
+    // real SQL errors. Extended SQLite codes carry the primary code in the low byte.
+    if (error?.code !== 'ERR_SQLITE_ERROR' || !Number.isInteger(error.errcode) ||
+        ![5, 6].includes(error.errcode & 0xff)) throw error; // SQLITE_BUSY / SQLITE_LOCKED
+    return undefined;
+  }
+}
+
+test('the claim poll treats only native SQLite contention as an absent observation', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-claim-poll-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const path = join(directory, 'journal.sqlite3');
+  const writer = new DatabaseSync(path);
+  const read = () => {
+    const observer = new DatabaseSync(path, { readOnly: true });
+    try { return observer.prepare('SELECT claimant FROM resume_intents').get().claimant; }
+    finally { observer.close(); }
+  };
+  try {
+    writer.exec("CREATE TABLE resume_intents (claimant TEXT); INSERT INTO resume_intents VALUES ('original')");
+    writer.exec('BEGIN EXCLUSIVE');
+    try {
+      assert.throws(read, error => error?.code === 'ERR_SQLITE_ERROR' && (error.errcode & 0xff) === 5);
+      assert.equal(claimPollRead(read), undefined);
+    } finally { writer.exec('ROLLBACK'); }
+    const iterator = writer.prepare('SELECT claimant FROM resume_intents').iterate();
+    assert.equal(iterator.next().value.claimant, 'original');
+    try {
+      const drop = () => writer.exec('DROP TABLE resume_intents');
+      assert.throws(drop, error => error?.code === 'ERR_SQLITE_ERROR' && (error.errcode & 0xff) === 6);
+      assert.equal(claimPollRead(drop), undefined);
+    } finally { iterator.return(); }
+    assert.equal(claimPollRead(read), 'original');
+    assert.throws(() => claimPollRead(() => writer.prepare('SELECT invalid FROM resume_intents').get()),
+      error => error?.code === 'ERR_SQLITE_ERROR' && (error.errcode & 0xff) === 1);
+    const other = new Error('database is locked');
+    assert.throws(() => claimPollRead(() => { throw other; }), error => error === other);
+  } finally { writer.close(); }
+});
+
 test('a superseded claimant cannot complete; a killed one leaves the intent to the next', async t => {
   const expected = await allowResult(t);
   const input = await fixture(t);
@@ -342,7 +386,7 @@ test('a superseded claimant cannot complete; a killed one leaves the intent to t
   await cli(approveArgs(input, [waiting.checkpoint.checkpoint_id]));
   const claimedBy = async claimant => {
     for (let attempt = 0; attempt < 200; attempt++) {
-      const row = input.rows().intentRows[0];
+      const row = claimPollRead(() => input.rows().intentRows[0]);
       if (row?.state === 'claimed' && row.claimant === claimant) return row;
       await new Promise(done => setTimeout(done, 50));
     }

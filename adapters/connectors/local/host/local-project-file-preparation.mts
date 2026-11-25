@@ -4,7 +4,7 @@ import {dirname, resolve} from 'node:path';
 import {installedProjectOriginalsForRuntime} from '../../../host-node/installed-project-configuration.mjs';
 import {loadInstalledProjectConnections} from '../../../host-node/installed-project-connections.mjs';
 import {restoreDeclaration} from './local-file-store-declaration.mjs';
-import {prepareLocalCsvTable, type PreparedLocalCsvTable} from './local-csv-table.mjs';
+import {prepareLocalCsvTable, projectLocalCsvRelationView, type LocalCsvDeclarationRuntime, type PreparedLocalCsvTable} from './local-csv-table.mjs';
 
 type OriginalCalls = Readonly<{
   clientProjectConnectionsCount(connections: unknown): number;
@@ -15,7 +15,7 @@ type OriginalCalls = Readonly<{
     viewsWire: string, expectedCatalogCid: undefined): unknown;
   clientProgramRowSourceDeclarationJson(original: unknown): string;
 }>;
-type Runtime = NonNullable<Parameters<typeof loadInstalledProjectConnections>[0]> & Partial<OriginalCalls>;
+type Runtime = NonNullable<Parameters<typeof loadInstalledProjectConnections>[0]> & Partial<OriginalCalls & LocalCsvDeclarationRuntime>;
 type Project = Parameters<typeof loadInstalledProjectConnections>[1];
 type ConnectionView = Awaited<ReturnType<typeof loadInstalledProjectConnections>>;
 type ConnectionOriginal = ReturnType<ConnectionView['originalsForRuntime']>;
@@ -108,7 +108,8 @@ export function bindLocalProjectFilePreparation({fail: refuse,canonical,cid,posi
         if(!text(resource,128)||['files','contents'].includes(resource))fail('InvalidLocalCsvResource');
         tables.push(prepareLocalCsvTable(resource,table!,selectedLimits));
       }
-      const declared=restoreDeclaration(call,connection,rootPath,versionMode,selectedLimits,canonical,cid,tables);
+      const csvViews=tables.map(table=>projectLocalCsvRelationView(moon!,table));
+      const declared=restoreDeclaration(call,connection,rootPath,versionMode,selectedLimits,canonical,cid,csvViews);
       const {views}=JSON.parse(declared.wire) as {views: readonly {source_ref: string; resource: string}[]};
       const csvTransports=Object.freeze(Object.fromEntries(views.flatMap(view=>{
         const table=tables.find(table=>table.resource===view.resource);

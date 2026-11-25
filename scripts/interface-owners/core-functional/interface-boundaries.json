@@ -77941,12 +77941,20 @@
     },
     {
       "module": "src/connectors_builtin_node/client_row_json_page_bridge.mbt",
-      "sha256": "748d99fd6cd225f0e85c5b6bba0d5a8c6d578ca64d62bc91a30da55c88ea7ff3",
+      "sha256": "df997021cc0b661d45862aa708da4e7d2eac00e12b4b6052aba6b3e53ea56099",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_local_csv_page",
+          "declaration": "client_program_local_csv_page ( bytes : Bytes , column_names : Array [ String ] , integer_columns : Array [ Bool ] , keys : Array [ String ] , max_bytes : Int , max_field_bytes : Int , max_rows : Int , max_page_bytes : Int , ) - > Result [ String , String ]"
+        },
+        {
+          "name": "client_program_local_csv_relation_view",
+          "declaration": "client_program_local_csv_relation_view ( resource : String , column_names : Array [ String ] , integer_columns : Array [ Bool ] , keys : Array [ String ] , ) - > Result [ ( String , String , String ) , @ client_row_source_host . RowHostIssue ]"
+        },
         {
           "name": "client_program_row_source_accept_charged_projected_page",
           "declaration": "client_program_row_source_accept_charged_projected_page ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
@@ -78090,7 +78098,9 @@
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
-            "client_program_row_source_typed_json_page_row_count"
+            "client_program_row_source_typed_json_page_row_count",
+            "client_program_local_csv_page",
+            "client_program_local_csv_relation_view"
           ],
           "exports": [],
           "attributes": {
@@ -78216,6 +78226,14 @@
               {
                 "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
+              },
+              {
+                "path": "src/client_row_source_host/local_csv_page_wbtest.mbt",
+                "anchor": "Local CSV yields original #3740 rows"
+              },
+              {
+                "path": "src/client_row_source_host/relation_declaration_wbtest.mbt",
+                "anchor": "Local CSV view preserves original canonical schema and ordered candidate key"
               }
             ]
           }
@@ -79926,12 +79944,20 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_row_json_page_bridge.mbt",
-      "sha256": "59f5f12c53e05a6d1e411185542c8e00e52cc0bf814b2ff1add31726dad25c8a",
+      "sha256": "b8e446ab42460ca2214b54b2605c09ec91d846225a5b0b02eaf6de748f3fdb5b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_local_csv_page",
+          "declaration": "client_program_local_csv_page ( bytes : Bytes , column_names : Array [ String ] , integer_columns : Array [ Bool ] , keys : Array [ String ] , max_bytes : Int , max_field_bytes : Int , max_rows : Int , max_page_bytes : Int , ) - > Result [ String , String ]"
+        },
+        {
+          "name": "client_program_local_csv_relation_view",
+          "declaration": "client_program_local_csv_relation_view ( resource : String , column_names : Array [ String ] , integer_columns : Array [ Bool ] , keys : Array [ String ] , ) - > Result [ ( String , String , String ) , @ client_row_source_host . RowHostIssue ]"
+        },
         {
           "name": "client_program_row_source_accept_charged_projected_page",
           "declaration": "client_program_row_source_accept_charged_projected_page ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
@@ -80075,7 +80101,9 @@
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
-            "client_program_row_source_typed_json_page_row_count"
+            "client_program_row_source_typed_json_page_row_count",
+            "client_program_local_csv_page",
+            "client_program_local_csv_relation_view"
           ],
           "exports": [],
           "attributes": {
@@ -80201,6 +80229,14 @@
               {
                 "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
+              },
+              {
+                "path": "src/client_row_source_host/local_csv_page_wbtest.mbt",
+                "anchor": "Local CSV yields original #3740 rows"
+              },
+              {
+                "path": "src/client_row_source_host/relation_declaration_wbtest.mbt",
+                "anchor": "Local CSV view preserves original canonical schema and ordered candidate key"
               }
             ]
           }
