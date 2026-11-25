@@ -30,7 +30,7 @@ test('Host transfers preflight cleanup custody before fallible physical stop', a
   await hostPreflightCustodyBoundary(strategy);
 });
 test('optional task observation receives frozen facts and cannot change execution by throwing', () => {
-  const seen = [];
+  const seen: Parameters<Parameters<typeof installTaskObservation>[0]>[0][] = [];
   const observer = installTaskObservation(value => {
     seen.push(value);
     throw new Error('observer failure');

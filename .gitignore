@@ -3659,3 +3659,11 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/values-execution-contract.d.mts
 /scripts/byte-values-contract.mjs
 /scripts/byte-values-contract.d.mts
+/scripts/query-boundary-behavior.test.mjs
+/scripts/query-boundary-behavior.test.d.mts
+/scripts/query-boundary-behavior.fixture.mjs
+/scripts/query-boundary-behavior.fixture.d.mts
+/scripts/query-host-boundary.fixture.mjs
+/scripts/query-host-boundary.fixture.d.mts
+/scripts/interface-owner-source-projection.test.mjs
+/scripts/interface-owner-source-projection.test.d.mts
