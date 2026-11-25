@@ -278,12 +278,26 @@ test('main admission policy changes invalidate otherwise successful checkpoint r
 
 
 test('main checkpoints bind authored TypeScript rather than ignored runtime outputs', async () => {
-  for (const member of ['scripts/test-execution.mts', 'scripts/packed-query-evidence.mts',
+  for (const member of ['scripts/ci-targets.mts', 'scripts/test-execution.mts', 'scripts/packed-query-evidence.mts',
     'scripts/test-execution-reporter.mts', 'scripts/ci-core-partitions.mts', 'tsconfig.base.json',
     'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts', 'package-lock.json']) {
     assert(policyPaths.includes(member));
     const changed = fixture(); changed.state.policyChanged = member;
     assert.equal((await resolveMainBaseline(changed.options)).baseSha, null, member);
   }
+  assert(!policyPaths.includes('scripts/ci-targets.mjs'));
   assert(!policyPaths.includes('scripts/test-execution.mjs'));
+});
+
+test('a checkpoint with only the earlier JavaScript selector cannot supply current policy', async () => {
+  const f = fixture(), git = f.options.git;
+  const reads = [];
+  f.options.git = args => {
+    reads.push(args[1]);
+    if (args[1] === `${base}:scripts/ci-targets.mts`) throw new Error('No tracked TypeScript selector in earlier commit');
+    return git(args);
+  };
+  assert.equal((await resolveMainBaseline(f.options)).baseSha, null);
+  assert(reads.includes(`${base}:scripts/ci-targets.mts`));
+  assert(!reads.some(spec => spec?.endsWith(':scripts/ci-targets.mjs')));
 });
