@@ -28,11 +28,20 @@ if (contexts) {
       // @ts-expect-error A pinned profile condition is not a schema-pointer condition.
       requirement.facts.schema_pointer;
       void profileCid;
-    } else {
+    } else if (requirement.code === 'host_capacity_policy_required') {
       const schemaCid: string = requirement.facts.schema_cid;
       // @ts-expect-error Capacity admission does not select a numeric profile.
       requirement.facts.profile_cid;
       void schemaCid;
+    } else if (requirement.code === 'calendar_profile_required') {
+      const issue: 'selection_missing' | 'artifact_missing' = requirement.facts.issue;
+      // @ts-expect-error Calendar advice does not disclose a selected profile reference.
+      requirement.facts.profile_cid;
+      // @ts-expect-error Calendar advice does not supply a capability.
+      requirement.facts.capability;
+      // @ts-expect-error Calendar advice grants no authorization.
+      requirement.facts.authorization;
+      void issue;
     }
     // @ts-expect-error The context is not the caller's authored input location.
     requirement.location;

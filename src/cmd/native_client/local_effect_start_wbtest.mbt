@@ -69,11 +69,12 @@ fn native_shared_file_effect_environment(
 ///|
 fn native_shared_file_effect_input(
   project : LocalProjectMockDeclarations,
+  program_file? : String = "multiple-targets.program.json",
 ) -> (@checked.CheckEnvironment, @run_host.ClientSubmittedIntent) raise {
   let environment = native_shared_file_effect_environment(project)
   let document = local_input_text_file(
     project._retained_project.directory,
-    "multiple-targets.program.json",
+    program_file,
     65536L,
   )
   let input : Json = {
@@ -89,6 +90,126 @@ fn native_shared_file_effect_input(
     64,
   ).unwrap()
   (environment, intent)
+}
+
+///|
+test "Native Mock CREATE issues original evidence from its installed Result policy" {
+  let project = native_project_mock_model_fixture(
+    "source-free-create",
+    operation="run",
+  )
+  defer project.retire()
+  project.prepare_source_declarations().unwrap()
+  let (environment, intent) = native_shared_file_effect_input(
+    project,
+    program_file="file-create.program.json",
+  )
+  let first = local_effect_prefix_fixture_original(
+    local_prepare_submitted_run_program(intent, environment),
+  )
+  assert_true(first.is_mock_values_create())
+  let compilation = first.allowed.compilation
+  let prepared = @run_host.client_effect_compilation_owner(compilation)
+  let limits = local_project_mock_file_limits()
+  let wire : @execution.RowWireLimits = {
+    max_columns: 100,
+    max_order_work: limits.max_work,
+    max_bytes: limits.page.max_bytes,
+    max_nodes: limits.page.max_nodes,
+    max_depth: limits.page.max_depth,
+  }
+  let (initial, maximum) = native_mock_effect_import_construction(
+    prepared,
+    wire,
+    values_create=first.is_mock_values_create(),
+  )
+  assert_eq(@execution.execution_capacity_retained_bytes(initial), 0L)
+  // One Invocation uses 393216 bytes. The exported Result's five protocol
+  // bodies use 1441792 more while the Invocation is still held.
+  let required = 1835008L
+  assert_true(@execution.execution_capacity_retained_bytes(maximum) >= required)
+  assert_true(
+    @execution.execution_capacity_execution_bytes(maximum) >= required,
+  )
+  let invocation = native_mock_values_invocation_metadata_capacity().unwrap()
+  let artifact = native_mock_values_artifact_metadata_capacity().unwrap()
+  let together = @execution.add_execution_capacity(invocation, artifact).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(together), required)
+  let extent = capacity => {
+    @local_values.prepare_installed_effect_operation_extent(
+      "native.mock.file.capture", capacity, 0L, false,
+    ).unwrap()
+  }
+  assert_true(
+    @local_values.prepare_installed_effect_staged_extent(
+      extent(together),
+      extent(maximum),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @local_values.prepare_installed_effect_staged_extent(
+      extent(together),
+      extent(@execution.execution_capacity(required - 1L, required).unwrap()),
+    )
+    is Err(Unsupported),
+  )
+  assert_true(
+    @run_host.prepared_client_effect_publication_data_policy_cid(prepared)
+    is None,
+  )
+  let originals = @run_host.client_local_product_finite_originals(
+    "/operator/native-create-policy",
+    "/product/sqlite.dylib",
+    "/product/crypto.dylib",
+    "2026-10-10T00:00:00.000Z",
+    @run_host.client_local_product_assets(),
+  ).unwrap()
+  let installation = local_run_installation(
+    @utf8.decode(
+      originals.iter().find_first(pair => pair.0 == "run.json").unwrap().1,
+    ),
+  )
+  let policy = installation.source_free.unwrap()
+  let original = @run_host.issue_client_effect_source_free_invocation_original(
+    compilation,
+    policy.result_policy_cid,
+    16384,
+    1024,
+    20,
+  ).unwrap()
+  let admission = @run_host.client_effect_allowed_run_admission(first.allowed)
+  let evidence = @publication.resolve_run_local_result_evidence_refs(
+    admission,
+    first.definition,
+    @run_host.client_effect_source_free_invocation_original_invocation(original),
+    @run_host.client_effect_source_free_invocation_original_observation(
+      original,
+    ),
+    installation.retention,
+  ).unwrap()
+  assert_eq(evidence.1, policy.result_policy_cid)
+  let foreign = @run_host.issue_client_effect_source_free_invocation_original(
+    compilation,
+    "sha256:" + "f".repeat(64),
+    16384,
+    1024,
+    20,
+  ).unwrap()
+  assert_true(
+    @publication.resolve_run_local_result_evidence_refs(
+      admission,
+      first.definition,
+      @run_host.client_effect_source_free_invocation_original_invocation(
+        foreign,
+      ),
+      @run_host.client_effect_source_free_invocation_original_observation(
+        foreign,
+      ),
+      installation.retention,
+    )
+    is Err(ForeignRetention),
+  )
 }
 
 ///|

@@ -481,6 +481,37 @@ test('ordinary full Effect materials use the same funded Request for issue and i
   assert.deepEqual(seen, ['issue', 'admit', 'admit']);
 });
 
+test('signed review binds full Effect materials to its original preparation before adoption', async t => {
+  const f = await fixture(t);
+  const calls = [];
+  const facts = {prepared: f.prepared, allowed: f.allowed, definition: f.definition,
+    identity: 'request', compilation: f.compilation, runDefinition: f.runDefinition};
+  const originals = installUpdateTargetOriginals({...f, limits,
+    issueMaterials(input) {
+      assert.deepEqual(input, {prepared: f.prepared, allowed: f.allowed, definition: f.definition,
+        identity: 'request'});
+      calls.push('issue');
+      return f.materialsWire;
+    },
+    admitMaterials(input) {
+      assert.strictEqual(input.prepared, f.prepared);
+      assert.strictEqual(input.compilation, f.compilation);
+      assert.equal(input.wire, f.materialsWire);
+      assert.equal(input.runDefinitionCid, f.runDefinition.identity);
+      assert.equal(input.identity, 'request');
+      calls.push('admit');
+      return {prepared: f.prepared, compilation: f.compilation, allowed: f.allowed, definition: f.definition};
+    }});
+  assert.equal(originals.captureEffectMaterials({...facts, retainForReview: false}), f.materialsWire);
+  assert.deepEqual(calls, ['issue']);
+  assert.equal(originals.captureEffectMaterials({...facts, retainForReview: true}), f.materialsWire);
+  assert.deepEqual(calls, ['issue', 'issue', 'admit']);
+  const foreign = installUpdateTargetOriginals({...f, limits, issueMaterials: () => f.materialsWire,
+    admitMaterials: () => ({prepared: {}, compilation: f.compilation, allowed: f.allowed, definition: f.definition})});
+  assert.throws(() => foreign.captureEffectMaterials({...facts, retainForReview: true}),
+    {code: 'InstalledEffectOriginalSelectionChanged'});
+});
+
 test('prepared original projection enters the existing funded issuer before retaining outer DATA', async t => {
   const f = await fixture(t), seen = [];
   const legacy = f.moon.clientProgramIssueEffectPreparedOriginal(f.compilation)._0;

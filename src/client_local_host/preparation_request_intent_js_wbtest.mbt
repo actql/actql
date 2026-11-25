@@ -596,70 +596,104 @@ test "retained Request intent continues native Effect Parameters Plan and retire
     65536,
     64,
   ).unwrap()
-  let input = [1]
-  let parent = begin_request_preparation(
-    request_parent_fixture(input),
-    input,
-    client_local_resource_policy(),
-  ).unwrap()
-  let ledger = parent.ledger
-  retain_request_submitted_intent(parent, input, intent).unwrap()
-  assert_eq(
-    prepare_request_native_computation(
-      parent,
+  for already_owned in [false, true] {
+    let input = [1]
+    let parent = begin_request_preparation(
+      request_parent_fixture(input),
       input,
-      request_native_test_value(text),
-      native_json_reader,
-      environment,
-      publication,
-      [],
-      @publication_host.client_standard_program_preparation_limits(),
-      @publication_host.client_standard_effect_computation_limits(),
-      supplied=Some(request_native_test_value("{\"n\":9}")),
-    ).unwrap(),
-    Effect,
-  )
-  assert_true(physical_equal(parent.ledger, ledger))
-  assert_true(
-    physical_equal(
-      request_submitted_intent_original(parent, input).unwrap(),
-      intent,
-    ),
-  )
-  let prepared = parent.compiled_effect.unwrap()
-  let graph = @strategy.checked_effect_computation_graph(
-    @publication_host.prepared_client_effect_computation_graph(prepared),
-  )
-  let task = @strategy.graph_task_owner(graph, 0).unwrap()
-  assert_eq(
-    @admitted.canonical_scalar_text(
-      @lower.parameter_value(task, "n").unwrap(),
-      32,
-    ),
-    Some("9"),
-  )
-  let holder = borrow_request_effect_plan_input(parent, input).unwrap()
-  assert_true(
-    physical_equal(
-      @resources.preparation_body_borrow_value(holder).unwrap(),
-      prepared,
-    ),
-  )
-  let (plan, original_request) = request_effect_plan_fixture(prepared)
-  complete_request_effect_preparation(parent, input, plan).unwrap()
-  let managed = begin_request_effect_managed_run(parent, original_request).unwrap()
-  assert_true(
-    physical_equal(
-      installed_effect_managed_operation_plan(
-        managed, prepared, original_request,
+      client_local_resource_policy(),
+    ).unwrap()
+    let ledger = parent.ledger
+    let limits = if already_owned {
+      assert_true(
+        check_request_owned_submitted_intent(
+          parent,
+          input,
+          environment,
+          publication,
+          public_primary=true,
+        )
+        is Err(Preparation(WrongPhase)),
+      )
+      retain_request_submitted_intent(parent, input, intent).unwrap()
+      let before = @resources.ledger_usage(ledger)
+      assert_true(
+        check_request_owned_submitted_intent(
+          parent,
+          [1],
+          environment,
+          publication,
+          public_primary=true,
+        )
+        is Err(Preparation(ForeignOriginal)),
+      )
+      assert_eq(@resources.ledger_usage(ledger), before)
+      check_request_owned_submitted_intent(
+        parent,
+        input,
+        environment,
+        publication,
+        public_primary=true,
+      ).unwrap()
+    } else {
+      check_request_retained_submitted_intent(
+        parent,
+        input,
+        intent,
+        environment,
+        publication,
+        public_primary=false,
+      ).unwrap()
+    }
+    assert_eq(limits.values_max_rows, None)
+    assert_eq(
+      finish_request_checked_computation(
+        parent, input, environment, publication,
       ).unwrap(),
-      plan,
-    ),
-  )
-  assert_true(retire_installed_managed_run(managed) is Err(CleanupPending))
-  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
-  retire_installed_managed_run(managed).unwrap()
-  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+      Effect,
+    )
+    assert_true(physical_equal(parent.ledger, ledger))
+    assert_true(
+      physical_equal(
+        request_submitted_intent_original(parent, input).unwrap(),
+        intent,
+      ),
+    )
+    let prepared = parent.compiled_effect.unwrap()
+    let graph = @strategy.checked_effect_computation_graph(
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    )
+    let task = @strategy.graph_task_owner(graph, 0).unwrap()
+    assert_eq(
+      @admitted.canonical_scalar_text(
+        @lower.parameter_value(task, "n").unwrap(),
+        32,
+      ),
+      Some("9"),
+    )
+    let holder = borrow_request_effect_plan_input(parent, input).unwrap()
+    assert_true(
+      physical_equal(
+        @resources.preparation_body_borrow_value(holder).unwrap(),
+        prepared,
+      ),
+    )
+    let (plan, original_request) = request_effect_plan_fixture(prepared)
+    complete_request_effect_preparation(parent, input, plan).unwrap()
+    let managed = begin_request_effect_managed_run(parent, original_request).unwrap()
+    assert_true(
+      physical_equal(
+        installed_effect_managed_operation_plan(
+          managed, prepared, original_request,
+        ).unwrap(),
+        plan,
+      ),
+    )
+    assert_true(retire_installed_managed_run(managed) is Err(CleanupPending))
+    @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+    retire_installed_managed_run(managed).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  }
 }
 
 ///|

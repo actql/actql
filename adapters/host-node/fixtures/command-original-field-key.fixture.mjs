@@ -76,8 +76,10 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
   const values = JSON.stringify(contracts['REL.values']);
   const fragment = JSON.stringify(contracts['ACTQL.expression_fragment/0.1']);
   const ordered = JSON.stringify(contracts['REL.derive.ordered']);
+  const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+    registry, values, fragment, ordered));
   const requirement = checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
-    prepared, 0, 0, registry, values, fragment, ordered));
+    prepared, 0, 0, installedContracts, values, fragment, ordered));
   const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(declaration,
     requirement, await read('spec/contracts/actql-query-acquisition.json'),
     await read('spec/contracts/actql-query-process-evidence.json'), undefined));
@@ -93,7 +95,7 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
     checked(moon.clientProgramRowSourceFinish(physical));
     const captured = checked(moon.clientProgramRowSourceCapture(physical));
     const source = checked(moon.clientProgramRowSourceCaptureSource(captured));
-    const owned = moon.clientProgramOpenCapturedLocalEffectHost(bound, source, registry, values,
+    const owned = moon.clientProgramOpenCapturedLocalEffectHost(bound, source, installedContracts, values,
       1n, 0n, 0n, 0n, fragment, ordered);
     assert(owned, 'same captured source feeds the original checked Effect Host');
     execution = await runCapturedEffectComputation(owned);

@@ -282,7 +282,7 @@ fn build_client_keyed_native_whole_source_evidence(
     7L,
     max_nodes,
     max_depth,
-    fn() {
+    fn(_) {
       guard !lookup.closed &&
         lookup.left.lookup_issue is None &&
         lookup.native_left_identity is Some(same) &&
@@ -526,7 +526,7 @@ pub fn prepare_client_keyed_native_left_relation(
     state.sources.length().to_int64(),
     max_nodes,
     max_depth,
-    fn() {
+    fn(_) {
       guard native_left_relation_original(
           lookup,
           state,

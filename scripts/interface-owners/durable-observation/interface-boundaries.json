@@ -231,55 +231,55 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "Best-effort diagnostics have no authority"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "Object.assign(emit"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "installed.get(observe)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "active"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "outside the caller"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "catch"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "active?.abort()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "maxQueued"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "InvalidDiagnosticObserver"
               }
             ],
@@ -299,55 +299,55 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "Best-effort diagnostics have no authority"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "Object.assign(emit"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "installed.get(observe)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "active"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "outside the caller"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "catch"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "active?.abort()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "maxQueued"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "InvalidDiagnosticObserver"
               }
             ],
@@ -950,7 +950,7 @@
                 "anchor": "| Verification |"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "application callback state changes at actual delivery entry and thrown settlement only"
               },
               {
@@ -985,8 +985,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage?: ManagedUsageReader) {"
               }
             ],
             "inputsOutputs": [
@@ -1005,8 +1005,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "bindManagedComputeRunObservation(prepared: object, ref: WireRunRef) {"
               }
             ],
             "ownership": [
@@ -1015,8 +1015,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "for (const key of Object.keys(record)) (record as Record<string, unknown>)[key] = undefined;"
               }
             ],
             "synchronization": [
@@ -1025,7 +1025,7 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
               }
             ],
@@ -1035,7 +1035,7 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "catch {drop('resourceUnavailable'); return;}"
               }
             ],
@@ -1055,8 +1055,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "const snapshot: Record<string, string> = {'actql.resource.scope': 'managed-run-ledger'};"
               }
             ],
             "extension": [
@@ -1071,11 +1071,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               }
             ]
@@ -1093,12 +1093,12 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "function accumulateSelectedRows(context, detail, pendingLimit = 0) {"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "function accumulateSelectedRows(context: ObservationFrame | undefined, detail: SelectedRowDetail, pendingLimit = 0): boolean {"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "function bindSelectedRequestRows(detail, binding) {"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "function bindSelectedRequestRows(detail: SelectedRowDetail, binding: SelectedRequestBinding | undefined) {"
               }
             ],
             "inputsOutputs": [
@@ -1107,7 +1107,7 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "const {ref, rowOwner, selection, rowKind, returnedRows, unrelatedRows, coverage} = detail;"
               }
             ],
@@ -1117,11 +1117,11 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "const ref = event === 'selected_rows_observed' ? facts.ref : facts.ref ?? context?.ref;"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "request.requestId === binding.requestId) {"
               }
             ],
@@ -1131,11 +1131,11 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "context.selectedRowsClosed = true; context.selectedRows = undefined;"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "context.pendingRequestRows = context.selectedRequestBinding = undefined;"
               }
             ],
@@ -1145,7 +1145,7 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "// One bounded record for this existing ingress, not another durable"
               }
             ],
@@ -1155,7 +1155,7 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "if (!captured) drop('rowsUnavailable');"
               }
             ],
@@ -1165,7 +1165,7 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "context.selectedRowsClosed = true;"
               }
             ],
@@ -1175,11 +1175,11 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "const attributes = Object.freeze({'actql.rows.owner': rows.rowOwner,"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "if (pending.length >= pendingLimit) {context.selectedRowsUnavailable = true; return false;}"
               }
             ],
@@ -1189,21 +1189,21 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "rowKind !== 'run' || coverage !== 'selected-returned' ||"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('selected row diagnostics copy only actual reader scalars and the original operation context'"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('selected row diagnostics keep unknown classification and pre-Run binding absent in a mixed aggregate'"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('selected row diagnostics refuse contextless or late facts instead of creating another operation frame'"
               },
               {
@@ -1229,7 +1229,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "const captureCurrentOperation = () => {"
               }
             ],
@@ -1239,8 +1239,8 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "const retainOperation = promise => {"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "const retainOperation = (promise: unknown) => {"
               }
             ],
             "identity": [
@@ -1249,7 +1249,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "if (context?.owner !== contextOwner || context.finished) return undefined;"
               }
             ],
@@ -1259,7 +1259,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "const held = original; original = undefined;"
               }
             ],
@@ -1269,8 +1269,8 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "Promise.prototype.then.call(promise, captured.release, captured.release);"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "Promise.prototype.then.call(promise as Promise<unknown>, captured.release, captured.release);"
               }
             ],
             "failure": [
@@ -1279,7 +1279,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "} catch {captured.release(); drop('rowsUnavailable');}"
               }
             ],
@@ -1289,7 +1289,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "context.finished = true; context.selectedRowsClosed = true;"
               }
             ],
@@ -1299,7 +1299,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "if (context.children >= config.selected.requestRecords) {drop('limited'); return undefined;}"
               }
             ],
@@ -1309,17 +1309,17 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "if (closed || !observeRows) return undefined;"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('retained original work settles without delaying ingress or creating a second observation context'"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('observation close detaches its bounded metadata without settling original unfinished work'"
               }
             ]
@@ -1395,7 +1395,7 @@
                 "anchor": "| Verification |"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "application callback state changes at actual delivery entry and thrown settlement only"
               }
             ]
@@ -1747,7 +1747,7 @@
                 "anchor": "### Original installation metadata HTTPS binding"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "useCid: response.useCid"
               }
             ],
@@ -1765,7 +1765,7 @@
                 "anchor": "### Original installation metadata HTTPS binding"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "It has no physical send callback or credential."
               }
             ],
@@ -1853,7 +1853,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {
@@ -1869,35 +1869,35 @@
                 "anchor": "test('kintone driver does not discard an observed write on late abort or retry a lost response'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared row UPDATE admits only bounded HTTP DATA under the original Host authority'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('invalid async UPDATE encoding settles inside its original invocation without a physical send'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target reads stay within the original observation lifetime'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target reads preserve a swallowed original child failure'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target reads preserve the original child failure when the provider throws a replacement'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target reads await cleanup without replacing an earlier observation failure'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target reads refuse non-read methods before selecting a grant'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target encoding waits for its bounded original child'"
               }
             ]
@@ -2049,7 +2049,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {
@@ -2075,7 +2075,7 @@
     {
       "module": "adapters/host-common/sqlite-transaction.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6d31e50c16865244785eab5aab0c044aa669c49120577ac9aa9a895b80afcc34",
+      "sha256": "eb89c67ca7859c024e4ad4ea5716a3df2cf96287f75130f860b4d0e7a1af964a",
       "exports": [
         "createSqliteTransaction",
         "throwSqliteInitializationFailure"
@@ -2176,8 +2176,8 @@
                 "anchor": "| Identity |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
-                "anchor": "originalClose = selected;"
+                "path": "adapters/host-common/sqlite-transaction.mts",
+                "anchor": "originalClose = selected as Close;"
               }
             ],
             "ownership": [
@@ -2186,7 +2186,7 @@
                 "anchor": "| Ownership |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "const observation = Reflect.apply(originalClose, database, []);"
               }
             ],
@@ -2196,8 +2196,12 @@
                 "anchor": "| Synchronization |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "if (closing) return status();"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mts",
+                "anchor": "read: <Result extends SynchronousRuntimeData>(body: () => Result) => transact(body, 'BEGIN'),"
               }
             ],
             "failure": [
@@ -2206,7 +2210,7 @@
                 "anchor": "| Failure |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "errors: Object.freeze(first === latest ? [first] : [first, latest])"
               }
             ],
@@ -2216,7 +2220,7 @@
                 "anchor": "| Cancellation |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "if (observation !== undefined) {"
               }
             ],
@@ -2226,7 +2230,7 @@
                 "anchor": "| Resources |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "const first = Object.freeze({owner, error: closeFailure});"
               }
             ],
@@ -2242,12 +2246,16 @@
                 "anchor": "| Verification |"
               },
               {
-                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mts",
                 "anchor": "initialization cleanup retries only the captured original close receiver"
               },
               {
-                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mts",
                 "anchor": "synchronous cleanup reentry only observes the existing close flight"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "test('lost Debug resume COMMIT acknowledgement recovers only the retained command'"
               }
             ]
           }
@@ -2276,8 +2284,8 @@
                 "anchor": "| Identity |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
-                "anchor": "originalClose = selected;"
+                "path": "adapters/host-common/sqlite-transaction.mts",
+                "anchor": "originalClose = selected as Close;"
               }
             ],
             "ownership": [
@@ -2286,7 +2294,7 @@
                 "anchor": "| Ownership |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "const observation = Reflect.apply(originalClose, database, []);"
               }
             ],
@@ -2296,7 +2304,7 @@
                 "anchor": "| Synchronization |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "if (closing) return status();"
               }
             ],
@@ -2306,7 +2314,7 @@
                 "anchor": "| Failure |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "errors: Object.freeze(first === latest ? [first] : [first, latest])"
               }
             ],
@@ -2316,7 +2324,7 @@
                 "anchor": "| Cancellation |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "if (observation !== undefined) {"
               }
             ],
@@ -2326,7 +2334,7 @@
                 "anchor": "| Resources |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "const first = Object.freeze({owner, error: closeFailure});"
               }
             ],
@@ -2342,11 +2350,11 @@
                 "anchor": "| Verification |"
               },
               {
-                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mts",
                 "anchor": "initialization cleanup retries only the captured original close receiver"
               },
               {
-                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mts",
                 "anchor": "synchronous cleanup reentry only observes the existing close flight"
               }
             ]
@@ -2410,31 +2418,31 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Optional copied facts"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Object.freeze({event, task, durationMs})"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "observers.get(observer)"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "observers.get(observer as object)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "new WeakMap()"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "new WeakMap<object, Observer>()"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "try { project"
               },
               {
@@ -2444,7 +2452,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Optional projection never changes"
               }
             ],
@@ -2456,8 +2464,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "new WeakMap()"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "new WeakMap<object, Observer>()"
               },
               {
                 "path": "docs/design/node-host-observability.md",
@@ -2466,13 +2474,13 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "InvalidTaskObservation"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "queue overflow and delivery failure"
               }
             ]
@@ -2486,31 +2494,31 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Optional copied facts"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Object.freeze({event, task, durationMs})"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "observers.get(observer)"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "observers.get(observer as object)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "new WeakMap()"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "new WeakMap<object, Observer>()"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "try { project"
               },
               {
@@ -2520,7 +2528,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Optional projection never changes"
               }
             ],
@@ -2532,8 +2540,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "new WeakMap()"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "new WeakMap<object, Observer>()"
               },
               {
                 "path": "docs/design/node-host-observability.md",
@@ -2542,13 +2550,13 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "InvalidTaskObservation"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "queue overflow and delivery failure"
               }
             ]
@@ -2640,7 +2648,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e44bfd2d08faefc6cb43450e95f9c50e3e1aaa66deba26127a5d2539c2d78678",
+      "sha256": "1d60e6a987bb2e7b6ad56bde25720f5942eaa5be0664694952d818eb51191c3a",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -2853,7 +2861,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -2867,11 +2875,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -2889,7 +2897,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -2907,11 +2915,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -2933,7 +2941,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -2951,7 +2959,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -2973,7 +2981,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -2991,11 +2999,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -3013,11 +3021,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -3035,11 +3043,11 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -3047,7 +3055,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
                 "anchor": "actual pinned MoonBit Result"
               },
               {
@@ -3067,7 +3075,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -3077,11 +3085,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -3095,7 +3103,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -3105,11 +3113,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -3123,7 +3131,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -3137,7 +3145,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -3151,7 +3159,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -3161,11 +3169,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -3175,11 +3183,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -3193,11 +3201,11 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -3205,7 +3213,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
                 "anchor": "actual pinned MoonBit Result"
               }
             ]
@@ -3225,14 +3233,14 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "completedCallCount() {return capture !== undefined && !publicationCleaned && !reclaimed ? count : undefined;},"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "capture = operation.acquireCapture();"
+                "path": "adapters/host-node/infer-capture-custody.mts",
+                "anchor": "capture = operation!.acquireCapture();"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -3241,8 +3249,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "captureOutput ??= operation.acquireOutput();"
+                "path": "adapters/host-node/infer-capture-custody.mts",
+                "anchor": "captureOutput ??= operation!.acquireOutput();"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -3251,13 +3259,13 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "if (capture !== undefined) return true;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "throw new Error('InstalledInferCaptureInventoryUnavailable');"
               },
               {
@@ -3267,7 +3275,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "const cleanupPublicationOwned = async () => {"
               },
               {
@@ -3281,8 +3289,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "publicationOriginal.reserveOriginalPublicationCapacity?.();"
+                "path": "adapters/host-node/infer-capture-custody.mts",
+                "anchor": "publicationOriginal!.reserveOriginalPublicationCapacity?.();"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -3291,7 +3299,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// This immutable original is available only after the existing Store"
               }
             ],
@@ -3315,7 +3323,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -3325,11 +3333,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -3343,7 +3351,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -3353,11 +3361,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -3371,7 +3379,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -3385,7 +3393,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -3399,7 +3407,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -3409,11 +3417,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -3423,11 +3431,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -3441,11 +3449,11 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -3453,7 +3461,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
                 "anchor": "actual pinned MoonBit Result"
               }
             ]
@@ -3473,7 +3481,7 @@
     {
       "module": "adapters/host-node/infer-entry-persistence.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c6c1c083c7b043df7ef345af5d50460781f450f8f40687235c7268e0dae8869b",
+      "sha256": "8321e75513fb910b4b3e28aeeaf4072337dafe52add01d487356218a117ce99c",
       "exports": [
         "createNodeInferEntryPersistence"
       ],
@@ -3571,7 +3579,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               }
             ],
@@ -3583,7 +3591,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               }
             ],
@@ -3607,13 +3615,13 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "maximumStoredCaptureWire"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               }
             ],
@@ -3623,7 +3631,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               }
             ]
@@ -3643,7 +3651,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               }
             ],
@@ -3655,7 +3663,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               }
             ],
@@ -3679,13 +3687,13 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "maximumStoredCaptureWire"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               }
             ],
@@ -3695,7 +3703,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               }
             ]
@@ -3709,7 +3717,7 @@
     {
       "module": "adapters/host-node/infer-physical-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "60d1d5ccb5a7b6e8d62b8519d12e4c31a28ef9e45c4067452b9d520373efc926",
+      "sha256": "28571253c347b79575ef32cfccd9f947f5cd128e5b0bd9765697842893588916",
       "exports": [
         "createInferPhysicalObservation"
       ],
@@ -3745,61 +3753,61 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "Project Common entry facts only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "createInferPhysicalObservation"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "reference"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "facts.event === 'started'"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "observation.noteLoss()"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "'cancelled'"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "let physical"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "'returned', 'failed', 'cancelled'"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "foreign attempt"
               }
             ]
@@ -3813,61 +3821,61 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "Project Common entry facts only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "createInferPhysicalObservation"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "reference"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "facts.event === 'started'"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "observation.noteLoss()"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "'cancelled'"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "let physical"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "'returned', 'failed', 'cancelled'"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "foreign attempt"
               }
             ]
@@ -3881,7 +3889,7 @@
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "009a5e886cce57475d261f4737ffd4d91f81fd04c00da26ab6fb1039a2b0f141",
+      "sha256": "23d758ea6e1d31b373c84d8d5c9bf83dac6fa0a8cb3742d163eed8f5f8858e1c",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -4075,7 +4083,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4085,11 +4093,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4103,7 +4111,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4113,11 +4121,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4131,7 +4139,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4145,7 +4153,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4159,7 +4167,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4169,11 +4177,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4183,11 +4191,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4201,11 +4209,11 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4236,7 +4244,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4246,11 +4254,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4264,7 +4272,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4274,11 +4282,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4296,7 +4304,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4310,7 +4318,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4324,7 +4332,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4334,11 +4342,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4352,11 +4360,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4370,11 +4378,11 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4386,7 +4394,7 @@
                 "anchor": "raw tuple projection preserves field roles"
               },
               {
-                "path": "adapters/host-node/infer-raw-port-retirement.test.mjs",
+                "path": "adapters/host-node/infer-raw-port-retirement.test.mts",
                 "anchor": "saved raw caller weakens only its retired Call alias"
               }
             ]
@@ -4406,7 +4414,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4416,11 +4424,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4434,7 +4442,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4444,11 +4452,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4462,7 +4470,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4476,7 +4484,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4490,7 +4498,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4500,11 +4508,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4514,11 +4522,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4532,11 +4540,11 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4560,7 +4568,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4570,11 +4578,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4588,7 +4596,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4598,11 +4606,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4616,7 +4624,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4630,7 +4638,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4644,7 +4652,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4654,11 +4662,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4668,11 +4676,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4686,11 +4694,11 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4717,7 +4725,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4727,11 +4735,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4745,7 +4753,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4755,11 +4763,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4773,7 +4781,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4787,7 +4795,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4801,7 +4809,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4811,11 +4819,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4825,11 +4833,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4843,11 +4851,11 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4878,38 +4886,38 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "export function createModelRawTransportPersistenceFactory({store, moon, registration,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "original.registration === registration;"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "prepare: () => createModelRawTransportPersistence({store, moon, registration,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence);"
+                "path": "adapters/host-node/infer-raw-capture.mts",
+                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence!);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "throw new TypeError('ForeignInferRawCapturePersistence');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "persist.cleanup = call => {"
+                "path": "adapters/host-node/infer-raw-capture.mts",
+                "anchor": "persist.cleanup = (call: unknown) => {"
               }
             ],
             "resources": [
@@ -4953,38 +4961,38 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "export function createModelRawTransportPersistenceFactory({store, moon, registration,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "original.registration === registration;"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "prepare: () => createModelRawTransportPersistence({store, moon, registration,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence);"
+                "path": "adapters/host-node/infer-raw-capture.mts",
+                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence!);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "throw new TypeError('ForeignInferRawCapturePersistence');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "persist.cleanup = call => {"
+                "path": "adapters/host-node/infer-raw-capture.mts",
+                "anchor": "persist.cleanup = (call: unknown) => {"
               }
             ],
             "resources": [
@@ -5023,7 +5031,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5033,11 +5041,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5051,7 +5059,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5061,11 +5069,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5079,7 +5087,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5093,7 +5101,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5107,7 +5115,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5117,11 +5125,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5131,11 +5139,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5149,11 +5157,11 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -6120,6 +6128,122 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/site-node/https-credential-request.mjs",
+      "responsibilityFacet": "primary",
+      "exports": [
+        "httpsCredentialDefaultRequestBytes",
+        "operationFor"
+      ],
+      "operations": [
+        {
+          "name": "operationFor",
+          "parameters": [
+            "operations",
+            "scope",
+            "maxRequestBytes",
+            "text",
+            "fail"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/http-exchange.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "abb59626320f321446ee6587cf33805146641aaa6dd96fc0922b6b730c473e56",
+      "role": "physical-io",
+      "owner": "F / existing Credential Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "operationFor"
+          ],
+          "exports": [
+            "httpsCredentialDefaultRequestBytes",
+            "operationFor"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "export function operationFor("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "const operation = operations.get(scope.operation)"
+              },
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "return Object.freeze({"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "origin.origin !== scope.resourceOrigin"
+              },
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "path: exactRequestTarget(operation.path, text, fail)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "const request = ownHttpByteRequest("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "before allocating the physical copy"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "fail('UnsupportedRemoteCredentialOperation');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous request admission neither starts a physical send nor holds a credential use."
+            },
+            "resources": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "requestBytes > maxRequestBytes"
+              },
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "httpsCredentialDefaultRequestBytes = 1_048_576"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "const responseHeaders = ownResponseHeaderNames(operation.responseHeaders);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "HTTPS request-target is sent exactly as admitted before the use claim"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "invalid binary limits and framing refuse before the real journal claim or secret resolution"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/site-node/https-credential-resource.mjs",
       "responsibilityFacet": "primary",
       "exports": [
@@ -6277,6 +6401,14 @@
           "async": false
         },
         {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
           "name": "httpsCredentialResponseWindowBytes",
           "parameters": [
             "maxResponseBytes"
@@ -6359,102 +6491,6 @@
           "async": false
         },
         {
-          "name": "receive/receive",
-          "parameters": [
-            "resolve",
-            "reject"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/finish/finish/finish",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/receive",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/receive/receive",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/receive#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/receive#3",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request",
-          "parameters": [
-            "response"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
-          "parameters": [
-            "yes",
-            "no"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/readResponseChunk/readResponseChunk",
-          "parameters": [
-            "chunk"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/request",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/request#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/request#3",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/request#4",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "retainHttpsCredentialBindingReadChild",
           "parameters": [
             "binding"
@@ -6474,6 +6510,13 @@
         {
           "name": "retainHttpsCredentialBindingReadChild/borrow/init:retire/init:retire",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -6513,25 +6556,16 @@
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#2",
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
             "exchangeHttpsCredentialAuthentication/expires/expires",
+            "fail/fail",
             "openHttpsCredentialBinding",
             "openHttpsCredentialBinding/openHttpsCredentialBinding",
+            "openHttpsCredentialBinding/openHttpsCredentialBinding#2",
             "openHttpsCredentialBinding/original/original",
             "ownAuthenticationRegistration/ownAuthenticationRegistration",
             "ownAuthenticationRegistration/ownAuthenticationRegistration#2",
             "prepareHttpsCredentialAuthenticationMaterial",
             "prepareHttpsCredentialAuthenticationMaterial/deadline/deadline",
-            "receive/receive",
-            "receive/receive/finish/finish/finish",
-            "receive/receive/receive",
-            "receive/receive/receive#2",
-            "receive/receive/receive#3",
-            "receive/receive/receive/receive",
-            "receive/receive/request/request",
-            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
-            "receive/receive/request/request/request",
-            "receive/receive/request/request/request#2",
-            "receive/receive/request/request/request#3",
-            "openHttpsCredentialBinding/openHttpsCredentialBinding#2"
+            "text/text"
           ],
           "exports": [
             "callHttpsCredentialResource",
@@ -6615,11 +6649,11 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "requestRepresentation: response.requestRepresentation"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "responseRepresentation: response.responseRepresentation"
               },
               {
@@ -6661,7 +6695,7 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "response.rawHeaders[index].toLowerCase()"
               },
               {
@@ -6855,11 +6889,11 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "const requestRepresentation = !retainRunResponseOriginal"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "Object.freeze({etagCount, contentEncodingCount})"
               },
               {
@@ -6927,7 +6961,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {
@@ -7034,11 +7068,11 @@
                 "anchor": "- Run response inputs and outputs:"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "requestBodyText"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "requestRepresentation: response.requestRepresentation"
               },
               {
@@ -7102,7 +7136,7 @@
                 "anchor": "- Run response resources:"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "const requestRepresentation = !retainRunResponseOriginal"
               },
               {
@@ -7165,9 +7199,6 @@
             "callCredentialResource/retainResponse/retainResponse",
             "callCredentialResource/retainResponse/retainResponse#2",
             "httpsCredentialResponseWindowBytes",
-            "receive/receive/request/request/readObservedResponse/readObservedResponse",
-            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
-            "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
             "retainHttpsCredentialBindingReadChild",
             "retainHttpsCredentialBindingReadChild/borrow/init:available/init:available",
             "retainHttpsCredentialBindingReadChild/borrow/init:close/init:close",
@@ -7412,11 +7443,11 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "requestRepresentation: response.requestRepresentation"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "responseRepresentation: response.responseRepresentation"
               },
               {
@@ -7458,7 +7489,7 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "response.rawHeaders[index].toLowerCase()"
               },
               {
@@ -7652,11 +7683,11 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "const requestRepresentation = !retainRunResponseOriginal"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "Object.freeze({etagCount, contentEncodingCount})"
               },
               {
@@ -7724,7 +7755,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {
@@ -7798,115 +7829,6 @@
               {
                 "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
                 "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "receive/receive/request/request/readResponseChunk/readResponseChunk",
-            "receive/receive/request/request/request#4"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
               },
               {
                 "path": "docs/development/credential-scope-interface.md",
@@ -8024,7 +7946,7 @@
           }
         }
       ],
-      "sha256": "bd04fa7701ff93435b1e11c3d689e8446a4ba911df772041bc0b029ab860bfdf",
+      "sha256": "b8b5fcc2fa1f97bd6ab628f2e9f2f33f0afdaee4b3d2568de5a9d9a43cabdbe1",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
@@ -8033,18 +7955,384 @@
         "../host-common/runtime-result.mjs",
         "../host-common/source-response-custody.mjs",
         "./google-service-account-assertion.mjs",
+        "./https-credential-request.mjs",
+        "./https-credential-response.mjs",
         "node:crypto",
-        "node:http",
-        "node:https",
         "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/site-node/https-credential-response.mjs",
+      "responsibilityFacet": "primary",
+      "exports": [
+        "httpsCredentialAuthorizationPrefix",
+        "httpsCredentialResponseHeaderByteLimit",
+        "httpsCredentialResponseReadQuantum",
+        "receive"
+      ],
+      "operations": [
+        {
+          "name": "receive",
+          "parameters": [
+            "hostname",
+            "port",
+            "path",
+            "method",
+            "body",
+            "bodyMediaType",
+            "requestBytes",
+            "secret",
+            "authenticationForm",
+            "headers",
+            "ca",
+            "cert",
+            "key",
+            "signal",
+            "maxResponseBytes",
+            "binding",
+            "retainRunResponseOriginal",
+            "observeResponseBytes",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/finish/finish/finish",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive/receive",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive#3",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
+          "parameters": [
+            "yes",
+            "no"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readResponseChunk/readResponseChunk",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request#3",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request#4",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:http",
+        "node:https",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "2c0bd0614cc3a286272675939081d8a95319cbb38f6b8fbcb5585b515142fe84",
+      "role": "physical-io",
+      "owner": "F / existing Credential Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "receive",
+            "receive/receive",
+            "receive/receive/finish/finish/finish",
+            "receive/receive/receive",
+            "receive/receive/receive/receive",
+            "receive/receive/receive#2",
+            "receive/receive/receive#3",
+            "receive/receive/request/request",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
+            "receive/receive/request/request/request",
+            "receive/receive/request/request/request#2",
+            "receive/receive/request/request/request#3"
+          ],
+          "exports": [
+            "httpsCredentialAuthorizationPrefix",
+            "httpsCredentialResponseHeaderByteLimit",
+            "httpsCredentialResponseReadQuantum",
+            "receive"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "export function receive("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "request.end(body);"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "finish(resolve, Object.freeze({"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "response.rawHeaders[index].toLowerCase()"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "binding.request = request;"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "binding.unjoinedResponseCustody ??= {original: observed, cause};"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "request.once('close',"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "observerPending = true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "finish(reject, error);"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "response.destroy(error as Error);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "socket?.destroy();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "maxResponseBytes - received + 1"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "httpsCredentialResponseReadQuantum = 16_384;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "const physicalHeaders:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "original binary response lengths and body remain exact"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "native byte observer join failure retains the original"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "receive/receive/request/request/readResponseChunk/readResponseChunk",
+            "receive/receive/request/request/request#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/site-node/sqlite-credential-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b60e24a25350f2cf4360e417e8df3ef8f3d88a9b39eabcf103ab7900409f8f1d",
+      "sha256": "9224ca152309f60eb27e5effa9fd9e0e59d649d0142126d930ae856c4f01ac62",
       "exports": [
         "openSqliteCredentialJournal"
       ],
@@ -8800,7 +9088,7 @@
     {
       "module": "adapters/site-node/sqlite-transfer-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eed669ee5c2a02eec0a72fb1054233f4a73cdb0ea285f4fd0774ea7cdea6404e",
+      "sha256": "78fdd3b38d32c1947dc7fc5f5ac466f86e945e54a3a83801c0b89fce1b08a592",
       "exports": [
         "openSqliteTransferJournal"
       ],
@@ -9140,7 +9428,7 @@
     {
       "module": "adapters/host-node/logical-task-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "24fa6acdd6cc9be1957843e251a0fd2f3a70f5d4c3e1a7cfbb6645bd93ae759e",
+      "sha256": "1e25f88698f22f036daf4cb5ee2a9432a791326039d58faa7f69a5cf30dc81c8",
       "exports": [
         "prepareInstalledLogicalObservation"
       ],

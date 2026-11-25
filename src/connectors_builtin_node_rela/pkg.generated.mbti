@@ -699,6 +699,8 @@ pub fn client_program_effect_direct_source_coordinates(@run_publication_host.Pre
 
 pub fn client_program_effect_environment_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
+pub fn client_program_effect_file_create_storage_key(String, String, String, String, Int) -> Result[String, @run_publication.EffectRowOutcomeIssue]
+
 pub fn client_program_effect_infer_occurrences(@run_publication_host.PreparedClientEffectComputation) -> Result[Array[@run_publication_host.ClientInferOccurrence], @client_infer_host.Issue]
 
 pub fn client_program_effect_input_at(@physical_strategy_host.CapturedEffectInputs, Int) -> @physical_strategy_host.CapturedEffectInput?
@@ -1084,6 +1086,8 @@ pub fn client_program_infer_run_materials_graph(@run_publication_host.ClientTask
 pub fn client_program_infer_run_materials_graphs(@run_publication_host.ClientTaskRunMaterials) -> Array[@run_publication_host.ClientInferPlanGraph]
 
 pub fn client_program_infer_run_materials_prepared(@run_publication_host.ClientTaskRunMaterials) -> @run_publication_host.PreparedClientProgram
+
+pub fn client_program_installed_calendar_artifact_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_chat_configuration_matches(@run_publication.RunEvidenceValue, String, String, String, String, String) -> Bool
 
@@ -2087,7 +2091,7 @@ pub fn client_program_prepare_request_native_computation(@client_local_host.Clie
 
 pub fn client_program_prepare_request_native_program_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue, NativeJsonValue, @stage_syntax.Limits) -> Result[@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit], @client_local_host.ClientRequestPreparationIssue]
 
-pub fn client_program_prepare_request_original_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int) -> Result[@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal]?, @client_local_host.ClientOriginalExplanationCaptureIssue]
+pub fn client_program_prepare_request_original_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Bool) -> Result[@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal]?, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
 pub fn client_program_prepare_request_policy_subjects(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment) -> Result[Int, @client_local_host.ClientRequestTerminalIssue]
 
@@ -2215,7 +2219,7 @@ pub fn client_program_read_installed_model_defaults(String, String, String, Stri
 
 pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.PublicModelTaskDeclaration, @check_environment.ModelTaskIssue]
 
-pub fn client_program_read_request_checked_static_effect_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[@client_local_host.ClientRequestStaticEffectExplanation, ClientRequestStaticExplanationBridgeIssue]
+pub fn client_program_read_request_checked_static_effect_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph], Bool) -> Result[@client_local_host.ClientRequestStaticEffectExplanation, ClientRequestStaticExplanationBridgeIssue]
 
 pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph], Bool) -> Result[String, ClientRequestStaticPlanBridgeIssue]
 
@@ -2303,9 +2307,15 @@ pub fn client_program_relation_admit_target_document(@client_row_source_host.Row
 
 pub fn client_program_relation_document_usage(@client_row_source_host.RelationDocument) -> Array[Int64]?
 
+pub fn client_program_relation_insert_workspace_capacity(@client_row_source_host.RelationDocumentPreparedContract, Int, Int, Int) -> Result[@execution_relation.ExecutionCapacity, @client_row_source_host.RowSourceIssue]
+
 pub fn client_program_relation_observe_target(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.RelationTargetRow, @client_row_source_host.RowSourceIssue]
 
+pub fn client_program_relation_prepare_insert_contract(@client_row_source_host.RowDeclaration, String, String, Int, Int, Int, Int) -> Result[@client_row_source_host.RelationDocumentPreparedContract, @client_row_source_host.RowMappingIssue]
+
 pub fn client_program_relation_prepare_target_delete(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_prepare_target_insert(@client_row_source_host.RelationDocument, @client_row_source_host.RelationDocumentPreparedContract, Array[String], Array[String], String, String) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
 
 pub fn client_program_relation_prepare_target_update(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
 
@@ -2326,8 +2336,6 @@ pub fn client_program_relation_target_text(@client_row_source_host.RelationTarge
 pub fn client_program_relation_target_text_bytes(@client_row_source_host.RelationTargetRow, String) -> Bytes?
 
 pub fn client_program_relation_target_version(@client_row_source_host.RelationTargetRow) -> String?
-
-pub fn client_program_relation_update_mapping(@client_row_source_host.RowDeclaration, String, String, Array[String], String, String) -> Result[String, @client_row_source_host.RowMappingIssue]
 
 pub fn client_program_release_effect_input(@physical_strategy_host.CapturedEffectInput) -> Bool
 
@@ -2593,6 +2601,8 @@ pub fn client_program_row_source_prepare_cursor_progress(Int, Int, Int, Int) -> 
 
 pub fn client_program_row_source_prepare_delete_mapping(@client_row_source_host.RowDeclaration, String, String) -> String
 
+pub fn client_program_row_source_prepare_file_create_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
+
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
 pub fn client_program_row_source_prepare_update_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
@@ -2709,13 +2719,11 @@ pub fn client_program_semantics_json(@run_publication_host.PreparedClientProgram
 
 pub fn client_program_snowflake_accept_response(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementResponse, Bytes) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
 
+pub fn client_program_snowflake_adopt_managed_read(@description.TableDescription, @client_row_source_host.RowRunResponseBorrow, @actql/actql/connectors/snowflake/catalog.ResponseLimits, @description.DescriptionLimits, Int) -> Result[@actql/actql/connectors/snowflake/read.Read, @actql/actql/connectors/snowflake/read.ReadIssue]
+
+pub fn client_program_snowflake_adopt_managed_response(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest, Int, @client_row_source_host.RowPageCharge) -> Result[@actql/actql/connectors/snowflake/read.StatementResponse, @actql/actql/connectors/snowflake/read.StatementIssue]
+
 pub fn client_program_snowflake_attempt_request(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
-
-pub fn client_program_snowflake_bind_read_transport(@actql/actql/connectors/snowflake/read.Read, () -> Bool) -> Result[Unit, @actql/actql/connectors/snowflake/read.ReadIssue]
-
-pub fn client_program_snowflake_borrow_read(@actql/actql/connectors/snowflake/read.PreparedRead, @client_row_source_host.RowRun, @actql/actql/connectors/snowflake/catalog.ResponseLimits, Int) -> Result[@actql/actql/connectors/snowflake/read.Read, @actql/actql/connectors/snowflake/read.ReadIssue]
-
-pub fn client_program_snowflake_charge_response(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest, Int, Bytes) -> Result[@actql/actql/connectors/snowflake/read.StatementResponse, @actql/actql/connectors/snowflake/read.StatementIssue]
 
 pub fn client_program_snowflake_declaration_limits(Int, Int, Int, Int, Int) -> @client_row_source_host.RowDeclarationLimits
 
@@ -2725,15 +2733,11 @@ pub fn client_program_snowflake_description_limits(Int, Int, Int, Int, Int) -> @
 
 pub fn client_program_snowflake_generate_read_declaration(@description.TableDescription, String, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @actql/actql/connectors/snowflake/read.ReadIssue]
 
-pub fn client_program_snowflake_interrupt_read(@actql/actql/connectors/snowflake/read.Read) -> Unit
+pub fn client_program_snowflake_managed_read_capacity(Array[Int], Int, Int, @actql/actql/connectors/snowflake/catalog.ResponseLimits, @description.DescriptionLimits, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_snowflake_next_request(@actql/actql/connectors/snowflake/read.StatementRead) -> Result[@actql/actql/connectors/snowflake/read.StatementRequest?, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_prepare_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/snowflake/read.PreparedRead, @actql/actql/connectors/snowflake/read.ReadIssue]
-
 pub fn client_program_snowflake_prepare_statement(@actql/actql/connectors/snowflake/read.Read, String, String, String, Int, Int, Int) -> Result[@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementIssue]
-
-pub fn client_program_snowflake_read_acquisition(@actql/actql/connectors/snowflake/read.PreparedRead) -> @client_row_source_host.RowAcquisition
 
 pub fn client_program_snowflake_read_declaration_construction_capacity(Array[Int], Int, Int, Int, Int, Int, @actql/actql/connectors/snowflake/catalog.ResponseLimits, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
@@ -2743,15 +2747,11 @@ pub fn client_program_snowflake_record_decoder_refusal(@actql/actql/connectors/s
 
 pub fn client_program_snowflake_record_response_loss(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_reject_response(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementResponse) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
-
 pub fn client_program_snowflake_request_material(@actql/actql/connectors/snowflake/read.StatementRequest) -> (String, String, String?, Int)
 
 pub fn client_program_snowflake_response_limits(Int, Int, Int, Int, Int, Int, Int, Int, Int64) -> @actql/actql/connectors/snowflake/catalog.ResponseLimits
 
-pub fn client_program_snowflake_response_unknown(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
-
-pub fn client_program_snowflake_retire_read_borrow(@actql/actql/connectors/snowflake/read.Read) -> Result[Unit, @actql/actql/connectors/snowflake/read.ReadIssue]
+pub fn client_program_snowflake_retire_managed_read(@actql/actql/connectors/snowflake/read.Read) -> Bool
 
 pub fn client_program_snowflake_statement_complete(@actql/actql/connectors/snowflake/read.StatementRead) -> Bool
 

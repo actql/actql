@@ -20,7 +20,7 @@ function assertBrowserClosure(bundle, checkInput) {
   }
 }
 
-test('packed SDK public exports and browser bundle include their presentation modules', t => {
+test('packed SDK public exports and browser bundle include their presentation modules', async t => {
   const cache = mkdtempSync(join(tmpdir(), 'actql-sdk-presentation-'));
   t.after(() => rmSync(cache, {recursive: true}));
   const environment = {...process.env};
@@ -30,15 +30,11 @@ test('packed SDK public exports and browser bundle include their presentation mo
   });
   // Real tarballs and an external install expose missing transitive modules
   // that source imports and a dry-run inventory cannot exercise.
-  const packages = ['client-wire', 'sdk'].map(name => {
-    const result = [packSdkFixture({name, destination: cache, run,
-      directory: fileURLToPath(new URL(`../${name}/`, import.meta.url))})];
-    // The actual tarball supplies the package report, independently of stdout.
-    const entries = Array.isArray(result) ? result : Object.values(result);
-    assert.equal(entries.length, 1);
-    assert.equal(entries[0].name, `@actql/${name}`);
-    return entries[0];
-  });
+  const repository = fileURLToPath(new URL('../../', import.meta.url));
+  const packages = [];
+  for (const name of ['client-wire', 'sdk']) {
+    packages.push(await packSdkFixture({name, repository, destination: cache, run}));
+  }
   t.diagnostic(JSON.stringify(packages.map(({name, shasum, integrity}) => ({name, shasum, integrity}))));
   writeFileSync(join(cache, 'package.json'), '{"private":true,"type":"module"}\n');
   run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',
@@ -53,7 +49,7 @@ test('packed SDK public exports and browser bundle include their presentation mo
     assert.equal(typeof sdk.connect, 'function');
     assert.equal(host.connectInProcess, sdk.connectInProcess);
     assert.equal(typeof host.canonicalJson, 'function');
-    assert.equal(sdk.getCheckReasonCatalogInfo().revision, '2026-11-21.1');
+    assert.equal(sdk.getCheckReasonCatalogInfo().revision, '2026-11-23.2');
     assert.equal(sdk.getCheckReasonCatalogEntry('parameter_value_required').family, 'requirement');
     for (const name of ['formatSubmission', 'formatCancellation',
       'formatReadFailure', 'formatEffectUncertainty']) {
@@ -74,8 +70,13 @@ test('packed SDK public exports and browser bundle include their presentation mo
       .replaceAll("from './index.mjs'", "from '@actql/sdk'")
       .replaceAll("from './host-port.mjs'", "from '@actql/sdk/host-port'"));
   }
-  const report = run(process.execPath, ['--test-reporter=tap', '--test',
-    ...consumers.map(name => `${name}.test.mjs`)]);
+  let report;
+  try {
+    report = run(process.execPath, ['--test-reporter=tap', '--test',
+      ...consumers.map(name => `${name}.test.mjs`)]);
+  } catch (error) {
+    throw new Error([error.message, error.stdout, error.stderr].filter(Boolean).join('\n'), {cause: error});
+  }
   const count = Number(/^# tests (\d+)$/mu.exec(report)?.[1]);
   assert(count > 0, report);
   assert.match(report, /^# fail 0$/mu);

@@ -56,7 +56,9 @@ import {
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
   "actql/actql/client_row_source_host" @row_source_host,
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
+  "moonbitlang/core/string",
 }
 
 import {
@@ -64,7 +66,6 @@ import {
   "actql/actql/capacity_host_witness" @binding_host,
   "actql/actql/capacity_witness" @binding_wire,
   "actql/actql/local_veca_provider" @nearest_provider,
-  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/debug",
   "actql/actql/connectors/kintone/host" @kintone_host,
   "actql/actql/connectors/kintone/catalog" @kintone_catalog,

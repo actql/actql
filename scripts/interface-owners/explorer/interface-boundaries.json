@@ -135,7 +135,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "shared cancellation panel keeps original references separate"
               }
             ]
@@ -278,7 +278,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "shared cancellation panel keeps original references separate"
               }
             ]
@@ -425,7 +425,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "Owner accepted and history found do not claim physical stop"
               }
             ]
@@ -497,7 +497,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               },
               {
@@ -507,7 +507,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -517,7 +517,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -527,7 +527,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -537,7 +537,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -547,7 +547,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -557,7 +557,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -567,7 +567,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -577,13 +577,13 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "Owner accepted and history found do not claim physical stop"
               }
             ]
@@ -594,7 +594,7 @@
     {
       "module": "packages/explorer-ui/checkpoint-panel.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "b62d7e631e1a4e3b6897933e712af66e636e631dc7f108fb628a58c4bdaeb2e2",
+      "sha256": "c573b4e38b4185aafb71fa300d6e95576e1532db28b1e179b856ac0aa78d7348",
       "exports": [
         "CheckpointPanel"
       ],
@@ -727,7 +727,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/checkpoint-panel.test.mjs",
+                "path": "packages/explorer-ui/checkpoint-panel.test.mts",
                 "anchor": "shared review shows original subject"
               }
             ]
@@ -1020,7 +1020,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               },
               {
@@ -1030,7 +1030,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1040,7 +1040,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1050,7 +1050,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1060,7 +1060,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1070,7 +1070,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1080,7 +1080,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1090,7 +1090,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1100,7 +1100,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1292,7 +1292,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               },
               {
@@ -1302,7 +1302,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1312,7 +1312,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1322,7 +1322,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1332,7 +1332,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1342,7 +1342,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1352,7 +1352,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1362,7 +1362,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1372,7 +1372,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1409,7 +1409,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               },
               {
@@ -1419,7 +1419,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1429,7 +1429,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1439,7 +1439,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1449,7 +1449,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1459,7 +1459,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1469,7 +1469,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1479,7 +1479,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1489,7 +1489,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1606,7 +1606,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               },
               {
@@ -1616,7 +1616,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1626,7 +1626,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1636,7 +1636,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1646,7 +1646,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1656,7 +1656,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1666,7 +1666,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1676,7 +1676,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1686,7 +1686,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1703,7 +1703,7 @@
     {
       "module": "packages/explorer-ui/flow-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ce10747065fa7bbe138691f2813437c8f716173cfdfbcc902188d482380d877d",
+      "sha256": "87245b2a936cae114ab1175673b7258e4c5b2f80adcfcd3f01314b67ec072084",
       "exports": [
         "flowPresentation"
       ],
@@ -1761,7 +1761,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               },
               {
@@ -1771,7 +1771,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1781,7 +1781,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1791,7 +1791,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1801,7 +1801,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1811,7 +1811,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1821,7 +1821,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1831,7 +1831,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1841,7 +1841,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1858,16 +1858,18 @@
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "e45c551eccf899d667b258a5c1237042c4d9dc2dd370a4382ab3103bd8a274fd",
+      "sha256": "57a06bd02e37371d3e2851f995317f6ac675cb2c9db964601200c9b0774fc18b",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
         "CancellationPanelProps",
         "CheckpointPanel",
         "OriginalCancellation",
+        "OriginalPlanMetadata",
         "PlanExplorer",
         "PlanExplorerProps",
-        "RunInspector"
+        "RunInspector",
+        "WorkspaceGraphGroup"
       ],
       "operations": [
         {
@@ -1889,7 +1891,14 @@
           "parameters": [
             "id: string"
           ],
-          "result": "{kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state?: string}"
+          "result": "{kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state?: string;\n      effectDeclaration?: Readonly<{fields?: string; missingProducer: string}>}"
+        },
+        {
+          "name": "OriginalPlanMetadata",
+          "parameters": [
+            "props: {model: PlanReadModel; workspace?: boolean; locale?: 'en' | 'ja'}"
+          ],
+          "result": "ReactElement"
         },
         {
           "name": "PlanExplorer",
@@ -1933,7 +1942,8 @@
             "label",
             "PlanExplorer",
             "RunInspector",
-            "select"
+            "select",
+            "OriginalPlanMetadata"
           ],
           "exports": [
             "CancellationObservation",
@@ -1943,7 +1953,9 @@
             "OriginalCancellation",
             "PlanExplorer",
             "PlanExplorerProps",
-            "RunInspector"
+            "RunInspector",
+            "WorkspaceGraphGroup",
+            "OriginalPlanMetadata"
           ],
           "attributes": {
             "responsibility": [
@@ -2038,8 +2050,12 @@
                 "anchor": "array reversal changes presentation positions"
               },
               {
-                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
-                "anchor": "assert((await step.textContent()).includes(originalStep));"
+                "path": "scripts/fixtures/packed-explorer-saved-context.mts",
+                "anchor": "assert((await step.textContent())?.includes(originalStep));"
+              },
+              {
+                "path": "packages/explorer-ui/plan-explorer.test.mjs",
+                "anchor": "test('workspace metadata keeps original identities"
               }
             ]
           }
@@ -2049,13 +2065,15 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "681107e88270e530d8c17333a855f105ee353d91a9da4cd9aaf7269df991df79",
+      "sha256": "c7fb7ee54a90b7cf348646b15d0c41bd509758981f5b4411a3c01e00d23c38fa",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
+        "OriginalPlanMetadata",
         "PlanExplorer",
         "PlanExplorerProps",
-        "RunInspector"
+        "RunInspector",
+        "WorkspaceGraphGroup"
       ],
       "operations": [
         {
@@ -2100,13 +2118,20 @@
         {
           "name": "BoundPlanExplorer/<call>/<call>#6",
           "parameters": [
+            "group"
+          ],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>/<call>#7",
+          "parameters": [
             "node",
             "index"
           ],
           "result": null
         },
         {
-          "name": "BoundPlanExplorer/<call>/<call>#7",
+          "name": "BoundPlanExplorer/<call>/<call>#8",
           "parameters": [],
           "result": null
         },
@@ -2117,15 +2142,12 @@
         },
         {
           "name": "BoundPlanExplorer/<call>#11",
-          "parameters": [
-            "node"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "BoundPlanExplorer/<call>#12",
           "parameters": [
-            "_",
             "node"
           ],
           "result": null
@@ -2133,12 +2155,20 @@
         {
           "name": "BoundPlanExplorer/<call>#13",
           "parameters": [
+            "_",
             "node"
           ],
           "result": null
         },
         {
           "name": "BoundPlanExplorer/<call>#14",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>#15",
           "parameters": [
             "port"
           ],
@@ -2161,33 +2191,35 @@
         },
         {
           "name": "BoundPlanExplorer/<call>#5",
-          "parameters": [],
+          "parameters": [
+            "group"
+          ],
           "result": null
         },
         {
           "name": "BoundPlanExplorer/<call>#6",
           "parameters": [
-            "node"
+            "id: string"
           ],
           "result": null
         },
         {
           "name": "BoundPlanExplorer/<call>#7",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>#8",
           "parameters": [
             "node"
           ],
           "result": null
         },
         {
-          "name": "BoundPlanExplorer/<call>#8",
-          "parameters": [
-            "entry"
-          ],
-          "result": null
-        },
-        {
           "name": "BoundPlanExplorer/<call>#9",
-          "parameters": [],
+          "parameters": [
+            "node"
+          ],
           "result": null
         },
         {
@@ -2388,6 +2420,78 @@
           "result": null
         },
         {
+          "name": "OriginalPlanMetadata",
+          "parameters": [
+            "{model, workspace = false, locale = 'en'}: {\n  model: PlanReadModel; workspace?: boolean; locale?: 'en' | 'ja';\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "OriginalPlanMetadata/<call>",
+          "parameters": [
+            "entry"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects",
+          "parameters": [
+            "nodes: LogicalNode[]",
+            "edges: Edge[]"
+          ],
+          "result": "LogicalNode[]"
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#2",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#3",
+          "parameters": [
+            "node",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#4",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#5",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#6",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#7",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
           "name": "PlanExplorer",
           "parameters": [
             "{model, scopeKey, initialView = 'list', workspace}: PlanExplorerProps"
@@ -2400,6 +2504,84 @@
             "id: string"
           ],
           "result": "void"
+        },
+        {
+          "name": "workspaceFlow",
+          "parameters": [
+            "model: PlanReadModel",
+            "groups?: readonly WorkspaceGraphGroup[]"
+          ],
+          "result": "{nodes: LogicalNode[]; edges: Edge[]; unavailable?: true}"
+        },
+        {
+          "name": "workspaceFlow/<call>",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>/<call>",
+          "parameters": [
+            "id"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>/<call>#2",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>/<call>#3",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#2",
+          "parameters": [
+            "group"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#3",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#4",
+          "parameters": [
+            "input"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#5",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#6",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#7",
+          "parameters": [
+            "node"
+          ],
+          "result": null
         }
       ],
       "imports": [
@@ -2408,6 +2590,7 @@
         "./flow-layout.mjs",
         "./flow-model.mjs",
         "./read-model.js",
+        "./read-model.mjs",
         "./run-inspector.js",
         "./styles.css",
         "@base-ui/react/button",
@@ -2473,14 +2656,39 @@
             "narrowWorkspaceViewport",
             "narrowWorkspaceViewport/<call>",
             "narrowWorkspaceViewport/<call>#2",
-            "narrowWorkspaceViewport/<call>#3"
+            "narrowWorkspaceViewport/<call>#3",
+            "BoundPlanExplorer/<call>/<call>#8",
+            "BoundPlanExplorer/<call>#15",
+            "workspaceFlow",
+            "workspaceFlow/<call>",
+            "workspaceFlow/<call>/<call>",
+            "workspaceFlow/<call>/<call>#2",
+            "workspaceFlow/<call>/<call>#3",
+            "workspaceFlow/<call>#2",
+            "workspaceFlow/<call>#3",
+            "workspaceFlow/<call>#4",
+            "workspaceFlow/<call>#5",
+            "workspaceFlow/<call>#6",
+            "workspaceFlow/<call>#7",
+            "OriginalPlanMetadata",
+            "OriginalPlanMetadata/<call>",
+            "placeUnlinkedEffects",
+            "placeUnlinkedEffects/<call>",
+            "placeUnlinkedEffects/<call>#2",
+            "placeUnlinkedEffects/<call>#3",
+            "placeUnlinkedEffects/<call>#4",
+            "placeUnlinkedEffects/<call>#5",
+            "placeUnlinkedEffects/<call>#6",
+            "placeUnlinkedEffects/<call>#7"
           ],
           "exports": [
             "CancellationPanel",
             "CheckpointPanel",
             "PlanExplorer",
             "PlanExplorerProps",
-            "RunInspector"
+            "RunInspector",
+            "WorkspaceGraphGroup",
+            "OriginalPlanMetadata"
           ],
           "attributes": {
             "responsibility": [
@@ -2575,8 +2783,12 @@
                 "anchor": "array reversal changes presentation positions"
               },
               {
-                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
-                "anchor": "assert((await step.textContent()).includes(originalStep));"
+                "path": "scripts/fixtures/packed-explorer-saved-context.mts",
+                "anchor": "assert((await step.textContent())?.includes(originalStep));"
+              },
+              {
+                "path": "packages/explorer-ui/plan-explorer.test.mjs",
+                "anchor": "test('workspace metadata keeps original identities"
               }
             ]
           }
@@ -2619,7 +2831,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               },
               {
@@ -2629,7 +2841,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2639,7 +2851,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2649,7 +2861,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2659,7 +2871,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2669,7 +2881,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2679,7 +2891,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2689,7 +2901,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2699,7 +2911,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2716,7 +2928,7 @@
     {
       "module": "packages/explorer-ui/read-model.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "8f4183d7ed5f35be5f509ca7046570c3b553accf06b44e6e6c33e66c5168fad1",
+      "sha256": "e9e44a6404eebf5f0eea5f6a6a7c143285d1f8a17af58f7d5cdd748dec9a1a05",
       "exports": [
         "ExplanationStoryModel",
         "ExplorerReadError",
@@ -2726,10 +2938,12 @@
         "PlanReadModel",
         "PlanStoryModel",
         "ReadTicket",
+        "SamplePortSelection",
         "SavedExplanationReadModel",
         "StaticExplanationReadModel",
         "createReadEpoch",
         "describeExistingResult",
+        "expectedStoryPortColumns",
         "explanationStoryModel",
         "graphViewLimits",
         "planReadModel",
@@ -2739,10 +2953,16 @@
         "readExistingRunExplanation",
         "readExistingRunPlan",
         "readExistingRunPresentation",
+        "readExistingRunSample",
         "readExistingRunStory",
         "readStaticExplanation",
         "readStaticPlan",
-        "staticExplanationReadModel"
+        "sampleCaptureCaption",
+        "sampleCellPreview",
+        "sampleMatchesPort",
+        "staticExplanationReadModel",
+        "storySamplePorts",
+        "validSamplePortSelection"
       ],
       "operations": [
         {
@@ -2774,6 +2994,15 @@
             "ticket: ReadTicket"
           ],
           "result": "Promise<ResultDescription>"
+        },
+        {
+          "name": "expectedStoryPortColumns",
+          "parameters": [
+            "steps: ReadonlyMap<string, ExplanationStoryModel['occurrences'][number]>",
+            "step: ExplanationStoryModel['occurrences'][number]",
+            "port: Step['ports'][number] | undefined"
+          ],
+          "result": "readonly string[] | undefined"
         },
         {
           "name": "explanationStoryModel",
@@ -2847,6 +3076,16 @@
           "result": "Promise<OriginalRunPresentationReadModel>"
         },
         {
+          "name": "readExistingRunSample",
+          "parameters": [
+            "client: Pick<Client, 'attach'>",
+            "ref: RunReference",
+            "port: SamplePortSelection",
+            "ticket: ReadTicket"
+          ],
+          "result": "Promise<WireRunSample>"
+        },
+        {
           "name": "readExistingRunStory",
           "parameters": [
             "client: Pick<Client, 'attach'>",
@@ -2894,12 +3133,49 @@
           "result": "WireExplanationNarrative"
         },
         {
+          "name": "sampleCaptureCaption",
+          "parameters": [
+            "capture: WireSampleCapture"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "sampleCellPreview",
+          "parameters": [
+            "text: string"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "sampleMatchesPort",
+          "parameters": [
+            "value: unknown",
+            "ref: RunReference",
+            "port: SamplePortSelection"
+          ],
+          "result": "value is WireRunSample"
+        },
+        {
           "name": "staticExplanationReadModel",
           "parameters": [
             "view: WireStaticExplanationView",
             "presentation: StaticExplanationPresentation"
           ],
           "result": "StaticExplanationReadModel"
+        },
+        {
+          "name": "storySamplePorts",
+          "parameters": [
+            "step: Pick<Step, 'ports'>"
+          ],
+          "result": "readonly Step['ports'][number][]"
+        },
+        {
+          "name": "validSamplePortSelection",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is SamplePortSelection"
         }
       ],
       "imports": [
@@ -2926,7 +3202,14 @@
             "readExistingRunPlan",
             "readExistingRunStory",
             "readStaticPlan",
-            "render#2"
+            "render#2",
+            "expectedStoryPortColumns",
+            "readExistingRunSample",
+            "sampleCaptureCaption",
+            "sampleCellPreview",
+            "sampleMatchesPort",
+            "storySamplePorts",
+            "validSamplePortSelection"
           ],
           "exports": [
             "ExplanationStoryModel",
@@ -2945,7 +3228,15 @@
             "readExistingRun",
             "readExistingRunPlan",
             "readExistingRunStory",
-            "readStaticPlan"
+            "readStaticPlan",
+            "SamplePortSelection",
+            "expectedStoryPortColumns",
+            "readExistingRunSample",
+            "sampleCaptureCaption",
+            "sampleCellPreview",
+            "sampleMatchesPort",
+            "storySamplePorts",
+            "validSamplePortSelection"
           ],
           "attributes": {
             "responsibility": [
@@ -3036,24 +3327,28 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "static Story renders EN/JA from the same original Plan and logical ports"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "saved Story uses the same original Run without recompilation and captures locale once"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
-                "anchor": "structural Story explains original fields and JOIN keys in EN/JA without observations"
+                "path": "packages/explorer-ui/read-model.test.mts",
+                "anchor": "structural Story explains original fields and JOIN keys in EN/JA with unprojected input origins"
               },
               {
                 "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
               }
             ]
           }
@@ -3122,11 +3417,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
@@ -3200,11 +3495,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               },
               {
@@ -3228,37 +3523,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -3270,13 +3565,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "narrative = render(wire, locale);"
               }
             ],
@@ -3297,11 +3592,12 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "875a7f700d21eaf33dcefd49fb2980c5dfc8b7210622974457d013edd6e78463",
+      "sha256": "220223d13286d9e11da040d4e7a2f60cc0152551598d4ff82d6ca4a5fdfa616a",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
         "describeExistingResult",
+        "expectedStoryPortColumns",
         "explanationStoryModel",
         "graphViewLimits",
         "planReadModel",
@@ -3311,10 +3607,16 @@
         "readExistingRunExplanation",
         "readExistingRunPlan",
         "readExistingRunPresentation",
+        "readExistingRunSample",
         "readExistingRunStory",
         "readStaticExplanation",
         "readStaticPlan",
-        "staticExplanationReadModel"
+        "sampleCaptureCaption",
+        "sampleCellPreview",
+        "sampleMatchesPort",
+        "staticExplanationReadModel",
+        "storySamplePorts",
+        "validSamplePortSelection"
       ],
       "operations": [
         {
@@ -3415,6 +3717,36 @@
         {
           "name": "describeExistingResult/run/run",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "expectedStoryPortColumns",
+          "parameters": [
+            "steps",
+            "step",
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "expectedStoryPortColumns/expectedStoryPortColumns",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "expectedStoryPortColumns/expectedStoryPortColumns#2",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "expectedStoryPortColumns/outputs/outputs",
+          "parameters": [
+            "item"
+          ],
           "async": false
         },
         {
@@ -3601,6 +3933,26 @@
           "async": false
         },
         {
+          "name": "readExistingRunSample",
+          "parameters": [
+            "client",
+            "ref",
+            "port",
+            "ticket"
+          ],
+          "async": true
+        },
+        {
+          "name": "readExistingRunSample/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readExistingRunSample/value/value",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "readExistingRunStory",
           "parameters": [
             "client",
@@ -3650,6 +4002,23 @@
           "async": false
         },
         {
+          "name": "renderExplanation/presentation/presentation",
+          "parameters": [
+            "kind",
+            "text",
+            "context_items",
+            "step_ids"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderExplanation/presentation/presentation#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "renderExplanation/renderExplanation",
           "parameters": [
             "id"
@@ -3660,25 +4029,6 @@
           "name": "renderExplanation/renderExplanation#2",
           "parameters": [
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "renderExplanation/renderExplanation#3",
-          "parameters": [
-            "kind",
-            "text",
-            "context_items",
-            "step_ids"
-          ],
-          "async": false
-        },
-        {
-          "name": "renderExplanation/renderExplanation#4",
-          "parameters": [
-            "kind",
-            "index",
-            "step_id"
           ],
           "async": false
         },
@@ -3705,11 +4055,88 @@
           "async": false
         },
         {
+          "name": "sampleCaptureCaption",
+          "parameters": [
+            "strategy",
+            "sampled",
+            "total",
+            "completeness",
+            "truncation"
+          ],
+          "async": false
+        },
+        {
+          "name": "sampleCellPreview",
+          "parameters": [
+            "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "sampleMatchesPort",
+          "parameters": [
+            "value",
+            "ref",
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "sampleMatchesPort/sampleMatchesPort",
+          "parameters": [
+            "column",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sampleMatchesPort/sampleMatchesPort#2",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
           "name": "staticExplanationReadModel",
           "parameters": [
             "view",
             "locale",
             "render"
+          ],
+          "async": false
+        },
+        {
+          "name": "storySamplePorts",
+          "parameters": [
+            "step"
+          ],
+          "async": false
+        },
+        {
+          "name": "storySamplePorts/outputs/outputs",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "storySamplePorts/storySamplePorts",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "validSamplePortSelection",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validSamplePortSelection/validSamplePortSelection",
+          "parameters": [
+            "key"
           ],
           "async": false
         }
@@ -3757,10 +4184,27 @@
             "renderExplanation/exactSteps/exactSteps",
             "renderExplanation/renderExplanation",
             "renderExplanation/renderExplanation#2",
-            "renderExplanation/renderExplanation#3",
-            "renderExplanation/renderExplanation#4",
+            "renderExplanation/presentation/presentation",
+            "renderExplanation/presentation/presentation#2",
             "checkedContext/input/input",
-            "checkedContext/output/output"
+            "checkedContext/output/output",
+            "expectedStoryPortColumns",
+            "expectedStoryPortColumns/expectedStoryPortColumns",
+            "expectedStoryPortColumns/expectedStoryPortColumns#2",
+            "expectedStoryPortColumns/outputs/outputs",
+            "readExistingRunSample",
+            "readExistingRunSample/run/run",
+            "readExistingRunSample/value/value",
+            "sampleCaptureCaption",
+            "sampleCellPreview",
+            "sampleMatchesPort",
+            "sampleMatchesPort/sampleMatchesPort",
+            "sampleMatchesPort/sampleMatchesPort#2",
+            "storySamplePorts",
+            "storySamplePorts/outputs/outputs",
+            "storySamplePorts/storySamplePorts",
+            "validSamplePortSelection",
+            "validSamplePortSelection/validSamplePortSelection"
           ],
           "exports": [
             "ExplorerReadError",
@@ -3773,12 +4217,19 @@
             "readExistingRun",
             "readExistingRunPlan",
             "readExistingRunStory",
-            "readStaticPlan"
+            "readStaticPlan",
+            "expectedStoryPortColumns",
+            "readExistingRunSample",
+            "sampleCaptureCaption",
+            "sampleCellPreview",
+            "sampleMatchesPort",
+            "storySamplePorts",
+            "validSamplePortSelection"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               },
               {
@@ -3788,7 +4239,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3798,7 +4249,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3808,7 +4259,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3818,7 +4269,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3828,7 +4279,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3838,7 +4289,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3848,7 +4299,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3858,42 +4309,46 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "static Story renders EN/JA from the same original Plan and logical ports"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "saved Story uses the same original Run without recompilation and captures locale once"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
-                "anchor": "structural Story explains original fields and JOIN keys in EN/JA without observations"
+                "path": "packages/explorer-ui/read-model.test.mts",
+                "anchor": "structural Story explains original fields and JOIN keys in EN/JA with unprojected input origins"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "structural construction admits long field and parameter text before quote or output allocation"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "structural construction admits shared-child copies before a large joined predicate exists"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "structural construction admits escaped expansion before the native quote call"
               },
               {
                 "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
               }
             ]
           }
@@ -3963,11 +4418,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
@@ -4044,11 +4499,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               },
               {
@@ -4080,37 +4535,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -4122,13 +4577,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "narrative = render(wire, locale);"
               }
             ],
@@ -4329,13 +4784,15 @@
     {
       "module": "packages/explorer-ui/run-observation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "3b22916884c4791174f87053a05a20a5df3d82e4ba2882ec1f172ca673e01f5d",
+      "sha256": "c7449eb8785b973d2f793edcf5e25724479a99cc8466d935a2945f5d93890439",
       "exports": [
         "RunObservationModel",
+        "StoryNextPause",
         "observedPlanStep",
         "readRunObservation",
         "runObservationLimits",
-        "runObservationModel"
+        "runObservationModel",
+        "storyNextPause"
       ],
       "operations": [
         {
@@ -4343,7 +4800,7 @@
           "parameters": [
             "observation: RunObservationModel | undefined",
             "ref: RunReference | undefined",
-            "plan: PlanReadModel | undefined"
+            "plan: ObservedStepPlan | undefined"
           ],
           "result": "Readonly<{\n    stepId: string; position: NonNullable<Run['boundary']>['position']; number: number;\n  }> | undefined"
         },
@@ -4364,6 +4821,16 @@
             "ref:RunReference"
           ],
           "result": "RunObservationModel"
+        },
+        {
+          "name": "storyNextPause",
+          "parameters": [
+            "observation: RunObservationModel | undefined",
+            "ref: RunReference | undefined",
+            "plan: ObservedStepPlan | undefined",
+            "now: number"
+          ],
+          "result": "StoryNextPause | undefined"
         }
       ],
       "imports": [
@@ -4381,14 +4848,17 @@
             "<module>",
             "readRunObservation",
             "runObservationModel",
-            "observedPlanStep"
+            "observedPlanStep",
+            "storyNextPause"
           ],
           "exports": [
             "RunObservationModel",
             "readRunObservation",
             "runObservationLimits",
             "runObservationModel",
-            "observedPlanStep"
+            "observedPlanStep",
+            "StoryNextPause",
+            "storyNextPause"
           ],
           "attributes": {
             "responsibility": [
@@ -4494,12 +4964,13 @@
     {
       "module": "packages/explorer-ui/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "03486d33a979b4c568b4ec95ebe61eac4637777f547189157efecbf0472193a3",
+      "sha256": "041d9e6e70e872fa23ed6cb3f526c0e25f8dea35869095d35a65f632fd0eeec4",
       "exports": [
         "observedPlanStep",
         "readRunObservation",
         "runObservationLimits",
-        "runObservationModel"
+        "runObservationModel",
+        "storyNextPause"
       ],
       "operations": [
         {
@@ -4600,6 +5071,16 @@
             "key"
           ],
           "async": false
+        },
+        {
+          "name": "storyNextPause",
+          "parameters": [
+            "observation",
+            "ref",
+            "plan",
+            "now"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -4628,18 +5109,20 @@
             "runObservationModel/runObservationModel",
             "sameRef/sameRef/sameRef",
             "observedPlanStep",
-            "observedPlanStep/index/index"
+            "observedPlanStep/index/index",
+            "storyNextPause"
           ],
           "exports": [
             "readRunObservation",
             "runObservationLimits",
             "runObservationModel",
-            "observedPlanStep"
+            "observedPlanStep",
+            "storyNextPause"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               },
               {
@@ -4649,7 +5132,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4659,7 +5142,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4669,7 +5152,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4679,7 +5162,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4689,7 +5172,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4699,7 +5182,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4709,7 +5192,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4719,7 +5202,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4729,7 +5212,7 @@
                 "anchor": "cancellation acceptance is separate from physical stop"
               },
               {
-                "path": "packages/explorer-ui/run-observation.test.mjs",
+                "path": "packages/explorer-ui/observed-plan-step.test.mts",
                 "anchor": "test('a Step observation requires the same Run, compiled Plan, Map and original step'"
               }
             ]
@@ -4740,9 +5223,16 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "1b0da244393eb9e1a22ec9fb0f3562cba67afaee2d2242aab437158a0910e3a5",
+      "sha256": "232a5cadf194df5cd6a34ae54659be310ad87b90c82cc6f5081317c536b84018",
       "exports": [],
       "operations": [
+        {
+          "name": "<call>",
+          "parameters": [
+            "port: SamplePortSelection"
+          ],
+          "result": "Promise<WireRunSample | undefined>"
+        },
         {
           "name": "App",
           "parameters": [],
@@ -4755,12 +5245,30 @@
         },
         {
           "name": "App/<call>/<call>",
-          "parameters": [],
+          "parameters": [
+            "current"
+          ],
           "result": null
         },
         {
           "name": "App/<call>/<call>/<call>",
-          "parameters": [],
+          "parameters": [
+            "[key, {original}]"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>/<call>#2",
+          "parameters": [
+            "step"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>/<call>#3",
+          "parameters": [
+            "{step_id, port_id}"
+          ],
           "result": null
         },
         {
@@ -4775,15 +5283,61 @@
         },
         {
           "name": "App/<call>/<call>#4",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#5",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#6",
+          "parameters": [
+            "card"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#7",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#8",
           "parameters": [
             "value"
           ],
           "result": null
         },
         {
-          "name": "App/<call>/<call>#5",
+          "name": "App/<call>/<call>#9",
           "parameters": [
             "value"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/current",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/current#2",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/recheck",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/recheck/<call>",
+          "parameters": [
+            "n"
           ],
           "result": null
         },
@@ -4810,13 +5364,38 @@
         },
         {
           "name": "App/<call>#10",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#11",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#12",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#13",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#14",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#15",
           "parameters": [
             "event"
           ],
           "result": null
         },
         {
-          "name": "App/<call>#11",
+          "name": "App/<call>#16",
           "parameters": [
             "line",
             "index"
@@ -4824,44 +5403,17 @@
           "result": null
         },
         {
-          "name": "App/<call>#12",
-          "parameters": [
-            "event"
-          ],
-          "result": null
-        },
-        {
-          "name": "App/<call>#13",
-          "parameters": [
-            "event"
-          ],
-          "result": null
-        },
-        {
-          "name": "App/<call>#14",
-          "parameters": [
-            "event"
-          ],
-          "result": null
-        },
-        {
-          "name": "App/<call>#15",
-          "parameters": [],
-          "result": null
-        },
-        {
-          "name": "App/<call>#16",
-          "parameters": [],
-          "result": null
-        },
-        {
           "name": "App/<call>#17",
-          "parameters": [],
+          "parameters": [
+            "event"
+          ],
           "result": null
         },
         {
           "name": "App/<call>#18",
-          "parameters": [],
+          "parameters": [
+            "event"
+          ],
           "result": null
         },
         {
@@ -4878,28 +5430,86 @@
         },
         {
           "name": "App/<call>#20",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#21",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#22",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#23",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#24",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#25",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#26",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#27",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#28",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#29",
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#3",
           "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#30",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#31",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#32",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#33",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#34",
+          "parameters": [
+            "event"
+          ],
           "result": null
         },
         {
@@ -4929,7 +5539,9 @@
         },
         {
           "name": "App/<call>#9",
-          "parameters": [],
+          "parameters": [
+            "port"
+          ],
           "result": null
         },
         {
@@ -4938,30 +5550,85 @@
           "result": null
         },
         {
+          "name": "App/copy",
+          "parameters": [
+            "command: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/copy/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
           "name": "App/displayStart",
           "parameters": [
             "answer: ExplorerStartObservation",
             "ref: WireSubmissionRef",
-            "selected: number"
+            "selected: number",
+            "executionProfile?: 'debug'"
           ],
           "result": null
+        },
+        {
+          "name": "App/displayStart/current",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/followOriginal",
+          "parameters": [
+            "ref: RunReference",
+            "current: () => boolean"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/followOriginal/<call>",
+          "parameters": [],
+          "result": "boolean"
         },
         {
           "name": "App/importCancellation",
           "parameters": [
-            "event:FormEvent<HTMLFormElement>"
+            "event: FormEvent<HTMLFormElement>"
           ],
           "result": null
         },
         {
-          "name": "App/invalidate",
-          "parameters": [],
+          "name": "App/keepResume",
+          "parameters": [
+            "run: string",
+            "attempt: ResumeAttempt | undefined"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/keepResume/<call>",
+          "parameters": [
+            "original"
+          ],
           "result": null
         },
         {
           "name": "App/label",
           "parameters": [
             "id"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/label/<call>",
+          "parameters": [
+            "card"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/label/<call>#2",
+          "parameters": [
+            "member"
           ],
           "result": null
         },
@@ -4977,11 +5644,23 @@
         },
         {
           "name": "App/lookupCancellation",
-          "parameters": [],
+          "parameters": [
+            "stop: StopAttempt"
+          ],
           "result": null
         },
         {
           "name": "App/lookupCancellation/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/lookupResume",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/lookupResume/<call>",
           "parameters": [],
           "result": null
         },
@@ -5048,6 +5727,13 @@
           "result": null
         },
         {
+          "name": "App/readOriginal/<call>/<call>",
+          "parameters": [
+            "{origin}"
+          ],
+          "result": null
+        },
+        {
           "name": "App/readOriginal/adopt",
           "parameters": [],
           "result": null
@@ -5099,6 +5785,23 @@
           "result": null
         },
         {
+          "name": "App/requestResume",
+          "parameters": [
+            "until: 'step' | 'terminal'"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/requestResume/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/requestResume/current",
+          "parameters": [],
+          "result": null
+        },
+        {
           "name": "App/session",
           "parameters": [
             "event: FormEvent<HTMLFormElement>"
@@ -5111,6 +5814,11 @@
           "result": null
         },
         {
+          "name": "App/session/<call>/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
           "name": "App/setSelection",
           "parameters": [
             "id: string"
@@ -5119,11 +5827,69 @@
         },
         {
           "name": "App/startDraft",
-          "parameters": [],
+          "parameters": [
+            "executionProfile?: 'debug'"
+          ],
           "result": null
         },
         {
           "name": "App/startDraft/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/updateStop",
+          "parameters": [
+            "key: string",
+            "attempt: StopAttempt"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/updateStop/<call>",
+          "parameters": [
+            "current"
+          ],
+          "result": null
+        },
+        {
+          "name": "awaitsPhysicalStop",
+          "parameters": [
+            "run: RunObservationModel"
+          ],
+          "result": null
+        },
+        {
+          "name": "ColumnTable",
+          "parameters": [
+            "{label, names, caption, children}: {\n  label: string; names: readonly (string | null)[]; caption?: string; children?: ReactNode;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "ColumnTable/<call>",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "declaredWrite",
+          "parameters": [
+            "origin: EffectOrigin"
+          ],
+          "result": null
+        },
+        {
+          "name": "ExpandableSampleCell",
+          "parameters": [
+            "{text, preview, row, column}: {\n  text: string; preview: string; row: number; column: number;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "ExpandableSampleCell/<call>",
           "parameters": [],
           "result": null
         },
@@ -5216,11 +5982,94 @@
           "result": null
         },
         {
+          "name": "NextInputs",
+          "parameters": [
+            "{step, plan, steps, pause, readSample}: {\n  step: SampleStep; plan: SamplePlan; steps: ReadonlyMap<string, SampleStep>;\n  pause: StoryNextPause; readSample?: SampleRead;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/<call>#2",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/<call>#3",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/current",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/read",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/read/<call>",
+          "parameters": [
+            "values"
+          ],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>#2",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>#3",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "nextSampleProducer",
+          "parameters": [
+            "steps: ReadonlyMap<string, SampleStep>",
+            "input: Step['ports'][number]",
+            "sample: Extract<WireRunSample, {state: 'available'}>"
+          ],
+          "result": null
+        },
+        {
+          "name": "nextSampleProducer/<call>",
+          "parameters": [
+            "output"
+          ],
+          "result": null
+        },
+        {
           "name": "parseLocalJson",
           "parameters": [
             "text: string"
           ],
           "result": "unknown"
+        },
+        {
+          "name": "PlanAdvanced",
+          "parameters": [
+            "{model, ja}: {model: PlanReadModel; ja: boolean}"
+          ],
+          "result": null
         },
         {
           "name": "planNodeTitle",
@@ -5240,34 +6089,46 @@
         {
           "name": "PlanSteps",
           "parameters": [
-            "{map, boundary, selection, select, graph, locale}: {\n  map: PlanReadModel; boundary?: {stepId: string; state: StepState}; selection?: string;\n  select(id: string): void; graph: boolean; locale: 'en' | 'ja';\n}"
+            "{map, boundary, selection, select, graph, locale, pause, readSample, saved}: {\n  map: PlanReadModel; boundary?: {stepId: string; state: StepState}; selection?: string;\n  select(id: string): void; graph: boolean; locale: 'en' | 'ja'; pause?: StoryNextPause; readSample?: SampleRead; saved: boolean;\n}"
           ],
           "result": null
         },
         {
           "name": "PlanSteps/<call>",
-          "parameters": [
-            "node",
-            "index"
-          ],
-          "result": null
-        },
-        {
-          "name": "PlanSteps/<call>/<call>",
           "parameters": [],
           "result": null
         },
         {
+          "name": "PlanSteps/<call>/<call>",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
           "name": "PlanSteps/<call>/<call>#2",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>/<call>#3",
           "parameters": [
             "name"
           ],
           "result": null
         },
         {
-          "name": "PlanSteps/<call>/<call>#3",
+          "name": "PlanSteps/<call>/<call>#4",
           "parameters": [
             "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>#2",
+          "parameters": [
+            "node",
+            "index"
           ],
           "result": null
         },
@@ -5279,6 +6140,43 @@
           "result": "void"
         },
         {
+          "name": "RetainedRelationTable",
+          "parameters": [
+            "{sample, label}: {sample: Extract<WireRunSample, {state: 'available'}>; label: string}"
+          ],
+          "result": null
+        },
+        {
+          "name": "RetainedRelationTable/<call>",
+          "parameters": [
+            "column"
+          ],
+          "result": null
+        },
+        {
+          "name": "RetainedRelationTable/<call>/<call>",
+          "parameters": [
+            "cell",
+            "column"
+          ],
+          "result": null
+        },
+        {
+          "name": "RetainedRelationTable/<call>#2",
+          "parameters": [
+            "row",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "runKey",
+          "parameters": [
+            "ref: RunReference"
+          ],
+          "result": null
+        },
+        {
           "name": "sameRun",
           "parameters": [
             "original: RunReference",
@@ -5287,9 +6185,105 @@
           "result": null
         },
         {
+          "name": "SampleCellText",
+          "parameters": [
+            "{text, row, column}: {text: string; row: number; column: number}"
+          ],
+          "result": null
+        },
+        {
+          "name": "sampleMessage",
+          "parameters": [
+            "sample: Exclude<SampleDisplay, {state: 'available'}>"
+          ],
+          "result": null
+        },
+        {
+          "name": "saveJson",
+          "parameters": [
+            "value: unknown",
+            "filename: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "saveJson/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StepData",
+          "parameters": [
+            "{step, plan, expectedColumns, saved, readSample}: {\n  step: SampleStep; plan: SamplePlan; expectedColumns?(port: Step['ports'][number]): readonly string[] | undefined;\n  saved: boolean; readSample?: SampleRead;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#2",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#3",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#4",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#5",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#6",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#7",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StepData/expectedColumns",
+          "parameters": [
+            "port: Step['ports'][number]"
+          ],
+          "result": "readonly string[] | undefined"
+        },
+        {
+          "name": "StepData/load",
+          "parameters": [],
+          "result": null
+        },
+        {
           "name": "StepOrigin",
           "parameters": [
-            "{step, label, select, folded = false}: {\n  step: Step; label?: string; select?(): void; folded?: boolean;\n}"
+            "{step, label, select, folded = false, state}: {\n  step: Step; label?: string; select?(): void; folded?: boolean; state?: StepState;\n}"
           ],
           "result": null
         },
@@ -5371,6 +6365,23 @@
           "result": "void"
         },
         {
+          "name": "storyGroupLabel",
+          "parameters": [
+            "group: StoryGroup",
+            "ja: boolean"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyGroupTitle",
+          "parameters": [
+            "group: StoryGroup",
+            "labels: ReturnType<typeof graphStepLabels>",
+            "ja: boolean"
+          ],
+          "result": null
+        },
+        {
           "name": "StoryHeading",
           "parameters": [
             "{story, context}: {story: ExplanationStoryModel; context: StoryContext}"
@@ -5410,7 +6421,6 @@
           "parameters": [
             "story: ExplanationStoryModel",
             "sources: StoryContext",
-            "context: StoryContext",
             "stageResultLinks: PlanReadModel['stageResultLinks']"
           ],
           "result": null
@@ -5426,27 +6436,6 @@
           "name": "storyProjections/<call>#2",
           "parameters": [
             "step"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyProjections/<call>#3",
-          "parameters": [
-            "port"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyProjections/<call>#4",
-          "parameters": [
-            "{binding}"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyProjections/<call>#5",
-          "parameters": [
-            "column"
           ],
           "result": null
         },
@@ -5488,131 +6477,126 @@
         {
           "name": "StorySteps",
           "parameters": [
-            "{story, context, saved, boundary, selectedStep, selectStep, graph, labels, stageResultLinks}: {\n  story: ExplanationStoryModel; context: StoryContext; saved: boolean;\n  boundary?: {stepId: string; state: StepState}; selectedStep?: string;\n  selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;\n  stageResultLinks: PlanReadModel['stageResultLinks'];\n}"
+            "{story, groups, sourceColumns, model, saved, boundary, selectedStep, selectStep, graph, labels, pause, readSample}: {\n  story: ExplanationStoryModel; groups: readonly StoryGroup[]; sourceColumns: ReadonlyMap<number, KeptColumns>;\n  model?: PlanReadModel;\n  saved: boolean; boundary?: {stepId: string; state: StepState}; selectedStep?: string;\n  selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;\n  pause?: StoryNextPause; readSample?: SampleRead;\n}"
           ],
           "result": null
         },
         {
           "name": "StorySteps/<call>",
-          "parameters": [
-            "item"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>",
           "parameters": [
-            "name"
+            "step"
           ],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>/<call>",
+          "parameters": [
+            "values"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>/<call>#2",
+          "parameters": [
+            "field"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>/<call>#3",
           "parameters": [],
           "result": null
         },
         {
-          "name": "StorySteps/<call>/<call>#2",
+          "name": "StorySteps/<call>/<call>/<call>#4",
           "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#10",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#11",
+          "parameters": [
+            "member"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#2",
+          "parameters": [
+            "step"
+          ],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#3",
           "parameters": [
-            "port"
+            "step"
           ],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#4",
           "parameters": [
-            "item"
+            "step"
           ],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#5",
-          "parameters": [
-            "item"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#6",
-          "parameters": [],
+          "parameters": [
+            "name"
+          ],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#7",
           "parameters": [
-            "item"
+            "port"
           ],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#8",
           "parameters": [
-            "{origin, text}",
-            "index"
+            "{declaration, write_fields}",
+            "position"
           ],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#9",
           "parameters": [
-            "{declaration,write_fields}",
-            "position"
+            "port"
           ],
           "result": null
         },
         {
           "name": "StorySteps/<call>#2",
-          "parameters": [
-            "item"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "StorySteps/<call>#3",
           "parameters": [
-            "{origin,text}",
+            "group",
             "index"
-          ],
-          "result": null
-        },
-        {
-          "name": "StorySteps/<call>#4",
-          "parameters": [
-            "group"
-          ],
-          "result": null
-        },
-        {
-          "name": "StorySteps/<call>#5",
-          "parameters": [
-            "{origin,text}",
-            "index"
-          ],
-          "result": null
-        },
-        {
-          "name": "StorySteps/card",
-          "parameters": [
-            "id: string",
-            "defaultOpen: boolean",
-            "selected?: string"
-          ],
-          "result": null
-        },
-        {
-          "name": "StorySteps/card/onToggle",
-          "parameters": [],
-          "result": null
-        },
-        {
-          "name": "StorySteps/card/onToggle/<call>",
-          "parameters": [
-            "values"
           ],
           "result": null
         },
@@ -5668,9 +6652,25 @@
           "name": "WorkspaceDialog/close",
           "parameters": [],
           "result": "void"
+        },
+        {
+          "name": "writeCardTitle",
+          "parameters": [
+            "origin: EffectOrigin",
+            "ja: boolean"
+          ],
+          "result": null
+        },
+        {
+          "name": "writeCardTitle/<call>",
+          "parameters": [
+            "field"
+          ],
+          "result": null
         }
       ],
       "imports": [
+        "./story-card-groups.mjs",
         "./styles.css",
         "@actql/client-wire",
         "@actql/explorer-ui/checkpoint-review",
@@ -5722,7 +6722,6 @@
             "App/<call>#9",
             "App/closeDrawer",
             "App/importCancellation",
-            "App/invalidate",
             "App/label",
             "App/listCheckpoints",
             "App/listCheckpoints/<call>",
@@ -5772,7 +6771,53 @@
             "PlanSteps/<call>/<call>#2",
             "PlanSteps/<call>/<call>#3",
             "PlanSteps/select",
-            "graphStepLabels/<call>#7"
+            "graphStepLabels/<call>#7",
+            "<call>",
+            "App/<call>/<call>/<call>#2",
+            "App/<call>/<call>/<call>#3",
+            "App/<call>/<call>#6",
+            "App/<call>/<call>#7",
+            "App/<call>/<call>#8",
+            "App/<call>/current",
+            "App/<call>/recheck",
+            "App/<call>/recheck/<call>",
+            "App/<call>#23",
+            "App/<call>#24",
+            "App/<call>#25",
+            "App/<call>#26",
+            "App/<call>#27",
+            "App/<call>#28",
+            "App/keepResume",
+            "App/keepResume/<call>",
+            "App/label/<call>",
+            "App/label/<call>#2",
+            "App/lookupResume",
+            "App/lookupResume/<call>",
+            "App/readOriginal/<call>/<call>",
+            "App/requestResume",
+            "App/requestResume/<call>",
+            "App/requestResume/current",
+            "PlanSteps/<call>/<call>#4",
+            "PlanSteps/<call>#2",
+            "runKey",
+            "App/<call>/<call>#9",
+            "App/<call>/current#2",
+            "App/<call>#29",
+            "App/<call>#30",
+            "App/<call>#31",
+            "App/<call>#32",
+            "App/copy",
+            "App/copy/<call>",
+            "App/followOriginal",
+            "App/followOriginal/<call>",
+            "App/session/<call>/<call>",
+            "App/updateStop",
+            "App/updateStop/<call>",
+            "awaitsPhysicalStop",
+            "saveJson",
+            "saveJson/<call>",
+            "declaredWrite",
+            "PlanAdvanced"
           ],
           "exports": [],
           "attributes": {
@@ -5864,7 +6909,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test("
               },
               {
@@ -5872,12 +6917,24 @@
                 "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
               },
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
               },
               {
-                "path": "packages/explorer-ui/run-observation.test.mjs",
+                "path": "packages/explorer-ui/observed-plan-step.test.mts",
                 "anchor": "test('a Step observation requires the same Run, compiled Plan, Map and original step'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer Resume preserves the original lookup"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('browser cancellation keeps the original through lost Gateway ACK"
               }
             ]
           }
@@ -5950,11 +7007,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               },
               {
@@ -5990,11 +7047,6 @@
             "StorySteps/<call>/<call>#6",
             "StorySteps/<call>#2",
             "StorySteps/<call>#3",
-            "StorySteps/<call>#4",
-            "StorySteps/<call>#5",
-            "StorySteps/card",
-            "StorySteps/card/onToggle",
-            "StorySteps/card/onToggle/<call>",
             "StorySteps/selectStep",
             "StoryText",
             "StoryText/<call>",
@@ -6002,9 +7054,6 @@
             "storyProjections",
             "storyProjections/<call>",
             "storyProjections/<call>#2",
-            "storyProjections/<call>#3",
-            "storyProjections/<call>#4",
-            "storyProjections/<call>#5",
             "storyProjections/kept",
             "storyProjections/kept/<call>",
             "storyProjections/kept/<call>#2",
@@ -6018,7 +7067,49 @@
             "StoryHeading/<call>#4",
             "StorySteps/<call>/<call>#9",
             "StorySteps/<call>/<call>/<call>",
-            "StepOrigin/<call>#3"
+            "StepOrigin/<call>#3",
+            "ColumnTable",
+            "ColumnTable/<call>",
+            "ExpandableSampleCell",
+            "ExpandableSampleCell/<call>",
+            "NextInputs",
+            "NextInputs/<call>",
+            "NextInputs/<call>/<call>",
+            "NextInputs/<call>/<call>#2",
+            "NextInputs/<call>/<call>#3",
+            "NextInputs/<call>/current",
+            "NextInputs/<call>/read",
+            "NextInputs/<call>/read/<call>",
+            "NextInputs/<call>#2",
+            "NextInputs/<call>#3",
+            "nextSampleProducer",
+            "nextSampleProducer/<call>",
+            "RetainedRelationTable",
+            "RetainedRelationTable/<call>",
+            "RetainedRelationTable/<call>/<call>",
+            "RetainedRelationTable/<call>#2",
+            "SampleCellText",
+            "sampleMessage",
+            "StepData",
+            "StepData/<call>",
+            "StepData/<call>/<call>",
+            "StepData/<call>#2",
+            "StepData/<call>#3",
+            "StepData/<call>#4",
+            "StepData/<call>#5",
+            "StepData/<call>#6",
+            "StepData/<call>#7",
+            "StepData/expectedColumns",
+            "StepData/load",
+            "storyGroupLabel",
+            "storyGroupTitle",
+            "StorySteps/<call>/<call>/<call>#2",
+            "StorySteps/<call>/<call>/<call>#3",
+            "StorySteps/<call>/<call>/<call>#4",
+            "StorySteps/<call>/<call>#10",
+            "StorySteps/<call>/<call>#11",
+            "writeCardTitle",
+            "writeCardTitle/<call>"
           ],
           "exports": [],
           "attributes": {
@@ -6030,31 +7121,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -6066,13 +7157,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "narrative = render(wire, locale);"
               }
             ],
@@ -6086,8 +7177,153 @@
                 "anchor": "Static Context renders deterministic EN and JA"
               },
               {
-                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
+                "path": "scripts/fixtures/packed-explorer-saved-context.mts",
                 "anchor": "const staticSteps = page.getByRole('region', {name: 'Original story', exact: true});"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "App/<call>#33",
+            "App/<call>#34"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "A checked static Plan MAY include `debug_entry: true`"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "const debug = Object.hasOwn(body, 'executionProfile')"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "plan.programDefinitionCid !== body.programDefinitionCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const authorizeStaticDebugEntry ="
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "const plan = await readStaticPlan({plan: client.plan.bind(client)}"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "if (client.plan === undefined) return {state: 'not_accepted'};"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "ticket.assertCurrent();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_static_pure_context.mbt",
+                "anchor": "client_debug_graph_quotation_control_bytes()"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "pub fn checked_task_control_entry_boundary_issue"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "Explorer starts Debug only from the current checked Plan for the same original input"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "installed Local SDK Debug steps one original and a cold process reads its Sample and receipt"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "App/displayStart/current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "A checked static Plan MAY include `debug_entry: true`"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "const debug = Object.hasOwn(body, 'executionProfile')"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "plan.programDefinitionCid !== body.programDefinitionCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const authorizeStaticDebugEntry ="
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "const plan = await readStaticPlan({plan: client.plan.bind(client)}"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "if (client.plan === undefined) return {state: 'not_accepted'};"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "ticket.assertCurrent();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_static_pure_context.mbt",
+                "anchor": "client_debug_graph_quotation_control_bytes()"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "pub fn checked_task_control_entry_boundary_issue"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "Explorer starts Debug only from the current checked Plan for the same original input"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "installed Local SDK Debug steps one original and a cold process reads its Sample and receipt"
               }
             ]
           }
@@ -6131,7 +7367,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               },
               {
@@ -6141,7 +7377,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -6151,7 +7387,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -6161,7 +7397,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -6171,7 +7407,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -6181,7 +7417,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -6191,7 +7427,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -6201,7 +7437,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -6211,7 +7447,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -6228,9 +7464,10 @@
     {
       "module": "packages/explorer/browser-source.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "f92ab8ffb5bf77bb45cdaf630eb3d771e0503044a53823df775ab3597256628f",
+      "sha256": "91f92239e1ce1a17d5c11434b84d41947e5bfa766da7206886d74feba2dcb7be",
       "exports": [
         "ExplorerCapabilities",
+        "ExplorerResumeSelection",
         "ExplorerStartObservation",
         "ExplorerStartSelection",
         "createExplorerBrowserSource"
@@ -6241,7 +7478,7 @@
           "parameters": [
             "options: Readonly<{\n  origin: string; fetch?: typeof fetch; now?: () => number;\n}>"
           ],
-          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  prepareStart(): Promise<WireSubmissionRef>;\n  startRun(selection: ExplorerStartSelection): Promise<ExplorerStartObservation>;\n  lookupStart(ref: WireSubmissionRef): Promise<ExplorerStartObservation>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  staticExplanation(input: Parameters<Client['explain']>[0], options?: Parameters<Client['explain']>[1],\n    locale?: 'en' | 'ja'): Promise<StaticExplanationReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  explain(ref: RunReference): Promise<WireRunExplanationView>;\n  runContext(ref: RunReference, locale?: 'en' | 'ja'): Promise<SavedExplanationReadModel>;\n  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
+          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  prepareStart(): Promise<WireSubmissionRef>;\n  startRun(selection: ExplorerStartSelection): Promise<ExplorerStartObservation>;\n  prepareResume(ref: RunReference, selection: ExplorerResumeSelection): Promise<WireControlCommand>;\n  resume(command: WireControlCommand): Promise<WireControlOperationLookup |\n    Readonly<{state: 'reply_unknown'; operationRef: WireControlOperationRef}>>;\n  lookupControlOperation(operationRef: WireControlOperationRef): Promise<WireControlOperationLookup>;\n  lookupStart(ref: WireSubmissionRef): Promise<ExplorerStartObservation>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  staticExplanation(input: Parameters<Client['explain']>[0], options?: Parameters<Client['explain']>[1],\n    locale?: 'en' | 'ja'): Promise<StaticExplanationReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  explain(ref: RunReference): Promise<WireRunExplanationView>;\n  runContext(ref: RunReference, locale?: 'en' | 'ja'): Promise<SavedExplanationReadModel>;\n  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;\n  runSample(ref: RunReference, port: SamplePortSelection): Promise<WireRunSample>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
         },
         {
           "name": "createExplorerBrowserSource/<call>",
@@ -6307,6 +7544,13 @@
           "result": "Promise<WireCancellationLookup>"
         },
         {
+          "name": "createExplorerBrowserSource/lookupControlOperation",
+          "parameters": [
+            "operationRef: WireControlOperationRef"
+          ],
+          "result": "Promise<WireControlOperationLookup>"
+        },
+        {
           "name": "createExplorerBrowserSource/lookupStart",
           "parameters": [
             "ref: WireSubmissionRef"
@@ -6329,9 +7573,24 @@
           "result": "Promise<PlanReadModel>"
         },
         {
+          "name": "createExplorerBrowserSource/prepareResume",
+          "parameters": [
+            "ref: RunReference",
+            "selection: ExplorerResumeSelection"
+          ],
+          "result": "Promise<WireControlCommand>"
+        },
+        {
           "name": "createExplorerBrowserSource/prepareStart",
           "parameters": [],
           "result": "Promise<WireSubmissionRef>"
+        },
+        {
+          "name": "createExplorerBrowserSource/resume",
+          "parameters": [
+            "command: WireControlCommand"
+          ],
+          "result": "Promise<WireControlOperationLookup |\n    Readonly<{state: 'reply_unknown'; operationRef: WireControlOperationRef}>>"
         },
         {
           "name": "createExplorerBrowserSource/reviewCheckpoint",
@@ -6362,6 +7621,14 @@
             "options?: {locale?: 'en' | 'ja'}"
           ],
           "result": "Promise<OriginalRunPresentationReadModel>"
+        },
+        {
+          "name": "createExplorerBrowserSource/runSample",
+          "parameters": [
+            "ref: RunReference",
+            "port: SamplePortSelection"
+          ],
+          "result": "Promise<WireRunSample>"
         },
         {
           "name": "createExplorerBrowserSource/startRun",
@@ -6412,13 +7679,18 @@
             "createExplorerBrowserSource/runPlan",
             "createExplorerBrowserSource/lookupStart",
             "createExplorerBrowserSource/prepareStart",
-            "createExplorerBrowserSource/startRun"
+            "createExplorerBrowserSource/startRun",
+            "createExplorerBrowserSource/lookupControlOperation",
+            "createExplorerBrowserSource/prepareResume",
+            "createExplorerBrowserSource/resume",
+            "createExplorerBrowserSource/runSample"
           ],
           "exports": [
             "ExplorerCapabilities",
             "createExplorerBrowserSource",
             "ExplorerStartObservation",
-            "ExplorerStartSelection"
+            "ExplorerStartSelection",
+            "ExplorerResumeSelection"
           ],
           "attributes": {
             "responsibility": [
@@ -6509,12 +7781,20 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/cancellation.test.mjs",
+                "path": "packages/explorer/cancellation.test.mts",
                 "anchor": "lost or malformed cancellation replies"
               },
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer Resume preserves the original lookup"
               }
             ]
           }
@@ -6581,11 +7861,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
@@ -6654,11 +7934,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               },
               {
@@ -6676,37 +7956,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -6718,13 +7998,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "narrative = render(wire, locale);"
               }
             ],
@@ -6745,7 +8025,7 @@
     {
       "module": "packages/explorer/browser-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a49b08a68d3352d58715d0f26a0a2744aa53b122a6ec666e448d0a47a9c80ed5",
+      "sha256": "efc0e51c0a86bc6165956cdd3b1af1ab9c05447e013acaa12848213aca412b1d",
       "exports": [
         "createExplorerBrowserSource"
       ],
@@ -6813,6 +8093,13 @@
           "async": true
         },
         {
+          "name": "createExplorerBrowserSource/init:lookupControlOperation/init:lookupControlOperation",
+          "parameters": [
+            "operationRef"
+          ],
+          "async": true
+        },
+        {
           "name": "createExplorerBrowserSource/init:lookupStart/init:lookupStart",
           "parameters": [
             "ref"
@@ -6835,8 +8122,25 @@
           "async": false
         },
         {
+          "name": "createExplorerBrowserSource/init:prepareResume/init:prepareResume",
+          "parameters": [
+            "ref",
+            "operationId",
+            "expectedRevision",
+            "until"
+          ],
+          "async": true
+        },
+        {
           "name": "createExplorerBrowserSource/init:prepareStart/init:prepareStart",
           "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createExplorerBrowserSource/init:resume/init:resume",
+          "parameters": [
+            "command"
+          ],
           "async": true
         },
         {
@@ -6866,6 +8170,14 @@
           "parameters": [
             "ref",
             "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExplorerBrowserSource/init:runSample/init:runSample",
+          "parameters": [
+            "ref",
+            "port"
           ],
           "async": true
         },
@@ -6934,7 +8246,11 @@
             "jsonReply/jsonReply",
             "createExplorerBrowserSource/init:lookupStart/init:lookupStart",
             "createExplorerBrowserSource/init:prepareStart/init:prepareStart",
-            "createExplorerBrowserSource/init:startRun/init:startRun"
+            "createExplorerBrowserSource/init:startRun/init:startRun",
+            "createExplorerBrowserSource/init:lookupControlOperation/init:lookupControlOperation",
+            "createExplorerBrowserSource/init:prepareResume/init:prepareResume",
+            "createExplorerBrowserSource/init:resume/init:resume",
+            "createExplorerBrowserSource/init:runSample/init:runSample"
           ],
           "exports": [
             "createExplorerBrowserSource"
@@ -6942,7 +8258,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               },
               {
@@ -6952,7 +8268,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -6962,7 +8278,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -6972,7 +8288,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -6982,7 +8298,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -6992,7 +8308,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -7002,7 +8318,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -7012,7 +8328,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -7022,18 +8338,26 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/cancellation.test.mjs",
+                "path": "packages/explorer/cancellation.test.mts",
                 "anchor": "lost or malformed cancellation replies"
               },
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer Resume preserves the original lookup"
               }
             ]
           }
@@ -7100,11 +8424,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
@@ -7173,11 +8497,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/read-model.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               },
               {
@@ -7196,37 +8520,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -7238,13 +8562,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "narrative = render(wire, locale);"
               }
             ],
@@ -7325,7 +8649,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               },
               {
@@ -7335,7 +8659,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -7345,7 +8669,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -7355,7 +8679,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -7365,7 +8689,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -7375,7 +8699,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -7385,7 +8709,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -7395,7 +8719,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -7405,13 +8729,13 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/cancellation.test.mjs",
+                "path": "packages/explorer/cancellation.test.mts",
                 "anchor": "cancellation captures exact identities"
               }
             ]
@@ -7497,7 +8821,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               },
               {
@@ -7507,7 +8831,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7517,7 +8841,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7527,7 +8851,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7537,7 +8861,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7547,7 +8871,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7557,7 +8881,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7567,7 +8891,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7577,7 +8901,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7594,7 +8918,7 @@
     {
       "module": "packages/explorer/cli-input.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5be240c6e6f8fe3de2de33bba85279daead1eb964f228af2b86a9c239a11a312",
+      "sha256": "fe2f7fd94bb365f58ee0c6d6ecaef16eb8b3873b338cd7086714685cf25643c2",
       "exports": [
         "explorerArguments",
         "explorerLaunchInput"
@@ -7639,7 +8963,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               },
               {
@@ -7649,7 +8973,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7659,7 +8983,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7669,7 +8993,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7679,7 +9003,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7689,7 +9013,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7699,7 +9023,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7709,7 +9033,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7719,14 +9043,18 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/launch-input.test.mjs",
+                "path": "packages/explorer/launch-input.test.mts",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/explorer/launch-input.test.mts",
+                "anchor": "test('the Local launcher enables ordinary start and Debug resume"
               }
             ]
           }
@@ -7736,7 +9064,7 @@
     {
       "module": "packages/explorer/cli.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "20903d366a61f38031527260a0c12eb669c5623e835a6e7c37391397d30103c9",
+      "sha256": "d10520af1484d182c4f7211db95405e404493b121061e55aa91799bd2c4472b4",
       "exports": [],
       "operations": [
         {
@@ -7770,7 +9098,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               },
               {
@@ -7780,7 +9108,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7790,7 +9118,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7800,7 +9128,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7810,7 +9138,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7820,7 +9148,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7830,7 +9158,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7840,7 +9168,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7850,14 +9178,18 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/launch-input.test.mjs",
+                "path": "packages/explorer/launch-input.test.mts",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/explorer/launch-input.test.mts",
+                "anchor": "test('the Local launcher enables ordinary start and Debug resume"
               }
             ]
           }
@@ -7867,7 +9199,7 @@
     {
       "module": "packages/explorer/gateway.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "baea67db451be237acc6e9f7c7940285e4475fc24bbfdab49e3b50e7cd5c3d56",
+      "sha256": "c5974bf15a4e217ab1fc5cddcc6911600083573977d7380c3a36e8e8c0e8e31b",
       "exports": [
         "ExplorerAsset",
         "ExplorerBootstrap",
@@ -8055,12 +9387,20 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test("
               },
               {
                 "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer Resume preserves the original lookup"
               }
             ]
           }
@@ -8070,7 +9410,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e7edd526b09a8dacb86a062fb29eafb9e55a71cf31324358286525542b4a7b6f",
+      "sha256": "dd0622597f04c29fedf57a314889a5ce54baa9038f52c03d2ad54008be75a7df",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",
@@ -8088,7 +9428,9 @@
             "bootstrapMs",
             "launchInput",
             "allowCancellation",
-            "allowRunStart"
+            "allowRunStart",
+            "allowSamples",
+            "allowDebugResume"
           ],
           "async": false
         },
@@ -8385,7 +9727,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -8395,7 +9737,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               }
             ],
@@ -8405,7 +9747,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               }
             ],
@@ -8415,7 +9757,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -8433,7 +9775,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -8451,7 +9793,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -8465,7 +9807,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -8479,7 +9821,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -8497,29 +9839,29 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "packages/explorer/gateway-close.test.mjs",
+                "path": "packages/explorer/gateway-close.test.mts",
                 "anchor": "Closing presentation must not acknowledge an outstanding SDK call"
               },
               {
-                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "path": "packages/explorer/gateway-server-close.test.mts",
                 "anchor": "a refused server close retries only the same original listener"
               },
               {
-                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "path": "packages/explorer/gateway-server-close.test.mts",
                 "anchor": "a server close with an outstanding callback remains one pending attempt"
               },
               {
-                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "path": "packages/explorer/gateway-server-close.test.mts",
                 "anchor": "a known socket close failure still retains the original outstanding SDK read"
               },
               {
@@ -8531,8 +9873,16 @@
                 "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
               },
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer Resume preserves the original lookup"
               }
             ]
           }
@@ -8584,7 +9934,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               },
               {
@@ -8594,7 +9944,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8604,7 +9954,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8614,7 +9964,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8624,7 +9974,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8634,7 +9984,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8644,7 +9994,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8654,7 +10004,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8664,13 +10014,13 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/launch-input.test.mjs",
+                "path": "packages/explorer/launch-input.test.mts",
                 "anchor": "test("
               }
             ]
@@ -8887,7 +10237,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               },
               {
@@ -8897,7 +10247,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8907,7 +10257,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8917,7 +10267,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8927,7 +10277,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8937,7 +10287,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8947,7 +10297,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8957,7 +10307,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8967,7 +10317,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8975,6 +10325,257 @@
               {
                 "path": "packages/explorer/launcher.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/explorer/app/story-card-groups.mts",
+      "responsibilityFacet": "primary",
+      "sha256": "afe587dc0b723cad1970ac981c666550044a36a01c21c3078ad2160b5d4d8d5e",
+      "exports": [
+        "StoryGroup",
+        "storyCardGroups"
+      ],
+      "operations": [
+        {
+          "name": "storyCardGroups",
+          "parameters": [
+            "story: ExplanationStoryModel",
+            "context: Context",
+            "sourceSteps: ReadonlyMap<number, {step: Step}>",
+            "stageResultLinks: PlanReadModel['stageResultLinks']"
+          ],
+          "result": "readonly StoryGroup[]"
+        },
+        {
+          "name": "storyCardGroups/<call>",
+          "parameters": [
+            "step"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>/place",
+          "parameters": [
+            "card: Card"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#2",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#3",
+          "parameters": [
+            "card"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#4",
+          "parameters": [
+            "step",
+            "i"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#5",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#6",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/add",
+          "parameters": [
+            "map: Map<string, Edge[]>",
+            "value: Edge",
+            "id: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/attach",
+          "parameters": [
+            "card: Card",
+            "step: Step"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/create",
+          "parameters": [
+            "kind: Card['kind']",
+            "id: string",
+            "primary?: Step",
+            "item?: Context[number]"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/matchesModelInput",
+          "parameters": [
+            "step: Step"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/matchesModelInput/<call>",
+          "parameters": [
+            "candidate",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/nearest",
+          "parameters": [
+            "id: string",
+            "edges: ReadonlyMap<string, Edge[]>",
+            "reverse = false"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/producer",
+          "parameters": [
+            "stepId: string",
+            "portId: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/producer/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        }
+      ],
+      "imports": [
+        "@actql/explorer-ui/read-model"
+      ],
+      "compilerFields": [],
+      "role": "observation-presentation",
+      "owner": "existing Explorer presentation and Gateway / SDK boundary",
+      "rationale": "Group the admitted original Story Steps without changing their identities or control scope.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "storyCardGroups",
+            "storyCardGroups/<call>",
+            "storyCardGroups/<call>/place",
+            "storyCardGroups/<call>#2",
+            "storyCardGroups/<call>#3",
+            "storyCardGroups/<call>#4",
+            "storyCardGroups/<call>#5",
+            "storyCardGroups/<call>#6",
+            "storyCardGroups/add",
+            "storyCardGroups/attach",
+            "storyCardGroups/create",
+            "storyCardGroups/matchesModelInput",
+            "storyCardGroups/matchesModelInput/<call>",
+            "storyCardGroups/nearest",
+            "storyCardGroups/producer",
+            "storyCardGroups/producer/<call>"
+          ],
+          "exports": [
+            "StoryGroup",
+            "storyCardGroups"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer/app/story-card-groups.mts",
+                "anchor": "export function storyCardGroups("
+              },
+              {
+                "path": "packages/explorer/app/main.tsx",
+                "anchor": "value=\"static-explanation\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/app/story-card-groups.mts",
+                "anchor": "inputs[0].sourcePortId === other.sourcePortId"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "binding.logical_map_cid !== story.logicalMapCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation discards a late read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "narrative = render(wire, locale);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Static Context renders deterministic EN and JA"
+              },
+              {
+                "path": "scripts/fixtures/packed-explorer-saved-context.mts",
+                "anchor": "const staticSteps = page.getByRole('region', {name: 'Original story', exact: true});"
               }
             ]
           }

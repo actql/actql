@@ -135,6 +135,120 @@ fn emit_native_local_effect_file_request(
 }
 
 ///|
+/// CREATE uses the assigned storage key and the original mapped row.
+/// The canonical request has no before image or version field.
+pub fn native_local_effect_file_create_request_wire(
+  binding : String,
+  mapping : String,
+  identity : String,
+  value : @canonical.CanonicalValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, Unit] {
+  try {
+    let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+    emit_native_local_effect_file_create_request(
+      writer, binding, mapping, identity, value,
+    )
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(())
+  }
+}
+
+///|
+fn emit_native_local_effect_file_create_request(
+  writer : @encode.Writer,
+  binding : String,
+  mapping : String,
+  identity : String,
+  value : @canonical.CanonicalValue,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "binding")
+  @encode.string_value(writer, binding)
+  @encode.key(writer, "mapping")
+  @encode.string_value(writer, mapping)
+  @encode.key(writer, "target")
+  @encode.string_value(writer, identity)
+  @encode.key(writer, "value")
+  @canonical.emit_value(value, writer)
+  @encode.end_object(writer)
+}
+
+///|
+/// Compose the approved row data and its physical request commitment.
+pub fn native_local_effect_file_create_preview_row(
+  after : Json,
+  correlation : Json,
+  originals : (String, String, String, String),
+  pending : String,
+  limits : @checkpoint.WireLimits,
+) -> Result[(Json, String), Unit] {
+  guard correlation is Object(target) &&
+    target.length() == 2 &&
+    target.get("content_cid") is Some(String(content)) &&
+    target.get("occurrence") is Some(Number(ordinal, ..)) &&
+    ordinal >= 0.0 &&
+    ordinal <= 2147483647.0 &&
+    ordinal == ordinal.to_int().to_double() &&
+    after is Object(fields) &&
+    fields.length() == 2 &&
+    fields.get("state") is Some(String("present")) &&
+    fields.get("value") is Some(Object(_) as value) else {
+    return Err(())
+  }
+  let (run, binding, identity, mapping) = originals
+  guard @publication.effect_file_create_storage_key(
+      run,
+      binding,
+      identity,
+      content,
+      ordinal.to_int(),
+    )
+    is Ok(key) else {
+    return Err(())
+  }
+  let payload = @canonical.from_json(
+    value,
+    limits.max_nodes,
+    limits.max_depth,
+    limits.max_wire_bytes,
+    data_keys=true,
+  ) catch {
+    _ => return Err(())
+  }
+  guard native_local_effect_file_create_request_wire(
+      binding,
+      mapping,
+      key,
+      payload,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    is Ok(request) &&
+    @sha.text_hex(request) is Ok(digest) else {
+    return Err(())
+  }
+  Ok(
+    (
+      {
+        "target_row_identity": correlation,
+        "target_guard": { "state": "not_applicable" },
+        "before": { "state": "absent" },
+        "after": after,
+        "intended_changes": after,
+        "row_preview_cid": Json::string(pending),
+        "row_idempotency_key": Json::string(pending),
+      },
+      "sha256:" + digest,
+    ),
+  )
+}
+
+///|
 /// Execution order and raw admission order are different inventories. Join
 /// once through the original row CID; never index the raw key vector by an
 /// execution ordinal or recompute an already checked key.
@@ -427,22 +541,37 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     is Some(kind) &&
     original.ordered_row_original(member_index, row_ordinal) is Some(row) &&
     @canonical.object_field(row, "target_row_identity") is Some(target) &&
-    target is @canonical.String(identity) &&
     @canonical.object_field(row, "intended_changes") is Some(intended) &&
     @canonical.object_field(row, "before") is Some(before) &&
-    @canonical.object_field(before, "state")
-    is Some(@canonical.String("present")) &&
-    @canonical.object_field(before, "value") is Some(full_before) &&
-    @canonical.object_field(row, "target_guard") is Some(target_guard) &&
-    @canonical.object_field(target_guard, "state")
-    is Some(@canonical.String("version")) &&
-    @canonical.object_field(target_guard, "version_cid")
-    is Some(@canonical.String(version)) else {
+    @canonical.object_field(row, "target_guard") is Some(target_guard) else {
     return Err(HostAttestationUnavailable)
+  }
+  let guarded = if kind == "create" {
+    guard @canonical.object_field(before, "state")
+      is Some(@canonical.String("absent")) &&
+      @canonical.object_field_count(before) == Some(1) &&
+      @canonical.object_field(target_guard, "state")
+      is Some(@canonical.String("not_applicable")) &&
+      @canonical.object_field_count(target_guard) == Some(1) else {
+      return Err(HostAttestationUnavailable)
+    }
+    None
+  } else {
+    guard target is @canonical.String(identity) &&
+      @canonical.object_field(before, "state")
+      is Some(@canonical.String("present")) &&
+      @canonical.object_field(before, "value") is Some(full_before) &&
+      @canonical.object_field(target_guard, "state")
+      is Some(@canonical.String("version")) &&
+      @canonical.object_field(target_guard, "version_cid")
+      is Some(@canonical.String(version)) else {
+      return Err(HostAttestationUnavailable)
+    }
+    Some((identity, full_before, version))
   }
   let original_value = @canonical.object_field(intended, "value")
   match kind {
-    "update" => {
+    "create" | "update" => {
       guard @canonical.object_field(intended, "state")
         is Some(@canonical.String("present")) &&
         original_value is Some(_) else {
@@ -489,16 +618,39 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     is Some(traversal) else {
     return Err(HostAttestationUnavailable)
   }
+  // The CREATE key borrows a fixed 128-byte, three-node correlation wire.
+  // Include its canonical admission and bounded key emitter before reading it.
+  let key = if kind == "create" {
+    guard @decode.preserving_json_admission_construction_inventory(128, 3, 1)
+      is Some(parsed) &&
+      @encode.hash_writer_construction_inventory(7, 1) is Some(writer) else {
+      return Err(HostAttestationUnavailable)
+    }
+    (
+      parsed.record_headers + writer.record_headers + 5L,
+      parsed.reference_slots + writer.reference_slots + 8L,
+      parsed.scalar_words + writer.scalar_words + 5L,
+      parsed.owned_utf16_units + writer.owned_utf16_units + 128L,
+      writer.owned_wire_bytes,
+    )
+  } else {
+    (0L, 0L, 0L, 0L, 0L)
+  }
   match
     read.owner.capture.prepare_model_entry_construction(
       None,
       additional_controls=Some({
-        record_headers: measurement.record_headers + traversal.record_headers,
-        reference_slots: measurement.reference_slots + traversal.reference_slots,
-        scalar_words: measurement.scalar_words + traversal.scalar_words,
+        record_headers: measurement.record_headers +
+        traversal.record_headers +
+        key.0,
+        reference_slots: measurement.reference_slots +
+        traversal.reference_slots +
+        key.1,
+        scalar_words: measurement.scalar_words + traversal.scalar_words + key.2,
         owned_utf16_units: measurement.owned_utf16_units +
-        retained_request_units,
-        owned_wire_bytes: 0L,
+        retained_request_units +
+        key.3,
+        owned_wire_bytes: key.4,
       }),
     ) {
     Ok(_) => ()
@@ -507,15 +659,44 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
   if !read.owner.saved_approval_original_live(original) || self.retired {
     return Err(HostAttestationUnavailable)
   }
+  let (identity, version) = match guarded {
+    Some((identity, _, version)) => (identity, version)
+    None => {
+      guard @publication.effect_file_create_storage_key_from_preview(
+          original.preview,
+          member_index,
+          row_ordinal,
+          @publication.publication_contract_identity(
+            original.materials.run_definition,
+          ),
+          binding,
+        )
+        is Ok(identity) else {
+        return Err(HostAttestationUnavailable)
+      }
+      (identity, "")
+    }
+  }
   let (bytes, nodes, depth) = try {
     let measure = @encode.measuring_writer(
       limits.max_wire_bytes,
       limits.max_nodes,
       limits.max_depth,
     )
-    emit_native_local_effect_file_request(
-      measure, binding, mapping, target, original_value, full_before, version,
-    )
+    match guarded {
+      Some((_, before, _)) =>
+        emit_native_local_effect_file_request(
+          measure, binding, mapping, target, original_value, before, version,
+        )
+      None =>
+        emit_native_local_effect_file_create_request(
+          measure,
+          binding,
+          mapping,
+          identity,
+          original_value.unwrap(),
+        )
+    }
     @encode.finish_measurement_usage(measure)
   } catch {
     _ => return Err(HostAttestationUnavailable)
@@ -526,7 +707,15 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
       3L,
     )
     is Some(owned_units) &&
-    @execution.checked_preparation_add_product(owned_units, 270L, 1L)
+    @execution.checked_preparation_add_product(
+      owned_units,
+      if kind == "create" {
+        334L
+      } else {
+        270L
+      },
+      1L,
+    )
     is Some(total_owned_units) &&
     @execution.checked_preparation_add_product(
       16L,
@@ -566,17 +755,30 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     return Err(HostAttestationUnavailable)
   }
   let request = match
-    native_local_effect_file_request_wire(
-      binding,
-      mapping,
-      target,
-      original_value,
-      full_before,
-      version,
-      limits.max_wire_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    ) {
+    (match guarded {
+      Some((_, before, _)) =>
+        native_local_effect_file_request_wire(
+          binding,
+          mapping,
+          target,
+          original_value,
+          before,
+          version,
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        )
+      None =>
+        native_local_effect_file_create_request_wire(
+          binding,
+          mapping,
+          identity,
+          original_value.unwrap(),
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        )
+    }) {
     Ok(value) => value
     Err(_) => return Err(HostAttestationUnavailable)
   }
@@ -662,6 +864,7 @@ pub fn NativeLocalEffectResumeOriginal::record_file_row_receipt_in_original_read
     Err(issue) => return Err(issue)
   }
   guard !self.retired &&
+    !self.settlement_only &&
     physical_equal(dispatch.journal, self.host.journal) &&
     dispatch.request == self.request &&
     self.record.checkpoint is Some(checkpoint) &&

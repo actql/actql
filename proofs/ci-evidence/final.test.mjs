@@ -47,6 +47,7 @@ function familyFixture({mixed = false, changed = false, originEvent = 'workflow_
   const context = {candidateRevision: 'a'.repeat(40), runHeadRevision: 'a'.repeat(40),
     repository: 'actql/actql', repositoryId: 1, workflowId: 2, runId: 30, runAttempt: 1, ancestors: ['b'.repeat(40)]};
   const source = new Map([...sharedFiles, ...mutationSnapshotExtras].map(path => [path, path]));
+  source.set('scripts/ci-core-partitions.mjs', 'legacy CI partitions');
   for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies])
     source.set(path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
   source.set('proofs/ci-evidence/bounded-session-actions.json', encode(catalog));

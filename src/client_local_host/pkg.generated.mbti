@@ -318,6 +318,10 @@ pub fn check_program_commit_validation(ClientProgramCapture, @run_publication.Pu
 
 pub fn check_program_commit_validation_in_read(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, (ClientProgramValidationReadDemand) -> Result[Unit, ClientProgramValidationIssue]) -> Result[Unit, ClientProgramValidationIssue]
 
+pub fn[I] check_request_owned_submitted_intent(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, public_primary~ : Bool) -> Result[@run_publication_host.ClientProgramPreparationLimits, ClientRequestRetainedIntentIssue]
+
+pub fn[I] check_request_retained_submitted_intent(ClientRequestPreparation[I], I, @run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, public_primary~ : Bool) -> Result[@run_publication_host.ClientProgramPreparationLimits, ClientRequestRetainedIntentIssue]
+
 pub fn cleanup_client_broad_residual(ClientBroadResidual) -> Result[Bool, @connector_sdk.FixedComputeIssue]
 
 pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, ClientInferInputIssue]
@@ -605,6 +609,8 @@ pub fn[I, P] inspect_program_check_source_local_snapshot(ClientProgramCheckPrepa
 pub fn[I, P] inspect_program_check_source_local_snapshot_reference(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] inspect_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn installed_calendar_artifact_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_capture_capacity_values(ClientInstalledCaptureCapacity) -> Array[Int64]
 
@@ -1258,7 +1264,7 @@ pub fn[I] prepare_request_node_model_source_free_plan(ClientRequestPreparation[I
 
 pub fn[I] prepare_request_original_computation_check(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits) -> Result[Unit, ClientRequestTerminalIssue]
 
-pub fn[I] prepare_request_original_explanation(ClientRequestPreparation[I], I, Int, Int, Int) -> Result[ClientRequestOriginalExplanation[I]?, ClientOriginalExplanationCaptureIssue]
+pub fn[I] prepare_request_original_explanation(ClientRequestPreparation[I], I, Int, Int, Int, debug_entry_installed? : Bool) -> Result[ClientRequestOriginalExplanation[I]?, ClientOriginalExplanationCaptureIssue]
 
 pub fn[I] prepare_request_program_authoring_context(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientAuthoringContextPreparation, ClientRequestAuthoringIssue]
 
@@ -1468,7 +1474,7 @@ pub fn[I] request_prepared_static_effect_explanation_narrative(ClientRequestPrep
 
 pub fn[I] request_prepared_static_effect_explanation_wire(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticContextIssue]
 
-pub fn[I] request_prepared_static_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[ClientRequestStaticEffectExplanation, ClientRequestStaticContextIssue]
+pub fn[I] request_prepared_static_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph], debug_entry_installed? : Bool) -> Result[ClientRequestStaticEffectExplanation, ClientRequestStaticContextIssue]
 
 pub fn[I] request_prepared_static_plan_view(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, infers? : Array[@run_publication_host.ClientInferPlanGraph], inspect_installed? : Bool) -> Result[String, ClientRequestTerminalIssue]
 
@@ -2260,6 +2266,12 @@ pub(all) enum ClientRequestPreparationIssue {
   ParameterDeclarations(@parameter_binding.Issue)
   ParameterSource(@stage_parameters.Issue)
 } derive(@debug.Debug)
+
+pub(all) enum ClientRequestRetainedIntentIssue {
+  InvalidInput
+  Preparation(ClientRequestPreparationIssue)
+  Request(ClientRequestTerminalIssue)
+}
 
 pub(all) enum ClientRequestStaticContextIssue {
   Preparation(ClientRequestPreparationIssue)

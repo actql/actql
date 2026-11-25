@@ -56,6 +56,6 @@ test('star cases are in the existing normal/focused cohort with precise preparat
   }
   assert.equal(new Set([...successes, ...refusals].map(item => item.name)).size,
     successes.length + refusals.length);
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/correlated-unnest-star-source-input.mjs', 'correlated-unnest-star-source-input.mjs']"));
 });

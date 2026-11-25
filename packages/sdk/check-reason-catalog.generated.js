@@ -3,8 +3,8 @@
 const freeze = value => { if (value && typeof value === "object") {Object.values(value).forEach(freeze); Object.freeze(value);} return value; };
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-11-21.1",
-  "reasonSchemaCid": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+  "revision": "2026-11-23.2",
+  "reasonSchemaCid": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
 });
 const entries = freeze({
   "analysis_budget_exhausted": {
@@ -260,6 +260,45 @@ const entries = freeze({
         "scenario": "typed Requirement frontiers retain context and ignore presentation order"
       }
     ]
+  },
+  "calendar_profile_required": {
+    "code": "calendar_profile_required",
+    "condition": "The Common checker requires a Calendar profile selection or the artifact matching the selected Calendar profile.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Only the missing Calendar input category is disclosed. No selected table CID, artifact contents or source location is emitted.",
+    "locations": [],
+    "default_severity": "info",
+    "family": "requirement",
+    "examples": [
+      {
+        "file": "src/program_check/public_calendar_requests_test.mbt",
+        "scenario": "Calendar selection and matching artifact are distinct checking requests."
+      }
+    ],
+    "presentation": {
+      "variants": [
+        {
+          "when": {
+            "issue": "selection_missing"
+          },
+          "key": "calendar.selection_missing",
+          "english": [
+            "The checking context has no Calendar profile selected.",
+            "Select a Calendar profile with its matching artifact for the named time zone, then check again. In Node Local, pass it as installation.calendarArtifact."
+          ]
+        },
+        {
+          "when": {
+            "issue": "artifact_missing"
+          },
+          "key": "calendar.artifact_missing",
+          "english": [
+            "The checking context is missing the artifact for its selected Calendar profile.",
+            "Install the Calendar artifact matching the selected profile, then check again. In Node Local, pass it as installation.calendarArtifact."
+          ]
+        }
+      ]
+    }
   },
   "carrier_mismatch": {
     "code": "carrier_mismatch",

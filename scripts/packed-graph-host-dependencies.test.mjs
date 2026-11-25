@@ -107,7 +107,7 @@ test('packed Graph failure consumer retains its finite transitive fixtures', asy
 
 test('packed Graph Host consumers retain their transitive local module imports', async () => {
   const scripts = fileURLToPath(new URL('./', import.meta.url));
-  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mts'), 'utf8');
   const pending = ['graph-public-host.test.mjs', 'graph-source-snapshot.test.mjs'];
   const visited = new Set();
   while (pending.length) {
@@ -127,7 +127,7 @@ test('packed Graph Host consumers retain their transitive local module imports',
 
 test('packed Graph predicate source fixtures retain their flattened transitive imports', async () => {
   const scripts = fileURLToPath(new URL('./', import.meta.url));
-  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mts'), 'utf8');
   const pending = ['fixtures/graph-property-predicate-source-input.mjs'];
   const visited = new Set();
   while (pending.length) {
@@ -194,7 +194,7 @@ test('fixed-hop node predicate source controls are copied and included in normal
   assert.equal(refusals.length, 8);
   assert.equal(new Set([...successes, ...refusals].map(item => item.name)).size, 22);
   const scripts = fileURLToPath(new URL('./', import.meta.url));
-  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mts'), 'utf8');
   assert.ok(driver.includes("'graph-hop-node-predicate-source-input.mjs'"));
   const consumer = await readFile(resolve(scripts, 'fixtures/packed-public-query.mjs'), 'utf8');
   assert.ok(consumer.includes('scopeInputs.successes.push(...graphPropertyPredicateSuccesses, ...graphHopNodePredicateSuccesses)'));
@@ -236,7 +236,7 @@ test('any-direction Graph controls are staged and exercised in normal and focuse
       [{key: 10, src: 1, dst: 1}, {key: 11, src: 1, dst: 1}]);
   }
   const scripts = fileURLToPath(new URL('./', import.meta.url));
-  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mts'), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/graph-any-direction-source-input.mjs', 'graph-any-direction-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_ANY_DIRECTION_ONLY = '1'"));
   const consumer = await readFile(resolve(scripts, 'fixtures/packed-public-query.mjs'), 'utf8');
@@ -270,7 +270,7 @@ test('abbreviated edge controls preserve unfiltered keyed multiplicity and norma
     }
   }
   const scripts = fileURLToPath(new URL('./', import.meta.url));
-  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mts'), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/graph-abbreviated-edge-source-input.mjs', 'graph-abbreviated-edge-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_ABBREVIATED_ONLY = '1'"));
   const consumer = await readFile(resolve(scripts, 'fixtures/packed-public-query.mjs'), 'utf8');
@@ -297,7 +297,7 @@ test('finite quantifier source and JSON controls retain exact bounds and transit
   assert.deepEqual(successes.find(item => item.name === 'graph-quantifier-full-label-fixed').results.matched.rows,
     [{depth: 2}]);
   const scripts = fileURLToPath(new URL('./', import.meta.url));
-  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mts'), 'utf8');
   for (const name of ['graph-quantifier-forms-source-input.mjs', 'graph-abbreviated-edge-source-input.mjs']) {
     assert.ok(driver.includes(`['scripts/fixtures/${name}', '${name}']`));
   }

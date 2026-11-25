@@ -19,6 +19,7 @@ priv struct SDKReadFixture {
 fn sdk_read_fixture(
   bound_scope? : Bool = false,
   sealed_payload? : Bool = false,
+  result_name? : String = "answer",
 ) -> SDKReadFixture raise {
   let at = "2026-10-13T00:00:00.001Z"
   let bootstrap = @host.client_local_product_sdk_bootstrap_originals(
@@ -28,8 +29,13 @@ fn sdk_read_fixture(
     @utf8.decode(bootstrap.original.common.account),
   ).unwrap()
   let env = environment()
+  let statement = if result_name == "answer" {
+    "SELECT 1 AS n"
+  } else {
+    "SELECT 1 AS n |> RESULT " + result_name
+  }
   let input = @input.prepare_local_input_material(
-    @input.Aql("SELECT 1 AS n"),
+    @input.Aql(statement),
     env,
     None,
     Some(@input.bind_local_input_context(env, [], "local").unwrap()),
@@ -594,6 +600,21 @@ test "SDK read refuses expired foreign selection adoption and current authority 
     )
     is Err(InvalidOriginal),
   )
+  let worker_selection = @publication.issue_local_sdk_result_read_selection(
+    "sha256:" + "f".repeat(64),
+    "sha256:" + "e".repeat(64),
+    scope=WorkerAnswer,
+  ).unwrap()
+  assert_true(
+    invoke(
+      worker_selection,
+      "sha256:" + "a".repeat(64),
+      "answer",
+      "jsonl",
+      "2026-10-13T00:00:04.000Z",
+    )
+    is Err(Preflight(AuthorizationMismatch)),
+  )
   assert_true(
     prepare_local_sdk_read_originals(
       fixture.preflight,
@@ -663,7 +684,7 @@ test "SDK binding accepts separately admitted policy identities and rejects chan
   ).unwrap()
   let invoke = finite => {
     validate_sdk_read_original_binding(
-      local_sdk_read_source(fixture.preflight),
+      local_sdk_read_source(fixture.preflight, selection=fixture.selection),
       fixture.account,
       finite,
       fixture.selection,

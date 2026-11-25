@@ -85,7 +85,11 @@ test('Node CPU mode is explicit and keeps default and Native job selection uncha
   assert.equal(job.steps.find(step => step.uses?.startsWith('actions/checkout@')).with['persist-credentials'], false);
   assert.equal(job.steps.find(step => step.uses?.startsWith('actions/setup-node@')).with['node-version'], '22.22.0');
   assert(!job.steps.some(step => step.uses?.includes('performance-matrix')));
-  assert.doesNotMatch(job.steps.map(step => step.run ?? '').join('\n'), /moon build|npm (?:pack|run)|operation-performance\.mjs/u);
+  // The checkout needs its authored tooling emitted before reading artifacts.
+  // The diagnostic still cannot build or package the product it measures.
+  const body = job.steps.flatMap(step => (step.run ?? '').split('\n'))
+    .map(line => line.trim()).filter(line => line !== 'npm run build:typescript').join('\n');
+  assert.doesNotMatch(body, /moon build|npm (?:pack|run)|operation-performance\.mjs/u);
   // CI registration, including npm script expansion and non-optional execution,
   // is checked by ordinary-operation-packages.test.mjs's shared inventory.
 });
@@ -115,7 +119,10 @@ test('original producer and digest precede exact-source checkout and the one con
   const bind = steps.find(step => step.name === 'Verify the original producer source and exact artifact archive');
   const consume = steps.find(step => step.name === 'Sample one installed wait with unchanged normal packages');
   assert(steps.indexOf(bind) < steps.indexOf(consume));
-  assert(bind.run.indexOf('diagnostic.mjs" artifact') < bind.run.indexOf('git checkout --detach'));
+  const prepare = steps.findIndex(step => step.run?.includes('npm run build:typescript'));
+  assert(prepare >= 0 && prepare < steps.indexOf(bind));
+  const verify = bind.run.indexOf('diagnostic.mjs" artifact');
+  assert(verify >= 0 && verify < bind.run.indexOf('bash scripts/ci-checkout-artifact-source.sh "$source_sha"'));
   assert.equal(bind.env.PACKAGE_EVENT_HEAD_SHA, '${{ inputs.node-wait-event-head }}');
   assert.equal(bind.env.PACKAGE_BUILD_SOURCE_SHA, '${{ inputs.node-wait-build-source }}');
   assert.equal(bind.env.PACKAGE_ARCHIVE_SHA256, '${{ inputs.node-wait-archive-sha256 }}');

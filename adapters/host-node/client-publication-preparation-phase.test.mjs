@@ -11,6 +11,7 @@ import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 import {sourceFreeTaskPlan, sourceFreePlanOriginal, localContractLimits, localOutputLimits}
   from './local-values-plan.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
+import {sourceEvidenceOriginalAccess} from '../connectors/duckdb/node/source-evidence-original.mjs';
 function get(file,name,context,property=false){const source=readFileSync(new URL(file,import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let n;function walk(x){if(!x||typeof x!=='object')return;if(property?x.type==='Property'&&x.key?.name===name:x.type==='FunctionDeclaration'&&x.id?.name===name)n=property?x.value:x;for(const v of Object.values(x)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}}walk(ast);assert(n,name);const code=property?`${n.async?'async ':''}function(${n.params.map(p=>source.slice(p.start,p.end)).join(',')})${source.slice(n.body.start,n.body.end)}`:source.slice(n.start,n.end);return new Function(...Object.keys(context),`return ${code}`)(...Object.values(context));}
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 test('publication phase manager relays the actual original Run without caller quote or holder',()=>{
@@ -68,9 +69,10 @@ test('publication invocation issues and binds through one Core original engine, 
 });
 
 test('funded Values plan passes its borrowed owner and Prepared to the single invocation issuance call',()=>{
- const source=readFileSync(new URL('./local-values-plan.mjs',import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let fn;for(const node of ast.body){if(node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name==='sourceFreeValuesPlan')fn=node.declaration;}assert(fn);
+ const source=readFileSync(new URL('./local-source-free-plan.mjs',import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let fn;for(const node of ast.body){if(node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name==='sourceFreeValuesPlan')fn=node.declaration;}assert(fn);
  const calls=[];function walk(n){if(!n||typeof n!=='object')return;if(n.type==='CallExpression'&&n.callee.type==='MemberExpression'&&n.callee.property.name==='issueCheckedClientCompiledInvocation')calls.push(n);for(const x of Object.values(n)){if(Array.isArray(x))x.forEach(walk);else if(x&&typeof x==='object')walk(x);}}walk(fn);assert.equal(calls.length,1);assert.deepEqual(calls[0].arguments.slice(4).map(x=>x.name),['publicationPreparation','preparedProgram']);
- assert.equal(source.includes('bindPreparedPublicationCompiledOriginal'),false);
+ const planner=readFileSync(new URL('./local-values-plan.mjs',import.meta.url),'utf8');
+ assert.equal((source+planner).includes('bindPreparedPublicationCompiledOriginal'),false);
 });
 
 test('funded source-free Tasks plan forwards its original publication owner and Prepared once',()=>{
@@ -170,8 +172,10 @@ test('unfunded source-free Tasks invocation retains its original legacy issuer',
  assert.deepEqual(calls,[[compiledOriginal,definitionOriginal,'policy',11,13,17]]);
 });
 
-function captureFinisher(context,name='finishProgramCapture') {
- const source=readFileSync(new URL('../host-common/runtime-core.mjs',import.meta.url),'utf8');
+const captureSource='../host-common/runtime-captured-publication-control.mjs';
+const validationSource='../host-common/runtime-publication-validation-control.mjs';
+function captureFinisher(context,name='finishProgramCapture',path=captureSource) {
+ const source=readFileSync(new URL(path,import.meta.url),'utf8');
  const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let initializer;
  function walk(n){if(!n||typeof n!=='object')return;if(n.type==='VariableDeclarator'&&n.id.name===name)initializer=n.init;for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}}walk(ast);assert(initializer);
  return new Function(...Object.keys(context),`return (${source.slice(initializer.start,initializer.end)})`)(...Object.values(context));
@@ -195,7 +199,7 @@ test('typed capture rejects malformed generated progress and cancels the same ha
 
 test('funded capture maps original inventory once and never invokes raw-limit issuer',async()=>{
  const owner={},capture={},definition={},invocation={},artifact={},snapshot={},authoring={},manifest={},receipt={},calls=[];
- const invoke=get('../host-common/runtime-core.mjs','issueEffectFreeCapturedRun',{captureContractLimits:x=>x,checked:x=>x,token:x=>x,snapshotToken:x=>x,evidenceToken:x=>x,finishProgramCapture:(original,signal)=>{assert.equal(original,capture);return 'captured';},moon:{clientProgramPrepareCapture(...args){calls.push(args);return capture;},strategyBeginOriginalEffectFreeCapturedRun(){assert.fail('raw issuer bypass');}}},true);
+ const invoke=get(captureSource,'issueEffectFreeCapturedRun',{captureContractLimits:x=>x,checked:x=>x,token:x=>x,snapshotToken:x=>x,evidenceToken:x=>x,finishProgramCapture:(original,signal)=>{assert.equal(original,capture);return 'captured';},moon:{clientProgramPrepareCapture(...args){calls.push(args);return capture;},strategyBeginOriginalEffectFreeCapturedRun(){assert.fail('raw issuer bypass');}}},true);
  const chain={runDefinition:definition,invocation,definitions:[definition],artifacts:[artifact],manifest,receipt};
  const evidence={snapshots:[snapshot],pendingSourceStateAdvances:[],authoringContext:authoring,modelEvidence:[]};
  assert.equal(await invoke(chain,evidence,{maxWireBytes:1,maxNodes:2,maxDepth:3},undefined,owner),'captured');
@@ -204,7 +208,7 @@ test('funded capture maps original inventory once and never invokes raw-limit is
 });
 test('captured publication retirement cancels the tracked typed handle rather than its private issuer',()=>{
  const captured={},handle={},map=new WeakMap([[captured,{program:handle}]]),seen=[];
- const retire=get('../host-common/runtime-core.mjs','retireCapturedComputation',{token:x=>x,capturedComputationPreparations:map,moon:{clientProgramCancelCapture:x=>seen.push(x),strategyCapturedRunCancel:()=>assert.fail('raw cancellation')}},true);
+ const retire=get(captureSource,'retireCapturedComputation',{token:x=>x,capturedComputationPreparations:map,moon:{clientProgramCancelCapture:x=>seen.push(x),strategyCapturedRunCancel:()=>assert.fail('raw cancellation')}},true);
  retire(captured);retire(captured);assert.deepEqual(seen,[handle]);assert.equal(map.has(captured),false);
 });
 
@@ -221,16 +225,16 @@ test('typed retained chain and commit consume original contracts without numeric
  const capture={},captured={},handle={},seen=[],map=new WeakMap([[captured,{program:capture}]]);
  const context={issuanceLimits:()=>{},capturedComputationPreparations:map,checked:x=>x,token:x=>x,finishProgramValidation:(value,signal)=>{assert.equal(value,handle);seen.push(['run',signal]);return true;},moon:{clientProgramPrepareChainValidation:(...args)=>{seen.push(['chain',...args]);return handle;},clientProgramPrepareCommitValidation:(...args)=>{seen.push(['commit',...args]);return handle;}}};
  const definition={},invocation={},definitions=[{}],artifacts=[{}],manifest={},receipt={},signal={throwIfAborted(){}};
- const chain=get('../host-common/runtime-core.mjs','effectFreeChainValid',context,true);
+ const chain=get(validationSource,'effectFreeChainValid',context,true);
  assert.equal(await chain(definition,invocation,definitions,artifacts,manifest,receipt,captured,{maxNodes:1},signal),true);
  assert.deepEqual(seen[0],['chain',capture,definition,invocation,definitions,artifacts,manifest,receipt,captured]);
- const commit=get('../host-common/runtime-core.mjs','effectFreeCommitValid',context,true);const derivations=[{}],orderings=[{}],retentions=[{}],bindings=[{}],request={},attempt={},index={};
+ const commit=get(validationSource,'effectFreeCommitValid',context,true);const derivations=[{}],orderings=[{}],retentions=[{}],bindings=[{}],request={},attempt={},index={};
  assert.equal(await commit(definition,invocation,definitions,artifacts,derivations,orderings,retentions,bindings,manifest,receipt,captured,request,attempt,index,{maxNodes:1}),true);
  assert.deepEqual(seen[2],['commit',capture,definition,invocation,definitions,artifacts,derivations,orderings,retentions,bindings,manifest,receipt,captured,request,attempt,index]);assert.deepEqual(seen[3],['run',undefined]);
 });
 test('typed validation always cancels its tracked continuation after finish or failed start',async()=>{
  const handle={},seen=[];let failure;
- const run=captureFinisher({checked:x=>x,tuplePair:x=>x,moon:{clientProgramStartValidation:x=>{assert.equal(x,handle);if(failure)throw failure;seen.push('start');return x;},clientProgramAdvanceValidation:(x,q)=>{assert.equal(x,handle);assert.equal(q,256);return [true,1];},clientProgramFinishValidation:x=>{assert.equal(x,handle);seen.push('finish');},clientProgramCancelValidation:x=>{assert.equal(x,handle);seen.push('cancel');}}},'finishProgramValidation');
+ const run=captureFinisher({checked:x=>x,tuplePair:x=>x,moon:{clientProgramStartValidation:x=>{assert.equal(x,handle);if(failure)throw failure;seen.push('start');return x;},clientProgramAdvanceValidation:(x,q)=>{assert.equal(x,handle);assert.equal(q,256);return [true,1];},clientProgramFinishValidation:x=>{assert.equal(x,handle);seen.push('finish');},clientProgramCancelValidation:x=>{assert.equal(x,handle);seen.push('cancel');}}},'finishProgramValidation',validationSource);
  assert.equal(await run(handle),true);assert.deepEqual(seen,['start','finish','cancel']);failure=new Error('foreign');await assert.rejects(run(handle),x=>x===failure);assert.deepEqual(seen,['start','finish','cancel','cancel']);
 });
 
@@ -238,7 +242,7 @@ test('typed snapshot begins from original publication and export, never caller B
  const publication={},output={},snapshot={},captured={},seen=[];
  const run=captureFinisher({checked:x=>x,tuplePair:x=>x,inspectSnapshot:x=>x,moon:{clientProgramBeginSnapshot:(p,o)=>{assert.equal(p,publication);assert.equal(o,output);seen.push('begin');return snapshot;},clientProgramAdvanceSnapshot:(s,q)=>{assert.equal(s,snapshot);assert.equal(q,256);return [true,2];},clientProgramFinishSnapshot:s=>{assert.equal(s,snapshot);seen.push('finish');return captured;},clientProgramCancelSnapshot:()=>assert.fail('successful snapshot cancelled')}},'finishProgramSnapshot');
  assert.equal(await run(publication,output),captured);assert.deepEqual(seen,['begin','finish']);
- const invoke=get('../host-common/runtime-core.mjs','admitCompletedResultSnapshot',{finishProgramSnapshot:(p,o,signal)=>{assert.equal(p,publication);assert.equal(o,output);return captured;}},true);
+ const invoke=get(captureSource,'admitCompletedResultSnapshot',{finishProgramSnapshot:(p,o,signal)=>{assert.equal(p,publication);assert.equal(o,output);return captured;}},true);
  assert.equal(await invoke(output,{maxLogicalWireBytes:-1},undefined,publication),captured);
 });
 test('snapshot failure cancels exact typed continuation without clearing unrelated holders',async()=>{
@@ -249,13 +253,13 @@ test('snapshot failure cancels exact typed continuation without clearing unrelat
 
 test('Store validator checks selected currentness after every yield and cancels before rejection',async()=>{
  const handle={},events=[];let current=true,advanced=0;
- const run=captureFinisher({checked:x=>x,tuplePair:x=>x,setImmediate:resolve=>{current=false;resolve();},moon:{clientStoreAdvanceOriginalValidation:(h,q)=>{assert.equal(h,handle);assert.equal(q,256);advanced++;return [false,1];},clientStoreFinishOriginalValidation:()=>assert.fail('late valid result'),clientStoreCancelOriginalValidation:h=>{assert.equal(h,handle);events.push('cancel');}}},'finishStoreValidation');
+ const run=captureFinisher({checked:x=>x,tuplePair:x=>x,setImmediate:resolve=>{current=false;resolve();},moon:{clientStoreAdvanceOriginalValidation:(h,q)=>{assert.equal(h,handle);assert.equal(q,256);advanced++;return [false,1];},clientStoreFinishOriginalValidation:()=>assert.fail('late valid result'),clientStoreCancelOriginalValidation:h=>{assert.equal(h,handle);events.push('cancel');}}},'finishStoreValidation',validationSource);
  await assert.rejects(run(handle,()=>{events.push('current');if(!current)throw new Error('Store closed');}),/Store closed/);
  assert.equal(advanced,1);assert.deepEqual(events,['current','current','cancel']);
 });
 test('Store original commit validation requires selected read owner and ignores numeric metadata ceilings',async()=>{
  const values=Array.from({length:14},()=>({}));for(const i of [2,3,4,5,6,7])values[i]=[{}];const handle={},calls=[],requireCurrent=()=>calls.push('current');
- const invoke=get('../host-common/runtime-core.mjs','effectFreeStoredCommitValid',{checked:x=>x,token:x=>x,capturedComputationPreparations:new WeakMap(),finishStoreValidation:(h,guard)=>{assert.equal(h,handle);assert.equal(guard,requireCurrent);return true;},moon:{clientStoreBeginOriginalCommitValidation:(...args)=>{calls.push(args);return handle;}}},true);
+ const invoke=get(validationSource,'effectFreeStoredCommitValid',{checked:x=>x,token:x=>x,capturedComputationPreparations:new WeakMap(),finishStoreValidation:(h,guard)=>{assert.equal(h,handle);assert.equal(guard,requireCurrent);return true;},moon:{clientStoreBeginOriginalCommitValidation:(...args)=>{calls.push(args);return handle;}}},true);
  assert.equal(await invoke(...values,requireCurrent),true);assert.deepEqual(calls,['current',values]);await assert.rejects(invoke(...values,{maxNodes:1}),/Store publication validation owner unavailable/);
 });
 
@@ -421,81 +425,10 @@ test('whole Source publication forwards the same native capture and never a Quer
   assert.equal(calls.length, 1);
 });
 
-test('live Source dispatch awaits original preparation and transfers the same capture once without wire fallback', async () => {
-  const prepared = {}, preparedSource = {checkedSource: {sourceRef: 'source'}}, sourceAccess = {},
-    original = {}, nominal = {name: 'source_evidence'}, events = [];
-  const take = get('../host-common/runtime-core.mjs', 'takeSourceEvidenceOriginal', {
-    inspectEvidence: value => {assert.equal(value, original); events.push('project'); return nominal;},
-  }, true);
-  let available = false;
-  const capture = Object.freeze({takeSourceEvidenceOriginal() {
-    assert.equal(this, capture); assert.equal(available, true); available = false;
-    events.push('take'); return original;
-  }});
-  const captured = {capture, checkedSource: {sourceDataPolicyCid: 'policy'},
-    async prepareSourceEvidenceOriginal(options) {
-      assert.equal(this, captured);
-      assert.deepEqual(options, {authorityScopeCid: 'authority', effectiveDataPolicyCid: 'policy'});
-      await Promise.resolve(); events.push('prepared'); available = true;
-    }, issueSourceEvidence() {assert.fail('live Source converted to wire');}};
-  const invoke = get('./client-dispatch-owner.mjs', 'acquireSource', {
-    installedSourceFor: () => ({async open(input) {
-      assert.equal(input.preparedProgram, prepared); assert.equal(input.sourceAccess, sourceAccess);
-      events.push('open'); return captured;
-    }}), sourceProfile: {}, now: () => 'time', step: async () => {},
-    acquisitionEndHandoff: () => ({retain() {}, outcome() {assert.fail('no acquisition failure');}}),
-    observation: undefined, registry: {}, values: {}, fragment: {}, ordered: {},
-    retainedRelationOutput: false, authorityScopeCid: 'authority', control: {takeSourceEvidenceOriginal: take},
-  });
-  const entry = {abort: new AbortController()};
-  const result = await invoke(entry, prepared, preparedSource, sourceAccess, {originalEvidence: true});
-  assert.equal(result.sourceEvidence, nominal); assert.equal(result.sourceEvidenceWire, undefined);
-  assert.equal(entry.sourceCapture, captured); assert.equal(available, false);
-  assert.deepEqual(events, ['open', 'prepared', 'take', 'project']);
-  await assert.rejects(invoke(entry, prepared, preparedSource, sourceAccess, {originalEvidence: true}),
-    /ClientSourceCaptureAlreadyRetained/);
-});
-
-test('Source original transfer refuses missing or accessor ports without invoking a wire issuer', async () => {
-  const take = get('../host-common/runtime-core.mjs', 'takeSourceEvidenceOriginal', {
-    inspectEvidence: value => value,
-  }, true);
-  let getters = 0;
-  const accessor = {get takeSourceEvidenceOriginal() {getters++; return () => ({});}};
-  for (const capture of [{}, accessor, Object.create({takeSourceEvidenceOriginal() {assert.fail('inherited port');}})]) {
-    assert.throws(() => take(capture), /InstalledSourceEvidenceUnavailable/);
-  }
-  assert.equal(getters, 0);
-  assert.throws(() => take({takeSourceEvidenceOriginal() {return {name: 'logical_input'};}}),
-    /InvalidInstalledSourceEvidence/);
-});
-
-
-test('Source evidence preparation failure preserves the exact capture cleanup owner and original error', async () => {
-  for (const issue of [new Error('original current failed'), undefined]) {
-    const captured = {checkedSource: {sourceDataPolicyCid: 'policy'},
-      async prepareSourceEvidenceOriginal() {throw issue;},
-      issueSourceEvidence() {assert.fail('failed original selected wire fallback');}};
-    const invoke = get('./client-dispatch-owner.mjs', 'acquireSource', {
-      installedSourceFor: () => ({open: async () => captured}), sourceProfile: {}, now: () => 'time',
-      step: async () => {}, acquisitionEndHandoff: () => ({retain() {}}), observation: undefined,
-      registry: {}, values: {}, fragment: {}, ordered: {}, retainedRelationOutput: false,
-      authorityScopeCid: 'authority', control: {takeSourceEvidenceOriginal() {assert.fail('preparation did not finish');}},
-    });
-    const entry = {abort: new AbortController()};
-    let failed = false;
-    try {await invoke(entry, {}, {checkedSource: {sourceRef: 'source'}}, {}, {originalEvidence: true});}
-    catch (actual) {failed = true; assert.equal(actual, issue);}
-    assert.equal(failed, true); assert.equal(entry.sourceCapture, captured);
-    assert.equal(entry.physicalWorkMayHaveStarted, true);
-  }
-});
-
-
 function originalSourceSnapshotEntry(context) {
-  // Keep the extracted entry connected to its actual lexical producer helper.
-  const beginProducer = get('./ordinary-source-managed.mjs', 'beginProducer', context);
-  return get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot',
+  // Both members now belong to the same emitted Request custody owner.
+  const beginProducer = get('./ordinary-source-request-custody.mjs', 'beginProducer', context);
+  return get('./ordinary-source-request-custody.mjs', 'beforeSourceSnapshot',
     {...context, beginProducer}, true);
 }
 
@@ -968,10 +901,7 @@ test('DuckDB original evidence transfer retains the same issuer value and reject
   const original = {}, options = {}, seen = [];
   let live = true, complete;
   class Failure extends Error {constructor(code) {super(code); this.code = code;}}
-  const create = get('../connectors/duckdb/node/host.mjs', 'sourceEvidenceOriginalAccess', {
-    DuckDBTransportError: Failure,
-  });
-  const access = create(() => {if (!live) throw new Failure('ClosedSourceCapture');}, value => {
+  const access = sourceEvidenceOriginalAccess(() => {if (!live) throw new Failure('ClosedSourceCapture');}, value => {
     assert.equal(value, options); seen.push(value);
     return new Promise(resolve => {complete = resolve;});
   });
@@ -1047,8 +977,6 @@ test('DuckDB captured Source prepares evidence on the same original physical cap
 });
 
 test('Native and Broad original close retain pending evidence custody before physical retirement', () => {
-  const source = readFileSync(new URL('../connectors/duckdb/node/host.mjs', import.meta.url), 'utf8');
-  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const walk = (node, visit) => {
     if (!node || typeof node !== 'object') return;
     visit(node);
@@ -1057,7 +985,10 @@ test('Native and Broad original close retain pending evidence custody before phy
       else if (value && typeof value === 'object') walk(value, visit);
     }
   };
-  for (const name of ['runHostNativeQuery', 'runBroadHostQuery']) {
+  for (const [name, file] of [['runHostNativeQuery', 'native-host-query.mjs'],
+    ['runBroadHostQuery', 'broad-host-query.mjs']]) {
+    const source = readFileSync(new URL('../connectors/duckdb/node/' + file, import.meta.url), 'utf8');
+    const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
     let original, close;
     walk(ast, node => {if (node.type === 'FunctionDeclaration' && node.id?.name === name) original = node;});
     assert(original, name);

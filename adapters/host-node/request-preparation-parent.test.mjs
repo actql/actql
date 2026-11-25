@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-managed.mjs';
+import {connection, fixture, input, normalizationManagerFixture, ok} from './request-preparation-parent.fixture.mjs';
 import resources from './ordinary-node-resource-runtime.cjs';
 import {openRequestPreparation, cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
@@ -18,76 +18,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
-
-// Actual normal manager/adapter/Resource originals; Core phase/shape results
-// are explicit ports. This does not certify a matching Common or body tariff.
-const ok = value => ({$tag:1, _0:value});
-const input = () => ({version:'actql/0.1',id:'parent',stages:[{id:'main',inputs:{},steps:[{as:'v',values:{
-  schema:{n:{type:'number',nullable:false}},rows:[{n:1}],
-}}],results:{rows:{from:'v',fields:['n']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}});
-const connection = Object.freeze({mode:'local',owner:'local',consentRefs:Object.freeze([]),runners:Object.freeze([])});
-async function fixture({beginFailure, environment, observe, sourceFreeMaxWork, validate = () => {}, validateRetained = validate, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
-  const calls=[],shapes=[],policy={},parent={};let admission;
-  const stop = () => {
-    assert.equal(admission.ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0),0);
-    assert.equal(admission.ports.status(2),0);
-    return ok(undefined);
-  };
-  const moon={
-    clientLocalResourcePolicyOriginal(){assert.equal(this,moon);return policy;},
-    clientProgramRequestPreparationControl(actual){assert.equal(this,moon);assert.equal(actual,policy);calls.push('control');return control;},
-    clientLocalPreparationResourceLimits(actual){assert.equal(this,moon);assert.equal(actual,policy);calls.push('policy-limits');return policyLimits;},
-    clientProgramPrepareLocalPreparationAdmission(original,receipt){
-      assert.equal(this,moon);calls.push('admission');
-      admission={original,receipt,ports:resources.prepareOriginalLocalPreparationPorts(original,receipt)};return ok(admission);
-    },
-    clientProgramBeginRequestPreparation(actual,receipt,selectedPolicy){
-      assert.equal(this,moon);assert.equal(actual,admission);assert.equal(receipt,admission.receipt);assert.equal(selectedPolicy,policy);
-      if(beginFailure!==undefined) throw beginFailure;
-      assert.equal(admission.ports.status(0),0);calls.push('parent');return ok(parent);
-    },
-    clientProgramReserveRequestSnapshot(actual,receipt,units,values){
-      assert.equal(this,moon);assert.equal(actual,parent);assert.equal(receipt,admission.receipt);
-      assert.equal(typeof units,'bigint');assert.equal(typeof values,'bigint');
-      assert.ok(units>=values && values>0n);shapes.push({units,values});calls.push('snapshot-grow');return ok(undefined);
-    },
-    clientProgramAbortRequestPreparation(actual){assert.equal(this,moon);assert.equal(actual,parent);calls.push('abort-parent');return stop();},
-    clientProgramCleanupLocalPreparationAdmission(actual){assert.equal(this,moon);assert.equal(actual,admission);calls.push('cancel-admission');assert.equal(admission.ports.cancelUnpublished(),0);return ok(undefined);},
-    clientProgramPrepareRequestNativeComputation(){assert.fail('No semantic compilation selected');},
-    clientProgramPrepareRequestSourceComputation(){assert.fail('No Source semantic check selected');},
-    clientProgramFinishRequestComputation(owner,actual,selected,publication){
-      assert.equal(this,moon);assert.equal(owner,parent);assert.equal(actual,admission.receipt);
-      assert.equal(selected,environment);assert.equal(publication,context.preparedEnvironment);
-      calls.push('compiler-finish');return ok('effect_free');
-    },
-    clientProgramPrepareRequestPolicySubjects(){assert.fail('No policy verifier selected');},
-    clientProgramReadRequestPolicySubject(){assert.fail('No policy descriptor selected');},
-    clientProgramBindRequestPolicySubject(){assert.fail('No policy binding selected');},
-    clientProgramFinishRequestPolicySubjects(){assert.fail('No policy supplement selected');},
-    clientProgramPrepareRequestProgramNormalization(){return ok(undefined);},
-    clientProgramRequestProgramNormalizationIssueCode() {},
-    clientProgramPrepareRequestProgramAuthoringContext(){return ok({});},
-    clientProgramRequestProgramAuthoringContextIssueCode() {},
-    clientProgramPrepareRequestProgramModuleBody(){assert.fail('No module compilation selected');},
-    clientProgramReserveRequestEffectOriginalMaterial(){assert.fail('No Effect original projection selected');},
-    clientProgramRequestProgramModuleIssueCode(){assert.fail('No module failure projection selected');},
-    clientProgramRequestPreparationIssueCode(){assert.fail('No typed Request refusal selected');},
-    clientProgramBorrowRequestProgramPlanInput(){assert.fail('No constructor input borrow selected');},
-    clientProgramComposedInferOccurrences: () => ok([]),
-    clientProgramSerializationOccurrences: () => [],
-    clientProgramAcquisitionCount(){return 0;},
-    clientProgramAdoptRequestProgramPreparation(){assert.fail('No Run adoption selected');},
-  };
-  const context=Object.freeze({runtime:moon,environment,preparedEnvironment:{},retainedRelationOutput:false,
-    ...(sourceFreeMaxWork===undefined?{}:{sourceFreeMaxWork})});
-  const originals=observe===undefined?{}:{installation:{authorization:{observe}}};const view=await prepareOrdinarySourceManagedInstallation(originals,{
-    validator(actual){assert.equal(actual,originals);validate();},
-    retainedValidator(actual){assert.equal(actual,originals);validateRetained();},
-    preparationContext(actual){assert.equal(actual,originals);return context;},
-    retireInitialPreparation(actual,prepared){assert.equal(actual,originals);assert.ok(prepared);calls.push('retire-registry-original');},
-  },false);
-  return {view,calls,shapes,context,originals,get parent(){return parent;},get original(){return admission?.original;}};
-}
 
 // Actual imported manager and facade, with the existing original Resource.
 // Typed Common ports isolate the facade handoff from demand arithmetic/ABI.
@@ -2751,54 +2681,6 @@ test('Effect retained flags are the exact pre-callback inverse arguments, not a 
 });
 
 
-async function normalizationManagerFixture(t, normalizationFailure, options = {}) {
-  const environment = {}, f = await fixture({environment, ...options}), moon = f.context.runtime;
-  const holder = {}, prepared = {}, normalization = {}, events = [], admission = {};
-  f.originals.installation = {sequenceContractOriginal: {moon, admission}};
-  moon.clientProgramPrepareRequestNativeComputation = () => ok(undefined);
-  moon.clientProgramRequestParametersOriginal = () => ok(undefined);
-  const finish = moon.clientProgramFinishRequestComputation;
-  moon.clientProgramFinishRequestComputation = function(...args) {
-    events.push('compiled'); return Reflect.apply(finish, this, args);
-  };
-  let receipt;
-  moon.clientProgramPrepareRequestProgramNormalization = function(parent, input) {
-    assert.strictEqual(this, moon); assert.strictEqual(parent, f.parent); assert.strictEqual(input, receipt);
-    events.push('normalization');
-    if (normalizationFailure !== undefined) throw normalizationFailure;
-    return ok(normalization);
-  };
-  moon.clientProgramBorrowRequestProgramPlanInput = function(parent, input) {
-    assert.strictEqual(parent, f.parent); assert.strictEqual(input, receipt);
-    events.push('plan-borrow'); return ok(holder);
-  };
-  moon.clientProgramPreparationBorrowRead = actual => {assert.strictEqual(actual, holder); return prepared;};
-  moon.clientProgramPreparationBorrowReturn = actual => {assert.strictEqual(actual, holder); return ok(false);};
-  moon.clientProgramPreparationBorrowRetirementStarted = actual => {assert.strictEqual(actual, holder); return true;};
-  const abort = moon.clientProgramAbortRequestPreparation;
-  let aborted = false;
-  moon.clientProgramAbortRequestPreparation = function(parent) {
-    assert.strictEqual(parent, f.parent);
-    if (aborted) return ok(undefined); // Core abort is idempotent after its original return.
-    const result = Reflect.apply(abort, moon, [parent]); aborted = true; return result;
-  };
-  moon.clientProgramPrepareRequestProgramModuleBody = function(parent, input) {
-    assert.strictEqual(parent, f.parent); assert.strictEqual(input, receipt);
-    events.push('module'); return ok(undefined);
-  };
-  const request = {}, original = input();
-  receipt = f.view.beforeSourceSnapshot('program', original, {}, connection);
-  const body = f.view.captureSourceSnapshot(receipt,
-    {kind: 'program', input: original, parameters: {}}, snapshotClientRequest);
-  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
-  t.after(async () => {
-    f.view.finishSourceProducer(receipt, 'returned');
-    assert.equal((await f.view.close()).pending, false);
-    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
-  });
-  return {f, request, prepared, events, environment};
-}
-
 test('normalization original manager runs once after Program compilation and before Plan borrow or Module', async t => {
   const {f, request, prepared, events, environment} = await normalizationManagerFixture(t);
   assert.strictEqual((await f.view.fundedPreparation(request, environment)).prepared, prepared);
@@ -3091,117 +2973,6 @@ for (const phase of ['Normalization', 'Authoring']) {
     }
   });
 }
-
-test('static Plan manager retains one admitted original and never constructs a module or Run', async t => {
-  for (const outcome of ['returned', 'quote-unavailable', 'read-failed']) {
-    const {f, request, events, environment} = await normalizationManagerFixture(t);
-    const moon = f.context.runtime, artifact = {}, loan = {};
-    const limits = Object.freeze({maxWireBytes: 2048, maxNodes: 256, maxDepth: 32});
-    const primary = Error('original static Plan read failure');
-    let compilation, reentry, reads = 0, returns = 0;
-    moon.clientProgramRequestProgramCompilationOriginal = (parent, receipt) => {
-      assert.strictEqual(parent, f.parent); return compilation;
-    };
-    moon.clientProgramPrepareRequestProgramCompilation = () => {
-      assert.equal(compilation, undefined); compilation = artifact;
-      events.push('plan-compile'); return ok(artifact);
-    };
-    moon.clientProgramPrepareRequestOriginalExplanation = (parent, receipt, ...bounds) => {
-      assert.strictEqual(parent, f.parent); assert.strictEqual(compilation, artifact);
-      assert.deepEqual(bounds, [2048, 256, 32]); events.push('plan-quote');
-      return ok(outcome === 'quote-unavailable' ? undefined : loan);
-    };
-    for (const name of ['clientProgramAdoptRequestProgramWithExplanation',
-      'clientProgramCaptureRequestOriginalExplanation', 'clientProgramOriginalExplanationPlanWire',
-      'clientProgramOriginalExplanationFactsWire', 'clientProgramReturnOriginalExplanationCapture',
-      'clientProgramPrepareRequestProgramModuleBody']) {
-      moon[name] = () => assert.fail('Static read must not enter ' + name);
-    }
-    moon.clientProgramReturnRequestOriginalExplanation = value => {
-      assert.strictEqual(value, loan); returns++; return ok(false);
-    };
-    if (outcome === 'returned') moon.clientProgramCurrentRunView = () => assert.fail('A static Plan does not inspect a Run');
-    moon.clientProgramRequestOriginalStaticPlanWire = (value, inspectInstalled) => {
-      assert.strictEqual(value, loan);
-      assert.equal(inspectInstalled, outcome === 'returned');
-      reads++; events.push('plan-read');
-      reentry = f.view.fundedPreparation(request, environment, undefined, undefined, undefined, limits);
-      if (outcome === 'read-failed') throw primary;
-      // Explicit compiler wire port only. Core owns actual Plan/schema proof.
-      return ok('same original compiler Plan wire');
-    };
-    const pending = f.view.fundedPreparation(request, environment, undefined, undefined, undefined, limits);
-    if (outcome === 'returned') assert.equal(await pending, 'same original compiler Plan wire');
-    else await assert.rejects(pending, error => outcome === 'read-failed'
-      ? error === primary : error.code === 'ClientOperationUnavailable');
-    if (reentry) await assert.rejects(reentry, {code: 'ForeignInstalledSourceProducer'});
-    assert.equal(reads, outcome === 'quote-unavailable' ? 0 : 1);
-    assert.equal(returns, 0, 'Return belongs to the existing producer retirement');
-    assert(!events.includes('module'));
-    assert.deepEqual(events.slice(0, 5), ['compiled', 'normalization', 'plan-borrow', 'plan-compile', 'plan-quote']);
-    assert(!f.calls.includes('retire-registry-original'), 'No submitted preparation alias was issued');
-  }
-});
-
-test('static Effect Plan manager reads the same checked Request without execution material or Run', async () => {
-  const environment = {}, f = await fixture({environment}), moon = f.context.runtime, request = {};
-  const program = input();
-  program.stages[0].effects = {save: {update: {target: 'connector://crm/account',
-    mapping: 'mapping:crm.account.v1', from: {result: 'rows'}, id: 'n', set: {Name: {field: 'n'}}}}};
-  const receipt = f.view.beforeSourceSnapshot('program', program, {}, connection);
-  const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: program}, snapshotClientRequest);
-  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
-  f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
-  const bounds = Object.freeze({maxWireBytes: 4096, maxNodes: 512, maxDepth: 32});
-  const events = [], originalWire = 'original Effectful static envelope';
-  let reentry;
-  moon.clientProgramPrepareRequestNativeComputation = function(parent, original, captured) {
-    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
-    assert.equal(captured, body.input); events.push('check'); return ok(undefined);
-  };
-  moon.clientProgramRequestOriginalStaticPlanWire = () => assert.fail('No Pure Plan loan for an Effect');
-  moon.clientProgramRequestCheckedStaticPlanIssueCode = () => assert.fail('No original static refusal selected');
-  moon.clientProgramReadRequestCheckedStaticPlan = function(parent, original, ...limits) {
-    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
-    assert.deepEqual(limits, [4096, 512, 32, [], false]); events.push('original-plan');
-    reentry = f.view.fundedPreparation(request, environment, undefined, undefined, undefined, bounds);
-    reentry.catch(() => {});
-    return ok(originalWire);
-  };
-  moon.clientProgramFinishRequestComputation = function(parent, original, selected, publication) {
-    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
-    assert.equal(selected, environment); assert.equal(publication, f.context.preparedEnvironment);
-    moon.clientProgramReadRequestCheckedStaticPlan = () => assert.fail('Substituted later namespace method');
-    events.push('compile'); return ok('effectful');
-  };
-  const holder = {}, prepared = {}; let returned = false, retiring = false;
-  const abort = moon.clientProgramAbortRequestPreparation;
-  moon.clientProgramBorrowRequestEffectPlanInput = (parent, original, staticModels) => {
-    assert.equal(parent, f.parent); assert.equal(original, receipt); assert.equal(staticModels, true);
-    events.push('plan-input'); return ok(holder);
-  };
-  moon.clientProgramEffectPreparationInputRead = value => {assert.equal(value, holder); return prepared;};
-  moon.clientProgramEffectPreparationInputRetirementStarted = value => {assert.equal(value, holder); return retiring;};
-  moon.clientProgramEffectPreparationInputReturn = value => {assert.equal(value, holder); returned = true; return ok(false);};
-  moon.clientProgramAbortRequestPreparation = parent => {
-    if (returned) return Reflect.apply(abort, moon, [parent]);
-    retiring = true; return ok(undefined);
-  };
-  moon.clientProgramEffectInferOccurrences = value => {assert.equal(value, prepared); return ok([]);};
-  for (const name of ['clientProgramIssueRequestEffectRunMaterials',
-    'clientProgramPrepareRequestProgramModuleBody', 'clientProgramAdoptRequestEffectPreparation']) {
-    moon[name] = () => assert.fail('Static Effect read cannot enter ' + name);
-  }
-  try {
-    assert.equal(await f.view.fundedPreparation(request, environment, undefined, undefined, undefined, bounds), originalWire);
-    await assert.rejects(reentry, {code: 'ForeignInstalledSourceProducer'});
-    assert.deepEqual(events, ['check', 'compile', 'plan-input', 'original-plan']);
-    assert(!f.calls.includes('retire-registry-original'), 'No submitted alias or Run');
-  } finally {
-    f.view.finishSourceProducer(receipt, 'returned'); await f.view.close();
-  }
-  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
-});
 
 test('static Effect Explanation manager holds its original Request through asynchronous delivery', async () => {
   for (const retireWhileDelivering of [false, true]) {

@@ -49,6 +49,7 @@ export const sourceLocalPythonClientTests = Object.freeze([
   'test_local_storage_batch.py',
   'test_local_storage_capacity.py',
   'test_local_reader_facts.py',
+  'test_local_saved_read_ports.py',
   'test_local_submission.py',
   'test_local_host_files.py',
   'test_local_file_reader.py',

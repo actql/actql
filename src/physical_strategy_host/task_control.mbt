@@ -128,9 +128,13 @@ fn captured_control_authorized(
 // Per-operation capability, not a restriction on legal Programs. In
 // particular a fused prefix, Effect, captured acquisition or raw Input does
 // not acquire a manufactured logical boundary by installing a controller.
-fn captured_control_boundary_available(graph : CheckedDAG, task : Int) -> Bool {
-  guard graph_task_unit_index(graph, task) is Some(stage) &&
-    @checked.unit_pipeline(graph_program(graph), stage) is Some(pipeline) else {
+fn checked_control_boundary_available(
+  graph : CheckedDAG,
+  stage : Int,
+  task : Int,
+  entry? : Bool = false,
+) -> Bool {
+  guard @checked.unit_pipeline(graph_program(graph), stage) is Some(pipeline) else {
     return false
   }
   let count = @pipeline.step_count(pipeline)
@@ -146,7 +150,47 @@ fn captured_control_boundary_available(graph : CheckedDAG, task : Int) -> Bool {
       0
     }
   }
-  graph_stage_operation_task(graph, stage, selected) == Some(task)
+  graph_stage_operation_task(graph, stage, selected) == Some(task) &&
+  (!entry || @pipeline.serialization_order(pipeline, selected) is None)
+}
+
+///|
+/// A single captured port does not own a bulk traversal.
+fn captured_control_boundary_available(graph : CheckedDAG, task : Int) -> Bool {
+  guard graph_task_unit_index(graph, task) is Some(stage) else { return false }
+  checked_control_boundary_available(graph, stage, task)
+}
+
+///|
+/// Find the first unavailable entry boundary on the original checked graph.
+/// The caller must fund at most one stage and one operation visit per task.
+/// This changes no Run state and confers neither current authority nor capacity.
+pub fn checked_task_control_entry_boundary_issue(graph : CheckedDAG) -> Int? {
+  let tasks = @graph.graph_task_count(graph)
+  let stages = graph.stage_tasks_count()
+  if tasks == 0 ||
+    stages > tasks ||
+    @graph.graph_captured_prefix(graph) != 0 ||
+    graph_program_has_effects(graph) {
+    return Some(0)
+  }
+  let mut expected = 0
+  for stage in 0..<stages {
+    for task in graph.stage_tasks_iter_at(stage).unwrap() {
+      // Ordinary checked graphs enumerate physical tasks in authored stage
+      // order. A fused alias repeats a physical task and cannot be a stop.
+      if task != expected ||
+        !checked_control_boundary_available(graph, stage, task, entry=true) {
+        return Some(expected)
+      }
+      expected += 1
+    }
+  }
+  if expected == tasks {
+    None
+  } else {
+    Some(expected)
+  }
 }
 
 ///|
@@ -204,12 +248,10 @@ pub fn prepare_captured_task_control(
     refresh_captured_task_boundary_cleanup(run)
     return Err(Resource(issue))
   }
-  for task in 0..<run.done.length() {
-    if !captured_control_boundary_available(run.graph, task) {
-      hooks.admitting_control = false
-      refresh_captured_task_boundary_cleanup(run)
-      return Err(BoundaryUnavailable(task))
-    }
+  if checked_task_control_entry_boundary_issue(run.graph) is Some(task) {
+    hooks.admitting_control = false
+    refresh_captured_task_boundary_cleanup(run)
+    return Err(BoundaryUnavailable(task))
   }
   let bytes = captured_task_control_construction_bytes(tasks)
   let reservation = match

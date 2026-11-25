@@ -179,6 +179,84 @@ pub fn client_program_relation_prepare_target_delete(
 }
 
 ///|
+#export_name("clientProgramRelationPrepareInsertContract")
+pub fn client_program_relation_prepare_insert_contract(
+  declaration : @client_row_source_host.RowDeclaration,
+  resource : String,
+  primary_identity : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+) -> Result[
+  @client_row_source_host.RelationDocumentPreparedContract,
+  @client_row_source_host.RowMappingIssue,
+] {
+  @client_row_source_host.prepare_relation_document_contract(
+    declaration,
+    resource,
+    primary_identity,
+    { max_bytes, max_nodes, max_depth, max_rows, },
+  )
+}
+
+///|
+#export_name("clientProgramRelationPrepareTargetInsert")
+pub fn client_program_relation_prepare_target_insert(
+  original : @client_row_source_host.RelationDocument,
+  prepared : @client_row_source_host.RelationDocumentPreparedContract,
+  items_path : Array[String],
+  key_path : Array[String],
+  identity : String,
+  mapped_wire : String,
+) -> Result[Bytes, @client_row_source_host.RowSourceIssue] {
+  @client_row_source_host.prepare_relation_target_insert(
+    original,
+    prepared,
+    items_path,
+    Some(key_path),
+    identity,
+    mapped_wire,
+  )
+}
+
+///|
+#export_name("clientProgramRelationInsertWorkspaceCapacity")
+pub fn client_program_relation_insert_workspace_capacity(
+  prepared : @client_row_source_host.RelationDocumentPreparedContract,
+  items_path_depth : Int,
+  original_bytes : Int,
+  mapped_utf16 : Int,
+) -> Result[
+  @execution.ExecutionCapacity,
+  @client_row_source_host.RowSourceIssue,
+] {
+  guard @client_row_source_host.relation_target_insert_workspace_inventory(
+      prepared, items_path_depth, original_bytes, mapped_utf16,
+    )
+    is Some(inventory) &&
+    @execution.preparation_representation_cost(inventory) is Some(bytes) &&
+    @execution.execution_capacity(0L, bytes) is Some(capacity) else {
+    return Err(InvalidPage)
+  }
+  Ok(capacity)
+}
+
+///|
+#export_name("clientProgramEffectFileCreateStorageKey")
+pub fn client_program_effect_file_create_storage_key(
+  run_definition_cid : String,
+  installation_cid : String,
+  effect_identity_cid : String,
+  content_cid : String,
+  occurrence : Int,
+) -> Result[String, @publication.EffectRowOutcomeIssue] {
+  @publication.effect_file_create_storage_key(
+    run_definition_cid, installation_cid, effect_identity_cid, content_cid, occurrence,
+  )
+}
+
+///|
 #export_name("clientProgramRelationAcceptChargedDocument")
 pub fn client_program_relation_accept_charged_document(
   run : @client_row_source_host.RowRun,
@@ -221,45 +299,4 @@ pub fn client_program_relation_target_row_identity(
   index : Int,
 ) -> String? {
   @client_row_source_host.relation_target_row_identity(document, index)
-}
-
-///|
-// Static writable facts remain declaration DATA. Current permission and
-// approval must still be established by the normal Effect/Host boundary.
-#export_name("clientProgramRelationUpdateMapping")
-pub fn client_program_relation_update_mapping(
-  declaration : @client_row_source_host.RowDeclaration,
-  resource : String,
-  primary_identity : String,
-  writable_fields : Array[String],
-  permission : String,
-  approval : String,
-) -> Result[String, @client_row_source_host.RowMappingIssue] {
-  if writable_fields.length() > 1024 {
-    return Err(@client_row_source_host.InvalidSpecification)
-  }
-  @client_row_source_host.prepare_relation_row_write_mapping(
-    declaration,
-    resource,
-    primary_identity,
-    {
-      kind: @client_row_source_host.RelationUpdate,
-      writable_fields,
-      required_fields: [],
-      permission,
-      approval,
-    },
-    writable_fields.map(name => {
-      target: name,
-      field: name,
-      null_behavior: "reject",
-    }),
-    {
-      max_bytes: 1048576,
-      max_nodes: 65536,
-      max_depth: 64,
-      max_views: 1024,
-      max_fields: 1024,
-    },
-  ).map(mapping => mapping.body)
 }

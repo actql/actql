@@ -30,7 +30,7 @@ test('parameter path expansion retains independent value type NULL and duplicate
 
 test('parameter path cases use the normal corpus and its existing Local HTTPS consumer', () => {
   const fixture = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...unnestSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...unnestRefusals)'));
   assert.ok(fixture.includes('unnestParameterPathOnly ? {successes: unnestParameterPathSuccesses'));

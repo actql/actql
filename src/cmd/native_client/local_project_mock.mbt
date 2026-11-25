@@ -752,12 +752,22 @@ fn LocalProjectMockDeclarations::account_subjects(
         sources.push(subject)
       }
     }
+    let previous_sources = targets.length()
     for write in source._retained_writes {
       let subject = (source._retained_connection, write.mapping.resource)
-      if targets.contains(subject) {
-        return Some(Err(ForeignOriginal))
+      let mut duplicate = false
+      for index, existing in targets {
+        if existing == subject {
+          if index < previous_sources {
+            return Some(Err(ForeignOriginal))
+          }
+          duplicate = true
+          break
+        }
       }
-      targets.push(subject)
+      if !duplicate {
+        targets.push(subject)
+      }
     }
   }
   for model in self.models {

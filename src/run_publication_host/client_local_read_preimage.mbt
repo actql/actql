@@ -6,6 +6,7 @@ pub(all) enum ClientLocalReadEvidenceValue {
   Quantity(Int)
   Texts(Array[String])
   AllowedReads(String)
+  AllowedReadResource(String)
 }
 
 ///|
@@ -37,9 +38,14 @@ pub fn encode_client_local_read_preimage(
           }
           @encode.end_array(writer)
         }
-        AllowedReads(result_name) => {
+        AllowedReads(name) | AllowedReadResource(name) => {
+          let resource = if value is AllowedReads(_) {
+            "result/" + name
+          } else {
+            name
+          }
           @encode.begin_array(writer)
-          for resource in ["run", "result/" + result_name] {
+          for resource in ["run", resource] {
             @encode.begin_object(writer)
             @encode.key(writer, "operation")
             @encode.string_value(writer, "read")

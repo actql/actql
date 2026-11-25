@@ -18,6 +18,8 @@ import {issueStoredGeneratedContent, retainGeneratedContentEvidence} from './gen
 import {publishCompletedEffectFreeRun} from '../host-common/completed-run-publication.mjs';
 import {serializationPublicationExecution} from './serialization-result-publication.mjs';
 import {serializationTaskPublicationPlan} from './local-values-plan.mjs';
+import {fundedAuthoringContextOriginalFixture, openFundedClientPreparation} from
+  './funded-client-preparation.fixture.mjs';
 
 const runtime = runtimeCore(moon);
 const control = runtime.contentGenerationControl;
@@ -31,9 +33,13 @@ const registry = await readFile(new URL('../../spec/dependencies/aoa-pipeline-re
   import.meta.url), 'utf8');
 const aoa = JSON.parse(await readFile(new URL('../../spec/contracts/actql-aoa.json',
   import.meta.url), 'utf8'));
-const bodies = {registry, values: JSON.stringify(aoa.execution_contracts['REL.values']),
-  fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-  ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+const bodies = {
+  registry: checked(moon.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered)),
+  values, fragment, ordered,
+};
 const prefixLimits = {maxRows: 3, maxWork: 100000, maxEntries: 1000,
   maxValueBytes: 4096, maxValueNodes: 1000, maxValueDepth: 16, maxFrames: 100};
 const generationLimits = {maxRows: 3, maxBytes: 128, maxValueNodes: 1000,
@@ -77,8 +83,8 @@ function expectedReference(bytes, mediaType, workCase) {
         capture_authority_cid: token('6'), evidence_cid: issuerCid}}};
 }
 
-function preparation({empty = false, detour = false, format = 'jsonl'} = {}) {
-  const program = {version: 'actql/0.1', id: 'local-content-input',
+function contentProgram({empty = false, detour = false, format = 'jsonl'} = {}) {
+  return {version: 'actql/0.1', id: 'local-content-input',
     stages: [{id: 'main', inputs: {}, steps: [
       {values: {schema: {id: {type: 'number', nullable: false},
         p: {type: 'number', nullable: true}},
@@ -93,8 +99,11 @@ function preparation({empty = false, detour = false, format = 'jsonl'} = {}) {
     ], results: {file: {from: 'file', fields: ['name', 'content', 'media_type',
       'size_bytes', 'row_count']}}}],
     results: {file: {from: {stage: 'main', result: 'file'}}}};
+}
+
+function preparation(options) {
   const prepared = moon.clientProgramPrepareEffectFreeWithParameters(
-    JSON.stringify(program), 'json', environment, undefined);
+    JSON.stringify(contentProgram(options)), 'json', environment, undefined);
   const value = moon.clientProgramPreparationReady(prepared);
   assert.ok(value, moon.clientProgramPreparationIssueCode(prepared));
   return value;
@@ -111,6 +120,7 @@ async function fixture(t, options = {}) {
   options.durability?.(directory));
   let prefix;
   let writer;
+  let funded;
   t.after(async () => {
     // Retire this same physical writer before closing its Store. If cleanup
     // fails, retain the directory rather than erase its pending evidence.
@@ -121,8 +131,11 @@ async function fixture(t, options = {}) {
     }
     await store.close();
     await rm(directory, {recursive: true, force: true});
+    await funded?.close();
   });
-  const prepared = preparation(options);
+  if (options.funded) funded = await openFundedClientPreparation({moon, environment});
+  const prepared = funded === undefined ? preparation(options)
+    : await funded.prepare({kind: 'program', input: contentProgram(options), parameters: null});
   const barrier = control.prepare(prepared, 0, 2, 3);
   const capacity = control.prefixCapacity(prepared, 0, 2, bodies, prefixLimits);
   const ledger = checked(moon.clientProgramAcquisitionLedger(1, 0, 0n,
@@ -228,7 +241,7 @@ test('prefix transport refuses rollback or overflowing work instead of returning
 });
 
 test('actual stored Content closes only its compiled Run component and preserves byte lifetime', async t => {
-  const value = await fixture(t, {capacityBytes: 262144, maxObjectBytes: 65536, maxObjects: 100});
+  const value = await fixture(t, {capacityBytes: 262144, maxObjectBytes: 65536, maxObjects: 100, funded: true});
   const policy = {kind: 'data_policy',
     cid: 'sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563',
     wire: '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}'};
@@ -503,6 +516,7 @@ test('actual stored Content closes only its compiled Run component and preserves
       }};
       const options = {moon, control: publications, preparedProgram: value.prepared,
         admitted: {...compiled, compiled, runDefinition: definition,
+          authoringContextOriginal: fundedAuthoringContextOriginalFixture(moon, value.prepared),
           createdAt: '2026-10-09T00:00:00.000Z'}, generation, authorityScopeCid: token('6'),
         namespaceId: 'local', storeAuthorityCid: token('1'), outputLimits: resultLimits,
         now: () => '2026-10-09T00:00:03.000Z'};

@@ -325,3 +325,27 @@ test "source-free SELECT one publishes original Result manifest and Receipt" {
   assert_eq(@resources.ledger_usage(root).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 0L)
 }
+
+///|
+test "Local commit evidence shares only exact Result retentions" {
+  let first = source_free_retention()
+  let equal = source_free_retention()
+  let distinct = @publication.issue_result_retention_for_data_policy(
+    first, "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    65536, 4096, 64,
+  ).unwrap()
+  assert_false(physical_equal(first, equal))
+  let policies = []
+  assert_true(
+    @publication.append_unique_result_retention_evidence(policies, first),
+  )
+  assert_true(
+    @publication.append_unique_result_retention_evidence(policies, distinct),
+  )
+  assert_true(
+    @publication.append_unique_result_retention_evidence(policies, equal),
+  )
+  assert_eq(policies.length(), 2)
+  assert_true(physical_equal(policies[0], first))
+  assert_true(physical_equal(policies[1], distinct))
+}

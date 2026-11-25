@@ -347,7 +347,7 @@ pub fn capture_client_run_observation_originals(ClientCompiledRun, @run_publicat
 
 pub fn capture_client_static_effect_explanation_original(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int, computation_wire? : @ref.Ref[String?]?) -> Result[(ClientStaticEffectExplanationOriginal, String), ClientStaticExplanationSourceIssue]
 
-pub fn capture_client_static_pure_explanation_original(PreparedClientProgram, ClientRunCompilation, Int, Int, Int) -> Result[(ClientStaticPureExplanationOriginal, String), ClientStaticExplanationSourceIssue]
+pub fn capture_client_static_pure_explanation_original(PreparedClientProgram, ClientRunCompilation, Int, Int, Int, debug_entry? : Bool) -> Result[(ClientStaticPureExplanationOriginal, String), ClientStaticExplanationSourceIssue]
 
 pub fn capture_client_structural_explanation_original(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientStructuralExplanationOriginal, ClientExplanationFactsIssue]
 
@@ -871,6 +871,8 @@ pub fn client_effect_source_free_invocation_original_matches(ClientEffectSourceF
 
 pub fn client_effect_source_free_invocation_original_observation(ClientEffectSourceFreeInvocationOriginal) -> @run_publication.RunEvidenceValue
 
+pub fn client_effect_source_free_result_original_scope(ClientEffectLocalResultArtifact, ClientEffectSourceFreeInvocationOriginal) -> @run_publication.PublicationContract?
+
 pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
 
 pub fn client_effect_source_unit_artifact_construction_geometry(ClientEffectCombinedSourceUnit, String, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], ClientEffectLocalResultArtifactIssue]
@@ -1145,6 +1147,8 @@ pub fn[Store, E] client_local_adopted_authority_scope_body(ClientLocalAdoptedHos
 
 pub fn[Store, E] client_local_adopted_current_account(ClientLocalAdoptedHostMaterial[Store, E], Store) -> Result[@execution_authorization.AdmittedAccountConfiguration, ClientLocalAdoptedCurrentIssue[E]]
 
+pub fn[Store, E] client_local_adopted_result_read_resource(ClientLocalAdoptedHostMaterial[Store, E], Store, @execution_authorization.AccessTuple, Bool) -> Result[String?, ClientLocalAdoptedCurrentIssue[E]]
+
 pub fn client_local_authority_scope_body(@execution_authorization.AdmittedAccountConfiguration, String, String, String) -> Result[Bytes, ClientLocalAuthorityScopeIssue]
 
 pub fn client_local_checkpoint_effect_subject(ClientEffectRunMaterials, String, String) -> Result[(String, String), ClientLocalCheckpointProofIssue]
@@ -1407,7 +1411,7 @@ pub fn client_publication_witness_bodies(ClientPublicationWitnesses) -> Array[St
 
 pub fn client_publication_witness_cids(ClientPublicationWitnesses) -> Array[String]
 
-pub fn client_pure_compilation_static_plan_view(ClientRunCompilation, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientCompiledRunPlanIssue]
+pub fn client_pure_compilation_static_plan_view(ClientRunCompilation, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, debug_entry? : Bool) -> Result[String, ClientCompiledRunPlanIssue]
 
 pub fn client_query_requirement_matches_effect_program(PreparedClientEffectComputation, Int, Int, @query_planning.QueryRequirement) -> Bool
 
@@ -2271,7 +2275,7 @@ pub fn lower_client_source_input_query(ClientSourceInput, @client_source_publica
 
 pub fn measure_client_compiled_explanation_facts(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
 
-pub fn measure_client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
+pub fn measure_client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, debug_entry? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
 pub fn measure_client_debug_graph_construction(@program_check.CheckedProgram, Int, Int, @ref.Ref[Int64]) -> Result[(Int64, Int), ClientProgramPreparationIssue]
 
@@ -2287,7 +2291,7 @@ pub fn measure_client_operation_explanation_structural(ClientOperationExplanatio
 
 pub fn measure_client_pure_compilation_explanation_facts(ClientRunCompilation, PreparedClientProgram, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
 
-pub fn measure_client_pure_compilation_static_plan_view(ClientRunCompilation, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
+pub fn measure_client_pure_compilation_static_plan_view(ClientRunCompilation, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, debug_entry? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
 pub fn measure_client_static_effect_explanation_context(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, ClientStaticExplanationSourceIssue]
 
@@ -4491,6 +4495,7 @@ pub(all) enum ClientLocalReadEvidenceValue {
   Quantity(Int)
   Texts(Array[String])
   AllowedReads(String)
+  AllowedReadResource(String)
 }
 
 pub(all) enum ClientLocalReadPreimageIssue {

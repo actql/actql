@@ -138,7 +138,7 @@ test('resource sequence evidence keeps both registered overlap cases connected',
 
 test('resource Graph evidence follows the captured registry and the suite registration', () => {
   const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
-  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mts')].text;
   const item = {suite: 'node:graph_public_host', role: 'graph_projection_public_store',
     fixture: 'presence selection sort and take survives Relation Store and public Named Results through local'};
   assert.equal(registeredResourceEnvironmentCase(item, source, registry, 'node_rows'), true);
@@ -184,7 +184,7 @@ const graphOperationCancellationEvidence = [
 
 test('current Graph cancellation evidence resolves the actual positive-work operation cases', () => {
   const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
-  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mts')].text;
   for (const [operation, prefix, , title] of graphOperationCancellationEvidence) {
     for (const mode of ['local', 'remote']) {
       const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
@@ -198,7 +198,7 @@ test('current Graph cancellation evidence resolves the actual positive-work oper
 
 test('current Graph cancellation evidence refuses missing work stop cleanup and reuse checks', () => {
   const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
-  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mts')].text;
   for (const [before, after] of [
     ["name === 'local_compute_advanced' && detail.task === cancellationTask", "name === 'computed' && detail.task === cancellationTask"],
     ['assert.ok(BigInt(detail.work) > 0n)', 'assert.ok(BigInt(detail.work) >= 0n)'],
@@ -221,7 +221,7 @@ test('current Graph cancellation evidence refuses missing work stop cleanup and 
 
 test('current Graph cancellation evidence cannot borrow another operation basic Mean or a missing call', () => {
   const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
-  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mts')].text;
   for (const [operation, prefix, , title] of graphOperationCancellationEvidence) {
     const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
       role: `${prefix}_public_in_flight_cancel_cleanup`,
@@ -248,7 +248,7 @@ test('current Graph cancellation evidence cannot borrow another operation basic 
 });
 
 test('resource validation refuses a detached captured Graph fixture registry', () => {
-  const file = join(root, 'scripts/fixtures/graph-host-cases.mjs');
+  const file = join(root, 'scripts/fixtures/graph-host-cases.mts');
   const sources = Object.freeze({...sourceTemplate,
     [file]: Object.freeze({exists: true, text: ''})});
   const errors = validateResourceAccounting({root, manifest: manifestTemplate,
@@ -4402,38 +4402,40 @@ test('shared output reclamation requires installed custody and independent fixtu
   }
 });
 
-test('shared counted Cross Join reclamation requires its original completion and buffer custody', () => {
-  const baseline = validateResourceAccounting({root, manifest: manifestTemplate,
-    routes: routesTemplate, sources: sourceTemplate});
-  const message = 'cross_join: shared output reclamation custody connection is missing';
-  assert.ok(!baseline.errors.includes(message));
-  const mutations = [
-    ['src/execution_relation/bounded_cross_join.mbt',
-      'reclaim_bounded_admitted_output_counted(', 'missing_reclamation('],
-    ['src/execution_relation/bounded_cross_join.mbt',
-      '      state.accepted.val,', '      false,'],
-    ['src/execution_relation/bounded_cross_join.mbt',
-      'if !released {', 'if removed == 0 {'],
-    ['src/execution_relation/bounded_cross_join.mbt',
-      '    state.output = None', '    state.output = Some(output)'],
-    ['src/execution_relation/admitted_output.mbt',
-      'return (true, 0)', 'return (false, 0)'],
-    ['src/execution_relation/admitted_output.mbt',
-      'advance_admitted_buffer_reclamation_counted(output.buffer, 64)',
-      'advance_admitted_buffer_reclamation_counted(other.buffer, 64)'],
-    ['src/connectors/local/cross_join_provider.mbt',
-      '@execution.bounded_cross_join_cleanup_pending(', 'missing_cleanup_pending('],
-  ];
-  for (const [relative, marker, replacement] of mutations) {
-    const file = join(root, relative), source = sourceTemplate[file];
-    assert.ok(source?.exists && source.text.includes(marker), marker);
-    const sources = Object.freeze({...sourceTemplate,
-      [file]: Object.freeze({...source, text: source.text.replace(marker, replacement)})});
-    const result = validateResourceAccounting({root, manifest: manifestTemplate,
-      routes: routesTemplate, sources});
-    assert.ok(result.errors.includes(message), `${relative}: ${marker}`);
-  }
-});
+for (const kernel of ['cross_join', 'unnest']) {
+  test(`shared counted ${kernel} reclamation requires original completion and buffer custody`, () => {
+    const baseline = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources: sourceTemplate});
+    const message = `${kernel}: shared output reclamation custody connection is missing`;
+    assert.ok(!baseline.errors.includes(message));
+    const execution = `src/execution_relation/bounded_${kernel}.mbt`;
+    const mutations = [
+      [execution, 'reclaim_bounded_admitted_output_counted(', 'missing_reclamation('],
+      [execution, '      state.accepted.val,', '      false,'],
+      [execution, 'if !released {', 'if removed == 0 {'],
+      [execution, '    state.output = None', '    state.output = Some(output)'],
+      ['src/execution_relation/admitted_output.mbt',
+        'return (true, 0)', 'return (false, 0)'],
+      ['src/execution_relation/admitted_output.mbt',
+        'advance_admitted_buffer_reclamation_counted(output.buffer, 64)',
+        'advance_admitted_buffer_reclamation_counted(other.buffer, 64)'],
+      ['src/execution_relation/admitted_output.mbt',
+        'advance_admitted_buffer_reclamation_counted(output.buffer, 64)',
+        'advance_admitted_buffer_reclamation_counted(output.buffer, 128)'],
+      [`src/connectors/local/${kernel}_provider.mbt`,
+        `@execution.bounded_${kernel}_cleanup_pending(`, 'missing_cleanup_pending('],
+    ];
+    for (const [relative, marker, replacement] of mutations) {
+      const file = join(root, relative), source = sourceTemplate[file];
+      assert.ok(source?.exists && source.text.includes(marker), marker);
+      const sources = Object.freeze({...sourceTemplate,
+        [file]: Object.freeze({...source, text: source.text.replace(marker, replacement)})});
+      const result = validateResourceAccounting({root, manifest: manifestTemplate,
+        routes: routesTemplate, sources});
+      assert.ok(result.errors.includes(message), `${relative}: ${marker}`);
+    }
+  });
+}
 
 test('sequence position assurance requires boundary and retained public evidence', () => {
   for (const part of ['quantum','workspace','stop','cleanup','public']) {

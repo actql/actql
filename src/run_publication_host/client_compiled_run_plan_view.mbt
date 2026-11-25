@@ -40,6 +40,7 @@ pub fn client_pure_compilation_static_plan_view(
   max_nodes : Int,
   max_depth : Int,
   inspect_installed? : Bool = false,
+  debug_entry? : Bool = false,
 ) -> Result[String, ClientCompiledRunPlanIssue] {
   let plan = match
     client_pure_compilation_original_plan(prepared, compilation) {
@@ -47,7 +48,13 @@ pub fn client_pure_compilation_static_plan_view(
     Ok(value) => value
   }
   issue_client_static_plan_view(
-    prepared, plan, max_bytes, max_nodes, max_depth, inspect_installed,
+    prepared,
+    plan,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    inspect_installed,
+    debug_entry~,
   ).map_err(issue => Projection(issue))
 }
 

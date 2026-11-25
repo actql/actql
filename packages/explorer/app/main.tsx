@@ -1,16 +1,18 @@
 import type {CheckpointPageModel,ReviewObservation,ReviewReference} from '@actql/explorer-ui/checkpoint-review';
-import {useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode} from 'react';
+import {useCallback, useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode} from 'react';
 import {createRoot} from 'react-dom/client';
-import {PlanExplorer, RunInspector, CancellationPanel, CheckpointPanel} from '@actql/explorer-ui/plan-explorer';
+import {PlanExplorer, OriginalPlanMetadata, RunInspector, CheckpointPanel} from '@actql/explorer-ui/plan-explorer';
 import type {OriginalCancellation, CancellationObservation} from '@actql/explorer-ui/plan-explorer';
-import {validCancellationRef, validOperationAttemptRef, validRunRef} from '@actql/client-wire';
+import {resumeControlOperationRef, validCancellationRef, validOperationAttemptRef, validRunRef} from '@actql/client-wire';
 import type {RunReference} from '@actql/sdk';
-import type {WireCancellationLookup, WireSubmissionRef} from '@actql/client-wire';
-import {observedPlanStep, type RunObservationModel} from '@actql/explorer-ui/run-observation';
-import type {PlanReadModel, StaticExplanationReadModel, OriginalRunPlanReadModel, OriginalRunPresentationReadModel, SavedExplanationReadModel, ExplanationStoryModel} from '@actql/explorer-ui/read-model';
+import type {WireCancellationLookup, WireControlOperationLookup, WireControlOperationRef, WireRunSample, WireSubmissionRef} from '@actql/client-wire';
+import {observedPlanStep, runObservationModel, storyNextPause, type RunObservationModel, type StoryNextPause} from '@actql/explorer-ui/run-observation';
+import type {PlanReadModel, StaticExplanationReadModel, OriginalRunPlanReadModel, OriginalRunPresentationReadModel, SavedExplanationReadModel, ExplanationStoryModel, SamplePortSelection} from '@actql/explorer-ui/read-model';
+import {expectedStoryPortColumns, storySamplePorts, sampleCaptureCaption, sampleCellPreview} from '@actql/explorer-ui/read-model';
 import {createExplorerBrowserSource, type ExplorerStartObservation} from '@actql/explorer/browser-source';
 import '@actql/explorer-ui/styles.css';
 import './styles.css';
+import {storyCardGroups, type StoryGroup} from './story-card-groups.mts';
 
 type StoryContext = StaticExplanationReadModel['context'];
 type Step = ExplanationStoryModel['occurrences'][number];
@@ -51,7 +53,7 @@ function StoryHeading({story, context}: {story: ExplanationStoryModel; context: 
   </>;
 }
 
-type StepState = 'Planned' | 'Unknown' | 'Observed';
+type StepState = 'Planned' | 'Unknown' | 'Observed' | 'Next';
 
 function graphStepLabels(story: ExplanationStoryModel | undefined, context: StoryContext,
   stageResultLinks: PlanReadModel['stageResultLinks']) {
@@ -100,22 +102,20 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
       labels.set(step.stepId, {kind: 'Result', title: `${ja ? '結果' : 'Return'} ${outputs.join(', ')}`});
     } else if (meaning.kind === 'projection' && meaning.operation === 'select') {
       labels.set(step.stepId, {title: ja ? 'フィールドを選択' : 'Select fields'});
+    } else if (step.operator === 'assert_rows') {
+      labels.set(step.stepId, {title: ja ? '行の制約を確認' : 'Check row constraints'});
     } else if (step.operator === 'filter') {
       labels.set(step.stepId, {title: ja ? '行を絞り込む' : 'Filter rows'});
     }
   }
   if (story) {
     const reads = context.filter(({origin}) => origin.kind === 'source');
-    const {source, model} = storyProjections(story, reads, context, stageResultLinks);
+    const source = storyProjections(story, reads, stageResultLinks);
     for (const [index, {step}] of source) {
       const {origin} = reads[index];
       if (origin.kind !== 'source') continue;
       const {resource, connector} = origin.source_view;
       labels.set(step.stepId, {kind: connector, title: ja ? `${resource} を読む` : `Read ${resource}`, sourceInput: true});
-    }
-    for (const [id, {step}] of model) {
-      const related = labels.get(id);
-      if (related) labels.set(step.stepId, related);
     }
   }
   return labels;
@@ -151,6 +151,13 @@ function StoryCard({ordinal, label, title, detail, system, state, open, selected
   </li>;
 }
 
+function PlanAdvanced({model, ja}: {model: PlanReadModel; ja: boolean}) {
+  return <details className="original-plan-advanced">
+    <summary>{ja ? '詳細 · 元のプラン' : 'Advanced · original Plan'}</summary>
+    <OriginalPlanMetadata model={model} workspace locale={ja ? 'ja' : 'en'}/>
+  </details>;
+}
+
 type PlanNode = PlanReadModel['nodes'][number];
 
 function planNodeTitle(node: PlanNode, locale: 'en' | 'ja') {
@@ -158,11 +165,13 @@ function planNodeTitle(node: PlanNode, locale: 'en' | 'ja') {
     (locale === 'ja' ? '入出力' : 'Input / output');
 }
 
-function PlanSteps({map, boundary, selection, select, graph, locale}: {
+function PlanSteps({map, boundary, selection, select, graph, locale, pause, readSample, saved}: {
   map: PlanReadModel; boundary?: {stepId: string; state: StepState}; selection?: string;
-  select(id: string): void; graph: boolean; locale: 'en' | 'ja';
+  select(id: string): void; graph: boolean; locale: 'en' | 'ja'; pause?: StoryNextPause; readSample?: SampleRead; saved: boolean;
 }) {
   const [collapsed, setCollapsed] = useState<string>();
+  const steps = useMemo(() => new Map(map.nodes.map(node => [node.id,
+    {stepId: node.id, ports: node.ports, title: planNodeTitle(node, locale)}])), [map, locale]);
   const ja = locale === 'ja';
   return <section aria-label={graph ? 'Selected Step' : 'Original steps'}>
     <ol className="story-steps">
@@ -170,6 +179,7 @@ function PlanSteps({map, boundary, selection, select, graph, locale}: {
         const selected = selection === node.id;
         if (graph && !selected) return null;
         const open = graph || selected && collapsed !== node.id;
+        const step = steps.get(node.id)!;
         return <StoryCard key={node.id} ordinal={index + 1} label={ja ? '論理工程' : 'Logical step'}
           title={planNodeTitle(node, locale)} selected={selected}
           state={node.id === boundary?.stepId ? boundary.state : undefined}
@@ -177,6 +187,9 @@ function PlanSteps({map, boundary, selection, select, graph, locale}: {
             select(node.id);
             setCollapsed(open && !graph ? node.id : undefined);
           }}>
+          {open && <StepData step={step} plan={map} saved={saved} readSample={readSample}/>}
+          {open && pause?.stepId === node.id && <NextInputs key={pause.revision}
+            step={step} plan={map} steps={steps} pause={pause} readSample={readSample}/>}
           <details><summary>{ja ? '元の工程とポート' : 'Original step and ports'}</summary>
             {node.names.length > 0 && <p>{node.names.map(name => <code key={name}>{name}</code>)}</p>}
             <code>{node.id}</code>
@@ -184,19 +197,20 @@ function PlanSteps({map, boundary, selection, select, graph, locale}: {
               {port.role} · {port.carrier} · <code>{port.port_id}</code>
             </li>)}</ul>
           </details>
+          {selected && <PlanAdvanced model={map} ja={ja}/>}
         </StoryCard>;
       })}
     </ol>
   </section>;
 }
 
-function StepOrigin({step, label, select, folded = false}: {
-  step: Step; label?: string; select?(): void; folded?: boolean;
+function StepOrigin({step, label, select, folded = false, state}: {
+  step: Step; label?: string; select?(): void; folded?: boolean; state?: StepState;
 }) {
   const meaning = step.explanation.meaning;
   return <div className="occurrence-origin">
     {!folded && <><strong>{stepTitle(step, label)}</strong><p><StoryText text={step.explanation.text}/></p></>}
-    <details><summary>Original step and ports</summary>
+    <details><summary>Original step and ports{state && <span className="workspace-chip step-state">{state}</span>}</summary>
       {folded && <p><StoryText text={step.explanation.text}/></p>}
       {meaning.kind === 'join' && <ul aria-label="Checked join key pairs">
         {meaning.keys.map(({left,right},index)=><li key={index}><code>{left}</code> = <code>{right}</code></li>)}
@@ -209,14 +223,189 @@ function StepOrigin({step, label, select, folded = false}: {
   </div>;
 }
 
+type SampleStep = Readonly<{stepId: string; ports: Step['ports']; title: string}>;
+type SamplePlan = Pick<PlanReadModel, 'compiledPlanCid' | 'logicalMapCid'>;
+type SampleRead = (port: SamplePortSelection) => Promise<WireRunSample | undefined>;
+type SampleDisplay = WireRunSample | {state: 'reading'} | {state: 'read_failed'};
+
+function sampleMessage(sample: Exclude<SampleDisplay, {state: 'available'}>) {
+  switch (sample.state) {
+    case 'reading': return 'Reading the retained sample…';
+    case 'read_failed': return 'The Host could not provide this sample.';
+    case 'forbidden': return 'Sample access denied.';
+    case 'expired': return 'This sample has expired.';
+    case 'unknown': return 'The sample read outcome is unknown.';
+    case 'unavailable':
+      switch (sample.reason) {
+        case 'not_retained': return 'No sample was retained for this port.';
+        case 'selection_required': return 'This port has no unique retained sample.';
+        case 'not_supported': return 'The Host cannot read a sample for this port.';
+        case 'not_sealed': return 'This sample is not sealed.';
+        case 'evicted': return 'This sample was evicted.';
+        case 'capacity': return 'The sample exceeded the read budget.';
+      }
+  }
+}
+
+function ColumnTable({label, names, caption, children}: {
+  label: string; names: readonly (string | null)[]; caption?: string; children?: ReactNode;
+}) {
+  return <div className="step-data-scroll" tabIndex={0} role="region" aria-label={label}>
+    <table className="step-data-table">
+      {caption !== undefined && <caption>{caption}</caption>}
+      <thead><tr>{names.map((name, index)=>
+      <th key={index} scope="col">{name ?? `Column ${index + 1}`}</th>)}</tr></thead>
+      {children}
+    </table>
+  </div>;
+}
+
+function ExpandableSampleCell({text, preview, row, column}: {
+  text: string; preview: string; row: number; column: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const content = useId();
+  return <>
+    <span id={content}>{expanded ? text : preview}{!expanded && <span aria-hidden="true">…</span>}</span>
+    <button type="button" className="sample-cell-toggle" aria-expanded={expanded} aria-controls={content}
+      aria-label={`${expanded ? 'Collapse' : 'Expand'} cell in row ${row + 1}, column ${column + 1}`}
+      onClick={()=>setExpanded(!expanded)}>{expanded ? 'Collapse' : 'Expand cell'}</button>
+  </>;
+}
+
+function SampleCellText({text, row, column}: {text: string; row: number; column: number}) {
+  const preview = sampleCellPreview(text);
+  return preview === text ? text : <ExpandableSampleCell text={text} preview={preview} row={row} column={column}/>;
+}
+
+function RetainedRelationTable({sample, label}: {sample: Extract<WireRunSample, {state: 'available'}>; label: string}) {
+  const relation = sample.data;
+  if (relation.kind !== 'relation') return null;
+  return <ColumnTable label={label} caption={sampleCaptureCaption(sample.capture)}
+    names={relation.columns.map(column=>column.name)}>
+    <tbody>{relation.rows.map((row, index)=><tr key={index}>{row.map((cell, column)=>
+      <td key={column}>{cell.presence === 'absent' ? <em>Absent</em> : cell.value === null ? <code>NULL</code> :
+        <SampleCellText text={typeof cell.value === 'string' ? cell.value : JSON.stringify(cell.value)}
+          row={index} column={column}/>}</td>)}</tr>)}</tbody>
+  </ColumnTable>;
+}
+
+function nextSampleProducer(steps: ReadonlyMap<string, SampleStep>, input: Step['ports'][number],
+  sample: Extract<WireRunSample, {state: 'available'}>) {
+  const producer = sample.source.producer;
+  if (sample.data.kind !== 'relation' || producer.kind !== 'logical_output') return undefined;
+  const source = input.source;
+  if (source.kind === 'logical_output' && (source.step_id !== producer.step_id ||
+      source.output_port_id !== producer.output_port_id)) return undefined;
+  const step = steps.get(producer.step_id);
+  return step?.ports.some(output=>output.role === 'output' && output.port_id === producer.output_port_id &&
+    output.carrier === input.carrier && output.carrier_contract_cid === input.carrier_contract_cid) ? step : undefined;
+}
+
+function NextInputs({step, plan, steps, pause, readSample}: {
+  step: SampleStep; plan: SamplePlan; steps: ReadonlyMap<string, SampleStep>;
+  pause: StoryNextPause; readSample?: SampleRead;
+}) {
+  const inputs = useMemo(()=>step.ports.filter(port=>port.role === 'input')
+    .filter(port=>port.carrier === 'relation'), [step]);
+  const [samples, showSamples] = useState<Record<string, SampleDisplay>>({});
+  const {revision, expires} = pause;
+  const {compiledPlanCid, logicalMapCid} = plan;
+  useEffect(()=>{
+    if (!readSample) return;
+    let mounted = true;
+    const current = () => mounted && Date.now() < expires;
+    const read = async () => {
+      for (const port of inputs) {
+        if (!current()) return;
+        let sample: SampleDisplay | undefined;
+        try {
+          sample = await readSample({stepId: step.stepId, portId: port.port_id, role: 'input',
+            carrierContractCid: port.carrier_contract_cid, compiledPlanCid, logicalMapCid, nextRevision: revision});
+          if (sample?.state === 'available' && !nextSampleProducer(steps, port, sample)) sample = {state: 'read_failed'};
+        } catch {
+          sample = {state: 'read_failed'};
+        }
+        if (!current() || !sample) return;
+        const nextSample = sample;
+        showSamples(values=>({...values, [port.port_id]: nextSample}));
+      }
+    };
+    void read();
+    return ()=>{mounted = false;};
+  }, [compiledPlanCid, expires, inputs, logicalMapCid, readSample, revision, step.stepId, steps]);
+  return <section className="step-data" aria-label="Next step inputs">
+    <strong>Inputs at this pause</strong>
+    {inputs.length === 0 && <p>No Relation inputs are projected for this Step.</p>}
+    {inputs.map(port=>{
+      const sample = samples[port.port_id];
+      const upstream = sample?.state === 'available' ? nextSampleProducer(steps, port, sample) :
+        port.source.kind === 'logical_output' ? steps.get(port.source.step_id) : undefined;
+      const label = `Input ${port.port_ordinal + 1}${upstream ? ` · ${upstream.title}` : ''}`;
+      return <section className="next-input" key={port.port_id} aria-label={label}>
+        <strong>{label}</strong>
+        {!readSample ? <p>Sample reading is unavailable.</p> :
+          sample?.state === 'available' ? <RetainedRelationTable sample={sample} label={`Captured rows · ${label}`}/> :
+          <p role="status">{sampleMessage(sample ?? {state: 'reading'})}</p>}
+      </section>;
+    })}
+  </section>;
+}
+
+function StepData({step, plan, expectedColumns, saved, readSample}: {
+  step: SampleStep; plan: SamplePlan; expectedColumns?(port: Step['ports'][number]): readonly string[] | undefined;
+  saved: boolean; readSample?: SampleRead;
+}) {
+  const ports = storySamplePorts(step);
+  const ambiguousOutput = step.ports.filter(port=>port.role === 'output').length > 1;
+  const [selectedPort, selectPort] = useState<string>();
+  const [sample, showSample] = useState<SampleDisplay>();
+  const request = useRef(0);
+  useEffect(() => () => {request.current++;}, []);
+  const port = ports.find(item=>item.port_id === selectedPort) ?? ports.find(item=>item.role === 'output') ?? ports[0];
+  const expected = !saved && port ? expectedColumns?.(port) : undefined;
+  const load = async () => {
+    if (!port || !readSample) return;
+    const issued = ++request.current;
+    showSample({state: 'reading'});
+    try {
+      const value = await readSample({stepId: step.stepId, portId: port.port_id, role: port.role,
+        carrierContractCid: port.carrier_contract_cid, compiledPlanCid: plan.compiledPlanCid,
+        logicalMapCid: plan.logicalMapCid});
+      if (request.current === issued && value) showSample(value);
+    } catch {
+      if (request.current === issued) showSample({state: 'read_failed'});
+    }
+  };
+  const retained = sample?.state === 'available' && sample.data.kind === 'relation' ? sample : undefined;
+  return <section className="step-data" data-step-id={step.stepId} aria-label={saved ? 'Step sample' : 'Expected columns'}>
+    <strong>{saved ? 'Sample data' : 'Expected columns'}</strong>
+    {ports.length > 1 && <label className="step-data-port">Relation port <select value={port?.port_id}
+      onChange={event=>{request.current++; selectPort(event.target.value); showSample(undefined);}}>
+      {ports.map(item=><option key={item.port_id} value={item.port_id}>
+        {item.role === 'input' ? 'Input' : 'Output'} {item.port_ordinal + 1}
+      </option>)}</select></label>}
+    {!saved && (expected?.length ? <ColumnTable label="Expected columns" names={expected}/> :
+      expected ? <p>The checked output has no columns.</p> :
+        <p>Expected columns are unavailable for this port.</p>)}
+    {saved && <>{ambiguousOutput && <p>Samples for individual outputs of a multi-output Step are unavailable.</p>}
+      {port && readSample ? <button type="button" className="small"
+      onClick={()=>void load()} disabled={sample?.state === 'reading'}>{sample ? 'Read sample again' : 'Read retained sample'}</button> :
+      <p>No readable Relation sample port is available for this step.</p>}
+      {sample && sample.state !== 'available' && <p role="status">{sampleMessage(sample)}</p>}
+      {retained && <RetainedRelationTable sample={retained} label="Captured rows"/>}
+    </>}
+  </section>;
+}
+
 type KeptColumns = {step: Step; columns: readonly string[]};
 
 // A same-name field selection can be described in its caller's card when
 // the original Plan links that exact port. The field list is still shown
 // because selection can drop columns even though it keeps their values.
 function storyProjections(story: ExplanationStoryModel, sources: StoryContext,
-  context: StoryContext, stageResultLinks: PlanReadModel['stageResultLinks']) {
-  const source = new Map<number, KeptColumns>(), model = new Map<string, KeptColumns>();
+  stageResultLinks: PlanReadModel['stageResultLinks']) {
+  const source = new Map<number, KeptColumns>();
   const imported = stageResultLinks && new Set(stageResultLinks.map(link=>link.consumer.port_id));
   const claimed = new Set<string>();
   const steps = new Map(story.occurrences.map(step => [step.stepId, step]));
@@ -243,35 +432,7 @@ function storyProjections(story: ExplanationStoryModel, sources: StoryContext,
       claimed.add(selection.step.stepId);
     }
   }
-  const edgesByProducer = new Map<string, typeof story.dependencies[number][]>();
-  const edgesByConsumer = new Map<string, typeof story.dependencies[number][]>();
-  for (const edge of story.dependencies) {
-    const bySource = edgesByProducer.get(edge.sourceStepId), byTarget = edgesByConsumer.get(edge.targetStepId);
-    if (bySource) bySource.push(edge);
-    else edgesByProducer.set(edge.sourceStepId, [edge]);
-    if (byTarget) byTarget.push(edge);
-    else edgesByConsumer.set(edge.targetStepId, [edge]);
-  }
-  for (const {origin} of context) {
-    if (origin.kind !== 'model_task' || origin.producer.state !== 'projected') continue;
-    const {step_id} = origin.producer;
-    const consumer = steps.get(step_id);
-    if (consumer?.operator !== 'infer') continue;
-    const incoming = edgesByConsumer.get(step_id);
-    if (incoming?.length !== 1 || model.has(step_id)) continue;
-    const edge = incoming[0], selection = kept(steps.get(edge.sourceStepId));
-    const port = consumer.ports.find(port => port.port_id === edge.targetPortId);
-    const producer = port?.source;
-    if (!selection || edgesByProducer.get(edge.sourceStepId)?.length !== 1 ||
-        edge.sourcePortId !== selection.output.port_id || origin.input_bindings.length !== selection.columns.length ||
-        port?.role !== 'input' || port.carrier !== 'relation' || producer?.kind !== 'logical_output' ||
-        producer.step_id !== edge.sourceStepId || producer.output_port_id !== edge.sourcePortId) continue;
-    const inputs = new Set(origin.input_bindings.flatMap(({binding}) => binding.state === 'field' ? [binding.name] : []));
-    if (inputs.size !== selection.columns.length || !selection.columns.every(column => inputs.has(column))) continue;
-    model.set(step_id, selection);
-    claimed.add(selection.step.stepId);
-  }
-  return {source, model, claimed};
+  return source;
 }
 
 function ModelFields({origin, locale}: {
@@ -296,124 +457,144 @@ function ModelFields({origin, locale}: {
   </>;
 }
 
-function StorySteps({story, context, saved, boundary, selectedStep, selectStep, graph, labels, stageResultLinks}: {
-  story: ExplanationStoryModel; context: StoryContext; saved: boolean;
-  boundary?: {stepId: string; state: StepState}; selectedStep?: string;
+type EffectOrigin = Extract<StoryContext[number]['origin'], {kind: 'effect_set'}>;
+
+function declaredWrite(origin: EffectOrigin) {
+  const member = origin.members.length === 1 ? origin.members[0] : undefined;
+  const contract = member?.declaration.contract;
+  const target = contract?.kind === 'mapping'
+    ? /^connector:\/\/[\w.-]{1,48}\/([\w.-]{1,48})$/u.exec(contract.declared_target)?.[1]
+    : undefined;
+  return {target, fields: member?.write_fields.state === 'declared' ? member.write_fields.fields : undefined,
+    update: member?.declaration.effect_kind === 'update'};
+}
+
+function writeCardTitle(origin: EffectOrigin, ja: boolean) {
+  const {target, fields, update} = declaredWrite(origin);
+  if (!target) return ja ? '宣言された変更' : 'Declared changes';
+  const names = fields?.map(field => '"' + field + '"').join(ja ? '、' : ' and ');
+  if (update && names) {
+    return ja ? '"' + target + '" の ' + names + ' を更新' : 'Update ' + names + ' on "' + target + '"';
+  }
+  return ja ? '"' + target + '" への書き込み' : 'Write to "' + target + '"';
+}
+
+function storyGroupTitle(group: StoryGroup, labels: ReturnType<typeof graphStepLabels>, ja: boolean) {
+  const origin = group.item?.origin;
+  switch (origin?.kind) {
+    case 'source':
+      return ja ? `"${origin.source_view.resource}" を読む` : `Read "${origin.source_view.resource}"`;
+    case 'model_task': {
+      const model = origin.task_id.replace(/^model-task:/u, '');
+      return ja ? `モデルに問い合わせる · "${model}"` : `Ask the model · "${model}"`;
+    }
+    case 'result':
+      return ja ? `"${origin.name}" を返す` : `Return "${origin.name}"`;
+    case 'effect_set':
+      return writeCardTitle(origin, ja);
+    default:
+      if (group.kind === 'join' && group.members.length > 1) return ja ? '入力を結合' : 'Join inputs';
+      return group.primary ? stepTitle(group.primary, labels.get(group.primary.stepId)?.title) : '';
+  }
+}
+
+function storyGroupLabel(group: StoryGroup, ja: boolean) {
+  return ({
+    source: ja ? '読取' : 'Read', model: ja ? 'モデル' : 'Ask model', join: ja ? '結合' : 'Combine',
+    filter: ja ? '絞り込み' : 'Filter', result: ja ? '結果' : 'Result',
+    effect: ja ? '書き込み' : 'Write', operation: ja ? '処理' : 'Compute',
+  })[group.kind];
+}
+
+function StorySteps({story, groups, sourceColumns, model, saved, boundary, selectedStep, selectStep, graph, labels, pause, readSample}: {
+  story: ExplanationStoryModel; groups: readonly StoryGroup[]; sourceColumns: ReadonlyMap<number, KeptColumns>;
+  model?: PlanReadModel;
+  saved: boolean; boundary?: {stepId: string; state: StepState}; selectedStep?: string;
   selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;
-  stageResultLinks: PlanReadModel['stageResultLinks'];
+  pause?: StoryNextPause; readSample?: SampleRead;
 }) {
   const [opened, setOpened] = useState<Record<string, boolean>>({});
-  const sources = context.filter(item=>item.origin.kind === 'source');
-  const projections = storyProjections(story, sources, context, stageResultLinks);
-  const outputs = context.filter(item=>item.origin.kind === 'result' || item.origin.kind === 'effect_set');
-  const models = new Map<string, StoryContext[number][]>();
-  const unboundModels: StoryContext[number][] = [];
-  for (const item of context) if (item.origin.kind === 'model_task') {
-    const producer = item.origin.producer;
-    if (producer.state === 'projected') {
-      if (!models.has(producer.step_id)) models.set(producer.step_id, []);
-      models.get(producer.step_id)!.push(item);
-    } else unboundModels.push(item);
-  }
-  const groups: Step[][] = [];
-  for (const step of story.occurrences) {
-    if (projections.claimed.has(step.stepId)) continue;
-    const current = groups.at(-1);
-    if (step.operator === 'join' && current?.[0]?.operator === 'join') current.push(step);
-    else groups.push([step]);
-  }
-  const unobserved = saved ? undefined : 'Planned';
-  let ordinal = 0;
-  const card = (id: string, defaultOpen: boolean, selected?: string) => ({
-    ordinal: ++ordinal, open: graph || (opened[id] ?? defaultOpen),
-    onToggle() {
-      if (selected) selectStep(selected);
-      if (!graph) setOpened(values=>({...values, [id]: !(values[id] ?? defaultOpen)}));
-    },
-  });
+  const originalSteps = useMemo(() => new Map(story.occurrences.map(step => [step.stepId, step])), [story]);
+  const steps = useMemo(() => new Map(story.occurrences.map(step => [step.stepId,
+    {stepId: step.stepId, ports: step.ports, title: stepTitle(step, labels.get(step.stepId)?.title)}])), [story, labels]);
+  const ja = story.locale === 'ja';
+  let sourceIndex = 0;
   return <section aria-label={graph ? 'Selected Step' : 'Original story'}>
     <ol className="story-steps">
-      {sources.map(({origin,text}, index)=>{
-        if (origin.kind !== 'source') return null;
-        const projection = projections.source.get(index);
-        const step = projection?.step;
-        const selected = step !== undefined && step.stepId === selectedStep;
-        const observed = step !== undefined && step.stepId === boundary?.stepId;
-        const controls = card(`source-${index}`, !saved && index === 0 || selected || observed, step?.stepId);
-        const ja = story.locale === 'ja';
-        if (graph && !selected) return null;
-        return <StoryCard
-          key={`source-${origin.stage_input.stage_ordinal}-${origin.stage_input.input_port_ordinal}`}
-          {...controls} selected={selected}
-          label={ja ? '読取' : 'Read'}
-          title={ja ? `"${origin.source_view.resource}" を読む` : `Read "${origin.source_view.resource}"`} detail={text}
-          system={origin.source_view.connector} state={step ? stepState(step.stepId, saved, boundary) : unobserved}>
-          <p>Stage {origin.stage_input.stage_ordinal + 1} · input {origin.stage_input.input_port_ordinal + 1}</p>
-          {projection && <div className="expected-columns">
-            <table>
+      {groups.map((group, index) => {
+        const origin = group.item?.origin;
+        const selected = group.members.find(step => step.stepId === selectedStep);
+        const selectedGroup = group.id === selectedStep || selected !== undefined;
+        const observed = group.members.find(step => step.stepId === boundary?.stepId);
+        const active = selected ?? observed ?? group.primary;
+        const dataStep = active && steps.get(active.stepId);
+        const columns = group.kind === 'source' ? sourceColumns.get(sourceIndex++)?.columns : undefined;
+        const state = active ? stepState(active.stepId, saved, boundary) : saved ? undefined : 'Planned';
+        const defaultOpen = !saved && index === 0 || selectedGroup;
+        const open = graph || observed !== undefined || (opened[group.id] ?? defaultOpen);
+        if (graph && !selectedGroup) return null;
+        const title = storyGroupTitle(group, labels, ja);
+        const label = storyGroupLabel(group, ja);
+        const detail = group.item?.text ?? (group.primary?.explanation.meaning.kind === 'not_projected'
+          ? undefined : group.primary?.explanation.text);
+        return <StoryCard key={group.id} ordinal={index + 1} selected={selectedGroup}
+          label={label} title={title} detail={detail} state={state} open={open}
+          system={origin?.kind === 'source' ? origin.source_view.connector : undefined}
+          onToggle={() => {
+            if (!selectedGroup) selectStep(active?.stepId ?? group.id);
+            if (!graph) setOpened(values => ({...values, [group.id]: !(values[group.id] ?? defaultOpen)}));
+          }}>
+          {origin?.kind === 'source' && <>
+            {!saved && (columns ? <div className="expected-columns"><table>
               <caption>{ja ? '予定される列' : 'Expected columns'}</caption>
-              <thead><tr>{projection.columns.map(name=><th key={name} scope="col"><code>{name}</code></th>)}</tr></thead>
-            </table>
+              <thead><tr>{columns.map(name => <th key={name} scope="col"><code>{name}</code></th>)}</tr></thead>
+            </table></div> : <p>{ja ? '列は投影されていません' : 'Columns not projected'}</p>)}
+            <details><summary>{ja ? '元の読み取り元と接続' : 'Original Source and links'}</summary>
+              <p>Stage {origin.stage_input.stage_ordinal + 1} · input {origin.stage_input.input_port_ordinal + 1}</p>
+              <dl><dt>Contract</dt><dd><code>{origin.source_view.contract_cid}</code></dd>
+                <dt>Catalog</dt><dd><code>{origin.source_view.catalog_cid}</code></dd></dl>
+              {origin.consuming_ports.length > 0 && <ul aria-label="Original consumers">
+                {origin.consuming_ports.map(port => <li key={port.port_id}><code>{port.step_id}</code><br/><code>{port.port_id}</code></li>)}
+              </ul>}
+            </details>
+          </>}
+          {origin?.kind === 'model_task' && <ModelFields origin={origin} locale={story.locale}/>}
+          {origin?.kind === 'result' && <p>{ja ? '名前付き結果' : 'Named Result'} <code>{origin.name}</code></p>}
+          {origin?.kind === 'effect_set' && <>
+            <p>{ja ? '書き込み内容は現在取得できません。' : 'Write preview is unavailable.'}</p>
+            <details><summary>Original Effect declarations</summary><p>Effect set <code>{origin.unit_id}</code></p>
+              <ul>{origin.members.map(({declaration, write_fields}, position) => <li key={position}>
+                <strong>{declaration.effect_kind}</strong> · <code>{declaration.contract.kind === 'mapping'
+                  ? declaration.contract.declared_target : declaration.contract.resource_kind}</code>
+                {write_fields.state === 'declared' && <p>Fields: {write_fields.fields.join(', ')}</p>}
+              </li>)}</ul></details>
+          </>}
+          {open && dataStep && active && (group.kind !== 'source' || saved) && <>
+            <StepData key={active.stepId} step={dataStep} plan={story} saved={saved} readSample={readSample}
+              expectedColumns={port => expectedStoryPortColumns(originalSteps, active, port) ??
+                (origin?.kind === 'model_task' && origin.producer.state === 'projected' &&
+                  origin.producer.step_id === active.stepId && origin.producer.port_id === port.port_id
+                  ? origin.output_fields.map(field => field.name) : undefined)}/>
+            {pause?.stepId === active.stepId && <NextInputs key={pause.revision} step={dataStep}
+              plan={story} steps={steps} pause={pause} readSample={readSample}/>}
+          </>}
+          {group.kind === 'join' && group.members.length > 1 && <div className="step-data-choice" aria-label="Original step data">
+            {group.members.map((member, index) => <button type="button" className="small" key={member.stepId}
+              aria-pressed={active?.stepId === member.stepId} onClick={() => selectStep(member.stepId)}>
+              {ja ? '結合' : 'Join'} {index + 1}{member.stepId === pause?.stepId ? ' · Next' : ''}
+            </button>)}
           </div>}
-          {step && <StepOrigin step={step} folded select={()=>selectStep(step.stepId)}/>}
-          <p>Bounded Source data is not available in this view.</p>
-          <details><summary>Original Source and links</summary>
-            <dl><dt>Contract</dt><dd><code>{origin.source_view.contract_cid}</code></dd>
-              <dt>Catalog</dt><dd><code>{origin.source_view.catalog_cid}</code></dd></dl>
-            {origin.consuming_ports.length > 0 && <ul aria-label="Original consumers">
-              {origin.consuming_ports.map(port=><li key={port.port_id}><code>{port.step_id}</code><br/><code>{port.port_id}</code></li>)}</ul>}
-          </details>
+          {group.members.map(member => {
+            const folded = member !== group.primary && group.kind !== 'join' || group.kind === 'source' ||
+              group.kind === 'model' && member.explanation.meaning.kind === 'not_projected';
+            const originalLabel = labels.get(member.stepId)?.title;
+            return <StepOrigin key={member.stepId} step={member} label={originalLabel} folded={folded}
+              state={member.stepId === boundary?.stepId ? boundary.state : undefined}
+              select={group.members.length > 1 ? () => selectStep(member.stepId) : undefined}/>;
+          })}
+          {selectedGroup && model && <PlanAdvanced model={model} ja={ja}/>}
         </StoryCard>;
       })}
-      {groups.map(group=>{
-        const first = group[0];
-        const selected = group.find(item=>item.stepId===selectedStep);
-        const observed = group.find(item=>item.stepId===boundary?.stepId);
-        const step = selected ?? observed ?? first;
-        const tasks = models.get(step.stepId) ?? [];
-        const title = tasks.length === 1 ? tasks[0].text : tasks.length > 1 ? `Ask ${tasks.length} declared model tasks` :
-          group.length > 1 ? (story.locale === 'ja' ? '入力を結合' : 'Join inputs') :
-          stepTitle(step, labels.get(step.stepId)?.title);
-        const projection = projections.model.get(step.stepId);
-        const projectedStep = projection?.step;
-        const selectedProjection = projectedStep !== undefined && projectedStep.stepId === selectedStep;
-        const observedProjection = projectedStep !== undefined && projectedStep.stepId === boundary?.stepId;
-        const focusedStep = (selectedProjection || observedProjection) && projectedStep ? projectedStep : step;
-        const controls = card(first.stepId, !saved && ordinal === 0 || observed !== undefined ||
-          selectedProjection || observedProjection, focusedStep.stepId);
-        if (graph && !selected && !selectedProjection) return null;
-        return <StoryCard key={first.stepId} {...controls} selected={!!selected || selectedProjection}
-          label={tasks.length ? 'Ask model' : step.operator === 'join' ? 'Combine' : 'Compute'}
-          state={stepState(focusedStep.stepId, saved, boundary)} title={title}
-          detail={tasks.length ? undefined : step.explanation.text}>
-          {saved && <p>Sample data is unavailable for this step.</p>}
-          {projection && <StepOrigin step={projection.step} folded
-            select={()=>selectStep(projection.step.stepId)}/>}
-          {group.map(item=><StepOrigin key={item.stepId} step={item}
-            label={labels.get(item.stepId)?.title}
-            select={group.length > 1 ? ()=>selectStep(item.stepId) : undefined}/>)}
-          {tasks.map(({origin, text}, index)=>origin.kind === 'model_task' && <div key={index}>
-            <p><StoryText text={text}/></p>
-            <ModelFields origin={origin} locale={story.locale}/>
-          </div>)}
-        </StoryCard>;
-      })}
-      {!graph && [...unboundModels,...outputs].map(({origin,text},index)=><StoryCard key={`${origin.kind}-${index}`}
-        {...card(`${origin.kind}-${index}`, false)}
-        label={origin.kind === 'effect_set' ? 'Write' : origin.kind === 'result' ? 'Result' : 'Ask model'}
-        title={origin.kind === 'effect_set' ? 'Declared changes' :
-          origin.kind === 'result' ? `Return "${origin.name}"` : text}
-        detail={text} state={unobserved}>
-        {origin.kind === 'effect_set' ? <><p>Write preview is unavailable. Review an original Checkpoint separately when the Host offers it.</p>
-          <details><summary>Original Effect declarations</summary><p>Effect set <code>{origin.unit_id}</code></p>
-            <ul>{origin.members.map(({declaration,write_fields},position)=><li key={position}>
-              <strong>{declaration.effect_kind}</strong> · <code>{declaration.contract.kind === 'mapping'
-                ? declaration.contract.declared_target : declaration.contract.resource_kind}</code>
-              {write_fields.state === 'declared' && <p>Fields: {write_fields.fields.join(', ')}</p>}
-            </li>)}</ul></details></> :
-          origin.kind === 'result' ? <p>Declared output <code>{origin.name}</code> · stage {origin.stage_ordinal + 1}</p> :
-          origin.kind === 'model_task' && <ModelFields origin={origin} locale={story.locale}/>}
-      </StoryCard>)}
     </ol>
   </section>;
 }
@@ -429,6 +610,26 @@ function WorkspaceDialog({title, close, children}: {title: string; close(): void
     </div>
   </dialog>;
 }
+
+type StopAttempt = Readonly<{
+  original: OriginalCancellation;
+  observation?: CancellationObservation; history?: WireCancellationLookup;
+}>;
+
+function awaitsPhysicalStop(run: RunObservationModel) {
+  const stop = run.run.cancellation;
+  return stop.state === 'observed' && stop.requested && stop.physicalStop !== 'confirmed';
+}
+
+function saveJson(value: unknown, filename: string) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2) + '\n'], {type: 'application/json'}));
+  const link = document.createElement('a');
+  link.href = url; link.download = filename; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+type ResumeAttempt = Readonly<{operation: WireControlOperationRef; receipt?: WireControlOperationLookup}>;
+const runKey = (ref: RunReference) => JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);
 
 const startStatus = {
   held: 'Waiting on a Checkpoint',
@@ -446,12 +647,13 @@ function App() {
   const [staticExplanation, showStaticExplanation] = useState<StaticExplanationReadModel>();
   const [run, showRun] = useState<RunObservationModel>(), [result, showResult] = useState<unknown>();
   const [follow, setFollow] = useState(false);
+  const [observationAt, markObserved] = useState<number>();
   const [queryShown, showQuery] = useState(true), [editing, setEditing] = useState(false);
   const [graph, showGraph] = useState(false);
-  const [drawer, showDrawer] = useState<'connect' | 'open-run'>();
+  const [drawer, showDrawer] = useState<'connect' | 'open-run' | 'stop'>();
   const [selectedStep, selectStep] = useState<{scope: string; id: string}>();
   const [locale, setLocale] = useState<'en' | 'ja'>('en');
-  const [analyzedDraft, keepAnalyzedDraft] = useState<{text: string; format: typeof programFormat}>();
+  const [analyzedDraft, keepAnalyzedDraft] = useState<{text: string; format: typeof programFormat; debugDefinitionCid?: string}>();
   const [selectedRef, selectRef] = useState<RunReference>();
   const [originalPlan, showOriginalPlan] = useState<OriginalRunPlanReadModel>();
   const [originalPresentation, showOriginalPresentation] = useState<OriginalRunPresentationReadModel | SavedExplanationReadModel>();
@@ -463,27 +665,30 @@ function App() {
   const [launcherProgram, showLauncherProgram] = useState(false);
   const [error, showError] = useState(''), [pending, busy] = useState(false);
   const [startEnabled, enableStart] = useState(false);
+  const [sampleEnabled, enableSamples] = useState(false);
+  const [debugResumeEnabled, enableDebugResume] = useState(false);
+  const [resumes, saveResumes] = useState<ReadonlyMap<string, ResumeAttempt>>(new Map());
+  const preparingResume = useRef(false);
   const [start, showStart] = useState<{ref: WireSubmissionRef;
-    state: keyof typeof startStatus}>();
+    state: keyof typeof startStatus; executionProfile?: 'debug'}>();
   const starting = useRef(false);
   const [cancellationEnabled, enableCancellation] = useState(false);
-  const [originalCancellation, keepCancellation] = useState<OriginalCancellation|null>(null);
-  const [cancellationObservation, showCancellation] = useState<CancellationObservation|null>(null);
-  const [cancellationHistory, showCancellationHistory] = useState<WireCancellationLookup|null>(null);
-  const [savedCancellation, confirmSavedCancellation] = useState(false);
+  const [stops, showStops] = useState<ReadonlyMap<string, StopAttempt>>(new Map());
+  const sentStops = useRef(new Set<string>());
+  const [stopDraft, stageStop] = useState<OriginalCancellation>();
   const [checkpointPage,showCheckpointPage]=useState<CheckpointPageModel|null>(null);
   const [review,showReview]=useState<ReviewObservation|null>(null);
   const [checkpointCapabilities,setCheckpointCapabilities]=useState({list:false,read:false});
   const reviewSelection=useRef(0);
-  const cancelSent = useRef(false);
   const epoch = useRef(0);
   const runSelection = useRef(0);
-  const invalidate = () => {epoch.current++; runSelection.current++; setFollow(false); source.close(); connect(false); enableCancellation(false); enableStart(false); busy(false);
+  const invalidate = useCallback(() => {epoch.current++; runSelection.current++; setFollow(false); source.close(); connect(false); enableCancellation(false); enableStart(false); enableSamples(false); enableDebugResume(false); busy(false);
     selectRef(undefined); selectStep(undefined); showDrawer(undefined); keepAnalyzedDraft(undefined);
     showPlan(undefined); showStaticExplanation(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showOriginalPresentation(undefined); showLauncherProgram(false);
     reviewSelection.current++;showCheckpointPage(null);showReview(null);setCheckpointCapabilities({list:false,read:false});
-    showCancellationHistory(null);showCancellation(originalCancellation && cancelSent.current
-      ? {state:'unknown',original:originalCancellation} : null);showError('');};
+    markObserved(undefined); stageStop(undefined);
+    showStops(current => new Map([...current].map(([key, {original}]) => [key, {original}])));
+    showError('');}, [source]);
   const perform = async (action: () => Promise<void>) => {
     const original = epoch.current; busy(true); showError('');
     try {await action();}
@@ -499,14 +704,28 @@ function App() {
     finally {if (original === epoch.current) busy(false);}
   };
   useEffect(() => {
-    if (!follow || !run || run.run.terminal || pending || !connected) return;
-    const selected = runSelection.current, scope = epoch.current;
-    const timer = setTimeout(() => {void perform(async () => {
-      const next = await source.observe(run.runRef);
-      if (runSelection.current === selected && epoch.current === scope) showRun(next);
-    });}, 1000);
-    return () => clearTimeout(timer);
-  }, [follow, run, pending, connected, source]);
+    if (!follow || !run || pending || !connected || !selectedRef || !sameRun(selectedRef, run.runRef)) return;
+    const selection = runSelection.current, scope = epoch.current;
+    let active = true;
+    const current = () => active && runSelection.current === selection && epoch.current === scope;
+    const timer = setTimeout(async () => {
+      try {
+        const next = await source.observe(run.runRef);
+        if (current()) {showRun(next); markObserved(Date.now());}
+      } catch (error) {
+        if (!current()) return;
+        const code = (error as {code?: string} | null)?.code;
+        if (code === 'ExplorerSessionExpired' || code === 'ExplorerStaleScope') {
+          invalidate();
+          showError('The Local connection was lost. Reconnect to open the original again.');
+        } else {
+          setFollow(false); showRun(undefined); markObserved(undefined);
+          showError('The Host could not provide the current Run status.');
+        }
+      }
+    }, 1000);
+    return () => {active = false; clearTimeout(timer);};
+  }, [follow, run, pending, connected, selectedRef, source, invalidate]);
   useEffect(() => {
     const toggle = (event: KeyboardEvent) => {
       if (event.altKey || event.metaKey || event.ctrlKey || event.shiftKey ||
@@ -518,15 +737,27 @@ function App() {
     window.addEventListener('keydown', toggle);
     return () => window.removeEventListener('keydown', toggle);
   }, []);
+  const followOriginal = async (ref: RunReference, current: () => boolean) => {
+    try {
+      const observation = await source.observe(ref);
+      if (current()) {
+        showRun(observation); markObserved(Date.now());
+        setFollow(!observation.run.terminal || awaitsPhysicalStop(observation));
+      }
+    } catch (error) {
+      if (current() && (error as {code?: string} | null)?.code !== 'ExplorerReadUnavailable') throw error;
+    }
+  };
   const session = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const form = event.currentTarget;
     const token = String(new FormData(form).get('bootstrap')); form.reset(); invalidate();
     void perform(async () => {
-      const selected = epoch.current;
+      const selected = epoch.current, launchSelection = runSelection.current;
       const capabilities = await source.connect(token);
       if (epoch.current !== selected) return;
       setCheckpointCapabilities({list:capabilities.checkpointList,read:capabilities.checkpointReview});
-      enableCancellation(capabilities.cancellation); enableStart(capabilities.runStart === true); connect(true);
+      enableCancellation(capabilities.cancellation); enableStart(capabilities.runStart === true);
+      enableSamples(capabilities.sample); enableDebugResume(capabilities.debugResume === true); connect(true);
       const view = await source.launchView();
       if (epoch.current !== selected) return;
       if (view?.kind === 'program') {
@@ -536,6 +767,7 @@ function App() {
         setRunReference(JSON.stringify(original, null, 2));
         selectRef(original);
         showOriginalPlan(view.originalPlan);
+        await followOriginal(original, () => epoch.current === selected && runSelection.current === launchSelection);
       }
     });
   };
@@ -582,18 +814,20 @@ function App() {
       if (scope !== epoch.current || selected !== runSelection.current) return;
       selectRef(undefined); showRun(undefined); showResult(undefined);
       showOriginalPlan(undefined); showOriginalPresentation(undefined); showLauncherProgram(false);
-      showPlan(map); showStaticExplanation(explanation); keepAnalyzedDraft({text, format});
+      showPlan(map); showStaticExplanation(explanation);
+      keepAnalyzedDraft({text, format, ...(map.debugEntry === true ? {debugDefinitionCid: map.programDefinitionCid} : {})});
       showGraph(!explain); setEditing(false);
       if (queryMenu) queryMenu.open = false;
     });
   };
-  const displayStart = (answer: ExplorerStartObservation, ref: WireSubmissionRef, selected: number) => {
+  const displayStart = async (answer: ExplorerStartObservation, ref: WireSubmissionRef, selected: number,
+    executionProfile?: 'debug') => {
     if (answer.state !== 'ready') {
-      showStart({ref, state: answer.state});
+      showStart({ref, state: answer.state, executionProfile});
       return;
     }
     if (selected !== runSelection.current) {
-      showStart({ref, state: 'ready'});
+      showStart({ref, state: 'ready', executionProfile});
       return;
     }
     showStart(undefined);
@@ -602,30 +836,43 @@ function App() {
     showPlan(undefined); showStaticExplanation(undefined);
     showOriginalPlan(undefined); showOriginalPresentation(undefined);
     showRun(undefined); showResult(undefined);
+    const scope = epoch.current;
+    const current = () => epoch.current === scope && runSelection.current === selected;
+    await followOriginal(answer.ref, current);
+    if (executionProfile === 'debug' && current()) {
+      // An adopted Run has its own compiler Map. Use that original for the
+      // step label and controls once the Host has admitted the Run.
+      const original = await source.runPlan(answer.ref);
+      if (current()) showOriginalPlan(original);
+    }
   };
-  const startDraft = () => {
+  const startDraft = (executionProfile?: 'debug') => {
     if (!startEnabled || !connected || starting.current || pending || !analyzedDraft || selectedRef ||
         start && !['not_accepted', 'preparation_failed'].includes(start.state) ||
         analyzedDraft.text !== programText || analyzedDraft.format !== programFormat) return;
-    const draft = analyzedDraft, scope = epoch.current, version = draftVersion.current;
+    const {text, format, debugDefinitionCid} = analyzedDraft;
+    if (executionProfile === 'debug' && debugDefinitionCid === undefined) return;
+    const scope = epoch.current, version = draftVersion.current;
     const selected = runSelection.current;
     starting.current = true;
     void perform(async () => {
       try {
         const ref = await source.prepareStart();
         if (epoch.current !== scope || selected !== runSelection.current || version !== draftVersion.current) return;
-        showStart({ref, state: 'reply_unknown'});
-        const answer = await source.startRun({ref, ...draft});
-        if (epoch.current === scope) displayStart(answer, ref, selected);
+        showStart({ref, state: 'reply_unknown', executionProfile});
+        const answer = await source.startRun(executionProfile === 'debug' && debugDefinitionCid !== undefined
+          ? {ref, text, format, executionProfile, programDefinitionCid: debugDefinitionCid}
+          : {ref, text, format});
+        if (epoch.current === scope) await displayStart(answer, ref, selected, executionProfile);
       } finally {starting.current = false;}
     });
   };
   const lookupStart = () => {
     if (!start || !startEnabled || !connected || pending || starting.current) return;
-    const {ref} = start, scope = epoch.current, selected = runSelection.current;
+    const {ref, executionProfile} = start, scope = epoch.current, selected = runSelection.current;
     void perform(async () => {
       const answer = await source.lookupStart(ref);
-      if (epoch.current === scope) displayStart(answer, ref, selected);
+      if (epoch.current === scope) await displayStart(answer, ref, selected, executionProfile);
     });
   };
   const readOriginal = (original: RunReference, action: string, name = '') => {
@@ -644,7 +891,28 @@ function App() {
           ? source.runContext(original, locale) : source.runPresentation(original, {locale}));
         if (!current()) return;
         adopt();
-        showOriginalPresentation(view); showGraph(false);
+        showOriginalPresentation(view); showRun(undefined); showGraph(false); showDrawer(undefined);
+        if (view.plan !== null && view.explanation.state === 'projected' && 'context' in view.explanation &&
+          Array.isArray(view.explanation.context) &&
+          (view.explanation.context as StoryContext).some(({origin}) => origin.kind === 'result')) {
+          // Status uses a separate authorized, bounded read. A Saved Story
+          // already admitted on this selection remains visible on refusal.
+          try {
+            const response = await source.inspect(original);
+            if (!current()) return;
+            const observation = runObservationModel(response, null, original);
+            const binding = observation.planBinding;
+            if (observation.run.status === 'succeeded' &&
+                (binding.compiledPlanCid === null || binding.compiledPlanCid === view.plan.compiledPlanCid) &&
+                (binding.logicalMapCid === null || binding.logicalMapCid === view.plan.logicalMapCid)) {
+              showRun(observation); markObserved(Date.now());
+            }
+          } catch (error) {
+            if (!current()) return;
+            if (!(typeof error === 'object' && error !== null && 'code' in error &&
+              error.code === 'ExplorerReadUnavailable')) throw error;
+          }
+        }
       } else if (action === 'run-plan') {
         const view = await source.runPlan(original);
         if (!current()) return;
@@ -654,7 +922,7 @@ function App() {
         const observation = await source.observe(original);
         if (!current()) return;
         adopt();
-        showRun(observation);
+        showRun(observation); markObserved(Date.now()); setFollow(!observation.run.terminal || awaitsPhysicalStop(observation));
         if (name && action === 'inspect') {
           const metadata = await source.describe(original, name);
           if (!current()) return;
@@ -675,39 +943,64 @@ function App() {
     const name = String(new FormData(event.currentTarget).get('name') ?? '');
     readOriginal(original, action, name);
   };
+  const updateStop = (key: string, attempt: StopAttempt) => {
+    showStops(current => new Map(current).set(key, attempt));
+  };
   const prepareCancellation = () => {
-    if (!run || run.run.terminal || originalCancellation || !connected || !cancellationEnabled) return;
-    setFollow(false);
-    keepCancellation(Object.freeze({cancelRef:Object.freeze({...run.runRef,
-      cancelId:crypto.randomUUID(),expectedRevision:run.run.controlRevision}),
-      attemptRef:Object.freeze({operation:'cancel' as const,attemptId:crypto.randomUUID()})}));
+    if (!run || !connected || !cancellationEnabled || !selectedRef || !sameRun(selectedRef, run.runRef) ||
+        run.run.terminal || sentStops.current.has(runKey(selectedRef))) return;
+    const original = Object.freeze({cancelRef: Object.freeze({...run.runRef,
+      cancelId: crypto.randomUUID(), expectedRevision: run.run.controlRevision}),
+      attemptRef: Object.freeze({operation: 'cancel' as const, attemptId: crypto.randomUUID()})});
+    stageStop(original); showError(''); showDrawer('stop');
   };
   const requestCancellation = () => {
-    if (!originalCancellation || !savedCancellation || cancelSent.current || !connected || !cancellationEnabled) return;
-    // Keep this exact explicit operation before transport and never dispatch it
-    // a second time from this view, including after ACK loss or scope changes.
-    cancelSent.current=true;setFollow(false);
-    const saved=originalCancellation,scope=epoch.current;
-    showCancellation({state:'unknown',original:saved});
-    void perform(async () => {const answer=await source.cancel(saved);
-      if (epoch.current===scope) showCancellation(answer);});
+    if (!stopDraft || !run || !connected || pending || !cancellationEnabled || !selectedRef ||
+        !sameRun(selectedRef, stopDraft.cancelRef) || !sameRun(selectedRef, run.runRef)) return;
+    if (run.run.terminal || run.run.controlRevision !== stopDraft.cancelRef.expectedRevision) {
+      stageStop(undefined); showDrawer(undefined);
+      showError(ja ? 'Run の状態が変わりました。現在の状態を確認してください。' :
+        'The Run changed. Check its current status before stopping it.');
+      return;
+    }
+    const original = stopDraft, key = runKey(selectedRef), scope = epoch.current, selection = runSelection.current;
+    if (sentStops.current.has(key)) return;
+    // Install the original before transport. Reconnection and uncertain
+    // delivery leave only the existing lookup route for this invocation.
+    sentStops.current.add(key);
+    updateStop(key, {original});
+    stageStop(undefined); showDrawer(undefined);
+    setFollow(true);
+    void perform(async () => {
+      const observation = await source.cancel(original);
+      if (epoch.current === scope && runSelection.current === selection) updateStop(key, {original, observation});
+    });
   };
-  const lookupCancellation = () => {
-    if (!originalCancellation || !connected || !cancellationEnabled) return;
-    const saved=originalCancellation,scope=epoch.current;
-    void perform(async () => {const answer=await source.lookupCancellation(saved.cancelRef);
-      if (epoch.current===scope) showCancellationHistory(answer);});
+  const lookupCancellation = (stop: StopAttempt) => {
+    if (!selectedRef || !connected || !cancellationEnabled || !sameRun(selectedRef, stop.original.cancelRef)) return;
+    const key = runKey(selectedRef), scope = epoch.current, selection = runSelection.current;
+    void perform(async () => {
+      const history = await source.lookupCancellation(stop.original.cancelRef);
+      if (epoch.current === scope && runSelection.current === selection) updateStop(key, {...stop, history});
+    });
   };
-  const importCancellation = (event:FormEvent<HTMLFormElement>) => {
-    event.preventDefault();if(originalCancellation) return;
-    try {
-      const input=JSON.parse(String(new FormData(event.currentTarget).get('original')));
-      if (!input || Object.keys(input).length!==2 || !validCancellationRef(input.cancelRef) ||
-          !validOperationAttemptRef(input.attemptRef) || input.attemptRef.operation!=='cancel') throw new Error();
-      const saved=Object.freeze({cancelRef:Object.freeze(structuredClone(input.cancelRef)),
-        attemptRef:Object.freeze(structuredClone(input.attemptRef))});
-      keepCancellation(saved);cancelSent.current=true;showCancellation({state:'unknown',original:saved});
-    } catch {showError('Invalid original cancellation reference. No Host operation was requested.');}
+  const importCancellation = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedRef || sentStops.current.has(runKey(selectedRef))) return;
+    const input = parseLocalJson(String(new FormData(event.currentTarget).get('original')));
+    const record = input as {cancelRef?: unknown; attemptRef?: unknown} | undefined;
+    if (!record || Object.keys(record).length !== 2 || !validCancellationRef(record.cancelRef) ||
+        !validOperationAttemptRef(record.attemptRef) || record.attemptRef.operation !== 'cancel' ||
+        !sameRun(selectedRef, record.cancelRef)) {
+      showError(ja ? 'この Run の元の取消参照を入力してください。' : 'Enter the original cancellation reference for this Run.');
+      return;
+    }
+    const key = runKey(selectedRef);
+    const original = Object.freeze({cancelRef: Object.freeze({...record.cancelRef}),
+      attemptRef: Object.freeze({...record.attemptRef, operation: 'cancel' as const})});
+    sentStops.current.add(key);
+    const stop = {original};
+    updateStop(key, stop); lookupCancellation(stop);
   };
   const listCheckpoints=()=>{const selected=++reviewSelection.current,scope=epoch.current;setFollow(false);
     void perform(async()=>{showCheckpointPage(null);showReview(null);const value=await source.checkpoints();
@@ -724,37 +1017,195 @@ function App() {
     : staticExplanation?.context ?? [];
   const map = selectedRef ? originalPresentation?.plan ?? originalPlan?.plan : plan;
   const graphLabels = useMemo(()=>graphStepLabels(story, context, map?.stageResultLinks), [story, context, map]);
-  const planOnly = selectedRef && !story ? map : undefined;
+  const presentation = useMemo(() => {
+    if (!story) return undefined;
+    const sources = context.filter(item => item.origin.kind === 'source');
+    const source = storyProjections(story, sources, map?.stageResultLinks);
+    const groups = storyCardGroups(story, context, source, map?.stageResultLinks);
+    const graphGroups = groups.map(card => {
+      const origin = card.item?.origin;
+      return {id: card.primary?.stepId ?? card.id, members: card.members.map(step => step.stepId),
+        representative: card.primary?.stepId,
+        ...(origin?.kind === 'source' && origin.link_state === 'linked' ? {source: {
+          stageOrdinal: origin.stage_input.stage_ordinal, inputOrdinal: origin.stage_input.input_port_ordinal,
+          inputs: origin.consuming_ports.map(({step_id, port_id}) => ({stepId: step_id, portId: port_id})),
+        }} : {})};
+    });
+    return {source, groups, graphGroups};
+  }, [story, context, map?.stageResultLinks]);
+  const planOnly = !story ? map : undefined;
   const originalStep = observedPlanStep(run, selectedRef, map);
-  const boundary = originalStep ? {stepId: originalStep.stepId, state: 'Observed' as const} : undefined;
+  const pause = storyNextPause(run, selectedRef, map, Date.now());
+  const exactRun = selectedRef && run && sameRun(run.runRef, selectedRef) &&
+    run.planBinding.compiledPlanCid === map?.compiledPlanCid && run.planBinding.logicalMapCid === map?.logicalMapCid
+    ? run : undefined;
+  const {run: state} = exactRun ?? {};
+  const entryPause = state?.status === 'paused' && !state.expiryPending && state.boundary?.kind === 'entry' &&
+    state.boundary.position === 'before' ? Date.parse(state.expiresAt ?? '') : NaN;
+  const expiration = pause?.expires ?? (entryPause > Date.now() ? entryPause : undefined);
+  const [, refreshPause] = useState(0);
+  useEffect(() => {
+    if (expiration === undefined) return;
+    const recheck = () => {
+      const remaining = expiration - Date.now();
+      if (remaining <= 0) refreshPause(n => n + 1);
+      else timer = window.setTimeout(recheck, Math.min(2147483647, remaining));
+    };
+    let timer: number | undefined;
+    recheck();
+    return () => window.clearTimeout(timer);
+  }, [expiration]);
+  const key = selectedRef && runKey(selectedRef);
+  const resumeAttempt = key ? resumes.get(key) : undefined;
+  const stop = key ? stops.get(key) : undefined;
+  const stopOutcome = stop?.observation?.state === 'observed' ? stop.observation.outcome : undefined;
+  const cancellation = stop?.history?.kind === 'found' ? stop.history.cancellation :
+    stopOutcome?.kind === 'accepted' || stopOutcome?.kind === 'already_satisfied' ? stopOutcome.cancellation : undefined;
+  const confirmedStop = run?.run.cancellation.state === 'observed' && run.run.cancellation.physicalStop === 'confirmed' &&
+    (!cancellation || run.run.controlRevision >= cancellation.revision);
+  const stopping = (cancellation !== undefined && cancellation.kind !== 'already_terminal' ||
+    run !== undefined && awaitsPhysicalStop(run)) && !confirmedStop;
+  const unresolvedStop = stop !== undefined && cancellation === undefined &&
+    stopOutcome?.kind !== 'conflict' && stopOutcome?.kind !== 'refused';
+  useEffect(() => {
+    if (run?.run.terminal && !stopping) setFollow(false);
+  }, [run?.run.terminal, stopping]);
+  const previousAccepted = resumeAttempt?.receipt?.state === 'found' && resumeAttempt.receipt.receipt.outcome === 'accepted';
+  const sameParkUnresolved = resumeAttempt !== undefined &&
+    (!previousAccepted || !state || state.controlRevision <= resumeAttempt.operation.accepted_from_revision);
+  const nextPause = !sameParkUnresolved && !stopping && !unresolvedStop ? pause : undefined;
+  const boundary = originalStep ? {stepId: originalStep.stepId,
+    state: nextPause || entryPause > Date.now() && !sameParkUnresolved ? 'Next' as const : 'Observed' as const} : undefined;
+  const resumePause = !stopping && !unresolvedStop && connected && debugResumeEnabled && exactRun?.resumeAvailable && state && expiration &&
+    state.controlRevision > 0 && !sameParkUnresolved ? {
+      ref: exactRun.runRef, revision: state.controlRevision, expires: expiration,
+      step: entryPause > Date.now() || originalStep?.position === 'before',
+    } : undefined;
+  const keepResume = (run: string, attempt: ResumeAttempt | undefined) => {
+    saveResumes(original => {
+      const next = new Map(original);
+      if (attempt) next.set(run, attempt);
+      else next.delete(run);
+      return next;
+    });
+  };
+  const requestResume = (until: 'step' | 'terminal') => {
+    if (!resumePause || pending || preparingResume.current || resumePause.expires <= Date.now() ||
+        until === 'step' && !resumePause.step) return;
+    const {ref, revision, expires} = resumePause;
+    const scope = epoch.current, selected = runSelection.current, run = runKey(ref);
+    const current = () => epoch.current === scope && runSelection.current === selected;
+    preparingResume.current = true;
+    setFollow(false);
+    void perform(async () => {
+      try {
+        const command = await source.prepareResume(ref, {operationId: crypto.randomUUID(), expectedRevision: revision, until});
+        if (!current() || expires <= Date.now()) return;
+        const operation = resumeControlOperationRef(command);
+        keepResume(run, {operation});
+        showRun(undefined);
+        const answer = await source.resume(command);
+        if (answer.state !== 'reply_unknown') keepResume(run, {operation, receipt: answer});
+        if (!current() || answer.state !== 'found' || answer.receipt.outcome !== 'accepted') return;
+        const observed = await source.observe(ref);
+        if (current()) {showRun(observed); markObserved(Date.now()); setFollow(!observed.run.terminal || awaitsPhysicalStop(observed));}
+      } catch (error) {
+        const code = (error as {code?: string} | null)?.code;
+        if (code === 'ExplorerControlRevisionConflict' || code === 'ExplorerResumeUnsupported') {
+          keepResume(run, resumeAttempt);
+          if (current()) showError(code === 'ExplorerControlRevisionConflict'
+            ? 'The Run changed. Inspect the current status before choosing another action.'
+            : 'That action is unavailable at this pause.');
+        } else if (current()) throw error;
+      } finally {preparingResume.current = false;}
+    });
+  };
+  const lookupResume = () => {
+    if (!connected || !debugResumeEnabled || pending || !key || !resumeAttempt) return;
+    const {operation} = resumeAttempt;
+    void perform(async () => {
+      const receipt = await source.lookupControlOperation(operation);
+      keepResume(key, {operation, receipt});
+    });
+  };
+  const readSample = useCallback<SampleRead>(async port => {
+    if (!connected || !sampleEnabled || !selectedRef) return;
+    const scope = epoch.current, selection = runSelection.current;
+    const current = () => epoch.current === scope && runSelection.current === selection;
+    try {
+      const sample = await source.runSample(selectedRef, port);
+      if (current()) return sample;
+    } catch (error) {
+      if (!current()) return;
+      const code = (error as {code?: string} | null)?.code;
+      if (code === 'ExplorerSessionExpired' || code === 'ExplorerStaleScope') {
+        invalidate();
+        showError('The Local connection was lost. Reconnect to open the original again.');
+        return;
+      }
+      throw error;
+    }
+  }, [connected, sampleEnabled, selectedRef, source, invalidate]);
+  const sample = sampleEnabled && selectedRef ? readSample : undefined;
   const scopeKey = JSON.stringify([epoch.current, selectedRef, map?.compiledPlanCid, map?.logicalMapCid, story?.factsCid]);
-  const stepScope = JSON.stringify([scopeKey, originalStep?.stepId, originalStep?.position]);
+  const stepScope = JSON.stringify([scopeKey, originalStep?.stepId, originalStep?.position, nextPause?.revision, nextPause?.boundaryCid]);
   const edited = analyzedDraft !== undefined &&
     (analyzedDraft.text !== programText || analyzedDraft.format !== programFormat);
+  const draftStartPending = !connected || pending || !analyzedDraft || edited ||
+    !!start && !['not_accepted', 'preparation_failed'].includes(start.state);
   const selection = selectedStep?.scope === stepScope ? selectedStep.id :
-    boundary?.stepId ?? (graph || planOnly ? map?.nodes[0]?.id : undefined);
+    boundary?.stepId ?? (graph || planOnly ? presentation?.graphGroups[0]?.id ?? map?.nodes[0]?.id : undefined);
   const setSelection = (id: string) => selectStep({scope: stepScope, id});
-  const status = run ? run.run.status.replaceAll('_', ' ') : selectedRef ? 'Current status unavailable' :
-    map ? 'Plan checked · not run' : 'No Run selected';
-  const observedStep = originalStep && (locale === 'ja'
-    ? `元工程 ${originalStep.number} の${originalStep.position === 'before' ? '前' : '後'}を観測`
-    : `Observed ${originalStep.position} original step ${originalStep.number}`);
+  const ja = locale === 'ja';
+  const savedRun = ja ? '保存済み Run' : 'Saved Run';
+  const liveRun = run !== undefined && !run.run.terminal && follow;
+  const runMode = run?.run.status === 'paused' && exactRun ? (ja ? 'デバッグ中' : 'Debug Run') :
+    liveRun ? (ja ? 'ライブ Run' : 'Live Run') : savedRun;
+  const status = stopping ? (ja ? '停止処理中…' : 'Stopping…') :
+    run?.run.status === 'paused' ? originalStep ? (ja
+      ? `工程 ${originalStep.number} の${originalStep.position === 'before' ? '前' : '後'}で一時停止`
+      : `Paused ${originalStep.position} step ${originalStep.number}`) :
+      state?.boundary?.kind === 'entry' ? (ja ? '開始位置で一時停止' : 'Paused at entry') :
+      (ja ? '一時停止中' : 'Paused') :
+    run?.run.status === 'succeeded' ? (ja ? '完了 · 書き込み件数は不明' : 'Finished · writes unknown') :
+    run?.run.status === 'failed' ? (originalStep ? (ja ? `工程 ${originalStep.number} で失敗` :
+      `Failed at step ${originalStep.number}`) : (ja ? '失敗' : 'Failed')) :
+    run?.run.status === 'cancelled' ? (confirmedStop ? (originalStep ? (ja ?
+      `工程 ${originalStep.number} の${originalStep.position === 'before' ? '前' : '後'}で停止` :
+      `Stopped ${originalStep.position} step ${originalStep.number}`) : (ja ? '停止を確認' : 'Stopped')) :
+      (ja ? '取消済み · 物理停止は未確認' : 'Cancelled · physical stop unconfirmed')) :
+    run ? run.run.status.replaceAll('_', ' ') :
+    selectedRef ? (ja ? '現在の状態は取得できません' : 'Current status unavailable') :
+    map ? (ja ? 'プラン確認済み · 未実行' : 'Plan checked · not run') : (ja ? 'Run 未選択' : 'No Run selected');
+  const stopStatus = unresolvedStop ? (ja ? '元の停止操作は未確認' : 'Original stop outcome is unconfirmed') :
+    stopOutcome?.kind === 'conflict' ? (ja ? 'Run の状態が変わったため停止できませんでした' : 'Stop conflict · the Run changed') :
+    stopOutcome?.kind === 'refused' ? (ja ? '停止が拒否されました' : 'Stop refused') : undefined;
+  const stopEnabled = connected && cancellationEnabled && !!run && !run.run.terminal && selectedRef !== undefined &&
+    sameRun(selectedRef, run.runRef) && !stop && !stopping;
+  const observedTime = observationAt === undefined ? undefined :
+    new Date(observationAt).toLocaleTimeString(ja ? 'ja-JP' : 'en-GB', {hour12: false});
+  const launcherCommand = 'npx actql-explorer --local --state-dir .actql --run run.json';
+  const cliRunId = run && /^[A-Za-z0-9][A-Za-z0-9._:-]*$/u.test(run.run.id) ? run.run.id : '"$RUN_ID"';
+  const cliCommand = 'actql status ' + cliRunId;
+  const copy = (command: string) => {
+    void navigator.clipboard.writeText(command).catch(() => showError(ja ? 'コピーできませんでした。' : 'Could not copy the command.'));
+  };
   const supportedCheckpoint = connected && (checkpointCapabilities.list || checkpointCapabilities.read);
-  const fileLabel = draftName ?? 'Query draft';
+  const fileLabel = selectedRef ? (ja ? '元のクエリ' : 'Original query') : draftName ?? 'Query draft';
   const independentDraft = !!selectedRef || launcherProgram;
   const draftStatus = independentDraft ? (editing ? 'Editing independent draft' : 'Independent draft') :
     editing ? 'Editing draft' : draftName ? `Loaded ${draftName}` : 'Local query draft';
   const openDrawer = (next: 'connect' | 'open-run') => {showError(''); showDrawer(next);};
-  const closeDrawer = () => {showDrawer(undefined); showError('');};
+  const closeDrawer = () => {showDrawer(undefined); stageStop(undefined); showError('');};
   return <div className="explorer-workspace">
     <header className="workspace-header">
       <div className="workspace-brand"><strong><span aria-hidden="true">&gt;</span> ActQL<span aria-hidden="true">_</span></strong>
         <span>Explorer</span><span className="breadcrumb-divider" aria-hidden="true">/</span>
-      <span className="workspace-label" aria-label={independentDraft ? 'Local draft file' : undefined}>{fileLabel}</span>
+      <span className="workspace-label" aria-label={launcherProgram && !selectedRef ? 'Local draft file' : undefined}>{fileLabel}</span>
       </div>
       <div className="workspace-actions">
         <button type="button" className="small" onClick={()=>showQuery(value=>!value)}
-          aria-controls="query-pane" aria-expanded={queryShown}>{queryShown ? 'Hide query' : 'Show query'} <kbd>Q</kbd></button>
+          aria-controls="query-pane" aria-expanded={queryShown}>{queryShown ? (ja ? 'クエリを隠す' : 'Hide query') : (ja ? 'クエリを表示' : 'Show query')} <kbd>Q</kbd></button>
         <div className="view-switch" role="group" aria-label="Plan view">
           <button type="button" className="small" aria-pressed={!graph} onClick={()=>showGraph(false)}>Steps</button>
           <button type="button" className="small" aria-pressed={graph} onClick={()=>showGraph(true)}>Graph <kbd>G</kbd></button>
@@ -773,11 +1224,13 @@ function App() {
     <div className={'workspace-grid' + (queryShown ? '' : ' query-hidden')}>
       {queryShown && <aside id="query-pane" className="query-panel panel" aria-label="Query">
         <header><div><span className="connection-dot" data-connected={!independentDraft && !!analyzedDraft && !edited}/>
-          <span>{draftStatus}</span></div>
-          <button className="small" type="button" onClick={()=>setEditing(value=>!value)}>{editing ? 'Done' : 'Edit'}</button></header>
-        {independentDraft && <p className="query-scope-note">{selectedRef
-          ? 'This Run keeps its original query. Edits here apply to a future Run.'
-          : 'The launcher supplied the Plan. Edits here apply to a future Run.'}</p>}
+          <span>{selectedRef ? fileLabel : draftStatus}</span></div>
+          {!selectedRef && <button className="small" type="button" onClick={()=>setEditing(value=>!value)}>
+            {editing ? 'Done' : 'Edit'}
+          </button>}</header>
+        {selectedRef ? <p className="query-scope-note">{ja ? 'この読み取りには元のクエリが保持されていません。' :
+          'Original query not retained in this read'}</p> : <>
+        {independentDraft && <p className="query-scope-note">The launcher supplied the Plan. Edits here apply to a future Run.</p>}
         {editing ? <label className="query-editor"><span className="sr-only">Program</span>
           <textarea value={programText} onChange={event=>{draftVersion.current++; setProgramText(event.target.value);}}
             maxLength={60000} rows={8} spellCheck={false}/>
@@ -797,10 +1250,11 @@ function App() {
             </div>
           </details>
         </form>
+        </>}
       </aside>}
       <main className="story-workspace">
         <div className="story-heading">
-          <p className="eyebrow">{selectedRef ? <>Saved Run <code>{run?.run.id ?? selectedRef.runDefinitionCid.slice(7, 19)}</code></> :
+          <p className="eyebrow">{selectedRef ? <>{runMode} <code>{run?.run.id ?? selectedRef.runDefinitionCid.slice(7, 19)}</code></> :
             map ? 'Before run · checked plan' : 'Before run'}</p>
           {run && <p className="observation-line">Observed {run.run.updatedAt}{run.run.cleanupPending ? ' · cleanup pending' : ''}</p>}
           {story ? <StoryHeading story={story} context={context}/> : <h1>{selectedRef ?
@@ -811,23 +1265,58 @@ function App() {
           {!selectedRef && !map && <p className="workspace-note">Open a local query or edit the draft. The checked Story will appear here.</p>}
         </div>
         <div className="run-toolbar" aria-label="Run controls and status">
-          <span className="workspace-chip">{selectedRef ? 'Saved Run' : 'No Run yet'}</span>
-          {!selectedRef && startEnabled && <button className="small primary" type="button" onClick={startDraft}
-            disabled={pending || !analyzedDraft || edited ||
-              !!start && !['not_accepted', 'preparation_failed'].includes(start.state)}>Run</button>}
-          <button className="small" type="button" disabled={!connected || pending} onClick={()=>openDrawer('open-run')}>Open Run</button>
+          <span className="workspace-chip">{selectedRef ? runMode : ja ? 'Run 未開始' : 'No Run yet'}</span>
+          {!selectedRef && startEnabled && <>
+            <button className={analyzedDraft?.debugDefinitionCid && !edited ? "small" : "small primary"}
+              type="button" onClick={()=>startDraft()} disabled={draftStartPending}>Run</button>
+            {analyzedDraft?.debugDefinitionCid && !edited && <button className="small primary" type="button"
+              onClick={()=>startDraft('debug')} disabled={draftStartPending}>{ja ? 'デバッグ' : 'Debug'}</button>}
+          </>}
+          <button className="small" type="button" disabled={!connected || pending} onClick={()=>openDrawer('open-run')}>{ja ? 'Run を開く' : 'Open Run'}</button>
           {selectedRef && !originalPresentation && <button className="small" type="button" disabled={pending}
             onClick={()=>readOriginal(selectedRef, 'run-explanation-context')}>Read Story</button>}
           {selectedRef && !map && <button className="small" type="button" disabled={pending}
             onClick={()=>readOriginal(selectedRef, 'run-plan')}>Read Saved Plan</button>}
           {selectedRef && <button className="small" type="button" disabled={pending}
-            onClick={()=>readOriginal(selectedRef, 'inspect')}>Inspect status</button>}
+            onClick={()=>readOriginal(selectedRef, 'inspect')}>{ja ? '状態を確認' : 'Inspect status'}</button>}
+          {resumePause && <div className="step-data-choice" aria-label={ja ? '一時停止中の操作' : 'Paused Run actions'}>
+            {resumePause.step && <button type="button" className="small" disabled={pending}
+              onClick={() => requestResume('step')}>{ja ? '1 工程進む' : 'Step'}</button>}
+            <button type="button" className="small" disabled={pending}
+              onClick={() => requestResume('terminal')}>{ja ? '続行' : 'Continue'}</button>
+          </div>}
+          {stopEnabled && <button type="button" className="small" disabled={pending}
+            onClick={prepareCancellation}>{ja ? '停止' : 'Stop'}</button>}
           <span className="run-status" role="status" data-known={!!run || !selectedRef}><span className="status-dot"/>
-            {pending ? 'Reading…' : !connected ? 'Local disconnected' : status}
-            {!pending && connected && observedStep && <> · {observedStep}</>}</span>
-          {selectedRef && <details className="toolbar-menu terminal-menu"><summary>Terminal</summary>
-            <div className="panel terminal-card"><p>Original reference for an authorized CLI on this Host.</p>
-              <pre aria-label="Original Run reference">{JSON.stringify(selectedRef, null, 2)}</pre></div>
+            {!connected ? (ja ? 'ローカル未接続' : 'Local disconnected') :
+              pending && !run ? (ja ? '読み取り中…' : 'Reading…') : status}</span>
+          {follow && observedTime && run && (!run.run.terminal || stopping || unresolvedStop) &&
+            <span className="live-observation">{ja ? 'ライブ' : 'Live'} · {observedTime}</span>}
+          {stopStatus && <span className="stop-observation" role="status">{stopStatus}</span>}
+          {selectedRef && <details className="toolbar-menu terminal-menu">
+            <summary>{ja ? 'ターミナル' : 'Terminal'}</summary>
+            <div className="panel terminal-card">
+              <pre>{launcherCommand}</pre>
+              <button className="small" type="button" onClick={()=>copy(launcherCommand)}>{ja ? 'コピー' : 'Copy'}</button>
+              <pre>{cliCommand}</pre>
+              <button className="small" type="button" onClick={()=>copy(cliCommand)}>{ja ? 'コピー' : 'Copy'}</button>
+              <button className="small" type="button" onClick={()=>saveJson(selectedRef, 'run.json')}>
+                {ja ? 'run.json に保存' : 'Save as run.json'}</button>
+              {cancellationEnabled && <details><summary>{ja ? '元の停止操作を照会' : 'Look up original stop'}</summary>
+                {stop ? <>
+                  <button type="button" className="small" disabled={pending}
+                    onClick={()=>lookupCancellation(stop)}>{ja ? '照会' : 'Look up'}</button>
+                  <button type="button" className="small" onClick={()=>saveJson(stop.original, 'actql-original-cancellation.json')}>
+                    {ja ? '取消参照を保存' : 'Save cancellation reference'}</button>
+                  {cancellation && <p>{cancellation.kind} · {ja ? '制御 revision' : 'control revision'} {cancellation.revision}</p>}
+                  {stop.history?.kind === 'unknown' && <p>{ja ? '元の取消記録は未確認' : 'Original cancellation history is unknown'}</p>}
+                </> : <form onSubmit={importCancellation}>
+                  <label>{ja ? '元の取消参照 (JSON)' : 'Original cancellation reference (JSON)'}
+                    <textarea name="original" maxLength={8192} required/></label>
+                  <button type="submit" disabled={pending}>{ja ? '照会' : 'Look up'}</button>
+                </form>}
+              </details>}
+            </div>
           </details>}
         </div>
         {start && <details className="workspace-tools panel"><summary>{startStatus[start.state]}</summary>
@@ -839,24 +1328,43 @@ function App() {
         {error && !drawer && <p className="workspace-notice" role="alert">{error}</p>}
         {edited && !selectedRef && map && <p className="workspace-notice">Draft changed. Story and Graph still show the last checked version.</p>}
         {map && <div className="inspection-strip">
-          {run && <label className="actql-run-follow"><input type="checkbox" checked={follow}
-            disabled={pending || run.run.terminal} onChange={event=>setFollow(event.target.checked)}/>Follow this Run</label>}
-          <details className="toolbar-menu capability-menu"><summary>Step controls unavailable</summary>
+          {resumeAttempt && <button type="button" className="small" disabled={!connected || pending || !debugResumeEnabled}
+            onClick={lookupResume}>{ja ? '元の操作を照会' : 'Look up original control'}</button>}
+          {resumeAttempt && <p role="status">{previousAccepted ? (ja ? '続行操作を受付済み' : 'Resume accepted') :
+            (ja ? '元の操作の受付は未確認' : 'Original control outcome is unconfirmed')}</p>}
+          {run?.run.status === 'paused' && !resumePause && <details className="toolbar-menu capability-menu"><summary>{ja ? 'ステップ操作は利用できません' : 'Step controls unavailable'}</summary>
             <div className="panel terminal-card">
               <p>Durable Step, breakpoint and Continue controls are unavailable.</p>
-              <p>Relation Samples and sealed write preview are unavailable in Explorer.</p>
+              {!sampleEnabled && <p>Relation Sample reading is unavailable on this connection.</p>}
+              <p>Sealed write review is unavailable on this connection.</p>
               <p>A Checkpoint decision is separate from stepping.</p>
             </div>
-          </details>
+          </details>}
         </div>}
         {graph && map && <PlanExplorer model={map} initialView="flow" scopeKey={scopeKey}
-          workspace={{stepId: selection, select: setSelection,
-            label: id=>({state: stepState(id, !!selectedRef, boundary),
-              ...graphLabels.get(id)})}}/>}
+          workspace={{stepId: selection, select: setSelection, groups: presentation?.graphGroups,
+            label: id => {
+              const group = presentation?.groups.find(card => (card.primary?.stepId ?? card.id) === id);
+              const effect = group?.item?.origin.kind === 'effect_set' ? declaredWrite(group.item.origin) : undefined;
+              if (effect) return {
+                kind: ja ? '書き込み宣言' : 'Declared write',
+                title: effect.target && effect.update ? (ja ? `${effect.target} を更新` : `Update ${effect.target}`)
+                  : effect.target ?? (ja ? '宣言された変更' : 'Declared changes'),
+                effectDeclaration: {fields: effect.fields?.join(ja ? '、' : ', '),
+                  missingProducer: ja ? '入力元のリンクは未投影' : 'Producer link not projected'},
+              };
+              return group && story ? {
+                state: group.members.some(member => member.stepId === boundary?.stepId) ? boundary?.state
+                  : selectedRef ? undefined : 'Planned',
+                kind: storyGroupLabel(group, ja), title: storyGroupTitle(group, graphLabels, ja),
+                sourceInput: group.kind === 'source',
+              } : {state: stepState(id, !!selectedRef, boundary), ...graphLabels.get(id)};
+            }}}/>}
         {planOnly && <PlanSteps key={stepScope} map={planOnly} boundary={boundary} selection={selection}
-          select={setSelection} graph={graph} locale={locale}/>}
-        {story && <StorySteps key={scopeKey} story={story} context={context} boundary={boundary}
-          saved={!!selectedRef} selectedStep={selection} selectStep={setSelection} graph={graph} labels={graphLabels} stageResultLinks={map?.stageResultLinks}/>}
+          select={setSelection} graph={graph} locale={locale} pause={nextPause} readSample={sample} saved={!!selectedRef}/>}
+        {story && presentation && <StorySteps key={scopeKey} story={story} groups={presentation.groups}
+          sourceColumns={presentation.source} model={map} boundary={boundary} saved={!!selectedRef} selectedStep={selection}
+          selectStep={setSelection} graph={graph} labels={graphLabels} pause={nextPause} readSample={sample}/>}
         {graph && !map && <p className="workspace-note">Read a Plan or open an original Run to see its Graph.</p>}
         {!graph && !story && !planOnly && map && <p className="workspace-note">This read supplies a logical map. Choose Graph to inspect it.</p>}
         {run && <details className="workspace-tools panel"><summary>Current Run observations</summary><RunInspector model={run}/></details>}
@@ -867,22 +1375,14 @@ function App() {
               canList={connected&&checkpointCapabilities.list} canRead={connected&&checkpointCapabilities.read}
               onList={listCheckpoints} onRead={readReview}/>
           </details>}
-    {(cancellationEnabled || originalCancellation) && <details className="workspace-tools panel"><summary>Cancellation</summary>
-      {!originalCancellation && <form onSubmit={importCancellation}>
-        <label>Saved original cancellation JSON (lookup only)<textarea name="original" maxLength={8192} required/></label>
-        <button disabled={pending}>Load saved reference for lookup</button></form>}
-      {originalCancellation && !cancelSent.current && <label className="actql-run-follow">
-        <input type="checkbox" checked={savedCancellation} onChange={event=>confirmSavedCancellation(event.target.checked)} disabled={pending}/>
-        I saved this original cancellation reference.</label>}
-      <CancellationPanel original={originalCancellation} observation={cancellationObservation}
-        history={cancellationHistory} pending={pending}
-        canPrepare={connected && cancellationEnabled && !!run && !run.run.terminal && !originalCancellation}
-        canRequest={connected && cancellationEnabled && savedCancellation && !cancelSent.current}
-        canLookup={connected && cancellationEnabled && !!originalCancellation}
-        onPrepare={prepareCancellation} onRequest={requestCancellation} onLookup={lookupCancellation}/>
-    </details>}
       </main>
     </div>
+    {drawer === 'stop' && stopDraft && <WorkspaceDialog title={ja ? 'この Run を停止' : 'Stop this Run'} close={closeDrawer}>
+      <p>{ja ? '現在の revision でこの Run の停止を要求します。' : 'Request a stop for this Run at the observed revision.'}</p>
+      <button className="small" type="button" onClick={closeDrawer}>{ja ? '戻る' : 'Back'}</button>{' '}
+      <button className="small primary" type="button" disabled={pending} onClick={requestCancellation}>
+        {ja ? '停止を要求' : 'Request stop'}</button>
+    </WorkspaceDialog>}
     {drawer === 'connect' && <WorkspaceDialog title="Connect to Local" close={closeDrawer}>
       <p className="workspace-note">Use a fresh one-use bootstrap from the Local Host.</p>
       <form onSubmit={session}>

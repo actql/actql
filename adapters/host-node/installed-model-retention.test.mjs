@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
-import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
+import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
 
 const capturedBinding = () => ({version: 'actql-installed-keyed-read-binding/0.1',
   selectionCid: `sha256:${'c'.repeat(64)}`, physicalBindingCid: `sha256:${'d'.repeat(64)}`,

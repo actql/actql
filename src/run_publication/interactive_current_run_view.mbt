@@ -7,6 +7,7 @@ priv struct LocalDebugPark {
   step_wire : String
   paused_at : String
   expires_at : String
+  resume_available : Bool
 }
 
 ///|
@@ -28,6 +29,13 @@ fn admit_local_debug_park(
   max_depth : Int,
 ) -> Result[LocalDebugPark, RunControlReadIssue] {
   let invalid = ControlReadContract(InvalidField("debug_park"))
+  // The current caller's authorization has no place in the park CID.
+  let (resume_available, availability_fields) = match
+    @json.object_field(park, "resume_available") {
+    None => (false, 0)
+    Some(@json.Bool(value)) => (value, 1)
+    _ => return Err(invalid)
+  }
   guard @json.object_field(park, "run_ref") is Some(original_ref) &&
     @json.object_field_count(original_ref) == Some(3) &&
     contract_string_from_value(park, "logical_map_cid") is Some(map) &&
@@ -61,10 +69,10 @@ fn admit_local_debug_park(
     // The legacy Run view calls a reserved dispatch "running", including an
     // entry park whose original Journal has yet to reserve physical start.
     Some("entry") if (status == "preparing" || status == "running") &&
-      @json.object_field_count(park) == Some(7) =>
+      @json.object_field_count(park) == Some(7 + availability_fields) =>
       ("entry", "before", "null", "")
     Some("logical_step") if status == "running" &&
-      @json.object_field_count(park) == Some(12) => {
+      @json.object_field_count(park) == Some(12 + availability_fields) => {
       guard interactive_integer(park, "start_revision") is Some(start_revision) &&
         start_revision > 0L &&
         start_revision < revision &&
@@ -158,6 +166,7 @@ fn admit_local_debug_park(
     step_wire,
     paused_at,
     expires_at,
+    resume_available,
   })
 }
 
@@ -450,7 +459,13 @@ pub fn project_current_interactive_run_view(
     "}" +
     journal_component +
     "],\"quantities\":[],\"sample\":{\"state\":\"unavailable\",\"reason\":\"not_supported\"}," +
-    "\"available_operations\":[\"inspect\"],\"capabilities\":{\"static_plan\":" +
+    "\"available_operations\":" +
+    (if park is Some(debug) && debug.resume_available {
+      "[\"inspect\",\"resume\"]"
+    } else {
+      "[\"inspect\"]"
+    }) +
+    ",\"capabilities\":{\"static_plan\":" +
     static_plan_installed.to_string() +
     ",\"inspect\":true," +
     "\"durable_control\":false,\"sample_capture\":[],\"full_intermediate_retention\":[]," +

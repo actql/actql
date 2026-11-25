@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {validWireRunViewShape, validOwnerObservations} from '@actql/client-wire';
 import {createReadEpoch} from './read-model.mjs';
-import {paused} from '../../scripts/fixtures/interactive-run-control-vectors.mjs';
-import {runObservationLimits, runObservationModel, observedPlanStep, readRunObservation} from './run-observation.mjs';
+import {runObservationLimits, runObservationModel, readRunObservation} from './run-observation.mjs';
 import {observationCid as cid, observationRef as ref,
   runObservationFixture as view, ownerObservationFixture as owners} from './run-observation.fixture.mjs';
 
@@ -27,26 +26,6 @@ test('Run-level state never fills missing Plan bindings, usage or Result availab
   assert(Object.isFrozen(model.runRef));assert(Object.isFrozen(model.run));
   wire.run_state.status='failed';assert.equal(model.run.status,'succeeded');
 });
-test('a Step observation requires the same Run, compiled Plan, Map and original step', () => {
-  const wire = view(), original = ref(), stepId = cid('d');
-  wire.compiled_plan_cid = cid('1');
-  wire.logical_map_cid = cid('2');
-  wire.run_state = {...paused, boundary: {...paused.boundary, position: 'before', step_id: stepId}};
-  const admitted = runObservationModel(wire, null, original);
-  const plan = {compiledPlanCid: cid('1'), logicalMapCid: cid('2'),
-    nodes: [{id: cid('a')}, {id: stepId}]};
-  assert.deepEqual(observedPlanStep(admitted, original, plan), {stepId, number: 2, position: 'before'});
-  for (const key of ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']) {
-    assert.equal(observedPlanStep(admitted, {...original, [key]: 'foreign'}, plan), undefined);
-  }
-  for (const key of ['compiledPlanCid', 'logicalMapCid']) {
-    assert.equal(observedPlanStep(admitted, original, {...plan, [key]: cid('f')}), undefined);
-  }
-  assert.equal(observedPlanStep(admitted, original, {...plan, nodes: [{id: cid('a')}]}), undefined);
-  const unbound = {...admitted, planBinding: {...admitted.planBinding, logicalMapCid: null}};
-  assert.equal(observedPlanStep(unbound, original, plan), undefined);
-});
-
 test('exact, bound, estimate and unknown quantities retain original text, units, scopes and bases', () => {
   const wire=view();wire.quantities=[
     {kind:'exact',value:'9007199254740993',unit:'rows',scope_cid:cid('1'),basis_cid:cid('2')},

@@ -1,0 +1,200 @@
+'use strict';
+
+// Exact native schema SQL emitted by this Journal's fixed authored DDL on the
+// selected SQLite implementation. A support boundary before cold native schema
+// construction, not a SQL parser, format authority or operational issuer.
+// Automatic native indexes have NULL SQL and are checked separately.
+const sql = Object.freeze([
+  `CREATE TABLE client_run_explanation_plan_originals (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_context_originals(run_definition_cid) ON DELETE CASCADE,
+  compiled_plan_wire TEXT NOT NULL,
+  plan_view_wire TEXT NOT NULL
+) STRICT`,
+  `CREATE TABLE client_debug_task_pauses (
+  run_definition_cid TEXT NOT NULL REFERENCES client_debug_entry_parks(run_definition_cid) ON DELETE CASCADE,
+  control_revision INTEGER NOT NULL CHECK (control_revision BETWEEN 2 AND 2147483646 AND control_revision % 2 = 0),
+  step_id TEXT NOT NULL,
+  next_step_id TEXT CHECK (next_step_id IS NULL OR length(CAST(next_step_id AS BLOB)) = 71),
+  committed_generation INTEGER NOT NULL CHECK (committed_generation BETWEEN 1 AND 2147483647),
+  paused_revision INTEGER NOT NULL CHECK (paused_revision BETWEEN 1 AND 2147483646),
+  expires_at INTEGER NOT NULL CHECK (expires_at > 0),
+  paused_at INTEGER NOT NULL CHECK (paused_at >= 0 AND paused_at < expires_at),
+  journal_ordinal INTEGER NOT NULL UNIQUE CHECK (journal_ordinal > 0),
+  operation_id TEXT,
+  resume_wire TEXT,
+  receipt_wire TEXT CHECK (receipt_wire IS NULL OR
+    (resume_wire IS NOT NULL AND length(CAST(receipt_wire AS BLOB)) BETWEEN 1 AND 4096)),
+  receipt_cid TEXT CHECK (length(CAST(receipt_cid AS BLOB)) = 71),
+  resume_accepted_at INTEGER,
+  CHECK ((resume_wire IS NULL) = (resume_accepted_at IS NULL)),
+  CHECK ((receipt_wire IS NULL) = (receipt_cid IS NULL)),
+  CHECK (resume_accepted_at >= paused_at AND resume_accepted_at < expires_at),
+  CHECK ((resume_wire IS NULL) = (operation_id IS NULL)),
+  PRIMARY KEY (run_definition_cid, control_revision),
+  UNIQUE (run_definition_cid, operation_id)
+) STRICT`,
+  `CREATE TABLE client_debug_entry_parks (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,
+  submitted_intent_cid TEXT NOT NULL,
+  parked_revision INTEGER NOT NULL CHECK (parked_revision BETWEEN 1 AND 2147483645),
+  expires_at INTEGER NOT NULL CHECK (expires_at > 0),
+  paused_at INTEGER NOT NULL CHECK (paused_at >= 0 AND paused_at < expires_at),
+  resume_wire TEXT,
+  receipt_wire TEXT CHECK (receipt_wire IS NULL OR
+    (resume_wire IS NOT NULL AND length(CAST(receipt_wire AS BLOB)) BETWEEN 1 AND 4096)),
+  receipt_cid TEXT CHECK (length(CAST(receipt_cid AS BLOB)) = 71),
+  resume_revision INTEGER,
+  resume_accepted_at INTEGER,
+  CHECK ((resume_wire IS NULL) = (resume_accepted_at IS NULL)),
+  CHECK ((receipt_wire IS NULL) = (receipt_cid IS NULL)),
+  CHECK (resume_accepted_at >= paused_at AND resume_accepted_at < expires_at),
+  CHECK ((resume_wire IS NULL AND resume_revision IS NULL) OR
+    (resume_wire IS NOT NULL AND resume_revision IS NOT NULL AND resume_revision = parked_revision + 1))
+) STRICT`,
+  `CREATE TABLE client_relation_sample_adoptions (
+  run_definition_cid TEXT NOT NULL REFERENCES client_relation_sample_starts(run_definition_cid) ON DELETE CASCADE,
+  sample_ref_cid TEXT NOT NULL,
+  source_generation_cid TEXT NOT NULL,
+  output_port_id TEXT NOT NULL,
+  original_capture_cid TEXT NOT NULL,
+  emission_provenance_cid TEXT NOT NULL,
+  expires_at INTEGER NOT NULL CHECK (expires_at > 0),
+  journal_receipt_ordinal INTEGER NOT NULL CHECK (journal_receipt_ordinal > 0),
+  run_receipt_ordinal INTEGER NOT NULL CHECK (run_receipt_ordinal > 0),
+  source_generation_wire TEXT,
+  capture_wire TEXT,
+  emission_wire TEXT,
+  reference_wire TEXT,
+  receipt_wire TEXT NOT NULL,
+  relation_wire TEXT,
+  CHECK ((relation_wire IS NULL) = (source_generation_wire IS NULL) AND
+    (relation_wire IS NULL) = (capture_wire IS NULL) AND
+    (relation_wire IS NULL) = (emission_wire IS NULL) AND
+    (relation_wire IS NULL) = (reference_wire IS NULL)),
+  PRIMARY KEY (run_definition_cid, sample_ref_cid),
+  UNIQUE (run_definition_cid, source_generation_cid),
+  UNIQUE (run_definition_cid, output_port_id, sample_ref_cid),
+  UNIQUE (journal_receipt_ordinal),
+  UNIQUE (run_definition_cid, run_receipt_ordinal)
+) STRICT`,
+  `CREATE TABLE client_relation_sample_starts (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,
+  namespace_id TEXT NOT NULL,
+  authority_scope_cid TEXT NOT NULL,
+  submitted_intent_cid TEXT NOT NULL,
+  control_admission_cid TEXT NOT NULL,
+  resolved_profile_cid TEXT NOT NULL,
+  start_revision INTEGER NOT NULL CHECK (start_revision BETWEEN 1 AND 2147483647)
+) STRICT`,
+  `CREATE TABLE client_run_explanation_context_originals (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_originals(run_definition_cid) ON DELETE CASCADE,
+  context_wire TEXT NOT NULL,
+  context_wire_sha256 TEXT NOT NULL,
+  invocation_template_wire TEXT NOT NULL
+) STRICT`,
+  `CREATE TABLE client_run_explanation_originals (
+  namespace_id TEXT NOT NULL,
+  authority_scope_cid TEXT NOT NULL,
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,
+  facts_wire TEXT NOT NULL
+) STRICT`,
+  `CREATE TABLE client_keyed_lookup_originals (
+  namespace_id TEXT NOT NULL,
+  authority_scope_cid TEXT NOT NULL,
+  run_definition_cid TEXT NOT NULL REFERENCES client_requests(run_definition_cid),
+  batch_plan_cid TEXT NOT NULL,
+  call_slot_cid TEXT NOT NULL,
+  batch_index INTEGER NOT NULL CHECK (batch_index >= 0),
+  batch_count INTEGER NOT NULL CHECK (batch_count > 0 AND batch_index < batch_count),
+  activation_wire TEXT NOT NULL,
+  page_wire TEXT,
+  PRIMARY KEY (namespace_id, authority_scope_cid, run_definition_cid, call_slot_cid),
+  UNIQUE (namespace_id, authority_scope_cid, run_definition_cid, batch_plan_cid, batch_index)
+) STRICT`,
+  "CREATE TABLE client_local_execution_owners (\n  namespace_id TEXT NOT NULL,\n  authority_scope_cid TEXT NOT NULL,\n  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,\n  owner_token TEXT NOT NULL CHECK (length(owner_token) = 36),\n  anchor_identity TEXT NOT NULL CHECK (length(anchor_identity) = 36),\n  anchor_device TEXT NOT NULL CHECK (length(anchor_device) BETWEEN 1 AND 32),\n  anchor_inode TEXT NOT NULL CHECK (length(anchor_inode) BETWEEN 1 AND 32)\n) STRICT",
+  "CREATE TABLE client_cancellation_custody (\n          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),\n          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)\n        ) STRICT",
+  "CREATE TABLE client_cancellation_operations (\n          namespace_id TEXT NOT NULL,\n          authority_scope_cid TEXT NOT NULL,\n          cancel_id TEXT NOT NULL,\n          run_definition_cid TEXT NOT NULL REFERENCES client_requests(run_definition_cid),\n          expected_revision INTEGER NOT NULL CHECK (expected_revision >= 0),\n          intent_fingerprint_cid TEXT NOT NULL,\n          outcome_wire TEXT,\n          outcome_cid TEXT,\n          CHECK ((outcome_wire IS NULL) = (outcome_cid IS NULL)),\n          PRIMARY KEY (namespace_id, authority_scope_cid, cancel_id)\n        ) STRICT",
+  "CREATE TABLE client_observation_format (\n        singleton INTEGER PRIMARY KEY CHECK (singleton = 1),\n        version TEXT NOT NULL\n      ) STRICT",
+  "CREATE TABLE client_observation_runs (\n        namespace_id TEXT NOT NULL, authority_scope_cid TEXT NOT NULL,\n        run_definition_cid TEXT NOT NULL, caller_request_id TEXT NOT NULL,\n        scope TEXT NOT NULL, configuration_revision TEXT NOT NULL,\n        context_json TEXT, records INTEGER NOT NULL CHECK (records >= 0),\n        bytes INTEGER NOT NULL CHECK (bytes >= 0), owner_fact_key TEXT,\n        PRIMARY KEY (namespace_id, authority_scope_cid, run_definition_cid)\n      ) STRICT",
+  "CREATE TABLE client_requests (\n        authority_scope_cid TEXT NOT NULL,\n        caller_request_id TEXT NOT NULL,\n        logical_request_scope_cid TEXT NOT NULL UNIQUE,\n        intent_fingerprint_cid TEXT NOT NULL,\n        program_definition_cid TEXT NOT NULL,\n        parameter_values_cid TEXT NOT NULL,\n        caller_input_intent_cid TEXT NOT NULL,\n        namespace_id TEXT NOT NULL,\n        run_definition_cid TEXT NOT NULL UNIQUE,\n        run_definition_wire TEXT,\n        run_admission_evidence_json TEXT,\n        revision INTEGER NOT NULL CHECK (revision >= 0),\n        state_revision INTEGER NOT NULL DEFAULT 0\n          CHECK (state_revision >= 0 AND state_revision <= 9007199254740991),\n        state_observation_key TEXT,\n        lookup_expires_at TEXT NOT NULL,\n        result_names_json TEXT,\n        dispatch_reserved INTEGER NOT NULL DEFAULT 0\n          CHECK (dispatch_reserved IN (0, 1)),\n        pre_dispatch_failure_confirmed INTEGER NOT NULL DEFAULT 0\n          CHECK (pre_dispatch_failure_confirmed IN (0, 1)),\n        physical_start_reserved INTEGER NOT NULL DEFAULT 0\n          CHECK (physical_start_reserved IN (0, 1)),\n        cancellation_requested INTEGER NOT NULL DEFAULT 0\n          CHECK (cancellation_requested IN (0, 1)),\n        physical_close_confirmed INTEGER NOT NULL DEFAULT 0\n          CHECK (physical_close_confirmed IN (0, 1)),\n        observed_terminal_outcome TEXT\n          CHECK (observed_terminal_outcome IN ('failed', 'cancelled')),\n        reconciliation_state_wire TEXT,\n        PRIMARY KEY (authority_scope_cid, caller_request_id)\n      ) STRICT",
+  "CREATE TABLE client_source_operation_originals (\n  namespace_id TEXT NOT NULL,\n  authority_scope_cid TEXT NOT NULL,\n  run_definition_cid TEXT NOT NULL REFERENCES client_requests(run_definition_cid),\n  stage INTEGER NOT NULL CHECK (stage >= 0),\n  input_index INTEGER NOT NULL CHECK (input_index >= 0),\n  task INTEGER NOT NULL CHECK (task >= 0),\n  source_attempt_id TEXT NOT NULL,\n  run_invocation_cid TEXT NOT NULL,\n  dispatch_request_cid TEXT NOT NULL,\n  original_wire TEXT NOT NULL,\n  PRIMARY KEY (namespace_id, authority_scope_cid, run_definition_cid, stage, input_index, task)\n) STRICT",
+  "CREATE TABLE client_submission_custody (\n          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),\n          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)\n        ) STRICT",
+  "CREATE TABLE client_submission_epoch_authority (\n          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),\n          authentication_key TEXT NOT NULL,\n          observed_at INTEGER NOT NULL CHECK (observed_at >= 0)\n        ) STRICT",
+  "CREATE TABLE client_submission_name_custody (\n          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),\n          issued_count INTEGER NOT NULL CHECK (issued_count >= 0),\n          retained_count INTEGER NOT NULL CHECK (retained_count >= 0)\n        ) STRICT",
+  "CREATE TRIGGER client_submission_name_delete_count\n    AFTER DELETE ON client_submission_names BEGIN\n      UPDATE client_submission_name_custody SET retained_count = retained_count - 1 WHERE singleton = 1;\n    END",
+  "CREATE TRIGGER client_submission_name_insert_count\n    AFTER INSERT ON client_submission_names BEGIN\n      UPDATE client_submission_name_custody SET retained_count = retained_count + 1 WHERE singleton = 1;\n    END",
+  "CREATE TABLE client_submission_names (\n          namespace_id TEXT NOT NULL,\n          actor_id TEXT NOT NULL,\n          name TEXT NOT NULL,\n          authority_scope_cid TEXT NOT NULL,\n          submission_id TEXT NOT NULL UNIQUE,\n          intent_cid TEXT NOT NULL,\n          binding_authenticator TEXT NOT NULL,\n          PRIMARY KEY (namespace_id, actor_id, name)\n        ) STRICT",
+  "CREATE TABLE client_submission_restart_custody (\n          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),\n          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)\n        ) STRICT",
+  "CREATE TABLE client_submission_restarts (\n          fresh_submission_id TEXT PRIMARY KEY,\n          original_submission_id TEXT NOT NULL,\n          link_wire TEXT NOT NULL\n        ) STRICT",
+  "CREATE TABLE client_submitted_intent_custody (\n          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),\n          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)\n        ) STRICT",
+  "CREATE TABLE client_submitted_intent_retirement (\n          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),\n          retired_count INTEGER NOT NULL CHECK (retired_count >= 0)\n        ) STRICT",
+  "CREATE TABLE client_submitted_intents (\n          submission_id TEXT PRIMARY KEY,\n          authority_scope_cid TEXT NOT NULL,\n          nonce TEXT NOT NULL,\n          epoch_wire TEXT NOT NULL,\n          intent_cid TEXT NOT NULL,\n          intent_wire TEXT NOT NULL,\n          accepted_at INTEGER NOT NULL,\n          phase TEXT NOT NULL CHECK (phase IN ('preparing', 'not_accepted', 'preparation_failed', 'ready', 'held')),\n          outcome_wire TEXT,\n          revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0)\n        ) STRICT"
+  ,`CREATE TABLE client_submitted_intent_usage (
+    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+    retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991),
+    retained_bytes INTEGER NOT NULL CHECK (retained_bytes >= 0 AND retained_bytes <= 67108864),
+    revision INTEGER NOT NULL CHECK (revision >= 0 AND revision <= 9007199254740991)
+  ) STRICT`,
+  `CREATE TABLE client_submission_restart_usage (
+    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+    retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991),
+    retained_bytes INTEGER NOT NULL CHECK (retained_bytes >= 0 AND retained_bytes <= 67108864),
+    revision INTEGER NOT NULL CHECK (revision >= 0 AND revision <= 9007199254740991)
+  ) STRICT`,
+  `CREATE TRIGGER client_submitted_intent_usage_insert AFTER INSERT ON client_submitted_intents BEGIN
+    UPDATE client_submitted_intent_usage SET retained_count = retained_count + 1,
+      retained_bytes = retained_bytes + length(CAST(NEW.intent_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_submitted_intent_usage_delete AFTER DELETE ON client_submitted_intents BEGIN
+    UPDATE client_submitted_intent_usage SET retained_count = retained_count - 1,
+      retained_bytes = retained_bytes - length(CAST(OLD.intent_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_submitted_intent_usage_update AFTER UPDATE OF intent_wire ON client_submitted_intents BEGIN
+    UPDATE client_submitted_intent_usage SET retained_bytes = retained_bytes
+      - length(CAST(OLD.intent_wire AS BLOB)) + length(CAST(NEW.intent_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_submission_restart_usage_insert AFTER INSERT ON client_submission_restarts BEGIN
+    UPDATE client_submission_restart_usage SET retained_count = retained_count + 1,
+      retained_bytes = retained_bytes + length(CAST(NEW.link_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_submission_restart_usage_delete AFTER DELETE ON client_submission_restarts BEGIN
+    UPDATE client_submission_restart_usage SET retained_count = retained_count - 1,
+      retained_bytes = retained_bytes - length(CAST(OLD.link_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_submission_restart_usage_update AFTER UPDATE OF link_wire ON client_submission_restarts BEGIN
+    UPDATE client_submission_restart_usage SET retained_bytes = retained_bytes
+      - length(CAST(OLD.link_wire AS BLOB)) + length(CAST(NEW.link_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TABLE client_request_row_usage (
+  singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+  retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991)
+) STRICT`,
+  `CREATE TABLE client_cancellation_row_usage (
+  singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+  retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991)
+) STRICT`,
+  `CREATE TRIGGER client_request_row_usage_insert AFTER INSERT ON client_requests BEGIN
+    UPDATE client_request_row_usage SET retained_count = retained_count + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_request_row_usage_delete AFTER DELETE ON client_requests BEGIN
+    UPDATE client_request_row_usage SET retained_count = retained_count - 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_cancellation_row_usage_insert AFTER INSERT ON client_cancellation_operations BEGIN
+    UPDATE client_cancellation_row_usage SET retained_count = retained_count + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_cancellation_row_usage_delete AFTER DELETE ON client_cancellation_operations BEGIN
+    UPDATE client_cancellation_row_usage SET retained_count = retained_count - 1 WHERE singleton = 1;
+  END`
+]);
+// Exact current counter DDL plus the earlier closed format for atomic adoption.
+const parentBoundedCounters = sql.filter(value =>
+  value.startsWith('CREATE TABLE client_submitted_intent_usage (') ||
+  value.startsWith('CREATE TABLE client_submission_restart_usage (')).map(value =>
+    value.replace('retained_bytes <= 67108864','retained_bytes <= 9007199254740991'));
+export = Object.freeze({sql: Object.freeze([...sql,...parentBoundedCounters])});

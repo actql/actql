@@ -192,7 +192,10 @@ pub fn client_program_project_original_check_outcome(
               findings.push(NumericProfileRequired)
               findings.push(Limit("checking_context_missing"))
             }
-            _ => findings.push(Limit("bound_values_missing"))
+            kind =>
+              if !check_calendar_requirement(findings, kind) {
+                findings.push(Limit("bound_values_missing"))
+              }
           }
         }
         // The original partial frontier cannot become verified when an

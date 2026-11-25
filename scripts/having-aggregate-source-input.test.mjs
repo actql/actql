@@ -58,7 +58,7 @@ test('HAVING aggregate cases join the ordinary packed corpus and a focused selec
     ...havingAggregateExecutionFailures];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, name] of [['successes', 'havingAggregateSuccesses'],
     ['refusals', 'havingAggregateRefusals'], ['executionFailures', 'havingAggregateExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));

@@ -10,13 +10,31 @@
     "#loopback-http": {"node": "./loopback-http.mjs", "default": "./loopback-http-unavailable.mjs"}
   },
   "exports": {
-    ".": { "types": "./index.d.ts", "default": "./index.mjs" },
+    ".": { "types": "./index.d.mts", "default": "./index.mjs" },
     "./host-port": {
-      "types": "./host-port.d.ts", "default": "./host-port.mjs"
+      "types": "./host-port.d.mts", "default": "./host-port.mjs"
     },
     "./_internal/source-preparation": "./internal/private-source-preparation.mjs",
     "./_internal/client-errors": "./internal/client-errors.mjs"
   },
-  "files": ["index.mjs", "internal/", "source-query.mjs", "result-schema.mjs", "standard-schema.d.ts", "STANDARD-SCHEMA-LICENSE", "index.d.ts", "connection-string.mjs", "loopback-http.mjs", "loopback-http-unavailable.mjs", "checkpoints.mjs", "check-presentation.mjs", "check-reason-catalog.generated.js", "check-reason-catalog.generated.d.ts", "operation-presentation.mjs", "operation-formats.mjs", "json-value-wire.generated.mjs", "host-port.mjs",
-    "host-port.d.ts", "README.md"]
+  "files": ["index.mjs", "internal/check-observation.d.mts", "internal/check-observation.mjs",
+    "internal/checkpoint-answer-construction.generated.d.mts", "internal/checkpoint-answer-construction.generated.mjs",
+    "internal/checkpoint-answer-contract.generated.d.mts", "internal/checkpoint-answer-contract.generated.mjs",
+    "internal/checkpoint-operations.d.mts", "internal/checkpoint-operations.mjs",
+    "internal/client-errors.d.mts", "internal/client-errors.mjs",
+    "internal/client-lifecycle.d.mts", "internal/client-lifecycle.mjs",
+    "internal/client.d.mts", "internal/client.mjs",
+    "internal/connection-options.d.mts", "internal/connection-options.mjs",
+    "internal/data.d.mts", "internal/data.mjs",
+    "internal/errors.d.mts", "internal/errors.mjs",
+    "internal/plan.d.mts", "internal/plan.mjs",
+    "internal/private-source-preparation.d.mts", "internal/private-source-preparation.mjs",
+    "internal/resources.d.mts", "internal/resources.mjs",
+    "internal/result-read.d.mts", "internal/result-read.mjs",
+    "internal/run-observation.d.mts", "internal/run-observation.mjs",
+    "internal/submission-observation.d.mts", "internal/submission-observation.mjs",
+    "internal/transport-response.d.mts", "internal/transport-response.mjs",
+    "internal/transport.d.mts", "internal/transport.mjs",
+    "internal/README.md", "source-query.mjs", "result-schema.mjs", "standard-schema.d.ts", "STANDARD-SCHEMA-LICENSE", "index.d.mts", "connection-string.mjs", "loopback-http.mjs", "loopback-http-unavailable.mjs", "checkpoints.mjs", "check-presentation.mjs", "check-presentation.d.mts", "check-reason-catalog.generated.js", "check-reason-catalog.generated.d.ts", "operation-presentation.mjs", "operation-presentation.d.mts", "operation-formats.mjs", "json-value-wire.generated.mjs", "json-value-wire.generated.d.mts", "host-port.mjs",
+    "host-port.d.mts", "README.md"]
 }

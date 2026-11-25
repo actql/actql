@@ -76,7 +76,7 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
     resolveSecret: f.options.credential.resolveSecret});
   const identity = () => installedSourceIdentity(path, {moon: common,
     configurationReader: installedSourceConfigurationReader(loaderParent.services)});
-  const prepare = async source => {
+  const prepare = async (source, programText = 'SELECT id, amount, tags FROM hubspot.companies WHERE TRUE') => {
     const env = JSON.parse(source.environmentWire);
     const environment = common.clientProgramCheckEnvironment(source.environmentWire,
       env.evidence_bundle_cid, false, false, true, false, false, false, false);
@@ -88,7 +88,7 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
         sourceViewContractCid: view.source_view_contract_cid,
         schemaContractCid: view.carrier_schema_contract_cid}]});
     const outcome = common.clientProgramPrepareSourceWithParameters(
-      'SELECT id, amount, tags FROM hubspot.companies WHERE TRUE', 'sql', environment,
+      programText, 'sql', environment,
       publication, undefined, undefined);
     const program = common.clientProgramPreparationReady(outcome);
     assert.ok(program, inspect(common.clientProgramPreparationIssue(outcome), {depth: 8, maxStringLength: 2000}));

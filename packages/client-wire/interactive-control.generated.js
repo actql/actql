@@ -2034,6 +2034,9 @@ const schemas = {
       "policy_revision_cid": {
         "type": "string",
         "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "debug_entry": {
+        "const": true
       }
     }
   },
@@ -2538,6 +2541,9 @@ const schemas = {
           "policy_revision_cid": {
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "debug_entry": {
+            "const": true
           }
         }
       }
@@ -12161,6 +12167,9 @@ const schemas = {
           "policy_revision_cid": {
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "debug_entry": {
+            "const": true
           }
         }
       }
@@ -12706,6 +12715,9 @@ const schemas = {
               "policy_revision_cid": {
                 "type": "string",
                 "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "debug_entry": {
+                "const": true
               }
             }
           }
@@ -13257,6 +13269,9 @@ const schemas = {
                   "policy_revision_cid": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "debug_entry": {
+                    "const": true
                   }
                 }
               }
@@ -18919,6 +18934,9 @@ const schemas = {
                   "policy_revision_cid": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "debug_entry": {
+                    "const": true
                   }
                 }
               }
@@ -19468,6 +19486,9 @@ const schemas = {
                           "policy_revision_cid": {
                             "type": "string",
                             "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "debug_entry": {
+                            "const": true
                           }
                         }
                       }
@@ -22222,6 +22243,9 @@ const schemas = {
                           "policy_revision_cid": {
                             "type": "string",
                             "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "debug_entry": {
+                            "const": true
                           }
                         }
                       }
@@ -24108,7 +24132,7 @@ function valid(value, schema) {
   return true;
 }
 
-export const interactiveControlRegistryCid = "sha256:6a15d7d0066c647c9a8cafe676e722b2af9a01e1a3dcce6fae380b27266324f3";
+export const interactiveControlRegistryCid = "sha256:d83bc96bcf370b40f166ca6d32587aae383f5f822da52648d3ae7aa9a9603f32";
 export const interactiveControlErrors = Object.freeze(["RunControlCapabilityRequired","RunStateVersionUnsupported","RunNotPaused","CheckpointPending","ControlRevisionConflict","ControlOperationConflict","ControlRevisionExhausted","BreakpointUnresolved","BreakpointAmbiguous","BreakpointPlanMismatch","BreakpointUnsupported","BoundaryUnsupported","InitialPauseUnsupported","InspectionRetentionUnsupported","SampleCaptureRequiredFailed","GuardExceeded","GuardUnavailable","InvalidCostAmount","ExecutionProfileConflict","CLIOptionConflict","InteractiveTTYRequired"]);
 export const validWireControlQuantityShape = value => valid(value, schemas.control_quantity);
 export const validWireControlMoneyShape = value => valid(value, schemas.control_money);

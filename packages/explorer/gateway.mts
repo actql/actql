@@ -1,0 +1,573 @@
+import type * as Public from './gateway.js';
+import type {Client} from '@actql/sdk';
+import type {WireControlCommand, WireControlOperationRef, WireExplanationFacts, WireExplanationNarrative, WireStaticExplanationView, WireSubmissionRef}
+  from '@actql/client-wire';
+import type {ExplorerStartObservation} from './browser-source.js';
+import type {ContentfulStatusCode} from 'hono/utils/http-status';
+import type {Server} from 'node:http';
+import type {AddressInfo} from 'node:net';
+
+interface Session {value:string;csrf:string;expiresAt:number}
+interface Bootstrap {value:string;expiresAt:number}
+interface ErrorView {code?:unknown;status?:unknown}
+import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';
+import {randomBytes, timingSafeEqual} from 'node:crypto';
+import {Hono} from 'hono';
+import {serve} from '@hono/node-server';
+import {resumeControlOperationRef, sameSubmissionRef, validControlOperationLookup, validRunRef, validSubmissionRef,
+  validWireControlCommandShape, validWireControlOperationRefShape, withinResultDescriptionLimits} from '@actql/client-wire';
+import {getSubmissionOutcome} from '@actql/sdk';
+import {canonicalJson} from '@actql/sdk/host-port';
+import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
+  readExistingRunExplanation, readExistingRunPresentation, readExistingRunContext, readStaticPlan,
+  readStaticExplanation, readExistingRunSample, validSamplePortSelection, type ReadTicket} from '@actql/explorer-ui/read-model';
+import {copyExplorerLaunchInput} from './launch-input.mjs';
+import {requestExistingCancellation, lookupExistingCancellation} from './cancellation.mjs';
+import {readRunObservation} from '@actql/explorer-ui/run-observation';
+
+// These are presentation/transport ceilings, not new execution reservations.
+export const gatewayLimits: typeof Public.gatewayLimits = Object.freeze({bodyBytes: 65536, replyBytes: 262144,
+  bodyDepth: 64, bodyNodes: 10000, inFlight: 4, assets: 32,
+  assetBytes: 4 * 1024 * 1024, sessionMs: 300000, bootstrapMs: 60000,
+  requestMs: 15000});
+const cookieName = 'actql_explorer_session';
+const token = () => randomBytes(32).toString('base64url');
+const sameToken = (a:unknown, b:unknown) => typeof a === 'string' && typeof b === 'string' &&
+  /^[a-zA-Z0-9_-]{43}$/u.test(a) && /^[a-zA-Z0-9_-]{43}$/u.test(b) &&
+  timingSafeEqual(Buffer.from(a), Buffer.from(b));
+const exact = (value:unknown, required:readonly string[], optional:readonly string[] = []):value is Record<string,unknown> => value !== null &&
+  typeof value === 'object' && !Array.isArray(value) &&
+  required.every(key => Object.hasOwn(value, key)) &&
+  Object.keys(value).every(key => [...required, ...optional].includes(key));
+const fail:(code:string,status?:number)=>never = (code, status = 400) => {throw Object.assign(new Error(code), {code, status});};
+function startObservation(outcome: ReturnType<typeof getSubmissionOutcome>,
+  submissionRef: WireSubmissionRef): ExplorerStartObservation {
+  if (outcome === undefined) return {state: 'reply_unknown'};
+  if (!sameSubmissionRef(outcome.submissionRef, submissionRef)) fail('ExplorerInvalidReply', 409);
+  if (outcome.kind === 'ready') {
+    const ref = outcome.admission?.ref;
+    if (!validRunRef(ref) || ref.authorityScopeCid !== submissionRef.epoch.authorityScopeCid) {
+      fail('ExplorerInvalidReply', 409);
+    }
+    return {state: 'ready', ref};
+  }
+  if (outcome.kind === 'held' || outcome.kind === 'preparing' || outcome.kind === 'not_accepted' ||
+      outcome.kind === 'preparation_failed' || outcome.kind === 'unresolvable') {
+    return {state: outcome.kind};
+  }
+  fail('ExplorerInvalidReply', 409);
+}
+
+async function startExplorerRun(client: Pick<Parameters<typeof Public.createExplorerGateway>[0]['client'], 'startSource' | 'plan'>,
+  body: unknown, ticket: ReadTicket) {
+  if (!exact(body, ['ref', 'text', 'format'], ['executionProfile', 'programDefinitionCid']) ||
+      !validSubmissionRef(body.ref) ||
+      typeof body.text !== 'string' || !body.text.isWellFormed() || !body.text.trim() ||
+      body.format !== 'sql' && body.format !== 'aql' && body.format !== 'aql-text' && body.format !== 'program') {
+    fail('ExplorerInvalidRequest');
+  }
+  const debug = Object.hasOwn(body, 'executionProfile') || Object.hasOwn(body, 'programDefinitionCid');
+  if (debug && (body.executionProfile !== 'debug' || typeof body.programDefinitionCid !== 'string' ||
+      !/^sha256:[0-9a-f]{64}$/u.test(body.programDefinitionCid))) fail('ExplorerInvalidRequest');
+  const submissionRef = Object.freeze({...body.ref, epoch: Object.freeze({...body.ref.epoch})});
+  if (debug) {
+    if (client.plan === undefined) return {state: 'not_accepted'};
+    try {
+      const input = body.format === 'program' ? JSON.parse(body.text) : body.text;
+      const plan = await readStaticPlan({plan: client.plan.bind(client)}, input,
+        body.format === 'program' ? {} : {format: body.format}, ticket);
+      if (plan.debugEntry !== true || plan.programDefinitionCid !== body.programDefinitionCid) {
+        return {state: 'not_accepted'};
+      }
+    } catch {
+      ticket.assertCurrent();
+      return {state: 'not_accepted'};
+    }
+    ticket.assertCurrent();
+  }
+  let outcome;
+  try {
+    const run = await client.startSource!(body.text, {submissionRef,
+      format: body.format === 'program' ? 'json' : body.format,
+      ...(debug ? {executionProfile: 'debug' as const} : {})});
+    outcome = getSubmissionOutcome(run);
+  } catch (error) {
+    outcome = getSubmissionOutcome(error);
+  }
+  ticket.assertCurrent();
+  return startObservation(outcome, submissionRef);
+}
+
+async function loadExplanationRenderer(ticket: Parameters<typeof readStaticExplanation>[4]):
+  Promise<(view: WireStaticExplanationView | WireExplanationFacts, locale: 'en' | 'ja') => WireExplanationNarrative> {
+  const {renderStaticExplanationNarrative} = await import('@actql/local-node/_internal/explanation-narrative');
+  ticket.assertCurrent();
+  return (view, locale) => renderStaticExplanationNarrative(canonicalJson(view, {dataKeys: true}), locale);
+}
+
+function jsonShape(value:unknown) {
+  const pending:[unknown,number][] = [[value, 0]]; let count = 0;
+  while (pending.length) {
+    const [node, depth] = pending.pop()!;
+    if (++count > gatewayLimits.bodyNodes || depth > gatewayLimits.bodyDepth) {
+      fail('ExplorerBodyLimit', 413);
+    }
+    if (node !== null && typeof node === 'object') {
+      for (const child of Object.values(node)) pending.push([child, depth + 1]);
+    }
+  }
+}
+async function readJson(request:Request):Promise<unknown> {
+  if (request.headers.get('content-type') !== 'application/json') fail('ExplorerContentType');
+  const length = request.headers.get('content-length');
+  if (length !== null && (!/^\d+$/u.test(length) || Number(length) > gatewayLimits.bodyBytes)) {
+    fail('ExplorerBodyLimit', 413);
+  }
+  const reader = request.body?.getReader();
+  if (!reader) fail('ExplorerInvalidRequest');
+  const chunks:Uint8Array[] = []; let size = 0;
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    reader.cancel().catch(() => {});
+  }, gatewayLimits.requestMs);
+  try {
+    while (true) {
+      const {done, value} = await reader.read();
+      if (timedOut) fail('ExplorerReadTimeout', 504);
+      if (done) break;
+      size += value.byteLength;
+      if (size > gatewayLimits.bodyBytes) fail('ExplorerBodyLimit', 413);
+      chunks.push(value);
+    }
+  } catch (error) {
+    await reader.cancel().catch(() => {});
+    throw error;
+  } finally {clearTimeout(timer); reader.releaseLock();}
+  let parsed:unknown;
+  try {parsed = JSON.parse(new TextDecoder('utf-8', {fatal: true})
+    .decode(Buffer.concat(chunks, size)));}
+  catch {fail('ExplorerInvalidRequest');}
+  jsonShape(parsed);
+  return parsed;
+}
+function copiedAssets(assets:unknown) {
+  if (!(assets instanceof Map) || assets.size > gatewayLimits.assets) fail('ExplorerInvalidAssets');
+  const result = new Map<unknown,{body:Buffer<ArrayBuffer>;contentType:string}>(); let size = 0;
+  for (const [path, asset] of assets as Map<unknown,unknown>) {
+    if (!/^\/(?:index\.html|assets\/[a-zA-Z0-9_-]+\.(?:js|css|svg|woff2))$/u.test(path as string) ||
+        !exact(asset, ['body', 'contentType']) || !(asset.body instanceof Uint8Array) ||
+        !['text/html; charset=utf-8', 'text/javascript; charset=utf-8',
+          'text/css; charset=utf-8', 'image/svg+xml', 'font/woff2'].includes(asset.contentType as string) ||
+        (path as string).endsWith('.woff2') !== (asset.contentType === 'font/woff2')) {
+      fail('ExplorerInvalidAssets');
+    }
+    size += asset.body.byteLength;
+    if (size > gatewayLimits.assetBytes) fail('ExplorerAssetLimit');
+    result.set(path, {body: Buffer.from(asset.body), contentType: asset.contentType as string});
+  }
+  return result;
+}
+const resumeLimits = Object.freeze({maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64});
+const commandLimits = Object.freeze({maxWireBytes: 4096, maxNodes: 64, maxDepth: 8});
+const resumeCommand = (value: unknown): value is WireControlCommand =>
+  withinResultDescriptionLimits(value, commandLimits) && validWireControlCommandShape(value) &&
+  value.operation === 'resume' && value.interval?.guards === null &&
+  (value.interval.until === 'step' || value.interval.until === 'terminal');
+
+async function prepareDebugResume(client: Pick<Client, 'attach'>, body: unknown, ticket: ReadTicket) {
+  if (!exact(body, ['ref', 'operationId', 'expectedRevision', 'until']) || !validRunRef(body.ref) ||
+      typeof body.operationId !== 'string' || !body.operationId.isWellFormed() ||
+      body.operationId.length < 1 || body.operationId.length > commandLimits.maxWireBytes ||
+      typeof body.expectedRevision !== 'number' || !Number.isInteger(body.expectedRevision) ||
+      body.expectedRevision < 1 || body.expectedRevision > 2147483647 ||
+      body.until !== 'step' && body.until !== 'terminal') fail('ExplorerInvalidRequest');
+  const {ref, operationId, expectedRevision, until} = body;
+  const run = await client.attach(Object.freeze({...ref}));
+  ticket.assertCurrent();
+  if (typeof run.prepareResume !== 'function') fail('ExplorerCapabilityUnavailable', 404);
+  const command = await run.prepareResume({operationId, expectedRevision, until});
+  ticket.assertCurrent();
+  if (!resumeCommand(command) || !sameRunRef(ref, command.run_ref) ||
+      command.operation_id !== operationId || command.expected_control_revision !== expectedRevision ||
+      command.interval?.until !== until) fail('ExplorerInvalidReply', 409);
+  return command;
+}
+
+function sameRunRef(left: WireControlOperationRef['run_ref'], right: WireControlOperationRef['run_ref']) {
+  return left.namespaceId === right.namespaceId && left.authorityScopeCid === right.authorityScopeCid &&
+    left.runDefinitionCid === right.runDefinitionCid;
+}
+
+async function observeDebugResume(client: Pick<Client, 'attach'>, original: WireControlOperationRef,
+  ticket: ReadTicket, command?: WireControlCommand) {
+  const run = await client.attach(Object.freeze({...original.run_ref}));
+  ticket.assertCurrent();
+  if (command ? typeof run.resume !== 'function' : typeof run.lookupControlOperation !== 'function') {
+    fail('ExplorerCapabilityUnavailable', 404);
+  }
+  let answer;
+  try {
+    answer = command ? await run.resume(command, resumeLimits) :
+      await run.lookupControlOperation(original, resumeLimits);
+  } catch (error) {
+    ticket.assertCurrent();
+    const code = (error as ErrorView | null)?.code;
+    if (command && code === 'ClientRunDebugEntryRevisionConflict') fail('ExplorerControlRevisionConflict', 409);
+    if (command && code === 'ClientRunDebugEntryUnsupportedCommand') fail('ExplorerResumeUnsupported', 400);
+    throw error;
+  }
+  ticket.assertCurrent();
+  if (!withinResultDescriptionLimits(answer, resumeLimits) ||
+      !validControlOperationLookup(answer, original)) fail('ExplorerInvalidReply', 409);
+  return answer;
+}
+
+function safeReadError(error: unknown) {
+  if ((error as ErrorView | null | undefined)?.code === 'InvalidStaticExplanationNarrative') return {code: 'ExplorerInvalidExplanation', status: 409};
+  if ((error as ErrorView | null | undefined)?.code === 'StaticExplanationNarrativeLimit') return {code: 'ExplorerExplanationLimit', status: 409};
+  if (['ExplorerBodyLimit', 'ExplorerContentType', 'ExplorerInvalidRequest',
+    'ExplorerSessionExpired', 'ExplorerBootstrapRefused', 'ExplorerSessionRefused',
+    'ExplorerBusy', 'ExplorerCapabilityUnavailable', 'ExplorerInvalidReply', 'ExplorerReplyLimit',
+    'ExplorerReadTimeout', 'ExplorerStaleScope', 'ExplorerControlRevisionConflict', 'ExplorerResumeUnsupported', 'ExplorerMapLimit', 'ExplorerExplanationLimit', 'ExplorerUnsupportedLocale',
+    'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan', 'ExplorerInvalidExplanation', 'ExplorerInvalidCancellation', 'ExplorerInvalidSample', 'ExplorerInvalidCheckpointReview'].includes((error as ErrorView | null | undefined)?.code as string)) {
+    return {code: (error as ErrorView).code, status: (error as ErrorView).status ?? 409};
+  }
+  // Never serialize Host messages, bodies, URLs, stack traces or credentials.
+  if ((error as ErrorView | null | undefined)?.status === 401) return {code: 'ExplorerSessionExpired', status: 401};
+  if ((error as ErrorView | null | undefined)?.code === 'AuthorizationDenied' || (error as ErrorView | null | undefined)?.code === 'ClientUnauthorized' ||
+      (error as ErrorView | null | undefined)?.code === 'StaticExplanationAccessDenied' ||
+      (error as ErrorView | null | undefined)?.status === 403) {
+    return {code: 'ExplorerReadRefused', status: 403};
+  }
+  return {code: 'ExplorerReadUnavailable', status: 502};
+}
+
+/** Attach a borrowed, already-connected public SDK Client. No Host is opened. */
+export function createExplorerGateway({client, origin, assets = new Map(),
+  now = Date.now, sessionMs = gatewayLimits.sessionMs,
+  bootstrapMs = gatewayLimits.bootstrapMs, launchInput = null, allowCancellation = false,
+  allowRunStart = false, allowSamples = false, allowDebugResume = false}: Parameters<typeof Public.createExplorerGateway>[0]): ReturnType<typeof Public.createExplorerGateway> {
+  const address = new URL(origin);
+  if (address.protocol !== 'http:' || address.hostname !== '127.0.0.1' ||
+      !address.port || origin !== address.origin || address.username || address.password ||
+      typeof allowCancellation !== 'boolean' || typeof allowRunStart !== 'boolean' || typeof allowSamples !== 'boolean' || typeof allowDebugResume !== 'boolean' ||
+      allowRunStart && (['newSubmission', 'startSource', 'lookupSubmission'] as const)
+        .some(name => typeof client?.[name] !== 'function') ||
+      typeof client?.attach !== 'function' || typeof now !== 'function' ||
+      !Number.isSafeInteger(sessionMs) || sessionMs <= 0 || sessionMs > gatewayLimits.sessionMs ||
+      !Number.isSafeInteger(bootstrapMs) || bootstrapMs <= 0 || bootstrapMs > gatewayLimits.bootstrapMs) {
+    fail('ExplorerInvalidGateway');
+  }
+  const staticAssets = copiedAssets(assets), epoch = createReadEpoch();
+  const initialInput = copyExplorerLaunchInput(launchInput, gatewayLimits.bodyBytes);
+  let closed = false, scopeEpoch = 0, session:Session|undefined, bootstrap:Bootstrap|undefined, inFlight = 0, closing:Promise<void>|undefined;
+  const outstanding = new Set<Promise<Response>>();
+  const invalidate = () => {epoch.invalidate(); scopeEpoch++; session = undefined; bootstrap = undefined;};
+  const assertSession:(selected:Session|undefined)=>asserts selected is Session = selected => {
+    if (closed || session !== selected || !session || now() >= session.expiresAt) {
+      if (session === selected) invalidate();
+      fail('ExplorerSessionExpired', 401);
+    }
+  };
+  const app = new Hono();
+  app.use('*', async (c, next) => {
+    c.header('Cache-Control', 'no-store');
+    c.header('X-Content-Type-Options', 'nosniff');
+    c.header('Referrer-Policy', 'no-referrer');
+    c.header('Content-Security-Policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+    if (closed) return c.json({error: 'ExplorerClosed'}, 503);
+    // Host is checked independently from the URL parsed by the Node adapter.
+    if (c.req.header('host') !== address.host || c.req.url.length > 1024 ||
+        c.req.header('forwarded') !== undefined || c.req.header('x-forwarded-host') !== undefined ||
+        new URL(c.req.url).origin !== origin) return c.json({error: 'ExplorerHostRefused'}, 403);
+    const requestOrigin = c.req.header('origin');
+    const site = c.req.header('sec-fetch-site');
+    // A user opening the printed URL can navigate from another site. Only
+    // the public HTML document may use that entry: it contains no bootstrap
+    // secret, while API requests retain exact Origin and session/CSRF checks.
+    const documentNavigation = c.req.method === 'GET' && requestOrigin === undefined &&
+      ['/', '/index.html'].includes(c.req.path) &&
+      c.req.header('sec-fetch-mode') === 'navigate' &&
+      c.req.header('sec-fetch-dest') === 'document' &&
+      c.req.header('sec-fetch-user') === '?1';
+    if ((requestOrigin !== undefined && requestOrigin !== origin) ||
+        (site !== undefined && !['same-origin', 'none'].includes(site) && !documentNavigation)) {
+      return c.json({error: 'ExplorerOriginRefused'}, 403);
+    }
+    if (c.req.method === 'POST' && requestOrigin !== origin) {
+      return c.json({error: 'ExplorerOriginRefused'}, 403);
+    }
+    if (new URL(c.req.url).search !== '') return c.json({error: 'ExplorerInvalidRequest'}, 400);
+    await next();
+  });
+  app.onError((error, c) => {
+    const safe = safeReadError(error);
+    return c.json({error: safe.code as string}, safe.status as ContentfulStatusCode);
+  });
+  app.post('/api/session', async c => {
+    const body = await readJson(c.req.raw);
+    if (!exact(body, ['bootstrap']) || !bootstrap || now() >= bootstrap.expiresAt ||
+        !sameToken(body.bootstrap, bootstrap.value)) fail('ExplorerBootstrapRefused', 403);
+    invalidate();
+    session = {value: token(), csrf: token(), expiresAt: now() + sessionMs};
+    c.header('Set-Cookie', `${cookieName}=${session.value}; Path=/api; HttpOnly; SameSite=Strict; Max-Age=${Math.ceil(sessionMs / 1000)}`);
+    return c.json({csrf: session.csrf, scopeEpoch, expiresAt: session.expiresAt,
+      capabilities: {plan: typeof client.plan === 'function', run: true,
+        resultMetadata: true, resultPayload: false, control: false, sample: allowSamples, cancellation: allowCancellation, checkpointList:typeof client.checkpoints==='function', checkpointReview:typeof client.reviewCheckpoint==='function',
+        ...(allowRunStart ? {runStart: true} : {}), ...(allowDebugResume ? {debugResume: true} : {})}});
+  });
+  app.post('/api/:group/:kind', async c => {
+    const selected = session;
+    assertSession(selected);
+    // Duplicate cookies are refused; no ambiguous first/last interpretation.
+    const matches = (c.req.header('cookie') ?? '').split(';')
+      .map(part => part.trim()).filter(part => part.startsWith(`${cookieName}=`));
+    if (matches.length !== 1 || !sameToken(matches[0].slice(cookieName.length + 1), selected.value) ||
+        !sameToken(c.req.header('x-actql-csrf'), selected.csrf)) fail('ExplorerSessionRefused', 403);
+    if (inFlight >= gatewayLimits.inFlight) fail('ExplorerBusy', 429);
+    inFlight++;
+    const originalTicket = epoch.capture(), originalEpoch = scopeEpoch;
+    let timedOut = false, timer:ReturnType<typeof setTimeout>|undefined;
+    const ticket = {assertCurrent() {
+      originalTicket.assertCurrent();
+      assertSession(selected);
+      if (timedOut) fail('ExplorerReadTimeout', 504);
+    }};
+    // Register before any SDK callback can run, including a reentrant close.
+    const read = Promise.resolve().then(async () => {try {
+      const body = await readJson(c.req.raw);
+      assertSession(selected); ticket.assertCurrent();
+      let data:unknown;
+      const group=c.req.param('group'),kind=c.req.param('kind');
+      if (group === 'control' && kind === 'start-run') {
+        if (!allowRunStart) fail('ExplorerCapabilityUnavailable', 404);
+        data = await startExplorerRun(client, body, ticket);
+      } else if (group === 'control' && kind === 'resume') {
+        if (!allowDebugResume) fail('ExplorerCapabilityUnavailable', 404);
+        if (!exact(body, ['command']) || !resumeCommand(body.command)) fail('ExplorerInvalidRequest');
+        data = await observeDebugResume(client, resumeControlOperationRef(body.command), ticket, body.command);
+      } else if (group==='control') {
+        if (!allowCancellation) fail('ExplorerCapabilityUnavailable',404);
+        if (kind==='cancel') {
+          if (!exact(body,['cancelRef','attemptRef'])) fail('ExplorerInvalidRequest');
+          data=await requestExistingCancellation(client,body as Parameters<typeof requestExistingCancellation>[1],ticket);
+        } else if (kind==='lookup-cancellation') {
+          if (!exact(body,['cancelRef'])) fail('ExplorerInvalidRequest');
+          data=await lookupExistingCancellation(client,body.cancelRef,ticket);
+        } else fail('ExplorerCapabilityUnavailable',404);
+      } else if (group!=='read') fail('ExplorerCapabilityUnavailable',404);
+      else switch (kind) {
+        case 'prepare-start':
+          if (!allowRunStart) fail('ExplorerCapabilityUnavailable', 404);
+          if (!exact(body, [])) fail('ExplorerInvalidRequest');
+          data = client.newSubmission!();
+          if (!validSubmissionRef(data)) fail('ExplorerInvalidReply', 409);
+          break;
+        case 'lookup-start': {
+          if (!allowRunStart) fail('ExplorerCapabilityUnavailable', 404);
+          if (!exact(body, ['ref']) || !validSubmissionRef(body.ref)) fail('ExplorerInvalidRequest');
+          const original = Object.freeze({...body.ref, epoch: Object.freeze({...body.ref.epoch})});
+          data = startObservation(await client.lookupSubmission!(original), original);
+          break;
+        }
+        case 'launch':
+          if (!exact(body, [])) fail('ExplorerInvalidRequest');
+          // Return only the existing Owner's admitted projection, not the
+          // file's authoring text or a path into the launcher's filesystem.
+          if (initialInput === null) data = null;
+          else if (initialInput.kind === 'program') {
+            const input = initialInput.format === 'program'
+              ? JSON.parse(initialInput.text) : initialInput.text;
+            const options = initialInput.format === 'program'
+              ? {} : {format: initialInput.format};
+            data = {kind: 'program', plan: await readStaticPlan(client as Pick<Client,'plan'>, input, options, ticket)};
+          } else {
+            data = {kind: 'run', originalPlan: await readExistingRunPlan(client, initialInput.ref, ticket)};
+          }
+          break;
+        case 'plan':
+        case 'static-explanation':
+          if (!exact(body, ['input'], kind === 'plan' ? ['options'] : ['options', 'locale']) ||
+              !(typeof body.input === 'string' || body.input !== null &&
+                typeof body.input === 'object' && !Array.isArray(body.input)) ||
+              body.locale !== undefined && !['en', 'ja'].includes(body.locale as string) ||
+              (body.options !== undefined && !exact(body.options, [],
+                ['format', 'parameters', 'parameterDeclarations', 'maxWireBytes', 'maxNodes', 'maxDepth']))) {
+            fail('ExplorerInvalidRequest');
+          }
+          if (kind === 'plan') {
+            data = await readStaticPlan(client as Pick<Client,'plan'>, body.input as Parameters<typeof readStaticPlan>[1], (body.options ?? {}) as Parameters<typeof readStaticPlan>[2], ticket);
+          } else {
+            if (typeof client.explain !== 'function') fail('ExplorerCapabilityUnavailable', 404);
+            const render = await loadExplanationRenderer(ticket);
+            data = await readStaticExplanation(client as Pick<Client, 'explain'>, body.input as Parameters<typeof readStaticExplanation>[1],
+              (body.options ?? {}) as Parameters<typeof readStaticExplanation>[2],
+              {locale: body.locale as 'en' | 'ja' | undefined, render}, ticket);
+          }
+          break;
+        case 'run':
+          if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
+          data = await readExistingRun(client, body.ref, ticket);
+          break;
+        case 'observation':
+          if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
+          data = await readRunObservation(client, body.ref, ticket);
+          break;
+        case 'prepare-resume':
+          if (!allowDebugResume) fail('ExplorerCapabilityUnavailable', 404);
+          data = await prepareDebugResume(client, body, ticket);
+          break;
+        case 'lookup-control-operation':
+          if (!allowDebugResume) fail('ExplorerCapabilityUnavailable', 404);
+          if (!exact(body, ['operationRef']) ||
+              !validWireControlOperationRefShape(body.operationRef)) fail('ExplorerInvalidRequest');
+          data = await observeDebugResume(client, body.operationRef, ticket);
+          break;
+        case 'run-sample':
+          if (!allowSamples) fail('ExplorerCapabilityUnavailable', 404);
+          if (!exact(body, ['ref', 'port']) || !validRunRef(body.ref) ||
+              !validSamplePortSelection(body.port)) fail('ExplorerInvalidRequest');
+          data = await readExistingRunSample(client, body.ref, body.port, ticket);
+          break;
+        case 'run-plan':
+          if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
+          data = await readExistingRunPlan(client, body.ref, ticket);
+          break;
+        case 'run-explanation':
+          if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
+          data = await readExistingRunExplanation(client, body.ref, ticket);
+          break;
+        case 'run-explanation-context': {
+          if (!exact(body, ['ref'], ['locale']) || !validRunRef(body.ref) ||
+              body.locale !== undefined && !['en', 'ja'].includes(body.locale as string)) fail('ExplorerInvalidRequest');
+          const render = await loadExplanationRenderer(ticket);
+          data = await readExistingRunContext(client, body.ref, {locale: body.locale as 'en' | 'ja' | undefined, render}, ticket);
+          break;
+        }
+        case 'run-presentation': {
+          if (!exact(body, ['ref'], ['locale']) || !validRunRef(body.ref) ||
+              body.locale !== undefined && !['en', 'ja'].includes(body.locale as string)) fail('ExplorerInvalidRequest');
+          const render = await loadExplanationRenderer(ticket);
+          data = await readExistingRunPresentation(client, body.ref, {locale: body.locale as 'en' | 'ja' | undefined, render}, ticket);
+          break;
+        }
+        case 'checkpoints':
+          if(!exact(body,[]))fail('ExplorerInvalidRequest');
+          data=await readWaitingCheckpoints(client,ticket);break;
+        case 'checkpoint-review':
+          if(!exact(body,['checkpoint']))fail('ExplorerInvalidRequest');
+          data=await readCheckpointReview(client,body.checkpoint,ticket);break;
+        case 'result':
+          if (!exact(body, ['ref', 'name']) || !validRunRef(body.ref) ||
+              typeof body.name !== 'string' || body.name.length === 0 || body.name.length > 1024) {
+            fail('ExplorerInvalidRequest');
+          }
+          data = await describeExistingResult(client, body.ref, body.name, ticket);
+          break;
+        default: fail('ExplorerCapabilityUnavailable', 404);
+      }
+      assertSession(selected); ticket.assertCurrent();
+      const reply = JSON.stringify({scopeEpoch: originalEpoch, data});
+      if (Buffer.byteLength(reply) > gatewayLimits.replyBytes) fail('ExplorerReplyLimit', 413);
+      c.header('Content-Type', 'application/json');
+      return c.body(reply);
+    } catch (error) {
+      assertSession(selected); ticket.assertCurrent();
+      throw error;
+    }});
+    outstanding.add(read);
+    const settled = () => {
+      // Keep the slot until this same original read leaves the collection.
+      outstanding.delete(read);
+      inFlight--;
+    };
+    void read.then(settled, settled);
+    // Timing out a presentation read neither cancels a Run nor releases the
+    // outstanding SDK slot early. It remains held until that read settles.
+    try {
+      return await Promise.race([read, new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          timedOut = true;
+          reject(Object.assign(new Error('ExplorerReadTimeout'),
+            {code: 'ExplorerReadTimeout', status: 504}));
+        }, gatewayLimits.requestMs);
+      })]);
+    } finally {clearTimeout(timer);}
+  });
+  app.get('*', c => {
+    const path = c.req.path === '/' ? '/index.html' : c.req.path;
+    const asset = staticAssets.get(path);
+    if (!asset) return c.json({error: 'ExplorerNotFound'}, 404);
+    c.header('Content-Type', asset.contentType);
+    return c.body(asset.body);
+  });
+  return Object.freeze({fetch: app.fetch,
+    issueBootstrap() {
+      if (closed) fail('ExplorerClosed');
+      // Only an explicit local launcher/operator action creates a new session.
+      invalidate();
+      bootstrap = {value: token(), expiresAt: now() + bootstrapMs};
+      return Object.freeze({origin, bootstrap: bootstrap.value, expiresAt: bootstrap.expiresAt});
+    },
+    invalidateScope() {invalidate();},
+    close() {
+      if (!closing) {
+        closed = true;
+        invalidate();
+        // Presentation timeout, session invalidation and socket close do not
+        // settle an original SDK invocation. The Client still owns its own
+        // physical cleanup and must be closed separately after this settles.
+        closing = Promise.allSettled([...outstanding]).then(() => {});
+      }
+      return closing;
+    },
+  });
+}
+
+/** The launcher owns only its loopback HTTP server, never the borrowed Client. */
+export async function startExplorerGateway({port = 0, ...options}:Parameters<typeof Public.startExplorerGateway>[0]):ReturnType<typeof Public.startExplorerGateway> {
+  if (!Number.isSafeInteger(port) || port < 0 || port > 65535 || 'origin' in options) {
+    fail('ExplorerInvalidGateway');
+  }
+  let gateway:ReturnType<typeof createExplorerGateway>|undefined;
+  // The adapter's global Request/Response optimization would change the SDK's
+  // native Fetch response admission for a later HTTPS connection in this process.
+  const server = serve({hostname: '127.0.0.1', port, overrideGlobalObjects: false,
+    fetch: request => gateway ? gateway.fetch(request) :
+      new Response(null, {status: 503})}) as Server;
+  server.requestTimeout = gatewayLimits.requestMs;
+  server.headersTimeout = gatewayLimits.requestMs;
+  await new Promise<void>((resolve, reject) => {
+    if (server.listening) resolve();
+    else {server.once('listening', resolve); server.once('error', reject);}
+  });
+  const address = server.address() as AddressInfo;
+  const origin = `http://127.0.0.1:${address.port}`;
+  try {gateway = createExplorerGateway({...options, origin});}
+  catch (error) {await new Promise<void>(resolve => server.close(resolve as (error?:Error)=>void)); throw error;}
+  let closing:Promise<void>|undefined;
+  return Object.freeze({origin, issueBootstrap: gateway.issueBootstrap,
+    invalidateScope: gateway.invalidateScope,
+    close() {
+      if (closing) return closing;
+      const originalCalls = gateway!.close();
+      const socket = new Promise<void>((resolve, reject) => {
+        server.close(error => error ? reject(error) : resolve());
+        server.closeAllConnections();
+      });
+      const attempt = Promise.allSettled([socket, originalCalls]).then(results => {
+        const failed = results.filter(result => result.status === 'rejected');
+        if (failed.length) throw new AggregateError(failed.map(result => result.reason),
+          'ExplorerGatewayCleanupPending');
+      });
+      closing = attempt;
+      // Only a settled failed attempt may retry this same server. A missing
+      // callback or outstanding SDK read keeps its original attempt retained.
+      void attempt.then(undefined, () => {
+        if (closing === attempt) closing = undefined;
+      });
+      return attempt;
+    },
+  });
+}

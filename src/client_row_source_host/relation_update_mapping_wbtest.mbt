@@ -4,6 +4,87 @@ fn relation_update_write_wire() -> String {
 }
 
 ///|
+test "file CREATE mapping requires all storage fields and an admissible separate Text key" {
+  let declaration = relation_mapping_declaration()
+  let wire =
+    #|{"writes":[{"resource":"records","primary_identity":"id","create":{"fields":["choices","amount","label"],"permission":"fixture:create","approval":"required"}}]}
+  let sources = [
+    { target: "choices", field: "choices", null_behavior: "reject", },
+    { target: "amount", field: "amount", null_behavior: "write_null", },
+    { target: "label", field: "label", null_behavior: "write_null", },
+  ]
+  let mapping = prepare_row_file_create_mapping(
+    declaration, wire, "records", sources,
+  ).unwrap()
+  let spec = {
+    ..relation_mapping_spec(RelationCreate),
+    required_fields: ["amount", "choices", "label"],
+  }
+  let original = prepare_relation_row_write_mapping(
+    declaration,
+    "records",
+    "id",
+    spec,
+    sources,
+    { ..declaration_limits, max_fields: 1024, },
+  ).unwrap()
+  assert_eq(mapping.body, original.body)
+  assert_eq(mapping.mapping_cid, original.mapping_cid)
+  assert_eq(mapping.write_fields, ["amount", "choices", "label"])
+  assert_eq(mapping.omittable, [])
+  assert_true(
+    mapping.body.contains(
+      "\"required_fields\":[\"amount\",\"choices\",\"label\"]",
+    ),
+  )
+  assert_true(mapping.body.contains("\"selector_class\":\"none\""))
+  assert_true(
+    prepare_row_update_mapping(declaration, wire, "records", sources)
+    is Err(NotWritable("records")),
+  )
+  assert_true(
+    prepare_row_file_create_mapping(declaration, wire, "records", [
+      sources[0],
+      sources[1],
+    ])
+    is Err(MissingRequiredField("label")),
+  )
+  let id = { target: "id", field: "id", null_behavior: "reject", }
+  assert_true(
+    prepare_row_file_create_mapping(
+      declaration,
+      wire,
+      "records",
+      [..sources, id],
+    )
+    is Err(FieldNotWritable("id")),
+  )
+  for
+    invalid in [
+      wire.replace(old="\"label\"", new="\"id\""),
+      wire.replace(old=",\"label\"", new=""),
+      wire.replace(old="\"required\"", new="\"none\""),
+    ] {
+    assert_true(
+      prepare_row_file_create_mapping(declaration, invalid, "records", sources)
+      is Err(InvalidSpecification),
+    )
+  }
+
+  let short_key = relation_document_test_short_key_declaration()
+  let short_wire = wire.replace(
+    old="\"choices\",\"amount\",\"label\"",
+    new="\"value\"",
+  )
+  assert_true(
+    prepare_row_file_create_mapping(short_key, short_wire, "records", [
+      { target: "value", field: "value", null_behavior: "write_null", },
+    ])
+    is Err(InvalidSpecification),
+  )
+}
+
+///|
 test "installed UPDATE mapping continuation reuses the original complete typed constructor" {
   let declaration = relation_mapping_declaration()
   let sources = relation_mapping_sources()
@@ -180,6 +261,73 @@ test "installed UPDATE validates every sibling specification before selecting a 
       relation_mapping_sources(),
     )
     is Err(NotWritable("foreign")),
+  )
+}
+
+///|
+test "one guarded Relation issues distinct CREATE UPDATE and DELETE mappings" {
+  let declaration = relation_mapping_declaration()
+  let writes =
+    #|{"writes":[{"resource":"records","primary_identity":"id","create":{"fields":["choices","amount","label"],"permission":"fixture:create","approval":"required"},"update":{"fields":["choices","amount","label"],"permission":"fixture:update","approval":"required"},"delete":{"permission":"fixture:delete","approval":"required"}}]}
+  let create_sources = [
+    { target: "choices", field: "choices", null_behavior: "reject", },
+    { target: "amount", field: "amount", null_behavior: "write_null", },
+    { target: "label", field: "label", null_behavior: "write_null", },
+  ]
+  let created = prepare_row_file_create_mapping(
+    declaration, writes, "records", create_sources,
+  ).unwrap()
+  let updated = prepare_row_update_mapping(
+    declaration,
+    writes,
+    "records",
+    relation_mapping_sources(),
+  ).unwrap()
+  let deleted = prepare_row_delete_mapping_from_writes(
+    declaration, writes, "records",
+  ).unwrap()
+  assert_eq(
+    updated.body,
+    prepare_row_update_mapping(
+      declaration,
+      relation_update_write_wire(),
+      "records",
+      relation_mapping_sources(),
+    ).unwrap().body,
+  )
+  assert_eq(created.resource, updated.resource)
+  assert_eq(updated.resource, deleted.resource)
+  assert_true(created.mapping_cid != updated.mapping_cid)
+  assert_true(created.mapping_cid != deleted.mapping_cid)
+  assert_true(created.body.contains("\"fixture:create\""))
+  assert_true(!created.body.contains("\"fixture:update\""))
+  assert_true(!created.body.contains("\"fixture:delete\""))
+  assert_true(updated.mapping_cid != deleted.mapping_cid)
+  assert_true(deleted.body.contains("\"effect_kind\":\"delete\""))
+  assert_true(deleted.body.contains("\"fixture:delete\""))
+  assert_true(!deleted.body.contains("\"fixture:update\""))
+  let bad = writes.replace(old="\"fixture:delete\"", new="\"\"")
+  assert_true(
+    prepare_row_update_mapping(
+      declaration,
+      bad,
+      "records",
+      relation_mapping_sources(),
+    )
+    is Err(InvalidSpecification),
+  )
+  let bad_create = writes.replace(old="\"fixture:create\"", new="\"\"")
+  assert_true(
+    prepare_row_delete_mapping_from_writes(declaration, bad_create, "records")
+    is Err(InvalidSpecification),
+  )
+  assert_true(
+    prepare_row_delete_mapping_from_writes(
+      declaration,
+      relation_update_write_wire(),
+      "records",
+    )
+    is Err(NotWritable("records")),
   )
 }
 

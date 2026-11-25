@@ -15,7 +15,7 @@ import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets
 import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {packedReadmeCases, packedCompositionCases} from './test-packed-readme-workflows.mjs';
 import {packedEffectControlCases, assertMockEffectControlOutcome} from './packed-mock-effect-controls.mjs';
-import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
+import {nodeBenchmarkFailure} from './node-benchmark-evidence.mjs';
 import {packedModelControlPhases} from './packed-model-controls.mjs';
 import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWholeDealReviewFiles, twoModelJoinedInputsDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
@@ -64,7 +64,7 @@ test('required packed dependency boundaries keep cold approval, locked physical 
     assert(upload.with.path.split('\n').includes('${{ runner.temp }}/client-readme-packed/dependency-boundary/*/' + suffix));
   }
   const source = await readFile(new URL('./test-packed-readme-workflows.mjs', import.meta.url), 'utf8');
-  assert.match(source, /await runPackedDependencyBoundaries\(\{prepared,/u);
+  assert.match(source, /await runPackedDependencyBoundaries\(\{\s*prepared,/u);
   assert.match(source, /report\.complete = failures\.length === 0 && report\.account\.completed &&\s*report\.dependencyBoundaries\.complete &&/u);
 });
 

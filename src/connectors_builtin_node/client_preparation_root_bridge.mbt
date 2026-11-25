@@ -2847,6 +2847,7 @@ pub fn client_program_prepare_request_original_explanation(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  debug_entry_installed : Bool,
 ) -> Result[
   @client_local_host.ClientRequestOriginalExplanation[
     ClientLocalPreparationInputOriginal,
@@ -2854,7 +2855,12 @@ pub fn client_program_prepare_request_original_explanation(
   @client_local_host.ClientOriginalExplanationCaptureIssue,
 ] {
   @client_local_host.prepare_request_original_explanation(
-    parent, input, max_bytes, max_nodes, max_depth,
+    parent,
+    input,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    debug_entry_installed~,
   )
 }
 
@@ -2928,6 +2934,7 @@ pub fn client_program_read_request_checked_static_effect_explanation(
   max_depth : Int,
   max_work : Int,
   infers : Array[@publication_host.ClientInferPlanGraph],
+  debug_entry_installed : Bool,
 ) -> Result[
   @client_local_host.ClientRequestStaticEffectExplanation,
   ClientRequestStaticExplanationBridgeIssue,
@@ -2937,7 +2944,15 @@ pub fn client_program_read_request_checked_static_effect_explanation(
     Err(issue) => return Err(Manifests(issue))
   }
   @client_local_host.request_prepared_static_explanation(
-    parent, input, manifests, max_bytes, max_nodes, max_depth, max_work, infers,
+    parent,
+    input,
+    manifests,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_work,
+    infers,
+    debug_entry_installed~,
   ).map_err(issue => Projection(issue))
 }
 

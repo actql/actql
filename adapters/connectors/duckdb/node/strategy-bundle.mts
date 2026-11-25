@@ -1,0 +1,243 @@
+// DuckDB-specific execution and resident session lifetime. The common serial
+// driver never interprets this resource policy, tables, imports or SQL.
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
+import {loadDuckDBNativeRuntime} from './native-runtime.mjs';
+
+import {preparedStrategyConfiguration} from './configuration.mjs';
+import {managedInputCodecContractCid} from '../../../store-local/managed-representations.mjs';
+import {managedColumnCodecContractCid} from './managed-column-codec.mjs';
+import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
+import {computePhysicalCapacity} from './physical-capacity.mjs';
+
+type ResidentEnvironment = Awaited<ReturnType<typeof openResidentStrategyEnvironment>>;
+type EnvironmentEntry = readonly [binding: unknown, environment: ResidentEnvironment];
+type MappingLimits = Parameters<typeof importResidentStrategyInput>[4];
+type ImportUsage = Awaited<ReturnType<typeof importResidentStrategyInput>>['usage'];
+type Compute = Awaited<ReturnType<typeof runStrategyHostCompute>>;
+type ReadRetained = Parameters<Compute['readRetained']>;
+type CompletionPermit = Readonly<{isAvailable: NonNullable<Parameters<typeof runStrategyHostCompute>[4]>}>;
+
+type ManagedInput = Readonly<{completed: unknown; material: object; siteMaterial?: object | null}>;
+type Outputs = ReadonlyMap<number, ManagedInput | null | undefined>;
+type ManagedPreparation = Readonly<{
+  configuration: unknown;
+  inputs: readonly ManagedInput[];
+  inputCodecContractCids: readonly string[];
+  siteCompletionReady?: CompletionPermit['isAvailable'];
+}>;
+
+type Runtime = Readonly<{
+  strategyModule_duckdb_Registration(setup: unknown): unknown;
+  strategyHostRegistrationSelectionKey(registration: unknown): string;
+  strategyHostNextTask(setup: unknown): number;
+  strategyHostManagedProducers(setup: unknown): readonly number[];
+  strategyHostManagedRequiresLogicalIdentity(setup: unknown): unknown;
+  strategyModule_duckdb_ManagedDispatch(setup: unknown, completed: readonly unknown[], outputFileBytes: bigint): unknown;
+  strategyModule_duckdb_ManagedCapacity(configuration: unknown): unknown;
+  strategyModule_duckdb_ManagedDuration(configuration: unknown): bigint | undefined;
+  strategyHostReleasableManagedProducers(setup: unknown): readonly number[];
+  strategyHostTask(task: unknown): number;
+  strategyHostResident(task: unknown): boolean;
+  strategyHostResourceBinding(task: unknown): unknown;
+  strategyHostRun(setup: unknown): unknown;
+  strategyHostResidentInputs(setup: unknown, task: number): unknown;
+  strategyModule_duckdb_Dispatch(setup: unknown, task: unknown): unknown;
+}>;
+
+// The standard contribution loader imports this module only after selection.
+const {host: {runStrategyHostCompute, runRetainedStrategyHostCompute,
+  runManagedRetainedStrategyHostCompute, runManagedColumnStrategyHostCompute,
+  openResidentStrategyEnvironment,
+  importResidentStrategyInput, runResidentStrategyHostCompute}} =
+  await loadDuckDBNativeRuntime();
+
+const managedSiteCapacity = (value: unknown): readonly unknown[] | undefined => Array.isArray(value)
+  ? value
+  : value !== null && typeof value === 'object'
+    ? [runtimeField(value, 0), runtimeField(value, 1)]
+    : undefined;
+
+export function duckdbStrategyContribution(moon: Runtime, setup: unknown,
+  checked: (result: unknown) => unknown, configuration: unknown) {
+  const options = preparedStrategyConfiguration(configuration);
+  const limits = Object.freeze({ ...options.transportLimits });
+  const imports = Object.freeze({ ...options.importLimits });
+  const environments = new Map<unknown, ResidentEnvironment>();
+  async function closeEnvironments(entries: readonly EnvironmentEntry[]) {
+    const failures: unknown[] = [];
+    for (const [binding, environment] of entries) {
+      try {
+        await environment.close();
+        environments.delete(binding);
+      } catch (error) { failures.push(error); }
+    }
+    if (failures.length) {
+      // Keep every unsettled environment reachable; one failed close must not
+      // prevent other bindings from being reclaimed.
+      throw Object.assign(new AggregateError(failures, 'ResidentCleanupPending'), {
+        cleanupPending: true,
+        cleanupHandle: Object.freeze({
+          status: () => ({pending: environments.size !== 0}),
+          retry: () => closeEnvironments([...environments]),
+        }),
+      });
+    }
+  }
+  const registration = moon.strategyModule_duckdb_Registration(setup);
+  return Object.freeze({
+    registration,
+    managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
+    async prepareNext(outputs: Outputs) {
+      if (!options.managedOutput) return undefined;
+      const task = moon.strategyHostNextTask(setup);
+      const producers = moon.strategyHostManagedProducers(setup);
+      if (task < 1 || !Array.isArray(producers) || producers.length === 0) {
+        return undefined;
+      }
+      if (checked(moon.strategyHostManagedRequiresLogicalIdentity(setup))) {
+        return undefined;
+      }
+      const inputs = producers.map(producer => outputs.get(producer));
+      const inputCodecContractCids = inputs.map(input =>
+        managedInputCodecContractCid(
+          input == null ? undefined : input.siteMaterial ?? input.material,
+        ));
+      if (producers.some(producer => producer < 1) ||
+          inputs.some(input => input == null) ||
+          inputCodecContractCids.some(cid =>
+            ![managedColumnCodecContractCid, managedParquetCodecContractCid]
+              .includes(cid!))) {
+        return undefined;
+      }
+      const managedConfiguration = checked(
+        moon.strategyModule_duckdb_ManagedDispatch(
+          setup, inputs.map(input => input!.completed),
+          BigInt(options.managedOutput.wire.max_bytes),
+        ),
+      );
+      if (managedConfiguration == null) return undefined;
+      const connectorSiteCapacity = managedSiteCapacity(
+        moon.strategyModule_duckdb_ManagedCapacity(managedConfiguration));
+      const nativeSiteCapacity = computePhysicalCapacity(limits);
+      if (!Array.isArray(connectorSiteCapacity) ||
+          connectorSiteCapacity.length !== 2 ||
+          connectorSiteCapacity.some(value =>
+            typeof value !== 'bigint' || value < 0n)) {
+        throw new Error('InvalidDuckDBManagedSiteCapacity');
+      }
+      return Object.freeze({
+        task,
+        durationMilliseconds:
+          moon.strategyModule_duckdb_ManagedDuration(managedConfiguration),
+        inputs: Object.freeze(inputs) as readonly ManagedInput[],
+        siteCapacity: Object.freeze({
+          retainedBytes: connectorSiteCapacity[0] as bigint,
+          executionBytes:
+            (connectorSiteCapacity[1] as bigint) + nativeSiteCapacity.executionBytes,
+        }),
+        outputs,
+        releasableProducers: Object.freeze(
+          moon.strategyHostReleasableManagedProducers(setup)),
+        inputCodecContractCids: Object.freeze(inputCodecContractCids) as readonly string[],
+        configuration: managedConfiguration,
+      });
+    },
+    async runPrepared(prepared: ManagedPreparation, signal?: AbortSignal) {
+      const result = await runManagedColumnStrategyHostCompute(
+        prepared.configuration,
+        prepared.inputs.map(input => input.siteMaterial ?? input.material),
+        prepared.inputCodecContractCids,
+        limits,
+        options.managedOutput,
+        signal,
+        prepared.siteCompletionReady,
+      );
+      return Object.freeze({
+        ...result,
+        diagnostic: Object.freeze({
+          realization: 'duckdb-managed',
+          transport: result.usage,
+          phases: result.diagnostics,
+          outputRepresentation: result.representation,
+        }),
+      });
+    },
+    async beforeNext() {
+      await closeEnvironments([...environments].filter(([, value]) => !value.status().live));
+    },
+    async run(task: unknown, signal?: AbortSignal, completionPermit?: CompletionPermit) {
+      const index = moon.strategyHostTask(task);
+      const resident = moon.strategyHostResident(task);
+      const inputs: unknown[] = [];
+      let mapping: MappingLimits | undefined;
+      let environment: ResidentEnvironment | undefined;
+      let environmentCreated = false;
+      let environmentOpenMilliseconds = 0;
+      let importMilliseconds = 0;
+      const imported: Readonly<{producer: number; rows: number; milliseconds: number; transport: ImportUsage}>[] = [];
+      if (resident) {
+        const binding = moon.strategyHostResourceBinding(task);
+        if (binding == null) throw new Error('MissingResidentResourceBinding');
+        environment = environments.get(binding);
+        if (!environment) {
+          const openedAt = performance.now();
+          environment = await openResidentStrategyEnvironment(moon.strategyHostRun(setup), index, limits);
+          environmentOpenMilliseconds = performance.now() - openedAt;
+          environments.set(binding, environment);
+          environmentCreated = true;
+        }
+        for (const [producer, bytes, entries, names] of checked(moon.strategyHostResidentInputs(setup, index)) as readonly (readonly bigint[])[]) {
+          mapping = { maxEntries: Number(entries), maxNameBytes: Number(names) };
+          if (!environment.hasTable(Number(producer))) {
+            const importedAt = performance.now();
+            const result = await importResidentStrategyInput(environment, Number(producer), bytes, limits, mapping, signal);
+            const milliseconds = performance.now() - importedAt;
+            importMilliseconds += milliseconds;
+            imported.push(Object.freeze({producer: Number(producer), rows: result.importedRows,
+              milliseconds, transport: result.usage}));
+          }
+          inputs.push(environment.table(Number(producer)));
+        }
+      }
+      const selected = checked(moon.strategyModule_duckdb_Dispatch(setup, task));
+      const result = options.managedOutput
+        ? await runManagedRetainedStrategyHostCompute(
+          selected, limits, imports, options.managedOutput, signal,
+          `task-${index}`, completionPermit?.isAvailable,
+        )
+        : resident
+        ? await runResidentStrategyHostCompute(
+          selected, environment, inputs, limits, mapping, signal,
+          options.retainedOutput, `task-${index}`,
+          completionPermit?.isAvailable,
+        )
+        : options.retainedOutput
+          ? await runRetainedStrategyHostCompute(
+            selected, limits, imports, options.retainedOutput, signal,
+            `task-${index}`, completionPermit?.isAvailable,
+          )
+          : await runStrategyHostCompute(
+            selected, limits, imports, signal, completionPermit?.isAvailable,
+          );
+      return Object.freeze({
+        completed: result.completed,
+        material: result.material,
+        close: () => result.close(),
+        ...(options.retainedOutput
+          ? {readRetained: (accept: ReadRetained[0], readSignal?: AbortSignal) =>
+              result.readRetained(accept, readSignal)}
+          : {}),
+        diagnostic: Object.freeze({
+          realization: options.managedOutput ? 'duckdb-managed'
+            : resident ? 'duckdb-resident' : 'duckdb', transport: result.usage,
+          phases: result.diagnostics,
+          outputRepresentation: options.managedOutput ? 'managed-column-file'
+            : options.retainedOutput ? 'retained-file' : 'memory',
+          preparation: Object.freeze({environmentCreated, environmentOpenMilliseconds,
+            importMilliseconds, imports: Object.freeze(imported)}),
+        }),
+      });
+    },
+    async finish() { await closeEnvironments([...environments]); },
+  });
+}

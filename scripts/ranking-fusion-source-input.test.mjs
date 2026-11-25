@@ -21,7 +21,7 @@ test('independent RRF controls preserve input occurrences, exact weights, rank w
 });
 test('ranking is registered in ordinary delivery, completed receipts and bounded narrow selection',()=>{
  const acceptance=readFileSync('scripts/fixtures/packed-public-query.mjs','utf8');
- const consumer=readFileSync('scripts/test-packed-public-query.mjs','utf8');
+ const consumer=readFileSync('scripts/test-packed-public-query.mts','utf8');
  assert.ok(acceptance.includes('scopeInputs.successes.push(...rankingFusionSourceSuccesses)'));
  assert.ok(acceptance.includes('scopeInputs.refusals.push(...rankingFusionSourceRefusals)'));
  assert.ok(acceptance.includes('ACTQL_TEST_RANKING_FUSION_ONLY'));

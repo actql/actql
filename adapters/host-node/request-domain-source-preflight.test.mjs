@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
 import {checked} from '../host-common/runtime-result.mjs';
+import {constructRequestDomain} from './ordinary-source-model-materials.mjs';
 
 // Actual thin request caller with fixed nominal/Core borrower ports. A Source
 // selection is DATA; actual Query/material/module constructors remain inside
@@ -13,9 +14,8 @@ function binding(file,name,ports,{property=false}={}){
     if(property?n.type==='Property'&&n.key?.name===name:(n.type==='VariableDeclarator'||n.type==='FunctionDeclaration')&&n.id?.name===name){assert(!node);node=property||n.type==='FunctionDeclaration'?n:n.init;}
     for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
   walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(node,name);
-  const helpers = file === './ordinary-source-managed.mjs' ? source.slice(source.indexOf('  function constructRequestDomain('), source.indexOf('  const view = Object.freeze({')) : '';
-  return Function(...Object.keys(ports),property?`const pendingRunRegistrations=new Set();${helpers}return ({${source.slice(node.start,node.end)}}).${name};`:
-    `return (${source.slice(node.start,node.end)});`)(...Object.values(ports));
+  return Function('constructRequestDomain', ...Object.keys(ports),property?`return ({${source.slice(node.start,node.end)}}).${name};`:
+    `return (${source.slice(node.start,node.end)});`)(constructRequestDomain, ...Object.values(ports));
 }
 const fail=code=>{throw Object.assign(new Error(code),{code});},ok=value=>({$tag:1,_0:value});
 function fixture(family){

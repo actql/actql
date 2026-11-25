@@ -1898,6 +1898,10 @@
             ],
             "ownership": [
               {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "pub fn[I] request_program_compilation_original("
+              },
+              {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Ownership:"
               },

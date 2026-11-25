@@ -15,6 +15,7 @@ import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
   acquiredKeyedTaskPublicationPlan, serializationTaskRunAdmission, inferTaskRunAdmission} from './local-values-plan.mjs';
@@ -415,14 +416,19 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
     readFile(new URL('../../spec/contracts/actql-query-acquisition.json', import.meta.url), 'utf8'),
     readFile(new URL('../../spec/contracts/actql-query-process-evidence.json', import.meta.url), 'utf8'),
   ]);
-  const requirementResult = publicUnknownSource ? undefined : moon.clientProgramPrepareLocalQueryRequirement(
-    value.preparedProgram, 0, 1 - keyed[0].input, registry,
-    JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
-  if (!publicUnknownSource) assert.equal(requirementResult.$tag, 1, inspect(requirementResult.$tag === 0
-    ? requirementResult._0 : 'ready', {depth: 5, maxArrayLength: 5, maxStringLength: 200}));
-  const requirement = publicUnknownSource ? undefined : checked(requirementResult);
+  let joinContracts, requirement;
+  if (!publicUnknownSource) {
+    const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+    const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+    const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const installed = checked(moon.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
+    joinContracts = {registry: installed, values, fragment, ordered};
+    const requirementResult = moon.clientProgramPrepareLocalQueryRequirement(
+      value.preparedProgram, 0, 1 - keyed[0].input, installed, values, fragment, ordered);
+    assert.equal(requirementResult.$tag, 1, inspect(requirementResult.$tag === 0
+      ? requirementResult._0 : 'ready', {depth: 5, maxArrayLength: 5, maxStringLength: 200}));
+    requirement = checked(requirementResult);
+  }
   if (!stopCaptureAfterProgress) {
     const issuer = moon.clientProgramRowReferenceIssuer((kind, wire) =>
       kind === 'file' && items.some(row => wire === canonical(row.resource)),
@@ -524,9 +530,6 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
         }};
     }
     const adapter = await createInstalledRowSource(adapterOptions);
-    const joinContracts = {registry, values: JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
     const occurrence = {stage: 0, input: 1 - keyed[0].input, task: 0};
     const preparedSource = await adapter.prepare({preparedProgram: value.preparedProgram,
       ...joinContracts, occurrence});
@@ -543,10 +546,7 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
       preparedSource, keyedAcquisition: acquisition, preparedProgram: value.preparedProgram,
       joinContracts, expectedDirectInput: reverseSourceInputs ? 1 : 0});
     const capture = await adapter.openCapture({preparedProgram: value.preparedProgram,
-      registry, values: JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered']),
-      occurrence, preparedSource, ledger});
+      ...joinContracts, occurrence, preparedSource, ledger});
     assert.equal(requests, empty ? 0 : 1);
     const source = capture.capture.source();
     const left = checked(moon.clientProgramKeyedCaptureLeftRead(acquisition, source));
@@ -634,6 +634,14 @@ test('original Program captured left supplies the exact live version-fixed keyed
   assert.equal(after, before);
   assert.equal(ready, undefined);
 });
+
+async function prepareOriginalKeyedLookupRead(value) {
+  const requestIdentity = moon.clientProgramRequestIdentity(value.preparedProgram,
+    token('a'), 'fixture-keyed-lookup', moon.clientProgramSourceFreeInputIntentCid());
+  const selected = await value.adapter.prepareKeyed({preparedProgram: value.preparedProgram,
+    keyedAcquisition: value.acquisition, requestIdentity});
+  return selected.prepared;
+}
 
 async function originalKeyedRequest(value, row = 0) {
   const cursor = checked(moon.clientProgramKeyedRequestStart(value.left, row, 100000, 10000));
@@ -1074,10 +1082,11 @@ test('installed whole lookup assembles every original key before exposing its ex
       await consumePage([{content: admittedContent, ...request}]);
     }});
   t.after(value.close);
+  const preparedKeyed = await prepareOriginalKeyedLookupRead(value);
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 2);
   const ledger = lookupLedger();
   const lookup = await value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
-    keyedAcquisition: value.acquisition, left: value.left, ledger, quantum: 1});
+    keyedAcquisition: value.acquisition, left: value.left, preparedKeyed, ledger, quantum: 1});
   t.after(lookup.close);
   assert.deepEqual(requests, items.map(row => ({resource: row.resource, version: row.version})));
   assert.ok(lookup.capture.read());
@@ -1105,6 +1114,8 @@ async function consumeOriginalJoin(prepared, quantum, {cancelAfterWork = false, 
   const execution = checked(dag === undefined
     ? moon.clientProgramKeyedLookupJoinStart(prepared)
     : moon.clientProgramKeyedLookupDagJoinStart(prepared, dag));
+  // ManagedProviderPoll from connectors/local/managed_provider.mbt.
+  const continueTag = 0, completeTag = 4, failedTag = 6, stoppedTag = 7;
   let stream;
   let stopped = false;
   try {
@@ -1114,9 +1125,10 @@ async function consumeOriginalJoin(prepared, quantum, {cancelAfterWork = false, 
       if (cancelAfterWork && checked(moon.clientProgramKeyedLookupJoinWork(execution)) > 0n) {
         moon.clientProgramKeyedLookupJoinCancel(execution);
       }
-      if (value.$tag === 3) { output = value._0; stopped = true; break; }
-      if (value.$tag === 6) { stopped = true; break; }
-      assert.equal(value.$tag, 0, inspect(value, {depth: 4}));
+      const tag = runtimeTag(value);
+      if (tag === completeTag) { output = runtimeField(value, 0); stopped = true; break; }
+      if (tag === stoppedTag) { stopped = true; break; }
+      assert.equal(tag, continueTag, inspect(value, {depth: 4}));
     }
     assert.equal(stopped, true, 'original managed JOIN reaches a terminal poll');
     const work = checked(moon.clientProgramKeyedLookupJoinWork(execution));
@@ -1144,7 +1156,7 @@ async function consumeOriginalJoin(prepared, quantum, {cancelAfterWork = false, 
       moon.clientProgramKeyedLookupJoinCancel(execution);
       for (let poll = 0; poll < 100000 && !stopped; poll++) {
         const value = checked(moon.clientProgramKeyedLookupJoinAdvance(execution, quantum));
-        stopped = [3, 5, 6].includes(value.$tag);
+        stopped = [completeTag, failedTag, stoppedTag].includes(runtimeTag(value));
       }
     }
     let reclaimed = false;
@@ -1169,8 +1181,9 @@ test('real assembled lookup feeds only the original managed JOIN with its actual
         await consumePage([{content: admittedContent, ...request}]);
       }});
     t.after(value.close);
+    const preparedKeyed = await prepareOriginalKeyedLookupRead(value);
     const lookup = await value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
-      keyedAcquisition: value.acquisition, left: value.left, ledger: lookupLedger(), quantum});
+      keyedAcquisition: value.acquisition, left: value.left, preparedKeyed, ledger: lookupLedger(), quantum});
     t.after(lookup.close);
     const prepared = await lookup.prepareJoin(value.joinContracts);
     assert.ok(prepared);
@@ -1328,8 +1341,9 @@ test('complete keyed lookup issues its own logical input and live Source observa
         await consumePage([{...JSON.parse(requestWire), content: admittedContent}]);
       }});
     t.after(value.close);
+    const preparedKeyed = await prepareOriginalKeyedLookupRead(value);
     const lookup = await value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
-      keyedAcquisition: value.acquisition, left: value.left, ledger: lookupLedger()});
+      keyedAcquisition: value.acquisition, left: value.left, preparedKeyed, ledger: lookupLedger()});
     t.after(lookup.close);
     const options = {authorityScopeCid: token('a'), observedAt: '2026-10-09T00:00:00.000Z'};
     await assert.rejects(lookup.issueObservation({...options, observedAt: '2026-10-09T00:00:00Z'}),
@@ -2523,9 +2537,10 @@ test('installed lookup retains the same rows identity and logical work across qu
       await consumePage(expected);
     }});
     t.after(value.close);
+    const preparedKeyed = await prepareOriginalKeyedLookupRead(value);
     const ledger = lookupLedger();
     const lookup = await value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
-      keyedAcquisition: value.acquisition, left: value.left, ledger, quantum});
+      keyedAcquisition: value.acquisition, left: value.left, preparedKeyed, ledger, quantum});
     t.after(lookup.close);
     assert.equal(lookup.capture.identity(), cid(expected));
     totals.push(lookup.work());
@@ -2548,9 +2563,10 @@ test('installed lookup refuses cancellation after positive physical work without
       if (sends === 2) abort.abort(new Error('StoppedOriginalLookup'));
     }});
   t.after(value.close);
+  const preparedKeyed = await prepareOriginalKeyedLookupRead(value);
   const ledger = lookupLedger();
   await assert.rejects(value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
-    keyedAcquisition: value.acquisition, left: value.left, ledger, signal: abort.signal}),
+    keyedAcquisition: value.acquisition, left: value.left, preparedKeyed, ledger, signal: abort.signal}),
   error => error.code === 'StoppedOriginalLookup' && error.outcome === 'stopped');
   assert.equal(sends, 2);
   assert.ok(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes > 0n,
@@ -3305,7 +3321,15 @@ test('captured Content inventory restores every original holding before enabling
   assert.throws(() => restored.capture({}), /InstalledKeyedContentCaptureMismatch/u,
     'failed recovery cannot switch to acquisition of new bytes');
   for (const candidate of candidates) assert.equal(reissue(restored, candidate).$tag, 0);
-  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(restoredLedger), ["reservedRetentionBytes","reservedExecutionBytes"]), [199936n, 203776n]);
+  // The receiving frame and snapshot overlap. Each retains the original
+  // reference wire extent, the full bounded tree, and its inventory controls.
+  const wireUnits = restoredInventory.entries.reduce(
+    (units, {referenceWire}) => units + BigInt(referenceWire.length), 0n);
+  const referenceSlots = 2n * BigInt(restoredInventory.entries.length);
+  const inventoryBytes = 2n * 8n * wireUnits + referenceSlots * (256n * 64n + 1024n);
+  const pendingUsage = ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(restoredLedger),
+    ['reservedRetentionBytes', 'reservedExecutionBytes']);
+  assert.deepEqual(pendingUsage, [49424n + inventoryBytes, 53264n + inventoryBytes]);
   await children[1].retryRecovery();
   assert.deepEqual(restored.recoveryInventory(), original);
   for (const candidate of candidates) assert.equal(reissue(restored, candidate).$tag, 1);
@@ -3483,17 +3507,18 @@ test('retained original file metadata restores its checked locator after Source 
     },
     clientProgramCloseSourceCapture(owner) { return moon.clientProgramCloseSourceCapture(owner, 1); },
   });
-  const makeContinuation = (value, restore) => {
+  const makeContinuation = (value, source, restore) => {
     const continuation = acquiredEffectContinuation({moon: receivingMoon, checkpoints,
       acquired: {...admitted, control, kind: 'infer', prepared: value.preparedProgram},
       submission: {requestId: 'original-file-custody'}, declaredResults: ['r'],
       principalId: 'owner', unitId: 'original-file-unit', restore});
-    continuation.accessFor({authorization: {authorize: async () => ({action: 'dispatch'})}}, sourceFor(value).occurrence);
+    continuation.accessFor({authorization: {authorize: async () => ({action: 'dispatch'})}}, source.occurrence);
     return continuation;
   };
-  const first = makeContinuation(original);
-  await first.prepared([sourceFor(original)]);
-  await first.captured(sourceFor(original), original.captured,
+  const originalSource = sourceFor(original);
+  const first = makeContinuation(original, originalSource);
+  await first.prepared([originalSource]);
+  await first.captured(originalSource, original.captured,
     await original.captured.issueSourceEvidence({authorityScopeCid: token('a'),
       effectiveDataPolicyCid: original.captured.checkedSource.sourceDataPolicyCid}),
     '2026-10-10T00:00:00.000Z', '2026-10-10T00:00:01.000Z');
@@ -3521,8 +3546,9 @@ test('retained original file metadata restores its checked locator after Source 
       await read.consumePage([{...JSON.parse(read.requestWire), content: admittedContent}]);
     }});
   assert.equal(recovered.listingRequests(), 0);
-  const second = makeContinuation(recovered, {continuation, view});
-  await second.prepared([sourceFor(recovered)]);
+  const recoveredSource = sourceFor(recovered);
+  const second = makeContinuation(recovered, recoveredSource, {continuation, view});
+  await second.prepared([recoveredSource]);
   t.after(async () => {
     for (let attempt = 0; attempt < 100; attempt++) {
       try { await second.close(); return; }
@@ -3530,7 +3556,7 @@ test('retained original file metadata restores its checked locator after Source 
     }
     assert.fail('original Source cleanup never completed');
   });
-  const restored = second.restore(sourceFor(recovered), saved, undefined).captured;
+  const restored = second.restore(recoveredSource, saved, undefined).captured;
   const again = checked(moon.clientProgramExportSourceOriginalRead(restored.capture.originalRead()));
   assert.deepEqual([again._0, again._1, again._2],
     [saved.original_input.schema_cid, cid(items), items.map(canonical)]);
@@ -3545,22 +3571,54 @@ test('retained original file metadata restores its checked locator after Source 
     originalBinding.requirement, saved.requirement_cid, saved.binding, saved.binding,
     saved.descriptor, saved.rows, undefined, originalBinding.capacity, available, issuer,
     {_0: schema, _1: rows, _2: wires})), {code: 'MoonBitHostFailure'});
-  // Four million existing capture units plus 22,404,096 original-input units.
-  // One short refuses before creating the receiving buffer.
-  const insufficient = checked(moon.clientProgramAcquisitionLedger(1, 1, 0n, 26404095n, 64000000n));
-  const tooSmall = moon.clientProgramRestoreSourceCapture(originalBinding.requirement,
+  const reopen = (ledger, original) => moon.clientProgramRestoreSourceCapture(originalBinding.requirement,
     saved.requirement_cid, saved.binding, saved.binding, saved.descriptor, saved.rows,
-    insufficient, originalBinding.capacity, () => true, originalBinding.referenceIssuer,
-    {_0: again._0, _1: cid(items), _2: items.map(canonical)});
+    ledger, originalBinding.capacity, () => true, originalBinding.referenceIssuer, original);
+  const closeQuote = owner => {
+    for (let attempt = 0; attempt < 100; attempt++) {
+      if (moon.clientProgramCloseSourceCapture(owner, 64)) return;
+    }
+    assert.fail('receiving Source quote did not close');
+  };
+  const baseline = checked(reopen(undefined, undefined));
+  let projectedCaptureBytes;
+  try {
+    [projectedCaptureBytes] = moon.clientProgramSourceCaptureUsage(baseline);
+    assert(projectedCaptureBytes > 0n);
+  } finally {
+    closeQuote(baseline);
+  }
+  // The seven unqualified input columns retain two Array headers and fourteen
+  // name slots in addition to the original read allowance. The projected
+  // capture's separately observed row budget is shared by both variants.
+  const originalInputBytes = 22_404_096n + 2n * 16n + 14n * 8n;
+  const heldBytes = projectedCaptureBytes + originalInputBytes;
+  assert.deepEqual(moon.clientProgramSourceCaptureUsage(receivingOwner), [heldBytes, 0n, 0n]);
+  // The admitted readmission header overlaps the receiving reservation until
+  // it is settled. Count its records, refs, words and three CID strings.
+  const headerBytes = 11n * 16n + 18n * 8n + 16n * 8n + 3n * 71n * 2n;
+  const ceiling = heldBytes + headerBytes;
+  const originalInput = {_0: again._0, _1: cid(items), _2: items.map(canonical)};
+  const exact = checked(moon.clientProgramAcquisitionLedger(1, 1, 0n, ceiling, 64_000_000n));
+  const exactOwner = checked(reopen(exact, originalInput));
+  try {
+    assert.deepEqual(moon.clientProgramSourceCaptureUsage(exactOwner), [heldBytes, 0n, 0n]);
+  } finally {
+    closeQuote(exactOwner);
+  }
+  const insufficient = checked(moon.clientProgramAcquisitionLedger(1, 1, 0n, ceiling - 1n, 64_000_000n));
+  const tooSmall = reopen(insufficient, originalInput);
+  if (tooSmall.$tag === 1) closeQuote(tooSmall._0);
   assert.equal(tooSmall.$tag, 0);
   assert.match(inspect(tooSmall._0), /ClientSourceCaptureIssue.*Physical/u);
   assert.equal(tooSmall._0._0, 5, 'compiled LedgerIssue.RetentionLimit');
-  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(insufficient), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
-  assert.deepEqual(moon.clientProgramSourceCaptureUsage(receivingOwner), [26404096n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(insufficient),
+    ['reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes', 'reservedExecutionBytes']), [0n, 0n, 0n, 0n]);
   const left = checked(moon.clientProgramKeyedCaptureLeftRead(recovered.acquisition, restored.capture.source()));
   const ledger = lookupLedger();
+  const preparedKeyed = await prepareOriginalKeyedLookupRead(recovered);
   const lookup = await recovered.adapter.openKeyedLookup({preparedProgram: recovered.preparedProgram,
-    keyedAcquisition: recovered.acquisition, left, ledger, quantum: 1,
+    keyedAcquisition: recovered.acquisition, left, ledger, preparedKeyed, quantum: 1,
     originalCapture: restored.capture});
   t.after(lookup.close);
   assert.equal(gets, 1);
@@ -3570,7 +3628,7 @@ test('retained original file metadata restores its checked locator after Source 
   await assert.rejects(restored.close(), {code: 'SourceCaptureCleanupPending'});
   assert.throws(() => checked(moon.clientProgramExportSourceOriginalRead(restoredRead)), {code: 'MoonBitHostFailure'});
   assert.equal(moon.clientProgramSourceCaptureCleanupPending(receivingOwner), true);
-  assert.deepEqual(moon.clientProgramSourceCaptureUsage(receivingOwner), [26404096n, 0n, 0n],
+  assert.deepEqual(moon.clientProgramSourceCaptureUsage(receivingOwner), [heldBytes, 0n, 0n],
     'logical revocation does not return the live original-input allocation');
   let cleaned = false;
   for (let attempt = 0; attempt < 100; attempt++) {

@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=10936)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=10958)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -7630,6 +7630,20 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(AllOfRule([2724, 2753]))
+  nodes.push(protocol_string_rule(Some("create"), [], 0, 0))
+  nodes.push(
+    protocol_object_rule(
+      [("operation_kind", 2755)],
+      ["operation_kind"],
+      -2,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_object_rule([], ["target_version_cid"], -2, 0, None))
+  nodes.push(NotRule(2757))
+  nodes.push(nodes[2757])
+  nodes.push(ConditionalRule(2756, 2758, 2759))
   nodes.push(nodes[2725])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -7641,18 +7655,18 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[2])
   nodes.push(protocol_string_rule(Some("json_file"), [], 0, 0))
-  nodes.push(protocol_string_rule(None, ["update", "delete"], 0, 0))
+  nodes.push(protocol_string_rule(None, ["update", "delete", "create"], 0, 0))
+  nodes.push(nodes[2])
   nodes.push(protocol_string_rule(Some("acknowledged"), [], 0, 0))
   nodes.push(nodes[1252])
   nodes.push(nodes[4])
   nodes.push(protocol_string_rule(None, [], 15, 0))
-  nodes.push(nodes[2772])
-  nodes.push(nodes[2772])
+  nodes.push(nodes[2778])
+  nodes.push(nodes[2778])
   nodes.push(
     protocol_object_rule(
-      [("device", 2772), ("inode", 2773), ("size", 2774)],
+      [("device", 2778), ("inode", 2779), ("size", 2780)],
       ["device", "inode", "size"],
       -1,
       0,
@@ -7663,7 +7677,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("state", 2776), ("result", 2777)],
+      [("state", 2782), ("result", 2783)],
       ["state", "result"],
       -1,
       0,
@@ -7673,46 +7687,47 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 2755),
-        ("effect_preview_cid", 2756),
-        ("effect_member_preview_cid", 2757),
-        ("row_preview_cid", 2758),
-        ("installation_cid", 2759),
-        ("target_cid", 2760),
-        ("canonical_request_cid", 2761),
-        ("dispatch_entry_cid", 2762),
-        ("authorization_context_cid", 2763),
-        ("resolution_cid", 2764),
-        ("target_version_cid", 2765),
-        ("typed_outcome_cid", 2766),
-        ("backend_kind", 2767),
-        ("operation_kind", 2768),
-        ("replacement_status", 2769),
-        ("replacement_physical_sha256", 2770),
-        ("replacement_byte_count", 2771),
-        ("replacement_generation", 2775),
-        ("typed_outcome", 2778),
+        ("version", 2761),
+        ("effect_preview_cid", 2762),
+        ("effect_member_preview_cid", 2763),
+        ("row_preview_cid", 2764),
+        ("installation_cid", 2765),
+        ("target_cid", 2766),
+        ("canonical_request_cid", 2767),
+        ("dispatch_entry_cid", 2768),
+        ("authorization_context_cid", 2769),
+        ("resolution_cid", 2770),
+        ("typed_outcome_cid", 2771),
+        ("backend_kind", 2772),
+        ("operation_kind", 2773),
+        ("target_version_cid", 2774),
+        ("replacement_status", 2775),
+        ("replacement_physical_sha256", 2776),
+        ("replacement_byte_count", 2777),
+        ("replacement_generation", 2781),
+        ("typed_outcome", 2784),
       ],
       [
         "version", "effect_preview_cid", "effect_member_preview_cid", "row_preview_cid",
         "installation_cid", "target_cid", "canonical_request_cid", "dispatch_entry_cid",
-        "authorization_context_cid", "resolution_cid", "target_version_cid", "typed_outcome_cid",
-        "backend_kind", "operation_kind", "replacement_status", "replacement_physical_sha256",
-        "replacement_byte_count", "replacement_generation", "typed_outcome",
+        "authorization_context_cid", "resolution_cid", "typed_outcome_cid", "backend_kind",
+        "operation_kind", "replacement_status", "replacement_physical_sha256", "replacement_byte_count",
+        "replacement_generation", "typed_outcome",
       ],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([2754, 2779]))
+  nodes.push(AllOfRule([2760, 2785]))
+  nodes.push(protocol_one_of_rule([2754, 2786]))
   nodes.push(nodes[2710])
   nodes.push(nodes[2])
   nodes.push(nodes[2712])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("state", 2783), ("result", 2784)],
+      [("state", 2790), ("result", 2791)],
       ["state", "result"],
       -1,
       0,
@@ -7722,9 +7737,9 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("commit_status", 2781),
-        ("observed_version_cid", 2782),
-        ("typed_outcome", 2785),
+        ("commit_status", 2788),
+        ("observed_version_cid", 2789),
+        ("typed_outcome", 2792),
       ],
       [],
       -2,
@@ -7739,7 +7754,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("code", 2789), ("message", 2790), ("details", 2791)],
+      [("code", 2796), ("message", 2797), ("details", 2798)],
       ["code", "message"],
       -1,
       0,
@@ -7748,7 +7763,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 2788), ("error", 2792)],
+      [("state", 2795), ("error", 2799)],
       ["state", "error"],
       -1,
       0,
@@ -7757,14 +7772,14 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("commit_status", 2787), ("typed_outcome", 2793)],
+      [("commit_status", 2794), ("typed_outcome", 2800)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([2786, 2794]))
+  nodes.push(protocol_one_of_rule([2793, 2801]))
   nodes.push(nodes[2725])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -7783,12 +7798,12 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2739])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(protocol_one_of_rule([2812, 2813]))
+  nodes.push(protocol_one_of_rule([2819, 2820]))
   nodes.push(nodes[2712])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("state", 2815), ("result", 2816)],
+      [("state", 2822), ("result", 2823)],
       ["state", "result"],
       -1,
       0,
@@ -7801,7 +7816,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("code", 2819), ("message", 2820), ("details", 2821)],
+      [("code", 2826), ("message", 2827), ("details", 2828)],
       ["code", "message"],
       -1,
       0,
@@ -7810,35 +7825,35 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 2818), ("error", 2822)],
+      [("state", 2825), ("error", 2829)],
       ["state", "error"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([2817, 2823]))
+  nodes.push(protocol_one_of_rule([2824, 2830]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 2796),
-        ("effect_preview_cid", 2797),
-        ("effect_member_preview_cid", 2798),
-        ("row_preview_cid", 2799),
-        ("installation_cid", 2800),
-        ("target_cid", 2801),
-        ("canonical_request_cid", 2802),
-        ("dispatch_entry_cid", 2803),
-        ("authorization_use_cid", 2804),
-        ("approval_use_cid", 2805),
-        ("target_version_cid", 2806),
-        ("typed_outcome_cid", 2807),
-        ("receipt_cid", 2808),
-        ("backend_kind", 2809),
-        ("operation_kind", 2810),
-        ("commit_status", 2811),
-        ("observed_version_cid", 2814),
-        ("typed_outcome", 2824),
+        ("version", 2803),
+        ("effect_preview_cid", 2804),
+        ("effect_member_preview_cid", 2805),
+        ("row_preview_cid", 2806),
+        ("installation_cid", 2807),
+        ("target_cid", 2808),
+        ("canonical_request_cid", 2809),
+        ("dispatch_entry_cid", 2810),
+        ("authorization_use_cid", 2811),
+        ("approval_use_cid", 2812),
+        ("target_version_cid", 2813),
+        ("typed_outcome_cid", 2814),
+        ("receipt_cid", 2815),
+        ("backend_kind", 2816),
+        ("operation_kind", 2817),
+        ("commit_status", 2818),
+        ("observed_version_cid", 2821),
+        ("typed_outcome", 2831),
       ],
       [
         "version", "effect_preview_cid", "effect_member_preview_cid", "row_preview_cid",
@@ -7852,7 +7867,21 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([2795, 2825]))
+  nodes.push(AllOfRule([2802, 2832]))
+  nodes.push(nodes[2755])
+  nodes.push(
+    protocol_object_rule(
+      [("operation_kind", 2834)],
+      ["operation_kind"],
+      -2,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2757])
+  nodes.push(NotRule(2836))
+  nodes.push(nodes[2757])
+  nodes.push(ConditionalRule(2835, 2837, 2838))
   nodes.push(nodes[2725])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -7865,18 +7894,18 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
+  nodes.push(nodes[2772])
+  nodes.push(nodes[2773])
   nodes.push(nodes[2])
-  nodes.push(nodes[2767])
-  nodes.push(nodes[2768])
-  nodes.push(nodes[2769])
+  nodes.push(nodes[2775])
   nodes.push(nodes[1252])
   nodes.push(nodes[4])
-  nodes.push(nodes[2772])
-  nodes.push(nodes[2772])
-  nodes.push(nodes[2772])
+  nodes.push(nodes[2778])
+  nodes.push(nodes[2778])
+  nodes.push(nodes[2778])
   nodes.push(
     protocol_object_rule(
-      [("device", 2845), ("inode", 2846), ("size", 2847)],
+      [("device", 2858), ("inode", 2859), ("size", 2860)],
       ["device", "inode", "size"],
       -1,
       0,
@@ -7887,7 +7916,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("state", 2849), ("result", 2850)],
+      [("state", 2862), ("result", 2863)],
       ["state", "result"],
       -1,
       0,
@@ -7897,32 +7926,32 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 2827),
-        ("effect_preview_cid", 2828),
-        ("effect_member_preview_cid", 2829),
-        ("row_preview_cid", 2830),
-        ("installation_cid", 2831),
-        ("target_cid", 2832),
-        ("canonical_request_cid", 2833),
-        ("dispatch_entry_cid", 2834),
-        ("authorization_context_cid", 2835),
-        ("resolution_cid", 2836),
-        ("target_version_cid", 2837),
-        ("typed_outcome_cid", 2838),
-        ("receipt_cid", 2839),
-        ("backend_kind", 2840),
-        ("operation_kind", 2841),
-        ("replacement_status", 2842),
-        ("replacement_physical_sha256", 2843),
-        ("replacement_byte_count", 2844),
-        ("replacement_generation", 2848),
-        ("typed_outcome", 2851),
+        ("version", 2840),
+        ("effect_preview_cid", 2841),
+        ("effect_member_preview_cid", 2842),
+        ("row_preview_cid", 2843),
+        ("installation_cid", 2844),
+        ("target_cid", 2845),
+        ("canonical_request_cid", 2846),
+        ("dispatch_entry_cid", 2847),
+        ("authorization_context_cid", 2848),
+        ("resolution_cid", 2849),
+        ("typed_outcome_cid", 2850),
+        ("receipt_cid", 2851),
+        ("backend_kind", 2852),
+        ("operation_kind", 2853),
+        ("target_version_cid", 2854),
+        ("replacement_status", 2855),
+        ("replacement_physical_sha256", 2856),
+        ("replacement_byte_count", 2857),
+        ("replacement_generation", 2861),
+        ("typed_outcome", 2864),
       ],
       [
         "version", "effect_preview_cid", "effect_member_preview_cid", "row_preview_cid",
         "installation_cid", "target_cid", "canonical_request_cid", "dispatch_entry_cid",
-        "authorization_context_cid", "resolution_cid", "target_version_cid", "typed_outcome_cid",
-        "receipt_cid", "backend_kind", "operation_kind", "replacement_status", "replacement_physical_sha256",
+        "authorization_context_cid", "resolution_cid", "typed_outcome_cid", "receipt_cid",
+        "backend_kind", "operation_kind", "replacement_status", "replacement_physical_sha256",
         "replacement_byte_count", "replacement_generation", "typed_outcome",
       ],
       -1,
@@ -7930,7 +7959,8 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([2826, 2852]))
+  nodes.push(AllOfRule([2839, 2865]))
+  nodes.push(protocol_one_of_rule([2833, 2866]))
   nodes.push(
     protocol_string_rule(Some("actql-effect-row-outcome-receipt/0.1"), [], 0, 0),
   )
@@ -7947,7 +7977,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(protocol_string_rule(None, ["created", "updated"], 0, 0))
   nodes.push(
     protocol_object_rule(
-      [("state", 2863), ("result", 2864), ("action", 2865)],
+      [("state", 2877), ("result", 2878), ("action", 2879)],
       ["state", "result"],
       -1,
       0,
@@ -7966,14 +7996,14 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("$actql_ref", 2868),
-        ("version", 2869),
-        ("resource_kind", 2870),
-        ("provider_namespace", 2871),
-        ("provider_identity_cid", 2872),
-        ("authority_scope_cid", 2873),
-        ("boundary_cid", 2874),
-        ("identity_cid", 2875),
+        ("$actql_ref", 2882),
+        ("version", 2883),
+        ("resource_kind", 2884),
+        ("provider_namespace", 2885),
+        ("provider_identity_cid", 2886),
+        ("authority_scope_cid", 2887),
+        ("boundary_cid", 2888),
+        ("identity_cid", 2889),
       ],
       [
         "$actql_ref", "version", "resource_kind", "provider_namespace", "provider_identity_cid",
@@ -7989,7 +8019,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 2877), ("version", 2878), ("cid", 2879)],
+      [("id", 2891), ("version", 2892), ("cid", 2893)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -8002,7 +8032,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 2882), ("version", 2883), ("cid", 2884)],
+      [("id", 2896), ("version", 2897), ("cid", 2898)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -8015,7 +8045,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 2887), ("version", 2888), ("cid", 2889)],
+      [("id", 2901), ("version", 2902), ("cid", 2903)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -8025,13 +8055,13 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 2867),
-        ("operation_ref", 2876),
-        ("poll_contract", 2880),
-        ("cancel_capability", 2881),
-        ("result_schema", 2885),
-        ("expiration", 2886),
-        ("reconciliation_contract", 2890),
+        ("state", 2881),
+        ("operation_ref", 2890),
+        ("poll_contract", 2894),
+        ("cancel_capability", 2895),
+        ("result_schema", 2899),
+        ("expiration", 2900),
+        ("reconciliation_contract", 2904),
       ],
       [
         "state", "operation_ref", "poll_contract", "cancel_capability", "result_schema",
@@ -8048,7 +8078,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("code", 2893), ("message", 2894), ("details", 2895)],
+      [("code", 2907), ("message", 2908), ("details", 2909)],
       ["code", "message"],
       -1,
       0,
@@ -8057,29 +8087,29 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 2892), ("error", 2896)],
+      [("state", 2906), ("error", 2910)],
       ["state", "error"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([2866, 2891, 2897]))
+  nodes.push(protocol_one_of_rule([2880, 2905, 2911]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 2854),
-        ("effect_preview_cid", 2855),
-        ("effect_member_preview_cid", 2856),
-        ("row_preview_cid", 2857),
-        ("dispatch_entry_cid", 2858),
-        ("credential_use_cid", 2859),
-        ("response_physical_sha256", 2860),
-        ("response_byte_count", 2861),
-        ("http_status_code", 2862),
-        ("typed_outcome", 2898),
-        ("typed_outcome_cid", 2899),
+        ("version", 2868),
+        ("effect_preview_cid", 2869),
+        ("effect_member_preview_cid", 2870),
+        ("row_preview_cid", 2871),
+        ("dispatch_entry_cid", 2872),
+        ("credential_use_cid", 2873),
+        ("response_physical_sha256", 2874),
+        ("response_byte_count", 2875),
+        ("http_status_code", 2876),
+        ("typed_outcome", 2912),
+        ("typed_outcome_cid", 2913),
       ],
       [
         "version", "effect_preview_cid", "effect_member_preview_cid", "row_preview_cid",
@@ -8091,7 +8121,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[2854])
+  nodes.push(nodes[2868])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -8102,7 +8132,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("state", 2908), ("result", 2909)],
+      [("state", 2922), ("result", 2923)],
       ["state", "result"],
       -1,
       0,
@@ -8115,7 +8145,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("code", 2912), ("message", 2913), ("details", 2914)],
+      [("code", 2926), ("message", 2927), ("details", 2928)],
       ["code", "message"],
       -1,
       0,
@@ -8124,31 +8154,31 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 2911), ("error", 2915)],
+      [("state", 2925), ("error", 2929)],
       ["state", "error"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([2910, 2916]))
+  nodes.push(protocol_one_of_rule([2924, 2930]))
   nodes.push(nodes[2])
   nodes.push(protocol_string_rule(Some("local_operation"), [], 0, 0))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 2901),
-        ("effect_preview_cid", 2902),
-        ("effect_member_preview_cid", 2903),
-        ("row_preview_cid", 2904),
-        ("dispatch_entry_cid", 2905),
-        ("response_physical_sha256", 2906),
-        ("response_byte_count", 2907),
-        ("typed_outcome", 2917),
-        ("typed_outcome_cid", 2918),
-        ("response_kind", 2919),
-        ("local_operation_receipt_cid", 2920),
+        ("version", 2915),
+        ("effect_preview_cid", 2916),
+        ("effect_member_preview_cid", 2917),
+        ("row_preview_cid", 2918),
+        ("dispatch_entry_cid", 2919),
+        ("response_physical_sha256", 2920),
+        ("response_byte_count", 2921),
+        ("typed_outcome", 2931),
+        ("typed_outcome_cid", 2932),
+        ("response_kind", 2933),
+        ("local_operation_receipt_cid", 2934),
       ],
       [
         "version", "effect_preview_cid", "effect_member_preview_cid", "row_preview_cid",
@@ -8160,8 +8190,8 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([2900, 2921]))
-  nodes.push(nodes[2854])
+  nodes.push(protocol_one_of_rule([2914, 2935]))
+  nodes.push(nodes[2868])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -8169,20 +8199,20 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[1252])
   nodes.push(nodes[4])
-  nodes.push(nodes[2862])
+  nodes.push(nodes[2876])
   nodes.push(nodes[2712])
   nodes.push(nodes[270])
-  nodes.push(nodes[2865])
+  nodes.push(nodes[2879])
   nodes.push(
     protocol_object_rule(
-      [("state", 2932), ("result", 2933), ("action", 2934)],
+      [("state", 2946), ("result", 2947), ("action", 2948)],
       ["state", "result"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[2867])
+  nodes.push(nodes[2881])
   nodes.push(nodes[1883])
   nodes.push(nodes[1884])
   nodes.push(nodes[1])
@@ -8194,14 +8224,14 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("$actql_ref", 2937),
-        ("version", 2938),
-        ("resource_kind", 2939),
-        ("provider_namespace", 2940),
-        ("provider_identity_cid", 2941),
-        ("authority_scope_cid", 2942),
-        ("boundary_cid", 2943),
-        ("identity_cid", 2944),
+        ("$actql_ref", 2951),
+        ("version", 2952),
+        ("resource_kind", 2953),
+        ("provider_namespace", 2954),
+        ("provider_identity_cid", 2955),
+        ("authority_scope_cid", 2956),
+        ("boundary_cid", 2957),
+        ("identity_cid", 2958),
       ],
       [
         "$actql_ref", "version", "resource_kind", "provider_namespace", "provider_identity_cid",
@@ -8217,20 +8247,20 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 2946), ("version", 2947), ("cid", 2948)],
+      [("id", 2960), ("version", 2961), ("cid", 2962)],
       ["id", "version", "cid"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[2881])
+  nodes.push(nodes[2895])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 2951), ("version", 2952), ("cid", 2953)],
+      [("id", 2965), ("version", 2966), ("cid", 2967)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -8243,7 +8273,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 2956), ("version", 2957), ("cid", 2958)],
+      [("id", 2970), ("version", 2971), ("cid", 2972)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -8253,13 +8283,13 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 2936),
-        ("operation_ref", 2945),
-        ("poll_contract", 2949),
-        ("cancel_capability", 2950),
-        ("result_schema", 2954),
-        ("expiration", 2955),
-        ("reconciliation_contract", 2959),
+        ("state", 2950),
+        ("operation_ref", 2959),
+        ("poll_contract", 2963),
+        ("cancel_capability", 2964),
+        ("result_schema", 2968),
+        ("expiration", 2969),
+        ("reconciliation_contract", 2973),
       ],
       [
         "state", "operation_ref", "poll_contract", "cancel_capability", "result_schema",
@@ -8276,7 +8306,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("code", 2962), ("message", 2963), ("details", 2964)],
+      [("code", 2976), ("message", 2977), ("details", 2978)],
       ["code", "message"],
       -1,
       0,
@@ -8285,31 +8315,31 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 2961), ("error", 2965)],
+      [("state", 2975), ("error", 2979)],
       ["state", "error"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([2935, 2960, 2966]))
+  nodes.push(protocol_one_of_rule([2949, 2974, 2980]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 2923),
-        ("effect_preview_cid", 2924),
-        ("effect_member_preview_cid", 2925),
-        ("row_preview_cid", 2926),
-        ("dispatch_entry_cid", 2927),
-        ("credential_use_cid", 2928),
-        ("response_physical_sha256", 2929),
-        ("response_byte_count", 2930),
-        ("http_status_code", 2931),
-        ("typed_outcome", 2967),
-        ("typed_outcome_cid", 2968),
-        ("receipt_cid", 2969),
+        ("version", 2937),
+        ("effect_preview_cid", 2938),
+        ("effect_member_preview_cid", 2939),
+        ("row_preview_cid", 2940),
+        ("dispatch_entry_cid", 2941),
+        ("credential_use_cid", 2942),
+        ("response_physical_sha256", 2943),
+        ("response_byte_count", 2944),
+        ("http_status_code", 2945),
+        ("typed_outcome", 2981),
+        ("typed_outcome_cid", 2982),
+        ("receipt_cid", 2983),
       ],
       [
         "version", "effect_preview_cid", "effect_member_preview_cid", "row_preview_cid",
@@ -8321,7 +8351,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[2854])
+  nodes.push(nodes[2868])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -8332,7 +8362,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("state", 2978), ("result", 2979)],
+      [("state", 2992), ("result", 2993)],
       ["state", "result"],
       -1,
       0,
@@ -8345,42 +8375,46 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("code", 2982), ("message", 2983), ("details", 2984)],
+      [("code", 2996), ("message", 2997), ("details", 2998)],
       ["code", "message"],
       -1,
       0,
       None,
     ),
   )
+}
+
+///|
+fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit {
   nodes.push(
     protocol_object_rule(
-      [("state", 2981), ("error", 2985)],
+      [("state", 2995), ("error", 2999)],
       ["state", "error"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([2980, 2986]))
+  nodes.push(protocol_one_of_rule([2994, 3000]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[2919])
+  nodes.push(nodes[2933])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 2971),
-        ("effect_preview_cid", 2972),
-        ("effect_member_preview_cid", 2973),
-        ("row_preview_cid", 2974),
-        ("dispatch_entry_cid", 2975),
-        ("response_physical_sha256", 2976),
-        ("response_byte_count", 2977),
-        ("typed_outcome", 2987),
-        ("typed_outcome_cid", 2988),
-        ("receipt_cid", 2989),
-        ("response_kind", 2990),
-        ("local_operation_receipt_cid", 2991),
+        ("version", 2985),
+        ("effect_preview_cid", 2986),
+        ("effect_member_preview_cid", 2987),
+        ("row_preview_cid", 2988),
+        ("dispatch_entry_cid", 2989),
+        ("response_physical_sha256", 2990),
+        ("response_byte_count", 2991),
+        ("typed_outcome", 3001),
+        ("typed_outcome_cid", 3002),
+        ("receipt_cid", 3003),
+        ("response_kind", 3004),
+        ("local_operation_receipt_cid", 3005),
       ],
       [
         "version", "effect_preview_cid", "effect_member_preview_cid", "row_preview_cid",
@@ -8392,7 +8426,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([2970, 2992]))
+  nodes.push(protocol_one_of_rule([2984, 3006]))
   nodes.push(
     protocol_string_rule(Some("actql-effect-apply-receipt/0.1"), [], 0, 0),
   )
@@ -8401,16 +8435,12 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-}
-
-///|
-fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit {
   nodes.push(protocol_string_rule(Some("unattempted"), [], 0, 0))
   nodes.push(nodes[4])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("state", 3000), ("row_index", 3001), ("row_preview_cid", 3002)],
+      [("state", 3014), ("row_index", 3015), ("row_preview_cid", 3016)],
       ["row_index", "row_preview_cid", "state"],
       -1,
       0,
@@ -8426,12 +8456,12 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3004),
-        ("row_index", 3005),
-        ("row_preview_cid", 3006),
-        ("dispatch_entry_cid", 3007),
-        ("attempt_sequence", 3008),
-        ("ledger_head_cid", 3009),
+        ("state", 3018),
+        ("row_index", 3019),
+        ("row_preview_cid", 3020),
+        ("dispatch_entry_cid", 3021),
+        ("attempt_sequence", 3022),
+        ("ledger_head_cid", 3023),
       ],
       [
         "row_index", "row_preview_cid", "state", "dispatch_entry_cid", "attempt_sequence",
@@ -8452,13 +8482,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3011),
-        ("row_index", 3012),
-        ("row_preview_cid", 3013),
-        ("dispatch_entry_cid", 3014),
-        ("attempt_sequence", 3015),
-        ("outcome_receipt_cid", 3016),
-        ("batch_result_cid", 3017),
+        ("state", 3025),
+        ("row_index", 3026),
+        ("row_preview_cid", 3027),
+        ("dispatch_entry_cid", 3028),
+        ("attempt_sequence", 3029),
+        ("outcome_receipt_cid", 3030),
+        ("batch_result_cid", 3031),
       ],
       [
         "row_index", "row_preview_cid", "state", "dispatch_entry_cid", "attempt_sequence",
@@ -8469,7 +8499,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[2867])
+  nodes.push(nodes[2881])
   nodes.push(nodes[4])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -8479,13 +8509,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3019),
-        ("row_index", 3020),
-        ("row_preview_cid", 3021),
-        ("dispatch_entry_cid", 3022),
-        ("attempt_sequence", 3023),
-        ("outcome_receipt_cid", 3024),
-        ("batch_result_cid", 3025),
+        ("state", 3033),
+        ("row_index", 3034),
+        ("row_preview_cid", 3035),
+        ("dispatch_entry_cid", 3036),
+        ("attempt_sequence", 3037),
+        ("outcome_receipt_cid", 3038),
+        ("batch_result_cid", 3039),
       ],
       [
         "row_index", "row_preview_cid", "state", "dispatch_entry_cid", "attempt_sequence",
@@ -8506,13 +8536,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3027),
-        ("row_index", 3028),
-        ("row_preview_cid", 3029),
-        ("dispatch_entry_cid", 3030),
-        ("attempt_sequence", 3031),
-        ("outcome_receipt_cid", 3032),
-        ("batch_result_cid", 3033),
+        ("state", 3041),
+        ("row_index", 3042),
+        ("row_preview_cid", 3043),
+        ("dispatch_entry_cid", 3044),
+        ("attempt_sequence", 3045),
+        ("outcome_receipt_cid", 3046),
+        ("batch_result_cid", 3047),
       ],
       [
         "row_index", "row_preview_cid", "state", "dispatch_entry_cid", "attempt_sequence",
@@ -8533,13 +8563,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3035),
-        ("row_index", 3036),
-        ("row_preview_cid", 3037),
-        ("dispatch_entry_cid", 3038),
-        ("attempt_sequence", 3039),
-        ("outcome_receipt_cid", 3040),
-        ("batch_result_cid", 3041),
+        ("state", 3049),
+        ("row_index", 3050),
+        ("row_preview_cid", 3051),
+        ("dispatch_entry_cid", 3052),
+        ("attempt_sequence", 3053),
+        ("outcome_receipt_cid", 3054),
+        ("batch_result_cid", 3055),
       ],
       [
         "row_index", "row_preview_cid", "state", "dispatch_entry_cid", "attempt_sequence",
@@ -8550,8 +8580,8 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3003, 3010, 3018, 3026, 3034, 3042]))
-  nodes.push(protocol_array_rule(3043, 0, false, -1))
+  nodes.push(protocol_one_of_rule([3017, 3024, 3032, 3040, 3048, 3056]))
+  nodes.push(protocol_array_rule(3057, 0, false, -1))
   nodes.push(
     protocol_string_rule(
       None,
@@ -8565,14 +8595,14 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 2994),
-        ("run_identity_cid", 2995),
-        ("effect_preview_cid", 2996),
-        ("effect_member_preview_cid", 2997),
-        ("approval_attestation_cid", 2998),
-        ("stale_error_cid", 2999),
-        ("rows", 3044),
-        ("status", 3045),
+        ("version", 3008),
+        ("run_identity_cid", 3009),
+        ("effect_preview_cid", 3010),
+        ("effect_member_preview_cid", 3011),
+        ("approval_attestation_cid", 3012),
+        ("stale_error_cid", 3013),
+        ("rows", 3058),
+        ("status", 3059),
       ],
       [
         "version", "run_identity_cid", "effect_preview_cid", "effect_member_preview_cid",
@@ -8583,25 +8613,25 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[2994])
+  nodes.push(nodes[3008])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3000])
+  nodes.push(nodes[3014])
   nodes.push(nodes[4])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("state", 3053), ("row_index", 3054), ("row_preview_cid", 3055)],
+      [("state", 3067), ("row_index", 3068), ("row_preview_cid", 3069)],
       ["row_index", "row_preview_cid", "state"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[4])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -8610,12 +8640,12 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3057),
-        ("row_index", 3058),
-        ("row_preview_cid", 3059),
-        ("dispatch_entry_cid", 3060),
-        ("attempt_sequence", 3061),
-        ("ledger_head_cid", 3062),
+        ("state", 3071),
+        ("row_index", 3072),
+        ("row_preview_cid", 3073),
+        ("dispatch_entry_cid", 3074),
+        ("attempt_sequence", 3075),
+        ("ledger_head_cid", 3076),
       ],
       [
         "row_index", "row_preview_cid", "state", "dispatch_entry_cid", "attempt_sequence",
@@ -8636,13 +8666,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3064),
-        ("row_index", 3065),
-        ("row_preview_cid", 3066),
-        ("dispatch_entry_cid", 3067),
-        ("attempt_sequence", 3068),
-        ("outcome_receipt_cid", 3069),
-        ("batch_result_cid", 3070),
+        ("state", 3078),
+        ("row_index", 3079),
+        ("row_preview_cid", 3080),
+        ("dispatch_entry_cid", 3081),
+        ("attempt_sequence", 3082),
+        ("outcome_receipt_cid", 3083),
+        ("batch_result_cid", 3084),
       ],
       [
         "row_index", "row_preview_cid", "state", "dispatch_entry_cid", "attempt_sequence",
@@ -8653,7 +8683,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[2867])
+  nodes.push(nodes[2881])
   nodes.push(nodes[4])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -8663,13 +8693,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3072),
-        ("row_index", 3073),
-        ("row_preview_cid", 3074),
-        ("dispatch_entry_cid", 3075),
-        ("attempt_sequence", 3076),
-        ("outcome_receipt_cid", 3077),
-        ("batch_result_cid", 3078),
+        ("state", 3086),
+        ("row_index", 3087),
+        ("row_preview_cid", 3088),
+        ("dispatch_entry_cid", 3089),
+        ("attempt_sequence", 3090),
+        ("outcome_receipt_cid", 3091),
+        ("batch_result_cid", 3092),
       ],
       [
         "row_index", "row_preview_cid", "state", "dispatch_entry_cid", "attempt_sequence",
@@ -8690,13 +8720,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3080),
-        ("row_index", 3081),
-        ("row_preview_cid", 3082),
-        ("dispatch_entry_cid", 3083),
-        ("attempt_sequence", 3084),
-        ("outcome_receipt_cid", 3085),
-        ("batch_result_cid", 3086),
+        ("state", 3094),
+        ("row_index", 3095),
+        ("row_preview_cid", 3096),
+        ("dispatch_entry_cid", 3097),
+        ("attempt_sequence", 3098),
+        ("outcome_receipt_cid", 3099),
+        ("batch_result_cid", 3100),
       ],
       [
         "row_index", "row_preview_cid", "state", "dispatch_entry_cid", "attempt_sequence",
@@ -8707,7 +8737,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3035])
+  nodes.push(nodes[3049])
   nodes.push(nodes[4])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -8717,13 +8747,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3088),
-        ("row_index", 3089),
-        ("row_preview_cid", 3090),
-        ("dispatch_entry_cid", 3091),
-        ("attempt_sequence", 3092),
-        ("outcome_receipt_cid", 3093),
-        ("batch_result_cid", 3094),
+        ("state", 3102),
+        ("row_index", 3103),
+        ("row_preview_cid", 3104),
+        ("dispatch_entry_cid", 3105),
+        ("attempt_sequence", 3106),
+        ("outcome_receipt_cid", 3107),
+        ("batch_result_cid", 3108),
       ],
       [
         "row_index", "row_preview_cid", "state", "dispatch_entry_cid", "attempt_sequence",
@@ -8734,22 +8764,22 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3056, 3063, 3071, 3079, 3087, 3095]))
-  nodes.push(protocol_array_rule(3096, 0, false, -1))
-  nodes.push(nodes[3045])
+  nodes.push(protocol_one_of_rule([3070, 3077, 3085, 3093, 3101, 3109]))
+  nodes.push(protocol_array_rule(3110, 0, false, -1))
+  nodes.push(nodes[3059])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3047),
-        ("run_identity_cid", 3048),
-        ("effect_preview_cid", 3049),
-        ("effect_member_preview_cid", 3050),
-        ("approval_attestation_cid", 3051),
-        ("stale_error_cid", 3052),
-        ("rows", 3097),
-        ("status", 3098),
-        ("receipt_cid", 3099),
+        ("version", 3061),
+        ("run_identity_cid", 3062),
+        ("effect_preview_cid", 3063),
+        ("effect_member_preview_cid", 3064),
+        ("approval_attestation_cid", 3065),
+        ("stale_error_cid", 3066),
+        ("rows", 3111),
+        ("status", 3112),
+        ("receipt_cid", 3113),
       ],
       [
         "version", "run_identity_cid", "effect_preview_cid", "effect_member_preview_cid",
@@ -8786,16 +8816,16 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("effect_id", 3105),
-        ("effect_member_preview_cid", 3106),
-        ("state", 3107),
-        ("dispatch_sequence", 3108),
-        ("started_at", 3109),
-        ("completed_at", 3110),
-        ("effect_apply_evidence_cid", 3111),
-        ("termination_evidence_cid", 3112),
-        ("replayed", 3113),
-        ("member_receipt_cid", 3114),
+        ("effect_id", 3119),
+        ("effect_member_preview_cid", 3120),
+        ("state", 3121),
+        ("dispatch_sequence", 3122),
+        ("started_at", 3123),
+        ("completed_at", 3124),
+        ("effect_apply_evidence_cid", 3125),
+        ("termination_evidence_cid", 3126),
+        ("replayed", 3127),
+        ("member_receipt_cid", 3128),
       ],
       [
         "effect_id", "effect_member_preview_cid", "state", "replayed", "member_receipt_cid",
@@ -8805,7 +8835,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(3115, 1, false, -1))
+  nodes.push(protocol_array_rule(3129, 1, false, -1))
   nodes.push(
     protocol_string_rule(
       None,
@@ -8817,12 +8847,12 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3101),
-        ("effect_preview_cid", 3102),
-        ("apply_policy", 3103),
-        ("approval_attestation_cid", 3104),
-        ("effects", 3116),
-        ("status", 3117),
+        ("version", 3115),
+        ("effect_preview_cid", 3116),
+        ("apply_policy", 3117),
+        ("approval_attestation_cid", 3118),
+        ("effects", 3130),
+        ("status", 3131),
       ],
       ["version", "effect_preview_cid", "apply_policy", "effects", "status"],
       -1,
@@ -8830,13 +8860,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3101])
+  nodes.push(nodes[3115])
   nodes.push(nodes[2])
-  nodes.push(nodes[3103])
+  nodes.push(nodes[3117])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[3107])
+  nodes.push(nodes[3121])
   nodes.push(nodes[219])
   nodes.push(nodes[80])
   nodes.push(nodes[80])
@@ -8847,16 +8877,16 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("effect_id", 3123),
-        ("effect_member_preview_cid", 3124),
-        ("state", 3125),
-        ("dispatch_sequence", 3126),
-        ("started_at", 3127),
-        ("completed_at", 3128),
-        ("effect_apply_evidence_cid", 3129),
-        ("termination_evidence_cid", 3130),
-        ("replayed", 3131),
-        ("member_receipt_cid", 3132),
+        ("effect_id", 3137),
+        ("effect_member_preview_cid", 3138),
+        ("state", 3139),
+        ("dispatch_sequence", 3140),
+        ("started_at", 3141),
+        ("completed_at", 3142),
+        ("effect_apply_evidence_cid", 3143),
+        ("termination_evidence_cid", 3144),
+        ("replayed", 3145),
+        ("member_receipt_cid", 3146),
       ],
       [
         "effect_id", "effect_member_preview_cid", "state", "replayed", "member_receipt_cid",
@@ -8866,19 +8896,19 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(3133, 1, false, -1))
-  nodes.push(nodes[3117])
+  nodes.push(protocol_array_rule(3147, 1, false, -1))
+  nodes.push(nodes[3131])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3119),
-        ("effect_preview_cid", 3120),
-        ("apply_policy", 3121),
-        ("approval_attestation_cid", 3122),
-        ("effects", 3134),
-        ("status", 3135),
-        ("receipt_cid", 3136),
+        ("version", 3133),
+        ("effect_preview_cid", 3134),
+        ("apply_policy", 3135),
+        ("approval_attestation_cid", 3136),
+        ("effects", 3148),
+        ("status", 3149),
+        ("receipt_cid", 3150),
       ],
       [
         "version", "effect_preview_cid", "apply_policy", "effects", "status", "receipt_cid",
@@ -8890,21 +8920,21 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_object_rule([], ["command_id"], -2, 0, None))
   nodes.push(protocol_object_rule([], ["idempotency_key"], -2, 0, None))
-  nodes.push(AnyOfRule([3138, 3139]))
-  nodes.push(NotRule(3140))
+  nodes.push(AnyOfRule([3152, 3153]))
+  nodes.push(NotRule(3154))
   nodes.push(protocol_object_rule([], ["operation_ref"], -2, 0, None))
-  nodes.push(AllOfRule([3141, 3142]))
-  nodes.push(nodes[3142])
-  nodes.push(NotRule(3144))
+  nodes.push(AllOfRule([3155, 3156]))
+  nodes.push(nodes[3156])
+  nodes.push(NotRule(3158))
   nodes.push(
     protocol_object_rule([], ["command_id", "idempotency_key"], -2, 0, None),
   )
-  nodes.push(AllOfRule([3145, 3146]))
-  nodes.push(protocol_one_of_rule([3143, 3147]))
+  nodes.push(AllOfRule([3159, 3160]))
+  nodes.push(protocol_one_of_rule([3157, 3161]))
   nodes.push(nodes[408])
   nodes.push(
     protocol_object_rule(
-      [("attempt_sequence", 3149)],
+      [("attempt_sequence", 3163)],
       ["attempt_sequence"],
       -2,
       0,
@@ -8920,30 +8950,30 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(NotRule(3151))
-  nodes.push(nodes[3151])
-  nodes.push(ConditionalRule(3150, 3152, 3153))
-  nodes.push(nodes[3004])
-  nodes.push(protocol_object_rule([("state", 3155)], ["state"], -2, 0, None))
+  nodes.push(NotRule(3165))
+  nodes.push(nodes[3165])
+  nodes.push(ConditionalRule(3164, 3166, 3167))
+  nodes.push(nodes[3018])
+  nodes.push(protocol_object_rule([("state", 3169)], ["state"], -2, 0, None))
   nodes.push(
-    protocol_object_rule([("outcome", 3156)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 3170)], ["outcome"], -2, 0, None),
   )
   nodes.push(protocol_object_rule([], ["outcome_receipt_cid"], -2, 0, None))
-  nodes.push(NotRule(3158))
+  nodes.push(NotRule(3172))
   nodes.push(nodes[2509])
-  nodes.push(protocol_object_rule([("terminal", 3160)], [], -2, 0, None))
-  nodes.push(AllOfRule([3159, 3161]))
+  nodes.push(protocol_object_rule([("terminal", 3174)], [], -2, 0, None))
+  nodes.push(AllOfRule([3173, 3175]))
   nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
-      [("terminal", 3163)],
+      [("terminal", 3177)],
       ["outcome_receipt_cid"],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(ConditionalRule(3157, 3162, 3164))
+  nodes.push(ConditionalRule(3171, 3176, 3178))
   nodes.push(
     protocol_string_rule(
       Some("actql-effect-reconciliation-receipt/0.1"),
@@ -8969,14 +8999,14 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("$actql_ref", 3173),
-        ("version", 3174),
-        ("resource_kind", 3175),
-        ("provider_namespace", 3176),
-        ("provider_identity_cid", 3177),
-        ("authority_scope_cid", 3178),
-        ("boundary_cid", 3179),
-        ("identity_cid", 3180),
+        ("$actql_ref", 3187),
+        ("version", 3188),
+        ("resource_kind", 3189),
+        ("provider_namespace", 3190),
+        ("provider_identity_cid", 3191),
+        ("authority_scope_cid", 3192),
+        ("boundary_cid", 3193),
+        ("identity_cid", 3194),
       ],
       [
         "$actql_ref", "version", "resource_kind", "provider_namespace", "provider_identity_cid",
@@ -8991,17 +9021,17 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[2712])
   nodes.push(nodes[270])
-  nodes.push(nodes[2865])
+  nodes.push(nodes[2879])
   nodes.push(
     protocol_object_rule(
-      [("state", 3184), ("result", 3185), ("action", 3186)],
+      [("state", 3198), ("result", 3199), ("action", 3200)],
       ["state", "result"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[2867])
+  nodes.push(nodes[2881])
   nodes.push(nodes[1883])
   nodes.push(nodes[1884])
   nodes.push(nodes[1])
@@ -9013,14 +9043,14 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("$actql_ref", 3189),
-        ("version", 3190),
-        ("resource_kind", 3191),
-        ("provider_namespace", 3192),
-        ("provider_identity_cid", 3193),
-        ("authority_scope_cid", 3194),
-        ("boundary_cid", 3195),
-        ("identity_cid", 3196),
+        ("$actql_ref", 3203),
+        ("version", 3204),
+        ("resource_kind", 3205),
+        ("provider_namespace", 3206),
+        ("provider_identity_cid", 3207),
+        ("authority_scope_cid", 3208),
+        ("boundary_cid", 3209),
+        ("identity_cid", 3210),
       ],
       [
         "$actql_ref", "version", "resource_kind", "provider_namespace", "provider_identity_cid",
@@ -9036,20 +9066,20 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3198), ("version", 3199), ("cid", 3200)],
+      [("id", 3212), ("version", 3213), ("cid", 3214)],
       ["id", "version", "cid"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[2881])
+  nodes.push(nodes[2895])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3203), ("version", 3204), ("cid", 3205)],
+      [("id", 3217), ("version", 3218), ("cid", 3219)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -9062,7 +9092,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3208), ("version", 3209), ("cid", 3210)],
+      [("id", 3222), ("version", 3223), ("cid", 3224)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -9072,13 +9102,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3188),
-        ("operation_ref", 3197),
-        ("poll_contract", 3201),
-        ("cancel_capability", 3202),
-        ("result_schema", 3206),
-        ("expiration", 3207),
-        ("reconciliation_contract", 3211),
+        ("state", 3202),
+        ("operation_ref", 3211),
+        ("poll_contract", 3215),
+        ("cancel_capability", 3216),
+        ("result_schema", 3220),
+        ("expiration", 3221),
+        ("reconciliation_contract", 3225),
       ],
       [
         "state", "operation_ref", "poll_contract", "cancel_capability", "result_schema",
@@ -9095,7 +9125,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("code", 3214), ("message", 3215), ("details", 3216)],
+      [("code", 3228), ("message", 3229), ("details", 3230)],
       ["code", "message"],
       -1,
       0,
@@ -9104,21 +9134,21 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 3213), ("error", 3217)],
+      [("state", 3227), ("error", 3231)],
       ["state", "error"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3221), ("version", 3222), ("cid", 3223)],
+      [("id", 3235), ("version", 3236), ("cid", 3237)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -9137,11 +9167,11 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3219),
-        ("command_id", 3220),
-        ("reconciliation_contract", 3224),
-        ("idempotency_key", 3225),
-        ("reason", 3226),
+        ("state", 3233),
+        ("command_id", 3234),
+        ("reconciliation_contract", 3238),
+        ("idempotency_key", 3239),
+        ("reason", 3240),
       ],
       [
         "state", "command_id", "reconciliation_contract", "idempotency_key", "reason",
@@ -9151,7 +9181,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3187, 3212, 3218, 3227]))
+  nodes.push(protocol_one_of_rule([3201, 3226, 3232, 3241]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -9163,25 +9193,25 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3166),
-        ("effect_id", 3167),
-        ("effect_set_receipt_cid", 3168),
-        ("prior_receipt_cid", 3169),
-        ("attempt_sequence", 3170),
-        ("terminal", 3171),
-        ("previous_reconciliation_receipt_cid", 3172),
-        ("operation_ref", 3181),
-        ("command_id", 3182),
-        ("idempotency_key", 3183),
-        ("outcome", 3228),
-        ("run_identity_cid", 3229),
-        ("effect_preview_cid", 3230),
-        ("effect_member_preview_cid", 3231),
-        ("row_preview_cid", 3232),
-        ("dispatch_entry_cid", 3233),
-        ("prior_ledger_head_cid", 3234),
-        ("outcome_receipt_cid", 3235),
-        ("dispatch_attempt_sequence", 3236),
+        ("version", 3180),
+        ("effect_id", 3181),
+        ("effect_set_receipt_cid", 3182),
+        ("prior_receipt_cid", 3183),
+        ("attempt_sequence", 3184),
+        ("terminal", 3185),
+        ("previous_reconciliation_receipt_cid", 3186),
+        ("operation_ref", 3195),
+        ("command_id", 3196),
+        ("idempotency_key", 3197),
+        ("outcome", 3242),
+        ("run_identity_cid", 3243),
+        ("effect_preview_cid", 3244),
+        ("effect_member_preview_cid", 3245),
+        ("row_preview_cid", 3246),
+        ("dispatch_entry_cid", 3247),
+        ("prior_ledger_head_cid", 3248),
+        ("outcome_receipt_cid", 3249),
+        ("dispatch_attempt_sequence", 3250),
       ],
       [
         "version", "effect_id", "effect_set_receipt_cid", "prior_receipt_cid", "attempt_sequence",
@@ -9193,55 +9223,55 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([3154, 3165, 3237]))
-  nodes.push(AllOfRule([3148, 3238]))
-  nodes.push(nodes[3138])
-  nodes.push(nodes[3139])
-  nodes.push(AnyOfRule([3240, 3241]))
-  nodes.push(NotRule(3242))
-  nodes.push(nodes[3142])
-  nodes.push(AllOfRule([3243, 3244]))
-  nodes.push(nodes[3142])
-  nodes.push(NotRule(3246))
-  nodes.push(nodes[3146])
-  nodes.push(AllOfRule([3247, 3248]))
-  nodes.push(protocol_one_of_rule([3245, 3249]))
+  nodes.push(AllOfRule([3168, 3179, 3251]))
+  nodes.push(AllOfRule([3162, 3252]))
+  nodes.push(nodes[3152])
+  nodes.push(nodes[3153])
+  nodes.push(AnyOfRule([3254, 3255]))
+  nodes.push(NotRule(3256))
+  nodes.push(nodes[3156])
+  nodes.push(AllOfRule([3257, 3258]))
+  nodes.push(nodes[3156])
+  nodes.push(NotRule(3260))
+  nodes.push(nodes[3160])
+  nodes.push(AllOfRule([3261, 3262]))
+  nodes.push(protocol_one_of_rule([3259, 3263]))
   nodes.push(nodes[408])
   nodes.push(
     protocol_object_rule(
-      [("attempt_sequence", 3251)],
+      [("attempt_sequence", 3265)],
       ["attempt_sequence"],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3151])
-  nodes.push(NotRule(3253))
-  nodes.push(nodes[3151])
-  nodes.push(ConditionalRule(3252, 3254, 3255))
-  nodes.push(nodes[3004])
-  nodes.push(protocol_object_rule([("state", 3257)], ["state"], -2, 0, None))
+  nodes.push(nodes[3165])
+  nodes.push(NotRule(3267))
+  nodes.push(nodes[3165])
+  nodes.push(ConditionalRule(3266, 3268, 3269))
+  nodes.push(nodes[3018])
+  nodes.push(protocol_object_rule([("state", 3271)], ["state"], -2, 0, None))
   nodes.push(
-    protocol_object_rule([("outcome", 3258)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 3272)], ["outcome"], -2, 0, None),
   )
-  nodes.push(nodes[3158])
-  nodes.push(NotRule(3260))
+  nodes.push(nodes[3172])
+  nodes.push(NotRule(3274))
   nodes.push(nodes[2509])
-  nodes.push(protocol_object_rule([("terminal", 3262)], [], -2, 0, None))
-  nodes.push(AllOfRule([3261, 3263]))
+  nodes.push(protocol_object_rule([("terminal", 3276)], [], -2, 0, None))
+  nodes.push(AllOfRule([3275, 3277]))
   nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
-      [("terminal", 3265)],
+      [("terminal", 3279)],
       ["outcome_receipt_cid"],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(ConditionalRule(3259, 3264, 3266))
-  nodes.push(nodes[3166])
+  nodes.push(ConditionalRule(3273, 3278, 3280))
+  nodes.push(nodes[3180])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -9259,14 +9289,14 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("$actql_ref", 3275),
-        ("version", 3276),
-        ("resource_kind", 3277),
-        ("provider_namespace", 3278),
-        ("provider_identity_cid", 3279),
-        ("authority_scope_cid", 3280),
-        ("boundary_cid", 3281),
-        ("identity_cid", 3282),
+        ("$actql_ref", 3289),
+        ("version", 3290),
+        ("resource_kind", 3291),
+        ("provider_namespace", 3292),
+        ("provider_identity_cid", 3293),
+        ("authority_scope_cid", 3294),
+        ("boundary_cid", 3295),
+        ("identity_cid", 3296),
       ],
       [
         "$actql_ref", "version", "resource_kind", "provider_namespace", "provider_identity_cid",
@@ -9281,17 +9311,17 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[2712])
   nodes.push(nodes[270])
-  nodes.push(nodes[2865])
+  nodes.push(nodes[2879])
   nodes.push(
     protocol_object_rule(
-      [("state", 3286), ("result", 3287), ("action", 3288)],
+      [("state", 3300), ("result", 3301), ("action", 3302)],
       ["state", "result"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[2867])
+  nodes.push(nodes[2881])
   nodes.push(nodes[1883])
   nodes.push(nodes[1884])
   nodes.push(nodes[1])
@@ -9303,14 +9333,14 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("$actql_ref", 3291),
-        ("version", 3292),
-        ("resource_kind", 3293),
-        ("provider_namespace", 3294),
-        ("provider_identity_cid", 3295),
-        ("authority_scope_cid", 3296),
-        ("boundary_cid", 3297),
-        ("identity_cid", 3298),
+        ("$actql_ref", 3305),
+        ("version", 3306),
+        ("resource_kind", 3307),
+        ("provider_namespace", 3308),
+        ("provider_identity_cid", 3309),
+        ("authority_scope_cid", 3310),
+        ("boundary_cid", 3311),
+        ("identity_cid", 3312),
       ],
       [
         "$actql_ref", "version", "resource_kind", "provider_namespace", "provider_identity_cid",
@@ -9326,20 +9356,20 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3300), ("version", 3301), ("cid", 3302)],
+      [("id", 3314), ("version", 3315), ("cid", 3316)],
       ["id", "version", "cid"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[2881])
+  nodes.push(nodes[2895])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3305), ("version", 3306), ("cid", 3307)],
+      [("id", 3319), ("version", 3320), ("cid", 3321)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -9352,7 +9382,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3310), ("version", 3311), ("cid", 3312)],
+      [("id", 3324), ("version", 3325), ("cid", 3326)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -9362,13 +9392,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3290),
-        ("operation_ref", 3299),
-        ("poll_contract", 3303),
-        ("cancel_capability", 3304),
-        ("result_schema", 3308),
-        ("expiration", 3309),
-        ("reconciliation_contract", 3313),
+        ("state", 3304),
+        ("operation_ref", 3313),
+        ("poll_contract", 3317),
+        ("cancel_capability", 3318),
+        ("result_schema", 3322),
+        ("expiration", 3323),
+        ("reconciliation_contract", 3327),
       ],
       [
         "state", "operation_ref", "poll_contract", "cancel_capability", "result_schema",
@@ -9385,7 +9415,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("code", 3316), ("message", 3317), ("details", 3318)],
+      [("code", 3330), ("message", 3331), ("details", 3332)],
       ["code", "message"],
       -1,
       0,
@@ -9394,21 +9424,21 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 3315), ("error", 3319)],
+      [("state", 3329), ("error", 3333)],
       ["state", "error"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3323), ("version", 3324), ("cid", 3325)],
+      [("id", 3337), ("version", 3338), ("cid", 3339)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -9416,15 +9446,15 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(nodes[3226])
+  nodes.push(nodes[3240])
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3321),
-        ("command_id", 3322),
-        ("reconciliation_contract", 3326),
-        ("idempotency_key", 3327),
-        ("reason", 3328),
+        ("state", 3335),
+        ("command_id", 3336),
+        ("reconciliation_contract", 3340),
+        ("idempotency_key", 3341),
+        ("reason", 3342),
       ],
       [
         "state", "command_id", "reconciliation_contract", "idempotency_key", "reason",
@@ -9434,7 +9464,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3289, 3314, 3320, 3329]))
+  nodes.push(protocol_one_of_rule([3303, 3328, 3334, 3343]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -9447,26 +9477,26 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3268),
-        ("effect_id", 3269),
-        ("effect_set_receipt_cid", 3270),
-        ("prior_receipt_cid", 3271),
-        ("attempt_sequence", 3272),
-        ("terminal", 3273),
-        ("previous_reconciliation_receipt_cid", 3274),
-        ("operation_ref", 3283),
-        ("command_id", 3284),
-        ("idempotency_key", 3285),
-        ("outcome", 3330),
-        ("reconciliation_receipt_cid", 3331),
-        ("run_identity_cid", 3332),
-        ("effect_preview_cid", 3333),
-        ("effect_member_preview_cid", 3334),
-        ("row_preview_cid", 3335),
-        ("dispatch_entry_cid", 3336),
-        ("prior_ledger_head_cid", 3337),
-        ("outcome_receipt_cid", 3338),
-        ("dispatch_attempt_sequence", 3339),
+        ("version", 3282),
+        ("effect_id", 3283),
+        ("effect_set_receipt_cid", 3284),
+        ("prior_receipt_cid", 3285),
+        ("attempt_sequence", 3286),
+        ("terminal", 3287),
+        ("previous_reconciliation_receipt_cid", 3288),
+        ("operation_ref", 3297),
+        ("command_id", 3298),
+        ("idempotency_key", 3299),
+        ("outcome", 3344),
+        ("reconciliation_receipt_cid", 3345),
+        ("run_identity_cid", 3346),
+        ("effect_preview_cid", 3347),
+        ("effect_member_preview_cid", 3348),
+        ("row_preview_cid", 3349),
+        ("dispatch_entry_cid", 3350),
+        ("prior_ledger_head_cid", 3351),
+        ("outcome_receipt_cid", 3352),
+        ("dispatch_attempt_sequence", 3353),
       ],
       [
         "version", "effect_id", "effect_set_receipt_cid", "prior_receipt_cid", "attempt_sequence",
@@ -9479,29 +9509,29 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([3256, 3267, 3340]))
-  nodes.push(AllOfRule([3250, 3341]))
+  nodes.push(AllOfRule([3270, 3281, 3354]))
+  nodes.push(AllOfRule([3264, 3355]))
   nodes.push(
     protocol_string_rule(Some("actql-invocation-bindings/0.1"), [], 0, 0),
   )
   nodes.push(nodes[2])
-  nodes.push(protocol_named_object_rule([], [], 3344, 0, None, 7))
+  nodes.push(protocol_named_object_rule([], [], 3358, 0, None, 7))
   nodes.push(
     protocol_object_rule(
-      [("version", 3343), ("bindings", 3345)],
+      [("version", 3357), ("bindings", 3359)],
       ["version", "bindings"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3343])
+  nodes.push(nodes[3357])
   nodes.push(nodes[2])
-  nodes.push(protocol_named_object_rule([], [], 3348, 0, None, 7))
+  nodes.push(protocol_named_object_rule([], [], 3362, 0, None, 7))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("version", 3347), ("bindings", 3349), ("invocation_bindings_cid", 3350)],
+      [("version", 3361), ("bindings", 3363), ("invocation_bindings_cid", 3364)],
       ["version", "bindings", "invocation_bindings_cid"],
       -1,
       0,
@@ -9514,14 +9544,14 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(protocol_object_rule([], [], 3355, 0, None))
+  nodes.push(protocol_object_rule([], [], 3369, 0, None))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3352),
-        ("parameter_values_cid", 3353),
-        ("invocation_bindings_cid", 3354),
-        ("input_artifacts", 3356),
+        ("version", 3366),
+        ("parameter_values_cid", 3367),
+        ("invocation_bindings_cid", 3368),
+        ("input_artifacts", 3370),
       ],
       [
         "version", "parameter_values_cid", "invocation_bindings_cid", "input_artifacts",
@@ -9531,20 +9561,20 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3352])
+  nodes.push(nodes[3366])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(protocol_object_rule([], [], 3361, 0, None))
+  nodes.push(protocol_object_rule([], [], 3375, 0, None))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3358),
-        ("parameter_values_cid", 3359),
-        ("invocation_bindings_cid", 3360),
-        ("input_artifacts", 3362),
-        ("effective_inputs_cid", 3363),
+        ("version", 3372),
+        ("parameter_values_cid", 3373),
+        ("invocation_bindings_cid", 3374),
+        ("input_artifacts", 3376),
+        ("effective_inputs_cid", 3377),
       ],
       [
         "version", "parameter_values_cid", "invocation_bindings_cid", "input_artifacts",
@@ -9570,16 +9600,16 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3365),
-        ("program_definition_cid", 3366),
-        ("unit_definition_cid", 3367),
-        ("source_ordinal", 3368),
-        ("effective_inputs_cid", 3369),
-        ("input_fragment_cid", 3370),
-        ("logical_relation_cid", 3371),
-        ("relation_schema_cid", 3372),
-        ("ordered_rows_cid", 3373),
-        ("completeness", 3374),
+        ("version", 3379),
+        ("program_definition_cid", 3380),
+        ("unit_definition_cid", 3381),
+        ("source_ordinal", 3382),
+        ("effective_inputs_cid", 3383),
+        ("input_fragment_cid", 3384),
+        ("logical_relation_cid", 3385),
+        ("relation_schema_cid", 3386),
+        ("ordered_rows_cid", 3387),
+        ("completeness", 3388),
       ],
       [
         "version", "program_definition_cid", "unit_definition_cid", "source_ordinal",
@@ -9591,7 +9621,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3365])
+  nodes.push(nodes[3379])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[4])
@@ -9600,22 +9630,22 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3374])
+  nodes.push(nodes[3388])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3376),
-        ("program_definition_cid", 3377),
-        ("unit_definition_cid", 3378),
-        ("source_ordinal", 3379),
-        ("effective_inputs_cid", 3380),
-        ("input_fragment_cid", 3381),
-        ("logical_relation_cid", 3382),
-        ("relation_schema_cid", 3383),
-        ("ordered_rows_cid", 3384),
-        ("completeness", 3385),
-        ("input_artifact_cid", 3386),
+        ("version", 3390),
+        ("program_definition_cid", 3391),
+        ("unit_definition_cid", 3392),
+        ("source_ordinal", 3393),
+        ("effective_inputs_cid", 3394),
+        ("input_fragment_cid", 3395),
+        ("logical_relation_cid", 3396),
+        ("relation_schema_cid", 3397),
+        ("ordered_rows_cid", 3398),
+        ("completeness", 3399),
+        ("input_artifact_cid", 3400),
       ],
       [
         "version", "program_definition_cid", "unit_definition_cid", "source_ordinal",
@@ -9633,41 +9663,41 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("field", 3389), ("value_contract_cid", 3390), ("value_cid", 3391)],
+      [("field", 3403), ("value_contract_cid", 3404), ("value_cid", 3405)],
       ["field", "value_contract_cid", "value_cid"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(3392, 1, false, -1))
+  nodes.push(protocol_array_rule(3406, 1, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("version", 3388), ("components", 3393)],
+      [("version", 3402), ("components", 3407)],
       ["version", "components"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3388])
+  nodes.push(nodes[3402])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("field", 3396), ("value_contract_cid", 3397), ("value_cid", 3398)],
+      [("field", 3410), ("value_contract_cid", 3411), ("value_cid", 3412)],
       ["field", "value_contract_cid", "value_cid"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(3399, 1, false, -1))
+  nodes.push(protocol_array_rule(3413, 1, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("version", 3395), ("components", 3400), ("input_key_cid", 3401)],
+      [("version", 3409), ("components", 3414), ("input_key_cid", 3415)],
       ["version", "components", "input_key_cid"],
       -1,
       0,
@@ -9686,15 +9716,15 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3403),
-        ("program_definition_cid", 3404),
-        ("unit_definition_cid", 3405),
-        ("source_ordinal", 3406),
-        ("effective_inputs_cid", 3407),
-        ("input_artifact_cid", 3408),
-        ("input_key_cid", 3409),
-        ("model_task_cid", 3410),
-        ("fixed_request_cid", 3411),
+        ("version", 3417),
+        ("program_definition_cid", 3418),
+        ("unit_definition_cid", 3419),
+        ("source_ordinal", 3420),
+        ("effective_inputs_cid", 3421),
+        ("input_artifact_cid", 3422),
+        ("input_key_cid", 3423),
+        ("model_task_cid", 3424),
+        ("fixed_request_cid", 3425),
       ],
       [
         "version", "program_definition_cid", "unit_definition_cid", "source_ordinal",
@@ -9706,7 +9736,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3403])
+  nodes.push(nodes[3417])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[4])
@@ -9719,16 +9749,16 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3413),
-        ("program_definition_cid", 3414),
-        ("unit_definition_cid", 3415),
-        ("source_ordinal", 3416),
-        ("effective_inputs_cid", 3417),
-        ("input_artifact_cid", 3418),
-        ("input_key_cid", 3419),
-        ("model_task_cid", 3420),
-        ("fixed_request_cid", 3421),
-        ("model_call_slot_cid", 3422),
+        ("version", 3427),
+        ("program_definition_cid", 3428),
+        ("unit_definition_cid", 3429),
+        ("source_ordinal", 3430),
+        ("effective_inputs_cid", 3431),
+        ("input_artifact_cid", 3432),
+        ("input_key_cid", 3433),
+        ("model_task_cid", 3434),
+        ("fixed_request_cid", 3435),
+        ("model_call_slot_cid", 3436),
       ],
       [
         "version", "program_definition_cid", "unit_definition_cid", "source_ordinal",
@@ -9749,7 +9779,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(3430, 0, true, -1))
+  nodes.push(protocol_array_rule(3444, 0, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
@@ -9763,15 +9793,15 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("account_id", 3433),
-        ("configuration_cid", 3434),
-        ("entry_id", 3435),
-        ("principal", 3436),
-        ("connection", 3437),
-        ("resource", 3438),
-        ("operation", 3439),
-        ("boundary", 3440),
-        ("context_cid", 3441),
+        ("account_id", 3447),
+        ("configuration_cid", 3448),
+        ("entry_id", 3449),
+        ("principal", 3450),
+        ("connection", 3451),
+        ("resource", 3452),
+        ("operation", 3453),
+        ("boundary", 3454),
+        ("context_cid", 3455),
       ],
       [
         "account_id", "configuration_cid", "entry_id", "principal", "connection",
@@ -9785,15 +9815,15 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3424),
-        ("run_definition_cid", 3425),
-        ("task_index", 3426),
-        ("strategy_revision", 3427),
-        ("inference_barrier_cid", 3428),
-        ("input_artifact_cid", 3429),
-        ("model_call_slot_cids", 3431),
-        ("provider_binding_cid", 3432),
-        ("authorization_context", 3442),
+        ("version", 3438),
+        ("run_definition_cid", 3439),
+        ("task_index", 3440),
+        ("strategy_revision", 3441),
+        ("inference_barrier_cid", 3442),
+        ("input_artifact_cid", 3443),
+        ("model_call_slot_cids", 3445),
+        ("provider_binding_cid", 3446),
+        ("authorization_context", 3456),
       ],
       [
         "version", "run_definition_cid", "task_index", "strategy_revision", "inference_barrier_cid",
@@ -9804,14 +9834,14 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3424])
+  nodes.push(nodes[3438])
   nodes.push(nodes[2])
   nodes.push(nodes[4])
   nodes.push(nodes[4])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(3450, 0, true, -1))
+  nodes.push(protocol_array_rule(3464, 0, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
@@ -9820,20 +9850,20 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[897])
-  nodes.push(nodes[3440])
+  nodes.push(nodes[3454])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("account_id", 3453),
-        ("configuration_cid", 3454),
-        ("entry_id", 3455),
-        ("principal", 3456),
-        ("connection", 3457),
-        ("resource", 3458),
-        ("operation", 3459),
-        ("boundary", 3460),
-        ("context_cid", 3461),
+        ("account_id", 3467),
+        ("configuration_cid", 3468),
+        ("entry_id", 3469),
+        ("principal", 3470),
+        ("connection", 3471),
+        ("resource", 3472),
+        ("operation", 3473),
+        ("boundary", 3474),
+        ("context_cid", 3475),
       ],
       [
         "account_id", "configuration_cid", "entry_id", "principal", "connection",
@@ -9848,16 +9878,16 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3444),
-        ("run_definition_cid", 3445),
-        ("task_index", 3446),
-        ("strategy_revision", 3447),
-        ("inference_barrier_cid", 3448),
-        ("input_artifact_cid", 3449),
-        ("model_call_slot_cids", 3451),
-        ("provider_binding_cid", 3452),
-        ("authorization_context", 3462),
-        ("self_cid", 3463),
+        ("version", 3458),
+        ("run_definition_cid", 3459),
+        ("task_index", 3460),
+        ("strategy_revision", 3461),
+        ("inference_barrier_cid", 3462),
+        ("input_artifact_cid", 3463),
+        ("model_call_slot_cids", 3465),
+        ("provider_binding_cid", 3466),
+        ("authorization_context", 3476),
+        ("self_cid", 3477),
       ],
       [
         "version", "run_definition_cid", "task_index", "strategy_revision", "inference_barrier_cid",
@@ -9879,11 +9909,11 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3465),
-        ("provider_id", 3466),
-        ("installation_revision_cid", 3467),
-        ("configuration_contract_cid", 3468),
-        ("configuration_cid", 3469),
+        ("version", 3479),
+        ("provider_id", 3480),
+        ("installation_revision_cid", 3481),
+        ("configuration_contract_cid", 3482),
+        ("configuration_cid", 3483),
       ],
       [
         "version", "provider_id", "installation_revision_cid", "configuration_contract_cid",
@@ -9894,7 +9924,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3465])
+  nodes.push(nodes[3479])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -9903,12 +9933,12 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3471),
-        ("provider_id", 3472),
-        ("installation_revision_cid", 3473),
-        ("configuration_contract_cid", 3474),
-        ("configuration_cid", 3475),
-        ("self_cid", 3476),
+        ("version", 3485),
+        ("provider_id", 3486),
+        ("installation_revision_cid", 3487),
+        ("configuration_contract_cid", 3488),
+        ("configuration_cid", 3489),
+        ("self_cid", 3490),
       ],
       [
         "version", "provider_id", "installation_revision_cid", "configuration_contract_cid",
@@ -9926,7 +9956,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(protocol_string_rule(Some("invocation_scope_approved"), [], 0, 0))
-  nodes.push(protocol_array_rule(3482, 1, false, 1))
+  nodes.push(protocol_array_rule(3496, 1, false, 1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(protocol_string_rule(Some("restricted"), [], 0, 0))
@@ -9938,42 +9968,42 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_object_rule([], ["model_call_slot_cids"], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(3490, 3491, 3492))
-  nodes.push(nodes[3491])
-  nodes.push(nodes[3490])
+  nodes.push(ConditionalRule(3504, 3505, 3506))
+  nodes.push(nodes[3505])
+  nodes.push(nodes[3504])
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(3494, 3495, 3496))
+  nodes.push(ConditionalRule(3508, 3509, 3510))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(3499, 0, true, -1))
+  nodes.push(protocol_array_rule(3513, 0, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("model_invocation_scope_cid", 3498), ("model_call_slot_cids", 3500)],
+      [("model_invocation_scope_cid", 3512), ("model_call_slot_cids", 3514)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(AllOfRule([3493, 3497, 3501]))
+  nodes.push(AllOfRule([3507, 3511, 3515]))
   nodes.push(nodes[81])
-  nodes.push(protocol_array_rule(3503, 0, false, -1))
+  nodes.push(protocol_array_rule(3517, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3478),
-        ("prepared_invocation_cid", 3479),
-        ("execution_context_cid", 3480),
-        ("host_policy_cid", 3481),
-        ("approval_claims", 3483),
-        ("authoring_context_cid", 3484),
-        ("redaction_policy_cid", 3485),
-        ("sensitivity", 3486),
-        ("retention_class", 3487),
-        ("encryption_required", 3488),
-        ("expires_at", 3489),
-        ("displayed_scope", 3502),
-        ("displayed_authoring_context", 3504),
+        ("version", 3492),
+        ("prepared_invocation_cid", 3493),
+        ("execution_context_cid", 3494),
+        ("host_policy_cid", 3495),
+        ("approval_claims", 3497),
+        ("authoring_context_cid", 3498),
+        ("redaction_policy_cid", 3499),
+        ("sensitivity", 3500),
+        ("retention_class", 3501),
+        ("encryption_required", 3502),
+        ("expires_at", 3503),
+        ("displayed_scope", 3516),
+        ("displayed_authoring_context", 3518),
       ],
       [
         "version", "prepared_invocation_cid", "execution_context_cid", "host_policy_cid",
@@ -9986,59 +10016,59 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3478])
+  nodes.push(nodes[3492])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3482])
-  nodes.push(protocol_array_rule(3510, 1, false, 1))
+  nodes.push(nodes[3496])
+  nodes.push(protocol_array_rule(3524, 1, false, 1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3486])
-  nodes.push(nodes[3487])
+  nodes.push(nodes[3500])
+  nodes.push(nodes[3501])
   nodes.push(nodes[466])
   nodes.push(nodes[80])
-  nodes.push(nodes[3490])
-  nodes.push(nodes[3491])
+  nodes.push(nodes[3504])
+  nodes.push(nodes[3505])
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(3518, 3519, 3520))
-  nodes.push(nodes[3491])
-  nodes.push(nodes[3490])
+  nodes.push(ConditionalRule(3532, 3533, 3534))
+  nodes.push(nodes[3505])
+  nodes.push(nodes[3504])
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(3522, 3523, 3524))
+  nodes.push(ConditionalRule(3536, 3537, 3538))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(3527, 0, true, -1))
+  nodes.push(protocol_array_rule(3541, 0, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("model_invocation_scope_cid", 3526), ("model_call_slot_cids", 3528)],
+      [("model_invocation_scope_cid", 3540), ("model_call_slot_cids", 3542)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(AllOfRule([3521, 3525, 3529]))
+  nodes.push(AllOfRule([3535, 3539, 3543]))
   nodes.push(nodes[81])
-  nodes.push(protocol_array_rule(3531, 0, false, -1))
+  nodes.push(protocol_array_rule(3545, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3506),
-        ("prepared_invocation_cid", 3507),
-        ("execution_context_cid", 3508),
-        ("host_policy_cid", 3509),
-        ("approval_claims", 3511),
-        ("authoring_context_cid", 3512),
-        ("redaction_policy_cid", 3513),
-        ("sensitivity", 3514),
-        ("retention_class", 3515),
-        ("encryption_required", 3516),
-        ("expires_at", 3517),
-        ("displayed_scope", 3530),
-        ("displayed_authoring_context", 3532),
-        ("review_projection_cid", 3533),
+        ("version", 3520),
+        ("prepared_invocation_cid", 3521),
+        ("execution_context_cid", 3522),
+        ("host_policy_cid", 3523),
+        ("approval_claims", 3525),
+        ("authoring_context_cid", 3526),
+        ("redaction_policy_cid", 3527),
+        ("sensitivity", 3528),
+        ("retention_class", 3529),
+        ("encryption_required", 3530),
+        ("expires_at", 3531),
+        ("displayed_scope", 3544),
+        ("displayed_authoring_context", 3546),
+        ("review_projection_cid", 3547),
       ],
       [
         "version", "prepared_invocation_cid", "execution_context_cid", "host_policy_cid",
@@ -10053,17 +10083,17 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[2712])
   nodes.push(nodes[270])
-  nodes.push(nodes[2865])
+  nodes.push(nodes[2879])
   nodes.push(
     protocol_object_rule(
-      [("state", 3535), ("result", 3536), ("action", 3537)],
+      [("state", 3549), ("result", 3550), ("action", 3551)],
       ["state", "result"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[2867])
+  nodes.push(nodes[2881])
   nodes.push(nodes[1883])
   nodes.push(nodes[1884])
   nodes.push(nodes[1])
@@ -10075,14 +10105,14 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("$actql_ref", 3540),
-        ("version", 3541),
-        ("resource_kind", 3542),
-        ("provider_namespace", 3543),
-        ("provider_identity_cid", 3544),
-        ("authority_scope_cid", 3545),
-        ("boundary_cid", 3546),
-        ("identity_cid", 3547),
+        ("$actql_ref", 3554),
+        ("version", 3555),
+        ("resource_kind", 3556),
+        ("provider_namespace", 3557),
+        ("provider_identity_cid", 3558),
+        ("authority_scope_cid", 3559),
+        ("boundary_cid", 3560),
+        ("identity_cid", 3561),
       ],
       [
         "$actql_ref", "version", "resource_kind", "provider_namespace", "provider_identity_cid",
@@ -10098,20 +10128,20 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3549), ("version", 3550), ("cid", 3551)],
+      [("id", 3563), ("version", 3564), ("cid", 3565)],
       ["id", "version", "cid"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[2881])
+  nodes.push(nodes[2895])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3554), ("version", 3555), ("cid", 3556)],
+      [("id", 3568), ("version", 3569), ("cid", 3570)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -10124,7 +10154,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3559), ("version", 3560), ("cid", 3561)],
+      [("id", 3573), ("version", 3574), ("cid", 3575)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -10134,13 +10164,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3539),
-        ("operation_ref", 3548),
-        ("poll_contract", 3552),
-        ("cancel_capability", 3553),
-        ("result_schema", 3557),
-        ("expiration", 3558),
-        ("reconciliation_contract", 3562),
+        ("state", 3553),
+        ("operation_ref", 3562),
+        ("poll_contract", 3566),
+        ("cancel_capability", 3567),
+        ("result_schema", 3571),
+        ("expiration", 3572),
+        ("reconciliation_contract", 3576),
       ],
       [
         "state", "operation_ref", "poll_contract", "cancel_capability", "result_schema",
@@ -10157,7 +10187,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("code", 3565), ("message", 3566), ("details", 3567)],
+      [("code", 3579), ("message", 3580), ("details", 3581)],
       ["code", "message"],
       -1,
       0,
@@ -10166,21 +10196,21 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 3564), ("error", 3568)],
+      [("state", 3578), ("error", 3582)],
       ["state", "error"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("id", 3572), ("version", 3573), ("cid", 3574)],
+      [("id", 3586), ("version", 3587), ("cid", 3588)],
       ["id", "version", "cid"],
       -1,
       0,
@@ -10188,15 +10218,15 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(nodes[3226])
+  nodes.push(nodes[3240])
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 3570),
-        ("command_id", 3571),
-        ("reconciliation_contract", 3575),
-        ("idempotency_key", 3576),
-        ("reason", 3577),
+        ("state", 3584),
+        ("command_id", 3585),
+        ("reconciliation_contract", 3589),
+        ("idempotency_key", 3590),
+        ("reason", 3591),
       ],
       [
         "state", "command_id", "reconciliation_contract", "idempotency_key", "reason",
@@ -10206,7 +10236,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3538, 3563, 3569, 3578]))
+  nodes.push(protocol_one_of_rule([3552, 3577, 3583, 3592]))
   nodes.push(protocol_string_rule(None, ["exact", "bound", "estimate"], 0, 0))
   nodes.push(protocol_string_rule(None, [], 8, 0))
   nodes.push(nodes[1])
@@ -10215,11 +10245,11 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 3580),
-        ("value", 3581),
-        ("unit", 3582),
-        ("scope_cid", 3583),
-        ("basis_cid", 3584),
+        ("kind", 3594),
+        ("value", 3595),
+        ("unit", 3596),
+        ("scope_cid", 3597),
+        ("basis_cid", 3598),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -10227,33 +10257,33 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3586), ("unit", 3587), ("reason", 3588)],
+      [("kind", 3600), ("unit", 3601), ("reason", 3602)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3585, 3589]))
+  nodes.push(protocol_one_of_rule([3599, 3603]))
   nodes.push(protocol_string_rule(None, [], 13, 0))
   nodes.push(protocol_string_rule(None, [], 12, 0))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(3593, 1, true, -1))
+  nodes.push(protocol_array_rule(3607, 1, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[80])
   nodes.push(
     protocol_object_rule(
       [
-        ("currency", 3591),
-        ("amount_micro", 3592),
-        ("scope_cids", 3594),
-        ("tariff_revision_cid", 3595),
-        ("valid_until", 3596),
+        ("currency", 3605),
+        ("amount_micro", 3606),
+        ("scope_cids", 3608),
+        ("tariff_revision_cid", 3609),
+        ("valid_until", 3610),
       ],
       [
         "currency", "amount_micro", "scope_cids", "tariff_revision_cid", "valid_until",
@@ -10263,20 +10293,20 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3591])
-  nodes.push(nodes[3592])
+  nodes.push(nodes[3605])
+  nodes.push(nodes[3606])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(3600, 1, true, -1))
+  nodes.push(protocol_array_rule(3614, 1, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[80])
   nodes.push(
     protocol_object_rule(
       [
-        ("currency", 3598),
-        ("amount_micro", 3599),
-        ("scope_cids", 3601),
-        ("tariff_revision_cid", 3602),
-        ("valid_until", 3603),
+        ("currency", 3612),
+        ("amount_micro", 3613),
+        ("scope_cids", 3615),
+        ("tariff_revision_cid", 3616),
+        ("valid_until", 3617),
       ],
       [
         "currency", "amount_micro", "scope_cids", "tariff_revision_cid", "valid_until",
@@ -10288,7 +10318,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("estimated_cost_ceiling", 3604)],
+      [("estimated_cost_ceiling", 3618)],
       ["estimated_cost_ceiling"],
       -1,
       0,
@@ -10304,20 +10334,20 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[122])
-  nodes.push(nodes[3591])
-  nodes.push(nodes[3592])
+  nodes.push(nodes[3605])
+  nodes.push(nodes[3606])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(3610, 1, true, -1))
+  nodes.push(protocol_array_rule(3624, 1, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[80])
   nodes.push(
     protocol_object_rule(
       [
-        ("currency", 3608),
-        ("amount_micro", 3609),
-        ("scope_cids", 3611),
-        ("tariff_revision_cid", 3612),
-        ("valid_until", 3613),
+        ("currency", 3622),
+        ("amount_micro", 3623),
+        ("scope_cids", 3625),
+        ("tariff_revision_cid", 3626),
+        ("valid_until", 3627),
       ],
       [
         "currency", "amount_micro", "scope_cids", "tariff_revision_cid", "valid_until",
@@ -10329,17 +10359,17 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("estimated_cost_ceiling", 3614)],
+      [("estimated_cost_ceiling", 3628)],
       ["estimated_cost_ceiling"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3607, 3615]))
+  nodes.push(protocol_one_of_rule([3621, 3629]))
   nodes.push(
     protocol_object_rule(
-      [("until", 3606), ("guards", 3616)],
+      [("until", 3620), ("guards", 3630)],
       ["until", "guards"],
       -1,
       0,
@@ -10356,7 +10386,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("by", 3622), ("name", 3623)],
+      [("by", 3636), ("name", 3637)],
       ["by", "name"],
       -1,
       0,
@@ -10387,7 +10417,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("by", 3625), ("operator", 3626)],
+      [("by", 3639), ("operator", 3640)],
       ["by", "operator"],
       -1,
       0,
@@ -10398,18 +10428,18 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("by", 3628), ("step_id", 3629)],
+      [("by", 3642), ("step_id", 3643)],
       ["by", "step_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3624, 3627, 3630]))
+  nodes.push(protocol_one_of_rule([3638, 3641, 3644]))
   nodes.push(protocol_string_rule(None, ["before", "after"], 0, 0))
   nodes.push(
     protocol_object_rule(
-      [("kind", 3621), ("select", 3631), ("position", 3632)],
+      [("kind", 3635), ("select", 3645), ("position", 3646)],
       ["kind", "select", "position"],
       -1,
       0,
@@ -10421,30 +10451,30 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(protocol_string_rule(Some("before"), [], 0, 0))
   nodes.push(
     protocol_object_rule(
-      [("kind", 3634), ("gate_kind", 3635), ("position", 3636)],
+      [("kind", 3648), ("gate_kind", 3649), ("position", 3650)],
       ["kind", "gate_kind", "position"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3633, 3637]))
-  nodes.push(protocol_array_rule(3638, 0, false, -1))
+  nodes.push(protocol_one_of_rule([3647, 3651]))
+  nodes.push(protocol_array_rule(3652, 0, false, -1))
   nodes.push(nodes[122])
-  nodes.push(nodes[3591])
-  nodes.push(nodes[3592])
+  nodes.push(nodes[3605])
+  nodes.push(nodes[3606])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(3643, 1, true, -1))
+  nodes.push(protocol_array_rule(3657, 1, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[80])
   nodes.push(
     protocol_object_rule(
       [
-        ("currency", 3641),
-        ("amount_micro", 3642),
-        ("scope_cids", 3644),
-        ("tariff_revision_cid", 3645),
-        ("valid_until", 3646),
+        ("currency", 3655),
+        ("amount_micro", 3656),
+        ("scope_cids", 3658),
+        ("tariff_revision_cid", 3659),
+        ("valid_until", 3660),
       ],
       [
         "currency", "amount_micro", "scope_cids", "tariff_revision_cid", "valid_until",
@@ -10456,21 +10486,21 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("estimated_cost_ceiling", 3647)],
+      [("estimated_cost_ceiling", 3661)],
       ["estimated_cost_ceiling"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3640, 3648]))
+  nodes.push(protocol_one_of_rule([3654, 3662]))
   nodes.push(
     protocol_object_rule(
       [
-        ("stop_on_entry", 3619),
-        ("default_until", 3620),
-        ("breakpoints", 3639),
-        ("guards", 3649),
+        ("stop_on_entry", 3633),
+        ("default_until", 3634),
+        ("breakpoints", 3653),
+        ("guards", 3663),
       ],
       ["stop_on_entry", "default_until", "breakpoints", "guards"],
       -1,
@@ -10481,7 +10511,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(protocol_string_rule(Some("selected_outputs"), [], 0, 0))
   nodes.push(
     protocol_object_rule(
-      [("capture_scope", 3651)],
+      [("capture_scope", 3665)],
       ["capture_scope"],
       -2,
       0,
@@ -10489,71 +10519,71 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(protocol_array_rule(3653, 1, false, -1))
-  nodes.push(protocol_object_rule([("targets", 3654)], [], -2, 0, None))
+  nodes.push(protocol_array_rule(3667, 1, false, -1))
+  nodes.push(protocol_object_rule([("targets", 3668)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(protocol_array_rule(3656, 0, false, 0))
-  nodes.push(protocol_object_rule([("targets", 3657)], [], -2, 0, None))
-  nodes.push(ConditionalRule(3652, 3655, 3658))
+  nodes.push(protocol_array_rule(3670, 0, false, 0))
+  nodes.push(protocol_object_rule([("targets", 3671)], [], -2, 0, None))
+  nodes.push(ConditionalRule(3666, 3669, 3672))
   nodes.push(protocol_string_rule(Some("execution_prefix"), [], 0, 0))
   nodes.push(
     protocol_string_rule(None, ["all_outputs", "selected_outputs"], 0, 0),
   )
-  nodes.push(nodes[3622])
+  nodes.push(nodes[3636])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("by", 3662), ("name", 3663)],
+      [("by", 3676), ("name", 3677)],
       ["by", "name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3625])
-  nodes.push(nodes[3626])
+  nodes.push(nodes[3639])
+  nodes.push(nodes[3640])
   nodes.push(
     protocol_object_rule(
-      [("by", 3665), ("operator", 3666)],
+      [("by", 3679), ("operator", 3680)],
       ["by", "operator"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3628])
+  nodes.push(nodes[3642])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("by", 3668), ("step_id", 3669)],
+      [("by", 3682), ("step_id", 3683)],
       ["by", "step_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3664, 3667, 3670]))
-  nodes.push(protocol_array_rule(3671, 0, false, -1))
+  nodes.push(protocol_one_of_rule([3678, 3681, 3684]))
+  nodes.push(protocol_array_rule(3685, 0, false, -1))
   nodes.push(protocol_integer_rule(Some(1L), Some(2147483647L)))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
   nodes.push(nodes[14])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("max_nodes", 3678), ("max_edges", 3679)],
+      [("max_nodes", 3692), ("max_edges", 3693)],
       ["max_nodes", "max_edges"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3673])
+  nodes.push(nodes[3687])
   nodes.push(
     protocol_object_rule(
-      [("max_components_per_item", 3681)],
+      [("max_components_per_item", 3695)],
       ["max_components_per_item"],
       -1,
       0,
@@ -10563,16 +10593,16 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("strategy", 3660),
-        ("capture_scope", 3661),
-        ("targets", 3672),
-        ("max_items", 3673),
-        ("max_bytes", 3674),
-        ("max_artifacts", 3675),
-        ("ttl_seconds", 3676),
-        ("required", 3677),
-        ("graph", 3680),
-        ("vectors", 3682),
+        ("strategy", 3674),
+        ("capture_scope", 3675),
+        ("targets", 3686),
+        ("max_items", 3687),
+        ("max_bytes", 3688),
+        ("max_artifacts", 3689),
+        ("ttl_seconds", 3690),
+        ("required", 3691),
+        ("graph", 3694),
+        ("vectors", 3696),
       ],
       [
         "strategy", "capture_scope", "targets", "max_items", "max_bytes", "max_artifacts",
@@ -10583,13 +10613,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([3659, 3683]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
+  nodes.push(AllOfRule([3673, 3697]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
   nodes.push(
     protocol_object_rule(
-      [("max_bytes", 3685), ("max_artifacts", 3686), ("ttl_seconds", 3687)],
+      [("max_bytes", 3699), ("max_artifacts", 3700), ("ttl_seconds", 3701)],
       ["max_bytes", "max_artifacts", "ttl_seconds"],
       -1,
       0,
@@ -10598,7 +10628,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("samples", 3684), ("intermediate", 3688)],
+      [("samples", 3698), ("intermediate", 3702)],
       [],
       -1,
       0,
@@ -10609,10 +10639,10 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3618),
-        ("execution", 3650),
-        ("retain", 3689),
-        ("self_cid", 3690),
+        ("version", 3632),
+        ("execution", 3664),
+        ("retain", 3703),
+        ("self_cid", 3704),
       ],
       ["version", "execution", "retain", "self_cid"],
       -1,
@@ -10620,83 +10650,83 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3618])
+  nodes.push(nodes[3632])
   nodes.push(nodes[14])
-  nodes.push(nodes[3620])
-  nodes.push(nodes[3621])
-  nodes.push(nodes[3622])
+  nodes.push(nodes[3634])
+  nodes.push(nodes[3635])
+  nodes.push(nodes[3636])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("by", 3696), ("name", 3697)],
+      [("by", 3710), ("name", 3711)],
       ["by", "name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3625])
-  nodes.push(nodes[3626])
+  nodes.push(nodes[3639])
+  nodes.push(nodes[3640])
   nodes.push(
     protocol_object_rule(
-      [("by", 3699), ("operator", 3700)],
+      [("by", 3713), ("operator", 3714)],
       ["by", "operator"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3628])
+  nodes.push(nodes[3642])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("by", 3702), ("step_id", 3703)],
+      [("by", 3716), ("step_id", 3717)],
       ["by", "step_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3698, 3701, 3704]))
-  nodes.push(nodes[3632])
+  nodes.push(protocol_one_of_rule([3712, 3715, 3718]))
+  nodes.push(nodes[3646])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3695), ("select", 3705), ("position", 3706)],
+      [("kind", 3709), ("select", 3719), ("position", 3720)],
       ["kind", "select", "position"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3634])
-  nodes.push(nodes[3635])
-  nodes.push(nodes[3636])
+  nodes.push(nodes[3648])
+  nodes.push(nodes[3649])
+  nodes.push(nodes[3650])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3708), ("gate_kind", 3709), ("position", 3710)],
+      [("kind", 3722), ("gate_kind", 3723), ("position", 3724)],
       ["kind", "gate_kind", "position"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3707, 3711]))
-  nodes.push(protocol_array_rule(3712, 0, false, -1))
+  nodes.push(protocol_one_of_rule([3721, 3725]))
+  nodes.push(protocol_array_rule(3726, 0, false, -1))
   nodes.push(nodes[122])
-  nodes.push(nodes[3591])
-  nodes.push(nodes[3592])
+  nodes.push(nodes[3605])
+  nodes.push(nodes[3606])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(3717, 1, true, -1))
+  nodes.push(protocol_array_rule(3731, 1, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[80])
   nodes.push(
     protocol_object_rule(
       [
-        ("currency", 3715),
-        ("amount_micro", 3716),
-        ("scope_cids", 3718),
-        ("tariff_revision_cid", 3719),
-        ("valid_until", 3720),
+        ("currency", 3729),
+        ("amount_micro", 3730),
+        ("scope_cids", 3732),
+        ("tariff_revision_cid", 3733),
+        ("valid_until", 3734),
       ],
       [
         "currency", "amount_micro", "scope_cids", "tariff_revision_cid", "valid_until",
@@ -10708,21 +10738,21 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("estimated_cost_ceiling", 3721)],
+      [("estimated_cost_ceiling", 3735)],
       ["estimated_cost_ceiling"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3714, 3722]))
+  nodes.push(protocol_one_of_rule([3728, 3736]))
   nodes.push(
     protocol_object_rule(
       [
-        ("stop_on_entry", 3693),
-        ("default_until", 3694),
-        ("breakpoints", 3713),
-        ("guards", 3723),
+        ("stop_on_entry", 3707),
+        ("default_until", 3708),
+        ("breakpoints", 3727),
+        ("guards", 3737),
       ],
       ["stop_on_entry", "default_until", "breakpoints", "guards"],
       -1,
@@ -10730,10 +10760,10 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3651])
+  nodes.push(nodes[3665])
   nodes.push(
     protocol_object_rule(
-      [("capture_scope", 3725)],
+      [("capture_scope", 3739)],
       ["capture_scope"],
       -2,
       0,
@@ -10741,69 +10771,69 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(protocol_array_rule(3727, 1, false, -1))
-  nodes.push(protocol_object_rule([("targets", 3728)], [], -2, 0, None))
+  nodes.push(protocol_array_rule(3741, 1, false, -1))
+  nodes.push(protocol_object_rule([("targets", 3742)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(protocol_array_rule(3730, 0, false, 0))
-  nodes.push(protocol_object_rule([("targets", 3731)], [], -2, 0, None))
-  nodes.push(ConditionalRule(3726, 3729, 3732))
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3661])
-  nodes.push(nodes[3622])
+  nodes.push(protocol_array_rule(3744, 0, false, 0))
+  nodes.push(protocol_object_rule([("targets", 3745)], [], -2, 0, None))
+  nodes.push(ConditionalRule(3740, 3743, 3746))
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3675])
+  nodes.push(nodes[3636])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("by", 3736), ("name", 3737)],
+      [("by", 3750), ("name", 3751)],
       ["by", "name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3625])
-  nodes.push(nodes[3626])
+  nodes.push(nodes[3639])
+  nodes.push(nodes[3640])
   nodes.push(
     protocol_object_rule(
-      [("by", 3739), ("operator", 3740)],
+      [("by", 3753), ("operator", 3754)],
       ["by", "operator"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3628])
+  nodes.push(nodes[3642])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("by", 3742), ("step_id", 3743)],
+      [("by", 3756), ("step_id", 3757)],
       ["by", "step_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3738, 3741, 3744]))
-  nodes.push(protocol_array_rule(3745, 0, false, -1))
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
+  nodes.push(protocol_one_of_rule([3752, 3755, 3758]))
+  nodes.push(protocol_array_rule(3759, 0, false, -1))
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
   nodes.push(nodes[14])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("max_nodes", 3752), ("max_edges", 3753)],
+      [("max_nodes", 3766), ("max_edges", 3767)],
       ["max_nodes", "max_edges"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3673])
+  nodes.push(nodes[3687])
   nodes.push(
     protocol_object_rule(
-      [("max_components_per_item", 3755)],
+      [("max_components_per_item", 3769)],
       ["max_components_per_item"],
       -1,
       0,
@@ -10813,16 +10843,16 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("strategy", 3734),
-        ("capture_scope", 3735),
-        ("targets", 3746),
-        ("max_items", 3747),
-        ("max_bytes", 3748),
-        ("max_artifacts", 3749),
-        ("ttl_seconds", 3750),
-        ("required", 3751),
-        ("graph", 3754),
-        ("vectors", 3756),
+        ("strategy", 3748),
+        ("capture_scope", 3749),
+        ("targets", 3760),
+        ("max_items", 3761),
+        ("max_bytes", 3762),
+        ("max_artifacts", 3763),
+        ("ttl_seconds", 3764),
+        ("required", 3765),
+        ("graph", 3768),
+        ("vectors", 3770),
       ],
       [
         "strategy", "capture_scope", "targets", "max_items", "max_bytes", "max_artifacts",
@@ -10833,13 +10863,13 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([3733, 3757]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
+  nodes.push(AllOfRule([3747, 3771]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
   nodes.push(
     protocol_object_rule(
-      [("max_bytes", 3759), ("max_artifacts", 3760), ("ttl_seconds", 3761)],
+      [("max_bytes", 3773), ("max_artifacts", 3774), ("ttl_seconds", 3775)],
       ["max_bytes", "max_artifacts", "ttl_seconds"],
       -1,
       0,
@@ -10848,7 +10878,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("samples", 3758), ("intermediate", 3762)],
+      [("samples", 3772), ("intermediate", 3776)],
       [],
       -1,
       0,
@@ -10857,7 +10887,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("version", 3692), ("execution", 3724), ("retain", 3763)],
+      [("version", 3706), ("execution", 3738), ("retain", 3777)],
       ["version", "execution", "retain"],
       -1,
       0,
@@ -10876,12 +10906,12 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3766),
-        ("authorityScopeCid", 3767),
-        ("epochNonce", 3768),
-        ("notBefore", 3769),
-        ("expiresAt", 3770),
-        ("authenticator", 3771),
+        ("version", 3780),
+        ("authorityScopeCid", 3781),
+        ("epochNonce", 3782),
+        ("notBefore", 3783),
+        ("expiresAt", 3784),
+        ("authenticator", 3785),
       ],
       [
         "version", "authorityScopeCid", "epochNonce", "notBefore", "expiresAt", "authenticator",
@@ -10893,10 +10923,10 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[451])
   nodes.push(protocol_string_rule(None, [], 9, 1))
-  nodes.push(AllOfRule([3773, 3774]))
+  nodes.push(AllOfRule([3787, 3788]))
   nodes.push(
     protocol_object_rule(
-      [("epoch", 3772), ("nonce", 3775)],
+      [("epoch", 3786), ("nonce", 3789)],
       ["epoch", "nonce"],
       -1,
       0,
@@ -10907,17 +10937,17 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([3779, 3780]))
+  nodes.push(protocol_one_of_rule([3793, 3794]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3765),
-        ("submission_ref", 3776),
-        ("legacy_request_fingerprint_cid", 3777),
-        ("requested_profile_cid", 3778),
-        ("expected_plan_cid", 3781),
-        ("self_cid", 3782),
+        ("version", 3779),
+        ("submission_ref", 3790),
+        ("legacy_request_fingerprint_cid", 3791),
+        ("requested_profile_cid", 3792),
+        ("expected_plan_cid", 3795),
+        ("self_cid", 3796),
       ],
       [
         "version", "submission_ref", "legacy_request_fingerprint_cid", "requested_profile_cid",
@@ -10928,8 +10958,8 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3765])
-  nodes.push(nodes[3766])
+  nodes.push(nodes[3779])
+  nodes.push(nodes[3780])
   nodes.push(nodes[2])
   nodes.push(nodes[1252])
   nodes.push(nodes[4])
@@ -10938,12 +10968,12 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3785),
-        ("authorityScopeCid", 3786),
-        ("epochNonce", 3787),
-        ("notBefore", 3788),
-        ("expiresAt", 3789),
-        ("authenticator", 3790),
+        ("version", 3799),
+        ("authorityScopeCid", 3800),
+        ("epochNonce", 3801),
+        ("notBefore", 3802),
+        ("expiresAt", 3803),
+        ("authenticator", 3804),
       ],
       [
         "version", "authorityScopeCid", "epochNonce", "notBefore", "expiresAt", "authenticator",
@@ -10954,11 +10984,11 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([3792, 3793]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([3806, 3807]))
   nodes.push(
     protocol_object_rule(
-      [("epoch", 3791), ("nonce", 3794)],
+      [("epoch", 3805), ("nonce", 3808)],
       ["epoch", "nonce"],
       -1,
       0,
@@ -10969,15 +10999,15 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([3798, 3799]))
+  nodes.push(protocol_one_of_rule([3812, 3813]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3784),
-        ("submission_ref", 3795),
-        ("legacy_request_fingerprint_cid", 3796),
-        ("requested_profile_cid", 3797),
-        ("expected_plan_cid", 3800),
+        ("version", 3798),
+        ("submission_ref", 3809),
+        ("legacy_request_fingerprint_cid", 3810),
+        ("requested_profile_cid", 3811),
+        ("expected_plan_cid", 3814),
       ],
       [
         "version", "submission_ref", "legacy_request_fingerprint_cid", "requested_profile_cid",
@@ -10993,53 +11023,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[2])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([3804, 3805]))
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(
-    protocol_object_rule(
-      [
-        ("namespaceId", 3806),
-        ("authorityScopeCid", 3807),
-        ("runDefinitionCid", 3808),
-      ],
-      ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(
-    protocol_object_rule(
-      [
-        ("version", 3802),
-        ("request_intent_cid", 3803),
-        ("run_ref", 3809),
-        ("compiled_plan_cid", 3810),
-        ("logical_map_cid", 3811),
-        ("resolved_profile_cid", 3812),
-        ("policy_revision_cid", 3813),
-        ("self_cid", 3814),
-      ],
-      [
-        "version", "request_intent_cid", "run_ref", "compiled_plan_cid", "logical_map_cid",
-        "resolved_profile_cid", "policy_revision_cid", "self_cid",
-      ],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(nodes[3802])
-  nodes.push(nodes[2])
-  nodes.push(nodes[451])
-  nodes.push(nodes[3774])
+  nodes.push(nodes[3788])
   nodes.push(AllOfRule([3818, 3819]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -11060,6 +11044,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
+  nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
@@ -11070,6 +11055,51 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
         ("logical_map_cid", 3825),
         ("resolved_profile_cid", 3826),
         ("policy_revision_cid", 3827),
+        ("self_cid", 3828),
+      ],
+      [
+        "version", "request_intent_cid", "run_ref", "compiled_plan_cid", "logical_map_cid",
+        "resolved_profile_cid", "policy_revision_cid", "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[3816])
+  nodes.push(nodes[2])
+  nodes.push(nodes[451])
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([3832, 3833]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("namespaceId", 3834),
+        ("authorityScopeCid", 3835),
+        ("runDefinitionCid", 3836),
+      ],
+      ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 3830),
+        ("request_intent_cid", 3831),
+        ("run_ref", 3837),
+        ("compiled_plan_cid", 3838),
+        ("logical_map_cid", 3839),
+        ("resolved_profile_cid", 3840),
+        ("policy_revision_cid", 3841),
       ],
       [
         "version", "request_intent_cid", "run_ref", "compiled_plan_cid", "logical_map_cid",
@@ -11087,46 +11117,46 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3621])
+  nodes.push(nodes[3635])
   nodes.push(nodes[2])
-  nodes.push(nodes[3632])
+  nodes.push(nodes[3646])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3834), ("step_id", 3835), ("position", 3836)],
+      [("kind", 3848), ("step_id", 3849), ("position", 3850)],
       ["kind", "step_id", "position"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3634])
-  nodes.push(nodes[3635])
-  nodes.push(nodes[3636])
+  nodes.push(nodes[3648])
+  nodes.push(nodes[3649])
+  nodes.push(nodes[3650])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3838), ("gate_kind", 3839), ("position", 3840)],
+      [("kind", 3852), ("gate_kind", 3853), ("position", 3854)],
       ["kind", "gate_kind", "position"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3837, 3841]))
-  nodes.push(protocol_array_rule(3842, 0, false, -1))
+  nodes.push(protocol_one_of_rule([3851, 3855]))
+  nodes.push(protocol_array_rule(3856, 0, false, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(3844, 0, true, -1))
+  nodes.push(protocol_array_rule(3858, 0, true, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3829),
-        ("requested_profile_cid", 3830),
-        ("compiled_plan_cid", 3831),
-        ("logical_map_cid", 3832),
-        ("effective_profile_cid", 3833),
-        ("breakpoints", 3843),
-        ("sample_output_port_ids", 3845),
-        ("self_cid", 3846),
+        ("version", 3843),
+        ("requested_profile_cid", 3844),
+        ("compiled_plan_cid", 3845),
+        ("logical_map_cid", 3846),
+        ("effective_profile_cid", 3847),
+        ("breakpoints", 3857),
+        ("sample_output_port_ids", 3859),
+        ("self_cid", 3860),
       ],
       [
         "version", "requested_profile_cid", "compiled_plan_cid", "logical_map_cid",
@@ -11137,49 +11167,49 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3829])
+  nodes.push(nodes[3843])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3621])
+  nodes.push(nodes[3635])
   nodes.push(nodes[2])
-  nodes.push(nodes[3632])
+  nodes.push(nodes[3646])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3853), ("step_id", 3854), ("position", 3855)],
+      [("kind", 3867), ("step_id", 3868), ("position", 3869)],
       ["kind", "step_id", "position"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3634])
-  nodes.push(nodes[3635])
-  nodes.push(nodes[3636])
+  nodes.push(nodes[3648])
+  nodes.push(nodes[3649])
+  nodes.push(nodes[3650])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3857), ("gate_kind", 3858), ("position", 3859)],
+      [("kind", 3871), ("gate_kind", 3872), ("position", 3873)],
       ["kind", "gate_kind", "position"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3856, 3860]))
-  nodes.push(protocol_array_rule(3861, 0, false, -1))
+  nodes.push(protocol_one_of_rule([3870, 3874]))
+  nodes.push(protocol_array_rule(3875, 0, false, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(3863, 0, true, -1))
+  nodes.push(protocol_array_rule(3877, 0, true, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3848),
-        ("requested_profile_cid", 3849),
-        ("compiled_plan_cid", 3850),
-        ("logical_map_cid", 3851),
-        ("effective_profile_cid", 3852),
-        ("breakpoints", 3862),
-        ("sample_output_port_ids", 3864),
+        ("version", 3862),
+        ("requested_profile_cid", 3863),
+        ("compiled_plan_cid", 3864),
+        ("logical_map_cid", 3865),
+        ("effective_profile_cid", 3866),
+        ("breakpoints", 3876),
+        ("sample_output_port_ids", 3878),
       ],
       [
         "version", "requested_profile_cid", "compiled_plan_cid", "logical_map_cid",
@@ -11197,7 +11227,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3869), ("operation_ordinal", 3870)],
+      [("kind", 3883), ("operation_ordinal", 3884)],
       ["kind", "operation_ordinal"],
       -1,
       0,
@@ -11208,23 +11238,23 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3872), ("input_port_ordinal", 3873)],
+      [("kind", 3886), ("input_port_ordinal", 3887)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3871, 3874]))
+  nodes.push(protocol_one_of_rule([3885, 3888]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3866),
-        ("compiled_plan_cid", 3867),
-        ("stage_ordinal", 3868),
-        ("occurrence", 3875),
-        ("self_cid", 3876),
+        ("version", 3880),
+        ("compiled_plan_cid", 3881),
+        ("stage_ordinal", 3882),
+        ("occurrence", 3889),
+        ("self_cid", 3890),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -11234,39 +11264,39 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3881), ("operation_ordinal", 3882)],
+      [("kind", 3895), ("operation_ordinal", 3896)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3884), ("input_port_ordinal", 3885)],
+      [("kind", 3898), ("input_port_ordinal", 3899)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3883, 3886]))
+  nodes.push(protocol_one_of_rule([3897, 3900]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3878),
-        ("compiled_plan_cid", 3879),
-        ("stage_ordinal", 3880),
-        ("occurrence", 3887),
+        ("version", 3892),
+        ("compiled_plan_cid", 3893),
+        ("stage_ordinal", 3894),
+        ("occurrence", 3901),
       ],
       ["version", "compiled_plan_cid", "stage_ordinal", "occurrence"],
       -1,
@@ -11283,12 +11313,12 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3889),
-        ("compiled_plan_cid", 3890),
-        ("step_id", 3891),
-        ("role", 3892),
-        ("port_ordinal", 3893),
-        ("self_cid", 3894),
+        ("version", 3903),
+        ("compiled_plan_cid", 3904),
+        ("step_id", 3905),
+        ("role", 3906),
+        ("port_ordinal", 3907),
+        ("self_cid", 3908),
       ],
       [
         "version", "compiled_plan_cid", "step_id", "role", "port_ordinal", "self_cid",
@@ -11298,19 +11328,19 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3889])
+  nodes.push(nodes[3903])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3896),
-        ("compiled_plan_cid", 3897),
-        ("step_id", 3898),
-        ("role", 3899),
-        ("port_ordinal", 3900),
+        ("version", 3910),
+        ("compiled_plan_cid", 3911),
+        ("step_id", 3912),
+        ("role", 3913),
+        ("port_ordinal", 3914),
       ],
       ["version", "compiled_plan_cid", "step_id", "role", "port_ordinal"],
       -1,
@@ -11323,36 +11353,6 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3902), ("stage_ordinal", 3903), ("input_port_ordinal", 3904)],
-      ["kind", "stage_ordinal", "input_port_ordinal"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(protocol_string_rule(Some("logical_output"), [], 0, 0))
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(
-    protocol_object_rule(
-      [("kind", 3906), ("step_id", 3907), ("output_port_id", 3908)],
-      ["kind", "step_id", "output_port_id"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(protocol_one_of_rule([3905, 3909]))
-  nodes.push(nodes[2])
-  nodes.push(nodes[3892])
-  nodes.push(nodes[190])
-  nodes.push(nodes[268])
-  nodes.push(nodes[2])
-  nodes.push(nodes[3902])
-  nodes.push(nodes[190])
-  nodes.push(nodes[190])
-  nodes.push(
-    protocol_object_rule(
       [("kind", 3916), ("stage_ordinal", 3917), ("input_port_ordinal", 3918)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
@@ -11360,7 +11360,7 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(protocol_string_rule(Some("logical_output"), [], 0, 0))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
@@ -11373,21 +11373,51 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(protocol_one_of_rule([3919, 3923]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[3906])
+  nodes.push(nodes[190])
+  nodes.push(nodes[268])
+  nodes.push(nodes[2])
+  nodes.push(nodes[3916])
+  nodes.push(nodes[190])
+  nodes.push(nodes[190])
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 3930), ("stage_ordinal", 3931), ("input_port_ordinal", 3932)],
+      ["kind", "stage_ordinal", "input_port_ordinal"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[3920])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 3934), ("step_id", 3935), ("output_port_id", 3936)],
+      ["kind", "step_id", "output_port_id"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([3933, 3937]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([3926, 3927]))
+  nodes.push(protocol_one_of_rule([3940, 3941]))
   nodes.push(
     protocol_object_rule(
       [
-        ("port_id", 3911),
-        ("role", 3912),
-        ("port_ordinal", 3913),
-        ("carrier", 3914),
-        ("carrier_contract_cid", 3915),
-        ("source", 3924),
-        ("can_sample", 3925),
-        ("sample_reason", 3928),
+        ("port_id", 3925),
+        ("role", 3926),
+        ("port_ordinal", 3927),
+        ("carrier", 3928),
+        ("carrier_contract_cid", 3929),
+        ("source", 3938),
+        ("can_sample", 3939),
+        ("sample_reason", 3942),
       ],
       [
         "port_id", "role", "port_ordinal", "carrier", "carrier_contract_cid", "source",
@@ -11399,41 +11429,41 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3934), ("operation_ordinal", 3935)],
+      [("kind", 3948), ("operation_ordinal", 3949)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3937), ("input_port_ordinal", 3938)],
+      [("kind", 3951), ("input_port_ordinal", 3952)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3936, 3939]))
+  nodes.push(protocol_one_of_rule([3950, 3953]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3931),
-        ("compiled_plan_cid", 3932),
-        ("stage_ordinal", 3933),
-        ("occurrence", 3940),
-        ("self_cid", 3941),
+        ("version", 3945),
+        ("compiled_plan_cid", 3946),
+        ("stage_ordinal", 3947),
+        ("occurrence", 3954),
+        ("self_cid", 3955),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -11444,55 +11474,55 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(3943, 0, true, -1))
+  nodes.push(protocol_array_rule(3957, 0, true, -1))
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([3945, 3946]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([3959, 3960]))
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[190])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3953), ("stage_ordinal", 3954), ("input_port_ordinal", 3955)],
+      [("kind", 3967), ("stage_ordinal", 3968), ("input_port_ordinal", 3969)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3957), ("step_id", 3958), ("output_port_id", 3959)],
+      [("kind", 3971), ("step_id", 3972), ("output_port_id", 3973)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3956, 3960]))
+  nodes.push(protocol_one_of_rule([3970, 3974]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([3963, 3964]))
+  nodes.push(protocol_one_of_rule([3977, 3978]))
   nodes.push(
     protocol_object_rule(
       [
-        ("port_id", 3948),
-        ("role", 3949),
-        ("port_ordinal", 3950),
-        ("carrier", 3951),
-        ("carrier_contract_cid", 3952),
-        ("source", 3961),
-        ("can_sample", 3962),
-        ("sample_reason", 3965),
+        ("port_id", 3962),
+        ("role", 3963),
+        ("port_ordinal", 3964),
+        ("carrier", 3965),
+        ("carrier_contract_cid", 3966),
+        ("source", 3975),
+        ("can_sample", 3976),
+        ("sample_reason", 3979),
       ],
       [
         "port_id", "role", "port_ordinal", "carrier", "carrier_contract_cid", "source",
@@ -11503,23 +11533,23 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(3966, 1, false, -1))
+  nodes.push(protocol_array_rule(3980, 1, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([3970, 3971]))
+  nodes.push(protocol_one_of_rule([3984, 3985]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 3930),
-        ("key", 3942),
-        ("names", 3944),
-        ("operator", 3947),
-        ("ports", 3967),
-        ("can_stop_before", 3968),
-        ("can_stop_after", 3969),
-        ("stop_reason", 3972),
+        ("step_id", 3944),
+        ("key", 3956),
+        ("names", 3958),
+        ("operator", 3961),
+        ("ports", 3981),
+        ("can_stop_before", 3982),
+        ("can_stop_after", 3983),
+        ("stop_reason", 3986),
       ],
       [
         "step_id", "key", "names", "operator", "ports", "can_stop_before", "can_stop_after",
@@ -11534,41 +11564,45 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 3981), ("operation_ordinal", 3982)],
+      [("kind", 3995), ("operation_ordinal", 3996)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
+}
+
+///|
+fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit {
   nodes.push(
     protocol_object_rule(
-      [("kind", 3984), ("input_port_ordinal", 3985)],
+      [("kind", 3998), ("input_port_ordinal", 3999)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([3983, 3986]))
+  nodes.push(protocol_one_of_rule([3997, 4000]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3978),
-        ("compiled_plan_cid", 3979),
-        ("stage_ordinal", 3980),
-        ("occurrence", 3987),
-        ("self_cid", 3988),
+        ("version", 3992),
+        ("compiled_plan_cid", 3993),
+        ("stage_ordinal", 3994),
+        ("occurrence", 4001),
+        ("self_cid", 4002),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -11579,59 +11613,55 @@ fn generated_protocol_schema_nodes_3(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(3990, 0, true, -1))
+  nodes.push(protocol_array_rule(4004, 0, true, -1))
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([3992, 3993]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([4006, 4007]))
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[190])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
-}
-
-///|
-fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit {
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4000), ("stage_ordinal", 4001), ("input_port_ordinal", 4002)],
+      [("kind", 4014), ("stage_ordinal", 4015), ("input_port_ordinal", 4016)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4004), ("step_id", 4005), ("output_port_id", 4006)],
+      [("kind", 4018), ("step_id", 4019), ("output_port_id", 4020)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4003, 4007]))
+  nodes.push(protocol_one_of_rule([4017, 4021]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([4010, 4011]))
+  nodes.push(protocol_one_of_rule([4024, 4025]))
   nodes.push(
     protocol_object_rule(
       [
-        ("port_id", 3995),
-        ("role", 3996),
-        ("port_ordinal", 3997),
-        ("carrier", 3998),
-        ("carrier_contract_cid", 3999),
-        ("source", 4008),
-        ("can_sample", 4009),
-        ("sample_reason", 4012),
+        ("port_id", 4009),
+        ("role", 4010),
+        ("port_ordinal", 4011),
+        ("carrier", 4012),
+        ("carrier_contract_cid", 4013),
+        ("source", 4022),
+        ("can_sample", 4023),
+        ("sample_reason", 4026),
       ],
       [
         "port_id", "role", "port_ordinal", "carrier", "carrier_contract_cid", "source",
@@ -11642,23 +11672,23 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(4013, 1, false, -1))
+  nodes.push(protocol_array_rule(4027, 1, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([4017, 4018]))
+  nodes.push(protocol_one_of_rule([4031, 4032]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 3977),
-        ("key", 3989),
-        ("names", 3991),
-        ("operator", 3994),
-        ("ports", 4014),
-        ("can_stop_before", 4015),
-        ("can_stop_after", 4016),
-        ("stop_reason", 4019),
+        ("step_id", 3991),
+        ("key", 4003),
+        ("names", 4005),
+        ("operator", 4008),
+        ("ports", 4028),
+        ("can_stop_before", 4029),
+        ("can_stop_after", 4030),
+        ("stop_reason", 4033),
       ],
       [
         "step_id", "key", "names", "operator", "ports", "can_stop_before", "can_stop_after",
@@ -11669,16 +11699,16 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(4020, 0, false, -1))
+  nodes.push(protocol_array_rule(4034, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 3974),
-        ("compiled_plan_cid", 3975),
-        ("program_definition_cid", 3976),
-        ("steps", 4021),
-        ("self_cid", 4022),
+        ("version", 3988),
+        ("compiled_plan_cid", 3989),
+        ("program_definition_cid", 3990),
+        ("steps", 4035),
+        ("self_cid", 4036),
       ],
       [
         "version", "compiled_plan_cid", "program_definition_cid", "steps", "self_cid",
@@ -11688,45 +11718,45 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3974])
+  nodes.push(nodes[3988])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4031), ("operation_ordinal", 4032)],
+      [("kind", 4045), ("operation_ordinal", 4046)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4034), ("input_port_ordinal", 4035)],
+      [("kind", 4048), ("input_port_ordinal", 4049)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4033, 4036]))
+  nodes.push(protocol_one_of_rule([4047, 4050]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4028),
-        ("compiled_plan_cid", 4029),
-        ("stage_ordinal", 4030),
-        ("occurrence", 4037),
-        ("self_cid", 4038),
+        ("version", 4042),
+        ("compiled_plan_cid", 4043),
+        ("stage_ordinal", 4044),
+        ("occurrence", 4051),
+        ("self_cid", 4052),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -11737,55 +11767,55 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4040, 0, true, -1))
+  nodes.push(protocol_array_rule(4054, 0, true, -1))
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([4042, 4043]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([4056, 4057]))
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[190])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4050), ("stage_ordinal", 4051), ("input_port_ordinal", 4052)],
+      [("kind", 4064), ("stage_ordinal", 4065), ("input_port_ordinal", 4066)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4054), ("step_id", 4055), ("output_port_id", 4056)],
+      [("kind", 4068), ("step_id", 4069), ("output_port_id", 4070)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4053, 4057]))
+  nodes.push(protocol_one_of_rule([4067, 4071]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([4060, 4061]))
+  nodes.push(protocol_one_of_rule([4074, 4075]))
   nodes.push(
     protocol_object_rule(
       [
-        ("port_id", 4045),
-        ("role", 4046),
-        ("port_ordinal", 4047),
-        ("carrier", 4048),
-        ("carrier_contract_cid", 4049),
-        ("source", 4058),
-        ("can_sample", 4059),
-        ("sample_reason", 4062),
+        ("port_id", 4059),
+        ("role", 4060),
+        ("port_ordinal", 4061),
+        ("carrier", 4062),
+        ("carrier_contract_cid", 4063),
+        ("source", 4072),
+        ("can_sample", 4073),
+        ("sample_reason", 4076),
       ],
       [
         "port_id", "role", "port_ordinal", "carrier", "carrier_contract_cid", "source",
@@ -11796,23 +11826,23 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(4063, 1, false, -1))
+  nodes.push(protocol_array_rule(4077, 1, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([4067, 4068]))
+  nodes.push(protocol_one_of_rule([4081, 4082]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 4027),
-        ("key", 4039),
-        ("names", 4041),
-        ("operator", 4044),
-        ("ports", 4064),
-        ("can_stop_before", 4065),
-        ("can_stop_after", 4066),
-        ("stop_reason", 4069),
+        ("step_id", 4041),
+        ("key", 4053),
+        ("names", 4055),
+        ("operator", 4058),
+        ("ports", 4078),
+        ("can_stop_before", 4079),
+        ("can_stop_after", 4080),
+        ("stop_reason", 4083),
       ],
       [
         "step_id", "key", "names", "operator", "ports", "can_stop_before", "can_stop_after",
@@ -11823,14 +11853,14 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(4070, 0, false, -1))
+  nodes.push(protocol_array_rule(4084, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4024),
-        ("compiled_plan_cid", 4025),
-        ("program_definition_cid", 4026),
-        ("steps", 4071),
+        ("version", 4038),
+        ("compiled_plan_cid", 4039),
+        ("program_definition_cid", 4040),
+        ("steps", 4085),
       ],
       ["version", "compiled_plan_cid", "program_definition_cid", "steps"],
       -1,
@@ -11842,23 +11872,25 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(4076, 0, true, -1))
+  nodes.push(protocol_array_rule(4090, 0, true, -1))
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(4078, 0, true, -1))
+  nodes.push(protocol_array_rule(4092, 0, true, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
+  nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
       [
-        ("static_plan", 4073),
-        ("inspect", 4074),
-        ("durable_control", 4075),
-        ("sample_capture", 4077),
-        ("full_intermediate_retention", 4079),
-        ("cost_guard", 4080),
-        ("execution_batch", 4081),
-        ("policy_revision_cid", 4082),
+        ("static_plan", 4087),
+        ("inspect", 4088),
+        ("durable_control", 4089),
+        ("sample_capture", 4091),
+        ("full_intermediate_retention", 4093),
+        ("cost_guard", 4094),
+        ("execution_batch", 4095),
+        ("policy_revision_cid", 4096),
+        ("debug_entry", 4097),
       ],
       [
         "static_plan", "inspect", "durable_control", "sample_capture", "full_intermediate_retention",
@@ -11871,45 +11903,45 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_string_rule(Some("actql-plan-view/0.1"), [], 0, 0))
   nodes.push(nodes[2])
-  nodes.push(nodes[3974])
+  nodes.push(nodes[3988])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4093), ("operation_ordinal", 4094)],
+      [("kind", 4108), ("operation_ordinal", 4109)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4096), ("input_port_ordinal", 4097)],
+      [("kind", 4111), ("input_port_ordinal", 4112)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4095, 4098]))
+  nodes.push(protocol_one_of_rule([4110, 4113]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4090),
-        ("compiled_plan_cid", 4091),
-        ("stage_ordinal", 4092),
-        ("occurrence", 4099),
-        ("self_cid", 4100),
+        ("version", 4105),
+        ("compiled_plan_cid", 4106),
+        ("stage_ordinal", 4107),
+        ("occurrence", 4114),
+        ("self_cid", 4115),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -11920,55 +11952,55 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4102, 0, true, -1))
+  nodes.push(protocol_array_rule(4117, 0, true, -1))
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([4104, 4105]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([4119, 4120]))
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[190])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4112), ("stage_ordinal", 4113), ("input_port_ordinal", 4114)],
+      [("kind", 4127), ("stage_ordinal", 4128), ("input_port_ordinal", 4129)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4116), ("step_id", 4117), ("output_port_id", 4118)],
+      [("kind", 4131), ("step_id", 4132), ("output_port_id", 4133)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4115, 4119]))
+  nodes.push(protocol_one_of_rule([4130, 4134]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([4122, 4123]))
+  nodes.push(protocol_one_of_rule([4137, 4138]))
   nodes.push(
     protocol_object_rule(
       [
-        ("port_id", 4107),
-        ("role", 4108),
-        ("port_ordinal", 4109),
-        ("carrier", 4110),
-        ("carrier_contract_cid", 4111),
-        ("source", 4120),
-        ("can_sample", 4121),
-        ("sample_reason", 4124),
+        ("port_id", 4122),
+        ("role", 4123),
+        ("port_ordinal", 4124),
+        ("carrier", 4125),
+        ("carrier_contract_cid", 4126),
+        ("source", 4135),
+        ("can_sample", 4136),
+        ("sample_reason", 4139),
       ],
       [
         "port_id", "role", "port_ordinal", "carrier", "carrier_contract_cid", "source",
@@ -11979,23 +12011,23 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(4125, 1, false, -1))
+  nodes.push(protocol_array_rule(4140, 1, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([4129, 4130]))
+  nodes.push(protocol_one_of_rule([4144, 4145]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 4089),
-        ("key", 4101),
-        ("names", 4103),
-        ("operator", 4106),
-        ("ports", 4126),
-        ("can_stop_before", 4127),
-        ("can_stop_after", 4128),
-        ("stop_reason", 4131),
+        ("step_id", 4104),
+        ("key", 4116),
+        ("names", 4118),
+        ("operator", 4121),
+        ("ports", 4141),
+        ("can_stop_before", 4142),
+        ("can_stop_after", 4143),
+        ("stop_reason", 4146),
       ],
       [
         "step_id", "key", "names", "operator", "ports", "can_stop_before", "can_stop_after",
@@ -12006,16 +12038,16 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(4132, 0, false, -1))
+  nodes.push(protocol_array_rule(4147, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4086),
-        ("compiled_plan_cid", 4087),
-        ("program_definition_cid", 4088),
-        ("steps", 4133),
-        ("self_cid", 4134),
+        ("version", 4101),
+        ("compiled_plan_cid", 4102),
+        ("program_definition_cid", 4103),
+        ("steps", 4148),
+        ("self_cid", 4149),
       ],
       [
         "version", "compiled_plan_cid", "program_definition_cid", "steps", "self_cid",
@@ -12027,19 +12059,19 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_string_rule(Some("static"), [], 0, 0))
   nodes.push(protocol_integer_rule(Some(0L), Some(0L)))
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 4138),
-        ("value", 4139),
-        ("unit", 4140),
-        ("scope_cid", 4141),
-        ("basis_cid", 4142),
+        ("kind", 4153),
+        ("value", 4154),
+        ("unit", 4155),
+        ("scope_cid", 4156),
+        ("basis_cid", 4157),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -12047,41 +12079,43 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4144), ("unit", 4145), ("reason", 4146)],
+      [("kind", 4159), ("unit", 4160), ("reason", 4161)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4143, 4147]))
-  nodes.push(protocol_array_rule(4148, 0, false, -1))
+  nodes.push(protocol_one_of_rule([4158, 4162]))
+  nodes.push(protocol_array_rule(4163, 0, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(4153, 0, true, -1))
+  nodes.push(protocol_array_rule(4168, 0, true, -1))
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(4155, 0, true, -1))
+  nodes.push(protocol_array_rule(4170, 0, true, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
+  nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
       [
-        ("static_plan", 4150),
-        ("inspect", 4151),
-        ("durable_control", 4152),
-        ("sample_capture", 4154),
-        ("full_intermediate_retention", 4156),
-        ("cost_guard", 4157),
-        ("execution_batch", 4158),
-        ("policy_revision_cid", 4159),
+        ("static_plan", 4165),
+        ("inspect", 4166),
+        ("durable_control", 4167),
+        ("sample_capture", 4169),
+        ("full_intermediate_retention", 4171),
+        ("cost_guard", 4172),
+        ("execution_batch", 4173),
+        ("policy_revision_cid", 4174),
+        ("debug_entry", 4175),
       ],
       [
         "static_plan", "inspect", "durable_control", "sample_capture", "full_intermediate_retention",
@@ -12095,13 +12129,13 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4084),
-        ("compiled_plan_cid", 4085),
-        ("logical_map", 4135),
-        ("observation", 4136),
-        ("provider_io", 4137),
-        ("quantities", 4149),
-        ("capabilities", 4160),
+        ("version", 4099),
+        ("compiled_plan_cid", 4100),
+        ("logical_map", 4150),
+        ("observation", 4151),
+        ("provider_io", 4152),
+        ("quantities", 4164),
+        ("capabilities", 4176),
       ],
       [
         "version", "compiled_plan_cid", "logical_map", "observation", "provider_io",
@@ -12119,10 +12153,10 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 4162),
-        ("command_cid", 4163),
-        ("continuation_generation_cid", 4164),
-        ("fence_cid", 4165),
+        ("kind", 4178),
+        ("command_cid", 4179),
+        ("continuation_generation_cid", 4180),
+        ("fence_cid", 4181),
       ],
       ["kind", "command_cid", "continuation_generation_cid", "fence_cid"],
       -1,
@@ -12138,11 +12172,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 4167),
-        ("checkpoint_cid", 4168),
-        ("resolution_cid", 4169),
-        ("continuation_generation_cid", 4170),
-        ("fence_cid", 4171),
+        ("kind", 4183),
+        ("checkpoint_cid", 4184),
+        ("resolution_cid", 4185),
+        ("continuation_generation_cid", 4186),
+        ("fence_cid", 4187),
       ],
       [
         "kind", "checkpoint_cid", "resolution_cid", "continuation_generation_cid",
@@ -12153,11 +12187,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4166, 4172]))
+  nodes.push(protocol_one_of_rule([4182, 4188]))
   nodes.push(protocol_string_rule(Some("paused"), [], 0, 0))
-  nodes.push(protocol_object_rule([("status", 4174)], ["status"], -2, 0, None))
+  nodes.push(protocol_object_rule([("status", 4190)], ["status"], -2, 0, None))
   nodes.push(protocol_object_rule([], ["legacy_state"], -2, 0, None))
-  nodes.push(NotRule(4176))
+  nodes.push(NotRule(4192))
   nodes.push(
     protocol_object_rule(
       [],
@@ -12170,48 +12204,48 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4177, 4178]))
+  nodes.push(AllOfRule([4193, 4194]))
   nodes.push(protocol_object_rule([], ["stop_reason"], -2, 0, None))
   nodes.push(protocol_object_rule([], ["boundary"], -2, 0, None))
   nodes.push(protocol_object_rule([], ["matched_breakpoints"], -2, 0, None))
   nodes.push(protocol_object_rule([], ["paused_at"], -2, 0, None))
   nodes.push(protocol_object_rule([], ["expires_at"], -2, 0, None))
   nodes.push(protocol_object_rule([], ["ttl_policy_cid"], -2, 0, None))
-  nodes.push(AnyOfRule([4180, 4181, 4182, 4183, 4184, 4185]))
-  nodes.push(NotRule(4186))
-  nodes.push(ConditionalRule(4175, 4179, 4187))
+  nodes.push(AnyOfRule([4196, 4197, 4198, 4199, 4200, 4201]))
+  nodes.push(NotRule(4202))
+  nodes.push(ConditionalRule(4191, 4195, 4203))
   nodes.push(protocol_string_rule(Some("resuming"), [], 0, 0))
-  nodes.push(protocol_object_rule([("status", 4189)], ["status"], -2, 0, None))
+  nodes.push(protocol_object_rule([("status", 4205)], ["status"], -2, 0, None))
   nodes.push(protocol_object_rule([], ["resume_origin"], -2, 0, None))
-  nodes.push(nodes[4191])
-  nodes.push(NotRule(4192))
-  nodes.push(ConditionalRule(4190, 4191, 4193))
-  nodes.push(nodes[4162])
-  nodes.push(protocol_object_rule([("kind", 4195)], ["kind"], -2, 0, None))
+  nodes.push(nodes[4207])
+  nodes.push(NotRule(4208))
+  nodes.push(ConditionalRule(4206, 4207, 4209))
+  nodes.push(nodes[4178])
+  nodes.push(protocol_object_rule([("kind", 4211)], ["kind"], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("resume_origin", 4196)],
+      [("resume_origin", 4212)],
       ["resume_origin"],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4176])
-  nodes.push(NotRule(4198))
+  nodes.push(nodes[4192])
+  nodes.push(NotRule(4214))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4197, 4199, 4200))
+  nodes.push(ConditionalRule(4213, 4215, 4216))
   nodes.push(protocol_string_rule(Some("breakpoint"), [], 0, 0))
   nodes.push(
-    protocol_object_rule([("stop_reason", 4202)], ["stop_reason"], -2, 0, None),
+    protocol_object_rule([("stop_reason", 4218)], ["stop_reason"], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(protocol_array_rule(4204, 1, false, -1))
+  nodes.push(protocol_array_rule(4220, 1, false, -1))
   nodes.push(
-    protocol_object_rule([("matched_breakpoints", 4205)], [], -2, 0, None),
+    protocol_object_rule([("matched_breakpoints", 4221)], [], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4203, 4206, 4207))
+  nodes.push(ConditionalRule(4219, 4222, 4223))
   nodes.push(
     protocol_string_rule(Some("actql-controlled-run-state/0.1"), [], 0, 0),
   )
@@ -12230,11 +12264,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[80])
   nodes.push(nodes[190])
   nodes.push(protocol_string_rule(Some("waiting_checkpoint"), [], 0, 0))
-  nodes.push(protocol_object_rule([("status", 4214)], ["status"], -2, 0, None))
+  nodes.push(protocol_object_rule([("status", 4230)], ["status"], -2, 0, None))
   nodes.push(protocol_string_rule(Some("resolve_checkpoint"), [], 0, 0))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4216)],
+      [("kind", 4232)],
       ["kind", "checkpoint_id"],
       -2,
       0,
@@ -12242,20 +12276,20 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(
-    protocol_object_rule([("next_action", 4217)], ["checkpoint"], -2, 0, None),
+    protocol_object_rule([("next_action", 4233)], ["checkpoint"], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4215, 4218, 4219))
+  nodes.push(ConditionalRule(4231, 4234, 4235))
   nodes.push(protocol_string_rule(Some("needs_reconciliation"), [], 0, 0))
-  nodes.push(protocol_object_rule([("status", 4221)], ["status"], -2, 0, None))
+  nodes.push(protocol_object_rule([("status", 4237)], ["status"], -2, 0, None))
   nodes.push(protocol_object_rule([], ["checkpoint"], -2, 0, None))
-  nodes.push(NotRule(4223))
+  nodes.push(NotRule(4239))
   nodes.push(protocol_string_rule(Some("reconcile"), [], 0, 0))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4226, 1, true, -1))
+  nodes.push(protocol_array_rule(4242, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4225), ("effects", 4227)],
+      [("kind", 4241), ("effects", 4243)],
       ["kind", "effects"],
       -1,
       0,
@@ -12266,22 +12300,22 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(protocol_string_rule(Some("execution_unknown"), [], 0, 0))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4229), ("reason", 4230)],
+      [("kind", 4245), ("reason", 4246)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4228, 4231]))
-  nodes.push(protocol_object_rule([("next_action", 4232)], [], -2, 0, None))
-  nodes.push(AllOfRule([4224, 4233]))
+  nodes.push(protocol_one_of_rule([4244, 4247]))
+  nodes.push(protocol_object_rule([("next_action", 4248)], [], -2, 0, None))
+  nodes.push(AllOfRule([4240, 4249]))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4222, 4234, 4235))
+  nodes.push(ConditionalRule(4238, 4250, 4251))
   nodes.push(protocol_string_rule(Some("succeeded"), [], 0, 0))
-  nodes.push(protocol_object_rule([("status", 4237)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(4239))
+  nodes.push(protocol_object_rule([("status", 4253)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(4255))
   nodes.push(
     protocol_string_rule(
       None,
@@ -12290,11 +12324,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       0,
     ),
   )
-  nodes.push(protocol_object_rule([("kind", 4241)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 4242)], [], -2, 0, None))
-  nodes.push(AllOfRule([4240, 4243]))
+  nodes.push(protocol_object_rule([("kind", 4257)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 4258)], [], -2, 0, None))
+  nodes.push(AllOfRule([4256, 4259]))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4238, 4244, 4245))
+  nodes.push(ConditionalRule(4254, 4260, 4261))
   nodes.push(
     protocol_string_rule(
       None,
@@ -12303,21 +12337,21 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       0,
     ),
   )
-  nodes.push(protocol_object_rule([("status", 4247)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(4249))
+  nodes.push(protocol_object_rule([("status", 4263)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(4265))
   nodes.push(protocol_string_rule(Some("none"), [], 0, 0))
-  nodes.push(protocol_object_rule([("kind", 4251)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 4252)], [], -2, 0, None))
-  nodes.push(AllOfRule([4250, 4253]))
+  nodes.push(protocol_object_rule([("kind", 4267)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 4268)], [], -2, 0, None))
+  nodes.push(AllOfRule([4266, 4269]))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4248, 4254, 4255))
+  nodes.push(ConditionalRule(4264, 4270, 4271))
   nodes.push(ObjectCeilingRule(0))
   nodes.push(nodes[270])
-  nodes.push(AllOfRule([4257, 4258]))
+  nodes.push(AllOfRule([4273, 4274]))
   nodes.push(
     protocol_object_rule(
-      [("result_availability", 4259)],
+      [("result_availability", 4275)],
       ["result_availability"],
       -2,
       0,
@@ -12333,10 +12367,10 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       0,
     ),
   )
-  nodes.push(protocol_object_rule([("kind", 4262)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("kind", 4278)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("result_available", 4261), ("next_action", 4263)],
+      [("result_available", 4277), ("next_action", 4279)],
       [],
       -2,
       0,
@@ -12344,7 +12378,7 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4260, 4264, 4265))
+  nodes.push(ConditionalRule(4276, 4280, 4281))
   nodes.push(protocol_string_rule(Some("actql-run-state/0.1"), [], 0, 0))
   nodes.push(nodes[1])
   nodes.push(
@@ -12373,30 +12407,30 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("checkpoint_id", 4271), ("checkpoint_cid", 4272), ("kind", 4273)],
+      [("checkpoint_id", 4287), ("checkpoint_cid", 4288), ("kind", 4289)],
       ["checkpoint_id", "checkpoint_cid", "kind"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4216])
+  nodes.push(nodes[4232])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4275), ("checkpoint_id", 4276)],
+      [("kind", 4291), ("checkpoint_id", 4292)],
       ["kind", "checkpoint_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4225])
+  nodes.push(nodes[4241])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4279, 1, true, -1))
+  nodes.push(protocol_array_rule(4295, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4278), ("effects", 4280)],
+      [("kind", 4294), ("effects", 4296)],
       ["kind", "effects"],
       -1,
       0,
@@ -12405,10 +12439,10 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_string_rule(Some("read_result"), [], 0, 0))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4283, 1, true, -1))
+  nodes.push(protocol_array_rule(4299, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4282), ("results", 4284)],
+      [("kind", 4298), ("results", 4300)],
       ["kind", "results"],
       -1,
       0,
@@ -12417,36 +12451,36 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_string_rule(Some("refresh_availability"), [], 0, 0))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4287, 1, true, -1))
+  nodes.push(protocol_array_rule(4303, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4286), ("results", 4288)],
+      [("kind", 4302), ("results", 4304)],
       ["kind", "results"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 4290)], ["kind"], -1, 0, None))
-  nodes.push(nodes[4229])
-  nodes.push(nodes[4230])
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 4306)], ["kind"], -1, 0, None))
+  nodes.push(nodes[4245])
+  nodes.push(nodes[4246])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4292), ("reason", 4293)],
+      [("kind", 4308), ("reason", 4309)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4277, 4281, 4285, 4289, 4291, 4294]))
+  nodes.push(protocol_one_of_rule([4293, 4297, 4301, 4305, 4307, 4310]))
   nodes.push(nodes[14])
   nodes.push(protocol_string_rule(None, [], 10, 0))
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("code", 4297), ("message", 4298)],
+      [("code", 4313), ("message", 4314)],
       ["code", "message"],
       -1,
       0,
@@ -12454,13 +12488,13 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(protocol_string_rule(Some("available"), [], 0, 0))
-  nodes.push(protocol_object_rule([("state", 4300)], ["state"], -2, 0, None))
+  nodes.push(protocol_object_rule([("state", 4316)], ["state"], -2, 0, None))
   nodes.push(protocol_string_rule(Some("confirmed_present"), [], 0, 0))
-  nodes.push(protocol_object_rule([("reason", 4302)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("reason", 4318)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4301, 4303, 4304))
+  nodes.push(ConditionalRule(4317, 4319, 4320))
   nodes.push(protocol_string_rule(Some("unavailable"), [], 0, 0))
-  nodes.push(protocol_object_rule([("state", 4306)], ["state"], -2, 0, None))
+  nodes.push(protocol_object_rule([("state", 4322)], ["state"], -2, 0, None))
   nodes.push(
     protocol_string_rule(
       None,
@@ -12472,11 +12506,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       0,
     ),
   )
-  nodes.push(protocol_object_rule([("reason", 4308)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("reason", 4324)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4307, 4309, 4310))
-  nodes.push(nodes[3004])
-  nodes.push(protocol_object_rule([("state", 4312)], ["state"], -2, 0, None))
+  nodes.push(ConditionalRule(4323, 4325, 4326))
+  nodes.push(nodes[3018])
+  nodes.push(protocol_object_rule([("state", 4328)], ["state"], -2, 0, None))
   nodes.push(
     protocol_string_rule(
       None,
@@ -12485,9 +12519,9 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       0,
     ),
   )
-  nodes.push(protocol_object_rule([("reason", 4314)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("reason", 4330)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4313, 4315, 4316))
+  nodes.push(ConditionalRule(4329, 4331, 4332))
   nodes.push(
     protocol_string_rule(None, ["available", "unavailable", "unknown"], 0, 0),
   )
@@ -12508,10 +12542,10 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 4318),
-        ("observed_at", 4319),
-        ("reason", 4320),
-        ("cause_cid", 4321),
+        ("state", 4334),
+        ("observed_at", 4335),
+        ("reason", 4336),
+        ("cause_cid", 4337),
       ],
       ["state", "observed_at", "reason"],
       -1,
@@ -12519,17 +12553,17 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4305, 4311, 4317, 4322]))
-  nodes.push(protocol_named_object_rule([], [], 4323, 0, None, 11))
+  nodes.push(AllOfRule([4321, 4327, 4333, 4338]))
+  nodes.push(protocol_named_object_rule([], [], 4339, 0, None, 11))
   nodes.push(nodes[190])
   nodes.push(nodes[14])
   nodes.push(protocol_string_rule(None, ["unknown", "confirmed"], 0, 0))
   nodes.push(
     protocol_object_rule(
       [
-        ("revision", 4325),
-        ("cancellation_requested", 4326),
-        ("physical_stop", 4327),
+        ("revision", 4341),
+        ("cancellation_requested", 4342),
+        ("physical_stop", 4343),
       ],
       ["revision", "cancellation_requested", "physical_stop"],
       -1,
@@ -12541,17 +12575,17 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4267),
-        ("run_id", 4268),
-        ("status", 4269),
-        ("updated_at", 4270),
-        ("checkpoint", 4274),
-        ("next_action", 4295),
-        ("result_available", 4296),
-        ("terminal_error", 4299),
-        ("result_availability", 4324),
-        ("control", 4328),
-        ("revision", 4329),
+        ("version", 4283),
+        ("run_id", 4284),
+        ("status", 4285),
+        ("updated_at", 4286),
+        ("checkpoint", 4290),
+        ("next_action", 4311),
+        ("result_available", 4312),
+        ("terminal_error", 4315),
+        ("result_availability", 4340),
+        ("control", 4344),
+        ("revision", 4345),
       ],
       [
         "version", "run_id", "status", "updated_at", "next_action", "result_available",
@@ -12562,18 +12596,18 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4220, 4236, 4246, 4256, 4266, 4330]))
-  nodes.push(nodes[4162])
+  nodes.push(AllOfRule([4236, 4252, 4262, 4272, 4282, 4346]))
+  nodes.push(nodes[4178])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 4332),
-        ("command_cid", 4333),
-        ("continuation_generation_cid", 4334),
-        ("fence_cid", 4335),
+        ("kind", 4348),
+        ("command_cid", 4349),
+        ("continuation_generation_cid", 4350),
+        ("fence_cid", 4351),
       ],
       ["kind", "command_cid", "continuation_generation_cid", "fence_cid"],
       -1,
@@ -12581,7 +12615,7 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4167])
+  nodes.push(nodes[4183])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -12589,11 +12623,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 4337),
-        ("checkpoint_cid", 4338),
-        ("resolution_cid", 4339),
-        ("continuation_generation_cid", 4340),
-        ("fence_cid", 4341),
+        ("kind", 4353),
+        ("checkpoint_cid", 4354),
+        ("resolution_cid", 4355),
+        ("continuation_generation_cid", 4356),
+        ("fence_cid", 4357),
       ],
       [
         "kind", "checkpoint_cid", "resolution_cid", "continuation_generation_cid",
@@ -12604,7 +12638,7 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4336, 4342]))
+  nodes.push(protocol_one_of_rule([4352, 4358]))
   nodes.push(
     protocol_string_rule(
       None,
@@ -12618,8 +12652,8 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([4345, 4346]))
-  nodes.push(nodes[3632])
+  nodes.push(protocol_one_of_rule([4361, 4362]))
+  nodes.push(nodes[3646])
   nodes.push(
     protocol_string_rule(
       None,
@@ -12632,10 +12666,10 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 4347),
-        ("position", 4348),
-        ("kind", 4349),
-        ("consumed_boundary_cid", 4350),
+        ("step_id", 4363),
+        ("position", 4364),
+        ("kind", 4365),
+        ("consumed_boundary_cid", 4366),
       ],
       ["step_id", "position", "kind", "consumed_boundary_cid"],
       -1,
@@ -12644,7 +12678,7 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(4352, 0, false, -1))
+  nodes.push(protocol_array_rule(4368, 0, false, -1))
   nodes.push(nodes[80])
   nodes.push(nodes[80])
   nodes.push(nodes[2])
@@ -12654,22 +12688,22 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4209),
-        ("run_id", 4210),
-        ("status", 4211),
-        ("updated_at", 4212),
-        ("control_revision", 4213),
-        ("legacy_state", 4331),
-        ("resume_origin", 4343),
-        ("stop_reason", 4344),
-        ("boundary", 4351),
-        ("matched_breakpoints", 4353),
-        ("paused_at", 4354),
-        ("expires_at", 4355),
-        ("ttl_policy_cid", 4356),
-        ("pause_pending", 4357),
-        ("expiry_pending", 4358),
-        ("cleanup_pending", 4359),
+        ("version", 4225),
+        ("run_id", 4226),
+        ("status", 4227),
+        ("updated_at", 4228),
+        ("control_revision", 4229),
+        ("legacy_state", 4347),
+        ("resume_origin", 4359),
+        ("stop_reason", 4360),
+        ("boundary", 4367),
+        ("matched_breakpoints", 4369),
+        ("paused_at", 4370),
+        ("expires_at", 4371),
+        ("ttl_policy_cid", 4372),
+        ("pause_pending", 4373),
+        ("expiry_pending", 4374),
+        ("cleanup_pending", 4375),
       ],
       ["version", "run_id", "status", "updated_at", "control_revision"],
       -1,
@@ -12677,28 +12711,28 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4188, 4194, 4201, 4208, 4360]))
+  nodes.push(AllOfRule([4204, 4210, 4217, 4224, 4376]))
   nodes.push(protocol_string_rule(Some("resume"), [], 0, 0))
   nodes.push(
-    protocol_object_rule([("operation", 4362)], ["operation"], -2, 0, None),
+    protocol_object_rule([("operation", 4378)], ["operation"], -2, 0, None),
   )
   nodes.push(protocol_object_rule([], ["interval"], -2, 0, None))
-  nodes.push(nodes[4364])
-  nodes.push(NotRule(4365))
-  nodes.push(ConditionalRule(4363, 4364, 4366))
+  nodes.push(nodes[4380])
+  nodes.push(NotRule(4381))
+  nodes.push(ConditionalRule(4379, 4380, 4382))
   nodes.push(protocol_string_rule(Some("actql-control-command/0.1"), [], 0, 0))
   nodes.push(protocol_string_rule(None, ["pause", "resume"], 0, 0))
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([4370, 4371]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([4386, 4387]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 4372),
-        ("authorityScopeCid", 4373),
-        ("runDefinitionCid", 4374),
+        ("namespaceId", 4388),
+        ("authorityScopeCid", 4389),
+        ("runDefinitionCid", 4390),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -12708,22 +12742,22 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[190])
   nodes.push(nodes[1])
-  nodes.push(nodes[3606])
+  nodes.push(nodes[3620])
   nodes.push(nodes[122])
-  nodes.push(nodes[3591])
-  nodes.push(nodes[3592])
+  nodes.push(nodes[3605])
+  nodes.push(nodes[3606])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(4382, 1, true, -1))
+  nodes.push(protocol_array_rule(4398, 1, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[80])
   nodes.push(
     protocol_object_rule(
       [
-        ("currency", 4380),
-        ("amount_micro", 4381),
-        ("scope_cids", 4383),
-        ("tariff_revision_cid", 4384),
-        ("valid_until", 4385),
+        ("currency", 4396),
+        ("amount_micro", 4397),
+        ("scope_cids", 4399),
+        ("tariff_revision_cid", 4400),
+        ("valid_until", 4401),
       ],
       [
         "currency", "amount_micro", "scope_cids", "tariff_revision_cid", "valid_until",
@@ -12735,17 +12769,17 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("estimated_cost_ceiling", 4386)],
+      [("estimated_cost_ceiling", 4402)],
       ["estimated_cost_ceiling"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4379, 4387]))
+  nodes.push(protocol_one_of_rule([4395, 4403]))
   nodes.push(
     protocol_object_rule(
-      [("until", 4378), ("guards", 4388)],
+      [("until", 4394), ("guards", 4404)],
       ["until", "guards"],
       -1,
       0,
@@ -12756,13 +12790,13 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4368),
-        ("operation", 4369),
-        ("run_ref", 4375),
-        ("expected_control_revision", 4376),
-        ("operation_id", 4377),
-        ("interval", 4389),
-        ("self_cid", 4390),
+        ("version", 4384),
+        ("operation", 4385),
+        ("run_ref", 4391),
+        ("expected_control_revision", 4392),
+        ("operation_id", 4393),
+        ("interval", 4405),
+        ("self_cid", 4406),
       ],
       [
         "version", "operation", "run_ref", "expected_control_revision", "operation_id",
@@ -12773,28 +12807,28 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4367, 4391]))
-  nodes.push(nodes[4362])
+  nodes.push(AllOfRule([4383, 4407]))
+  nodes.push(nodes[4378])
   nodes.push(
-    protocol_object_rule([("operation", 4393)], ["operation"], -2, 0, None),
+    protocol_object_rule([("operation", 4409)], ["operation"], -2, 0, None),
   )
-  nodes.push(nodes[4364])
-  nodes.push(nodes[4364])
-  nodes.push(NotRule(4396))
-  nodes.push(ConditionalRule(4394, 4395, 4397))
-  nodes.push(nodes[4368])
-  nodes.push(nodes[4369])
+  nodes.push(nodes[4380])
+  nodes.push(nodes[4380])
+  nodes.push(NotRule(4412))
+  nodes.push(ConditionalRule(4410, 4411, 4413))
+  nodes.push(nodes[4384])
+  nodes.push(nodes[4385])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([4401, 4402]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([4417, 4418]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 4403),
-        ("authorityScopeCid", 4404),
-        ("runDefinitionCid", 4405),
+        ("namespaceId", 4419),
+        ("authorityScopeCid", 4420),
+        ("runDefinitionCid", 4421),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -12804,22 +12838,22 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[190])
   nodes.push(nodes[1])
-  nodes.push(nodes[3606])
+  nodes.push(nodes[3620])
   nodes.push(nodes[122])
-  nodes.push(nodes[3591])
-  nodes.push(nodes[3592])
+  nodes.push(nodes[3605])
+  nodes.push(nodes[3606])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(4413, 1, true, -1))
+  nodes.push(protocol_array_rule(4429, 1, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[80])
   nodes.push(
     protocol_object_rule(
       [
-        ("currency", 4411),
-        ("amount_micro", 4412),
-        ("scope_cids", 4414),
-        ("tariff_revision_cid", 4415),
-        ("valid_until", 4416),
+        ("currency", 4427),
+        ("amount_micro", 4428),
+        ("scope_cids", 4430),
+        ("tariff_revision_cid", 4431),
+        ("valid_until", 4432),
       ],
       [
         "currency", "amount_micro", "scope_cids", "tariff_revision_cid", "valid_until",
@@ -12831,17 +12865,17 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("estimated_cost_ceiling", 4417)],
+      [("estimated_cost_ceiling", 4433)],
       ["estimated_cost_ceiling"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4410, 4418]))
+  nodes.push(protocol_one_of_rule([4426, 4434]))
   nodes.push(
     protocol_object_rule(
-      [("until", 4409), ("guards", 4419)],
+      [("until", 4425), ("guards", 4435)],
       ["until", "guards"],
       -1,
       0,
@@ -12851,12 +12885,12 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4399),
-        ("operation", 4400),
-        ("run_ref", 4406),
-        ("expected_control_revision", 4407),
-        ("operation_id", 4408),
-        ("interval", 4420),
+        ("version", 4415),
+        ("operation", 4416),
+        ("run_ref", 4422),
+        ("expected_control_revision", 4423),
+        ("operation_id", 4424),
+        ("interval", 4436),
       ],
       [
         "version", "operation", "run_ref", "expected_control_revision", "operation_id",
@@ -12866,18 +12900,18 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4398, 4421]))
+  nodes.push(AllOfRule([4414, 4437]))
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([4423, 4424]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([4439, 4440]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 4425),
-        ("authorityScopeCid", 4426),
-        ("runDefinitionCid", 4427),
+        ("namespaceId", 4441),
+        ("authorityScopeCid", 4442),
+        ("runDefinitionCid", 4443),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -12891,10 +12925,10 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 4428),
-        ("operation_id", 4429),
-        ("command_cid", 4430),
-        ("accepted_from_revision", 4431),
+        ("run_ref", 4444),
+        ("operation_id", 4445),
+        ("command_cid", 4446),
+        ("accepted_from_revision", 4447),
       ],
       ["run_ref", "operation_id", "command_cid", "accepted_from_revision"],
       -1,
@@ -12906,16 +12940,16 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     protocol_string_rule(Some("actql-control-operation-receipt/0.1"), [], 0, 0),
   )
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([4434, 4435]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([4450, 4451]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 4436),
-        ("authorityScopeCid", 4437),
-        ("runDefinitionCid", 4438),
+        ("namespaceId", 4452),
+        ("authorityScopeCid", 4453),
+        ("runDefinitionCid", 4454),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -12929,10 +12963,10 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 4439),
-        ("operation_id", 4440),
-        ("command_cid", 4441),
-        ("accepted_from_revision", 4442),
+        ("run_ref", 4455),
+        ("operation_id", 4456),
+        ("command_cid", 4457),
+        ("accepted_from_revision", 4458),
       ],
       ["run_ref", "operation_id", "command_cid", "accepted_from_revision"],
       -1,
@@ -12943,64 +12977,64 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_string_rule(None, ["accepted", "completed", "unknown"], 0, 0),
   )
-  nodes.push(nodes[4174])
-  nodes.push(protocol_object_rule([("status", 4445)], ["status"], -2, 0, None))
-  nodes.push(nodes[4176])
-  nodes.push(NotRule(4447))
-  nodes.push(nodes[4178])
-  nodes.push(AllOfRule([4448, 4449]))
-  nodes.push(nodes[4180])
-  nodes.push(nodes[4181])
-  nodes.push(nodes[4182])
-  nodes.push(nodes[4183])
-  nodes.push(nodes[4184])
-  nodes.push(nodes[4185])
-  nodes.push(AnyOfRule([4451, 4452, 4453, 4454, 4455, 4456]))
-  nodes.push(NotRule(4457))
-  nodes.push(ConditionalRule(4446, 4450, 4458))
-  nodes.push(nodes[4189])
-  nodes.push(protocol_object_rule([("status", 4460)], ["status"], -2, 0, None))
-  nodes.push(nodes[4191])
-  nodes.push(nodes[4191])
+  nodes.push(nodes[4190])
+  nodes.push(protocol_object_rule([("status", 4461)], ["status"], -2, 0, None))
+  nodes.push(nodes[4192])
   nodes.push(NotRule(4463))
-  nodes.push(ConditionalRule(4461, 4462, 4464))
-  nodes.push(nodes[4162])
-  nodes.push(protocol_object_rule([("kind", 4466)], ["kind"], -2, 0, None))
+  nodes.push(nodes[4194])
+  nodes.push(AllOfRule([4464, 4465]))
+  nodes.push(nodes[4196])
+  nodes.push(nodes[4197])
+  nodes.push(nodes[4198])
+  nodes.push(nodes[4199])
+  nodes.push(nodes[4200])
+  nodes.push(nodes[4201])
+  nodes.push(AnyOfRule([4467, 4468, 4469, 4470, 4471, 4472]))
+  nodes.push(NotRule(4473))
+  nodes.push(ConditionalRule(4462, 4466, 4474))
+  nodes.push(nodes[4205])
+  nodes.push(protocol_object_rule([("status", 4476)], ["status"], -2, 0, None))
+  nodes.push(nodes[4207])
+  nodes.push(nodes[4207])
+  nodes.push(NotRule(4479))
+  nodes.push(ConditionalRule(4477, 4478, 4480))
+  nodes.push(nodes[4178])
+  nodes.push(protocol_object_rule([("kind", 4482)], ["kind"], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("resume_origin", 4467)],
+      [("resume_origin", 4483)],
       ["resume_origin"],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4176])
-  nodes.push(NotRule(4469))
+  nodes.push(nodes[4192])
+  nodes.push(NotRule(4485))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4468, 4470, 4471))
-  nodes.push(nodes[4202])
+  nodes.push(ConditionalRule(4484, 4486, 4487))
+  nodes.push(nodes[4218])
   nodes.push(
-    protocol_object_rule([("stop_reason", 4473)], ["stop_reason"], -2, 0, None),
+    protocol_object_rule([("stop_reason", 4489)], ["stop_reason"], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(protocol_array_rule(4475, 1, false, -1))
+  nodes.push(protocol_array_rule(4491, 1, false, -1))
   nodes.push(
-    protocol_object_rule([("matched_breakpoints", 4476)], [], -2, 0, None),
+    protocol_object_rule([("matched_breakpoints", 4492)], [], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4474, 4477, 4478))
-  nodes.push(nodes[4209])
+  nodes.push(ConditionalRule(4490, 4493, 4494))
+  nodes.push(nodes[4225])
   nodes.push(nodes[1])
-  nodes.push(nodes[4211])
+  nodes.push(nodes[4227])
   nodes.push(nodes[80])
   nodes.push(nodes[190])
-  nodes.push(nodes[4214])
-  nodes.push(protocol_object_rule([("status", 4485)], ["status"], -2, 0, None))
-  nodes.push(nodes[4216])
+  nodes.push(nodes[4230])
+  nodes.push(protocol_object_rule([("status", 4501)], ["status"], -2, 0, None))
+  nodes.push(nodes[4232])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4487)],
+      [("kind", 4503)],
       ["kind", "checkpoint_id"],
       -2,
       0,
@@ -13008,68 +13042,68 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(
-    protocol_object_rule([("next_action", 4488)], ["checkpoint"], -2, 0, None),
+    protocol_object_rule([("next_action", 4504)], ["checkpoint"], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4486, 4489, 4490))
-  nodes.push(nodes[4221])
-  nodes.push(protocol_object_rule([("status", 4492)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(4494))
-  nodes.push(nodes[4225])
+  nodes.push(ConditionalRule(4502, 4505, 4506))
+  nodes.push(nodes[4237])
+  nodes.push(protocol_object_rule([("status", 4508)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(4510))
+  nodes.push(nodes[4241])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4497, 1, true, -1))
+  nodes.push(protocol_array_rule(4513, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4496), ("effects", 4498)],
+      [("kind", 4512), ("effects", 4514)],
       ["kind", "effects"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4229])
-  nodes.push(nodes[4230])
+  nodes.push(nodes[4245])
+  nodes.push(nodes[4246])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4500), ("reason", 4501)],
+      [("kind", 4516), ("reason", 4517)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4499, 4502]))
-  nodes.push(protocol_object_rule([("next_action", 4503)], [], -2, 0, None))
-  nodes.push(AllOfRule([4495, 4504]))
+  nodes.push(protocol_one_of_rule([4515, 4518]))
+  nodes.push(protocol_object_rule([("next_action", 4519)], [], -2, 0, None))
+  nodes.push(AllOfRule([4511, 4520]))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4493, 4505, 4506))
-  nodes.push(nodes[4237])
-  nodes.push(protocol_object_rule([("status", 4508)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(4510))
-  nodes.push(nodes[4241])
-  nodes.push(protocol_object_rule([("kind", 4512)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 4513)], [], -2, 0, None))
-  nodes.push(AllOfRule([4511, 4514]))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4509, 4515, 4516))
-  nodes.push(nodes[4247])
-  nodes.push(protocol_object_rule([("status", 4518)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(4520))
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 4522)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 4523)], [], -2, 0, None))
-  nodes.push(AllOfRule([4521, 4524]))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4519, 4525, 4526))
+  nodes.push(ConditionalRule(4509, 4521, 4522))
+  nodes.push(nodes[4253])
+  nodes.push(protocol_object_rule([("status", 4524)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(4526))
   nodes.push(nodes[4257])
+  nodes.push(protocol_object_rule([("kind", 4528)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 4529)], [], -2, 0, None))
+  nodes.push(AllOfRule([4527, 4530]))
   nodes.push(nodes[270])
-  nodes.push(AllOfRule([4528, 4529]))
+  nodes.push(ConditionalRule(4525, 4531, 4532))
+  nodes.push(nodes[4263])
+  nodes.push(protocol_object_rule([("status", 4534)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(4536))
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 4538)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 4539)], [], -2, 0, None))
+  nodes.push(AllOfRule([4537, 4540]))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(4535, 4541, 4542))
+  nodes.push(nodes[4273])
+  nodes.push(nodes[270])
+  nodes.push(AllOfRule([4544, 4545]))
   nodes.push(
     protocol_object_rule(
-      [("result_availability", 4530)],
+      [("result_availability", 4546)],
       ["result_availability"],
       -2,
       0,
@@ -13077,11 +13111,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2509])
-  nodes.push(nodes[4262])
-  nodes.push(protocol_object_rule([("kind", 4533)], [], -2, 0, None))
+  nodes.push(nodes[4278])
+  nodes.push(protocol_object_rule([("kind", 4549)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("result_available", 4532), ("next_action", 4534)],
+      [("result_available", 4548), ("next_action", 4550)],
       [],
       -2,
       0,
@@ -13089,125 +13123,125 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4531, 4535, 4536))
-  nodes.push(nodes[4267])
+  nodes.push(ConditionalRule(4547, 4551, 4552))
+  nodes.push(nodes[4283])
   nodes.push(nodes[1])
-  nodes.push(nodes[4269])
+  nodes.push(nodes[4285])
   nodes.push(nodes[80])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[4273])
+  nodes.push(nodes[4289])
   nodes.push(
     protocol_object_rule(
-      [("checkpoint_id", 4542), ("checkpoint_cid", 4543), ("kind", 4544)],
+      [("checkpoint_id", 4558), ("checkpoint_cid", 4559), ("kind", 4560)],
       ["checkpoint_id", "checkpoint_cid", "kind"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4216])
+  nodes.push(nodes[4232])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4546), ("checkpoint_id", 4547)],
+      [("kind", 4562), ("checkpoint_id", 4563)],
       ["kind", "checkpoint_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4225])
+  nodes.push(nodes[4241])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4550, 1, true, -1))
+  nodes.push(protocol_array_rule(4566, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4549), ("effects", 4551)],
+      [("kind", 4565), ("effects", 4567)],
       ["kind", "effects"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4282])
+  nodes.push(nodes[4298])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4554, 1, true, -1))
+  nodes.push(protocol_array_rule(4570, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4553), ("results", 4555)],
+      [("kind", 4569), ("results", 4571)],
       ["kind", "results"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4286])
+  nodes.push(nodes[4302])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4558, 1, true, -1))
+  nodes.push(protocol_array_rule(4574, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4557), ("results", 4559)],
+      [("kind", 4573), ("results", 4575)],
       ["kind", "results"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 4561)], ["kind"], -1, 0, None))
-  nodes.push(nodes[4229])
-  nodes.push(nodes[4230])
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 4577)], ["kind"], -1, 0, None))
+  nodes.push(nodes[4245])
+  nodes.push(nodes[4246])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4563), ("reason", 4564)],
+      [("kind", 4579), ("reason", 4580)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4548, 4552, 4556, 4560, 4562, 4565]))
+  nodes.push(protocol_one_of_rule([4564, 4568, 4572, 4576, 4578, 4581]))
   nodes.push(nodes[14])
-  nodes.push(nodes[4297])
+  nodes.push(nodes[4313])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("code", 4568), ("message", 4569)],
+      [("code", 4584), ("message", 4585)],
       ["code", "message"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4300])
-  nodes.push(protocol_object_rule([("state", 4571)], ["state"], -2, 0, None))
-  nodes.push(nodes[4302])
-  nodes.push(protocol_object_rule([("reason", 4573)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4572, 4574, 4575))
-  nodes.push(nodes[4306])
-  nodes.push(protocol_object_rule([("state", 4577)], ["state"], -2, 0, None))
-  nodes.push(nodes[4308])
-  nodes.push(protocol_object_rule([("reason", 4579)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4578, 4580, 4581))
-  nodes.push(nodes[3004])
-  nodes.push(protocol_object_rule([("state", 4583)], ["state"], -2, 0, None))
-  nodes.push(nodes[4314])
-  nodes.push(protocol_object_rule([("reason", 4585)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4584, 4586, 4587))
+  nodes.push(nodes[4316])
+  nodes.push(protocol_object_rule([("state", 4587)], ["state"], -2, 0, None))
   nodes.push(nodes[4318])
+  nodes.push(protocol_object_rule([("reason", 4589)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(4588, 4590, 4591))
+  nodes.push(nodes[4322])
+  nodes.push(protocol_object_rule([("state", 4593)], ["state"], -2, 0, None))
+  nodes.push(nodes[4324])
+  nodes.push(protocol_object_rule([("reason", 4595)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(4594, 4596, 4597))
+  nodes.push(nodes[3018])
+  nodes.push(protocol_object_rule([("state", 4599)], ["state"], -2, 0, None))
+  nodes.push(nodes[4330])
+  nodes.push(protocol_object_rule([("reason", 4601)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(4600, 4602, 4603))
+  nodes.push(nodes[4334])
   nodes.push(nodes[80])
-  nodes.push(nodes[4320])
+  nodes.push(nodes[4336])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 4589),
-        ("observed_at", 4590),
-        ("reason", 4591),
-        ("cause_cid", 4592),
+        ("state", 4605),
+        ("observed_at", 4606),
+        ("reason", 4607),
+        ("cause_cid", 4608),
       ],
       ["state", "observed_at", "reason"],
       -1,
@@ -13215,17 +13249,17 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4576, 4582, 4588, 4593]))
-  nodes.push(protocol_named_object_rule([], [], 4594, 0, None, 11))
+  nodes.push(AllOfRule([4592, 4598, 4604, 4609]))
+  nodes.push(protocol_named_object_rule([], [], 4610, 0, None, 11))
   nodes.push(nodes[190])
   nodes.push(nodes[14])
-  nodes.push(nodes[4327])
+  nodes.push(nodes[4343])
   nodes.push(
     protocol_object_rule(
       [
-        ("revision", 4596),
-        ("cancellation_requested", 4597),
-        ("physical_stop", 4598),
+        ("revision", 4612),
+        ("cancellation_requested", 4613),
+        ("physical_stop", 4614),
       ],
       ["revision", "cancellation_requested", "physical_stop"],
       -1,
@@ -13237,17 +13271,17 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4538),
-        ("run_id", 4539),
-        ("status", 4540),
-        ("updated_at", 4541),
-        ("checkpoint", 4545),
-        ("next_action", 4566),
-        ("result_available", 4567),
-        ("terminal_error", 4570),
-        ("result_availability", 4595),
-        ("control", 4599),
-        ("revision", 4600),
+        ("version", 4554),
+        ("run_id", 4555),
+        ("status", 4556),
+        ("updated_at", 4557),
+        ("checkpoint", 4561),
+        ("next_action", 4582),
+        ("result_available", 4583),
+        ("terminal_error", 4586),
+        ("result_availability", 4611),
+        ("control", 4615),
+        ("revision", 4616),
       ],
       [
         "version", "run_id", "status", "updated_at", "next_action", "result_available",
@@ -13258,18 +13292,18 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4491, 4507, 4517, 4527, 4537, 4601]))
-  nodes.push(nodes[4162])
+  nodes.push(AllOfRule([4507, 4523, 4533, 4543, 4553, 4617]))
+  nodes.push(nodes[4178])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 4603),
-        ("command_cid", 4604),
-        ("continuation_generation_cid", 4605),
-        ("fence_cid", 4606),
+        ("kind", 4619),
+        ("command_cid", 4620),
+        ("continuation_generation_cid", 4621),
+        ("fence_cid", 4622),
       ],
       ["kind", "command_cid", "continuation_generation_cid", "fence_cid"],
       -1,
@@ -13277,7 +13311,7 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4167])
+  nodes.push(nodes[4183])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -13285,11 +13319,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 4608),
-        ("checkpoint_cid", 4609),
-        ("resolution_cid", 4610),
-        ("continuation_generation_cid", 4611),
-        ("fence_cid", 4612),
+        ("kind", 4624),
+        ("checkpoint_cid", 4625),
+        ("resolution_cid", 4626),
+        ("continuation_generation_cid", 4627),
+        ("fence_cid", 4628),
       ],
       [
         "kind", "checkpoint_cid", "resolution_cid", "continuation_generation_cid",
@@ -13300,21 +13334,21 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4607, 4613]))
-  nodes.push(nodes[4344])
+  nodes.push(protocol_one_of_rule([4623, 4629]))
+  nodes.push(nodes[4360])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([4616, 4617]))
-  nodes.push(nodes[3632])
-  nodes.push(nodes[4349])
+  nodes.push(protocol_one_of_rule([4632, 4633]))
+  nodes.push(nodes[3646])
+  nodes.push(nodes[4365])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 4618),
-        ("position", 4619),
-        ("kind", 4620),
-        ("consumed_boundary_cid", 4621),
+        ("step_id", 4634),
+        ("position", 4635),
+        ("kind", 4636),
+        ("consumed_boundary_cid", 4637),
       ],
       ["step_id", "position", "kind", "consumed_boundary_cid"],
       -1,
@@ -13323,7 +13357,7 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(4623, 0, false, -1))
+  nodes.push(protocol_array_rule(4639, 0, false, -1))
   nodes.push(nodes[80])
   nodes.push(nodes[80])
   nodes.push(nodes[2])
@@ -13333,22 +13367,22 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4480),
-        ("run_id", 4481),
-        ("status", 4482),
-        ("updated_at", 4483),
-        ("control_revision", 4484),
-        ("legacy_state", 4602),
-        ("resume_origin", 4614),
-        ("stop_reason", 4615),
-        ("boundary", 4622),
-        ("matched_breakpoints", 4624),
-        ("paused_at", 4625),
-        ("expires_at", 4626),
-        ("ttl_policy_cid", 4627),
-        ("pause_pending", 4628),
-        ("expiry_pending", 4629),
-        ("cleanup_pending", 4630),
+        ("version", 4496),
+        ("run_id", 4497),
+        ("status", 4498),
+        ("updated_at", 4499),
+        ("control_revision", 4500),
+        ("legacy_state", 4618),
+        ("resume_origin", 4630),
+        ("stop_reason", 4631),
+        ("boundary", 4638),
+        ("matched_breakpoints", 4640),
+        ("paused_at", 4641),
+        ("expires_at", 4642),
+        ("ttl_policy_cid", 4643),
+        ("pause_pending", 4644),
+        ("expiry_pending", 4645),
+        ("cleanup_pending", 4646),
       ],
       ["version", "run_id", "status", "updated_at", "control_revision"],
       -1,
@@ -13356,16 +13390,16 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4459, 4465, 4472, 4479, 4631]))
+  nodes.push(AllOfRule([4475, 4481, 4488, 4495, 4647]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4433),
-        ("operation_ref", 4443),
-        ("outcome", 4444),
-        ("observed_state", 4632),
-        ("self_cid", 4633),
+        ("version", 4449),
+        ("operation_ref", 4459),
+        ("outcome", 4460),
+        ("observed_state", 4648),
+        ("self_cid", 4649),
       ],
       ["version", "operation_ref", "outcome", "observed_state", "self_cid"],
       -1,
@@ -13373,18 +13407,18 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4433])
+  nodes.push(nodes[4449])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([4636, 4637]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([4652, 4653]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 4638),
-        ("authorityScopeCid", 4639),
-        ("runDefinitionCid", 4640),
+        ("namespaceId", 4654),
+        ("authorityScopeCid", 4655),
+        ("runDefinitionCid", 4656),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -13398,10 +13432,10 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 4641),
-        ("operation_id", 4642),
-        ("command_cid", 4643),
-        ("accepted_from_revision", 4644),
+        ("run_ref", 4657),
+        ("operation_id", 4658),
+        ("command_cid", 4659),
+        ("accepted_from_revision", 4660),
       ],
       ["run_ref", "operation_id", "command_cid", "accepted_from_revision"],
       -1,
@@ -13409,65 +13443,65 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4444])
-  nodes.push(nodes[4174])
-  nodes.push(protocol_object_rule([("status", 4647)], ["status"], -2, 0, None))
-  nodes.push(nodes[4176])
-  nodes.push(NotRule(4649))
-  nodes.push(nodes[4178])
-  nodes.push(AllOfRule([4650, 4651]))
-  nodes.push(nodes[4180])
-  nodes.push(nodes[4181])
-  nodes.push(nodes[4182])
-  nodes.push(nodes[4183])
-  nodes.push(nodes[4184])
-  nodes.push(nodes[4185])
-  nodes.push(AnyOfRule([4653, 4654, 4655, 4656, 4657, 4658]))
-  nodes.push(NotRule(4659))
-  nodes.push(ConditionalRule(4648, 4652, 4660))
-  nodes.push(nodes[4189])
-  nodes.push(protocol_object_rule([("status", 4662)], ["status"], -2, 0, None))
-  nodes.push(nodes[4191])
-  nodes.push(nodes[4191])
+  nodes.push(nodes[4460])
+  nodes.push(nodes[4190])
+  nodes.push(protocol_object_rule([("status", 4663)], ["status"], -2, 0, None))
+  nodes.push(nodes[4192])
   nodes.push(NotRule(4665))
-  nodes.push(ConditionalRule(4663, 4664, 4666))
-  nodes.push(nodes[4162])
-  nodes.push(protocol_object_rule([("kind", 4668)], ["kind"], -2, 0, None))
+  nodes.push(nodes[4194])
+  nodes.push(AllOfRule([4666, 4667]))
+  nodes.push(nodes[4196])
+  nodes.push(nodes[4197])
+  nodes.push(nodes[4198])
+  nodes.push(nodes[4199])
+  nodes.push(nodes[4200])
+  nodes.push(nodes[4201])
+  nodes.push(AnyOfRule([4669, 4670, 4671, 4672, 4673, 4674]))
+  nodes.push(NotRule(4675))
+  nodes.push(ConditionalRule(4664, 4668, 4676))
+  nodes.push(nodes[4205])
+  nodes.push(protocol_object_rule([("status", 4678)], ["status"], -2, 0, None))
+  nodes.push(nodes[4207])
+  nodes.push(nodes[4207])
+  nodes.push(NotRule(4681))
+  nodes.push(ConditionalRule(4679, 4680, 4682))
+  nodes.push(nodes[4178])
+  nodes.push(protocol_object_rule([("kind", 4684)], ["kind"], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("resume_origin", 4669)],
+      [("resume_origin", 4685)],
       ["resume_origin"],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4176])
-  nodes.push(NotRule(4671))
+  nodes.push(nodes[4192])
+  nodes.push(NotRule(4687))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4670, 4672, 4673))
-  nodes.push(nodes[4202])
+  nodes.push(ConditionalRule(4686, 4688, 4689))
+  nodes.push(nodes[4218])
   nodes.push(
-    protocol_object_rule([("stop_reason", 4675)], ["stop_reason"], -2, 0, None),
+    protocol_object_rule([("stop_reason", 4691)], ["stop_reason"], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(protocol_array_rule(4677, 1, false, -1))
+  nodes.push(protocol_array_rule(4693, 1, false, -1))
   nodes.push(
-    protocol_object_rule([("matched_breakpoints", 4678)], [], -2, 0, None),
+    protocol_object_rule([("matched_breakpoints", 4694)], [], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4676, 4679, 4680))
-  nodes.push(nodes[4209])
+  nodes.push(ConditionalRule(4692, 4695, 4696))
+  nodes.push(nodes[4225])
   nodes.push(nodes[1])
-  nodes.push(nodes[4211])
+  nodes.push(nodes[4227])
   nodes.push(nodes[80])
   nodes.push(nodes[190])
-  nodes.push(nodes[4214])
-  nodes.push(protocol_object_rule([("status", 4687)], ["status"], -2, 0, None))
-  nodes.push(nodes[4216])
+  nodes.push(nodes[4230])
+  nodes.push(protocol_object_rule([("status", 4703)], ["status"], -2, 0, None))
+  nodes.push(nodes[4232])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4689)],
+      [("kind", 4705)],
       ["kind", "checkpoint_id"],
       -2,
       0,
@@ -13475,68 +13509,68 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(
-    protocol_object_rule([("next_action", 4690)], ["checkpoint"], -2, 0, None),
+    protocol_object_rule([("next_action", 4706)], ["checkpoint"], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4688, 4691, 4692))
-  nodes.push(nodes[4221])
-  nodes.push(protocol_object_rule([("status", 4694)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(4696))
-  nodes.push(nodes[4225])
+  nodes.push(ConditionalRule(4704, 4707, 4708))
+  nodes.push(nodes[4237])
+  nodes.push(protocol_object_rule([("status", 4710)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(4712))
+  nodes.push(nodes[4241])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4699, 1, true, -1))
+  nodes.push(protocol_array_rule(4715, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4698), ("effects", 4700)],
+      [("kind", 4714), ("effects", 4716)],
       ["kind", "effects"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4229])
-  nodes.push(nodes[4230])
+  nodes.push(nodes[4245])
+  nodes.push(nodes[4246])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4702), ("reason", 4703)],
+      [("kind", 4718), ("reason", 4719)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4701, 4704]))
-  nodes.push(protocol_object_rule([("next_action", 4705)], [], -2, 0, None))
-  nodes.push(AllOfRule([4697, 4706]))
+  nodes.push(protocol_one_of_rule([4717, 4720]))
+  nodes.push(protocol_object_rule([("next_action", 4721)], [], -2, 0, None))
+  nodes.push(AllOfRule([4713, 4722]))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4695, 4707, 4708))
-  nodes.push(nodes[4237])
-  nodes.push(protocol_object_rule([("status", 4710)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(4712))
-  nodes.push(nodes[4241])
-  nodes.push(protocol_object_rule([("kind", 4714)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 4715)], [], -2, 0, None))
-  nodes.push(AllOfRule([4713, 4716]))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4711, 4717, 4718))
-  nodes.push(nodes[4247])
-  nodes.push(protocol_object_rule([("status", 4720)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(4722))
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 4724)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 4725)], [], -2, 0, None))
-  nodes.push(AllOfRule([4723, 4726]))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4721, 4727, 4728))
+  nodes.push(ConditionalRule(4711, 4723, 4724))
+  nodes.push(nodes[4253])
+  nodes.push(protocol_object_rule([("status", 4726)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(4728))
   nodes.push(nodes[4257])
+  nodes.push(protocol_object_rule([("kind", 4730)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 4731)], [], -2, 0, None))
+  nodes.push(AllOfRule([4729, 4732]))
   nodes.push(nodes[270])
-  nodes.push(AllOfRule([4730, 4731]))
+  nodes.push(ConditionalRule(4727, 4733, 4734))
+  nodes.push(nodes[4263])
+  nodes.push(protocol_object_rule([("status", 4736)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(4738))
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 4740)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 4741)], [], -2, 0, None))
+  nodes.push(AllOfRule([4739, 4742]))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(4737, 4743, 4744))
+  nodes.push(nodes[4273])
+  nodes.push(nodes[270])
+  nodes.push(AllOfRule([4746, 4747]))
   nodes.push(
     protocol_object_rule(
-      [("result_availability", 4732)],
+      [("result_availability", 4748)],
       ["result_availability"],
       -2,
       0,
@@ -13544,11 +13578,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2509])
-  nodes.push(nodes[4262])
-  nodes.push(protocol_object_rule([("kind", 4735)], [], -2, 0, None))
+  nodes.push(nodes[4278])
+  nodes.push(protocol_object_rule([("kind", 4751)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("result_available", 4734), ("next_action", 4736)],
+      [("result_available", 4750), ("next_action", 4752)],
       [],
       -2,
       0,
@@ -13556,125 +13590,125 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4733, 4737, 4738))
-  nodes.push(nodes[4267])
+  nodes.push(ConditionalRule(4749, 4753, 4754))
+  nodes.push(nodes[4283])
   nodes.push(nodes[1])
-  nodes.push(nodes[4269])
+  nodes.push(nodes[4285])
   nodes.push(nodes[80])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[4273])
+  nodes.push(nodes[4289])
   nodes.push(
     protocol_object_rule(
-      [("checkpoint_id", 4744), ("checkpoint_cid", 4745), ("kind", 4746)],
+      [("checkpoint_id", 4760), ("checkpoint_cid", 4761), ("kind", 4762)],
       ["checkpoint_id", "checkpoint_cid", "kind"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4216])
+  nodes.push(nodes[4232])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4748), ("checkpoint_id", 4749)],
+      [("kind", 4764), ("checkpoint_id", 4765)],
       ["kind", "checkpoint_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4225])
+  nodes.push(nodes[4241])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4752, 1, true, -1))
+  nodes.push(protocol_array_rule(4768, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4751), ("effects", 4753)],
+      [("kind", 4767), ("effects", 4769)],
       ["kind", "effects"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4282])
+  nodes.push(nodes[4298])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4756, 1, true, -1))
+  nodes.push(protocol_array_rule(4772, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4755), ("results", 4757)],
+      [("kind", 4771), ("results", 4773)],
       ["kind", "results"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4286])
+  nodes.push(nodes[4302])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4760, 1, true, -1))
+  nodes.push(protocol_array_rule(4776, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4759), ("results", 4761)],
+      [("kind", 4775), ("results", 4777)],
       ["kind", "results"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 4763)], ["kind"], -1, 0, None))
-  nodes.push(nodes[4229])
-  nodes.push(nodes[4230])
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 4779)], ["kind"], -1, 0, None))
+  nodes.push(nodes[4245])
+  nodes.push(nodes[4246])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4765), ("reason", 4766)],
+      [("kind", 4781), ("reason", 4782)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4750, 4754, 4758, 4762, 4764, 4767]))
+  nodes.push(protocol_one_of_rule([4766, 4770, 4774, 4778, 4780, 4783]))
   nodes.push(nodes[14])
-  nodes.push(nodes[4297])
+  nodes.push(nodes[4313])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("code", 4770), ("message", 4771)],
+      [("code", 4786), ("message", 4787)],
       ["code", "message"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4300])
-  nodes.push(protocol_object_rule([("state", 4773)], ["state"], -2, 0, None))
-  nodes.push(nodes[4302])
-  nodes.push(protocol_object_rule([("reason", 4775)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4774, 4776, 4777))
-  nodes.push(nodes[4306])
-  nodes.push(protocol_object_rule([("state", 4779)], ["state"], -2, 0, None))
-  nodes.push(nodes[4308])
-  nodes.push(protocol_object_rule([("reason", 4781)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4780, 4782, 4783))
-  nodes.push(nodes[3004])
-  nodes.push(protocol_object_rule([("state", 4785)], ["state"], -2, 0, None))
-  nodes.push(nodes[4314])
-  nodes.push(protocol_object_rule([("reason", 4787)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4786, 4788, 4789))
+  nodes.push(nodes[4316])
+  nodes.push(protocol_object_rule([("state", 4789)], ["state"], -2, 0, None))
   nodes.push(nodes[4318])
+  nodes.push(protocol_object_rule([("reason", 4791)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(4790, 4792, 4793))
+  nodes.push(nodes[4322])
+  nodes.push(protocol_object_rule([("state", 4795)], ["state"], -2, 0, None))
+  nodes.push(nodes[4324])
+  nodes.push(protocol_object_rule([("reason", 4797)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(4796, 4798, 4799))
+  nodes.push(nodes[3018])
+  nodes.push(protocol_object_rule([("state", 4801)], ["state"], -2, 0, None))
+  nodes.push(nodes[4330])
+  nodes.push(protocol_object_rule([("reason", 4803)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(4802, 4804, 4805))
+  nodes.push(nodes[4334])
   nodes.push(nodes[80])
-  nodes.push(nodes[4320])
+  nodes.push(nodes[4336])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 4791),
-        ("observed_at", 4792),
-        ("reason", 4793),
-        ("cause_cid", 4794),
+        ("state", 4807),
+        ("observed_at", 4808),
+        ("reason", 4809),
+        ("cause_cid", 4810),
       ],
       ["state", "observed_at", "reason"],
       -1,
@@ -13682,17 +13716,17 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4778, 4784, 4790, 4795]))
-  nodes.push(protocol_named_object_rule([], [], 4796, 0, None, 11))
+  nodes.push(AllOfRule([4794, 4800, 4806, 4811]))
+  nodes.push(protocol_named_object_rule([], [], 4812, 0, None, 11))
   nodes.push(nodes[190])
   nodes.push(nodes[14])
-  nodes.push(nodes[4327])
+  nodes.push(nodes[4343])
   nodes.push(
     protocol_object_rule(
       [
-        ("revision", 4798),
-        ("cancellation_requested", 4799),
-        ("physical_stop", 4800),
+        ("revision", 4814),
+        ("cancellation_requested", 4815),
+        ("physical_stop", 4816),
       ],
       ["revision", "cancellation_requested", "physical_stop"],
       -1,
@@ -13704,17 +13738,17 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4740),
-        ("run_id", 4741),
-        ("status", 4742),
-        ("updated_at", 4743),
-        ("checkpoint", 4747),
-        ("next_action", 4768),
-        ("result_available", 4769),
-        ("terminal_error", 4772),
-        ("result_availability", 4797),
-        ("control", 4801),
-        ("revision", 4802),
+        ("version", 4756),
+        ("run_id", 4757),
+        ("status", 4758),
+        ("updated_at", 4759),
+        ("checkpoint", 4763),
+        ("next_action", 4784),
+        ("result_available", 4785),
+        ("terminal_error", 4788),
+        ("result_availability", 4813),
+        ("control", 4817),
+        ("revision", 4818),
       ],
       [
         "version", "run_id", "status", "updated_at", "next_action", "result_available",
@@ -13725,18 +13759,18 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4693, 4709, 4719, 4729, 4739, 4803]))
-  nodes.push(nodes[4162])
+  nodes.push(AllOfRule([4709, 4725, 4735, 4745, 4755, 4819]))
+  nodes.push(nodes[4178])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 4805),
-        ("command_cid", 4806),
-        ("continuation_generation_cid", 4807),
-        ("fence_cid", 4808),
+        ("kind", 4821),
+        ("command_cid", 4822),
+        ("continuation_generation_cid", 4823),
+        ("fence_cid", 4824),
       ],
       ["kind", "command_cid", "continuation_generation_cid", "fence_cid"],
       -1,
@@ -13744,7 +13778,7 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4167])
+  nodes.push(nodes[4183])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -13752,11 +13786,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 4810),
-        ("checkpoint_cid", 4811),
-        ("resolution_cid", 4812),
-        ("continuation_generation_cid", 4813),
-        ("fence_cid", 4814),
+        ("kind", 4826),
+        ("checkpoint_cid", 4827),
+        ("resolution_cid", 4828),
+        ("continuation_generation_cid", 4829),
+        ("fence_cid", 4830),
       ],
       [
         "kind", "checkpoint_cid", "resolution_cid", "continuation_generation_cid",
@@ -13767,21 +13801,21 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4809, 4815]))
-  nodes.push(nodes[4344])
+  nodes.push(protocol_one_of_rule([4825, 4831]))
+  nodes.push(nodes[4360])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([4818, 4819]))
-  nodes.push(nodes[3632])
-  nodes.push(nodes[4349])
+  nodes.push(protocol_one_of_rule([4834, 4835]))
+  nodes.push(nodes[3646])
+  nodes.push(nodes[4365])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 4820),
-        ("position", 4821),
-        ("kind", 4822),
-        ("consumed_boundary_cid", 4823),
+        ("step_id", 4836),
+        ("position", 4837),
+        ("kind", 4838),
+        ("consumed_boundary_cid", 4839),
       ],
       ["step_id", "position", "kind", "consumed_boundary_cid"],
       -1,
@@ -13790,7 +13824,7 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(4825, 0, false, -1))
+  nodes.push(protocol_array_rule(4841, 0, false, -1))
   nodes.push(nodes[80])
   nodes.push(nodes[80])
   nodes.push(nodes[2])
@@ -13800,22 +13834,22 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4682),
-        ("run_id", 4683),
-        ("status", 4684),
-        ("updated_at", 4685),
-        ("control_revision", 4686),
-        ("legacy_state", 4804),
-        ("resume_origin", 4816),
-        ("stop_reason", 4817),
-        ("boundary", 4824),
-        ("matched_breakpoints", 4826),
-        ("paused_at", 4827),
-        ("expires_at", 4828),
-        ("ttl_policy_cid", 4829),
-        ("pause_pending", 4830),
-        ("expiry_pending", 4831),
-        ("cleanup_pending", 4832),
+        ("version", 4698),
+        ("run_id", 4699),
+        ("status", 4700),
+        ("updated_at", 4701),
+        ("control_revision", 4702),
+        ("legacy_state", 4820),
+        ("resume_origin", 4832),
+        ("stop_reason", 4833),
+        ("boundary", 4840),
+        ("matched_breakpoints", 4842),
+        ("paused_at", 4843),
+        ("expires_at", 4844),
+        ("ttl_policy_cid", 4845),
+        ("pause_pending", 4846),
+        ("expiry_pending", 4847),
+        ("cleanup_pending", 4848),
       ],
       ["version", "run_id", "status", "updated_at", "control_revision"],
       -1,
@@ -13823,14 +13857,14 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4661, 4667, 4674, 4681, 4833]))
+  nodes.push(AllOfRule([4677, 4683, 4690, 4697, 4849]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4635),
-        ("operation_ref", 4645),
-        ("outcome", 4646),
-        ("observed_state", 4834),
+        ("version", 4651),
+        ("operation_ref", 4661),
+        ("outcome", 4662),
+        ("observed_state", 4850),
       ],
       ["version", "operation_ref", "outcome", "observed_state"],
       -1,
@@ -13840,24 +13874,24 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_string_rule(Some("suppressed_by_checkpoint"), [], 0, 0))
   nodes.push(
-    protocol_object_rule([("outcome", 4836)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 4852)], ["outcome"], -2, 0, None),
   )
   nodes.push(protocol_object_rule([], ["checkpoint_cid"], -2, 0, None))
-  nodes.push(nodes[4838])
-  nodes.push(NotRule(4839))
-  nodes.push(ConditionalRule(4837, 4838, 4840))
+  nodes.push(nodes[4854])
+  nodes.push(NotRule(4855))
+  nodes.push(ConditionalRule(4853, 4854, 4856))
   nodes.push(nodes[2])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([4843, 4844]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([4859, 4860]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 4845),
-        ("authorityScopeCid", 4846),
-        ("runDefinitionCid", 4847),
+        ("namespaceId", 4861),
+        ("authorityScopeCid", 4862),
+        ("runDefinitionCid", 4863),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -13871,10 +13905,10 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 4848),
-        ("operation_id", 4849),
-        ("command_cid", 4850),
-        ("accepted_from_revision", 4851),
+        ("run_ref", 4864),
+        ("operation_id", 4865),
+        ("command_cid", 4866),
+        ("accepted_from_revision", 4867),
       ],
       ["run_ref", "operation_id", "command_cid", "accepted_from_revision"],
       -1,
@@ -13897,11 +13931,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("original_receipt_cid", 4842),
-        ("operation_ref", 4852),
-        ("outcome", 4853),
-        ("checkpoint_cid", 4854),
-        ("observed_at", 4855),
+        ("original_receipt_cid", 4858),
+        ("operation_ref", 4868),
+        ("outcome", 4869),
+        ("checkpoint_cid", 4870),
+        ("observed_at", 4871),
       ],
       ["original_receipt_cid", "operation_ref", "outcome", "observed_at"],
       -1,
@@ -13909,20 +13943,20 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4841, 4856]))
+  nodes.push(AllOfRule([4857, 4872]))
   nodes.push(protocol_string_rule(Some("found"), [], 0, 0))
-  nodes.push(nodes[4433])
+  nodes.push(nodes[4449])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([4860, 4861]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([4876, 4877]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 4862),
-        ("authorityScopeCid", 4863),
-        ("runDefinitionCid", 4864),
+        ("namespaceId", 4878),
+        ("authorityScopeCid", 4879),
+        ("runDefinitionCid", 4880),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -13936,10 +13970,10 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 4865),
-        ("operation_id", 4866),
-        ("command_cid", 4867),
-        ("accepted_from_revision", 4868),
+        ("run_ref", 4881),
+        ("operation_id", 4882),
+        ("command_cid", 4883),
+        ("accepted_from_revision", 4884),
       ],
       ["run_ref", "operation_id", "command_cid", "accepted_from_revision"],
       -1,
@@ -13947,65 +13981,65 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4444])
-  nodes.push(nodes[4174])
-  nodes.push(protocol_object_rule([("status", 4871)], ["status"], -2, 0, None))
-  nodes.push(nodes[4176])
-  nodes.push(NotRule(4873))
-  nodes.push(nodes[4178])
-  nodes.push(AllOfRule([4874, 4875]))
-  nodes.push(nodes[4180])
-  nodes.push(nodes[4181])
-  nodes.push(nodes[4182])
-  nodes.push(nodes[4183])
-  nodes.push(nodes[4184])
-  nodes.push(nodes[4185])
-  nodes.push(AnyOfRule([4877, 4878, 4879, 4880, 4881, 4882]))
-  nodes.push(NotRule(4883))
-  nodes.push(ConditionalRule(4872, 4876, 4884))
-  nodes.push(nodes[4189])
-  nodes.push(protocol_object_rule([("status", 4886)], ["status"], -2, 0, None))
-  nodes.push(nodes[4191])
-  nodes.push(nodes[4191])
+  nodes.push(nodes[4460])
+  nodes.push(nodes[4190])
+  nodes.push(protocol_object_rule([("status", 4887)], ["status"], -2, 0, None))
+  nodes.push(nodes[4192])
   nodes.push(NotRule(4889))
-  nodes.push(ConditionalRule(4887, 4888, 4890))
-  nodes.push(nodes[4162])
-  nodes.push(protocol_object_rule([("kind", 4892)], ["kind"], -2, 0, None))
+  nodes.push(nodes[4194])
+  nodes.push(AllOfRule([4890, 4891]))
+  nodes.push(nodes[4196])
+  nodes.push(nodes[4197])
+  nodes.push(nodes[4198])
+  nodes.push(nodes[4199])
+  nodes.push(nodes[4200])
+  nodes.push(nodes[4201])
+  nodes.push(AnyOfRule([4893, 4894, 4895, 4896, 4897, 4898]))
+  nodes.push(NotRule(4899))
+  nodes.push(ConditionalRule(4888, 4892, 4900))
+  nodes.push(nodes[4205])
+  nodes.push(protocol_object_rule([("status", 4902)], ["status"], -2, 0, None))
+  nodes.push(nodes[4207])
+  nodes.push(nodes[4207])
+  nodes.push(NotRule(4905))
+  nodes.push(ConditionalRule(4903, 4904, 4906))
+  nodes.push(nodes[4178])
+  nodes.push(protocol_object_rule([("kind", 4908)], ["kind"], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("resume_origin", 4893)],
+      [("resume_origin", 4909)],
       ["resume_origin"],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4176])
-  nodes.push(NotRule(4895))
+  nodes.push(nodes[4192])
+  nodes.push(NotRule(4911))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4894, 4896, 4897))
-  nodes.push(nodes[4202])
+  nodes.push(ConditionalRule(4910, 4912, 4913))
+  nodes.push(nodes[4218])
   nodes.push(
-    protocol_object_rule([("stop_reason", 4899)], ["stop_reason"], -2, 0, None),
+    protocol_object_rule([("stop_reason", 4915)], ["stop_reason"], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(protocol_array_rule(4901, 1, false, -1))
+  nodes.push(protocol_array_rule(4917, 1, false, -1))
   nodes.push(
-    protocol_object_rule([("matched_breakpoints", 4902)], [], -2, 0, None),
+    protocol_object_rule([("matched_breakpoints", 4918)], [], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4900, 4903, 4904))
-  nodes.push(nodes[4209])
+  nodes.push(ConditionalRule(4916, 4919, 4920))
+  nodes.push(nodes[4225])
   nodes.push(nodes[1])
-  nodes.push(nodes[4211])
+  nodes.push(nodes[4227])
   nodes.push(nodes[80])
   nodes.push(nodes[190])
-  nodes.push(nodes[4214])
-  nodes.push(protocol_object_rule([("status", 4911)], ["status"], -2, 0, None))
-  nodes.push(nodes[4216])
+  nodes.push(nodes[4230])
+  nodes.push(protocol_object_rule([("status", 4927)], ["status"], -2, 0, None))
+  nodes.push(nodes[4232])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4913)],
+      [("kind", 4929)],
       ["kind", "checkpoint_id"],
       -2,
       0,
@@ -14013,68 +14047,68 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(
-    protocol_object_rule([("next_action", 4914)], ["checkpoint"], -2, 0, None),
+    protocol_object_rule([("next_action", 4930)], ["checkpoint"], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4912, 4915, 4916))
-  nodes.push(nodes[4221])
-  nodes.push(protocol_object_rule([("status", 4918)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(4920))
-  nodes.push(nodes[4225])
+  nodes.push(ConditionalRule(4928, 4931, 4932))
+  nodes.push(nodes[4237])
+  nodes.push(protocol_object_rule([("status", 4934)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(4936))
+  nodes.push(nodes[4241])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4923, 1, true, -1))
+  nodes.push(protocol_array_rule(4939, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4922), ("effects", 4924)],
+      [("kind", 4938), ("effects", 4940)],
       ["kind", "effects"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4229])
-  nodes.push(nodes[4230])
+  nodes.push(nodes[4245])
+  nodes.push(nodes[4246])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4926), ("reason", 4927)],
+      [("kind", 4942), ("reason", 4943)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4925, 4928]))
-  nodes.push(protocol_object_rule([("next_action", 4929)], [], -2, 0, None))
-  nodes.push(AllOfRule([4921, 4930]))
+  nodes.push(protocol_one_of_rule([4941, 4944]))
+  nodes.push(protocol_object_rule([("next_action", 4945)], [], -2, 0, None))
+  nodes.push(AllOfRule([4937, 4946]))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4919, 4931, 4932))
-  nodes.push(nodes[4237])
-  nodes.push(protocol_object_rule([("status", 4934)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(4936))
-  nodes.push(nodes[4241])
-  nodes.push(protocol_object_rule([("kind", 4938)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 4939)], [], -2, 0, None))
-  nodes.push(AllOfRule([4937, 4940]))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4935, 4941, 4942))
-  nodes.push(nodes[4247])
-  nodes.push(protocol_object_rule([("status", 4944)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(4946))
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 4948)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 4949)], [], -2, 0, None))
-  nodes.push(AllOfRule([4947, 4950]))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4945, 4951, 4952))
+  nodes.push(ConditionalRule(4935, 4947, 4948))
+  nodes.push(nodes[4253])
+  nodes.push(protocol_object_rule([("status", 4950)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(4952))
   nodes.push(nodes[4257])
+  nodes.push(protocol_object_rule([("kind", 4954)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 4955)], [], -2, 0, None))
+  nodes.push(AllOfRule([4953, 4956]))
   nodes.push(nodes[270])
-  nodes.push(AllOfRule([4954, 4955]))
+  nodes.push(ConditionalRule(4951, 4957, 4958))
+  nodes.push(nodes[4263])
+  nodes.push(protocol_object_rule([("status", 4960)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(4962))
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 4964)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 4965)], [], -2, 0, None))
+  nodes.push(AllOfRule([4963, 4966]))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(4961, 4967, 4968))
+  nodes.push(nodes[4273])
+  nodes.push(nodes[270])
+  nodes.push(AllOfRule([4970, 4971]))
   nodes.push(
     protocol_object_rule(
-      [("result_availability", 4956)],
+      [("result_availability", 4972)],
       ["result_availability"],
       -2,
       0,
@@ -14082,11 +14116,11 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2509])
-  nodes.push(nodes[4262])
-  nodes.push(protocol_object_rule([("kind", 4959)], [], -2, 0, None))
+  nodes.push(nodes[4278])
+  nodes.push(protocol_object_rule([("kind", 4975)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("result_available", 4958), ("next_action", 4960)],
+      [("result_available", 4974), ("next_action", 4976)],
       [],
       -2,
       0,
@@ -14094,129 +14128,129 @@ fn generated_protocol_schema_nodes_4(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4957, 4961, 4962))
-  nodes.push(nodes[4267])
+  nodes.push(ConditionalRule(4973, 4977, 4978))
+  nodes.push(nodes[4283])
   nodes.push(nodes[1])
-  nodes.push(nodes[4269])
+  nodes.push(nodes[4285])
   nodes.push(nodes[80])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[4273])
+  nodes.push(nodes[4289])
   nodes.push(
     protocol_object_rule(
-      [("checkpoint_id", 4968), ("checkpoint_cid", 4969), ("kind", 4970)],
+      [("checkpoint_id", 4984), ("checkpoint_cid", 4985), ("kind", 4986)],
       ["checkpoint_id", "checkpoint_cid", "kind"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4216])
+  nodes.push(nodes[4232])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4972), ("checkpoint_id", 4973)],
+      [("kind", 4988), ("checkpoint_id", 4989)],
       ["kind", "checkpoint_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4225])
+  nodes.push(nodes[4241])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4976, 1, true, -1))
+  nodes.push(protocol_array_rule(4992, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4975), ("effects", 4977)],
+      [("kind", 4991), ("effects", 4993)],
       ["kind", "effects"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4282])
+  nodes.push(nodes[4298])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4980, 1, true, -1))
+  nodes.push(protocol_array_rule(4996, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4979), ("results", 4981)],
+      [("kind", 4995), ("results", 4997)],
       ["kind", "results"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4286])
+  nodes.push(nodes[4302])
+}
+
+///|
+fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit {
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(4984, 1, true, -1))
+  nodes.push(protocol_array_rule(5000, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 4983), ("results", 4985)],
+      [("kind", 4999), ("results", 5001)],
       ["kind", "results"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 4987)], ["kind"], -1, 0, None))
-  nodes.push(nodes[4229])
-  nodes.push(nodes[4230])
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 5003)], ["kind"], -1, 0, None))
+  nodes.push(nodes[4245])
+  nodes.push(nodes[4246])
   nodes.push(
     protocol_object_rule(
-      [("kind", 4989), ("reason", 4990)],
+      [("kind", 5005), ("reason", 5006)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([4974, 4978, 4982, 4986, 4988, 4991]))
+  nodes.push(protocol_one_of_rule([4990, 4994, 4998, 5002, 5004, 5007]))
   nodes.push(nodes[14])
-  nodes.push(nodes[4297])
+  nodes.push(nodes[4313])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("code", 4994), ("message", 4995)],
+      [("code", 5010), ("message", 5011)],
       ["code", "message"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4300])
-  nodes.push(protocol_object_rule([("state", 4997)], ["state"], -2, 0, None))
-  nodes.push(nodes[4302])
-}
-
-///|
-fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit {
-  nodes.push(protocol_object_rule([("reason", 4999)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(4998, 5000, 5001))
-  nodes.push(nodes[4306])
-  nodes.push(protocol_object_rule([("state", 5003)], ["state"], -2, 0, None))
-  nodes.push(nodes[4308])
-  nodes.push(protocol_object_rule([("reason", 5005)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5004, 5006, 5007))
-  nodes.push(nodes[3004])
-  nodes.push(protocol_object_rule([("state", 5009)], ["state"], -2, 0, None))
-  nodes.push(nodes[4314])
-  nodes.push(protocol_object_rule([("reason", 5011)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5010, 5012, 5013))
+  nodes.push(nodes[4316])
+  nodes.push(protocol_object_rule([("state", 5013)], ["state"], -2, 0, None))
   nodes.push(nodes[4318])
+  nodes.push(protocol_object_rule([("reason", 5015)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(5014, 5016, 5017))
+  nodes.push(nodes[4322])
+  nodes.push(protocol_object_rule([("state", 5019)], ["state"], -2, 0, None))
+  nodes.push(nodes[4324])
+  nodes.push(protocol_object_rule([("reason", 5021)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(5020, 5022, 5023))
+  nodes.push(nodes[3018])
+  nodes.push(protocol_object_rule([("state", 5025)], ["state"], -2, 0, None))
+  nodes.push(nodes[4330])
+  nodes.push(protocol_object_rule([("reason", 5027)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(5026, 5028, 5029))
+  nodes.push(nodes[4334])
   nodes.push(nodes[80])
-  nodes.push(nodes[4320])
+  nodes.push(nodes[4336])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 5015),
-        ("observed_at", 5016),
-        ("reason", 5017),
-        ("cause_cid", 5018),
+        ("state", 5031),
+        ("observed_at", 5032),
+        ("reason", 5033),
+        ("cause_cid", 5034),
       ],
       ["state", "observed_at", "reason"],
       -1,
@@ -14224,17 +14258,17 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([5002, 5008, 5014, 5019]))
-  nodes.push(protocol_named_object_rule([], [], 5020, 0, None, 11))
+  nodes.push(AllOfRule([5018, 5024, 5030, 5035]))
+  nodes.push(protocol_named_object_rule([], [], 5036, 0, None, 11))
   nodes.push(nodes[190])
   nodes.push(nodes[14])
-  nodes.push(nodes[4327])
+  nodes.push(nodes[4343])
   nodes.push(
     protocol_object_rule(
       [
-        ("revision", 5022),
-        ("cancellation_requested", 5023),
-        ("physical_stop", 5024),
+        ("revision", 5038),
+        ("cancellation_requested", 5039),
+        ("physical_stop", 5040),
       ],
       ["revision", "cancellation_requested", "physical_stop"],
       -1,
@@ -14246,17 +14280,17 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4964),
-        ("run_id", 4965),
-        ("status", 4966),
-        ("updated_at", 4967),
-        ("checkpoint", 4971),
-        ("next_action", 4992),
-        ("result_available", 4993),
-        ("terminal_error", 4996),
-        ("result_availability", 5021),
-        ("control", 5025),
-        ("revision", 5026),
+        ("version", 4980),
+        ("run_id", 4981),
+        ("status", 4982),
+        ("updated_at", 4983),
+        ("checkpoint", 4987),
+        ("next_action", 5008),
+        ("result_available", 5009),
+        ("terminal_error", 5012),
+        ("result_availability", 5037),
+        ("control", 5041),
+        ("revision", 5042),
       ],
       [
         "version", "run_id", "status", "updated_at", "next_action", "result_available",
@@ -14267,18 +14301,18 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4917, 4933, 4943, 4953, 4963, 5027]))
-  nodes.push(nodes[4162])
+  nodes.push(AllOfRule([4933, 4949, 4959, 4969, 4979, 5043]))
+  nodes.push(nodes[4178])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 5029),
-        ("command_cid", 5030),
-        ("continuation_generation_cid", 5031),
-        ("fence_cid", 5032),
+        ("kind", 5045),
+        ("command_cid", 5046),
+        ("continuation_generation_cid", 5047),
+        ("fence_cid", 5048),
       ],
       ["kind", "command_cid", "continuation_generation_cid", "fence_cid"],
       -1,
@@ -14286,7 +14320,7 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4167])
+  nodes.push(nodes[4183])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -14294,11 +14328,11 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 5034),
-        ("checkpoint_cid", 5035),
-        ("resolution_cid", 5036),
-        ("continuation_generation_cid", 5037),
-        ("fence_cid", 5038),
+        ("kind", 5050),
+        ("checkpoint_cid", 5051),
+        ("resolution_cid", 5052),
+        ("continuation_generation_cid", 5053),
+        ("fence_cid", 5054),
       ],
       [
         "kind", "checkpoint_cid", "resolution_cid", "continuation_generation_cid",
@@ -14309,21 +14343,21 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5033, 5039]))
-  nodes.push(nodes[4344])
+  nodes.push(protocol_one_of_rule([5049, 5055]))
+  nodes.push(nodes[4360])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5042, 5043]))
-  nodes.push(nodes[3632])
-  nodes.push(nodes[4349])
+  nodes.push(protocol_one_of_rule([5058, 5059]))
+  nodes.push(nodes[3646])
+  nodes.push(nodes[4365])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 5044),
-        ("position", 5045),
-        ("kind", 5046),
-        ("consumed_boundary_cid", 5047),
+        ("step_id", 5060),
+        ("position", 5061),
+        ("kind", 5062),
+        ("consumed_boundary_cid", 5063),
       ],
       ["step_id", "position", "kind", "consumed_boundary_cid"],
       -1,
@@ -14332,7 +14366,7 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(5049, 0, false, -1))
+  nodes.push(protocol_array_rule(5065, 0, false, -1))
   nodes.push(nodes[80])
   nodes.push(nodes[80])
   nodes.push(nodes[2])
@@ -14342,22 +14376,22 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4906),
-        ("run_id", 4907),
-        ("status", 4908),
-        ("updated_at", 4909),
-        ("control_revision", 4910),
-        ("legacy_state", 5028),
-        ("resume_origin", 5040),
-        ("stop_reason", 5041),
-        ("boundary", 5048),
-        ("matched_breakpoints", 5050),
-        ("paused_at", 5051),
-        ("expires_at", 5052),
-        ("ttl_policy_cid", 5053),
-        ("pause_pending", 5054),
-        ("expiry_pending", 5055),
-        ("cleanup_pending", 5056),
+        ("version", 4922),
+        ("run_id", 4923),
+        ("status", 4924),
+        ("updated_at", 4925),
+        ("control_revision", 4926),
+        ("legacy_state", 5044),
+        ("resume_origin", 5056),
+        ("stop_reason", 5057),
+        ("boundary", 5064),
+        ("matched_breakpoints", 5066),
+        ("paused_at", 5067),
+        ("expires_at", 5068),
+        ("ttl_policy_cid", 5069),
+        ("pause_pending", 5070),
+        ("expiry_pending", 5071),
+        ("cleanup_pending", 5072),
       ],
       ["version", "run_id", "status", "updated_at", "control_revision"],
       -1,
@@ -14365,16 +14399,16 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([4885, 4891, 4898, 4905, 5057]))
+  nodes.push(AllOfRule([4901, 4907, 4914, 4921, 5073]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 4859),
-        ("operation_ref", 4869),
-        ("outcome", 4870),
-        ("observed_state", 5058),
-        ("self_cid", 5059),
+        ("version", 4875),
+        ("operation_ref", 4885),
+        ("outcome", 4886),
+        ("observed_state", 5074),
+        ("self_cid", 5075),
       ],
       ["version", "operation_ref", "outcome", "observed_state", "self_cid"],
       -1,
@@ -14382,26 +14416,26 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4836])
+  nodes.push(nodes[4852])
   nodes.push(
-    protocol_object_rule([("outcome", 5061)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 5077)], ["outcome"], -2, 0, None),
   )
-  nodes.push(nodes[4838])
-  nodes.push(nodes[4838])
-  nodes.push(NotRule(5064))
-  nodes.push(ConditionalRule(5062, 5063, 5065))
+  nodes.push(nodes[4854])
+  nodes.push(nodes[4854])
+  nodes.push(NotRule(5080))
+  nodes.push(ConditionalRule(5078, 5079, 5081))
   nodes.push(nodes[2])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([5068, 5069]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([5084, 5085]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 5070),
-        ("authorityScopeCid", 5071),
-        ("runDefinitionCid", 5072),
+        ("namespaceId", 5086),
+        ("authorityScopeCid", 5087),
+        ("runDefinitionCid", 5088),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -14415,10 +14449,10 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 5073),
-        ("operation_id", 5074),
-        ("command_cid", 5075),
-        ("accepted_from_revision", 5076),
+        ("run_ref", 5089),
+        ("operation_id", 5090),
+        ("command_cid", 5091),
+        ("accepted_from_revision", 5092),
       ],
       ["run_ref", "operation_id", "command_cid", "accepted_from_revision"],
       -1,
@@ -14426,17 +14460,17 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4853])
+  nodes.push(nodes[4869])
   nodes.push(nodes[2])
   nodes.push(nodes[80])
   nodes.push(
     protocol_object_rule(
       [
-        ("original_receipt_cid", 5067),
-        ("operation_ref", 5077),
-        ("outcome", 5078),
-        ("checkpoint_cid", 5079),
-        ("observed_at", 5080),
+        ("original_receipt_cid", 5083),
+        ("operation_ref", 5093),
+        ("outcome", 5094),
+        ("checkpoint_cid", 5095),
+        ("observed_at", 5096),
       ],
       ["original_receipt_cid", "operation_ref", "outcome", "observed_at"],
       -1,
@@ -14444,10 +14478,10 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([5066, 5081]))
+  nodes.push(AllOfRule([5082, 5097]))
   nodes.push(
     protocol_object_rule(
-      [("state", 4858), ("receipt", 5060), ("observation", 5082)],
+      [("state", 4874), ("receipt", 5076), ("observation", 5098)],
       ["state", "receipt", "observation"],
       -1,
       0,
@@ -14465,26 +14499,26 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("state", 5084), ("reason", 5085)],
+      [("state", 5100), ("reason", 5101)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5083, 5086]))
-  nodes.push(nodes[3869])
+  nodes.push(protocol_one_of_rule([5099, 5102]))
+  nodes.push(nodes[3883])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([5089, 5090]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([5105, 5106]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 5091),
-        ("authorityScopeCid", 5092),
-        ("runDefinitionCid", 5093),
+        ("namespaceId", 5107),
+        ("authorityScopeCid", 5108),
+        ("runDefinitionCid", 5109),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -14498,10 +14532,10 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 5094),
-        ("operation_id", 5095),
-        ("command_cid", 5096),
-        ("accepted_from_revision", 5097),
+        ("run_ref", 5110),
+        ("operation_id", 5111),
+        ("command_cid", 5112),
+        ("accepted_from_revision", 5113),
       ],
       ["run_ref", "operation_id", "command_cid", "accepted_from_revision"],
       -1,
@@ -14511,7 +14545,7 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("by", 5088), ("operation_ref", 5098)],
+      [("by", 5104), ("operation_ref", 5114)],
       ["by", "operation_ref"],
       -1,
       0,
@@ -14520,16 +14554,16 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_string_rule(Some("revision"), [], 0, 0))
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([5101, 5102]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([5117, 5118]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 5103),
-        ("authorityScopeCid", 5104),
-        ("runDefinitionCid", 5105),
+        ("namespaceId", 5119),
+        ("authorityScopeCid", 5120),
+        ("runDefinitionCid", 5121),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -14540,77 +14574,77 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("by", 5100), ("run_ref", 5106), ("expected_control_revision", 5107)],
+      [("by", 5116), ("run_ref", 5122), ("expected_control_revision", 5123)],
       ["by", "run_ref", "expected_control_revision"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5099, 5108]))
+  nodes.push(protocol_one_of_rule([5115, 5124]))
   nodes.push(protocol_string_rule(Some("output"), [], 0, 0))
-  nodes.push(protocol_object_rule([("role", 5110)], ["role"], -2, 0, None))
+  nodes.push(protocol_object_rule([("role", 5126)], ["role"], -2, 0, None))
   nodes.push(protocol_object_rule([], ["input_port_id"], -2, 0, None))
-  nodes.push(NotRule(5112))
+  nodes.push(NotRule(5128))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5111, 5113, 5114))
-  nodes.push(nodes[3622])
+  nodes.push(ConditionalRule(5127, 5129, 5130))
+  nodes.push(nodes[3636])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("by", 5116), ("name", 5117)],
+      [("by", 5132), ("name", 5133)],
       ["by", "name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3625])
-  nodes.push(nodes[3626])
+  nodes.push(nodes[3639])
+  nodes.push(nodes[3640])
   nodes.push(
     protocol_object_rule(
-      [("by", 5119), ("operator", 5120)],
+      [("by", 5135), ("operator", 5136)],
       ["by", "operator"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3628])
+  nodes.push(nodes[3642])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("by", 5122), ("step_id", 5123)],
+      [("by", 5138), ("step_id", 5139)],
       ["by", "step_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5118, 5121, 5124]))
-  nodes.push(nodes[3892])
+  nodes.push(protocol_one_of_rule([5134, 5137, 5140]))
+  nodes.push(nodes[3906])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step", 5125), ("role", 5126), ("input_port_id", 5127)],
+      [("step", 5141), ("role", 5142), ("input_port_id", 5143)],
       ["step", "role"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(AllOfRule([5115, 5128]))
+  nodes.push(AllOfRule([5131, 5144]))
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([5130, 5131]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([5146, 5147]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 5132),
-        ("authorityScopeCid", 5133),
-        ("runDefinitionCid", 5134),
+        ("namespaceId", 5148),
+        ("authorityScopeCid", 5149),
+        ("runDefinitionCid", 5150),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -14621,51 +14655,51 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[2])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5145), ("stage_ordinal", 5146), ("input_port_ordinal", 5147)],
+      [("kind", 5161), ("stage_ordinal", 5162), ("input_port_ordinal", 5163)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5149), ("step_id", 5150), ("output_port_id", 5151)],
+      [("kind", 5165), ("step_id", 5166), ("output_port_id", 5167)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5148, 5152]))
+  nodes.push(protocol_one_of_rule([5164, 5168]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 5135),
-        ("compiled_plan_cid", 5136),
-        ("logical_map_cid", 5137),
-        ("step_id", 5138),
-        ("role", 5139),
-        ("port_id", 5140),
-        ("carrier", 5141),
-        ("carrier_contract_cid", 5142),
-        ("source_generation_cid", 5143),
-        ("original_capture_cid", 5144),
-        ("producer", 5153),
+        ("run_ref", 5151),
+        ("compiled_plan_cid", 5152),
+        ("logical_map_cid", 5153),
+        ("step_id", 5154),
+        ("role", 5155),
+        ("port_id", 5156),
+        ("carrier", 5157),
+        ("carrier_contract_cid", 5158),
+        ("source_generation_cid", 5159),
+        ("original_capture_cid", 5160),
+        ("producer", 5169),
       ],
       [
         "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id", "role", "port_id",
@@ -14677,21 +14711,21 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 5157),
-        ("value", 5158),
-        ("unit", 5159),
-        ("scope_cid", 5160),
-        ("basis_cid", 5161),
+        ("kind", 5173),
+        ("value", 5174),
+        ("unit", 5175),
+        ("scope_cid", 5176),
+        ("basis_cid", 5177),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -14699,19 +14733,19 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5163), ("unit", 5164), ("reason", 5165)],
+      [("kind", 5179), ("unit", 5180), ("reason", 5181)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5162, 5166]))
+  nodes.push(protocol_one_of_rule([5178, 5182]))
   nodes.push(
     protocol_string_rule(None, ["complete", "partial", "unknown"], 0, 0),
   )
@@ -14724,14 +14758,14 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("strategy", 5155),
-        ("sampled_items", 5156),
-        ("total", 5167),
-        ("completeness", 5168),
-        ("truncation", 5169),
-        ("sample_ref_cid", 5170),
-        ("receipt_cid", 5171),
-        ("emission_provenance_cid", 5172),
+        ("strategy", 5171),
+        ("sampled_items", 5172),
+        ("total", 5183),
+        ("completeness", 5184),
+        ("truncation", 5185),
+        ("sample_ref_cid", 5186),
+        ("receipt_cid", 5187),
+        ("emission_provenance_cid", 5188),
       ],
       [
         "strategy", "sampled_items", "total", "completeness", "truncation", "sample_ref_cid",
@@ -14744,37 +14778,37 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_string_rule(Some("absent"), [], 0, 0))
   nodes.push(
-    protocol_object_rule([("presence", 5174)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5190)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5176), ("value_contract_cid", 5177), ("value", 5178)],
+      [("presence", 5192), ("value_contract_cid", 5193), ("value", 5194)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5175, 5179]))
+  nodes.push(protocol_one_of_rule([5191, 5195]))
   nodes.push(protocol_string_rule(Some("actql-sample-relation/0.1"), [], 0, 0))
   nodes.push(nodes[19])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([5185, 5186]))
+  nodes.push(protocol_one_of_rule([5201, 5202]))
   nodes.push(nodes[2])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
       [
-        ("position", 5184),
-        ("name", 5187),
-        ("value_contract_cid", 5188),
-        ("required", 5189),
+        ("position", 5200),
+        ("name", 5203),
+        ("value_contract_cid", 5204),
+        ("required", 5205),
       ],
       ["position", "name", "value_contract_cid", "required"],
       -1,
@@ -14782,38 +14816,38 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5190, 0, false, -1))
-  nodes.push(nodes[5174])
+  nodes.push(protocol_array_rule(5206, 0, false, -1))
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5192)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5208)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5194), ("value_contract_cid", 5195), ("value", 5196)],
+      [("presence", 5210), ("value_contract_cid", 5211), ("value", 5212)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5193, 5197]))
-  nodes.push(protocol_array_rule(5198, 0, false, -1))
-  nodes.push(protocol_array_rule(5199, 0, false, -1))
+  nodes.push(protocol_one_of_rule([5209, 5213]))
+  nodes.push(protocol_array_rule(5214, 0, false, -1))
+  nodes.push(protocol_array_rule(5215, 0, false, -1))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5201, 5202]))
+  nodes.push(protocol_one_of_rule([5217, 5218]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5181),
-        ("kind", 5182),
-        ("schema_cid", 5183),
-        ("columns", 5191),
-        ("rows", 5200),
-        ("ordering_evidence_cid", 5203),
+        ("version", 5197),
+        ("kind", 5198),
+        ("schema_cid", 5199),
+        ("columns", 5207),
+        ("rows", 5216),
+        ("ordering_evidence_cid", 5219),
       ],
       [
         "version", "kind", "schema_cid", "columns", "rows", "ordering_evidence_cid",
@@ -14834,50 +14868,50 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 5212), ("value", 5213)],
+      [("value_contract_cid", 5228), ("value", 5229)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5214, 1, false, -1))
+  nodes.push(protocol_array_rule(5230, 1, false, -1))
   nodes.push(nodes[1])
-  nodes.push(nodes[5174])
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5217)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5233)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5219), ("value_contract_cid", 5220), ("value", 5221)],
+      [("presence", 5235), ("value_contract_cid", 5236), ("value", 5237)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5218, 5222]))
+  nodes.push(protocol_one_of_rule([5234, 5238]))
   nodes.push(
     protocol_object_rule(
-      [("name", 5216), ("cell", 5223)],
+      [("name", 5232), ("cell", 5239)],
       ["name", "cell"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5224, 0, false, -1))
+  nodes.push(protocol_array_rule(5240, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("definition_cid", 5209),
-        ("domain_cid", 5210),
-        ("identity_cid", 5211),
-        ("key", 5215),
-        ("properties", 5225),
+        ("definition_cid", 5225),
+        ("domain_cid", 5226),
+        ("identity_cid", 5227),
+        ("key", 5231),
+        ("properties", 5241),
       ],
       ["definition_cid", "domain_cid", "identity_cid", "key", "properties"],
       -1,
@@ -14885,7 +14919,7 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5226, 0, false, -1))
+  nodes.push(protocol_array_rule(5242, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -14893,72 +14927,72 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 5231), ("value", 5232)],
+      [("value_contract_cid", 5247), ("value", 5248)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5233, 1, false, -1))
+  nodes.push(protocol_array_rule(5249, 1, false, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[5174])
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5237)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5253)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5239), ("value_contract_cid", 5240), ("value", 5241)],
+      [("presence", 5255), ("value_contract_cid", 5256), ("value", 5257)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5238, 5242]))
+  nodes.push(protocol_one_of_rule([5254, 5258]))
   nodes.push(nodes[1])
-  nodes.push(nodes[5174])
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5245)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5261)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5247), ("value_contract_cid", 5248), ("value", 5249)],
+      [("presence", 5263), ("value_contract_cid", 5264), ("value", 5265)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5246, 5250]))
+  nodes.push(protocol_one_of_rule([5262, 5266]))
   nodes.push(
     protocol_object_rule(
-      [("name", 5244), ("cell", 5251)],
+      [("name", 5260), ("cell", 5267)],
       ["name", "cell"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5252, 0, false, -1))
+  nodes.push(protocol_array_rule(5268, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("definition_cid", 5228),
-        ("domain_cid", 5229),
-        ("identity_cid", 5230),
-        ("key", 5234),
-        ("src_identity_cid", 5235),
-        ("dst_identity_cid", 5236),
-        ("label", 5243),
-        ("properties", 5253),
+        ("definition_cid", 5244),
+        ("domain_cid", 5245),
+        ("identity_cid", 5246),
+        ("key", 5250),
+        ("src_identity_cid", 5251),
+        ("dst_identity_cid", 5252),
+        ("label", 5259),
+        ("properties", 5269),
       ],
       [
         "definition_cid", "domain_cid", "identity_cid", "key", "src_identity_cid",
@@ -14969,16 +15003,16 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5254, 0, false, -1))
+  nodes.push(protocol_array_rule(5270, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5205),
-        ("kind", 5206),
-        ("graph_contract_cid", 5207),
-        ("topology_complete", 5208),
-        ("nodes", 5227),
-        ("edges", 5255),
+        ("version", 5221),
+        ("kind", 5222),
+        ("graph_contract_cid", 5223),
+        ("topology_complete", 5224),
+        ("nodes", 5243),
+        ("edges", 5271),
       ],
       [
         "version", "kind", "graph_contract_cid", "topology_complete", "nodes", "edges",
@@ -14995,37 +15029,37 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 5260), ("value", 5261)],
+      [("value_contract_cid", 5276), ("value", 5277)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5262, 1, false, -1))
-  nodes.push(nodes[3673])
+  nodes.push(protocol_array_rule(5278, 1, false, -1))
+  nodes.push(nodes[3687])
   nodes.push(nodes[1])
   nodes.push(nodes[14])
   nodes.push(nodes[190])
   nodes.push(nodes[395])
   nodes.push(
     protocol_object_rule(
-      [("index", 5267), ("value", 5268)],
+      [("index", 5283), ("value", 5284)],
       ["index", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5269, 0, false, -1))
+  nodes.push(protocol_array_rule(5285, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("key", 5263),
-        ("dimension", 5264),
-        ("precision", 5265),
-        ("components_complete", 5266),
-        ("components", 5270),
+        ("key", 5279),
+        ("dimension", 5280),
+        ("precision", 5281),
+        ("components_complete", 5282),
+        ("components", 5286),
       ],
       ["key", "dimension", "precision", "components_complete", "components"],
       -1,
@@ -15033,14 +15067,14 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5271, 0, false, -1))
+  nodes.push(protocol_array_rule(5287, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5257),
-        ("kind", 5258),
-        ("vectors_contract_cid", 5259),
-        ("items", 5272),
+        ("version", 5273),
+        ("kind", 5274),
+        ("vectors_contract_cid", 5275),
+        ("items", 5288),
       ],
       ["version", "kind", "vectors_contract_cid", "items"],
       -1,
@@ -15051,7 +15085,7 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
-      [("order_proven", 5274)],
+      [("order_proven", 5290)],
       ["order_proven"],
       -2,
       0,
@@ -15060,10 +15094,10 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[2])
   nodes.push(
-    protocol_object_rule([("ordering_evidence_cid", 5276)], [], -2, 0, None),
+    protocol_object_rule([("ordering_evidence_cid", 5292)], [], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5275, 5277, 5278))
+  nodes.push(ConditionalRule(5291, 5293, 5294))
   nodes.push(protocol_string_rule(Some("actql-sample-events/0.1"), [], 0, 0))
   nodes.push(protocol_string_rule(Some("events"), [], 0, 0))
   nodes.push(nodes[2])
@@ -15071,74 +15105,74 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5285, 5286]))
+  nodes.push(protocol_one_of_rule([5301, 5302]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5288, 5289]))
+  nodes.push(protocol_one_of_rule([5304, 5305]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5291, 5292]))
+  nodes.push(protocol_one_of_rule([5307, 5308]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5294, 5295]))
+  nodes.push(protocol_one_of_rule([5310, 5311]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5298, 5299]))
+  nodes.push(protocol_one_of_rule([5314, 5315]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 5302), ("value", 5303)],
+      [("value_contract_cid", 5318), ("value", 5319)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5304, 1, false, -1))
-  nodes.push(nodes[5174])
+  nodes.push(protocol_array_rule(5320, 1, false, -1))
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5306)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5322)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5308), ("value_contract_cid", 5309), ("value", 5310)],
+      [("presence", 5324), ("value_contract_cid", 5325), ("value", 5326)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5307, 5311]))
-  nodes.push(nodes[5174])
+  nodes.push(protocol_one_of_rule([5323, 5327]))
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5313)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5329)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5315), ("value_contract_cid", 5316), ("value", 5317)],
+      [("presence", 5331), ("value_contract_cid", 5332), ("value", 5333)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5314, 5318]))
+  nodes.push(protocol_one_of_rule([5330, 5334]))
   nodes.push(
     protocol_object_rule(
       [
-        ("occurrence_cid", 5301),
-        ("key", 5305),
-        ("timestamp", 5312),
-        ("payload", 5319),
+        ("occurrence_cid", 5317),
+        ("key", 5321),
+        ("timestamp", 5328),
+        ("payload", 5335),
       ],
       ["occurrence_cid", "key", "timestamp", "payload"],
       -1,
@@ -15146,22 +15180,22 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5320, 0, false, -1))
+  nodes.push(protocol_array_rule(5336, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5280),
-        ("kind", 5281),
-        ("events_contract_cid", 5282),
-        ("identity_role", 5283),
-        ("time_role", 5284),
-        ("clock_evidence_cid", 5287),
-        ("window_evidence_cid", 5290),
-        ("watermark_evidence_cid", 5293),
-        ("late_evidence_cid", 5296),
-        ("order_proven", 5297),
-        ("ordering_evidence_cid", 5300),
-        ("occurrences", 5321),
+        ("version", 5296),
+        ("kind", 5297),
+        ("events_contract_cid", 5298),
+        ("identity_role", 5299),
+        ("time_role", 5300),
+        ("clock_evidence_cid", 5303),
+        ("window_evidence_cid", 5306),
+        ("watermark_evidence_cid", 5309),
+        ("late_evidence_cid", 5312),
+        ("order_proven", 5313),
+        ("ordering_evidence_cid", 5316),
+        ("occurrences", 5337),
       ],
       [
         "version", "kind", "events_contract_cid", "identity_role", "time_role", "clock_evidence_cid",
@@ -15173,19 +15207,19 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([5279, 5322]))
-  nodes.push(nodes[4300])
+  nodes.push(AllOfRule([5295, 5338]))
+  nodes.push(nodes[4316])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([5325, 5326]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([5341, 5342]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 5327),
-        ("authorityScopeCid", 5328),
-        ("runDefinitionCid", 5329),
+        ("namespaceId", 5343),
+        ("authorityScopeCid", 5344),
+        ("runDefinitionCid", 5345),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -15196,51 +15230,51 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[2])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5340), ("stage_ordinal", 5341), ("input_port_ordinal", 5342)],
+      [("kind", 5356), ("stage_ordinal", 5357), ("input_port_ordinal", 5358)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5344), ("step_id", 5345), ("output_port_id", 5346)],
+      [("kind", 5360), ("step_id", 5361), ("output_port_id", 5362)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5343, 5347]))
+  nodes.push(protocol_one_of_rule([5359, 5363]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 5330),
-        ("compiled_plan_cid", 5331),
-        ("logical_map_cid", 5332),
-        ("step_id", 5333),
-        ("role", 5334),
-        ("port_id", 5335),
-        ("carrier", 5336),
-        ("carrier_contract_cid", 5337),
-        ("source_generation_cid", 5338),
-        ("original_capture_cid", 5339),
-        ("producer", 5348),
+        ("run_ref", 5346),
+        ("compiled_plan_cid", 5347),
+        ("logical_map_cid", 5348),
+        ("step_id", 5349),
+        ("role", 5350),
+        ("port_id", 5351),
+        ("carrier", 5352),
+        ("carrier_contract_cid", 5353),
+        ("source_generation_cid", 5354),
+        ("original_capture_cid", 5355),
+        ("producer", 5364),
       ],
       [
         "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id", "role", "port_id",
@@ -15253,25 +15287,25 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[19])
-  nodes.push(protocol_object_rule([("carrier", 5350)], [], -2, 0, None))
-  nodes.push(AllOfRule([5351]))
+  nodes.push(protocol_object_rule([("carrier", 5366)], [], -2, 0, None))
+  nodes.push(AllOfRule([5367]))
   nodes.push(nodes[81])
-  nodes.push(AllOfRule([5349, 5352, 5353]))
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(AllOfRule([5365, 5368, 5369]))
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 5357),
-        ("value", 5358),
-        ("unit", 5359),
-        ("scope_cid", 5360),
-        ("basis_cid", 5361),
+        ("kind", 5373),
+        ("value", 5374),
+        ("unit", 5375),
+        ("scope_cid", 5376),
+        ("basis_cid", 5377),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -15279,35 +15313,35 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5363), ("unit", 5364), ("reason", 5365)],
+      [("kind", 5379), ("unit", 5380), ("reason", 5381)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5362, 5366]))
-  nodes.push(nodes[5168])
-  nodes.push(nodes[5169])
+  nodes.push(protocol_one_of_rule([5378, 5382]))
+  nodes.push(nodes[5184])
+  nodes.push(nodes[5185])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("strategy", 5355),
-        ("sampled_items", 5356),
-        ("total", 5367),
-        ("completeness", 5368),
-        ("truncation", 5369),
-        ("sample_ref_cid", 5370),
-        ("receipt_cid", 5371),
-        ("emission_provenance_cid", 5372),
+        ("strategy", 5371),
+        ("sampled_items", 5372),
+        ("total", 5383),
+        ("completeness", 5384),
+        ("truncation", 5385),
+        ("sample_ref_cid", 5386),
+        ("receipt_cid", 5387),
+        ("emission_provenance_cid", 5388),
       ],
       [
         "strategy", "sampled_items", "total", "completeness", "truncation", "sample_ref_cid",
@@ -15318,22 +15352,22 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5181])
+  nodes.push(nodes[5197])
   nodes.push(nodes[19])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([5378, 5379]))
+  nodes.push(protocol_one_of_rule([5394, 5395]))
   nodes.push(nodes[2])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
       [
-        ("position", 5377),
-        ("name", 5380),
-        ("value_contract_cid", 5381),
-        ("required", 5382),
+        ("position", 5393),
+        ("name", 5396),
+        ("value_contract_cid", 5397),
+        ("required", 5398),
       ],
       ["position", "name", "value_contract_cid", "required"],
       -1,
@@ -15341,38 +15375,38 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5383, 0, false, -1))
-  nodes.push(nodes[5174])
+  nodes.push(protocol_array_rule(5399, 0, false, -1))
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5385)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5401)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5387), ("value_contract_cid", 5388), ("value", 5389)],
+      [("presence", 5403), ("value_contract_cid", 5404), ("value", 5405)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5386, 5390]))
-  nodes.push(protocol_array_rule(5391, 0, false, -1))
-  nodes.push(protocol_array_rule(5392, 0, false, -1))
+  nodes.push(protocol_one_of_rule([5402, 5406]))
+  nodes.push(protocol_array_rule(5407, 0, false, -1))
+  nodes.push(protocol_array_rule(5408, 0, false, -1))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5394, 5395]))
+  nodes.push(protocol_one_of_rule([5410, 5411]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5374),
-        ("kind", 5375),
-        ("schema_cid", 5376),
-        ("columns", 5384),
-        ("rows", 5393),
-        ("ordering_evidence_cid", 5396),
+        ("version", 5390),
+        ("kind", 5391),
+        ("schema_cid", 5392),
+        ("columns", 5400),
+        ("rows", 5409),
+        ("ordering_evidence_cid", 5412),
       ],
       [
         "version", "kind", "schema_cid", "columns", "rows", "ordering_evidence_cid",
@@ -15384,25 +15418,25 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 5324), ("source", 5354), ("capture", 5373), ("data", 5397)],
+      [("state", 5340), ("source", 5370), ("capture", 5389), ("data", 5413)],
       ["state", "source", "capture", "data"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4300])
+  nodes.push(nodes[4316])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([5400, 5401]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([5416, 5417]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 5402),
-        ("authorityScopeCid", 5403),
-        ("runDefinitionCid", 5404),
+        ("namespaceId", 5418),
+        ("authorityScopeCid", 5419),
+        ("runDefinitionCid", 5420),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -15413,51 +15447,51 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[2])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5415), ("stage_ordinal", 5416), ("input_port_ordinal", 5417)],
+      [("kind", 5431), ("stage_ordinal", 5432), ("input_port_ordinal", 5433)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5419), ("step_id", 5420), ("output_port_id", 5421)],
+      [("kind", 5435), ("step_id", 5436), ("output_port_id", 5437)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5418, 5422]))
+  nodes.push(protocol_one_of_rule([5434, 5438]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 5405),
-        ("compiled_plan_cid", 5406),
-        ("logical_map_cid", 5407),
-        ("step_id", 5408),
-        ("role", 5409),
-        ("port_id", 5410),
-        ("carrier", 5411),
-        ("carrier_contract_cid", 5412),
-        ("source_generation_cid", 5413),
-        ("original_capture_cid", 5414),
-        ("producer", 5423),
+        ("run_ref", 5421),
+        ("compiled_plan_cid", 5422),
+        ("logical_map_cid", 5423),
+        ("step_id", 5424),
+        ("role", 5425),
+        ("port_id", 5426),
+        ("carrier", 5427),
+        ("carrier_contract_cid", 5428),
+        ("source_generation_cid", 5429),
+        ("original_capture_cid", 5430),
+        ("producer", 5439),
       ],
       [
         "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id", "role", "port_id",
@@ -15469,26 +15503,26 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5206])
-  nodes.push(protocol_object_rule([("carrier", 5425)], [], -2, 0, None))
-  nodes.push(AllOfRule([5426]))
+  nodes.push(nodes[5222])
+  nodes.push(protocol_object_rule([("carrier", 5441)], [], -2, 0, None))
+  nodes.push(AllOfRule([5442]))
   nodes.push(nodes[81])
-  nodes.push(AllOfRule([5424, 5427, 5428]))
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(AllOfRule([5440, 5443, 5444]))
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 5432),
-        ("value", 5433),
-        ("unit", 5434),
-        ("scope_cid", 5435),
-        ("basis_cid", 5436),
+        ("kind", 5448),
+        ("value", 5449),
+        ("unit", 5450),
+        ("scope_cid", 5451),
+        ("basis_cid", 5452),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -15496,35 +15530,35 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5438), ("unit", 5439), ("reason", 5440)],
+      [("kind", 5454), ("unit", 5455), ("reason", 5456)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5437, 5441]))
-  nodes.push(nodes[5168])
-  nodes.push(nodes[5169])
+  nodes.push(protocol_one_of_rule([5453, 5457]))
+  nodes.push(nodes[5184])
+  nodes.push(nodes[5185])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("strategy", 5430),
-        ("sampled_items", 5431),
-        ("total", 5442),
-        ("completeness", 5443),
-        ("truncation", 5444),
-        ("sample_ref_cid", 5445),
-        ("receipt_cid", 5446),
-        ("emission_provenance_cid", 5447),
+        ("strategy", 5446),
+        ("sampled_items", 5447),
+        ("total", 5458),
+        ("completeness", 5459),
+        ("truncation", 5460),
+        ("sample_ref_cid", 5461),
+        ("receipt_cid", 5462),
+        ("emission_provenance_cid", 5463),
       ],
       [
         "strategy", "sampled_items", "total", "completeness", "truncation", "sample_ref_cid",
@@ -15535,8 +15569,8 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5205])
-  nodes.push(nodes[5206])
+  nodes.push(nodes[5221])
+  nodes.push(nodes[5222])
   nodes.push(nodes[2])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
@@ -15546,50 +15580,50 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 5456), ("value", 5457)],
+      [("value_contract_cid", 5472), ("value", 5473)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5458, 1, false, -1))
+  nodes.push(protocol_array_rule(5474, 1, false, -1))
   nodes.push(nodes[1])
-  nodes.push(nodes[5174])
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5461)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5477)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5463), ("value_contract_cid", 5464), ("value", 5465)],
+      [("presence", 5479), ("value_contract_cid", 5480), ("value", 5481)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5462, 5466]))
+  nodes.push(protocol_one_of_rule([5478, 5482]))
   nodes.push(
     protocol_object_rule(
-      [("name", 5460), ("cell", 5467)],
+      [("name", 5476), ("cell", 5483)],
       ["name", "cell"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5468, 0, false, -1))
+  nodes.push(protocol_array_rule(5484, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("definition_cid", 5453),
-        ("domain_cid", 5454),
-        ("identity_cid", 5455),
-        ("key", 5459),
-        ("properties", 5469),
+        ("definition_cid", 5469),
+        ("domain_cid", 5470),
+        ("identity_cid", 5471),
+        ("key", 5475),
+        ("properties", 5485),
       ],
       ["definition_cid", "domain_cid", "identity_cid", "key", "properties"],
       -1,
@@ -15597,7 +15631,7 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5470, 0, false, -1))
+  nodes.push(protocol_array_rule(5486, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -15605,72 +15639,72 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 5475), ("value", 5476)],
+      [("value_contract_cid", 5491), ("value", 5492)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5477, 1, false, -1))
+  nodes.push(protocol_array_rule(5493, 1, false, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[5174])
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5481)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5497)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5483), ("value_contract_cid", 5484), ("value", 5485)],
+      [("presence", 5499), ("value_contract_cid", 5500), ("value", 5501)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5482, 5486]))
+  nodes.push(protocol_one_of_rule([5498, 5502]))
   nodes.push(nodes[1])
-  nodes.push(nodes[5174])
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5489)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5505)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5491), ("value_contract_cid", 5492), ("value", 5493)],
+      [("presence", 5507), ("value_contract_cid", 5508), ("value", 5509)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5490, 5494]))
+  nodes.push(protocol_one_of_rule([5506, 5510]))
   nodes.push(
     protocol_object_rule(
-      [("name", 5488), ("cell", 5495)],
+      [("name", 5504), ("cell", 5511)],
       ["name", "cell"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5496, 0, false, -1))
+  nodes.push(protocol_array_rule(5512, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("definition_cid", 5472),
-        ("domain_cid", 5473),
-        ("identity_cid", 5474),
-        ("key", 5478),
-        ("src_identity_cid", 5479),
-        ("dst_identity_cid", 5480),
-        ("label", 5487),
-        ("properties", 5497),
+        ("definition_cid", 5488),
+        ("domain_cid", 5489),
+        ("identity_cid", 5490),
+        ("key", 5494),
+        ("src_identity_cid", 5495),
+        ("dst_identity_cid", 5496),
+        ("label", 5503),
+        ("properties", 5513),
       ],
       [
         "definition_cid", "domain_cid", "identity_cid", "key", "src_identity_cid",
@@ -15681,16 +15715,16 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5498, 0, false, -1))
+  nodes.push(protocol_array_rule(5514, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5449),
-        ("kind", 5450),
-        ("graph_contract_cid", 5451),
-        ("topology_complete", 5452),
-        ("nodes", 5471),
-        ("edges", 5499),
+        ("version", 5465),
+        ("kind", 5466),
+        ("graph_contract_cid", 5467),
+        ("topology_complete", 5468),
+        ("nodes", 5487),
+        ("edges", 5515),
       ],
       [
         "version", "kind", "graph_contract_cid", "topology_complete", "nodes", "edges",
@@ -15702,25 +15736,25 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 5399), ("source", 5429), ("capture", 5448), ("data", 5500)],
+      [("state", 5415), ("source", 5445), ("capture", 5464), ("data", 5516)],
       ["state", "source", "capture", "data"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4300])
+  nodes.push(nodes[4316])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([5503, 5504]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([5519, 5520]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 5505),
-        ("authorityScopeCid", 5506),
-        ("runDefinitionCid", 5507),
+        ("namespaceId", 5521),
+        ("authorityScopeCid", 5522),
+        ("runDefinitionCid", 5523),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -15731,51 +15765,51 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[2])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5518), ("stage_ordinal", 5519), ("input_port_ordinal", 5520)],
+      [("kind", 5534), ("stage_ordinal", 5535), ("input_port_ordinal", 5536)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5522), ("step_id", 5523), ("output_port_id", 5524)],
+      [("kind", 5538), ("step_id", 5539), ("output_port_id", 5540)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5521, 5525]))
+  nodes.push(protocol_one_of_rule([5537, 5541]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 5508),
-        ("compiled_plan_cid", 5509),
-        ("logical_map_cid", 5510),
-        ("step_id", 5511),
-        ("role", 5512),
-        ("port_id", 5513),
-        ("carrier", 5514),
-        ("carrier_contract_cid", 5515),
-        ("source_generation_cid", 5516),
-        ("original_capture_cid", 5517),
-        ("producer", 5526),
+        ("run_ref", 5524),
+        ("compiled_plan_cid", 5525),
+        ("logical_map_cid", 5526),
+        ("step_id", 5527),
+        ("role", 5528),
+        ("port_id", 5529),
+        ("carrier", 5530),
+        ("carrier_contract_cid", 5531),
+        ("source_generation_cid", 5532),
+        ("original_capture_cid", 5533),
+        ("producer", 5542),
       ],
       [
         "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id", "role", "port_id",
@@ -15787,26 +15821,26 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5258])
-  nodes.push(protocol_object_rule([("carrier", 5528)], [], -2, 0, None))
-  nodes.push(AllOfRule([5529]))
+  nodes.push(nodes[5274])
+  nodes.push(protocol_object_rule([("carrier", 5544)], [], -2, 0, None))
+  nodes.push(AllOfRule([5545]))
   nodes.push(nodes[81])
-  nodes.push(AllOfRule([5527, 5530, 5531]))
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(AllOfRule([5543, 5546, 5547]))
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 5535),
-        ("value", 5536),
-        ("unit", 5537),
-        ("scope_cid", 5538),
-        ("basis_cid", 5539),
+        ("kind", 5551),
+        ("value", 5552),
+        ("unit", 5553),
+        ("scope_cid", 5554),
+        ("basis_cid", 5555),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -15814,35 +15848,35 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5541), ("unit", 5542), ("reason", 5543)],
+      [("kind", 5557), ("unit", 5558), ("reason", 5559)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5540, 5544]))
-  nodes.push(nodes[5168])
-  nodes.push(nodes[5169])
+  nodes.push(protocol_one_of_rule([5556, 5560]))
+  nodes.push(nodes[5184])
+  nodes.push(nodes[5185])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("strategy", 5533),
-        ("sampled_items", 5534),
-        ("total", 5545),
-        ("completeness", 5546),
-        ("truncation", 5547),
-        ("sample_ref_cid", 5548),
-        ("receipt_cid", 5549),
-        ("emission_provenance_cid", 5550),
+        ("strategy", 5549),
+        ("sampled_items", 5550),
+        ("total", 5561),
+        ("completeness", 5562),
+        ("truncation", 5563),
+        ("sample_ref_cid", 5564),
+        ("receipt_cid", 5565),
+        ("emission_provenance_cid", 5566),
       ],
       [
         "strategy", "sampled_items", "total", "completeness", "truncation", "sample_ref_cid",
@@ -15853,44 +15887,44 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5257])
-  nodes.push(nodes[5258])
+  nodes.push(nodes[5273])
+  nodes.push(nodes[5274])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 5555), ("value", 5556)],
+      [("value_contract_cid", 5571), ("value", 5572)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5557, 1, false, -1))
-  nodes.push(nodes[3673])
+  nodes.push(protocol_array_rule(5573, 1, false, -1))
+  nodes.push(nodes[3687])
   nodes.push(nodes[1])
   nodes.push(nodes[14])
   nodes.push(nodes[190])
   nodes.push(nodes[395])
   nodes.push(
     protocol_object_rule(
-      [("index", 5562), ("value", 5563)],
+      [("index", 5578), ("value", 5579)],
       ["index", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5564, 0, false, -1))
+  nodes.push(protocol_array_rule(5580, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("key", 5558),
-        ("dimension", 5559),
-        ("precision", 5560),
-        ("components_complete", 5561),
-        ("components", 5565),
+        ("key", 5574),
+        ("dimension", 5575),
+        ("precision", 5576),
+        ("components_complete", 5577),
+        ("components", 5581),
       ],
       ["key", "dimension", "precision", "components_complete", "components"],
       -1,
@@ -15898,14 +15932,14 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5566, 0, false, -1))
+  nodes.push(protocol_array_rule(5582, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5552),
-        ("kind", 5553),
-        ("vectors_contract_cid", 5554),
-        ("items", 5567),
+        ("version", 5568),
+        ("kind", 5569),
+        ("vectors_contract_cid", 5570),
+        ("items", 5583),
       ],
       ["version", "kind", "vectors_contract_cid", "items"],
       -1,
@@ -15915,25 +15949,25 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 5502), ("source", 5532), ("capture", 5551), ("data", 5568)],
+      [("state", 5518), ("source", 5548), ("capture", 5567), ("data", 5584)],
       ["state", "source", "capture", "data"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4300])
+  nodes.push(nodes[4316])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([5571, 5572]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([5587, 5588]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 5573),
-        ("authorityScopeCid", 5574),
-        ("runDefinitionCid", 5575),
+        ("namespaceId", 5589),
+        ("authorityScopeCid", 5590),
+        ("runDefinitionCid", 5591),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -15944,51 +15978,51 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[2])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5586), ("stage_ordinal", 5587), ("input_port_ordinal", 5588)],
+      [("kind", 5602), ("stage_ordinal", 5603), ("input_port_ordinal", 5604)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5590), ("step_id", 5591), ("output_port_id", 5592)],
+      [("kind", 5606), ("step_id", 5607), ("output_port_id", 5608)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5589, 5593]))
+  nodes.push(protocol_one_of_rule([5605, 5609]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 5576),
-        ("compiled_plan_cid", 5577),
-        ("logical_map_cid", 5578),
-        ("step_id", 5579),
-        ("role", 5580),
-        ("port_id", 5581),
-        ("carrier", 5582),
-        ("carrier_contract_cid", 5583),
-        ("source_generation_cid", 5584),
-        ("original_capture_cid", 5585),
-        ("producer", 5594),
+        ("run_ref", 5592),
+        ("compiled_plan_cid", 5593),
+        ("logical_map_cid", 5594),
+        ("step_id", 5595),
+        ("role", 5596),
+        ("port_id", 5597),
+        ("carrier", 5598),
+        ("carrier_contract_cid", 5599),
+        ("source_generation_cid", 5600),
+        ("original_capture_cid", 5601),
+        ("producer", 5610),
       ],
       [
         "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id", "role", "port_id",
@@ -16000,26 +16034,26 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5281])
-  nodes.push(protocol_object_rule([("carrier", 5596)], [], -2, 0, None))
-  nodes.push(AllOfRule([5597]))
+  nodes.push(nodes[5297])
+  nodes.push(protocol_object_rule([("carrier", 5612)], [], -2, 0, None))
+  nodes.push(AllOfRule([5613]))
   nodes.push(nodes[81])
-  nodes.push(AllOfRule([5595, 5598, 5599]))
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(AllOfRule([5611, 5614, 5615]))
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 5603),
-        ("value", 5604),
-        ("unit", 5605),
-        ("scope_cid", 5606),
-        ("basis_cid", 5607),
+        ("kind", 5619),
+        ("value", 5620),
+        ("unit", 5621),
+        ("scope_cid", 5622),
+        ("basis_cid", 5623),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -16027,35 +16061,35 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5609), ("unit", 5610), ("reason", 5611)],
+      [("kind", 5625), ("unit", 5626), ("reason", 5627)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5608, 5612]))
-  nodes.push(nodes[5168])
-  nodes.push(nodes[5169])
+  nodes.push(protocol_one_of_rule([5624, 5628]))
+  nodes.push(nodes[5184])
+  nodes.push(nodes[5185])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("strategy", 5601),
-        ("sampled_items", 5602),
-        ("total", 5613),
-        ("completeness", 5614),
-        ("truncation", 5615),
-        ("sample_ref_cid", 5616),
-        ("receipt_cid", 5617),
-        ("emission_provenance_cid", 5618),
+        ("strategy", 5617),
+        ("sampled_items", 5618),
+        ("total", 5629),
+        ("completeness", 5630),
+        ("truncation", 5631),
+        ("sample_ref_cid", 5632),
+        ("receipt_cid", 5633),
+        ("emission_provenance_cid", 5634),
       ],
       [
         "strategy", "sampled_items", "total", "completeness", "truncation", "sample_ref_cid",
@@ -16069,7 +16103,7 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
-      [("order_proven", 5620)],
+      [("order_proven", 5636)],
       ["order_proven"],
       -2,
       0,
@@ -16078,85 +16112,85 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[2])
   nodes.push(
-    protocol_object_rule([("ordering_evidence_cid", 5622)], [], -2, 0, None),
+    protocol_object_rule([("ordering_evidence_cid", 5638)], [], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5621, 5623, 5624))
-  nodes.push(nodes[5280])
-  nodes.push(nodes[5281])
+  nodes.push(ConditionalRule(5637, 5639, 5640))
+  nodes.push(nodes[5296])
+  nodes.push(nodes[5297])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5631, 5632]))
+  nodes.push(protocol_one_of_rule([5647, 5648]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5634, 5635]))
+  nodes.push(protocol_one_of_rule([5650, 5651]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5637, 5638]))
+  nodes.push(protocol_one_of_rule([5653, 5654]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5640, 5641]))
+  nodes.push(protocol_one_of_rule([5656, 5657]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5644, 5645]))
+  nodes.push(protocol_one_of_rule([5660, 5661]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 5648), ("value", 5649)],
+      [("value_contract_cid", 5664), ("value", 5665)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5650, 1, false, -1))
-  nodes.push(nodes[5174])
+  nodes.push(protocol_array_rule(5666, 1, false, -1))
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5652)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5668)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5654), ("value_contract_cid", 5655), ("value", 5656)],
+      [("presence", 5670), ("value_contract_cid", 5671), ("value", 5672)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5653, 5657]))
-  nodes.push(nodes[5174])
+  nodes.push(protocol_one_of_rule([5669, 5673]))
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5659)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5675)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5661), ("value_contract_cid", 5662), ("value", 5663)],
+      [("presence", 5677), ("value_contract_cid", 5678), ("value", 5679)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5660, 5664]))
+  nodes.push(protocol_one_of_rule([5676, 5680]))
   nodes.push(
     protocol_object_rule(
       [
-        ("occurrence_cid", 5647),
-        ("key", 5651),
-        ("timestamp", 5658),
-        ("payload", 5665),
+        ("occurrence_cid", 5663),
+        ("key", 5667),
+        ("timestamp", 5674),
+        ("payload", 5681),
       ],
       ["occurrence_cid", "key", "timestamp", "payload"],
       -1,
@@ -16164,22 +16198,22 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5666, 0, false, -1))
+  nodes.push(protocol_array_rule(5682, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5626),
-        ("kind", 5627),
-        ("events_contract_cid", 5628),
-        ("identity_role", 5629),
-        ("time_role", 5630),
-        ("clock_evidence_cid", 5633),
-        ("window_evidence_cid", 5636),
-        ("watermark_evidence_cid", 5639),
-        ("late_evidence_cid", 5642),
-        ("order_proven", 5643),
-        ("ordering_evidence_cid", 5646),
-        ("occurrences", 5667),
+        ("version", 5642),
+        ("kind", 5643),
+        ("events_contract_cid", 5644),
+        ("identity_role", 5645),
+        ("time_role", 5646),
+        ("clock_evidence_cid", 5649),
+        ("window_evidence_cid", 5652),
+        ("watermark_evidence_cid", 5655),
+        ("late_evidence_cid", 5658),
+        ("order_proven", 5659),
+        ("ordering_evidence_cid", 5662),
+        ("occurrences", 5683),
       ],
       [
         "version", "kind", "events_contract_cid", "identity_role", "time_role", "clock_evidence_cid",
@@ -16191,17 +16225,17 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([5625, 5668]))
+  nodes.push(AllOfRule([5641, 5684]))
   nodes.push(
     protocol_object_rule(
-      [("state", 5570), ("source", 5600), ("capture", 5619), ("data", 5669)],
+      [("state", 5586), ("source", 5616), ("capture", 5635), ("data", 5685)],
       ["state", "source", "capture", "data"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4306])
+  nodes.push(nodes[4322])
   nodes.push(
     protocol_string_rule(
       None,
@@ -16215,18 +16249,18 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 5671), ("reason", 5672)],
+      [("state", 5687), ("reason", 5688)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("state", 5674), ("reason", 5675)],
+      [("state", 5690), ("reason", 5691)],
       ["state", "reason"],
       -1,
       0,
@@ -16234,24 +16268,24 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(protocol_string_rule(Some("expired"), [], 0, 0))
-  nodes.push(protocol_object_rule([("state", 5677)], ["state"], -1, 0, None))
+  nodes.push(protocol_object_rule([("state", 5693)], ["state"], -1, 0, None))
   nodes.push(protocol_string_rule(Some("forbidden"), [], 0, 0))
-  nodes.push(protocol_object_rule([("state", 5679)], ["state"], -1, 0, None))
+  nodes.push(protocol_object_rule([("state", 5695)], ["state"], -1, 0, None))
   nodes.push(
-    protocol_one_of_rule([5398, 5501, 5569, 5670, 5673, 5676, 5678, 5680]),
+    protocol_one_of_rule([5414, 5517, 5585, 5686, 5689, 5692, 5694, 5696]),
   )
   nodes.push(protocol_string_rule(Some("actql-run-view/0.1"), [], 0, 0))
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([5683, 5684]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([5699, 5700]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 5685),
-        ("authorityScopeCid", 5686),
-        ("runDefinitionCid", 5687),
+        ("namespaceId", 5701),
+        ("authorityScopeCid", 5702),
+        ("runDefinitionCid", 5703),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -16259,64 +16293,64 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4174])
-  nodes.push(protocol_object_rule([("status", 5689)], ["status"], -2, 0, None))
-  nodes.push(nodes[4176])
-  nodes.push(NotRule(5691))
-  nodes.push(nodes[4178])
-  nodes.push(AllOfRule([5692, 5693]))
-  nodes.push(nodes[4180])
-  nodes.push(nodes[4181])
-  nodes.push(nodes[4182])
-  nodes.push(nodes[4183])
-  nodes.push(nodes[4184])
-  nodes.push(nodes[4185])
-  nodes.push(AnyOfRule([5695, 5696, 5697, 5698, 5699, 5700]))
-  nodes.push(NotRule(5701))
-  nodes.push(ConditionalRule(5690, 5694, 5702))
-  nodes.push(nodes[4189])
-  nodes.push(protocol_object_rule([("status", 5704)], ["status"], -2, 0, None))
-  nodes.push(nodes[4191])
-  nodes.push(nodes[4191])
+  nodes.push(nodes[4190])
+  nodes.push(protocol_object_rule([("status", 5705)], ["status"], -2, 0, None))
+  nodes.push(nodes[4192])
   nodes.push(NotRule(5707))
-  nodes.push(ConditionalRule(5705, 5706, 5708))
-  nodes.push(nodes[4162])
-  nodes.push(protocol_object_rule([("kind", 5710)], ["kind"], -2, 0, None))
+  nodes.push(nodes[4194])
+  nodes.push(AllOfRule([5708, 5709]))
+  nodes.push(nodes[4196])
+  nodes.push(nodes[4197])
+  nodes.push(nodes[4198])
+  nodes.push(nodes[4199])
+  nodes.push(nodes[4200])
+  nodes.push(nodes[4201])
+  nodes.push(AnyOfRule([5711, 5712, 5713, 5714, 5715, 5716]))
+  nodes.push(NotRule(5717))
+  nodes.push(ConditionalRule(5706, 5710, 5718))
+  nodes.push(nodes[4205])
+  nodes.push(protocol_object_rule([("status", 5720)], ["status"], -2, 0, None))
+  nodes.push(nodes[4207])
+  nodes.push(nodes[4207])
+  nodes.push(NotRule(5723))
+  nodes.push(ConditionalRule(5721, 5722, 5724))
+  nodes.push(nodes[4178])
+  nodes.push(protocol_object_rule([("kind", 5726)], ["kind"], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("resume_origin", 5711)],
+      [("resume_origin", 5727)],
       ["resume_origin"],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4176])
-  nodes.push(NotRule(5713))
+  nodes.push(nodes[4192])
+  nodes.push(NotRule(5729))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5712, 5714, 5715))
-  nodes.push(nodes[4202])
+  nodes.push(ConditionalRule(5728, 5730, 5731))
+  nodes.push(nodes[4218])
   nodes.push(
-    protocol_object_rule([("stop_reason", 5717)], ["stop_reason"], -2, 0, None),
+    protocol_object_rule([("stop_reason", 5733)], ["stop_reason"], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(protocol_array_rule(5719, 1, false, -1))
+  nodes.push(protocol_array_rule(5735, 1, false, -1))
   nodes.push(
-    protocol_object_rule([("matched_breakpoints", 5720)], [], -2, 0, None),
+    protocol_object_rule([("matched_breakpoints", 5736)], [], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5718, 5721, 5722))
-  nodes.push(nodes[4209])
+  nodes.push(ConditionalRule(5734, 5737, 5738))
+  nodes.push(nodes[4225])
   nodes.push(nodes[1])
-  nodes.push(nodes[4211])
+  nodes.push(nodes[4227])
   nodes.push(nodes[80])
   nodes.push(nodes[190])
-  nodes.push(nodes[4214])
-  nodes.push(protocol_object_rule([("status", 5729)], ["status"], -2, 0, None))
-  nodes.push(nodes[4216])
+  nodes.push(nodes[4230])
+  nodes.push(protocol_object_rule([("status", 5745)], ["status"], -2, 0, None))
+  nodes.push(nodes[4232])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5731)],
+      [("kind", 5747)],
       ["kind", "checkpoint_id"],
       -2,
       0,
@@ -16324,68 +16358,68 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(
-    protocol_object_rule([("next_action", 5732)], ["checkpoint"], -2, 0, None),
+    protocol_object_rule([("next_action", 5748)], ["checkpoint"], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5730, 5733, 5734))
-  nodes.push(nodes[4221])
-  nodes.push(protocol_object_rule([("status", 5736)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(5738))
-  nodes.push(nodes[4225])
+  nodes.push(ConditionalRule(5746, 5749, 5750))
+  nodes.push(nodes[4237])
+  nodes.push(protocol_object_rule([("status", 5752)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(5754))
+  nodes.push(nodes[4241])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(5741, 1, true, -1))
+  nodes.push(protocol_array_rule(5757, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 5740), ("effects", 5742)],
+      [("kind", 5756), ("effects", 5758)],
       ["kind", "effects"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4229])
-  nodes.push(nodes[4230])
+  nodes.push(nodes[4245])
+  nodes.push(nodes[4246])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5744), ("reason", 5745)],
+      [("kind", 5760), ("reason", 5761)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5743, 5746]))
-  nodes.push(protocol_object_rule([("next_action", 5747)], [], -2, 0, None))
-  nodes.push(AllOfRule([5739, 5748]))
+  nodes.push(protocol_one_of_rule([5759, 5762]))
+  nodes.push(protocol_object_rule([("next_action", 5763)], [], -2, 0, None))
+  nodes.push(AllOfRule([5755, 5764]))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5737, 5749, 5750))
-  nodes.push(nodes[4237])
-  nodes.push(protocol_object_rule([("status", 5752)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(5754))
-  nodes.push(nodes[4241])
-  nodes.push(protocol_object_rule([("kind", 5756)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 5757)], [], -2, 0, None))
-  nodes.push(AllOfRule([5755, 5758]))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5753, 5759, 5760))
-  nodes.push(nodes[4247])
-  nodes.push(protocol_object_rule([("status", 5762)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(5764))
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 5766)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 5767)], [], -2, 0, None))
-  nodes.push(AllOfRule([5765, 5768]))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5763, 5769, 5770))
+  nodes.push(ConditionalRule(5753, 5765, 5766))
+  nodes.push(nodes[4253])
+  nodes.push(protocol_object_rule([("status", 5768)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(5770))
   nodes.push(nodes[4257])
+  nodes.push(protocol_object_rule([("kind", 5772)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 5773)], [], -2, 0, None))
+  nodes.push(AllOfRule([5771, 5774]))
   nodes.push(nodes[270])
-  nodes.push(AllOfRule([5772, 5773]))
+  nodes.push(ConditionalRule(5769, 5775, 5776))
+  nodes.push(nodes[4263])
+  nodes.push(protocol_object_rule([("status", 5778)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(5780))
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 5782)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 5783)], [], -2, 0, None))
+  nodes.push(AllOfRule([5781, 5784]))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(5779, 5785, 5786))
+  nodes.push(nodes[4273])
+  nodes.push(nodes[270])
+  nodes.push(AllOfRule([5788, 5789]))
   nodes.push(
     protocol_object_rule(
-      [("result_availability", 5774)],
+      [("result_availability", 5790)],
       ["result_availability"],
       -2,
       0,
@@ -16393,11 +16427,11 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2509])
-  nodes.push(nodes[4262])
-  nodes.push(protocol_object_rule([("kind", 5777)], [], -2, 0, None))
+  nodes.push(nodes[4278])
+  nodes.push(protocol_object_rule([("kind", 5793)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("result_available", 5776), ("next_action", 5778)],
+      [("result_available", 5792), ("next_action", 5794)],
       [],
       -2,
       0,
@@ -16405,125 +16439,125 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5775, 5779, 5780))
-  nodes.push(nodes[4267])
+  nodes.push(ConditionalRule(5791, 5795, 5796))
+  nodes.push(nodes[4283])
   nodes.push(nodes[1])
-  nodes.push(nodes[4269])
+  nodes.push(nodes[4285])
   nodes.push(nodes[80])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[4273])
+  nodes.push(nodes[4289])
   nodes.push(
     protocol_object_rule(
-      [("checkpoint_id", 5786), ("checkpoint_cid", 5787), ("kind", 5788)],
+      [("checkpoint_id", 5802), ("checkpoint_cid", 5803), ("kind", 5804)],
       ["checkpoint_id", "checkpoint_cid", "kind"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4216])
+  nodes.push(nodes[4232])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5790), ("checkpoint_id", 5791)],
+      [("kind", 5806), ("checkpoint_id", 5807)],
       ["kind", "checkpoint_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4225])
+  nodes.push(nodes[4241])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(5794, 1, true, -1))
+  nodes.push(protocol_array_rule(5810, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 5793), ("effects", 5795)],
+      [("kind", 5809), ("effects", 5811)],
       ["kind", "effects"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4282])
+  nodes.push(nodes[4298])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(5798, 1, true, -1))
+  nodes.push(protocol_array_rule(5814, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 5797), ("results", 5799)],
+      [("kind", 5813), ("results", 5815)],
       ["kind", "results"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4286])
+  nodes.push(nodes[4302])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(5802, 1, true, -1))
+  nodes.push(protocol_array_rule(5818, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 5801), ("results", 5803)],
+      [("kind", 5817), ("results", 5819)],
       ["kind", "results"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 5805)], ["kind"], -1, 0, None))
-  nodes.push(nodes[4229])
-  nodes.push(nodes[4230])
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 5821)], ["kind"], -1, 0, None))
+  nodes.push(nodes[4245])
+  nodes.push(nodes[4246])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5807), ("reason", 5808)],
+      [("kind", 5823), ("reason", 5824)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5792, 5796, 5800, 5804, 5806, 5809]))
+  nodes.push(protocol_one_of_rule([5808, 5812, 5816, 5820, 5822, 5825]))
   nodes.push(nodes[14])
-  nodes.push(nodes[4297])
+  nodes.push(nodes[4313])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("code", 5812), ("message", 5813)],
+      [("code", 5828), ("message", 5829)],
       ["code", "message"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4300])
-  nodes.push(protocol_object_rule([("state", 5815)], ["state"], -2, 0, None))
-  nodes.push(nodes[4302])
-  nodes.push(protocol_object_rule([("reason", 5817)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5816, 5818, 5819))
-  nodes.push(nodes[4306])
-  nodes.push(protocol_object_rule([("state", 5821)], ["state"], -2, 0, None))
-  nodes.push(nodes[4308])
-  nodes.push(protocol_object_rule([("reason", 5823)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5822, 5824, 5825))
-  nodes.push(nodes[3004])
-  nodes.push(protocol_object_rule([("state", 5827)], ["state"], -2, 0, None))
-  nodes.push(nodes[4314])
-  nodes.push(protocol_object_rule([("reason", 5829)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(5828, 5830, 5831))
+  nodes.push(nodes[4316])
+  nodes.push(protocol_object_rule([("state", 5831)], ["state"], -2, 0, None))
   nodes.push(nodes[4318])
+  nodes.push(protocol_object_rule([("reason", 5833)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(5832, 5834, 5835))
+  nodes.push(nodes[4322])
+  nodes.push(protocol_object_rule([("state", 5837)], ["state"], -2, 0, None))
+  nodes.push(nodes[4324])
+  nodes.push(protocol_object_rule([("reason", 5839)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(5838, 5840, 5841))
+  nodes.push(nodes[3018])
+  nodes.push(protocol_object_rule([("state", 5843)], ["state"], -2, 0, None))
+  nodes.push(nodes[4330])
+  nodes.push(protocol_object_rule([("reason", 5845)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(5844, 5846, 5847))
+  nodes.push(nodes[4334])
   nodes.push(nodes[80])
-  nodes.push(nodes[4320])
+  nodes.push(nodes[4336])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 5833),
-        ("observed_at", 5834),
-        ("reason", 5835),
-        ("cause_cid", 5836),
+        ("state", 5849),
+        ("observed_at", 5850),
+        ("reason", 5851),
+        ("cause_cid", 5852),
       ],
       ["state", "observed_at", "reason"],
       -1,
@@ -16531,17 +16565,17 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([5820, 5826, 5832, 5837]))
-  nodes.push(protocol_named_object_rule([], [], 5838, 0, None, 11))
+  nodes.push(AllOfRule([5836, 5842, 5848, 5853]))
+  nodes.push(protocol_named_object_rule([], [], 5854, 0, None, 11))
   nodes.push(nodes[190])
   nodes.push(nodes[14])
-  nodes.push(nodes[4327])
+  nodes.push(nodes[4343])
   nodes.push(
     protocol_object_rule(
       [
-        ("revision", 5840),
-        ("cancellation_requested", 5841),
-        ("physical_stop", 5842),
+        ("revision", 5856),
+        ("cancellation_requested", 5857),
+        ("physical_stop", 5858),
       ],
       ["revision", "cancellation_requested", "physical_stop"],
       -1,
@@ -16553,17 +16587,17 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5782),
-        ("run_id", 5783),
-        ("status", 5784),
-        ("updated_at", 5785),
-        ("checkpoint", 5789),
-        ("next_action", 5810),
-        ("result_available", 5811),
-        ("terminal_error", 5814),
-        ("result_availability", 5839),
-        ("control", 5843),
-        ("revision", 5844),
+        ("version", 5798),
+        ("run_id", 5799),
+        ("status", 5800),
+        ("updated_at", 5801),
+        ("checkpoint", 5805),
+        ("next_action", 5826),
+        ("result_available", 5827),
+        ("terminal_error", 5830),
+        ("result_availability", 5855),
+        ("control", 5859),
+        ("revision", 5860),
       ],
       [
         "version", "run_id", "status", "updated_at", "next_action", "result_available",
@@ -16574,18 +16608,18 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([5735, 5751, 5761, 5771, 5781, 5845]))
-  nodes.push(nodes[4162])
+  nodes.push(AllOfRule([5751, 5767, 5777, 5787, 5797, 5861]))
+  nodes.push(nodes[4178])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 5847),
-        ("command_cid", 5848),
-        ("continuation_generation_cid", 5849),
-        ("fence_cid", 5850),
+        ("kind", 5863),
+        ("command_cid", 5864),
+        ("continuation_generation_cid", 5865),
+        ("fence_cid", 5866),
       ],
       ["kind", "command_cid", "continuation_generation_cid", "fence_cid"],
       -1,
@@ -16593,7 +16627,7 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4167])
+  nodes.push(nodes[4183])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -16601,11 +16635,11 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 5852),
-        ("checkpoint_cid", 5853),
-        ("resolution_cid", 5854),
-        ("continuation_generation_cid", 5855),
-        ("fence_cid", 5856),
+        ("kind", 5868),
+        ("checkpoint_cid", 5869),
+        ("resolution_cid", 5870),
+        ("continuation_generation_cid", 5871),
+        ("fence_cid", 5872),
       ],
       [
         "kind", "checkpoint_cid", "resolution_cid", "continuation_generation_cid",
@@ -16616,21 +16650,21 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5851, 5857]))
-  nodes.push(nodes[4344])
+  nodes.push(protocol_one_of_rule([5867, 5873]))
+  nodes.push(nodes[4360])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5860, 5861]))
-  nodes.push(nodes[3632])
-  nodes.push(nodes[4349])
+  nodes.push(protocol_one_of_rule([5876, 5877]))
+  nodes.push(nodes[3646])
+  nodes.push(nodes[4365])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 5862),
-        ("position", 5863),
-        ("kind", 5864),
-        ("consumed_boundary_cid", 5865),
+        ("step_id", 5878),
+        ("position", 5879),
+        ("kind", 5880),
+        ("consumed_boundary_cid", 5881),
       ],
       ["step_id", "position", "kind", "consumed_boundary_cid"],
       -1,
@@ -16639,7 +16673,7 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(5867, 0, false, -1))
+  nodes.push(protocol_array_rule(5883, 0, false, -1))
   nodes.push(nodes[80])
   nodes.push(nodes[80])
   nodes.push(nodes[2])
@@ -16649,22 +16683,22 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5724),
-        ("run_id", 5725),
-        ("status", 5726),
-        ("updated_at", 5727),
-        ("control_revision", 5728),
-        ("legacy_state", 5846),
-        ("resume_origin", 5858),
-        ("stop_reason", 5859),
-        ("boundary", 5866),
-        ("matched_breakpoints", 5868),
-        ("paused_at", 5869),
-        ("expires_at", 5870),
-        ("ttl_policy_cid", 5871),
-        ("pause_pending", 5872),
-        ("expiry_pending", 5873),
-        ("cleanup_pending", 5874),
+        ("version", 5740),
+        ("run_id", 5741),
+        ("status", 5742),
+        ("updated_at", 5743),
+        ("control_revision", 5744),
+        ("legacy_state", 5862),
+        ("resume_origin", 5874),
+        ("stop_reason", 5875),
+        ("boundary", 5882),
+        ("matched_breakpoints", 5884),
+        ("paused_at", 5885),
+        ("expires_at", 5886),
+        ("ttl_policy_cid", 5887),
+        ("pause_pending", 5888),
+        ("expiry_pending", 5889),
+        ("cleanup_pending", 5890),
       ],
       ["version", "run_id", "status", "updated_at", "control_revision"],
       -1,
@@ -16672,19 +16706,19 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([5703, 5709, 5716, 5723, 5875]))
+  nodes.push(AllOfRule([5719, 5725, 5732, 5739, 5891]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5877, 5878]))
+  nodes.push(protocol_one_of_rule([5893, 5894]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5880, 5881]))
+  nodes.push(protocol_one_of_rule([5896, 5897]))
   nodes.push(protocol_string_rule(Some("non_atomic"), [], 0, 0))
   nodes.push(protocol_string_rule(Some("owner_local"), [], 0, 0))
   nodes.push(nodes[1])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([5886, 5887]))
+  nodes.push(protocol_one_of_rule([5902, 5903]))
   nodes.push(
     protocol_string_rule(
       None,
@@ -16695,14 +16729,14 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5890, 5891]))
+  nodes.push(protocol_one_of_rule([5906, 5907]))
   nodes.push(
     protocol_object_rule(
       [
-        ("owner", 5885),
-        ("revision", 5888),
-        ("state", 5889),
-        ("provenance_cid", 5892),
+        ("owner", 5901),
+        ("revision", 5904),
+        ("state", 5905),
+        ("provenance_cid", 5908),
       ],
       ["owner", "revision", "state", "provenance_cid"],
       -1,
@@ -16710,20 +16744,20 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5893, 0, false, -1))
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(protocol_array_rule(5909, 0, false, -1))
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 5895),
-        ("value", 5896),
-        ("unit", 5897),
-        ("scope_cid", 5898),
-        ("basis_cid", 5899),
+        ("kind", 5911),
+        ("value", 5912),
+        ("unit", 5913),
+        ("scope_cid", 5914),
+        ("basis_cid", 5915),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -16731,32 +16765,32 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5901), ("unit", 5902), ("reason", 5903)],
+      [("kind", 5917), ("unit", 5918), ("reason", 5919)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5900, 5904]))
-  nodes.push(protocol_array_rule(5905, 0, false, -1))
-  nodes.push(nodes[4300])
+  nodes.push(protocol_one_of_rule([5916, 5920]))
+  nodes.push(protocol_array_rule(5921, 0, false, -1))
+  nodes.push(nodes[4316])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([5908, 5909]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([5924, 5925]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 5910),
-        ("authorityScopeCid", 5911),
-        ("runDefinitionCid", 5912),
+        ("namespaceId", 5926),
+        ("authorityScopeCid", 5927),
+        ("runDefinitionCid", 5928),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -16767,51 +16801,51 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[2])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5923), ("stage_ordinal", 5924), ("input_port_ordinal", 5925)],
+      [("kind", 5939), ("stage_ordinal", 5940), ("input_port_ordinal", 5941)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5927), ("step_id", 5928), ("output_port_id", 5929)],
+      [("kind", 5943), ("step_id", 5944), ("output_port_id", 5945)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5926, 5930]))
+  nodes.push(protocol_one_of_rule([5942, 5946]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 5913),
-        ("compiled_plan_cid", 5914),
-        ("logical_map_cid", 5915),
-        ("step_id", 5916),
-        ("role", 5917),
-        ("port_id", 5918),
-        ("carrier", 5919),
-        ("carrier_contract_cid", 5920),
-        ("source_generation_cid", 5921),
-        ("original_capture_cid", 5922),
-        ("producer", 5931),
+        ("run_ref", 5929),
+        ("compiled_plan_cid", 5930),
+        ("logical_map_cid", 5931),
+        ("step_id", 5932),
+        ("role", 5933),
+        ("port_id", 5934),
+        ("carrier", 5935),
+        ("carrier_contract_cid", 5936),
+        ("source_generation_cid", 5937),
+        ("original_capture_cid", 5938),
+        ("producer", 5947),
       ],
       [
         "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id", "role", "port_id",
@@ -16824,25 +16858,25 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[19])
-  nodes.push(protocol_object_rule([("carrier", 5933)], [], -2, 0, None))
-  nodes.push(AllOfRule([5934]))
+  nodes.push(protocol_object_rule([("carrier", 5949)], [], -2, 0, None))
+  nodes.push(AllOfRule([5950]))
   nodes.push(nodes[81])
-  nodes.push(AllOfRule([5932, 5935, 5936]))
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(AllOfRule([5948, 5951, 5952]))
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 5940),
-        ("value", 5941),
-        ("unit", 5942),
-        ("scope_cid", 5943),
-        ("basis_cid", 5944),
+        ("kind", 5956),
+        ("value", 5957),
+        ("unit", 5958),
+        ("scope_cid", 5959),
+        ("basis_cid", 5960),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -16850,35 +16884,35 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5946), ("unit", 5947), ("reason", 5948)],
+      [("kind", 5962), ("unit", 5963), ("reason", 5964)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5945, 5949]))
-  nodes.push(nodes[5168])
-  nodes.push(nodes[5169])
+  nodes.push(protocol_one_of_rule([5961, 5965]))
+  nodes.push(nodes[5184])
+  nodes.push(nodes[5185])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("strategy", 5938),
-        ("sampled_items", 5939),
-        ("total", 5950),
-        ("completeness", 5951),
-        ("truncation", 5952),
-        ("sample_ref_cid", 5953),
-        ("receipt_cid", 5954),
-        ("emission_provenance_cid", 5955),
+        ("strategy", 5954),
+        ("sampled_items", 5955),
+        ("total", 5966),
+        ("completeness", 5967),
+        ("truncation", 5968),
+        ("sample_ref_cid", 5969),
+        ("receipt_cid", 5970),
+        ("emission_provenance_cid", 5971),
       ],
       [
         "strategy", "sampled_items", "total", "completeness", "truncation", "sample_ref_cid",
@@ -16889,22 +16923,22 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5181])
+  nodes.push(nodes[5197])
   nodes.push(nodes[19])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([5961, 5962]))
+  nodes.push(protocol_one_of_rule([5977, 5978]))
   nodes.push(nodes[2])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
       [
-        ("position", 5960),
-        ("name", 5963),
-        ("value_contract_cid", 5964),
-        ("required", 5965),
+        ("position", 5976),
+        ("name", 5979),
+        ("value_contract_cid", 5980),
+        ("required", 5981),
       ],
       ["position", "name", "value_contract_cid", "required"],
       -1,
@@ -16912,38 +16946,38 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(5966, 0, false, -1))
-  nodes.push(nodes[5174])
+  nodes.push(protocol_array_rule(5982, 0, false, -1))
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 5968)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 5984)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 5970), ("value_contract_cid", 5971), ("value", 5972)],
+      [("presence", 5986), ("value_contract_cid", 5987), ("value", 5988)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([5969, 5973]))
-  nodes.push(protocol_array_rule(5974, 0, false, -1))
-  nodes.push(protocol_array_rule(5975, 0, false, -1))
+  nodes.push(protocol_one_of_rule([5985, 5989]))
+  nodes.push(protocol_array_rule(5990, 0, false, -1))
+  nodes.push(protocol_array_rule(5991, 0, false, -1))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([5977, 5978]))
+  nodes.push(protocol_one_of_rule([5993, 5994]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5957),
-        ("kind", 5958),
-        ("schema_cid", 5959),
-        ("columns", 5967),
-        ("rows", 5976),
-        ("ordering_evidence_cid", 5979),
+        ("version", 5973),
+        ("kind", 5974),
+        ("schema_cid", 5975),
+        ("columns", 5983),
+        ("rows", 5992),
+        ("ordering_evidence_cid", 5995),
       ],
       [
         "version", "kind", "schema_cid", "columns", "rows", "ordering_evidence_cid",
@@ -16955,25 +16989,29 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 5907), ("source", 5937), ("capture", 5956), ("data", 5980)],
+      [("state", 5923), ("source", 5953), ("capture", 5972), ("data", 5996)],
       ["state", "source", "capture", "data"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4300])
+  nodes.push(nodes[4316])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([5983, 5984]))
+}
+
+///|
+fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit {
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([5999, 6000]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 5985),
-        ("authorityScopeCid", 5986),
-        ("runDefinitionCid", 5987),
+        ("namespaceId", 6001),
+        ("authorityScopeCid", 6002),
+        ("runDefinitionCid", 6003),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -16984,55 +17022,51 @@ fn generated_protocol_schema_nodes_5(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[2])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
-}
-
-///|
-fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit {
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 5998), ("stage_ordinal", 5999), ("input_port_ordinal", 6000)],
+      [("kind", 6014), ("stage_ordinal", 6015), ("input_port_ordinal", 6016)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6002), ("step_id", 6003), ("output_port_id", 6004)],
+      [("kind", 6018), ("step_id", 6019), ("output_port_id", 6020)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6001, 6005]))
+  nodes.push(protocol_one_of_rule([6017, 6021]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 5988),
-        ("compiled_plan_cid", 5989),
-        ("logical_map_cid", 5990),
-        ("step_id", 5991),
-        ("role", 5992),
-        ("port_id", 5993),
-        ("carrier", 5994),
-        ("carrier_contract_cid", 5995),
-        ("source_generation_cid", 5996),
-        ("original_capture_cid", 5997),
-        ("producer", 6006),
+        ("run_ref", 6004),
+        ("compiled_plan_cid", 6005),
+        ("logical_map_cid", 6006),
+        ("step_id", 6007),
+        ("role", 6008),
+        ("port_id", 6009),
+        ("carrier", 6010),
+        ("carrier_contract_cid", 6011),
+        ("source_generation_cid", 6012),
+        ("original_capture_cid", 6013),
+        ("producer", 6022),
       ],
       [
         "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id", "role", "port_id",
@@ -17044,26 +17078,26 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5206])
-  nodes.push(protocol_object_rule([("carrier", 6008)], [], -2, 0, None))
-  nodes.push(AllOfRule([6009]))
+  nodes.push(nodes[5222])
+  nodes.push(protocol_object_rule([("carrier", 6024)], [], -2, 0, None))
+  nodes.push(AllOfRule([6025]))
   nodes.push(nodes[81])
-  nodes.push(AllOfRule([6007, 6010, 6011]))
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(AllOfRule([6023, 6026, 6027]))
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 6015),
-        ("value", 6016),
-        ("unit", 6017),
-        ("scope_cid", 6018),
-        ("basis_cid", 6019),
+        ("kind", 6031),
+        ("value", 6032),
+        ("unit", 6033),
+        ("scope_cid", 6034),
+        ("basis_cid", 6035),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -17071,35 +17105,35 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6021), ("unit", 6022), ("reason", 6023)],
+      [("kind", 6037), ("unit", 6038), ("reason", 6039)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6020, 6024]))
-  nodes.push(nodes[5168])
-  nodes.push(nodes[5169])
+  nodes.push(protocol_one_of_rule([6036, 6040]))
+  nodes.push(nodes[5184])
+  nodes.push(nodes[5185])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("strategy", 6013),
-        ("sampled_items", 6014),
-        ("total", 6025),
-        ("completeness", 6026),
-        ("truncation", 6027),
-        ("sample_ref_cid", 6028),
-        ("receipt_cid", 6029),
-        ("emission_provenance_cid", 6030),
+        ("strategy", 6029),
+        ("sampled_items", 6030),
+        ("total", 6041),
+        ("completeness", 6042),
+        ("truncation", 6043),
+        ("sample_ref_cid", 6044),
+        ("receipt_cid", 6045),
+        ("emission_provenance_cid", 6046),
       ],
       [
         "strategy", "sampled_items", "total", "completeness", "truncation", "sample_ref_cid",
@@ -17110,8 +17144,8 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5205])
-  nodes.push(nodes[5206])
+  nodes.push(nodes[5221])
+  nodes.push(nodes[5222])
   nodes.push(nodes[2])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
@@ -17121,50 +17155,50 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 6039), ("value", 6040)],
+      [("value_contract_cid", 6055), ("value", 6056)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6041, 1, false, -1))
+  nodes.push(protocol_array_rule(6057, 1, false, -1))
   nodes.push(nodes[1])
-  nodes.push(nodes[5174])
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 6044)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 6060)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 6046), ("value_contract_cid", 6047), ("value", 6048)],
+      [("presence", 6062), ("value_contract_cid", 6063), ("value", 6064)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6045, 6049]))
+  nodes.push(protocol_one_of_rule([6061, 6065]))
   nodes.push(
     protocol_object_rule(
-      [("name", 6043), ("cell", 6050)],
+      [("name", 6059), ("cell", 6066)],
       ["name", "cell"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6051, 0, false, -1))
+  nodes.push(protocol_array_rule(6067, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("definition_cid", 6036),
-        ("domain_cid", 6037),
-        ("identity_cid", 6038),
-        ("key", 6042),
-        ("properties", 6052),
+        ("definition_cid", 6052),
+        ("domain_cid", 6053),
+        ("identity_cid", 6054),
+        ("key", 6058),
+        ("properties", 6068),
       ],
       ["definition_cid", "domain_cid", "identity_cid", "key", "properties"],
       -1,
@@ -17172,7 +17206,7 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6053, 0, false, -1))
+  nodes.push(protocol_array_rule(6069, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -17180,72 +17214,72 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 6058), ("value", 6059)],
+      [("value_contract_cid", 6074), ("value", 6075)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6060, 1, false, -1))
+  nodes.push(protocol_array_rule(6076, 1, false, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[5174])
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 6064)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 6080)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 6066), ("value_contract_cid", 6067), ("value", 6068)],
+      [("presence", 6082), ("value_contract_cid", 6083), ("value", 6084)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6065, 6069]))
+  nodes.push(protocol_one_of_rule([6081, 6085]))
   nodes.push(nodes[1])
-  nodes.push(nodes[5174])
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 6072)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 6088)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 6074), ("value_contract_cid", 6075), ("value", 6076)],
+      [("presence", 6090), ("value_contract_cid", 6091), ("value", 6092)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6073, 6077]))
+  nodes.push(protocol_one_of_rule([6089, 6093]))
   nodes.push(
     protocol_object_rule(
-      [("name", 6071), ("cell", 6078)],
+      [("name", 6087), ("cell", 6094)],
       ["name", "cell"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6079, 0, false, -1))
+  nodes.push(protocol_array_rule(6095, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("definition_cid", 6055),
-        ("domain_cid", 6056),
-        ("identity_cid", 6057),
-        ("key", 6061),
-        ("src_identity_cid", 6062),
-        ("dst_identity_cid", 6063),
-        ("label", 6070),
-        ("properties", 6080),
+        ("definition_cid", 6071),
+        ("domain_cid", 6072),
+        ("identity_cid", 6073),
+        ("key", 6077),
+        ("src_identity_cid", 6078),
+        ("dst_identity_cid", 6079),
+        ("label", 6086),
+        ("properties", 6096),
       ],
       [
         "definition_cid", "domain_cid", "identity_cid", "key", "src_identity_cid",
@@ -17256,16 +17290,16 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6081, 0, false, -1))
+  nodes.push(protocol_array_rule(6097, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6032),
-        ("kind", 6033),
-        ("graph_contract_cid", 6034),
-        ("topology_complete", 6035),
-        ("nodes", 6054),
-        ("edges", 6082),
+        ("version", 6048),
+        ("kind", 6049),
+        ("graph_contract_cid", 6050),
+        ("topology_complete", 6051),
+        ("nodes", 6070),
+        ("edges", 6098),
       ],
       [
         "version", "kind", "graph_contract_cid", "topology_complete", "nodes", "edges",
@@ -17277,25 +17311,25 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 5982), ("source", 6012), ("capture", 6031), ("data", 6083)],
+      [("state", 5998), ("source", 6028), ("capture", 6047), ("data", 6099)],
       ["state", "source", "capture", "data"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4300])
+  nodes.push(nodes[4316])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([6086, 6087]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([6102, 6103]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 6088),
-        ("authorityScopeCid", 6089),
-        ("runDefinitionCid", 6090),
+        ("namespaceId", 6104),
+        ("authorityScopeCid", 6105),
+        ("runDefinitionCid", 6106),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -17306,51 +17340,51 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[2])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6101), ("stage_ordinal", 6102), ("input_port_ordinal", 6103)],
+      [("kind", 6117), ("stage_ordinal", 6118), ("input_port_ordinal", 6119)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6105), ("step_id", 6106), ("output_port_id", 6107)],
+      [("kind", 6121), ("step_id", 6122), ("output_port_id", 6123)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6104, 6108]))
+  nodes.push(protocol_one_of_rule([6120, 6124]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 6091),
-        ("compiled_plan_cid", 6092),
-        ("logical_map_cid", 6093),
-        ("step_id", 6094),
-        ("role", 6095),
-        ("port_id", 6096),
-        ("carrier", 6097),
-        ("carrier_contract_cid", 6098),
-        ("source_generation_cid", 6099),
-        ("original_capture_cid", 6100),
-        ("producer", 6109),
+        ("run_ref", 6107),
+        ("compiled_plan_cid", 6108),
+        ("logical_map_cid", 6109),
+        ("step_id", 6110),
+        ("role", 6111),
+        ("port_id", 6112),
+        ("carrier", 6113),
+        ("carrier_contract_cid", 6114),
+        ("source_generation_cid", 6115),
+        ("original_capture_cid", 6116),
+        ("producer", 6125),
       ],
       [
         "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id", "role", "port_id",
@@ -17362,26 +17396,26 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5258])
-  nodes.push(protocol_object_rule([("carrier", 6111)], [], -2, 0, None))
-  nodes.push(AllOfRule([6112]))
+  nodes.push(nodes[5274])
+  nodes.push(protocol_object_rule([("carrier", 6127)], [], -2, 0, None))
+  nodes.push(AllOfRule([6128]))
   nodes.push(nodes[81])
-  nodes.push(AllOfRule([6110, 6113, 6114]))
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(AllOfRule([6126, 6129, 6130]))
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 6118),
-        ("value", 6119),
-        ("unit", 6120),
-        ("scope_cid", 6121),
-        ("basis_cid", 6122),
+        ("kind", 6134),
+        ("value", 6135),
+        ("unit", 6136),
+        ("scope_cid", 6137),
+        ("basis_cid", 6138),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -17389,35 +17423,35 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6124), ("unit", 6125), ("reason", 6126)],
+      [("kind", 6140), ("unit", 6141), ("reason", 6142)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6123, 6127]))
-  nodes.push(nodes[5168])
-  nodes.push(nodes[5169])
+  nodes.push(protocol_one_of_rule([6139, 6143]))
+  nodes.push(nodes[5184])
+  nodes.push(nodes[5185])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("strategy", 6116),
-        ("sampled_items", 6117),
-        ("total", 6128),
-        ("completeness", 6129),
-        ("truncation", 6130),
-        ("sample_ref_cid", 6131),
-        ("receipt_cid", 6132),
-        ("emission_provenance_cid", 6133),
+        ("strategy", 6132),
+        ("sampled_items", 6133),
+        ("total", 6144),
+        ("completeness", 6145),
+        ("truncation", 6146),
+        ("sample_ref_cid", 6147),
+        ("receipt_cid", 6148),
+        ("emission_provenance_cid", 6149),
       ],
       [
         "strategy", "sampled_items", "total", "completeness", "truncation", "sample_ref_cid",
@@ -17428,44 +17462,44 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5257])
-  nodes.push(nodes[5258])
+  nodes.push(nodes[5273])
+  nodes.push(nodes[5274])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 6138), ("value", 6139)],
+      [("value_contract_cid", 6154), ("value", 6155)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6140, 1, false, -1))
-  nodes.push(nodes[3673])
+  nodes.push(protocol_array_rule(6156, 1, false, -1))
+  nodes.push(nodes[3687])
   nodes.push(nodes[1])
   nodes.push(nodes[14])
   nodes.push(nodes[190])
   nodes.push(nodes[395])
   nodes.push(
     protocol_object_rule(
-      [("index", 6145), ("value", 6146)],
+      [("index", 6161), ("value", 6162)],
       ["index", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6147, 0, false, -1))
+  nodes.push(protocol_array_rule(6163, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("key", 6141),
-        ("dimension", 6142),
-        ("precision", 6143),
-        ("components_complete", 6144),
-        ("components", 6148),
+        ("key", 6157),
+        ("dimension", 6158),
+        ("precision", 6159),
+        ("components_complete", 6160),
+        ("components", 6164),
       ],
       ["key", "dimension", "precision", "components_complete", "components"],
       -1,
@@ -17473,14 +17507,14 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6149, 0, false, -1))
+  nodes.push(protocol_array_rule(6165, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6135),
-        ("kind", 6136),
-        ("vectors_contract_cid", 6137),
-        ("items", 6150),
+        ("version", 6151),
+        ("kind", 6152),
+        ("vectors_contract_cid", 6153),
+        ("items", 6166),
       ],
       ["version", "kind", "vectors_contract_cid", "items"],
       -1,
@@ -17490,25 +17524,25 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 6085), ("source", 6115), ("capture", 6134), ("data", 6151)],
+      [("state", 6101), ("source", 6131), ("capture", 6150), ("data", 6167)],
       ["state", "source", "capture", "data"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4300])
+  nodes.push(nodes[4316])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([6154, 6155]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([6170, 6171]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 6156),
-        ("authorityScopeCid", 6157),
-        ("runDefinitionCid", 6158),
+        ("namespaceId", 6172),
+        ("authorityScopeCid", 6173),
+        ("runDefinitionCid", 6174),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -17519,51 +17553,51 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[2])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6169), ("stage_ordinal", 6170), ("input_port_ordinal", 6171)],
+      [("kind", 6185), ("stage_ordinal", 6186), ("input_port_ordinal", 6187)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6173), ("step_id", 6174), ("output_port_id", 6175)],
+      [("kind", 6189), ("step_id", 6190), ("output_port_id", 6191)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6172, 6176]))
+  nodes.push(protocol_one_of_rule([6188, 6192]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_ref", 6159),
-        ("compiled_plan_cid", 6160),
-        ("logical_map_cid", 6161),
-        ("step_id", 6162),
-        ("role", 6163),
-        ("port_id", 6164),
-        ("carrier", 6165),
-        ("carrier_contract_cid", 6166),
-        ("source_generation_cid", 6167),
-        ("original_capture_cid", 6168),
-        ("producer", 6177),
+        ("run_ref", 6175),
+        ("compiled_plan_cid", 6176),
+        ("logical_map_cid", 6177),
+        ("step_id", 6178),
+        ("role", 6179),
+        ("port_id", 6180),
+        ("carrier", 6181),
+        ("carrier_contract_cid", 6182),
+        ("source_generation_cid", 6183),
+        ("original_capture_cid", 6184),
+        ("producer", 6193),
       ],
       [
         "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id", "role", "port_id",
@@ -17575,26 +17609,26 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[5281])
-  nodes.push(protocol_object_rule([("carrier", 6179)], [], -2, 0, None))
-  nodes.push(AllOfRule([6180]))
+  nodes.push(nodes[5297])
+  nodes.push(protocol_object_rule([("carrier", 6195)], [], -2, 0, None))
+  nodes.push(AllOfRule([6196]))
   nodes.push(nodes[81])
-  nodes.push(AllOfRule([6178, 6181, 6182]))
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(AllOfRule([6194, 6197, 6198]))
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 6186),
-        ("value", 6187),
-        ("unit", 6188),
-        ("scope_cid", 6189),
-        ("basis_cid", 6190),
+        ("kind", 6202),
+        ("value", 6203),
+        ("unit", 6204),
+        ("scope_cid", 6205),
+        ("basis_cid", 6206),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -17602,35 +17636,35 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6192), ("unit", 6193), ("reason", 6194)],
+      [("kind", 6208), ("unit", 6209), ("reason", 6210)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6191, 6195]))
-  nodes.push(nodes[5168])
-  nodes.push(nodes[5169])
+  nodes.push(protocol_one_of_rule([6207, 6211]))
+  nodes.push(nodes[5184])
+  nodes.push(nodes[5185])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("strategy", 6184),
-        ("sampled_items", 6185),
-        ("total", 6196),
-        ("completeness", 6197),
-        ("truncation", 6198),
-        ("sample_ref_cid", 6199),
-        ("receipt_cid", 6200),
-        ("emission_provenance_cid", 6201),
+        ("strategy", 6200),
+        ("sampled_items", 6201),
+        ("total", 6212),
+        ("completeness", 6213),
+        ("truncation", 6214),
+        ("sample_ref_cid", 6215),
+        ("receipt_cid", 6216),
+        ("emission_provenance_cid", 6217),
       ],
       [
         "strategy", "sampled_items", "total", "completeness", "truncation", "sample_ref_cid",
@@ -17644,7 +17678,7 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
-      [("order_proven", 6203)],
+      [("order_proven", 6219)],
       ["order_proven"],
       -2,
       0,
@@ -17653,85 +17687,85 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[2])
   nodes.push(
-    protocol_object_rule([("ordering_evidence_cid", 6205)], [], -2, 0, None),
+    protocol_object_rule([("ordering_evidence_cid", 6221)], [], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(6204, 6206, 6207))
-  nodes.push(nodes[5280])
-  nodes.push(nodes[5281])
+  nodes.push(ConditionalRule(6220, 6222, 6223))
+  nodes.push(nodes[5296])
+  nodes.push(nodes[5297])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([6214, 6215]))
+  nodes.push(protocol_one_of_rule([6230, 6231]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([6217, 6218]))
+  nodes.push(protocol_one_of_rule([6233, 6234]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([6220, 6221]))
+  nodes.push(protocol_one_of_rule([6236, 6237]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([6223, 6224]))
+  nodes.push(protocol_one_of_rule([6239, 6240]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([6227, 6228]))
+  nodes.push(protocol_one_of_rule([6243, 6244]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("value_contract_cid", 6231), ("value", 6232)],
+      [("value_contract_cid", 6247), ("value", 6248)],
       ["value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6233, 1, false, -1))
-  nodes.push(nodes[5174])
+  nodes.push(protocol_array_rule(6249, 1, false, -1))
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 6235)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 6251)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 6237), ("value_contract_cid", 6238), ("value", 6239)],
+      [("presence", 6253), ("value_contract_cid", 6254), ("value", 6255)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6236, 6240]))
-  nodes.push(nodes[5174])
+  nodes.push(protocol_one_of_rule([6252, 6256]))
+  nodes.push(nodes[5190])
   nodes.push(
-    protocol_object_rule([("presence", 6242)], ["presence"], -1, 0, None),
+    protocol_object_rule([("presence", 6258)], ["presence"], -1, 0, None),
   )
   nodes.push(nodes[2495])
   nodes.push(nodes[2])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("presence", 6244), ("value_contract_cid", 6245), ("value", 6246)],
+      [("presence", 6260), ("value_contract_cid", 6261), ("value", 6262)],
       ["presence", "value_contract_cid", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6243, 6247]))
+  nodes.push(protocol_one_of_rule([6259, 6263]))
   nodes.push(
     protocol_object_rule(
       [
-        ("occurrence_cid", 6230),
-        ("key", 6234),
-        ("timestamp", 6241),
-        ("payload", 6248),
+        ("occurrence_cid", 6246),
+        ("key", 6250),
+        ("timestamp", 6257),
+        ("payload", 6264),
       ],
       ["occurrence_cid", "key", "timestamp", "payload"],
       -1,
@@ -17739,22 +17773,22 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6249, 0, false, -1))
+  nodes.push(protocol_array_rule(6265, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6209),
-        ("kind", 6210),
-        ("events_contract_cid", 6211),
-        ("identity_role", 6212),
-        ("time_role", 6213),
-        ("clock_evidence_cid", 6216),
-        ("window_evidence_cid", 6219),
-        ("watermark_evidence_cid", 6222),
-        ("late_evidence_cid", 6225),
-        ("order_proven", 6226),
-        ("ordering_evidence_cid", 6229),
-        ("occurrences", 6250),
+        ("version", 6225),
+        ("kind", 6226),
+        ("events_contract_cid", 6227),
+        ("identity_role", 6228),
+        ("time_role", 6229),
+        ("clock_evidence_cid", 6232),
+        ("window_evidence_cid", 6235),
+        ("watermark_evidence_cid", 6238),
+        ("late_evidence_cid", 6241),
+        ("order_proven", 6242),
+        ("ordering_evidence_cid", 6245),
+        ("occurrences", 6266),
       ],
       [
         "version", "kind", "events_contract_cid", "identity_role", "time_role", "clock_evidence_cid",
@@ -17766,44 +17800,44 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([6208, 6251]))
+  nodes.push(AllOfRule([6224, 6267]))
   nodes.push(
     protocol_object_rule(
-      [("state", 6153), ("source", 6183), ("capture", 6202), ("data", 6252)],
+      [("state", 6169), ("source", 6199), ("capture", 6218), ("data", 6268)],
       ["state", "source", "capture", "data"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4306])
-  nodes.push(nodes[5672])
+  nodes.push(nodes[4322])
+  nodes.push(nodes[5688])
   nodes.push(
     protocol_object_rule(
-      [("state", 6254), ("reason", 6255)],
+      [("state", 6270), ("reason", 6271)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("state", 6257), ("reason", 6258)],
+      [("state", 6273), ("reason", 6274)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[5677])
-  nodes.push(protocol_object_rule([("state", 6260)], ["state"], -1, 0, None))
-  nodes.push(nodes[5679])
-  nodes.push(protocol_object_rule([("state", 6262)], ["state"], -1, 0, None))
+  nodes.push(nodes[5693])
+  nodes.push(protocol_object_rule([("state", 6276)], ["state"], -1, 0, None))
+  nodes.push(nodes[5695])
+  nodes.push(protocol_object_rule([("state", 6278)], ["state"], -1, 0, None))
   nodes.push(
-    protocol_one_of_rule([5981, 6084, 6152, 6253, 6256, 6259, 6261, 6263]),
+    protocol_one_of_rule([5997, 6100, 6168, 6269, 6272, 6275, 6277, 6279]),
   )
   nodes.push(
     protocol_string_rule(
@@ -17815,28 +17849,30 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       0,
     ),
   )
-  nodes.push(protocol_array_rule(6265, 0, true, -1))
+  nodes.push(protocol_array_rule(6281, 0, true, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(6270, 0, true, -1))
+  nodes.push(protocol_array_rule(6286, 0, true, -1))
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(6272, 0, true, -1))
+  nodes.push(protocol_array_rule(6288, 0, true, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
+  nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
       [
-        ("static_plan", 6267),
-        ("inspect", 6268),
-        ("durable_control", 6269),
-        ("sample_capture", 6271),
-        ("full_intermediate_retention", 6273),
-        ("cost_guard", 6274),
-        ("execution_batch", 6275),
-        ("policy_revision_cid", 6276),
+        ("static_plan", 6283),
+        ("inspect", 6284),
+        ("durable_control", 6285),
+        ("sample_capture", 6287),
+        ("full_intermediate_retention", 6289),
+        ("cost_guard", 6290),
+        ("execution_batch", 6291),
+        ("policy_revision_cid", 6292),
+        ("debug_entry", 6293),
       ],
       [
         "static_plan", "inspect", "durable_control", "sample_capture", "full_intermediate_retention",
@@ -17850,18 +17886,18 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 5682),
-        ("run_ref", 5688),
-        ("run_state", 5876),
-        ("compiled_plan_cid", 5879),
-        ("logical_map_cid", 5882),
-        ("consistency", 5883),
-        ("observation_scope", 5884),
-        ("components", 5894),
-        ("quantities", 5906),
-        ("sample", 6264),
-        ("available_operations", 6266),
-        ("capabilities", 6277),
+        ("version", 5698),
+        ("run_ref", 5704),
+        ("run_state", 5892),
+        ("compiled_plan_cid", 5895),
+        ("logical_map_cid", 5898),
+        ("consistency", 5899),
+        ("observation_scope", 5900),
+        ("components", 5910),
+        ("quantities", 5922),
+        ("sample", 6280),
+        ("available_operations", 6282),
+        ("capabilities", 6294),
       ],
       [
         "version", "run_ref", "run_state", "compiled_plan_cid", "logical_map_cid",
@@ -17875,16 +17911,16 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_string_rule(Some("actql-run-plan-view/0.1"), [], 0, 0))
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([6280, 6281]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([6297, 6298]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 6282),
-        ("authorityScopeCid", 6283),
-        ("runDefinitionCid", 6284),
+        ("namespaceId", 6299),
+        ("authorityScopeCid", 6300),
+        ("runDefinitionCid", 6301),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -17892,47 +17928,47 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4084])
+  nodes.push(nodes[4099])
   nodes.push(nodes[2])
-  nodes.push(nodes[3974])
+  nodes.push(nodes[3988])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6295), ("operation_ordinal", 6296)],
+      [("kind", 6312), ("operation_ordinal", 6313)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6298), ("input_port_ordinal", 6299)],
+      [("kind", 6315), ("input_port_ordinal", 6316)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6297, 6300]))
+  nodes.push(protocol_one_of_rule([6314, 6317]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6292),
-        ("compiled_plan_cid", 6293),
-        ("stage_ordinal", 6294),
-        ("occurrence", 6301),
-        ("self_cid", 6302),
+        ("version", 6309),
+        ("compiled_plan_cid", 6310),
+        ("stage_ordinal", 6311),
+        ("occurrence", 6318),
+        ("self_cid", 6319),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -17943,55 +17979,55 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(6304, 0, true, -1))
+  nodes.push(protocol_array_rule(6321, 0, true, -1))
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([6306, 6307]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([6323, 6324]))
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[190])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6314), ("stage_ordinal", 6315), ("input_port_ordinal", 6316)],
+      [("kind", 6331), ("stage_ordinal", 6332), ("input_port_ordinal", 6333)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6318), ("step_id", 6319), ("output_port_id", 6320)],
+      [("kind", 6335), ("step_id", 6336), ("output_port_id", 6337)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6317, 6321]))
+  nodes.push(protocol_one_of_rule([6334, 6338]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([6324, 6325]))
+  nodes.push(protocol_one_of_rule([6341, 6342]))
   nodes.push(
     protocol_object_rule(
       [
-        ("port_id", 6309),
-        ("role", 6310),
-        ("port_ordinal", 6311),
-        ("carrier", 6312),
-        ("carrier_contract_cid", 6313),
-        ("source", 6322),
-        ("can_sample", 6323),
-        ("sample_reason", 6326),
+        ("port_id", 6326),
+        ("role", 6327),
+        ("port_ordinal", 6328),
+        ("carrier", 6329),
+        ("carrier_contract_cid", 6330),
+        ("source", 6339),
+        ("can_sample", 6340),
+        ("sample_reason", 6343),
       ],
       [
         "port_id", "role", "port_ordinal", "carrier", "carrier_contract_cid", "source",
@@ -18002,23 +18038,23 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6327, 1, false, -1))
+  nodes.push(protocol_array_rule(6344, 1, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([6331, 6332]))
+  nodes.push(protocol_one_of_rule([6348, 6349]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 6291),
-        ("key", 6303),
-        ("names", 6305),
-        ("operator", 6308),
-        ("ports", 6328),
-        ("can_stop_before", 6329),
-        ("can_stop_after", 6330),
-        ("stop_reason", 6333),
+        ("step_id", 6308),
+        ("key", 6320),
+        ("names", 6322),
+        ("operator", 6325),
+        ("ports", 6345),
+        ("can_stop_before", 6346),
+        ("can_stop_after", 6347),
+        ("stop_reason", 6350),
       ],
       [
         "step_id", "key", "names", "operator", "ports", "can_stop_before", "can_stop_after",
@@ -18029,16 +18065,16 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6334, 0, false, -1))
+  nodes.push(protocol_array_rule(6351, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6288),
-        ("compiled_plan_cid", 6289),
-        ("program_definition_cid", 6290),
-        ("steps", 6335),
-        ("self_cid", 6336),
+        ("version", 6305),
+        ("compiled_plan_cid", 6306),
+        ("program_definition_cid", 6307),
+        ("steps", 6352),
+        ("self_cid", 6353),
       ],
       [
         "version", "compiled_plan_cid", "program_definition_cid", "steps", "self_cid",
@@ -18048,21 +18084,21 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4136])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(nodes[4151])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 6340),
-        ("value", 6341),
-        ("unit", 6342),
-        ("scope_cid", 6343),
-        ("basis_cid", 6344),
+        ("kind", 6357),
+        ("value", 6358),
+        ("unit", 6359),
+        ("scope_cid", 6360),
+        ("basis_cid", 6361),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -18070,41 +18106,43 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6346), ("unit", 6347), ("reason", 6348)],
+      [("kind", 6363), ("unit", 6364), ("reason", 6365)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6345, 6349]))
-  nodes.push(protocol_array_rule(6350, 0, false, -1))
+  nodes.push(protocol_one_of_rule([6362, 6366]))
+  nodes.push(protocol_array_rule(6367, 0, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(6355, 0, true, -1))
+  nodes.push(protocol_array_rule(6372, 0, true, -1))
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(6357, 0, true, -1))
+  nodes.push(protocol_array_rule(6374, 0, true, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
+  nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
       [
-        ("static_plan", 6352),
-        ("inspect", 6353),
-        ("durable_control", 6354),
-        ("sample_capture", 6356),
-        ("full_intermediate_retention", 6358),
-        ("cost_guard", 6359),
-        ("execution_batch", 6360),
-        ("policy_revision_cid", 6361),
+        ("static_plan", 6369),
+        ("inspect", 6370),
+        ("durable_control", 6371),
+        ("sample_capture", 6373),
+        ("full_intermediate_retention", 6375),
+        ("cost_guard", 6376),
+        ("execution_batch", 6377),
+        ("policy_revision_cid", 6378),
+        ("debug_entry", 6379),
       ],
       [
         "static_plan", "inspect", "durable_control", "sample_capture", "full_intermediate_retention",
@@ -18118,13 +18156,13 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6286),
-        ("compiled_plan_cid", 6287),
-        ("logical_map", 6337),
-        ("observation", 6338),
-        ("provider_io", 6339),
-        ("quantities", 6351),
-        ("capabilities", 6362),
+        ("version", 6303),
+        ("compiled_plan_cid", 6304),
+        ("logical_map", 6354),
+        ("observation", 6355),
+        ("provider_io", 6356),
+        ("quantities", 6368),
+        ("capabilities", 6380),
       ],
       [
         "version", "compiled_plan_cid", "logical_map", "observation", "provider_io",
@@ -18137,7 +18175,7 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("version", 6279), ("run_ref", 6285), ("plan_view", 6363)],
+      [("version", 6296), ("run_ref", 6302), ("plan_view", 6381)],
       ["version", "run_ref", "plan_view"],
       -1,
       0,
@@ -18151,47 +18189,47 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(protocol_string_rule(Some("computation_component"), [], 0, 0))
-  nodes.push(nodes[4084])
+  nodes.push(nodes[4099])
   nodes.push(nodes[2])
-  nodes.push(nodes[3974])
+  nodes.push(nodes[3988])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6379), ("operation_ordinal", 6380)],
+      [("kind", 6397), ("operation_ordinal", 6398)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6382), ("input_port_ordinal", 6383)],
+      [("kind", 6400), ("input_port_ordinal", 6401)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6381, 6384]))
+  nodes.push(protocol_one_of_rule([6399, 6402]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6376),
-        ("compiled_plan_cid", 6377),
-        ("stage_ordinal", 6378),
-        ("occurrence", 6385),
-        ("self_cid", 6386),
+        ("version", 6394),
+        ("compiled_plan_cid", 6395),
+        ("stage_ordinal", 6396),
+        ("occurrence", 6403),
+        ("self_cid", 6404),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -18202,55 +18240,55 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(6388, 0, true, -1))
+  nodes.push(protocol_array_rule(6406, 0, true, -1))
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([6390, 6391]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([6408, 6409]))
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[190])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6398), ("stage_ordinal", 6399), ("input_port_ordinal", 6400)],
+      [("kind", 6416), ("stage_ordinal", 6417), ("input_port_ordinal", 6418)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6402), ("step_id", 6403), ("output_port_id", 6404)],
+      [("kind", 6420), ("step_id", 6421), ("output_port_id", 6422)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6401, 6405]))
+  nodes.push(protocol_one_of_rule([6419, 6423]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([6408, 6409]))
+  nodes.push(protocol_one_of_rule([6426, 6427]))
   nodes.push(
     protocol_object_rule(
       [
-        ("port_id", 6393),
-        ("role", 6394),
-        ("port_ordinal", 6395),
-        ("carrier", 6396),
-        ("carrier_contract_cid", 6397),
-        ("source", 6406),
-        ("can_sample", 6407),
-        ("sample_reason", 6410),
+        ("port_id", 6411),
+        ("role", 6412),
+        ("port_ordinal", 6413),
+        ("carrier", 6414),
+        ("carrier_contract_cid", 6415),
+        ("source", 6424),
+        ("can_sample", 6425),
+        ("sample_reason", 6428),
       ],
       [
         "port_id", "role", "port_ordinal", "carrier", "carrier_contract_cid", "source",
@@ -18261,23 +18299,23 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6411, 1, false, -1))
+  nodes.push(protocol_array_rule(6429, 1, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([6415, 6416]))
+  nodes.push(protocol_one_of_rule([6433, 6434]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 6375),
-        ("key", 6387),
-        ("names", 6389),
-        ("operator", 6392),
-        ("ports", 6412),
-        ("can_stop_before", 6413),
-        ("can_stop_after", 6414),
-        ("stop_reason", 6417),
+        ("step_id", 6393),
+        ("key", 6405),
+        ("names", 6407),
+        ("operator", 6410),
+        ("ports", 6430),
+        ("can_stop_before", 6431),
+        ("can_stop_after", 6432),
+        ("stop_reason", 6435),
       ],
       [
         "step_id", "key", "names", "operator", "ports", "can_stop_before", "can_stop_after",
@@ -18288,16 +18326,16 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6418, 0, false, -1))
+  nodes.push(protocol_array_rule(6436, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6372),
-        ("compiled_plan_cid", 6373),
-        ("program_definition_cid", 6374),
-        ("steps", 6419),
-        ("self_cid", 6420),
+        ("version", 6390),
+        ("compiled_plan_cid", 6391),
+        ("program_definition_cid", 6392),
+        ("steps", 6437),
+        ("self_cid", 6438),
       ],
       [
         "version", "compiled_plan_cid", "program_definition_cid", "steps", "self_cid",
@@ -18307,21 +18345,21 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4136])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(nodes[4151])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 6424),
-        ("value", 6425),
-        ("unit", 6426),
-        ("scope_cid", 6427),
-        ("basis_cid", 6428),
+        ("kind", 6442),
+        ("value", 6443),
+        ("unit", 6444),
+        ("scope_cid", 6445),
+        ("basis_cid", 6446),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -18329,41 +18367,43 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6430), ("unit", 6431), ("reason", 6432)],
+      [("kind", 6448), ("unit", 6449), ("reason", 6450)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6429, 6433]))
-  nodes.push(protocol_array_rule(6434, 0, false, -1))
+  nodes.push(protocol_one_of_rule([6447, 6451]))
+  nodes.push(protocol_array_rule(6452, 0, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(6439, 0, true, -1))
+  nodes.push(protocol_array_rule(6457, 0, true, -1))
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(6441, 0, true, -1))
+  nodes.push(protocol_array_rule(6459, 0, true, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
+  nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
       [
-        ("static_plan", 6436),
-        ("inspect", 6437),
-        ("durable_control", 6438),
-        ("sample_capture", 6440),
-        ("full_intermediate_retention", 6442),
-        ("cost_guard", 6443),
-        ("execution_batch", 6444),
-        ("policy_revision_cid", 6445),
+        ("static_plan", 6454),
+        ("inspect", 6455),
+        ("durable_control", 6456),
+        ("sample_capture", 6458),
+        ("full_intermediate_retention", 6460),
+        ("cost_guard", 6461),
+        ("execution_batch", 6462),
+        ("policy_revision_cid", 6463),
+        ("debug_entry", 6464),
       ],
       [
         "static_plan", "inspect", "durable_control", "sample_capture", "full_intermediate_retention",
@@ -18377,13 +18417,13 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6370),
-        ("compiled_plan_cid", 6371),
-        ("logical_map", 6421),
-        ("observation", 6422),
-        ("provider_io", 6423),
-        ("quantities", 6435),
-        ("capabilities", 6446),
+        ("version", 6388),
+        ("compiled_plan_cid", 6389),
+        ("logical_map", 6439),
+        ("observation", 6440),
+        ("provider_io", 6441),
+        ("quantities", 6453),
+        ("capabilities", 6465),
       ],
       [
         "version", "compiled_plan_cid", "logical_map", "observation", "provider_io",
@@ -18396,7 +18436,7 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("scope", 6369), ("plan_view", 6447)],
+      [("scope", 6387), ("plan_view", 6466)],
       ["scope", "plan_view"],
       -1,
       0,
@@ -18406,15 +18446,15 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[2408])
   nodes.push(
-    protocol_object_rule([("effect_kind", 6450)], ["effect_kind"], -2, 0, None),
+    protocol_object_rule([("effect_kind", 6469)], ["effect_kind"], -2, 0, None),
   )
   nodes.push(nodes[2408])
-  nodes.push(protocol_object_rule([("kind", 6452)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("kind", 6471)], [], -2, 0, None))
   nodes.push(protocol_string_rule(Some("not_represented"), [], 0, 0))
-  nodes.push(protocol_object_rule([("kind", 6454)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("kind", 6473)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("contract", 6453), ("minimum_approval", 6455)],
+      [("contract", 6472), ("minimum_approval", 6474)],
       [],
       -2,
       0,
@@ -18422,19 +18462,19 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(protocol_string_rule(Some("mapping"), [], 0, 0))
-  nodes.push(protocol_object_rule([("kind", 6457)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("kind", 6476)], [], -2, 0, None))
   nodes.push(protocol_string_rule(Some("contract_minimum"), [], 0, 0))
-  nodes.push(protocol_object_rule([("kind", 6459)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("kind", 6478)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("contract", 6458), ("minimum_approval", 6460)],
+      [("contract", 6477), ("minimum_approval", 6479)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(ConditionalRule(6451, 6456, 6461))
+  nodes.push(ConditionalRule(6470, 6475, 6480))
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(nodes[1])
@@ -18446,17 +18486,17 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       0,
     ),
   )
-  nodes.push(nodes[6457])
+  nodes.push(nodes[6476])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 6467),
-        ("reference", 6468),
-        ("contract_cid", 6469),
-        ("declared_target", 6470),
+        ("kind", 6486),
+        ("reference", 6487),
+        ("contract_cid", 6488),
+        ("declared_target", 6489),
       ],
       ["kind", "reference", "contract_cid", "declared_target"],
       -1,
@@ -18471,10 +18511,10 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 6472),
-        ("reference", 6473),
-        ("contract_cid", 6474),
-        ("resource_kind", 6475),
+        ("kind", 6491),
+        ("reference", 6492),
+        ("contract_cid", 6493),
+        ("resource_kind", 6494),
       ],
       ["kind", "reference", "contract_cid", "resource_kind"],
       -1,
@@ -18482,12 +18522,12 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6471, 6476]))
+  nodes.push(protocol_one_of_rule([6490, 6495]))
   nodes.push(protocol_string_rule(Some("result"), [], 0, 0))
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6478), ("result_name", 6479)],
+      [("kind", 6497), ("result_name", 6498)],
       ["kind", "result_name"],
       -1,
       0,
@@ -18498,42 +18538,42 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6481), ("table_name", 6482)],
+      [("kind", 6500), ("table_name", 6501)],
       ["kind", "table_name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 6484)], ["kind"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([6480, 6483, 6485]))
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 6503)], ["kind"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([6499, 6502, 6504]))
   nodes.push(nodes[2469])
-  nodes.push(nodes[6459])
+  nodes.push(nodes[6478])
   nodes.push(nodes[2468])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6488), ("value", 6489)],
+      [("kind", 6507), ("value", 6508)],
       ["kind", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6454])
-  nodes.push(protocol_object_rule([("kind", 6491)], ["kind"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([6490, 6492]))
+  nodes.push(nodes[6473])
+  nodes.push(protocol_object_rule([("kind", 6510)], ["kind"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([6509, 6511]))
   nodes.push(
     protocol_object_rule(
       [
-        ("member_ordinal", 6463),
-        ("stage_ordinal", 6464),
-        ("effect_id", 6465),
-        ("effect_kind", 6466),
-        ("contract", 6477),
-        ("input", 6486),
-        ("failure_policy", 6487),
-        ("minimum_approval", 6493),
+        ("member_ordinal", 6482),
+        ("stage_ordinal", 6483),
+        ("effect_id", 6484),
+        ("effect_kind", 6485),
+        ("contract", 6496),
+        ("input", 6505),
+        ("failure_policy", 6506),
+        ("minimum_approval", 6512),
       ],
       [
         "member_ordinal", "stage_ordinal", "effect_id", "effect_kind", "contract",
@@ -18544,79 +18584,79 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([6462, 6494]))
-  nodes.push(protocol_array_rule(6495, 1, false, 64))
+  nodes.push(AllOfRule([6481, 6513]))
+  nodes.push(protocol_array_rule(6514, 1, false, 64))
   nodes.push(
     protocol_object_rule(
-      [("unit_id", 6449), ("members", 6496)],
+      [("unit_id", 6468), ("members", 6515)],
       ["unit_id", "members"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4136])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[3004])
+  nodes.push(nodes[4151])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[3018])
   nodes.push(protocol_string_rule(Some("not_observed"), [], 0, 0))
   nodes.push(
     protocol_object_rule(
-      [("state", 6500), ("reason", 6501)],
+      [("state", 6519), ("reason", 6520)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
-  nodes.push(nodes[6501])
+  nodes.push(nodes[3018])
+  nodes.push(nodes[6520])
   nodes.push(
     protocol_object_rule(
-      [("state", 6503), ("reason", 6504)],
+      [("state", 6522), ("reason", 6523)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
-  nodes.push(nodes[6501])
+  nodes.push(nodes[3018])
+  nodes.push(nodes[6520])
   nodes.push(
     protocol_object_rule(
-      [("state", 6506), ("reason", 6507)],
+      [("state", 6525), ("reason", 6526)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
-  nodes.push(nodes[6501])
+  nodes.push(nodes[3018])
+  nodes.push(nodes[6520])
   nodes.push(
     protocol_object_rule(
-      [("state", 6509), ("reason", 6510)],
+      [("state", 6528), ("reason", 6529)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
-  nodes.push(nodes[6501])
+  nodes.push(nodes[3018])
+  nodes.push(nodes[6520])
   nodes.push(
     protocol_object_rule(
-      [("state", 6512), ("reason", 6513)],
+      [("state", 6531), ("reason", 6532)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4306])
+  nodes.push(nodes[4322])
   nodes.push(protocol_string_rule(Some("not_sealed"), [], 0, 0))
   nodes.push(
     protocol_object_rule(
-      [("state", 6515), ("reason", 6516)],
+      [("state", 6534), ("reason", 6535)],
       ["state", "reason"],
       -1,
       0,
@@ -18626,12 +18666,12 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("resolved_targets", 6502),
-        ("changed_values", 6505),
-        ("permission", 6508),
-        ("gate", 6511),
-        ("approval", 6514),
-        ("preview", 6517),
+        ("resolved_targets", 6521),
+        ("changed_values", 6524),
+        ("permission", 6527),
+        ("gate", 6530),
+        ("approval", 6533),
+        ("preview", 6536),
       ],
       [
         "resolved_targets", "changed_values", "permission", "gate", "approval", "preview",
@@ -18644,15 +18684,15 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6365),
-        ("program_definition_cid", 6366),
-        ("parameter_values_cid", 6367),
-        ("check_environment_cid", 6368),
-        ("computation", 6448),
-        ("effect_set", 6497),
-        ("observation", 6498),
-        ("provider_io", 6499),
-        ("observations", 6518),
+        ("version", 6383),
+        ("program_definition_cid", 6384),
+        ("parameter_values_cid", 6385),
+        ("check_environment_cid", 6386),
+        ("computation", 6467),
+        ("effect_set", 6516),
+        ("observation", 6517),
+        ("provider_io", 6518),
+        ("observations", 6537),
       ],
       [
         "version", "program_definition_cid", "parameter_values_cid", "check_environment_cid",
@@ -18678,7 +18718,7 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6520), ("kind", 6521), ("nullable", 6522)],
+      [("projection", 6539), ("kind", 6540), ("nullable", 6541)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18687,12 +18727,12 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[1])
   nodes.push(protocol_string_rule(None, ["required", "conditional"], 0, 0))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6526), ("kind", 6527), ("nullable", 6528)],
+      [("projection", 6545), ("kind", 6546), ("nullable", 6547)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18701,22 +18741,22 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("name", 6524), ("presence", 6525), ("type", 6529)],
+      [("name", 6543), ("presence", 6544), ("type", 6548)],
       ["name", "presence", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6530, 0, false, -1))
-  nodes.push(protocol_object_rule([("fields", 6531)], ["fields"], -1, 0, None))
+  nodes.push(protocol_array_rule(6549, 0, false, -1))
+  nodes.push(protocol_object_rule([("fields", 6550)], ["fields"], -1, 0, None))
   nodes.push(protocol_string_rule(Some("literal_redacted"), [], 0, 0))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6534), ("kind", 6535), ("nullable", 6536)],
+      [("projection", 6553), ("kind", 6554), ("nullable", 6555)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18725,7 +18765,7 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6533), ("type", 6537)],
+      [("form", 6552), ("type", 6556)],
       ["form", "type"],
       -1,
       0,
@@ -18735,12 +18775,12 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(protocol_string_rule(Some("field"), [], 0, 0))
   nodes.push(protocol_string_rule(None, ["fields", "left", "right"], 0, 0))
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6542), ("kind", 6543), ("nullable", 6544)],
+      [("projection", 6561), ("kind", 6562), ("nullable", 6563)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18749,7 +18789,7 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6539), ("scope", 6540), ("name", 6541), ("type", 6545)],
+      [("form", 6558), ("scope", 6559), ("name", 6560), ("type", 6564)],
       ["form", "scope", "name", "type"],
       -1,
       0,
@@ -18758,12 +18798,12 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_string_rule(Some("parameter"), [], 0, 0))
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6549), ("kind", 6550), ("nullable", 6551)],
+      [("projection", 6568), ("kind", 6569), ("nullable", 6570)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18772,7 +18812,7 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6547), ("name", 6548), ("type", 6552)],
+      [("form", 6566), ("name", 6567), ("type", 6571)],
       ["form", "name", "type"],
       -1,
       0,
@@ -18782,12 +18822,12 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(protocol_string_rule(Some("property"), [], 0, 0))
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6557), ("kind", 6558), ("nullable", 6559)],
+      [("projection", 6576), ("kind", 6577), ("nullable", 6578)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18796,14 +18836,14 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6554), ("name", 6555), ("receiver", 6556), ("type", 6560)],
+      [("form", 6573), ("name", 6574), ("receiver", 6575), ("type", 6579)],
       ["form", "name", "receiver", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(
     protocol_string_rule(
       None,
@@ -18816,13 +18856,13 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[190])
-  nodes.push(protocol_array_rule(6564, 0, false, -1))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_array_rule(6583, 0, false, -1))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6566), ("kind", 6567), ("nullable", 6568)],
+      [("projection", 6585), ("kind", 6586), ("nullable", 6587)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18831,23 +18871,23 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6562), ("operator", 6563), ("children", 6565), ("type", 6569)],
+      [("form", 6581), ("operator", 6582), ("children", 6584), ("type", 6588)],
       ["form", "operator", "children", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6538, 6546, 6553, 6561, 6570]))
+  nodes.push(protocol_one_of_rule([6557, 6565, 6572, 6580, 6589]))
   nodes.push(protocol_string_rule(Some("projected"), [], 0, 0))
-  nodes.push(nodes[4137])
-  nodes.push(nodes[6533])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[6552])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6575), ("kind", 6576), ("nullable", 6577)],
+      [("projection", 6594), ("kind", 6595), ("nullable", 6596)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18856,22 +18896,22 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6574), ("type", 6578)],
+      [("form", 6593), ("type", 6597)],
       ["form", "type"],
       -1,
       0,
       None,
     ),
   )
+  nodes.push(nodes[6558])
+  nodes.push(nodes[6559])
+  nodes.push(nodes[1])
   nodes.push(nodes[6539])
   nodes.push(nodes[6540])
-  nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6583), ("kind", 6584), ("nullable", 6585)],
+      [("projection", 6602), ("kind", 6603), ("nullable", 6604)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18880,21 +18920,21 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6580), ("scope", 6581), ("name", 6582), ("type", 6586)],
+      [("form", 6599), ("scope", 6600), ("name", 6601), ("type", 6605)],
       ["form", "scope", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6547])
+  nodes.push(nodes[6566])
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6590), ("kind", 6591), ("nullable", 6592)],
+      [("projection", 6609), ("kind", 6610), ("nullable", 6611)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18903,22 +18943,22 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6588), ("name", 6589), ("type", 6593)],
+      [("form", 6607), ("name", 6608), ("type", 6612)],
       ["form", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6554])
+  nodes.push(nodes[6573])
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6598), ("kind", 6599), ("nullable", 6600)],
+      [("projection", 6617), ("kind", 6618), ("nullable", 6619)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18927,23 +18967,23 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6595), ("name", 6596), ("receiver", 6597), ("type", 6601)],
+      [("form", 6614), ("name", 6615), ("receiver", 6616), ("type", 6620)],
       ["form", "name", "receiver", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3869])
-  nodes.push(nodes[6563])
+  nodes.push(nodes[3883])
+  nodes.push(nodes[6582])
   nodes.push(nodes[190])
-  nodes.push(protocol_array_rule(6605, 0, false, -1))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_array_rule(6624, 0, false, -1))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6607), ("kind", 6608), ("nullable", 6609)],
+      [("projection", 6626), ("kind", 6627), ("nullable", 6628)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -18952,18 +18992,18 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6603), ("operator", 6604), ("children", 6606), ("type", 6610)],
+      [("form", 6622), ("operator", 6623), ("children", 6625), ("type", 6629)],
       ["form", "operator", "children", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6579, 6587, 6594, 6602, 6611]))
-  nodes.push(protocol_array_rule(6612, 1, false, -1))
+  nodes.push(protocol_one_of_rule([6598, 6606, 6613, 6621, 6630]))
+  nodes.push(protocol_array_rule(6631, 1, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 6572), ("root", 6573), ("nodes", 6613)],
+      [("state", 6591), ("root", 6592), ("nodes", 6632)],
       ["state", "root", "nodes"],
       -1,
       0,
@@ -18976,25 +19016,25 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 6615), ("reason", 6616)],
+      [("state", 6634), ("reason", 6635)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6614, 6617]))
-  nodes.push(nodes[3872])
-  nodes.push(protocol_object_rule([("kind", 6619)], ["kind"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([6633, 6636]))
+  nodes.push(nodes[3886])
+  nodes.push(protocol_object_rule([("kind", 6638)], ["kind"], -1, 0, None))
   nodes.push(protocol_string_rule(Some("values"), [], 0, 0))
   nodes.push(nodes[1])
-  nodes.push(nodes[6525])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6544])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6624), ("kind", 6625), ("nullable", 6626)],
+      [("projection", 6643), ("kind", 6644), ("nullable", 6645)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19003,18 +19043,18 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("name", 6622), ("presence", 6623), ("type", 6627)],
+      [("name", 6641), ("presence", 6642), ("type", 6646)],
       ["name", "presence", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6628, 0, false, -1))
-  nodes.push(protocol_object_rule([("fields", 6629)], ["fields"], -1, 0, None))
+  nodes.push(protocol_array_rule(6647, 0, false, -1))
+  nodes.push(protocol_object_rule([("fields", 6648)], ["fields"], -1, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6621), ("schema", 6630)],
+      [("kind", 6640), ("schema", 6649)],
       ["kind", "schema"],
       -1,
       0,
@@ -19022,15 +19062,15 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(protocol_string_rule(Some("filter"), [], 0, 0))
-  nodes.push(nodes[6572])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[6533])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6591])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[6552])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6636), ("kind", 6637), ("nullable", 6638)],
+      [("projection", 6655), ("kind", 6656), ("nullable", 6657)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19039,22 +19079,22 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6635), ("type", 6639)],
+      [("form", 6654), ("type", 6658)],
       ["form", "type"],
       -1,
       0,
       None,
     ),
   )
+  nodes.push(nodes[6558])
+  nodes.push(nodes[6559])
+  nodes.push(nodes[1])
   nodes.push(nodes[6539])
   nodes.push(nodes[6540])
-  nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6644), ("kind", 6645), ("nullable", 6646)],
+      [("projection", 6663), ("kind", 6664), ("nullable", 6665)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19063,21 +19103,21 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6641), ("scope", 6642), ("name", 6643), ("type", 6647)],
+      [("form", 6660), ("scope", 6661), ("name", 6662), ("type", 6666)],
       ["form", "scope", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6547])
+  nodes.push(nodes[6566])
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6651), ("kind", 6652), ("nullable", 6653)],
+      [("projection", 6670), ("kind", 6671), ("nullable", 6672)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19086,22 +19126,22 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6649), ("name", 6650), ("type", 6654)],
+      [("form", 6668), ("name", 6669), ("type", 6673)],
       ["form", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6554])
+  nodes.push(nodes[6573])
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6659), ("kind", 6660), ("nullable", 6661)],
+      [("projection", 6678), ("kind", 6679), ("nullable", 6680)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19110,23 +19150,23 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6656), ("name", 6657), ("receiver", 6658), ("type", 6662)],
+      [("form", 6675), ("name", 6676), ("receiver", 6677), ("type", 6681)],
       ["form", "name", "receiver", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3869])
-  nodes.push(nodes[6563])
+  nodes.push(nodes[3883])
+  nodes.push(nodes[6582])
   nodes.push(nodes[190])
-  nodes.push(protocol_array_rule(6666, 0, false, -1))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_array_rule(6685, 0, false, -1))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6668), ("kind", 6669), ("nullable", 6670)],
+      [("projection", 6687), ("kind", 6688), ("nullable", 6689)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19135,39 +19175,39 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6664), ("operator", 6665), ("children", 6667), ("type", 6671)],
+      [("form", 6683), ("operator", 6684), ("children", 6686), ("type", 6690)],
       ["form", "operator", "children", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6640, 6648, 6655, 6663, 6672]))
-  nodes.push(protocol_array_rule(6673, 1, false, -1))
+  nodes.push(protocol_one_of_rule([6659, 6667, 6674, 6682, 6691]))
+  nodes.push(protocol_array_rule(6692, 1, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 6633), ("root", 6634), ("nodes", 6674)],
+      [("state", 6652), ("root", 6653), ("nodes", 6693)],
       ["state", "root", "nodes"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6616])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6635])
   nodes.push(
     protocol_object_rule(
-      [("state", 6676), ("reason", 6677)],
+      [("state", 6695), ("reason", 6696)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6675, 6678]))
+  nodes.push(protocol_one_of_rule([6694, 6697]))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6632), ("predicate", 6679)],
+      [("kind", 6651), ("predicate", 6698)],
       ["kind", "predicate"],
       -1,
       0,
@@ -19180,17 +19220,17 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("input", 6683), ("output", 6684)],
+      [("input", 6702), ("output", 6703)],
       ["input", "output"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6685, 0, false, -1))
+  nodes.push(protocol_array_rule(6704, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6681), ("operation", 6682), ("fields", 6686)],
+      [("kind", 6700), ("operation", 6701), ("fields", 6705)],
       ["kind", "operation", "fields"],
       -1,
       0,
@@ -19211,73 +19251,73 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("left", 6691), ("right", 6692)],
+      [("left", 6710), ("right", 6711)],
       ["left", "right"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6693, 0, false, -1))
+  nodes.push(protocol_array_rule(6712, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6688), ("join_kind", 6689), ("null_key", 6690), ("keys", 6694)],
+      [("kind", 6707), ("join_kind", 6708), ("null_key", 6709), ("keys", 6713)],
       ["kind", "join_kind", "null_key", "keys"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
+  nodes.push(nodes[6634])
   nodes.push(
     protocol_string_rule(Some("operation_facts_not_projected"), [], 0, 0),
   )
   nodes.push(
     protocol_object_rule(
-      [("kind", 6696), ("reason", 6697)],
+      [("kind", 6715), ("reason", 6716)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6620, 6631, 6680, 6687, 6695, 6698]))
+  nodes.push(protocol_one_of_rule([6639, 6650, 6699, 6706, 6714, 6717]))
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6704), ("operation_ordinal", 6705)],
+      [("kind", 6723), ("operation_ordinal", 6724)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6707), ("input_port_ordinal", 6708)],
+      [("kind", 6726), ("input_port_ordinal", 6727)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6706, 6709]))
+  nodes.push(protocol_one_of_rule([6725, 6728]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6701),
-        ("compiled_plan_cid", 6702),
-        ("stage_ordinal", 6703),
-        ("occurrence", 6710),
-        ("self_cid", 6711),
+        ("version", 6720),
+        ("compiled_plan_cid", 6721),
+        ("stage_ordinal", 6722),
+        ("occurrence", 6729),
+        ("self_cid", 6730),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -19288,23 +19328,23 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([6713, 6714]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([6732, 6733]))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(6716, 0, false, -1))
+  nodes.push(protocol_array_rule(6735, 0, false, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(6718, 0, false, -1))
-  nodes.push(nodes[3872])
-  nodes.push(protocol_object_rule([("kind", 6720)], ["kind"], -1, 0, None))
-  nodes.push(nodes[6621])
+  nodes.push(protocol_array_rule(6737, 0, false, -1))
+  nodes.push(nodes[3886])
+  nodes.push(protocol_object_rule([("kind", 6739)], ["kind"], -1, 0, None))
+  nodes.push(nodes[6640])
   nodes.push(nodes[1])
-  nodes.push(nodes[6525])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6544])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6725), ("kind", 6726), ("nullable", 6727)],
+      [("projection", 6744), ("kind", 6745), ("nullable", 6746)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19313,34 +19353,34 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("name", 6723), ("presence", 6724), ("type", 6728)],
+      [("name", 6742), ("presence", 6743), ("type", 6747)],
       ["name", "presence", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6729, 0, false, -1))
-  nodes.push(protocol_object_rule([("fields", 6730)], ["fields"], -1, 0, None))
+  nodes.push(protocol_array_rule(6748, 0, false, -1))
+  nodes.push(protocol_object_rule([("fields", 6749)], ["fields"], -1, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6722), ("schema", 6731)],
+      [("kind", 6741), ("schema", 6750)],
       ["kind", "schema"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6632])
-  nodes.push(nodes[6572])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[6533])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6651])
+  nodes.push(nodes[6591])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[6552])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6737), ("kind", 6738), ("nullable", 6739)],
+      [("projection", 6756), ("kind", 6757), ("nullable", 6758)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19349,22 +19389,22 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6736), ("type", 6740)],
+      [("form", 6755), ("type", 6759)],
       ["form", "type"],
       -1,
       0,
       None,
     ),
   )
+  nodes.push(nodes[6558])
+  nodes.push(nodes[6559])
+  nodes.push(nodes[1])
   nodes.push(nodes[6539])
   nodes.push(nodes[6540])
-  nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6745), ("kind", 6746), ("nullable", 6747)],
+      [("projection", 6764), ("kind", 6765), ("nullable", 6766)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19373,21 +19413,21 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6742), ("scope", 6743), ("name", 6744), ("type", 6748)],
+      [("form", 6761), ("scope", 6762), ("name", 6763), ("type", 6767)],
       ["form", "scope", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6547])
+  nodes.push(nodes[6566])
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6752), ("kind", 6753), ("nullable", 6754)],
+      [("projection", 6771), ("kind", 6772), ("nullable", 6773)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19396,22 +19436,22 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6750), ("name", 6751), ("type", 6755)],
+      [("form", 6769), ("name", 6770), ("type", 6774)],
       ["form", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6554])
+  nodes.push(nodes[6573])
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6760), ("kind", 6761), ("nullable", 6762)],
+      [("projection", 6779), ("kind", 6780), ("nullable", 6781)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19420,23 +19460,23 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6757), ("name", 6758), ("receiver", 6759), ("type", 6763)],
+      [("form", 6776), ("name", 6777), ("receiver", 6778), ("type", 6782)],
       ["form", "name", "receiver", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3869])
-  nodes.push(nodes[6563])
+  nodes.push(nodes[3883])
+  nodes.push(nodes[6582])
   nodes.push(nodes[190])
-  nodes.push(protocol_array_rule(6767, 0, false, -1))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_array_rule(6786, 0, false, -1))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6769), ("kind", 6770), ("nullable", 6771)],
+      [("projection", 6788), ("kind", 6789), ("nullable", 6790)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19445,113 +19485,113 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6765), ("operator", 6766), ("children", 6768), ("type", 6772)],
+      [("form", 6784), ("operator", 6785), ("children", 6787), ("type", 6791)],
       ["form", "operator", "children", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6741, 6749, 6756, 6764, 6773]))
-  nodes.push(protocol_array_rule(6774, 1, false, -1))
+  nodes.push(protocol_one_of_rule([6760, 6768, 6775, 6783, 6792]))
+  nodes.push(protocol_array_rule(6793, 1, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 6734), ("root", 6735), ("nodes", 6775)],
+      [("state", 6753), ("root", 6754), ("nodes", 6794)],
       ["state", "root", "nodes"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6616])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6635])
   nodes.push(
     protocol_object_rule(
-      [("state", 6777), ("reason", 6778)],
+      [("state", 6796), ("reason", 6797)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6776, 6779]))
+  nodes.push(protocol_one_of_rule([6795, 6798]))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6733), ("predicate", 6780)],
+      [("kind", 6752), ("predicate", 6799)],
       ["kind", "predicate"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6681])
-  nodes.push(nodes[6682])
+  nodes.push(nodes[6700])
+  nodes.push(nodes[6701])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("input", 6784), ("output", 6785)],
+      [("input", 6803), ("output", 6804)],
       ["input", "output"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6786, 0, false, -1))
+  nodes.push(protocol_array_rule(6805, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6782), ("operation", 6783), ("fields", 6787)],
+      [("kind", 6801), ("operation", 6802), ("fields", 6806)],
       ["kind", "operation", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6688])
-  nodes.push(nodes[6689])
-  nodes.push(nodes[6690])
+  nodes.push(nodes[6707])
+  nodes.push(nodes[6708])
+  nodes.push(nodes[6709])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("left", 6792), ("right", 6793)],
+      [("left", 6811), ("right", 6812)],
       ["left", "right"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6794, 0, false, -1))
+  nodes.push(protocol_array_rule(6813, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6789), ("join_kind", 6790), ("null_key", 6791), ("keys", 6795)],
+      [("kind", 6808), ("join_kind", 6809), ("null_key", 6810), ("keys", 6814)],
       ["kind", "join_kind", "null_key", "keys"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6697])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6716])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6797), ("reason", 6798)],
+      [("kind", 6816), ("reason", 6817)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6721, 6732, 6781, 6788, 6796, 6799]))
+  nodes.push(protocol_one_of_rule([6740, 6751, 6800, 6807, 6815, 6818]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 6700),
-        ("key", 6712),
-        ("operator", 6715),
-        ("input_ports", 6717),
-        ("output_ports", 6719),
-        ("meaning", 6800),
+        ("step_id", 6719),
+        ("key", 6731),
+        ("operator", 6734),
+        ("input_ports", 6736),
+        ("output_ports", 6738),
+        ("meaning", 6819),
       ],
       ["step_id", "key", "operator", "input_ports", "output_ports", "meaning"],
       -1,
@@ -19568,41 +19608,41 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6812), ("operation_ordinal", 6813)],
+      [("kind", 6831), ("operation_ordinal", 6832)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6815), ("input_port_ordinal", 6816)],
+      [("kind", 6834), ("input_port_ordinal", 6835)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6814, 6817]))
+  nodes.push(protocol_one_of_rule([6833, 6836]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6809),
-        ("compiled_plan_cid", 6810),
-        ("stage_ordinal", 6811),
-        ("occurrence", 6818),
-        ("self_cid", 6819),
+        ("version", 6828),
+        ("compiled_plan_cid", 6829),
+        ("stage_ordinal", 6830),
+        ("occurrence", 6837),
+        ("self_cid", 6838),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -19613,23 +19653,23 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([6821, 6822]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([6840, 6841]))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(6824, 0, false, -1))
+  nodes.push(protocol_array_rule(6843, 0, false, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(6826, 0, false, -1))
-  nodes.push(nodes[3872])
-  nodes.push(protocol_object_rule([("kind", 6828)], ["kind"], -1, 0, None))
-  nodes.push(nodes[6621])
+  nodes.push(protocol_array_rule(6845, 0, false, -1))
+  nodes.push(nodes[3886])
+  nodes.push(protocol_object_rule([("kind", 6847)], ["kind"], -1, 0, None))
+  nodes.push(nodes[6640])
   nodes.push(nodes[1])
-  nodes.push(nodes[6525])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6544])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6833), ("kind", 6834), ("nullable", 6835)],
+      [("projection", 6852), ("kind", 6853), ("nullable", 6854)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19638,34 +19678,34 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("name", 6831), ("presence", 6832), ("type", 6836)],
+      [("name", 6850), ("presence", 6851), ("type", 6855)],
       ["name", "presence", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6837, 0, false, -1))
-  nodes.push(protocol_object_rule([("fields", 6838)], ["fields"], -1, 0, None))
+  nodes.push(protocol_array_rule(6856, 0, false, -1))
+  nodes.push(protocol_object_rule([("fields", 6857)], ["fields"], -1, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6830), ("schema", 6839)],
+      [("kind", 6849), ("schema", 6858)],
       ["kind", "schema"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6632])
-  nodes.push(nodes[6572])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[6533])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6651])
+  nodes.push(nodes[6591])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[6552])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6845), ("kind", 6846), ("nullable", 6847)],
+      [("projection", 6864), ("kind", 6865), ("nullable", 6866)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19674,22 +19714,22 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6844), ("type", 6848)],
+      [("form", 6863), ("type", 6867)],
       ["form", "type"],
       -1,
       0,
       None,
     ),
   )
+  nodes.push(nodes[6558])
+  nodes.push(nodes[6559])
+  nodes.push(nodes[1])
   nodes.push(nodes[6539])
   nodes.push(nodes[6540])
-  nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6853), ("kind", 6854), ("nullable", 6855)],
+      [("projection", 6872), ("kind", 6873), ("nullable", 6874)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19698,21 +19738,21 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6850), ("scope", 6851), ("name", 6852), ("type", 6856)],
+      [("form", 6869), ("scope", 6870), ("name", 6871), ("type", 6875)],
       ["form", "scope", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6547])
+  nodes.push(nodes[6566])
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6860), ("kind", 6861), ("nullable", 6862)],
+      [("projection", 6879), ("kind", 6880), ("nullable", 6881)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19721,22 +19761,22 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6858), ("name", 6859), ("type", 6863)],
+      [("form", 6877), ("name", 6878), ("type", 6882)],
       ["form", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6554])
+  nodes.push(nodes[6573])
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6868), ("kind", 6869), ("nullable", 6870)],
+      [("projection", 6887), ("kind", 6888), ("nullable", 6889)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19745,23 +19785,23 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6865), ("name", 6866), ("receiver", 6867), ("type", 6871)],
+      [("form", 6884), ("name", 6885), ("receiver", 6886), ("type", 6890)],
       ["form", "name", "receiver", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3869])
-  nodes.push(nodes[6563])
+  nodes.push(nodes[3883])
+  nodes.push(nodes[6582])
   nodes.push(nodes[190])
-  nodes.push(protocol_array_rule(6875, 0, false, -1))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_array_rule(6894, 0, false, -1))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6877), ("kind", 6878), ("nullable", 6879)],
+      [("projection", 6896), ("kind", 6897), ("nullable", 6898)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19770,113 +19810,113 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6873), ("operator", 6874), ("children", 6876), ("type", 6880)],
+      [("form", 6892), ("operator", 6893), ("children", 6895), ("type", 6899)],
       ["form", "operator", "children", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6849, 6857, 6864, 6872, 6881]))
-  nodes.push(protocol_array_rule(6882, 1, false, -1))
+  nodes.push(protocol_one_of_rule([6868, 6876, 6883, 6891, 6900]))
+  nodes.push(protocol_array_rule(6901, 1, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 6842), ("root", 6843), ("nodes", 6883)],
+      [("state", 6861), ("root", 6862), ("nodes", 6902)],
       ["state", "root", "nodes"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6616])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6635])
   nodes.push(
     protocol_object_rule(
-      [("state", 6885), ("reason", 6886)],
+      [("state", 6904), ("reason", 6905)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6884, 6887]))
+  nodes.push(protocol_one_of_rule([6903, 6906]))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6841), ("predicate", 6888)],
+      [("kind", 6860), ("predicate", 6907)],
       ["kind", "predicate"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6681])
-  nodes.push(nodes[6682])
+  nodes.push(nodes[6700])
+  nodes.push(nodes[6701])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("input", 6892), ("output", 6893)],
+      [("input", 6911), ("output", 6912)],
       ["input", "output"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6894, 0, false, -1))
+  nodes.push(protocol_array_rule(6913, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6890), ("operation", 6891), ("fields", 6895)],
+      [("kind", 6909), ("operation", 6910), ("fields", 6914)],
       ["kind", "operation", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6688])
-  nodes.push(nodes[6689])
-  nodes.push(nodes[6690])
+  nodes.push(nodes[6707])
+  nodes.push(nodes[6708])
+  nodes.push(nodes[6709])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("left", 6900), ("right", 6901)],
+      [("left", 6919), ("right", 6920)],
       ["left", "right"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6902, 0, false, -1))
+  nodes.push(protocol_array_rule(6921, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6897), ("join_kind", 6898), ("null_key", 6899), ("keys", 6903)],
+      [("kind", 6916), ("join_kind", 6917), ("null_key", 6918), ("keys", 6922)],
       ["kind", "join_kind", "null_key", "keys"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6697])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6716])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6905), ("reason", 6906)],
+      [("kind", 6924), ("reason", 6925)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6829, 6840, 6889, 6896, 6904, 6907]))
+  nodes.push(protocol_one_of_rule([6848, 6859, 6908, 6915, 6923, 6926]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 6808),
-        ("key", 6820),
-        ("operator", 6823),
-        ("input_ports", 6825),
-        ("output_ports", 6827),
-        ("meaning", 6908),
+        ("step_id", 6827),
+        ("key", 6839),
+        ("operator", 6842),
+        ("input_ports", 6844),
+        ("output_ports", 6846),
+        ("meaning", 6927),
       ],
       ["step_id", "key", "operator", "input_ports", "output_ports", "meaning"],
       -1,
@@ -19884,19 +19924,19 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6909, 0, false, -1))
+  nodes.push(protocol_array_rule(6928, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6802),
-        ("disclosure", 6803),
-        ("program_definition_cid", 6804),
-        ("parameter_values_cid", 6805),
-        ("compiled_plan_cid", 6806),
-        ("logical_map_cid", 6807),
-        ("steps", 6910),
-        ("self_cid", 6911),
+        ("version", 6821),
+        ("disclosure", 6822),
+        ("program_definition_cid", 6823),
+        ("parameter_values_cid", 6824),
+        ("compiled_plan_cid", 6825),
+        ("logical_map_cid", 6826),
+        ("steps", 6929),
+        ("self_cid", 6930),
       ],
       [
         "version", "disclosure", "program_definition_cid", "parameter_values_cid",
@@ -19907,48 +19947,48 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[6802])
-  nodes.push(nodes[6803])
+  nodes.push(nodes[6821])
+  nodes.push(nodes[6822])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6923), ("operation_ordinal", 6924)],
+      [("kind", 6942), ("operation_ordinal", 6943)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 6926), ("input_port_ordinal", 6927)],
+      [("kind", 6945), ("input_port_ordinal", 6946)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6925, 6928]))
+  nodes.push(protocol_one_of_rule([6944, 6947]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6920),
-        ("compiled_plan_cid", 6921),
-        ("stage_ordinal", 6922),
-        ("occurrence", 6929),
-        ("self_cid", 6930),
+        ("version", 6939),
+        ("compiled_plan_cid", 6940),
+        ("stage_ordinal", 6941),
+        ("occurrence", 6948),
+        ("self_cid", 6949),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -19959,23 +19999,23 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([6932, 6933]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([6951, 6952]))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(6935, 0, false, -1))
+  nodes.push(protocol_array_rule(6954, 0, false, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(6937, 0, false, -1))
-  nodes.push(nodes[3872])
-  nodes.push(protocol_object_rule([("kind", 6939)], ["kind"], -1, 0, None))
-  nodes.push(nodes[6621])
+  nodes.push(protocol_array_rule(6956, 0, false, -1))
+  nodes.push(nodes[3886])
+  nodes.push(protocol_object_rule([("kind", 6958)], ["kind"], -1, 0, None))
+  nodes.push(nodes[6640])
   nodes.push(nodes[1])
-  nodes.push(nodes[6525])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6544])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6944), ("kind", 6945), ("nullable", 6946)],
+      [("projection", 6963), ("kind", 6964), ("nullable", 6965)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -19984,34 +20024,34 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("name", 6942), ("presence", 6943), ("type", 6947)],
+      [("name", 6961), ("presence", 6962), ("type", 6966)],
       ["name", "presence", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(6948, 0, false, -1))
-  nodes.push(protocol_object_rule([("fields", 6949)], ["fields"], -1, 0, None))
+  nodes.push(protocol_array_rule(6967, 0, false, -1))
+  nodes.push(protocol_object_rule([("fields", 6968)], ["fields"], -1, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6941), ("schema", 6950)],
+      [("kind", 6960), ("schema", 6969)],
       ["kind", "schema"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6632])
-  nodes.push(nodes[6572])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[6533])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6651])
+  nodes.push(nodes[6591])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[6552])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6956), ("kind", 6957), ("nullable", 6958)],
+      [("projection", 6975), ("kind", 6976), ("nullable", 6977)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20020,22 +20060,22 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6955), ("type", 6959)],
+      [("form", 6974), ("type", 6978)],
       ["form", "type"],
       -1,
       0,
       None,
     ),
   )
+  nodes.push(nodes[6558])
+  nodes.push(nodes[6559])
+  nodes.push(nodes[1])
   nodes.push(nodes[6539])
   nodes.push(nodes[6540])
-  nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6964), ("kind", 6965), ("nullable", 6966)],
+      [("projection", 6983), ("kind", 6984), ("nullable", 6985)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20044,21 +20084,21 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6961), ("scope", 6962), ("name", 6963), ("type", 6967)],
+      [("form", 6980), ("scope", 6981), ("name", 6982), ("type", 6986)],
       ["form", "scope", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6547])
+  nodes.push(nodes[6566])
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6971), ("kind", 6972), ("nullable", 6973)],
+      [("projection", 6990), ("kind", 6991), ("nullable", 6992)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20067,22 +20107,26 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6969), ("name", 6970), ("type", 6974)],
+      [("form", 6988), ("name", 6989), ("type", 6993)],
       ["form", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6554])
+  nodes.push(nodes[6573])
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
+}
+
+///|
+fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit {
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6979), ("kind", 6980), ("nullable", 6981)],
+      [("projection", 6998), ("kind", 6999), ("nullable", 7000)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20091,23 +20135,23 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6976), ("name", 6977), ("receiver", 6978), ("type", 6982)],
+      [("form", 6995), ("name", 6996), ("receiver", 6997), ("type", 7001)],
       ["form", "name", "receiver", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3869])
-  nodes.push(nodes[6563])
+  nodes.push(nodes[3883])
+  nodes.push(nodes[6582])
   nodes.push(nodes[190])
-  nodes.push(protocol_array_rule(6986, 0, false, -1))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_array_rule(7005, 0, false, -1))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 6988), ("kind", 6989), ("nullable", 6990)],
+      [("projection", 7007), ("kind", 7008), ("nullable", 7009)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20116,117 +20160,113 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 6984), ("operator", 6985), ("children", 6987), ("type", 6991)],
+      [("form", 7003), ("operator", 7004), ("children", 7006), ("type", 7010)],
       ["form", "operator", "children", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6960, 6968, 6975, 6983, 6992]))
-  nodes.push(protocol_array_rule(6993, 1, false, -1))
+  nodes.push(protocol_one_of_rule([6979, 6987, 6994, 7002, 7011]))
+  nodes.push(protocol_array_rule(7012, 1, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 6953), ("root", 6954), ("nodes", 6994)],
+      [("state", 6972), ("root", 6973), ("nodes", 7013)],
       ["state", "root", "nodes"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6616])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6635])
   nodes.push(
     protocol_object_rule(
-      [("state", 6996), ("reason", 6997)],
+      [("state", 7015), ("reason", 7016)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6995, 6998]))
-}
-
-///|
-fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit {
+  nodes.push(protocol_one_of_rule([7014, 7017]))
   nodes.push(
     protocol_object_rule(
-      [("kind", 6952), ("predicate", 6999)],
+      [("kind", 6971), ("predicate", 7018)],
       ["kind", "predicate"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6681])
-  nodes.push(nodes[6682])
+  nodes.push(nodes[6700])
+  nodes.push(nodes[6701])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("input", 7003), ("output", 7004)],
+      [("input", 7022), ("output", 7023)],
       ["input", "output"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7005, 0, false, -1))
+  nodes.push(protocol_array_rule(7024, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7001), ("operation", 7002), ("fields", 7006)],
+      [("kind", 7020), ("operation", 7021), ("fields", 7025)],
       ["kind", "operation", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6688])
-  nodes.push(nodes[6689])
-  nodes.push(nodes[6690])
+  nodes.push(nodes[6707])
+  nodes.push(nodes[6708])
+  nodes.push(nodes[6709])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("left", 7011), ("right", 7012)],
+      [("left", 7030), ("right", 7031)],
       ["left", "right"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7013, 0, false, -1))
+  nodes.push(protocol_array_rule(7032, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7008), ("join_kind", 7009), ("null_key", 7010), ("keys", 7014)],
+      [("kind", 7027), ("join_kind", 7028), ("null_key", 7029), ("keys", 7033)],
       ["kind", "join_kind", "null_key", "keys"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6697])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6716])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7016), ("reason", 7017)],
+      [("kind", 7035), ("reason", 7036)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([6940, 6951, 7000, 7007, 7015, 7018]))
+  nodes.push(protocol_one_of_rule([6959, 6970, 7019, 7026, 7034, 7037]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 6919),
-        ("key", 6931),
-        ("operator", 6934),
-        ("input_ports", 6936),
-        ("output_ports", 6938),
-        ("meaning", 7019),
+        ("step_id", 6938),
+        ("key", 6950),
+        ("operator", 6953),
+        ("input_ports", 6955),
+        ("output_ports", 6957),
+        ("meaning", 7038),
       ],
       ["step_id", "key", "operator", "input_ports", "output_ports", "meaning"],
       -1,
@@ -20234,17 +20274,17 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7020, 0, false, -1))
+  nodes.push(protocol_array_rule(7039, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 6913),
-        ("disclosure", 6914),
-        ("program_definition_cid", 6915),
-        ("parameter_values_cid", 6916),
-        ("compiled_plan_cid", 6917),
-        ("logical_map_cid", 6918),
-        ("steps", 7021),
+        ("version", 6932),
+        ("disclosure", 6933),
+        ("program_definition_cid", 6934),
+        ("parameter_values_cid", 6935),
+        ("compiled_plan_cid", 6936),
+        ("logical_map_cid", 6937),
+        ("steps", 7040),
       ],
       [
         "version", "disclosure", "program_definition_cid", "parameter_values_cid",
@@ -20259,16 +20299,16 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
     protocol_string_rule(Some("actql-run-explanation-view/0.1"), [], 0, 0),
   )
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([7024, 7025]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([7043, 7044]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 7026),
-        ("authorityScopeCid", 7027),
-        ("runDefinitionCid", 7028),
+        ("namespaceId", 7045),
+        ("authorityScopeCid", 7046),
+        ("runDefinitionCid", 7047),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -20276,49 +20316,49 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[6572])
-  nodes.push(nodes[6802])
-  nodes.push(nodes[6803])
+  nodes.push(nodes[6591])
+  nodes.push(nodes[6821])
+  nodes.push(nodes[6822])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7041), ("operation_ordinal", 7042)],
+      [("kind", 7060), ("operation_ordinal", 7061)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7044), ("input_port_ordinal", 7045)],
+      [("kind", 7063), ("input_port_ordinal", 7064)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7043, 7046]))
+  nodes.push(protocol_one_of_rule([7062, 7065]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7038),
-        ("compiled_plan_cid", 7039),
-        ("stage_ordinal", 7040),
-        ("occurrence", 7047),
-        ("self_cid", 7048),
+        ("version", 7057),
+        ("compiled_plan_cid", 7058),
+        ("stage_ordinal", 7059),
+        ("occurrence", 7066),
+        ("self_cid", 7067),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -20329,23 +20369,23 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([7050, 7051]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([7069, 7070]))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(7053, 0, false, -1))
+  nodes.push(protocol_array_rule(7072, 0, false, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(7055, 0, false, -1))
-  nodes.push(nodes[3872])
-  nodes.push(protocol_object_rule([("kind", 7057)], ["kind"], -1, 0, None))
-  nodes.push(nodes[6621])
+  nodes.push(protocol_array_rule(7074, 0, false, -1))
+  nodes.push(nodes[3886])
+  nodes.push(protocol_object_rule([("kind", 7076)], ["kind"], -1, 0, None))
+  nodes.push(nodes[6640])
   nodes.push(nodes[1])
-  nodes.push(nodes[6525])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6544])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7062), ("kind", 7063), ("nullable", 7064)],
+      [("projection", 7081), ("kind", 7082), ("nullable", 7083)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20354,34 +20394,34 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("name", 7060), ("presence", 7061), ("type", 7065)],
+      [("name", 7079), ("presence", 7080), ("type", 7084)],
       ["name", "presence", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7066, 0, false, -1))
-  nodes.push(protocol_object_rule([("fields", 7067)], ["fields"], -1, 0, None))
+  nodes.push(protocol_array_rule(7085, 0, false, -1))
+  nodes.push(protocol_object_rule([("fields", 7086)], ["fields"], -1, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7059), ("schema", 7068)],
+      [("kind", 7078), ("schema", 7087)],
       ["kind", "schema"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6632])
-  nodes.push(nodes[6572])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[6533])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6651])
+  nodes.push(nodes[6591])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[6552])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7074), ("kind", 7075), ("nullable", 7076)],
+      [("projection", 7093), ("kind", 7094), ("nullable", 7095)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20390,22 +20430,22 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7073), ("type", 7077)],
+      [("form", 7092), ("type", 7096)],
       ["form", "type"],
       -1,
       0,
       None,
     ),
   )
+  nodes.push(nodes[6558])
+  nodes.push(nodes[6559])
+  nodes.push(nodes[1])
   nodes.push(nodes[6539])
   nodes.push(nodes[6540])
-  nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7082), ("kind", 7083), ("nullable", 7084)],
+      [("projection", 7101), ("kind", 7102), ("nullable", 7103)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20414,21 +20454,21 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7079), ("scope", 7080), ("name", 7081), ("type", 7085)],
+      [("form", 7098), ("scope", 7099), ("name", 7100), ("type", 7104)],
       ["form", "scope", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6547])
+  nodes.push(nodes[6566])
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7089), ("kind", 7090), ("nullable", 7091)],
+      [("projection", 7108), ("kind", 7109), ("nullable", 7110)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20437,22 +20477,22 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7087), ("name", 7088), ("type", 7092)],
+      [("form", 7106), ("name", 7107), ("type", 7111)],
       ["form", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6554])
+  nodes.push(nodes[6573])
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7097), ("kind", 7098), ("nullable", 7099)],
+      [("projection", 7116), ("kind", 7117), ("nullable", 7118)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20461,23 +20501,23 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7094), ("name", 7095), ("receiver", 7096), ("type", 7100)],
+      [("form", 7113), ("name", 7114), ("receiver", 7115), ("type", 7119)],
       ["form", "name", "receiver", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3869])
-  nodes.push(nodes[6563])
+  nodes.push(nodes[3883])
+  nodes.push(nodes[6582])
   nodes.push(nodes[190])
-  nodes.push(protocol_array_rule(7104, 0, false, -1))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_array_rule(7123, 0, false, -1))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7106), ("kind", 7107), ("nullable", 7108)],
+      [("projection", 7125), ("kind", 7126), ("nullable", 7127)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20486,113 +20526,113 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7102), ("operator", 7103), ("children", 7105), ("type", 7109)],
+      [("form", 7121), ("operator", 7122), ("children", 7124), ("type", 7128)],
       ["form", "operator", "children", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7078, 7086, 7093, 7101, 7110]))
-  nodes.push(protocol_array_rule(7111, 1, false, -1))
+  nodes.push(protocol_one_of_rule([7097, 7105, 7112, 7120, 7129]))
+  nodes.push(protocol_array_rule(7130, 1, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 7071), ("root", 7072), ("nodes", 7112)],
+      [("state", 7090), ("root", 7091), ("nodes", 7131)],
       ["state", "root", "nodes"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6616])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6635])
   nodes.push(
     protocol_object_rule(
-      [("state", 7114), ("reason", 7115)],
+      [("state", 7133), ("reason", 7134)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7113, 7116]))
+  nodes.push(protocol_one_of_rule([7132, 7135]))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7070), ("predicate", 7117)],
+      [("kind", 7089), ("predicate", 7136)],
       ["kind", "predicate"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6681])
-  nodes.push(nodes[6682])
+  nodes.push(nodes[6700])
+  nodes.push(nodes[6701])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("input", 7121), ("output", 7122)],
+      [("input", 7140), ("output", 7141)],
       ["input", "output"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7123, 0, false, -1))
+  nodes.push(protocol_array_rule(7142, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7119), ("operation", 7120), ("fields", 7124)],
+      [("kind", 7138), ("operation", 7139), ("fields", 7143)],
       ["kind", "operation", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6688])
-  nodes.push(nodes[6689])
-  nodes.push(nodes[6690])
+  nodes.push(nodes[6707])
+  nodes.push(nodes[6708])
+  nodes.push(nodes[6709])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("left", 7129), ("right", 7130)],
+      [("left", 7148), ("right", 7149)],
       ["left", "right"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7131, 0, false, -1))
+  nodes.push(protocol_array_rule(7150, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7126), ("join_kind", 7127), ("null_key", 7128), ("keys", 7132)],
+      [("kind", 7145), ("join_kind", 7146), ("null_key", 7147), ("keys", 7151)],
       ["kind", "join_kind", "null_key", "keys"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6697])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6716])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7134), ("reason", 7135)],
+      [("kind", 7153), ("reason", 7154)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7058, 7069, 7118, 7125, 7133, 7136]))
+  nodes.push(protocol_one_of_rule([7077, 7088, 7137, 7144, 7152, 7155]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 7037),
-        ("key", 7049),
-        ("operator", 7052),
-        ("input_ports", 7054),
-        ("output_ports", 7056),
-        ("meaning", 7137),
+        ("step_id", 7056),
+        ("key", 7068),
+        ("operator", 7071),
+        ("input_ports", 7073),
+        ("output_ports", 7075),
+        ("meaning", 7156),
       ],
       ["step_id", "key", "operator", "input_ports", "output_ports", "meaning"],
       -1,
@@ -20600,19 +20640,19 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7138, 0, false, -1))
+  nodes.push(protocol_array_rule(7157, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7031),
-        ("disclosure", 7032),
-        ("program_definition_cid", 7033),
-        ("parameter_values_cid", 7034),
-        ("compiled_plan_cid", 7035),
-        ("logical_map_cid", 7036),
-        ("steps", 7139),
-        ("self_cid", 7140),
+        ("version", 7050),
+        ("disclosure", 7051),
+        ("program_definition_cid", 7052),
+        ("parameter_values_cid", 7053),
+        ("compiled_plan_cid", 7054),
+        ("logical_map_cid", 7055),
+        ("steps", 7158),
+        ("self_cid", 7159),
       ],
       [
         "version", "disclosure", "program_definition_cid", "parameter_values_cid",
@@ -20625,30 +20665,30 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 7030), ("facts", 7141)],
+      [("state", 7049), ("facts", 7160)],
       ["state", "facts"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
+  nodes.push(nodes[6634])
   nodes.push(
     protocol_string_rule(None, ["not_retained", "profile_not_supported"], 0, 0),
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 7143), ("reason", 7144)],
+      [("state", 7162), ("reason", 7163)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7142, 7145]))
+  nodes.push(protocol_one_of_rule([7161, 7164]))
   nodes.push(
     protocol_object_rule(
-      [("version", 7023), ("run_ref", 7029), ("explanation", 7146)],
+      [("version", 7042), ("run_ref", 7048), ("explanation", 7165)],
       ["version", "run_ref", "explanation"],
       -1,
       0,
@@ -20658,7 +20698,7 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_string_rule(Some("actql-explanation-context/0.1"), [], 0, 0),
   )
-  nodes.push(nodes[6803])
+  nodes.push(nodes[6822])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -20667,11 +20707,11 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("program_definition_cid", 7150),
-        ("parameter_values_cid", 7151),
-        ("check_environment_cid", 7152),
-        ("compiled_plan_cid", 7153),
-        ("logical_map_cid", 7154),
+        ("program_definition_cid", 7169),
+        ("parameter_values_cid", 7170),
+        ("check_environment_cid", 7171),
+        ("compiled_plan_cid", 7172),
+        ("logical_map_cid", 7173),
       ],
       [
         "program_definition_cid", "parameter_values_cid", "check_environment_cid",
@@ -20684,42 +20724,42 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(protocol_string_rule(Some("linked"), [], 0, 0))
   nodes.push(
-    protocol_object_rule([("link_state", 7156)], ["link_state"], -2, 0, None),
+    protocol_object_rule([("link_state", 7175)], ["link_state"], -2, 0, None),
   )
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 7158), ("port_id", 7159)],
+      [("step_id", 7177), ("port_id", 7178)],
       ["step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7160, 1, false, -1))
-  nodes.push(protocol_object_rule([("consuming_ports", 7161)], [], -2, 0, None))
+  nodes.push(protocol_array_rule(7179, 1, false, -1))
+  nodes.push(protocol_object_rule([("consuming_ports", 7180)], [], -2, 0, None))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 7163), ("port_id", 7164)],
+      [("step_id", 7182), ("port_id", 7183)],
       ["step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7165, 0, false, 0))
-  nodes.push(protocol_object_rule([("consuming_ports", 7166)], [], -2, 0, None))
-  nodes.push(ConditionalRule(7157, 7162, 7167))
+  nodes.push(protocol_array_rule(7184, 0, false, 0))
+  nodes.push(protocol_object_rule([("consuming_ports", 7185)], [], -2, 0, None))
+  nodes.push(ConditionalRule(7176, 7181, 7186))
   nodes.push(protocol_string_rule(Some("source"), [], 0, 0))
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7170), ("stage_ordinal", 7171), ("input_port_ordinal", 7172)],
+      [("kind", 7189), ("stage_ordinal", 7190), ("input_port_ordinal", 7191)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
@@ -20735,12 +20775,12 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("catalog_cid", 7174),
-        ("connector", 7175),
-        ("contract_cid", 7176),
-        ("resource", 7177),
-        ("selection", 7178),
-        ("view", 7179),
+        ("catalog_cid", 7193),
+        ("connector", 7194),
+        ("contract_cid", 7195),
+        ("resource", 7196),
+        ("selection", 7197),
+        ("view", 7198),
       ],
       [
         "catalog_cid", "connector", "contract_cid", "resource", "selection", "view",
@@ -20756,23 +20796,23 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 7183), ("port_id", 7184)],
+      [("step_id", 7202), ("port_id", 7203)],
       ["step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7185, 0, false, -1))
+  nodes.push(protocol_array_rule(7204, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7169),
-        ("stage_input", 7173),
-        ("source_view", 7180),
-        ("request_kind", 7181),
-        ("link_state", 7182),
-        ("consuming_ports", 7186),
+        ("kind", 7188),
+        ("stage_input", 7192),
+        ("source_view", 7199),
+        ("request_kind", 7200),
+        ("link_state", 7201),
+        ("consuming_ports", 7205),
       ],
       [
         "kind", "stage_input", "source_view", "request_kind", "link_state", "consuming_ports",
@@ -20782,42 +20822,42 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([7168, 7187]))
+  nodes.push(AllOfRule([7187, 7206]))
   nodes.push(protocol_string_rule(Some("model_task"), [], 0, 0))
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(protocol_string_rule(Some("input_row"), [], 0, 0))
-  nodes.push(nodes[6572])
+  nodes.push(nodes[6591])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("state", 7194), ("step_id", 7195), ("port_id", 7196)],
+      [("state", 7213), ("step_id", 7214), ("port_id", 7215)],
       ["state", "step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
+  nodes.push(nodes[6634])
   nodes.push(protocol_string_rule(Some("no_original_port"), [], 0, 0))
   nodes.push(
     protocol_object_rule(
-      [("state", 7198), ("reason", 7199)],
+      [("state", 7217), ("reason", 7218)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7197, 7200]))
+  nodes.push(protocol_one_of_rule([7216, 7219]))
   nodes.push(nodes[1])
   nodes.push(protocol_string_rule(None, ["field", "parameter"], 0, 0))
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("state", 7203), ("name", 7204)],
+      [("state", 7222), ("name", 7223)],
       ["state", "name"],
       -1,
       0,
@@ -20825,25 +20865,25 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(protocol_string_rule(Some("redacted"), [], 0, 0))
-  nodes.push(protocol_object_rule([("state", 7206)], ["state"], -1, 0, None))
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6616])
+  nodes.push(protocol_object_rule([("state", 7225)], ["state"], -1, 0, None))
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6635])
   nodes.push(
     protocol_object_rule(
-      [("state", 7208), ("reason", 7209)],
+      [("state", 7227), ("reason", 7228)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7205, 7207, 7210]))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_one_of_rule([7224, 7226, 7229]))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7212), ("kind", 7213), ("nullable", 7214)],
+      [("projection", 7231), ("kind", 7232), ("nullable", 7233)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20852,21 +20892,21 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("role", 7202), ("binding", 7211), ("type", 7215)],
+      [("role", 7221), ("binding", 7230), ("type", 7234)],
       ["role", "binding", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7216, 0, false, -1))
+  nodes.push(protocol_array_rule(7235, 0, false, -1))
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7219), ("kind", 7220), ("nullable", 7221)],
+      [("projection", 7238), ("kind", 7239), ("nullable", 7240)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -20875,25 +20915,25 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("name", 7218), ("type", 7222)],
+      [("name", 7237), ("type", 7241)],
       ["name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7223, 0, false, -1))
+  nodes.push(protocol_array_rule(7242, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7189),
-        ("task_id", 7190),
-        ("task_version", 7191),
-        ("contract_cid", 7192),
-        ("dispatch_unit", 7193),
-        ("producer", 7201),
-        ("input_bindings", 7217),
-        ("output_fields", 7224),
+        ("kind", 7208),
+        ("task_id", 7209),
+        ("task_version", 7210),
+        ("contract_cid", 7211),
+        ("dispatch_unit", 7212),
+        ("producer", 7220),
+        ("input_bindings", 7236),
+        ("output_fields", 7243),
       ],
       [
         "kind", "task_id", "task_version", "contract_cid", "dispatch_unit", "producer",
@@ -20904,40 +20944,40 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[6478])
+  nodes.push(nodes[6497])
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6572])
+  nodes.push(nodes[6591])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("state", 7229), ("step_id", 7230), ("port_id", 7231)],
+      [("state", 7248), ("step_id", 7249), ("port_id", 7250)],
       ["state", "step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[7199])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[7218])
   nodes.push(
     protocol_object_rule(
-      [("state", 7233), ("reason", 7234)],
+      [("state", 7252), ("reason", 7253)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7232, 7235]))
+  nodes.push(protocol_one_of_rule([7251, 7254]))
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7226),
-        ("name", 7227),
-        ("stage_ordinal", 7228),
-        ("producer", 7236),
+        ("kind", 7245),
+        ("name", 7246),
+        ("stage_ordinal", 7247),
+        ("producer", 7255),
       ],
       ["kind", "name", "stage_ordinal", "producer"],
       -1,
@@ -20945,89 +20985,89 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3635])
+  nodes.push(nodes[3649])
   nodes.push(nodes[1])
   nodes.push(nodes[2408])
   nodes.push(
-    protocol_object_rule([("effect_kind", 7240)], ["effect_kind"], -2, 0, None),
+    protocol_object_rule([("effect_kind", 7259)], ["effect_kind"], -2, 0, None),
   )
   nodes.push(
-    protocol_object_rule([("declaration", 7241)], ["declaration"], -2, 0, None),
+    protocol_object_rule([("declaration", 7260)], ["declaration"], -2, 0, None),
   )
-  nodes.push(nodes[6615])
+  nodes.push(nodes[6634])
   nodes.push(
     protocol_string_rule(Some("command_fields_not_projected"), [], 0, 0),
   )
   nodes.push(
     protocol_object_rule(
-      [("state", 7243), ("reason", 7244)],
+      [("state", 7262), ("reason", 7263)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_object_rule([("write_fields", 7245)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("write_fields", 7264)], [], -2, 0, None))
   nodes.push(protocol_string_rule(Some("declared"), [], 0, 0))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(7248, 0, true, -1))
+  nodes.push(protocol_array_rule(7267, 0, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 7247), ("fields", 7249)],
+      [("state", 7266), ("fields", 7268)],
       ["state", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_object_rule([("write_fields", 7250)], [], -2, 0, None))
-  nodes.push(ConditionalRule(7242, 7246, 7251))
+  nodes.push(protocol_object_rule([("write_fields", 7269)], [], -2, 0, None))
+  nodes.push(ConditionalRule(7261, 7265, 7270))
   nodes.push(nodes[2408])
   nodes.push(
-    protocol_object_rule([("effect_kind", 7253)], ["effect_kind"], -2, 0, None),
+    protocol_object_rule([("effect_kind", 7272)], ["effect_kind"], -2, 0, None),
   )
   nodes.push(nodes[2408])
-  nodes.push(protocol_object_rule([("kind", 7255)], [], -2, 0, None))
-  nodes.push(nodes[6454])
-  nodes.push(protocol_object_rule([("kind", 7257)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("kind", 7274)], [], -2, 0, None))
+  nodes.push(nodes[6473])
+  nodes.push(protocol_object_rule([("kind", 7276)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("contract", 7256), ("minimum_approval", 7258)],
+      [("contract", 7275), ("minimum_approval", 7277)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6457])
-  nodes.push(protocol_object_rule([("kind", 7260)], [], -2, 0, None))
-  nodes.push(nodes[6459])
-  nodes.push(protocol_object_rule([("kind", 7262)], [], -2, 0, None))
+  nodes.push(nodes[6476])
+  nodes.push(protocol_object_rule([("kind", 7279)], [], -2, 0, None))
+  nodes.push(nodes[6478])
+  nodes.push(protocol_object_rule([("kind", 7281)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("contract", 7261), ("minimum_approval", 7263)],
+      [("contract", 7280), ("minimum_approval", 7282)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(ConditionalRule(7254, 7259, 7264))
+  nodes.push(ConditionalRule(7273, 7278, 7283))
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(nodes[1])
-  nodes.push(nodes[6466])
-  nodes.push(nodes[6457])
+  nodes.push(nodes[6485])
+  nodes.push(nodes[6476])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7270),
-        ("reference", 7271),
-        ("contract_cid", 7272),
-        ("declared_target", 7273),
+        ("kind", 7289),
+        ("reference", 7290),
+        ("contract_cid", 7291),
+        ("declared_target", 7292),
       ],
       ["kind", "reference", "contract_cid", "declared_target"],
       -1,
@@ -21042,10 +21082,10 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7275),
-        ("reference", 7276),
-        ("contract_cid", 7277),
-        ("resource_kind", 7278),
+        ("kind", 7294),
+        ("reference", 7295),
+        ("contract_cid", 7296),
+        ("resource_kind", 7297),
       ],
       ["kind", "reference", "contract_cid", "resource_kind"],
       -1,
@@ -21053,58 +21093,58 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7274, 7279]))
-  nodes.push(nodes[6478])
+  nodes.push(protocol_one_of_rule([7293, 7298]))
+  nodes.push(nodes[6497])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7281), ("result_name", 7282)],
+      [("kind", 7300), ("result_name", 7301)],
       ["kind", "result_name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6481])
+  nodes.push(nodes[6500])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7284), ("table_name", 7285)],
+      [("kind", 7303), ("table_name", 7304)],
       ["kind", "table_name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 7287)], ["kind"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([7283, 7286, 7288]))
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 7306)], ["kind"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([7302, 7305, 7307]))
   nodes.push(nodes[2469])
-  nodes.push(nodes[6459])
+  nodes.push(nodes[6478])
   nodes.push(nodes[2468])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7291), ("value", 7292)],
+      [("kind", 7310), ("value", 7311)],
       ["kind", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6454])
-  nodes.push(protocol_object_rule([("kind", 7294)], ["kind"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([7293, 7295]))
+  nodes.push(nodes[6473])
+  nodes.push(protocol_object_rule([("kind", 7313)], ["kind"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([7312, 7314]))
   nodes.push(
     protocol_object_rule(
       [
-        ("member_ordinal", 7266),
-        ("stage_ordinal", 7267),
-        ("effect_id", 7268),
-        ("effect_kind", 7269),
-        ("contract", 7280),
-        ("input", 7289),
-        ("failure_policy", 7290),
-        ("minimum_approval", 7296),
+        ("member_ordinal", 7285),
+        ("stage_ordinal", 7286),
+        ("effect_id", 7287),
+        ("effect_kind", 7288),
+        ("contract", 7299),
+        ("input", 7308),
+        ("failure_policy", 7309),
+        ("minimum_approval", 7315),
       ],
       [
         "member_ordinal", "stage_ordinal", "effect_id", "effect_kind", "contract",
@@ -21115,58 +21155,58 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([7265, 7297]))
-  nodes.push(nodes[7247])
+  nodes.push(AllOfRule([7284, 7316]))
+  nodes.push(nodes[7266])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(7300, 0, true, -1))
+  nodes.push(protocol_array_rule(7319, 0, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 7299), ("fields", 7301)],
+      [("state", 7318), ("fields", 7320)],
       ["state", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[7244])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[7263])
   nodes.push(
     protocol_object_rule(
-      [("state", 7303), ("reason", 7304)],
+      [("state", 7322), ("reason", 7323)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7302, 7305]))
+  nodes.push(protocol_one_of_rule([7321, 7324]))
   nodes.push(
     protocol_object_rule(
-      [("declaration", 7298), ("write_fields", 7306)],
+      [("declaration", 7317), ("write_fields", 7325)],
       ["declaration", "write_fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(AllOfRule([7252, 7307]))
-  nodes.push(protocol_array_rule(7308, 1, false, 64))
+  nodes.push(AllOfRule([7271, 7326]))
+  nodes.push(protocol_array_rule(7327, 1, false, 64))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7238), ("unit_id", 7239), ("members", 7309)],
+      [("kind", 7257), ("unit_id", 7258), ("members", 7328)],
       ["kind", "unit_id", "members"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7188, 7225, 7237, 7310]))
-  nodes.push(protocol_array_rule(7311, 0, false, -1))
+  nodes.push(protocol_one_of_rule([7207, 7244, 7256, 7329]))
+  nodes.push(protocol_array_rule(7330, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 7313), ("port_id", 7314)],
+      [("step_id", 7332), ("port_id", 7333)],
       ["step_id", "port_id"],
       -1,
       0,
@@ -21177,7 +21217,7 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 7316), ("port_id", 7317)],
+      [("step_id", 7335), ("port_id", 7336)],
       ["step_id", "port_id"],
       -1,
       0,
@@ -21187,22 +21227,22 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("producer", 7315), ("consumer", 7318), ("result_projection", 7319)],
+      [("producer", 7334), ("consumer", 7337), ("result_projection", 7338)],
       ["producer", "consumer", "result_projection"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7320, 0, false, -1))
+  nodes.push(protocol_array_rule(7339, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7148),
-        ("disclosure", 7149),
-        ("binding", 7155),
-        ("items", 7312),
-        ("stage_result_links", 7321),
+        ("version", 7167),
+        ("disclosure", 7168),
+        ("binding", 7174),
+        ("items", 7331),
+        ("stage_result_links", 7340),
       ],
       ["version", "disclosure", "binding", "items"],
       -1,
@@ -21213,47 +21253,47 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_string_rule(Some("actql-static-explanation/0.1"), [], 0, 0),
   )
-  nodes.push(nodes[4084])
+  nodes.push(nodes[4099])
   nodes.push(nodes[2])
-  nodes.push(nodes[3974])
+  nodes.push(nodes[3988])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7333), ("operation_ordinal", 7334)],
+      [("kind", 7352), ("operation_ordinal", 7353)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7336), ("input_port_ordinal", 7337)],
+      [("kind", 7355), ("input_port_ordinal", 7356)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7335, 7338]))
+  nodes.push(protocol_one_of_rule([7354, 7357]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7330),
-        ("compiled_plan_cid", 7331),
-        ("stage_ordinal", 7332),
-        ("occurrence", 7339),
-        ("self_cid", 7340),
+        ("version", 7349),
+        ("compiled_plan_cid", 7350),
+        ("stage_ordinal", 7351),
+        ("occurrence", 7358),
+        ("self_cid", 7359),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -21264,55 +21304,55 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(7342, 0, true, -1))
+  nodes.push(protocol_array_rule(7361, 0, true, -1))
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([7344, 7345]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([7363, 7364]))
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[190])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7352), ("stage_ordinal", 7353), ("input_port_ordinal", 7354)],
+      [("kind", 7371), ("stage_ordinal", 7372), ("input_port_ordinal", 7373)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7356), ("step_id", 7357), ("output_port_id", 7358)],
+      [("kind", 7375), ("step_id", 7376), ("output_port_id", 7377)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7355, 7359]))
+  nodes.push(protocol_one_of_rule([7374, 7378]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([7362, 7363]))
+  nodes.push(protocol_one_of_rule([7381, 7382]))
   nodes.push(
     protocol_object_rule(
       [
-        ("port_id", 7347),
-        ("role", 7348),
-        ("port_ordinal", 7349),
-        ("carrier", 7350),
-        ("carrier_contract_cid", 7351),
-        ("source", 7360),
-        ("can_sample", 7361),
-        ("sample_reason", 7364),
+        ("port_id", 7366),
+        ("role", 7367),
+        ("port_ordinal", 7368),
+        ("carrier", 7369),
+        ("carrier_contract_cid", 7370),
+        ("source", 7379),
+        ("can_sample", 7380),
+        ("sample_reason", 7383),
       ],
       [
         "port_id", "role", "port_ordinal", "carrier", "carrier_contract_cid", "source",
@@ -21323,23 +21363,23 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7365, 1, false, -1))
+  nodes.push(protocol_array_rule(7384, 1, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([7369, 7370]))
+  nodes.push(protocol_one_of_rule([7388, 7389]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 7329),
-        ("key", 7341),
-        ("names", 7343),
-        ("operator", 7346),
-        ("ports", 7366),
-        ("can_stop_before", 7367),
-        ("can_stop_after", 7368),
-        ("stop_reason", 7371),
+        ("step_id", 7348),
+        ("key", 7360),
+        ("names", 7362),
+        ("operator", 7365),
+        ("ports", 7385),
+        ("can_stop_before", 7386),
+        ("can_stop_after", 7387),
+        ("stop_reason", 7390),
       ],
       [
         "step_id", "key", "names", "operator", "ports", "can_stop_before", "can_stop_after",
@@ -21350,16 +21390,16 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7372, 0, false, -1))
+  nodes.push(protocol_array_rule(7391, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7326),
-        ("compiled_plan_cid", 7327),
-        ("program_definition_cid", 7328),
-        ("steps", 7373),
-        ("self_cid", 7374),
+        ("version", 7345),
+        ("compiled_plan_cid", 7346),
+        ("program_definition_cid", 7347),
+        ("steps", 7392),
+        ("self_cid", 7393),
       ],
       [
         "version", "compiled_plan_cid", "program_definition_cid", "steps", "self_cid",
@@ -21369,21 +21409,21 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4136])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(nodes[4151])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7378),
-        ("value", 7379),
-        ("unit", 7380),
-        ("scope_cid", 7381),
-        ("basis_cid", 7382),
+        ("kind", 7397),
+        ("value", 7398),
+        ("unit", 7399),
+        ("scope_cid", 7400),
+        ("basis_cid", 7401),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -21391,41 +21431,43 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7384), ("unit", 7385), ("reason", 7386)],
+      [("kind", 7403), ("unit", 7404), ("reason", 7405)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7383, 7387]))
-  nodes.push(protocol_array_rule(7388, 0, false, -1))
+  nodes.push(protocol_one_of_rule([7402, 7406]))
+  nodes.push(protocol_array_rule(7407, 0, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(7393, 0, true, -1))
+  nodes.push(protocol_array_rule(7412, 0, true, -1))
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(7395, 0, true, -1))
+  nodes.push(protocol_array_rule(7414, 0, true, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
+  nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
       [
-        ("static_plan", 7390),
-        ("inspect", 7391),
-        ("durable_control", 7392),
-        ("sample_capture", 7394),
-        ("full_intermediate_retention", 7396),
-        ("cost_guard", 7397),
-        ("execution_batch", 7398),
-        ("policy_revision_cid", 7399),
+        ("static_plan", 7409),
+        ("inspect", 7410),
+        ("durable_control", 7411),
+        ("sample_capture", 7413),
+        ("full_intermediate_retention", 7415),
+        ("cost_guard", 7416),
+        ("execution_batch", 7417),
+        ("policy_revision_cid", 7418),
+        ("debug_entry", 7419),
       ],
       [
         "static_plan", "inspect", "durable_control", "sample_capture", "full_intermediate_retention",
@@ -21439,13 +21481,13 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7324),
-        ("compiled_plan_cid", 7325),
-        ("logical_map", 7375),
-        ("observation", 7376),
-        ("provider_io", 7377),
-        ("quantities", 7389),
-        ("capabilities", 7400),
+        ("version", 7343),
+        ("compiled_plan_cid", 7344),
+        ("logical_map", 7394),
+        ("observation", 7395),
+        ("provider_io", 7396),
+        ("quantities", 7408),
+        ("capabilities", 7420),
       ],
       [
         "version", "compiled_plan_cid", "logical_map", "observation", "provider_io",
@@ -21456,52 +21498,52 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[6365])
+  nodes.push(nodes[6383])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[6369])
-  nodes.push(nodes[4084])
+  nodes.push(nodes[6387])
+  nodes.push(nodes[4099])
   nodes.push(nodes[2])
-  nodes.push(nodes[3974])
+  nodes.push(nodes[3988])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7416), ("operation_ordinal", 7417)],
+      [("kind", 7436), ("operation_ordinal", 7437)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7419), ("input_port_ordinal", 7420)],
+      [("kind", 7439), ("input_port_ordinal", 7440)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7418, 7421]))
+  nodes.push(protocol_one_of_rule([7438, 7441]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7413),
-        ("compiled_plan_cid", 7414),
-        ("stage_ordinal", 7415),
-        ("occurrence", 7422),
-        ("self_cid", 7423),
+        ("version", 7433),
+        ("compiled_plan_cid", 7434),
+        ("stage_ordinal", 7435),
+        ("occurrence", 7442),
+        ("self_cid", 7443),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -21512,55 +21554,55 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(7425, 0, true, -1))
+  nodes.push(protocol_array_rule(7445, 0, true, -1))
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([7427, 7428]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([7447, 7448]))
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[190])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7435), ("stage_ordinal", 7436), ("input_port_ordinal", 7437)],
+      [("kind", 7455), ("stage_ordinal", 7456), ("input_port_ordinal", 7457)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7439), ("step_id", 7440), ("output_port_id", 7441)],
+      [("kind", 7459), ("step_id", 7460), ("output_port_id", 7461)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7438, 7442]))
+  nodes.push(protocol_one_of_rule([7458, 7462]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([7445, 7446]))
+  nodes.push(protocol_one_of_rule([7465, 7466]))
   nodes.push(
     protocol_object_rule(
       [
-        ("port_id", 7430),
-        ("role", 7431),
-        ("port_ordinal", 7432),
-        ("carrier", 7433),
-        ("carrier_contract_cid", 7434),
-        ("source", 7443),
-        ("can_sample", 7444),
-        ("sample_reason", 7447),
+        ("port_id", 7450),
+        ("role", 7451),
+        ("port_ordinal", 7452),
+        ("carrier", 7453),
+        ("carrier_contract_cid", 7454),
+        ("source", 7463),
+        ("can_sample", 7464),
+        ("sample_reason", 7467),
       ],
       [
         "port_id", "role", "port_ordinal", "carrier", "carrier_contract_cid", "source",
@@ -21571,23 +21613,23 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7448, 1, false, -1))
+  nodes.push(protocol_array_rule(7468, 1, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([7452, 7453]))
+  nodes.push(protocol_one_of_rule([7472, 7473]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 7412),
-        ("key", 7424),
-        ("names", 7426),
-        ("operator", 7429),
-        ("ports", 7449),
-        ("can_stop_before", 7450),
-        ("can_stop_after", 7451),
-        ("stop_reason", 7454),
+        ("step_id", 7432),
+        ("key", 7444),
+        ("names", 7446),
+        ("operator", 7449),
+        ("ports", 7469),
+        ("can_stop_before", 7470),
+        ("can_stop_after", 7471),
+        ("stop_reason", 7474),
       ],
       [
         "step_id", "key", "names", "operator", "ports", "can_stop_before", "can_stop_after",
@@ -21598,16 +21640,16 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7455, 0, false, -1))
+  nodes.push(protocol_array_rule(7475, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7409),
-        ("compiled_plan_cid", 7410),
-        ("program_definition_cid", 7411),
-        ("steps", 7456),
-        ("self_cid", 7457),
+        ("version", 7429),
+        ("compiled_plan_cid", 7430),
+        ("program_definition_cid", 7431),
+        ("steps", 7476),
+        ("self_cid", 7477),
       ],
       [
         "version", "compiled_plan_cid", "program_definition_cid", "steps", "self_cid",
@@ -21617,21 +21659,21 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4136])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(nodes[4151])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7461),
-        ("value", 7462),
-        ("unit", 7463),
-        ("scope_cid", 7464),
-        ("basis_cid", 7465),
+        ("kind", 7481),
+        ("value", 7482),
+        ("unit", 7483),
+        ("scope_cid", 7484),
+        ("basis_cid", 7485),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -21639,41 +21681,43 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7467), ("unit", 7468), ("reason", 7469)],
+      [("kind", 7487), ("unit", 7488), ("reason", 7489)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7466, 7470]))
-  nodes.push(protocol_array_rule(7471, 0, false, -1))
+  nodes.push(protocol_one_of_rule([7486, 7490]))
+  nodes.push(protocol_array_rule(7491, 0, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(7476, 0, true, -1))
+  nodes.push(protocol_array_rule(7496, 0, true, -1))
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(7478, 0, true, -1))
+  nodes.push(protocol_array_rule(7498, 0, true, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
+  nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
       [
-        ("static_plan", 7473),
-        ("inspect", 7474),
-        ("durable_control", 7475),
-        ("sample_capture", 7477),
-        ("full_intermediate_retention", 7479),
-        ("cost_guard", 7480),
-        ("execution_batch", 7481),
-        ("policy_revision_cid", 7482),
+        ("static_plan", 7493),
+        ("inspect", 7494),
+        ("durable_control", 7495),
+        ("sample_capture", 7497),
+        ("full_intermediate_retention", 7499),
+        ("cost_guard", 7500),
+        ("execution_batch", 7501),
+        ("policy_revision_cid", 7502),
+        ("debug_entry", 7503),
       ],
       [
         "static_plan", "inspect", "durable_control", "sample_capture", "full_intermediate_retention",
@@ -21687,13 +21731,13 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7407),
-        ("compiled_plan_cid", 7408),
-        ("logical_map", 7458),
-        ("observation", 7459),
-        ("provider_io", 7460),
-        ("quantities", 7472),
-        ("capabilities", 7483),
+        ("version", 7427),
+        ("compiled_plan_cid", 7428),
+        ("logical_map", 7478),
+        ("observation", 7479),
+        ("provider_io", 7480),
+        ("quantities", 7492),
+        ("capabilities", 7504),
       ],
       [
         "version", "compiled_plan_cid", "logical_map", "observation", "provider_io",
@@ -21706,7 +21750,7 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("scope", 7406), ("plan_view", 7484)],
+      [("scope", 7426), ("plan_view", 7505)],
       ["scope", "plan_view"],
       -1,
       0,
@@ -21716,50 +21760,50 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[2408])
   nodes.push(
-    protocol_object_rule([("effect_kind", 7487)], ["effect_kind"], -2, 0, None),
+    protocol_object_rule([("effect_kind", 7508)], ["effect_kind"], -2, 0, None),
   )
   nodes.push(nodes[2408])
-  nodes.push(protocol_object_rule([("kind", 7489)], [], -2, 0, None))
-  nodes.push(nodes[6454])
-  nodes.push(protocol_object_rule([("kind", 7491)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("kind", 7510)], [], -2, 0, None))
+  nodes.push(nodes[6473])
+  nodes.push(protocol_object_rule([("kind", 7512)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("contract", 7490), ("minimum_approval", 7492)],
+      [("contract", 7511), ("minimum_approval", 7513)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6457])
-  nodes.push(protocol_object_rule([("kind", 7494)], [], -2, 0, None))
-  nodes.push(nodes[6459])
-  nodes.push(protocol_object_rule([("kind", 7496)], [], -2, 0, None))
+  nodes.push(nodes[6476])
+  nodes.push(protocol_object_rule([("kind", 7515)], [], -2, 0, None))
+  nodes.push(nodes[6478])
+  nodes.push(protocol_object_rule([("kind", 7517)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("contract", 7495), ("minimum_approval", 7497)],
+      [("contract", 7516), ("minimum_approval", 7518)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(ConditionalRule(7488, 7493, 7498))
+  nodes.push(ConditionalRule(7509, 7514, 7519))
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(nodes[1])
-  nodes.push(nodes[6466])
-  nodes.push(nodes[6457])
+  nodes.push(nodes[6485])
+  nodes.push(nodes[6476])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7504),
-        ("reference", 7505),
-        ("contract_cid", 7506),
-        ("declared_target", 7507),
+        ("kind", 7525),
+        ("reference", 7526),
+        ("contract_cid", 7527),
+        ("declared_target", 7528),
       ],
       ["kind", "reference", "contract_cid", "declared_target"],
       -1,
@@ -21774,10 +21818,10 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7509),
-        ("reference", 7510),
-        ("contract_cid", 7511),
-        ("resource_kind", 7512),
+        ("kind", 7530),
+        ("reference", 7531),
+        ("contract_cid", 7532),
+        ("resource_kind", 7533),
       ],
       ["kind", "reference", "contract_cid", "resource_kind"],
       -1,
@@ -21785,58 +21829,58 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7508, 7513]))
-  nodes.push(nodes[6478])
+  nodes.push(protocol_one_of_rule([7529, 7534]))
+  nodes.push(nodes[6497])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7515), ("result_name", 7516)],
+      [("kind", 7536), ("result_name", 7537)],
       ["kind", "result_name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6481])
+  nodes.push(nodes[6500])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7518), ("table_name", 7519)],
+      [("kind", 7539), ("table_name", 7540)],
       ["kind", "table_name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 7521)], ["kind"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([7517, 7520, 7522]))
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 7542)], ["kind"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([7538, 7541, 7543]))
   nodes.push(nodes[2469])
-  nodes.push(nodes[6459])
+  nodes.push(nodes[6478])
   nodes.push(nodes[2468])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7525), ("value", 7526)],
+      [("kind", 7546), ("value", 7547)],
       ["kind", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6454])
-  nodes.push(protocol_object_rule([("kind", 7528)], ["kind"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([7527, 7529]))
+  nodes.push(nodes[6473])
+  nodes.push(protocol_object_rule([("kind", 7549)], ["kind"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([7548, 7550]))
   nodes.push(
     protocol_object_rule(
       [
-        ("member_ordinal", 7500),
-        ("stage_ordinal", 7501),
-        ("effect_id", 7502),
-        ("effect_kind", 7503),
-        ("contract", 7514),
-        ("input", 7523),
-        ("failure_policy", 7524),
-        ("minimum_approval", 7530),
+        ("member_ordinal", 7521),
+        ("stage_ordinal", 7522),
+        ("effect_id", 7523),
+        ("effect_kind", 7524),
+        ("contract", 7535),
+        ("input", 7544),
+        ("failure_policy", 7545),
+        ("minimum_approval", 7551),
       ],
       [
         "member_ordinal", "stage_ordinal", "effect_id", "effect_kind", "contract",
@@ -21847,79 +21891,79 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([7499, 7531]))
-  nodes.push(protocol_array_rule(7532, 1, false, 64))
+  nodes.push(AllOfRule([7520, 7552]))
+  nodes.push(protocol_array_rule(7553, 1, false, 64))
   nodes.push(
     protocol_object_rule(
-      [("unit_id", 7486), ("members", 7533)],
+      [("unit_id", 7507), ("members", 7554)],
       ["unit_id", "members"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4136])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[3004])
-  nodes.push(nodes[6501])
+  nodes.push(nodes[4151])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[3018])
+  nodes.push(nodes[6520])
   nodes.push(
     protocol_object_rule(
-      [("state", 7537), ("reason", 7538)],
+      [("state", 7558), ("reason", 7559)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
-  nodes.push(nodes[6501])
+  nodes.push(nodes[3018])
+  nodes.push(nodes[6520])
   nodes.push(
     protocol_object_rule(
-      [("state", 7540), ("reason", 7541)],
+      [("state", 7561), ("reason", 7562)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
-  nodes.push(nodes[6501])
+  nodes.push(nodes[3018])
+  nodes.push(nodes[6520])
   nodes.push(
     protocol_object_rule(
-      [("state", 7543), ("reason", 7544)],
+      [("state", 7564), ("reason", 7565)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
-  nodes.push(nodes[6501])
+  nodes.push(nodes[3018])
+  nodes.push(nodes[6520])
   nodes.push(
     protocol_object_rule(
-      [("state", 7546), ("reason", 7547)],
+      [("state", 7567), ("reason", 7568)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3004])
-  nodes.push(nodes[6501])
+  nodes.push(nodes[3018])
+  nodes.push(nodes[6520])
   nodes.push(
     protocol_object_rule(
-      [("state", 7549), ("reason", 7550)],
+      [("state", 7570), ("reason", 7571)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4306])
-  nodes.push(nodes[6516])
+  nodes.push(nodes[4322])
+  nodes.push(nodes[6535])
   nodes.push(
     protocol_object_rule(
-      [("state", 7552), ("reason", 7553)],
+      [("state", 7573), ("reason", 7574)],
       ["state", "reason"],
       -1,
       0,
@@ -21929,12 +21973,12 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("resolved_targets", 7539),
-        ("changed_values", 7542),
-        ("permission", 7545),
-        ("gate", 7548),
-        ("approval", 7551),
-        ("preview", 7554),
+        ("resolved_targets", 7560),
+        ("changed_values", 7563),
+        ("permission", 7566),
+        ("gate", 7569),
+        ("approval", 7572),
+        ("preview", 7575),
       ],
       [
         "resolved_targets", "changed_values", "permission", "gate", "approval", "preview",
@@ -21947,15 +21991,15 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7402),
-        ("program_definition_cid", 7403),
-        ("parameter_values_cid", 7404),
-        ("check_environment_cid", 7405),
-        ("computation", 7485),
-        ("effect_set", 7534),
-        ("observation", 7535),
-        ("provider_io", 7536),
-        ("observations", 7555),
+        ("version", 7422),
+        ("program_definition_cid", 7423),
+        ("parameter_values_cid", 7424),
+        ("check_environment_cid", 7425),
+        ("computation", 7506),
+        ("effect_set", 7555),
+        ("observation", 7556),
+        ("provider_io", 7557),
+        ("observations", 7576),
       ],
       [
         "version", "program_definition_cid", "parameter_values_cid", "check_environment_cid",
@@ -21966,49 +22010,49 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7401, 7556]))
-  nodes.push(nodes[6802])
-  nodes.push(nodes[6803])
+  nodes.push(protocol_one_of_rule([7421, 7577]))
+  nodes.push(nodes[6821])
+  nodes.push(nodes[6822])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7568), ("operation_ordinal", 7569)],
+      [("kind", 7589), ("operation_ordinal", 7590)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7571), ("input_port_ordinal", 7572)],
+      [("kind", 7592), ("input_port_ordinal", 7593)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7570, 7573]))
+  nodes.push(protocol_one_of_rule([7591, 7594]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7565),
-        ("compiled_plan_cid", 7566),
-        ("stage_ordinal", 7567),
-        ("occurrence", 7574),
-        ("self_cid", 7575),
+        ("version", 7586),
+        ("compiled_plan_cid", 7587),
+        ("stage_ordinal", 7588),
+        ("occurrence", 7595),
+        ("self_cid", 7596),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -22019,23 +22063,23 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([7577, 7578]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([7598, 7599]))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(7580, 0, false, -1))
+  nodes.push(protocol_array_rule(7601, 0, false, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(7582, 0, false, -1))
-  nodes.push(nodes[3872])
-  nodes.push(protocol_object_rule([("kind", 7584)], ["kind"], -1, 0, None))
-  nodes.push(nodes[6621])
+  nodes.push(protocol_array_rule(7603, 0, false, -1))
+  nodes.push(nodes[3886])
+  nodes.push(protocol_object_rule([("kind", 7605)], ["kind"], -1, 0, None))
+  nodes.push(nodes[6640])
   nodes.push(nodes[1])
-  nodes.push(nodes[6525])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6544])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7589), ("kind", 7590), ("nullable", 7591)],
+      [("projection", 7610), ("kind", 7611), ("nullable", 7612)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -22044,34 +22088,34 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("name", 7587), ("presence", 7588), ("type", 7592)],
+      [("name", 7608), ("presence", 7609), ("type", 7613)],
       ["name", "presence", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7593, 0, false, -1))
-  nodes.push(protocol_object_rule([("fields", 7594)], ["fields"], -1, 0, None))
+  nodes.push(protocol_array_rule(7614, 0, false, -1))
+  nodes.push(protocol_object_rule([("fields", 7615)], ["fields"], -1, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7586), ("schema", 7595)],
+      [("kind", 7607), ("schema", 7616)],
       ["kind", "schema"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6632])
-  nodes.push(nodes[6572])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[6533])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6651])
+  nodes.push(nodes[6591])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[6552])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7601), ("kind", 7602), ("nullable", 7603)],
+      [("projection", 7622), ("kind", 7623), ("nullable", 7624)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -22080,22 +22124,22 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7600), ("type", 7604)],
+      [("form", 7621), ("type", 7625)],
       ["form", "type"],
       -1,
       0,
       None,
     ),
   )
+  nodes.push(nodes[6558])
+  nodes.push(nodes[6559])
+  nodes.push(nodes[1])
   nodes.push(nodes[6539])
   nodes.push(nodes[6540])
-  nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7609), ("kind", 7610), ("nullable", 7611)],
+      [("projection", 7630), ("kind", 7631), ("nullable", 7632)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -22104,21 +22148,21 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7606), ("scope", 7607), ("name", 7608), ("type", 7612)],
+      [("form", 7627), ("scope", 7628), ("name", 7629), ("type", 7633)],
       ["form", "scope", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6547])
+  nodes.push(nodes[6566])
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7616), ("kind", 7617), ("nullable", 7618)],
+      [("projection", 7637), ("kind", 7638), ("nullable", 7639)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -22127,22 +22171,22 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7614), ("name", 7615), ("type", 7619)],
+      [("form", 7635), ("name", 7636), ("type", 7640)],
       ["form", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6554])
+  nodes.push(nodes[6573])
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7624), ("kind", 7625), ("nullable", 7626)],
+      [("projection", 7645), ("kind", 7646), ("nullable", 7647)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -22151,23 +22195,23 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7621), ("name", 7622), ("receiver", 7623), ("type", 7627)],
+      [("form", 7642), ("name", 7643), ("receiver", 7644), ("type", 7648)],
       ["form", "name", "receiver", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3869])
-  nodes.push(nodes[6563])
+  nodes.push(nodes[3883])
+  nodes.push(nodes[6582])
   nodes.push(nodes[190])
-  nodes.push(protocol_array_rule(7631, 0, false, -1))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_array_rule(7652, 0, false, -1))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7633), ("kind", 7634), ("nullable", 7635)],
+      [("projection", 7654), ("kind", 7655), ("nullable", 7656)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -22176,113 +22220,113 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7629), ("operator", 7630), ("children", 7632), ("type", 7636)],
+      [("form", 7650), ("operator", 7651), ("children", 7653), ("type", 7657)],
       ["form", "operator", "children", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7605, 7613, 7620, 7628, 7637]))
-  nodes.push(protocol_array_rule(7638, 1, false, -1))
+  nodes.push(protocol_one_of_rule([7626, 7634, 7641, 7649, 7658]))
+  nodes.push(protocol_array_rule(7659, 1, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 7598), ("root", 7599), ("nodes", 7639)],
+      [("state", 7619), ("root", 7620), ("nodes", 7660)],
       ["state", "root", "nodes"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6616])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6635])
   nodes.push(
     protocol_object_rule(
-      [("state", 7641), ("reason", 7642)],
+      [("state", 7662), ("reason", 7663)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7640, 7643]))
+  nodes.push(protocol_one_of_rule([7661, 7664]))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7597), ("predicate", 7644)],
+      [("kind", 7618), ("predicate", 7665)],
       ["kind", "predicate"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6681])
-  nodes.push(nodes[6682])
+  nodes.push(nodes[6700])
+  nodes.push(nodes[6701])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("input", 7648), ("output", 7649)],
+      [("input", 7669), ("output", 7670)],
       ["input", "output"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7650, 0, false, -1))
+  nodes.push(protocol_array_rule(7671, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7646), ("operation", 7647), ("fields", 7651)],
+      [("kind", 7667), ("operation", 7668), ("fields", 7672)],
       ["kind", "operation", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6688])
-  nodes.push(nodes[6689])
-  nodes.push(nodes[6690])
+  nodes.push(nodes[6707])
+  nodes.push(nodes[6708])
+  nodes.push(nodes[6709])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("left", 7656), ("right", 7657)],
+      [("left", 7677), ("right", 7678)],
       ["left", "right"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7658, 0, false, -1))
+  nodes.push(protocol_array_rule(7679, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7653), ("join_kind", 7654), ("null_key", 7655), ("keys", 7659)],
+      [("kind", 7674), ("join_kind", 7675), ("null_key", 7676), ("keys", 7680)],
       ["kind", "join_kind", "null_key", "keys"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6697])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6716])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7661), ("reason", 7662)],
+      [("kind", 7682), ("reason", 7683)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7585, 7596, 7645, 7652, 7660, 7663]))
+  nodes.push(protocol_one_of_rule([7606, 7617, 7666, 7673, 7681, 7684]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 7564),
-        ("key", 7576),
-        ("operator", 7579),
-        ("input_ports", 7581),
-        ("output_ports", 7583),
-        ("meaning", 7664),
+        ("step_id", 7585),
+        ("key", 7597),
+        ("operator", 7600),
+        ("input_ports", 7602),
+        ("output_ports", 7604),
+        ("meaning", 7685),
       ],
       ["step_id", "key", "operator", "input_ports", "output_ports", "meaning"],
       -1,
@@ -22290,19 +22334,19 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7665, 0, false, -1))
+  nodes.push(protocol_array_rule(7686, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7558),
-        ("disclosure", 7559),
-        ("program_definition_cid", 7560),
-        ("parameter_values_cid", 7561),
-        ("compiled_plan_cid", 7562),
-        ("logical_map_cid", 7563),
-        ("steps", 7666),
-        ("self_cid", 7667),
+        ("version", 7579),
+        ("disclosure", 7580),
+        ("program_definition_cid", 7581),
+        ("parameter_values_cid", 7582),
+        ("compiled_plan_cid", 7583),
+        ("logical_map_cid", 7584),
+        ("steps", 7687),
+        ("self_cid", 7688),
       ],
       [
         "version", "disclosure", "program_definition_cid", "parameter_values_cid",
@@ -22313,8 +22357,8 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[7148])
-  nodes.push(nodes[6803])
+  nodes.push(nodes[7167])
+  nodes.push(nodes[6822])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -22323,11 +22367,11 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("program_definition_cid", 7671),
-        ("parameter_values_cid", 7672),
-        ("check_environment_cid", 7673),
-        ("compiled_plan_cid", 7674),
-        ("logical_map_cid", 7675),
+        ("program_definition_cid", 7692),
+        ("parameter_values_cid", 7693),
+        ("check_environment_cid", 7694),
+        ("compiled_plan_cid", 7695),
+        ("logical_map_cid", 7696),
       ],
       [
         "program_definition_cid", "parameter_values_cid", "check_environment_cid",
@@ -22338,44 +22382,44 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[7156])
+  nodes.push(nodes[7175])
   nodes.push(
-    protocol_object_rule([("link_state", 7677)], ["link_state"], -2, 0, None),
+    protocol_object_rule([("link_state", 7698)], ["link_state"], -2, 0, None),
   )
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 7679), ("port_id", 7680)],
+      [("step_id", 7700), ("port_id", 7701)],
       ["step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7681, 1, false, -1))
-  nodes.push(protocol_object_rule([("consuming_ports", 7682)], [], -2, 0, None))
+  nodes.push(protocol_array_rule(7702, 1, false, -1))
+  nodes.push(protocol_object_rule([("consuming_ports", 7703)], [], -2, 0, None))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 7684), ("port_id", 7685)],
+      [("step_id", 7705), ("port_id", 7706)],
       ["step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7686, 0, false, 0))
-  nodes.push(protocol_object_rule([("consuming_ports", 7687)], [], -2, 0, None))
-  nodes.push(ConditionalRule(7678, 7683, 7688))
-  nodes.push(nodes[7169])
-  nodes.push(nodes[3902])
+  nodes.push(protocol_array_rule(7707, 0, false, 0))
+  nodes.push(protocol_object_rule([("consuming_ports", 7708)], [], -2, 0, None))
+  nodes.push(ConditionalRule(7699, 7704, 7709))
+  nodes.push(nodes[7188])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7691), ("stage_ordinal", 7692), ("input_port_ordinal", 7693)],
+      [("kind", 7712), ("stage_ordinal", 7713), ("input_port_ordinal", 7714)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
@@ -22386,17 +22430,17 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
-  nodes.push(nodes[7178])
+  nodes.push(nodes[7197])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
       [
-        ("catalog_cid", 7695),
-        ("connector", 7696),
-        ("contract_cid", 7697),
-        ("resource", 7698),
-        ("selection", 7699),
-        ("view", 7700),
+        ("catalog_cid", 7716),
+        ("connector", 7717),
+        ("contract_cid", 7718),
+        ("resource", 7719),
+        ("selection", 7720),
+        ("view", 7721),
       ],
       [
         "catalog_cid", "connector", "contract_cid", "resource", "selection", "view",
@@ -22406,29 +22450,29 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[7181])
-  nodes.push(nodes[7182])
+  nodes.push(nodes[7200])
+  nodes.push(nodes[7201])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 7704), ("port_id", 7705)],
+      [("step_id", 7725), ("port_id", 7726)],
       ["step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7706, 0, false, -1))
+  nodes.push(protocol_array_rule(7727, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7690),
-        ("stage_input", 7694),
-        ("source_view", 7701),
-        ("request_kind", 7702),
-        ("link_state", 7703),
-        ("consuming_ports", 7707),
+        ("kind", 7711),
+        ("stage_input", 7715),
+        ("source_view", 7722),
+        ("request_kind", 7723),
+        ("link_state", 7724),
+        ("consuming_ports", 7728),
       ],
       [
         "kind", "stage_input", "source_view", "request_kind", "link_state", "consuming_ports",
@@ -22438,68 +22482,68 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([7689, 7708]))
-  nodes.push(nodes[7189])
+  nodes.push(AllOfRule([7710, 7729]))
+  nodes.push(nodes[7208])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[7193])
-  nodes.push(nodes[6572])
+  nodes.push(nodes[7212])
+  nodes.push(nodes[6591])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("state", 7715), ("step_id", 7716), ("port_id", 7717)],
+      [("state", 7736), ("step_id", 7737), ("port_id", 7738)],
       ["state", "step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[7199])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[7218])
   nodes.push(
     protocol_object_rule(
-      [("state", 7719), ("reason", 7720)],
+      [("state", 7740), ("reason", 7741)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7718, 7721]))
+  nodes.push(protocol_one_of_rule([7739, 7742]))
   nodes.push(nodes[1])
-  nodes.push(nodes[7203])
+  nodes.push(nodes[7222])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("state", 7724), ("name", 7725)],
+      [("state", 7745), ("name", 7746)],
       ["state", "name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[7206])
-  nodes.push(protocol_object_rule([("state", 7727)], ["state"], -1, 0, None))
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6616])
+  nodes.push(nodes[7225])
+  nodes.push(protocol_object_rule([("state", 7748)], ["state"], -1, 0, None))
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6635])
   nodes.push(
     protocol_object_rule(
-      [("state", 7729), ("reason", 7730)],
+      [("state", 7750), ("reason", 7751)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7726, 7728, 7731]))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_one_of_rule([7747, 7749, 7752]))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7733), ("kind", 7734), ("nullable", 7735)],
+      [("projection", 7754), ("kind", 7755), ("nullable", 7756)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -22508,21 +22552,21 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("role", 7723), ("binding", 7732), ("type", 7736)],
+      [("role", 7744), ("binding", 7753), ("type", 7757)],
       ["role", "binding", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7737, 0, false, -1))
+  nodes.push(protocol_array_rule(7758, 0, false, -1))
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7740), ("kind", 7741), ("nullable", 7742)],
+      [("projection", 7761), ("kind", 7762), ("nullable", 7763)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -22531,25 +22575,25 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("name", 7739), ("type", 7743)],
+      [("name", 7760), ("type", 7764)],
       ["name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7744, 0, false, -1))
+  nodes.push(protocol_array_rule(7765, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7710),
-        ("task_id", 7711),
-        ("task_version", 7712),
-        ("contract_cid", 7713),
-        ("dispatch_unit", 7714),
-        ("producer", 7722),
-        ("input_bindings", 7738),
-        ("output_fields", 7745),
+        ("kind", 7731),
+        ("task_id", 7732),
+        ("task_version", 7733),
+        ("contract_cid", 7734),
+        ("dispatch_unit", 7735),
+        ("producer", 7743),
+        ("input_bindings", 7759),
+        ("output_fields", 7766),
       ],
       [
         "kind", "task_id", "task_version", "contract_cid", "dispatch_unit", "producer",
@@ -22560,40 +22604,40 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[6478])
+  nodes.push(nodes[6497])
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6572])
+  nodes.push(nodes[6591])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("state", 7750), ("step_id", 7751), ("port_id", 7752)],
+      [("state", 7771), ("step_id", 7772), ("port_id", 7773)],
       ["state", "step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[7199])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[7218])
   nodes.push(
     protocol_object_rule(
-      [("state", 7754), ("reason", 7755)],
+      [("state", 7775), ("reason", 7776)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7753, 7756]))
+  nodes.push(protocol_one_of_rule([7774, 7777]))
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7747),
-        ("name", 7748),
-        ("stage_ordinal", 7749),
-        ("producer", 7757),
+        ("kind", 7768),
+        ("name", 7769),
+        ("stage_ordinal", 7770),
+        ("producer", 7778),
       ],
       ["kind", "name", "stage_ordinal", "producer"],
       -1,
@@ -22601,87 +22645,87 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3635])
+  nodes.push(nodes[3649])
   nodes.push(nodes[1])
   nodes.push(nodes[2408])
   nodes.push(
-    protocol_object_rule([("effect_kind", 7761)], ["effect_kind"], -2, 0, None),
+    protocol_object_rule([("effect_kind", 7782)], ["effect_kind"], -2, 0, None),
   )
   nodes.push(
-    protocol_object_rule([("declaration", 7762)], ["declaration"], -2, 0, None),
+    protocol_object_rule([("declaration", 7783)], ["declaration"], -2, 0, None),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[7244])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[7263])
   nodes.push(
     protocol_object_rule(
-      [("state", 7764), ("reason", 7765)],
+      [("state", 7785), ("reason", 7786)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_object_rule([("write_fields", 7766)], [], -2, 0, None))
-  nodes.push(nodes[7247])
+  nodes.push(protocol_object_rule([("write_fields", 7787)], [], -2, 0, None))
+  nodes.push(nodes[7266])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(7769, 0, true, -1))
+  nodes.push(protocol_array_rule(7790, 0, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 7768), ("fields", 7770)],
+      [("state", 7789), ("fields", 7791)],
       ["state", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_object_rule([("write_fields", 7771)], [], -2, 0, None))
-  nodes.push(ConditionalRule(7763, 7767, 7772))
+  nodes.push(protocol_object_rule([("write_fields", 7792)], [], -2, 0, None))
+  nodes.push(ConditionalRule(7784, 7788, 7793))
   nodes.push(nodes[2408])
   nodes.push(
-    protocol_object_rule([("effect_kind", 7774)], ["effect_kind"], -2, 0, None),
+    protocol_object_rule([("effect_kind", 7795)], ["effect_kind"], -2, 0, None),
   )
   nodes.push(nodes[2408])
-  nodes.push(protocol_object_rule([("kind", 7776)], [], -2, 0, None))
-  nodes.push(nodes[6454])
-  nodes.push(protocol_object_rule([("kind", 7778)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("kind", 7797)], [], -2, 0, None))
+  nodes.push(nodes[6473])
+  nodes.push(protocol_object_rule([("kind", 7799)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("contract", 7777), ("minimum_approval", 7779)],
+      [("contract", 7798), ("minimum_approval", 7800)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6457])
-  nodes.push(protocol_object_rule([("kind", 7781)], [], -2, 0, None))
-  nodes.push(nodes[6459])
-  nodes.push(protocol_object_rule([("kind", 7783)], [], -2, 0, None))
+  nodes.push(nodes[6476])
+  nodes.push(protocol_object_rule([("kind", 7802)], [], -2, 0, None))
+  nodes.push(nodes[6478])
+  nodes.push(protocol_object_rule([("kind", 7804)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("contract", 7782), ("minimum_approval", 7784)],
+      [("contract", 7803), ("minimum_approval", 7805)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(ConditionalRule(7775, 7780, 7785))
+  nodes.push(ConditionalRule(7796, 7801, 7806))
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(nodes[1])
-  nodes.push(nodes[6466])
-  nodes.push(nodes[6457])
+  nodes.push(nodes[6485])
+  nodes.push(nodes[6476])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7791),
-        ("reference", 7792),
-        ("contract_cid", 7793),
-        ("declared_target", 7794),
+        ("kind", 7812),
+        ("reference", 7813),
+        ("contract_cid", 7814),
+        ("declared_target", 7815),
       ],
       ["kind", "reference", "contract_cid", "declared_target"],
       -1,
@@ -22696,10 +22740,10 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7796),
-        ("reference", 7797),
-        ("contract_cid", 7798),
-        ("resource_kind", 7799),
+        ("kind", 7817),
+        ("reference", 7818),
+        ("contract_cid", 7819),
+        ("resource_kind", 7820),
       ],
       ["kind", "reference", "contract_cid", "resource_kind"],
       -1,
@@ -22707,58 +22751,58 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7795, 7800]))
-  nodes.push(nodes[6478])
+  nodes.push(protocol_one_of_rule([7816, 7821]))
+  nodes.push(nodes[6497])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7802), ("result_name", 7803)],
+      [("kind", 7823), ("result_name", 7824)],
       ["kind", "result_name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6481])
+  nodes.push(nodes[6500])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7805), ("table_name", 7806)],
+      [("kind", 7826), ("table_name", 7827)],
       ["kind", "table_name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 7808)], ["kind"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([7804, 7807, 7809]))
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 7829)], ["kind"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([7825, 7828, 7830]))
   nodes.push(nodes[2469])
-  nodes.push(nodes[6459])
+  nodes.push(nodes[6478])
   nodes.push(nodes[2468])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7812), ("value", 7813)],
+      [("kind", 7833), ("value", 7834)],
       ["kind", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6454])
-  nodes.push(protocol_object_rule([("kind", 7815)], ["kind"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([7814, 7816]))
+  nodes.push(nodes[6473])
+  nodes.push(protocol_object_rule([("kind", 7836)], ["kind"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([7835, 7837]))
   nodes.push(
     protocol_object_rule(
       [
-        ("member_ordinal", 7787),
-        ("stage_ordinal", 7788),
-        ("effect_id", 7789),
-        ("effect_kind", 7790),
-        ("contract", 7801),
-        ("input", 7810),
-        ("failure_policy", 7811),
-        ("minimum_approval", 7817),
+        ("member_ordinal", 7808),
+        ("stage_ordinal", 7809),
+        ("effect_id", 7810),
+        ("effect_kind", 7811),
+        ("contract", 7822),
+        ("input", 7831),
+        ("failure_policy", 7832),
+        ("minimum_approval", 7838),
       ],
       [
         "member_ordinal", "stage_ordinal", "effect_id", "effect_kind", "contract",
@@ -22769,58 +22813,58 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([7786, 7818]))
-  nodes.push(nodes[7247])
+  nodes.push(AllOfRule([7807, 7839]))
+  nodes.push(nodes[7266])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(7821, 0, true, -1))
+  nodes.push(protocol_array_rule(7842, 0, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 7820), ("fields", 7822)],
+      [("state", 7841), ("fields", 7843)],
       ["state", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[7244])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[7263])
   nodes.push(
     protocol_object_rule(
-      [("state", 7824), ("reason", 7825)],
+      [("state", 7845), ("reason", 7846)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7823, 7826]))
+  nodes.push(protocol_one_of_rule([7844, 7847]))
   nodes.push(
     protocol_object_rule(
-      [("declaration", 7819), ("write_fields", 7827)],
+      [("declaration", 7840), ("write_fields", 7848)],
       ["declaration", "write_fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(AllOfRule([7773, 7828]))
-  nodes.push(protocol_array_rule(7829, 1, false, 64))
+  nodes.push(AllOfRule([7794, 7849]))
+  nodes.push(protocol_array_rule(7850, 1, false, 64))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7759), ("unit_id", 7760), ("members", 7830)],
+      [("kind", 7780), ("unit_id", 7781), ("members", 7851)],
       ["kind", "unit_id", "members"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7709, 7746, 7758, 7831]))
-  nodes.push(protocol_array_rule(7832, 0, false, -1))
+  nodes.push(protocol_one_of_rule([7730, 7767, 7779, 7852]))
+  nodes.push(protocol_array_rule(7853, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 7834), ("port_id", 7835)],
+      [("step_id", 7855), ("port_id", 7856)],
       ["step_id", "port_id"],
       -1,
       0,
@@ -22831,7 +22875,7 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 7837), ("port_id", 7838)],
+      [("step_id", 7858), ("port_id", 7859)],
       ["step_id", "port_id"],
       -1,
       0,
@@ -22841,22 +22885,22 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("producer", 7836), ("consumer", 7839), ("result_projection", 7840)],
+      [("producer", 7857), ("consumer", 7860), ("result_projection", 7861)],
       ["producer", "consumer", "result_projection"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7841, 0, false, -1))
+  nodes.push(protocol_array_rule(7862, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7669),
-        ("disclosure", 7670),
-        ("binding", 7676),
-        ("items", 7833),
-        ("stage_result_links", 7842),
+        ("version", 7690),
+        ("disclosure", 7691),
+        ("binding", 7697),
+        ("items", 7854),
+        ("stage_result_links", 7863),
       ],
       ["version", "disclosure", "binding", "items"],
       -1,
@@ -22866,7 +22910,7 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("version", 7323), ("plan", 7557), ("facts", 7668), ("context", 7843)],
+      [("version", 7342), ("plan", 7578), ("facts", 7689), ("context", 7864)],
       ["version", "plan", "facts", "context"],
       -1,
       0,
@@ -22882,16 +22926,16 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([7846, 7847]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([7867, 7868]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 7848),
-        ("authorityScopeCid", 7849),
-        ("runDefinitionCid", 7850),
+        ("namespaceId", 7869),
+        ("authorityScopeCid", 7870),
+        ("runDefinitionCid", 7871),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -22899,49 +22943,49 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[6572])
-  nodes.push(nodes[7323])
-  nodes.push(nodes[4084])
+  nodes.push(nodes[6591])
+  nodes.push(nodes[7342])
+  nodes.push(nodes[4099])
   nodes.push(nodes[2])
-  nodes.push(nodes[3974])
+  nodes.push(nodes[3988])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7863), ("operation_ordinal", 7864)],
+      [("kind", 7884), ("operation_ordinal", 7885)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7866), ("input_port_ordinal", 7867)],
+      [("kind", 7887), ("input_port_ordinal", 7888)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7865, 7868]))
+  nodes.push(protocol_one_of_rule([7886, 7889]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7860),
-        ("compiled_plan_cid", 7861),
-        ("stage_ordinal", 7862),
-        ("occurrence", 7869),
-        ("self_cid", 7870),
+        ("version", 7881),
+        ("compiled_plan_cid", 7882),
+        ("stage_ordinal", 7883),
+        ("occurrence", 7890),
+        ("self_cid", 7891),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -22952,55 +22996,55 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(7872, 0, true, -1))
+  nodes.push(protocol_array_rule(7893, 0, true, -1))
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([7874, 7875]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([7895, 7896]))
   nodes.push(nodes[2])
-  nodes.push(nodes[3892])
+  nodes.push(nodes[3906])
   nodes.push(nodes[190])
   nodes.push(nodes[268])
   nodes.push(nodes[2])
-  nodes.push(nodes[3902])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7882), ("stage_ordinal", 7883), ("input_port_ordinal", 7884)],
+      [("kind", 7903), ("stage_ordinal", 7904), ("input_port_ordinal", 7905)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3906])
+  nodes.push(nodes[3920])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7886), ("step_id", 7887), ("output_port_id", 7888)],
+      [("kind", 7907), ("step_id", 7908), ("output_port_id", 7909)],
       ["kind", "step_id", "output_port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7885, 7889]))
+  nodes.push(protocol_one_of_rule([7906, 7910]))
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([7892, 7893]))
+  nodes.push(protocol_one_of_rule([7913, 7914]))
   nodes.push(
     protocol_object_rule(
       [
-        ("port_id", 7877),
-        ("role", 7878),
-        ("port_ordinal", 7879),
-        ("carrier", 7880),
-        ("carrier_contract_cid", 7881),
-        ("source", 7890),
-        ("can_sample", 7891),
-        ("sample_reason", 7894),
+        ("port_id", 7898),
+        ("role", 7899),
+        ("port_ordinal", 7900),
+        ("carrier", 7901),
+        ("carrier_contract_cid", 7902),
+        ("source", 7911),
+        ("can_sample", 7912),
+        ("sample_reason", 7915),
       ],
       [
         "port_id", "role", "port_ordinal", "carrier", "carrier_contract_cid", "source",
@@ -23011,23 +23055,23 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7895, 1, false, -1))
+  nodes.push(protocol_array_rule(7916, 1, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
-  nodes.push(protocol_one_of_rule([7899, 7900]))
+  nodes.push(protocol_one_of_rule([7920, 7921]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 7859),
-        ("key", 7871),
-        ("names", 7873),
-        ("operator", 7876),
-        ("ports", 7896),
-        ("can_stop_before", 7897),
-        ("can_stop_after", 7898),
-        ("stop_reason", 7901),
+        ("step_id", 7880),
+        ("key", 7892),
+        ("names", 7894),
+        ("operator", 7897),
+        ("ports", 7917),
+        ("can_stop_before", 7918),
+        ("can_stop_after", 7919),
+        ("stop_reason", 7922),
       ],
       [
         "step_id", "key", "names", "operator", "ports", "can_stop_before", "can_stop_after",
@@ -23038,16 +23082,16 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7902, 0, false, -1))
+  nodes.push(protocol_array_rule(7923, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7856),
-        ("compiled_plan_cid", 7857),
-        ("program_definition_cid", 7858),
-        ("steps", 7903),
-        ("self_cid", 7904),
+        ("version", 7877),
+        ("compiled_plan_cid", 7878),
+        ("program_definition_cid", 7879),
+        ("steps", 7924),
+        ("self_cid", 7925),
       ],
       [
         "version", "compiled_plan_cid", "program_definition_cid", "steps", "self_cid",
@@ -23057,21 +23101,21 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[4136])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(nodes[4151])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 7908),
-        ("value", 7909),
-        ("unit", 7910),
-        ("scope_cid", 7911),
-        ("basis_cid", 7912),
+        ("kind", 7929),
+        ("value", 7930),
+        ("unit", 7931),
+        ("scope_cid", 7932),
+        ("basis_cid", 7933),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -23079,41 +23123,43 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7914), ("unit", 7915), ("reason", 7916)],
+      [("kind", 7935), ("unit", 7936), ("reason", 7937)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7913, 7917]))
-  nodes.push(protocol_array_rule(7918, 0, false, -1))
+  nodes.push(protocol_one_of_rule([7934, 7938]))
+  nodes.push(protocol_array_rule(7939, 0, false, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(7923, 0, true, -1))
+  nodes.push(protocol_array_rule(7944, 0, true, -1))
   nodes.push(nodes[268])
-  nodes.push(protocol_array_rule(7925, 0, true, -1))
+  nodes.push(protocol_array_rule(7946, 0, true, -1))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
+  nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
       [
-        ("static_plan", 7920),
-        ("inspect", 7921),
-        ("durable_control", 7922),
-        ("sample_capture", 7924),
-        ("full_intermediate_retention", 7926),
-        ("cost_guard", 7927),
-        ("execution_batch", 7928),
-        ("policy_revision_cid", 7929),
+        ("static_plan", 7941),
+        ("inspect", 7942),
+        ("durable_control", 7943),
+        ("sample_capture", 7945),
+        ("full_intermediate_retention", 7947),
+        ("cost_guard", 7948),
+        ("execution_batch", 7949),
+        ("policy_revision_cid", 7950),
+        ("debug_entry", 7951),
       ],
       [
         "static_plan", "inspect", "durable_control", "sample_capture", "full_intermediate_retention",
@@ -23127,13 +23173,13 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7854),
-        ("compiled_plan_cid", 7855),
-        ("logical_map", 7905),
-        ("observation", 7906),
-        ("provider_io", 7907),
-        ("quantities", 7919),
-        ("capabilities", 7930),
+        ("version", 7875),
+        ("compiled_plan_cid", 7876),
+        ("logical_map", 7926),
+        ("observation", 7927),
+        ("provider_io", 7928),
+        ("quantities", 7940),
+        ("capabilities", 7952),
       ],
       [
         "version", "compiled_plan_cid", "logical_map", "observation", "provider_io",
@@ -23144,48 +23190,48 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[6802])
-  nodes.push(nodes[6803])
+  nodes.push(nodes[6821])
+  nodes.push(nodes[6822])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3866])
+  nodes.push(nodes[3880])
   nodes.push(nodes[2])
   nodes.push(nodes[190])
-  nodes.push(nodes[3869])
+  nodes.push(nodes[3883])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7942), ("operation_ordinal", 7943)],
+      [("kind", 7964), ("operation_ordinal", 7965)],
       ["kind", "operation_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3872])
+  nodes.push(nodes[3886])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 7945), ("input_port_ordinal", 7946)],
+      [("kind", 7967), ("input_port_ordinal", 7968)],
       ["kind", "input_port_ordinal"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7944, 7947]))
+  nodes.push(protocol_one_of_rule([7966, 7969]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7939),
-        ("compiled_plan_cid", 7940),
-        ("stage_ordinal", 7941),
-        ("occurrence", 7948),
-        ("self_cid", 7949),
+        ("version", 7961),
+        ("compiled_plan_cid", 7962),
+        ("stage_ordinal", 7963),
+        ("occurrence", 7970),
+        ("self_cid", 7971),
       ],
       [
         "version", "compiled_plan_cid", "stage_ordinal", "occurrence", "self_cid",
@@ -23196,23 +23242,23 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[122])
-  nodes.push(nodes[3626])
-  nodes.push(protocol_one_of_rule([7951, 7952]))
+  nodes.push(nodes[3640])
+  nodes.push(protocol_one_of_rule([7973, 7974]))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(7954, 0, false, -1))
+  nodes.push(protocol_array_rule(7976, 0, false, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(7956, 0, false, -1))
-  nodes.push(nodes[3872])
-  nodes.push(protocol_object_rule([("kind", 7958)], ["kind"], -1, 0, None))
-  nodes.push(nodes[6621])
+  nodes.push(protocol_array_rule(7978, 0, false, -1))
+  nodes.push(nodes[3886])
+  nodes.push(protocol_object_rule([("kind", 7980)], ["kind"], -1, 0, None))
+  nodes.push(nodes[6640])
   nodes.push(nodes[1])
-  nodes.push(nodes[6525])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6544])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7963), ("kind", 7964), ("nullable", 7965)],
+      [("projection", 7985), ("kind", 7986), ("nullable", 7987)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -23221,34 +23267,38 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("name", 7961), ("presence", 7962), ("type", 7966)],
+      [("name", 7983), ("presence", 7984), ("type", 7988)],
       ["name", "presence", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(7967, 0, false, -1))
-  nodes.push(protocol_object_rule([("fields", 7968)], ["fields"], -1, 0, None))
+  nodes.push(protocol_array_rule(7989, 0, false, -1))
+  nodes.push(protocol_object_rule([("fields", 7990)], ["fields"], -1, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7960), ("schema", 7969)],
+      [("kind", 7982), ("schema", 7991)],
       ["kind", "schema"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6632])
-  nodes.push(nodes[6572])
-  nodes.push(nodes[4137])
-  nodes.push(nodes[6533])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6651])
+  nodes.push(nodes[6591])
+  nodes.push(nodes[4152])
+  nodes.push(nodes[6552])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
+}
+
+///|
+fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit {
   nodes.push(
     protocol_object_rule(
-      [("projection", 7975), ("kind", 7976), ("nullable", 7977)],
+      [("projection", 7997), ("kind", 7998), ("nullable", 7999)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -23257,22 +23307,22 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7974), ("type", 7978)],
+      [("form", 7996), ("type", 8000)],
       ["form", "type"],
       -1,
       0,
       None,
     ),
   )
+  nodes.push(nodes[6558])
+  nodes.push(nodes[6559])
+  nodes.push(nodes[1])
   nodes.push(nodes[6539])
   nodes.push(nodes[6540])
-  nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7983), ("kind", 7984), ("nullable", 7985)],
+      [("projection", 8005), ("kind", 8006), ("nullable", 8007)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -23281,21 +23331,21 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7980), ("scope", 7981), ("name", 7982), ("type", 7986)],
+      [("form", 8002), ("scope", 8003), ("name", 8004), ("type", 8008)],
       ["form", "scope", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6547])
+  nodes.push(nodes[6566])
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7990), ("kind", 7991), ("nullable", 7992)],
+      [("projection", 8012), ("kind", 8013), ("nullable", 8014)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -23304,26 +23354,22 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7988), ("name", 7989), ("type", 7993)],
+      [("form", 8010), ("name", 8011), ("type", 8015)],
       ["form", "name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6554])
+  nodes.push(nodes[6573])
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
-}
-
-///|
-fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit {
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 7998), ("kind", 7999), ("nullable", 8000)],
+      [("projection", 8020), ("kind", 8021), ("nullable", 8022)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -23332,23 +23378,23 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 7995), ("name", 7996), ("receiver", 7997), ("type", 8001)],
+      [("form", 8017), ("name", 8018), ("receiver", 8019), ("type", 8023)],
       ["form", "name", "receiver", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[3869])
-  nodes.push(nodes[6563])
+  nodes.push(nodes[3883])
+  nodes.push(nodes[6582])
   nodes.push(nodes[190])
-  nodes.push(protocol_array_rule(8005, 0, false, -1))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_array_rule(8027, 0, false, -1))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 8007), ("kind", 8008), ("nullable", 8009)],
+      [("projection", 8029), ("kind", 8030), ("nullable", 8031)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -23357,113 +23403,113 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("form", 8003), ("operator", 8004), ("children", 8006), ("type", 8010)],
+      [("form", 8025), ("operator", 8026), ("children", 8028), ("type", 8032)],
       ["form", "operator", "children", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7979, 7987, 7994, 8002, 8011]))
-  nodes.push(protocol_array_rule(8012, 1, false, -1))
+  nodes.push(protocol_one_of_rule([8001, 8009, 8016, 8024, 8033]))
+  nodes.push(protocol_array_rule(8034, 1, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 7972), ("root", 7973), ("nodes", 8013)],
+      [("state", 7994), ("root", 7995), ("nodes", 8035)],
       ["state", "root", "nodes"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6616])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6635])
   nodes.push(
     protocol_object_rule(
-      [("state", 8015), ("reason", 8016)],
+      [("state", 8037), ("reason", 8038)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8014, 8017]))
+  nodes.push(protocol_one_of_rule([8036, 8039]))
   nodes.push(
     protocol_object_rule(
-      [("kind", 7971), ("predicate", 8018)],
+      [("kind", 7993), ("predicate", 8040)],
       ["kind", "predicate"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6681])
-  nodes.push(nodes[6682])
+  nodes.push(nodes[6700])
+  nodes.push(nodes[6701])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("input", 8022), ("output", 8023)],
+      [("input", 8044), ("output", 8045)],
       ["input", "output"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(8024, 0, false, -1))
+  nodes.push(protocol_array_rule(8046, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 8020), ("operation", 8021), ("fields", 8025)],
+      [("kind", 8042), ("operation", 8043), ("fields", 8047)],
       ["kind", "operation", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6688])
-  nodes.push(nodes[6689])
-  nodes.push(nodes[6690])
+  nodes.push(nodes[6707])
+  nodes.push(nodes[6708])
+  nodes.push(nodes[6709])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("left", 8030), ("right", 8031)],
+      [("left", 8052), ("right", 8053)],
       ["left", "right"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(8032, 0, false, -1))
+  nodes.push(protocol_array_rule(8054, 0, false, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 8027), ("join_kind", 8028), ("null_key", 8029), ("keys", 8033)],
+      [("kind", 8049), ("join_kind", 8050), ("null_key", 8051), ("keys", 8055)],
       ["kind", "join_kind", "null_key", "keys"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6697])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6716])
   nodes.push(
     protocol_object_rule(
-      [("kind", 8035), ("reason", 8036)],
+      [("kind", 8057), ("reason", 8058)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([7959, 7970, 8019, 8026, 8034, 8037]))
+  nodes.push(protocol_one_of_rule([7981, 7992, 8041, 8048, 8056, 8059]))
   nodes.push(
     protocol_object_rule(
       [
-        ("step_id", 7938),
-        ("key", 7950),
-        ("operator", 7953),
-        ("input_ports", 7955),
-        ("output_ports", 7957),
-        ("meaning", 8038),
+        ("step_id", 7960),
+        ("key", 7972),
+        ("operator", 7975),
+        ("input_ports", 7977),
+        ("output_ports", 7979),
+        ("meaning", 8060),
       ],
       ["step_id", "key", "operator", "input_ports", "output_ports", "meaning"],
       -1,
@@ -23471,19 +23517,19 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(8039, 0, false, -1))
+  nodes.push(protocol_array_rule(8061, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 7932),
-        ("disclosure", 7933),
-        ("program_definition_cid", 7934),
-        ("parameter_values_cid", 7935),
-        ("compiled_plan_cid", 7936),
-        ("logical_map_cid", 7937),
-        ("steps", 8040),
-        ("self_cid", 8041),
+        ("version", 7954),
+        ("disclosure", 7955),
+        ("program_definition_cid", 7956),
+        ("parameter_values_cid", 7957),
+        ("compiled_plan_cid", 7958),
+        ("logical_map_cid", 7959),
+        ("steps", 8062),
+        ("self_cid", 8063),
       ],
       [
         "version", "disclosure", "program_definition_cid", "parameter_values_cid",
@@ -23494,8 +23540,8 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[7148])
-  nodes.push(nodes[6803])
+  nodes.push(nodes[7167])
+  nodes.push(nodes[6822])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -23504,11 +23550,11 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("program_definition_cid", 8045),
-        ("parameter_values_cid", 8046),
-        ("check_environment_cid", 8047),
-        ("compiled_plan_cid", 8048),
-        ("logical_map_cid", 8049),
+        ("program_definition_cid", 8067),
+        ("parameter_values_cid", 8068),
+        ("check_environment_cid", 8069),
+        ("compiled_plan_cid", 8070),
+        ("logical_map_cid", 8071),
       ],
       [
         "program_definition_cid", "parameter_values_cid", "check_environment_cid",
@@ -23519,44 +23565,44 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[7156])
+  nodes.push(nodes[7175])
   nodes.push(
-    protocol_object_rule([("link_state", 8051)], ["link_state"], -2, 0, None),
+    protocol_object_rule([("link_state", 8073)], ["link_state"], -2, 0, None),
   )
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 8053), ("port_id", 8054)],
+      [("step_id", 8075), ("port_id", 8076)],
       ["step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(8055, 1, false, -1))
-  nodes.push(protocol_object_rule([("consuming_ports", 8056)], [], -2, 0, None))
+  nodes.push(protocol_array_rule(8077, 1, false, -1))
+  nodes.push(protocol_object_rule([("consuming_ports", 8078)], [], -2, 0, None))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 8058), ("port_id", 8059)],
+      [("step_id", 8080), ("port_id", 8081)],
       ["step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(8060, 0, false, 0))
-  nodes.push(protocol_object_rule([("consuming_ports", 8061)], [], -2, 0, None))
-  nodes.push(ConditionalRule(8052, 8057, 8062))
-  nodes.push(nodes[7169])
-  nodes.push(nodes[3902])
+  nodes.push(protocol_array_rule(8082, 0, false, 0))
+  nodes.push(protocol_object_rule([("consuming_ports", 8083)], [], -2, 0, None))
+  nodes.push(ConditionalRule(8074, 8079, 8084))
+  nodes.push(nodes[7188])
+  nodes.push(nodes[3916])
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(
     protocol_object_rule(
-      [("kind", 8065), ("stage_ordinal", 8066), ("input_port_ordinal", 8067)],
+      [("kind", 8087), ("stage_ordinal", 8088), ("input_port_ordinal", 8089)],
       ["kind", "stage_ordinal", "input_port_ordinal"],
       -1,
       0,
@@ -23567,17 +23613,17 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
-  nodes.push(nodes[7178])
+  nodes.push(nodes[7197])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
       [
-        ("catalog_cid", 8069),
-        ("connector", 8070),
-        ("contract_cid", 8071),
-        ("resource", 8072),
-        ("selection", 8073),
-        ("view", 8074),
+        ("catalog_cid", 8091),
+        ("connector", 8092),
+        ("contract_cid", 8093),
+        ("resource", 8094),
+        ("selection", 8095),
+        ("view", 8096),
       ],
       [
         "catalog_cid", "connector", "contract_cid", "resource", "selection", "view",
@@ -23587,29 +23633,29 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[7181])
-  nodes.push(nodes[7182])
+  nodes.push(nodes[7200])
+  nodes.push(nodes[7201])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("step_id", 8078), ("port_id", 8079)],
+      [("step_id", 8100), ("port_id", 8101)],
       ["step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(8080, 0, false, -1))
+  nodes.push(protocol_array_rule(8102, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 8064),
-        ("stage_input", 8068),
-        ("source_view", 8075),
-        ("request_kind", 8076),
-        ("link_state", 8077),
-        ("consuming_ports", 8081),
+        ("kind", 8086),
+        ("stage_input", 8090),
+        ("source_view", 8097),
+        ("request_kind", 8098),
+        ("link_state", 8099),
+        ("consuming_ports", 8103),
       ],
       [
         "kind", "stage_input", "source_view", "request_kind", "link_state", "consuming_ports",
@@ -23619,68 +23665,68 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([8063, 8082]))
-  nodes.push(nodes[7189])
+  nodes.push(AllOfRule([8085, 8104]))
+  nodes.push(nodes[7208])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[7193])
-  nodes.push(nodes[6572])
+  nodes.push(nodes[7212])
+  nodes.push(nodes[6591])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("state", 8089), ("step_id", 8090), ("port_id", 8091)],
+      [("state", 8111), ("step_id", 8112), ("port_id", 8113)],
       ["state", "step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[7199])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[7218])
   nodes.push(
     protocol_object_rule(
-      [("state", 8093), ("reason", 8094)],
+      [("state", 8115), ("reason", 8116)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8092, 8095]))
+  nodes.push(protocol_one_of_rule([8114, 8117]))
   nodes.push(nodes[1])
-  nodes.push(nodes[7203])
+  nodes.push(nodes[7222])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("state", 8098), ("name", 8099)],
+      [("state", 8120), ("name", 8121)],
       ["state", "name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[7206])
-  nodes.push(protocol_object_rule([("state", 8101)], ["state"], -1, 0, None))
-  nodes.push(nodes[6615])
-  nodes.push(nodes[6616])
+  nodes.push(nodes[7225])
+  nodes.push(protocol_object_rule([("state", 8123)], ["state"], -1, 0, None))
+  nodes.push(nodes[6634])
+  nodes.push(nodes[6635])
   nodes.push(
     protocol_object_rule(
-      [("state", 8103), ("reason", 8104)],
+      [("state", 8125), ("reason", 8126)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8100, 8102, 8105]))
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(protocol_one_of_rule([8122, 8124, 8127]))
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 8107), ("kind", 8108), ("nullable", 8109)],
+      [("projection", 8129), ("kind", 8130), ("nullable", 8131)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -23689,21 +23735,21 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("role", 8097), ("binding", 8106), ("type", 8110)],
+      [("role", 8119), ("binding", 8128), ("type", 8132)],
       ["role", "binding", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(8111, 0, false, -1))
+  nodes.push(protocol_array_rule(8133, 0, false, -1))
   nodes.push(nodes[1])
-  nodes.push(nodes[6520])
-  nodes.push(nodes[6521])
+  nodes.push(nodes[6539])
+  nodes.push(nodes[6540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("projection", 8114), ("kind", 8115), ("nullable", 8116)],
+      [("projection", 8136), ("kind", 8137), ("nullable", 8138)],
       ["projection", "kind", "nullable"],
       -1,
       0,
@@ -23712,25 +23758,25 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("name", 8113), ("type", 8117)],
+      [("name", 8135), ("type", 8139)],
       ["name", "type"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(8118, 0, false, -1))
+  nodes.push(protocol_array_rule(8140, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 8084),
-        ("task_id", 8085),
-        ("task_version", 8086),
-        ("contract_cid", 8087),
-        ("dispatch_unit", 8088),
-        ("producer", 8096),
-        ("input_bindings", 8112),
-        ("output_fields", 8119),
+        ("kind", 8106),
+        ("task_id", 8107),
+        ("task_version", 8108),
+        ("contract_cid", 8109),
+        ("dispatch_unit", 8110),
+        ("producer", 8118),
+        ("input_bindings", 8134),
+        ("output_fields", 8141),
       ],
       [
         "kind", "task_id", "task_version", "contract_cid", "dispatch_unit", "producer",
@@ -23741,40 +23787,40 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[6478])
+  nodes.push(nodes[6497])
   nodes.push(nodes[1])
   nodes.push(nodes[190])
-  nodes.push(nodes[6572])
+  nodes.push(nodes[6591])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("state", 8124), ("step_id", 8125), ("port_id", 8126)],
+      [("state", 8146), ("step_id", 8147), ("port_id", 8148)],
       ["state", "step_id", "port_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[7199])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[7218])
   nodes.push(
     protocol_object_rule(
-      [("state", 8128), ("reason", 8129)],
+      [("state", 8150), ("reason", 8151)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8127, 8130]))
+  nodes.push(protocol_one_of_rule([8149, 8152]))
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 8121),
-        ("name", 8122),
-        ("stage_ordinal", 8123),
-        ("producer", 8131),
+        ("kind", 8143),
+        ("name", 8144),
+        ("stage_ordinal", 8145),
+        ("producer", 8153),
       ],
       ["kind", "name", "stage_ordinal", "producer"],
       -1,
@@ -23782,87 +23828,87 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[3635])
+  nodes.push(nodes[3649])
   nodes.push(nodes[1])
   nodes.push(nodes[2408])
   nodes.push(
-    protocol_object_rule([("effect_kind", 8135)], ["effect_kind"], -2, 0, None),
+    protocol_object_rule([("effect_kind", 8157)], ["effect_kind"], -2, 0, None),
   )
   nodes.push(
-    protocol_object_rule([("declaration", 8136)], ["declaration"], -2, 0, None),
+    protocol_object_rule([("declaration", 8158)], ["declaration"], -2, 0, None),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[7244])
+  nodes.push(nodes[6634])
+  nodes.push(nodes[7263])
   nodes.push(
     protocol_object_rule(
-      [("state", 8138), ("reason", 8139)],
+      [("state", 8160), ("reason", 8161)],
       ["state", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_object_rule([("write_fields", 8140)], [], -2, 0, None))
-  nodes.push(nodes[7247])
+  nodes.push(protocol_object_rule([("write_fields", 8162)], [], -2, 0, None))
+  nodes.push(nodes[7266])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(8143, 0, true, -1))
+  nodes.push(protocol_array_rule(8165, 0, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 8142), ("fields", 8144)],
+      [("state", 8164), ("fields", 8166)],
       ["state", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_object_rule([("write_fields", 8145)], [], -2, 0, None))
-  nodes.push(ConditionalRule(8137, 8141, 8146))
+  nodes.push(protocol_object_rule([("write_fields", 8167)], [], -2, 0, None))
+  nodes.push(ConditionalRule(8159, 8163, 8168))
   nodes.push(nodes[2408])
   nodes.push(
-    protocol_object_rule([("effect_kind", 8148)], ["effect_kind"], -2, 0, None),
+    protocol_object_rule([("effect_kind", 8170)], ["effect_kind"], -2, 0, None),
   )
   nodes.push(nodes[2408])
-  nodes.push(protocol_object_rule([("kind", 8150)], [], -2, 0, None))
-  nodes.push(nodes[6454])
-  nodes.push(protocol_object_rule([("kind", 8152)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("kind", 8172)], [], -2, 0, None))
+  nodes.push(nodes[6473])
+  nodes.push(protocol_object_rule([("kind", 8174)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("contract", 8151), ("minimum_approval", 8153)],
+      [("contract", 8173), ("minimum_approval", 8175)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6457])
-  nodes.push(protocol_object_rule([("kind", 8155)], [], -2, 0, None))
-  nodes.push(nodes[6459])
-  nodes.push(protocol_object_rule([("kind", 8157)], [], -2, 0, None))
+  nodes.push(nodes[6476])
+  nodes.push(protocol_object_rule([("kind", 8177)], [], -2, 0, None))
+  nodes.push(nodes[6478])
+  nodes.push(protocol_object_rule([("kind", 8179)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("contract", 8156), ("minimum_approval", 8158)],
+      [("contract", 8178), ("minimum_approval", 8180)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(ConditionalRule(8149, 8154, 8159))
+  nodes.push(ConditionalRule(8171, 8176, 8181))
   nodes.push(nodes[190])
   nodes.push(nodes[190])
   nodes.push(nodes[1])
-  nodes.push(nodes[6466])
-  nodes.push(nodes[6457])
+  nodes.push(nodes[6485])
+  nodes.push(nodes[6476])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 8165),
-        ("reference", 8166),
-        ("contract_cid", 8167),
-        ("declared_target", 8168),
+        ("kind", 8187),
+        ("reference", 8188),
+        ("contract_cid", 8189),
+        ("declared_target", 8190),
       ],
       ["kind", "reference", "contract_cid", "declared_target"],
       -1,
@@ -23877,10 +23923,10 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 8170),
-        ("reference", 8171),
-        ("contract_cid", 8172),
-        ("resource_kind", 8173),
+        ("kind", 8192),
+        ("reference", 8193),
+        ("contract_cid", 8194),
+        ("resource_kind", 8195),
       ],
       ["kind", "reference", "contract_cid", "resource_kind"],
       -1,
@@ -23888,58 +23934,58 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8169, 8174]))
-  nodes.push(nodes[6478])
+  nodes.push(protocol_one_of_rule([8191, 8196]))
+  nodes.push(nodes[6497])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 8176), ("result_name", 8177)],
+      [("kind", 8198), ("result_name", 8199)],
       ["kind", "result_name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6481])
+  nodes.push(nodes[6500])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 8179), ("table_name", 8180)],
+      [("kind", 8201), ("table_name", 8202)],
       ["kind", "table_name"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 8182)], ["kind"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([8178, 8181, 8183]))
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 8204)], ["kind"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([8200, 8203, 8205]))
   nodes.push(nodes[2469])
-  nodes.push(nodes[6459])
+  nodes.push(nodes[6478])
   nodes.push(nodes[2468])
   nodes.push(
     protocol_object_rule(
-      [("kind", 8186), ("value", 8187)],
+      [("kind", 8208), ("value", 8209)],
       ["kind", "value"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6454])
-  nodes.push(protocol_object_rule([("kind", 8189)], ["kind"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([8188, 8190]))
+  nodes.push(nodes[6473])
+  nodes.push(protocol_object_rule([("kind", 8211)], ["kind"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([8210, 8212]))
   nodes.push(
     protocol_object_rule(
       [
-        ("member_ordinal", 8161),
-        ("stage_ordinal", 8162),
-        ("effect_id", 8163),
-        ("effect_kind", 8164),
-        ("contract", 8175),
-        ("input", 8184),
-        ("failure_policy", 8185),
-        ("minimum_approval", 8191),
+        ("member_ordinal", 8183),
+        ("stage_ordinal", 8184),
+        ("effect_id", 8185),
+        ("effect_kind", 8186),
+        ("contract", 8197),
+        ("input", 8206),
+        ("failure_policy", 8207),
+        ("minimum_approval", 8213),
       ],
       [
         "member_ordinal", "stage_ordinal", "effect_id", "effect_kind", "contract",
@@ -23950,121 +23996,21 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([8160, 8192]))
-  nodes.push(nodes[7247])
+  nodes.push(AllOfRule([8182, 8214]))
+  nodes.push(nodes[7266])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(8195, 0, true, -1))
+  nodes.push(protocol_array_rule(8217, 0, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("state", 8194), ("fields", 8196)],
+      [("state", 8216), ("fields", 8218)],
       ["state", "fields"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[6615])
-  nodes.push(nodes[7244])
-  nodes.push(
-    protocol_object_rule(
-      [("state", 8198), ("reason", 8199)],
-      ["state", "reason"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(protocol_one_of_rule([8197, 8200]))
-  nodes.push(
-    protocol_object_rule(
-      [("declaration", 8193), ("write_fields", 8201)],
-      ["declaration", "write_fields"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(AllOfRule([8147, 8202]))
-  nodes.push(protocol_array_rule(8203, 1, false, 64))
-  nodes.push(
-    protocol_object_rule(
-      [("kind", 8133), ("unit_id", 8134), ("members", 8204)],
-      ["kind", "unit_id", "members"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(protocol_one_of_rule([8083, 8120, 8132, 8205]))
-  nodes.push(protocol_array_rule(8206, 0, false, -1))
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(
-    protocol_object_rule(
-      [("step_id", 8208), ("port_id", 8209)],
-      ["step_id", "port_id"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(
-    protocol_object_rule(
-      [("step_id", 8211), ("port_id", 8212)],
-      ["step_id", "port_id"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(nodes[14])
-  nodes.push(
-    protocol_object_rule(
-      [("producer", 8210), ("consumer", 8213), ("result_projection", 8214)],
-      ["producer", "consumer", "result_projection"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(protocol_array_rule(8215, 0, false, -1))
-  nodes.push(
-    protocol_object_rule(
-      [
-        ("version", 8043),
-        ("disclosure", 8044),
-        ("binding", 8050),
-        ("items", 8207),
-        ("stage_result_links", 8216),
-      ],
-      ["version", "disclosure", "binding", "items"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(
-    protocol_object_rule(
-      [("version", 7853), ("plan", 7931), ("facts", 8042), ("context", 8217)],
-      ["version", "plan", "facts", "context"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(
-    protocol_object_rule(
-      [("state", 7852), ("view", 8218)],
-      ["state", "view"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(nodes[6615])
-  nodes.push(protocol_string_rule(Some("not_retained"), [], 0, 0))
+  nodes.push(nodes[6634])
+  nodes.push(nodes[7263])
   nodes.push(
     protocol_object_rule(
       [("state", 8220), ("reason", 8221)],
@@ -24077,7 +24023,107 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(protocol_one_of_rule([8219, 8222]))
   nodes.push(
     protocol_object_rule(
-      [("version", 7845), ("run_ref", 7851), ("explanation", 8223)],
+      [("declaration", 8215), ("write_fields", 8223)],
+      ["declaration", "write_fields"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(AllOfRule([8169, 8224]))
+  nodes.push(protocol_array_rule(8225, 1, false, 64))
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 8155), ("unit_id", 8156), ("members", 8226)],
+      ["kind", "unit_id", "members"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([8105, 8142, 8154, 8227]))
+  nodes.push(protocol_array_rule(8228, 0, false, -1))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [("step_id", 8230), ("port_id", 8231)],
+      ["step_id", "port_id"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [("step_id", 8233), ("port_id", 8234)],
+      ["step_id", "port_id"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[14])
+  nodes.push(
+    protocol_object_rule(
+      [("producer", 8232), ("consumer", 8235), ("result_projection", 8236)],
+      ["producer", "consumer", "result_projection"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_array_rule(8237, 0, false, -1))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8065),
+        ("disclosure", 8066),
+        ("binding", 8072),
+        ("items", 8229),
+        ("stage_result_links", 8238),
+      ],
+      ["version", "disclosure", "binding", "items"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_object_rule(
+      [("version", 7874), ("plan", 7953), ("facts", 8064), ("context", 8239)],
+      ["version", "plan", "facts", "context"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_object_rule(
+      [("state", 7873), ("view", 8240)],
+      ["state", "view"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[6634])
+  nodes.push(protocol_string_rule(Some("not_retained"), [], 0, 0))
+  nodes.push(
+    protocol_object_rule(
+      [("state", 8242), ("reason", 8243)],
+      ["state", "reason"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([8241, 8244]))
+  nodes.push(
+    protocol_object_rule(
+      [("version", 7866), ("run_ref", 7872), ("explanation", 8245)],
       ["version", "run_ref", "explanation"],
       -1,
       0,
@@ -24085,14 +24131,14 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(protocol_string_rule(Some("structured_generate"), [], 0, 0))
-  nodes.push(protocol_object_rule([("kind", 8225)], [], -2, 0, None))
-  nodes.push(protocol_object_rule([("task", 8226)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("kind", 8247)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("task", 8248)], [], -2, 0, None))
   nodes.push(nodes[122])
   nodes.push(protocol_string_rule(Some("generation_finish"), [], 0, 0))
-  nodes.push(protocol_object_rule([("basis", 8229)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("basis", 8251)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("probability", 8228), ("completion", 8230)],
+      [("probability", 8250), ("completion", 8252)],
       [],
       -2,
       0,
@@ -24100,18 +24146,18 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[81])
-  nodes.push(protocol_object_rule([("probability", 8232)], [], -2, 0, None))
-  nodes.push(ConditionalRule(8227, 8231, 8233))
+  nodes.push(protocol_object_rule([("probability", 8254)], [], -2, 0, None))
+  nodes.push(ConditionalRule(8249, 8253, 8255))
   nodes.push(protocol_string_rule(Some("native_decision"), [], 0, 0))
-  nodes.push(protocol_object_rule([("basis", 8235)], [], -2, 0, None))
-  nodes.push(protocol_object_rule([("completion", 8236)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("basis", 8257)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("completion", 8258)], [], -2, 0, None))
   nodes.push(protocol_string_rule(Some("decision"), [], 0, 0))
-  nodes.push(protocol_object_rule([("kind", 8238)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("kind", 8260)], [], -2, 0, None))
   nodes.push(protocol_string_rule(Some("native"), [], 0, 0))
-  nodes.push(protocol_object_rule([("source", 8240)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("source", 8262)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("task", 8239), ("probability", 8241)],
+      [("task", 8261), ("probability", 8263)],
       [],
       -2,
       0,
@@ -24119,7 +24165,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(8237, 8242, 8243))
+  nodes.push(ConditionalRule(8259, 8264, 8265))
   nodes.push(
     protocol_string_rule(Some("actql-model-response-profile/0.1"), [], 0, 0),
   )
@@ -24137,10 +24183,10 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("package", 8253),
-        ("version", 8254),
-        ("interface", 8255),
-        ("lock_artifact_cid", 8256),
+        ("package", 8275),
+        ("version", 8276),
+        ("interface", 8277),
+        ("lock_artifact_cid", 8278),
       ],
       ["package", "version", "interface", "lock_artifact_cid"],
       -1,
@@ -24148,17 +24194,17 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8252, 8257]))
+  nodes.push(protocol_one_of_rule([8274, 8279]))
   nodes.push(
     protocol_object_rule(
       [
-        ("builder_id", 8246),
-        ("builder_revision", 8247),
-        ("codec_id", 8248),
-        ("codec_revision", 8249),
-        ("build_artifact_cid", 8250),
-        ("port_abi", 8251),
-        ("sdk", 8258),
+        ("builder_id", 8268),
+        ("builder_revision", 8269),
+        ("codec_id", 8270),
+        ("codec_revision", 8271),
+        ("build_artifact_cid", 8272),
+        ("port_abi", 8273),
+        ("sdk", 8280),
       ],
       [
         "builder_id", "builder_revision", "codec_id", "codec_revision", "build_artifact_cid",
@@ -24174,7 +24220,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2509])
   nodes.push(
     protocol_object_rule(
-      [("endpoint", 8260), ("method", 8261), ("streaming", 8262)],
+      [("endpoint", 8282), ("method", 8283), ("streaming", 8284)],
       ["endpoint", "method", "streaming"],
       -1,
       0,
@@ -24190,10 +24236,10 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("contract_cid", 8264),
-        ("kind", 8265),
-        ("input_schema_cid", 8266),
-        ("output_schema_cid", 8267),
+        ("contract_cid", 8286),
+        ("kind", 8287),
+        ("input_schema_cid", 8288),
+        ("output_schema_cid", 8289),
       ],
       ["contract_cid", "kind", "input_schema_cid", "output_schema_cid"],
       -1,
@@ -24213,13 +24259,13 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("validator_id", 8269),
-        ("validator_revision", 8270),
-        ("validator_artifact_cid", 8271),
-        ("basis", 8272),
-        ("transport_eof", 8273),
-        ("endpoint_envelope", 8274),
-        ("output_contract", 8275),
+        ("validator_id", 8291),
+        ("validator_revision", 8292),
+        ("validator_artifact_cid", 8293),
+        ("basis", 8294),
+        ("transport_eof", 8295),
+        ("endpoint_envelope", 8296),
+        ("output_contract", 8297),
       ],
       [
         "validator_id", "validator_revision", "validator_artifact_cid", "basis",
@@ -24235,14 +24281,14 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("source", 8278), ("validation_profile_cid", 8279)],
+      [("source", 8300), ("validation_profile_cid", 8301)],
       ["source", "validation_profile_cid"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8277, 8280]))
+  nodes.push(protocol_one_of_rule([8299, 8302]))
   nodes.push(
     protocol_string_rule(
       None,
@@ -24254,40 +24300,40 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       0,
     ),
   )
-  nodes.push(protocol_array_rule(8282, 0, true, 8))
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
+  nodes.push(protocol_array_rule(8304, 0, true, 8))
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
   nodes.push(protocol_integer_rule(Some(1L), Some(4L)))
-  nodes.push(nodes[8297])
+  nodes.push(nodes[8319])
   nodes.push(
     protocol_object_rule(
       [
-        ("request_bytes", 8284),
-        ("response_bytes", 8285),
-        ("chunk_bytes", 8286),
-        ("chunks", 8287),
-        ("header_bytes", 8288),
-        ("metadata_bytes", 8289),
-        ("metadata_nodes", 8290),
-        ("metadata_depth", 8291),
-        ("parse_nodes", 8292),
-        ("parse_depth", 8293),
-        ("parse_work", 8294),
-        ("adapter_holding_bytes", 8295),
-        ("adapter_workspace_bytes", 8296),
-        ("active_slots", 8297),
-        ("unsettled_slots", 8298),
+        ("request_bytes", 8306),
+        ("response_bytes", 8307),
+        ("chunk_bytes", 8308),
+        ("chunks", 8309),
+        ("header_bytes", 8310),
+        ("metadata_bytes", 8311),
+        ("metadata_nodes", 8312),
+        ("metadata_depth", 8313),
+        ("parse_nodes", 8314),
+        ("parse_depth", 8315),
+        ("parse_work", 8316),
+        ("adapter_holding_bytes", 8317),
+        ("adapter_workspace_bytes", 8318),
+        ("active_slots", 8319),
+        ("unsettled_slots", 8320),
       ],
       [
         "request_bytes", "response_bytes", "chunk_bytes", "chunks", "header_bytes",
@@ -24314,17 +24360,17 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("model_requests", 8300),
-        ("retry", 8301),
-        ("fallback", 8302),
-        ("hedging", 8303),
-        ("tools", 8304),
-        ("repair", 8305),
-        ("cache", 8306),
-        ("media_fetch", 8307),
-        ("workflow_restore", 8308),
-        ("sdk_telemetry", 8309),
-        ("redirect", 8310),
+        ("model_requests", 8322),
+        ("retry", 8323),
+        ("fallback", 8324),
+        ("hedging", 8325),
+        ("tools", 8326),
+        ("repair", 8327),
+        ("cache", 8328),
+        ("media_fetch", 8329),
+        ("workflow_restore", 8330),
+        ("sdk_telemetry", 8331),
+        ("redirect", 8332),
       ],
       [
         "model_requests", "retry", "fallback", "hedging", "tools", "repair", "cache",
@@ -24338,15 +24384,15 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8245),
-        ("adapter", 8259),
-        ("operation", 8263),
-        ("task", 8268),
-        ("completion", 8276),
-        ("probability", 8281),
-        ("observations", 8283),
-        ("limits", 8299),
-        ("controls", 8311),
+        ("version", 8267),
+        ("adapter", 8281),
+        ("operation", 8285),
+        ("task", 8290),
+        ("completion", 8298),
+        ("probability", 8303),
+        ("observations", 8305),
+        ("limits", 8321),
+        ("controls", 8333),
       ],
       [
         "version", "adapter", "operation", "task", "completion", "probability", "observations",
@@ -24357,16 +24403,16 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([8234, 8244, 8312]))
-  nodes.push(nodes[8225])
-  nodes.push(protocol_object_rule([("kind", 8314)], [], -2, 0, None))
-  nodes.push(protocol_object_rule([("task", 8315)], [], -2, 0, None))
+  nodes.push(AllOfRule([8256, 8266, 8334]))
+  nodes.push(nodes[8247])
+  nodes.push(protocol_object_rule([("kind", 8336)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("task", 8337)], [], -2, 0, None))
   nodes.push(nodes[122])
-  nodes.push(nodes[8229])
-  nodes.push(protocol_object_rule([("basis", 8318)], [], -2, 0, None))
+  nodes.push(nodes[8251])
+  nodes.push(protocol_object_rule([("basis", 8340)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("probability", 8317), ("completion", 8319)],
+      [("probability", 8339), ("completion", 8341)],
       [],
       -2,
       0,
@@ -24374,18 +24420,18 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[81])
-  nodes.push(protocol_object_rule([("probability", 8321)], [], -2, 0, None))
-  nodes.push(ConditionalRule(8316, 8320, 8322))
-  nodes.push(nodes[8235])
-  nodes.push(protocol_object_rule([("basis", 8324)], [], -2, 0, None))
-  nodes.push(protocol_object_rule([("completion", 8325)], [], -2, 0, None))
-  nodes.push(nodes[8238])
-  nodes.push(protocol_object_rule([("kind", 8327)], [], -2, 0, None))
-  nodes.push(nodes[8240])
-  nodes.push(protocol_object_rule([("source", 8329)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("probability", 8343)], [], -2, 0, None))
+  nodes.push(ConditionalRule(8338, 8342, 8344))
+  nodes.push(nodes[8257])
+  nodes.push(protocol_object_rule([("basis", 8346)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("completion", 8347)], [], -2, 0, None))
+  nodes.push(nodes[8260])
+  nodes.push(protocol_object_rule([("kind", 8349)], [], -2, 0, None))
+  nodes.push(nodes[8262])
+  nodes.push(protocol_object_rule([("source", 8351)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("task", 8328), ("probability", 8330)],
+      [("task", 8350), ("probability", 8352)],
       [],
       -2,
       0,
@@ -24393,26 +24439,26 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(8326, 8331, 8332))
-  nodes.push(nodes[8245])
+  nodes.push(ConditionalRule(8348, 8353, 8354))
+  nodes.push(nodes[8267])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[8251])
+  nodes.push(nodes[8273])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
-  nodes.push(nodes[8255])
+  nodes.push(nodes[8277])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("package", 8342),
-        ("version", 8343),
-        ("interface", 8344),
-        ("lock_artifact_cid", 8345),
+        ("package", 8364),
+        ("version", 8365),
+        ("interface", 8366),
+        ("lock_artifact_cid", 8367),
       ],
       ["package", "version", "interface", "lock_artifact_cid"],
       -1,
@@ -24420,17 +24466,17 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8341, 8346]))
+  nodes.push(protocol_one_of_rule([8363, 8368]))
   nodes.push(
     protocol_object_rule(
       [
-        ("builder_id", 8335),
-        ("builder_revision", 8336),
-        ("codec_id", 8337),
-        ("codec_revision", 8338),
-        ("build_artifact_cid", 8339),
-        ("port_abi", 8340),
-        ("sdk", 8347),
+        ("builder_id", 8357),
+        ("builder_revision", 8358),
+        ("codec_id", 8359),
+        ("codec_revision", 8360),
+        ("build_artifact_cid", 8361),
+        ("port_abi", 8362),
+        ("sdk", 8369),
       ],
       [
         "builder_id", "builder_revision", "codec_id", "codec_revision", "build_artifact_cid",
@@ -24442,11 +24488,11 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[1])
-  nodes.push(nodes[8261])
+  nodes.push(nodes[8283])
   nodes.push(nodes[2509])
   nodes.push(
     protocol_object_rule(
-      [("endpoint", 8349), ("method", 8350), ("streaming", 8351)],
+      [("endpoint", 8371), ("method", 8372), ("streaming", 8373)],
       ["endpoint", "method", "streaming"],
       -1,
       0,
@@ -24454,16 +24500,16 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2])
-  nodes.push(nodes[8265])
+  nodes.push(nodes[8287])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("contract_cid", 8353),
-        ("kind", 8354),
-        ("input_schema_cid", 8355),
-        ("output_schema_cid", 8356),
+        ("contract_cid", 8375),
+        ("kind", 8376),
+        ("input_schema_cid", 8377),
+        ("output_schema_cid", 8378),
       ],
       ["contract_cid", "kind", "input_schema_cid", "output_schema_cid"],
       -1,
@@ -24474,20 +24520,20 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[8272])
+  nodes.push(nodes[8294])
   nodes.push(nodes[466])
   nodes.push(nodes[466])
   nodes.push(nodes[466])
   nodes.push(
     protocol_object_rule(
       [
-        ("validator_id", 8358),
-        ("validator_revision", 8359),
-        ("validator_artifact_cid", 8360),
-        ("basis", 8361),
-        ("transport_eof", 8362),
-        ("endpoint_envelope", 8363),
-        ("output_contract", 8364),
+        ("validator_id", 8380),
+        ("validator_revision", 8381),
+        ("validator_artifact_cid", 8382),
+        ("basis", 8383),
+        ("transport_eof", 8384),
+        ("endpoint_envelope", 8385),
+        ("output_contract", 8386),
       ],
       [
         "validator_id", "validator_revision", "validator_artifact_cid", "basis",
@@ -24499,53 +24545,53 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[122])
-  nodes.push(nodes[8278])
+  nodes.push(nodes[8300])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("source", 8367), ("validation_profile_cid", 8368)],
+      [("source", 8389), ("validation_profile_cid", 8390)],
       ["source", "validation_profile_cid"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8366, 8369]))
-  nodes.push(nodes[8282])
-  nodes.push(protocol_array_rule(8371, 0, true, 8))
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[8297])
-  nodes.push(nodes[8297])
+  nodes.push(protocol_one_of_rule([8388, 8391]))
+  nodes.push(nodes[8304])
+  nodes.push(protocol_array_rule(8393, 0, true, 8))
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[8319])
+  nodes.push(nodes[8319])
   nodes.push(
     protocol_object_rule(
       [
-        ("request_bytes", 8373),
-        ("response_bytes", 8374),
-        ("chunk_bytes", 8375),
-        ("chunks", 8376),
-        ("header_bytes", 8377),
-        ("metadata_bytes", 8378),
-        ("metadata_nodes", 8379),
-        ("metadata_depth", 8380),
-        ("parse_nodes", 8381),
-        ("parse_depth", 8382),
-        ("parse_work", 8383),
-        ("adapter_holding_bytes", 8384),
-        ("adapter_workspace_bytes", 8385),
-        ("active_slots", 8386),
-        ("unsettled_slots", 8387),
+        ("request_bytes", 8395),
+        ("response_bytes", 8396),
+        ("chunk_bytes", 8397),
+        ("chunks", 8398),
+        ("header_bytes", 8399),
+        ("metadata_bytes", 8400),
+        ("metadata_nodes", 8401),
+        ("metadata_depth", 8402),
+        ("parse_nodes", 8403),
+        ("parse_depth", 8404),
+        ("parse_work", 8405),
+        ("adapter_holding_bytes", 8406),
+        ("adapter_workspace_bytes", 8407),
+        ("active_slots", 8408),
+        ("unsettled_slots", 8409),
       ],
       [
         "request_bytes", "response_bytes", "chunk_bytes", "chunks", "header_bytes",
@@ -24572,17 +24618,17 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("model_requests", 8389),
-        ("retry", 8390),
-        ("fallback", 8391),
-        ("hedging", 8392),
-        ("tools", 8393),
-        ("repair", 8394),
-        ("cache", 8395),
-        ("media_fetch", 8396),
-        ("workflow_restore", 8397),
-        ("sdk_telemetry", 8398),
-        ("redirect", 8399),
+        ("model_requests", 8411),
+        ("retry", 8412),
+        ("fallback", 8413),
+        ("hedging", 8414),
+        ("tools", 8415),
+        ("repair", 8416),
+        ("cache", 8417),
+        ("media_fetch", 8418),
+        ("workflow_restore", 8419),
+        ("sdk_telemetry", 8420),
+        ("redirect", 8421),
       ],
       [
         "model_requests", "retry", "fallback", "hedging", "tools", "repair", "cache",
@@ -24597,16 +24643,16 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8334),
-        ("adapter", 8348),
-        ("operation", 8352),
-        ("task", 8357),
-        ("completion", 8365),
-        ("probability", 8370),
-        ("observations", 8372),
-        ("limits", 8388),
-        ("controls", 8400),
-        ("self_cid", 8401),
+        ("version", 8356),
+        ("adapter", 8370),
+        ("operation", 8374),
+        ("task", 8379),
+        ("completion", 8387),
+        ("probability", 8392),
+        ("observations", 8394),
+        ("limits", 8410),
+        ("controls", 8422),
+        ("self_cid", 8423),
       ],
       [
         "version", "adapter", "operation", "task", "completion", "probability", "observations",
@@ -24617,7 +24663,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([8323, 8333, 8402]))
+  nodes.push(AllOfRule([8345, 8355, 8424]))
   nodes.push(
     protocol_string_rule(Some("actql-model-raw-capture-policy/0.1"), [], 0, 0),
   )
@@ -24639,22 +24685,22 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8404),
-        ("purpose", 8405),
-        ("run_definition_cid", 8406),
-        ("scope_cid", 8407),
-        ("model_task_cid", 8408),
-        ("response_profile_cid", 8409),
-        ("store_authority_cid", 8410),
-        ("effective_data_policy_cid", 8411),
-        ("retention_contract_cid", 8412),
-        ("metadata_retention_policy_cid", 8413),
-        ("clock_contract_cid", 8414),
-        ("selected_at", 8415),
-        ("available_until", 8416),
-        ("delete_by", 8417),
-        ("extension_ceiling_at", 8418),
-        ("metadata_delete_by", 8419),
+        ("version", 8426),
+        ("purpose", 8427),
+        ("run_definition_cid", 8428),
+        ("scope_cid", 8429),
+        ("model_task_cid", 8430),
+        ("response_profile_cid", 8431),
+        ("store_authority_cid", 8432),
+        ("effective_data_policy_cid", 8433),
+        ("retention_contract_cid", 8434),
+        ("metadata_retention_policy_cid", 8435),
+        ("clock_contract_cid", 8436),
+        ("selected_at", 8437),
+        ("available_until", 8438),
+        ("delete_by", 8439),
+        ("extension_ceiling_at", 8440),
+        ("metadata_delete_by", 8441),
       ],
       [
         "version", "purpose", "run_definition_cid", "scope_cid", "model_task_cid",
@@ -24667,8 +24713,8 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[8404])
-  nodes.push(nodes[8405])
+  nodes.push(nodes[8426])
+  nodes.push(nodes[8427])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -24687,23 +24733,23 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8421),
-        ("purpose", 8422),
-        ("run_definition_cid", 8423),
-        ("scope_cid", 8424),
-        ("model_task_cid", 8425),
-        ("response_profile_cid", 8426),
-        ("store_authority_cid", 8427),
-        ("effective_data_policy_cid", 8428),
-        ("retention_contract_cid", 8429),
-        ("metadata_retention_policy_cid", 8430),
-        ("clock_contract_cid", 8431),
-        ("self_cid", 8432),
-        ("selected_at", 8433),
-        ("available_until", 8434),
-        ("delete_by", 8435),
-        ("extension_ceiling_at", 8436),
-        ("metadata_delete_by", 8437),
+        ("version", 8443),
+        ("purpose", 8444),
+        ("run_definition_cid", 8445),
+        ("scope_cid", 8446),
+        ("model_task_cid", 8447),
+        ("response_profile_cid", 8448),
+        ("store_authority_cid", 8449),
+        ("effective_data_policy_cid", 8450),
+        ("retention_contract_cid", 8451),
+        ("metadata_retention_policy_cid", 8452),
+        ("clock_contract_cid", 8453),
+        ("self_cid", 8454),
+        ("selected_at", 8455),
+        ("available_until", 8456),
+        ("delete_by", 8457),
+        ("extension_ceiling_at", 8458),
+        ("metadata_delete_by", 8459),
       ],
       [
         "version", "purpose", "run_definition_cid", "scope_cid", "model_task_cid",
@@ -24732,28 +24778,28 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[408])
   nodes.push(protocol_string_rule(Some("entered"), [], 0, 0))
   nodes.push(nodes[190])
-  nodes.push(nodes[2862])
+  nodes.push(nodes[2876])
   nodes.push(nodes[14])
   nodes.push(nodes[80])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8439),
-        ("run_definition_cid", 8440),
-        ("scope_cid", 8441),
-        ("slot_cid", 8442),
-        ("attempt_cid", 8443),
-        ("response_profile_cid", 8444),
-        ("store_authority_cid", 8445),
-        ("effective_data_policy_cid", 8446),
-        ("raw_capture_policy_cid", 8447),
-        ("content_cid", 8448),
-        ("attempt", 8449),
-        ("phase", 8450),
-        ("byte_count", 8451),
-        ("http_status", 8452),
-        ("transport_eof", 8453),
-        ("observed_at", 8454),
+        ("version", 8461),
+        ("run_definition_cid", 8462),
+        ("scope_cid", 8463),
+        ("slot_cid", 8464),
+        ("attempt_cid", 8465),
+        ("response_profile_cid", 8466),
+        ("store_authority_cid", 8467),
+        ("effective_data_policy_cid", 8468),
+        ("raw_capture_policy_cid", 8469),
+        ("content_cid", 8470),
+        ("attempt", 8471),
+        ("phase", 8472),
+        ("byte_count", 8473),
+        ("http_status", 8474),
+        ("transport_eof", 8475),
+        ("observed_at", 8476),
       ],
       [
         "version", "run_definition_cid", "scope_cid", "slot_cid", "attempt_cid",
@@ -24766,7 +24812,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[8439])
+  nodes.push(nodes[8461])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -24778,31 +24824,31 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[408])
-  nodes.push(nodes[8450])
+  nodes.push(nodes[8472])
   nodes.push(nodes[190])
-  nodes.push(nodes[2862])
+  nodes.push(nodes[2876])
   nodes.push(nodes[14])
   nodes.push(nodes[80])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8456),
-        ("run_definition_cid", 8457),
-        ("scope_cid", 8458),
-        ("slot_cid", 8459),
-        ("attempt_cid", 8460),
-        ("response_profile_cid", 8461),
-        ("store_authority_cid", 8462),
-        ("effective_data_policy_cid", 8463),
-        ("raw_capture_policy_cid", 8464),
-        ("content_cid", 8465),
-        ("self_cid", 8466),
-        ("attempt", 8467),
-        ("phase", 8468),
-        ("byte_count", 8469),
-        ("http_status", 8470),
-        ("transport_eof", 8471),
-        ("observed_at", 8472),
+        ("version", 8478),
+        ("run_definition_cid", 8479),
+        ("scope_cid", 8480),
+        ("slot_cid", 8481),
+        ("attempt_cid", 8482),
+        ("response_profile_cid", 8483),
+        ("store_authority_cid", 8484),
+        ("effective_data_policy_cid", 8485),
+        ("raw_capture_policy_cid", 8486),
+        ("content_cid", 8487),
+        ("self_cid", 8488),
+        ("attempt", 8489),
+        ("phase", 8490),
+        ("byte_count", 8491),
+        ("http_status", 8492),
+        ("transport_eof", 8493),
+        ("observed_at", 8494),
       ],
       [
         "version", "run_definition_cid", "scope_cid", "slot_cid", "attempt_cid",
@@ -24825,7 +24871,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[451])
   nodes.push(nodes[1])
-  nodes.push(AllOfRule([8475, 8476]))
+  nodes.push(AllOfRule([8497, 8498]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -24833,12 +24879,12 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8474),
-        ("store_contract_wire", 8477),
-        ("store_contract_cid", 8478),
-        ("store_authority_cid", 8479),
-        ("key_generation_cid", 8480),
-        ("private_namespace", 8481),
+        ("version", 8496),
+        ("store_contract_wire", 8499),
+        ("store_contract_cid", 8500),
+        ("store_authority_cid", 8501),
+        ("key_generation_cid", 8502),
+        ("private_namespace", 8503),
       ],
       [
         "version", "store_contract_wire", "store_contract_cid", "store_authority_cid",
@@ -24849,25 +24895,25 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[8474])
+  nodes.push(nodes[8496])
   nodes.push(nodes[451])
   nodes.push(nodes[1])
-  nodes.push(AllOfRule([8484, 8485]))
+  nodes.push(AllOfRule([8506, 8507]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[8481])
+  nodes.push(nodes[8503])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8483),
-        ("store_contract_wire", 8486),
-        ("store_contract_cid", 8487),
-        ("store_authority_cid", 8488),
-        ("key_generation_cid", 8489),
-        ("private_namespace", 8490),
-        ("self_cid", 8491),
+        ("version", 8505),
+        ("store_contract_wire", 8508),
+        ("store_contract_cid", 8509),
+        ("store_authority_cid", 8510),
+        ("key_generation_cid", 8511),
+        ("private_namespace", 8512),
+        ("self_cid", 8513),
       ],
       [
         "version", "store_contract_wire", "store_contract_cid", "store_authority_cid",
@@ -24882,7 +24928,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[122])
   nodes.push(
     protocol_object_rule(
-      [("resource_phase", 8493), ("cut", 8494)],
+      [("resource_phase", 8515), ("cut", 8516)],
       [],
       -2,
       0,
@@ -24903,11 +24949,11 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("checkpoint_cid", 8502),
-        ("intent_id", 8503),
-        ("claimant", 8504),
-        ("generation", 8505),
-        ("resolution_cid", 8506),
+        ("checkpoint_cid", 8524),
+        ("intent_id", 8525),
+        ("claimant", 8526),
+        ("generation", 8527),
+        ("resolution_cid", 8528),
       ],
       [
         "checkpoint_cid", "intent_id", "claimant", "generation", "resolution_cid",
@@ -24917,7 +24963,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8501, 8507]))
+  nodes.push(protocol_one_of_rule([8523, 8529]))
   nodes.push(nodes[219])
   nodes.push(nodes[2])
   nodes.push(nodes[219])
@@ -24931,19 +24977,19 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8513, 8514]))
+  nodes.push(protocol_one_of_rule([8535, 8536]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8516, 8517]))
+  nodes.push(protocol_one_of_rule([8538, 8539]))
   nodes.push(
     protocol_object_rule(
       [
-        ("ordinal", 8509),
-        ("slot_cid", 8510),
-        ("attempt_index", 8511),
-        ("state", 8512),
-        ("entry_identity_cid", 8515),
-        ("settlement_identity_cid", 8518),
+        ("ordinal", 8531),
+        ("slot_cid", 8532),
+        ("attempt_index", 8533),
+        ("state", 8534),
+        ("entry_identity_cid", 8537),
+        ("settlement_identity_cid", 8540),
       ],
       [
         "ordinal", "slot_cid", "attempt_index", "state", "entry_identity_cid", "settlement_identity_cid",
@@ -24953,16 +24999,16 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(8519, 0, false, -1))
+  nodes.push(protocol_array_rule(8541, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("scope_cid", 8497),
-        ("input_artifact_cid", 8498),
-        ("fixed_input_receipt_cid", 8499),
-        ("run_version", 8500),
-        ("continuation", 8508),
-        ("slots", 8520),
+        ("scope_cid", 8519),
+        ("input_artifact_cid", 8520),
+        ("fixed_input_receipt_cid", 8521),
+        ("run_version", 8522),
+        ("continuation", 8530),
+        ("slots", 8542),
       ],
       [
         "scope_cid", "input_artifact_cid", "fixed_input_receipt_cid", "run_version",
@@ -24975,14 +25021,14 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("resource_phase", 8496), ("cut", 8521)],
+      [("resource_phase", 8518), ("cut", 8543)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8495, 8522]))
+  nodes.push(protocol_one_of_rule([8517, 8544]))
   nodes.push(
     protocol_string_rule(
       Some("actql-model-original-resource-state/0.1"),
@@ -25006,18 +25052,18 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("run_id", 8525),
-        ("run_definition_cid", 8526),
-        ("prepared_invocation_cid", 8527),
-        ("host_policy_cid", 8528),
-        ("execution_context_cid", 8529),
-        ("program_definition_cid", 8530),
-        ("parameter_values_cid", 8531),
-        ("barrier_cid", 8532),
-        ("runtime_artifact_cid", 8533),
-        ("layout_artifact_cid", 8534),
-        ("response_profile_cid", 8535),
-        ("storage_binding_cid", 8536),
+        ("run_id", 8547),
+        ("run_definition_cid", 8548),
+        ("prepared_invocation_cid", 8549),
+        ("host_policy_cid", 8550),
+        ("execution_context_cid", 8551),
+        ("program_definition_cid", 8552),
+        ("parameter_values_cid", 8553),
+        ("barrier_cid", 8554),
+        ("runtime_artifact_cid", 8555),
+        ("layout_artifact_cid", 8556),
+        ("response_profile_cid", 8557),
+        ("storage_binding_cid", 8558),
       ],
       [
         "run_id", "run_definition_cid", "prepared_invocation_cid", "host_policy_cid",
@@ -25033,67 +25079,67 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_string_rule(Some("actql-original-ledger-state/0.1"), [], 0, 0),
   )
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8539, 8540, 8541, 8542, 8543, 8544]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8561, 8562, 8563, 8564, 8565, 8566]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
   nodes.push(
     protocol_tuple_rule([
-      8546, 8547, 8548, 8549, 8550, 8551, 8552, 8553, 8554, 8555, 8556, 8557, 8558,
+      8568, 8569, 8570, 8571, 8572, 8573, 8574, 8575, 8576, 8577, 8578, 8579, 8580,
     ]),
   )
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8560, 8561, 8562]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8582, 8583, 8584]))
   nodes.push(nodes[122])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8565, 8566, 8567]))
-  nodes.push(protocol_one_of_rule([8564, 8568]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8570, 8571, 8572]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8574, 8575, 8576]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8578, 8579, 8580]))
-  nodes.push(protocol_tuple_rule([8573, 8577, 8581]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8587, 8588, 8589]))
+  nodes.push(protocol_one_of_rule([8586, 8590]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8592, 8593, 8594]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8596, 8597, 8598]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8600, 8601, 8602]))
+  nodes.push(protocol_tuple_rule([8595, 8599, 8603]))
   nodes.push(nodes[122])
   nodes.push(protocol_string_rule(None, [], 14, 0))
-  nodes.push(protocol_one_of_rule([8583, 8584]))
+  nodes.push(protocol_one_of_rule([8605, 8606]))
   nodes.push(nodes[122])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_one_of_rule([8586, 8587]))
+  nodes.push(nodes[3595])
+  nodes.push(protocol_one_of_rule([8608, 8609]))
   nodes.push(nodes[122])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_one_of_rule([8589, 8590]))
-  nodes.push(protocol_tuple_rule([8585, 8588, 8591]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_one_of_rule([8611, 8612]))
+  nodes.push(protocol_tuple_rule([8607, 8610, 8613]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[14])
@@ -25102,108 +25148,108 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[14])
   nodes.push(
-    protocol_tuple_rule([8593, 8594, 8595, 8596, 8597, 8598, 8599, 8600]),
+    protocol_tuple_rule([8615, 8616, 8617, 8618, 8619, 8620, 8621, 8622]),
   )
-  nodes.push(nodes[8584])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
+  nodes.push(nodes[8606])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[122])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8609, 8610, 8611]))
-  nodes.push(protocol_one_of_rule([8608, 8612]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8631, 8632, 8633]))
+  nodes.push(protocol_one_of_rule([8630, 8634]))
   nodes.push(nodes[122])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8615, 8616, 8617]))
-  nodes.push(protocol_one_of_rule([8614, 8618]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8637, 8638, 8639]))
+  nodes.push(protocol_one_of_rule([8636, 8640]))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(nodes[14])
-  nodes.push(protocol_tuple_rule([8620, 8621, 8622]))
-  nodes.push(nodes[122])
-  nodes.push(nodes[122])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_one_of_rule([8625, 8626]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8627, 8628, 8629]))
-  nodes.push(protocol_one_of_rule([8624, 8630]))
-  nodes.push(nodes[14])
-  nodes.push(nodes[14])
-  nodes.push(
-    protocol_tuple_rule([
-      8602, 8603, 8604, 8605, 8606, 8607, 8613, 8619, 8623, 8631, 8632, 8633,
-    ]),
-  )
-  nodes.push(nodes[8584])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[14])
-  nodes.push(nodes[14])
-  nodes.push(nodes[122])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
   nodes.push(protocol_tuple_rule([8642, 8643, 8644]))
-  nodes.push(protocol_one_of_rule([8641, 8645]))
-  nodes.push(nodes[122])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8648, 8649, 8650]))
-  nodes.push(protocol_one_of_rule([8647, 8651]))
-  nodes.push(nodes[14])
-  nodes.push(nodes[14])
-  nodes.push(nodes[14])
-  nodes.push(protocol_tuple_rule([8653, 8654, 8655]))
   nodes.push(nodes[122])
   nodes.push(nodes[122])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_one_of_rule([8658, 8659]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8660, 8661, 8662]))
-  nodes.push(protocol_one_of_rule([8657, 8663]))
+  nodes.push(nodes[3595])
+  nodes.push(protocol_one_of_rule([8647, 8648]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8649, 8650, 8651]))
+  nodes.push(protocol_one_of_rule([8646, 8652]))
   nodes.push(nodes[14])
   nodes.push(nodes[14])
   nodes.push(
     protocol_tuple_rule([
-      8635, 8636, 8637, 8638, 8639, 8640, 8646, 8652, 8656, 8664, 8665, 8666,
+      8624, 8625, 8626, 8627, 8628, 8629, 8635, 8641, 8645, 8653, 8654, 8655,
     ]),
   )
-  nodes.push(protocol_array_rule(8667, 1, false, -1))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[8584])
-  nodes.push(nodes[3581])
+  nodes.push(nodes[8606])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
   nodes.push(nodes[14])
-  nodes.push(protocol_tuple_rule([8669, 8670, 8671, 8672]))
-  nodes.push(protocol_array_rule(8673, 0, false, -1))
-  nodes.push(nodes[8584])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8676, 8677, 8678, 8679, 8680, 8681]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3581])
-  nodes.push(protocol_tuple_rule([8683, 8684, 8685, 8686, 8687]))
-  nodes.push(protocol_tuple_rule([8675, 8682, 8688]))
-  nodes.push(protocol_array_rule(8689, 0, false, -1))
+  nodes.push(nodes[14])
+  nodes.push(nodes[122])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8664, 8665, 8666]))
+  nodes.push(protocol_one_of_rule([8663, 8667]))
+  nodes.push(nodes[122])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8670, 8671, 8672]))
+  nodes.push(protocol_one_of_rule([8669, 8673]))
+  nodes.push(nodes[14])
+  nodes.push(nodes[14])
+  nodes.push(nodes[14])
+  nodes.push(protocol_tuple_rule([8675, 8676, 8677]))
+  nodes.push(nodes[122])
+  nodes.push(nodes[122])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_one_of_rule([8680, 8681]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8682, 8683, 8684]))
+  nodes.push(protocol_one_of_rule([8679, 8685]))
+  nodes.push(nodes[14])
+  nodes.push(nodes[14])
   nodes.push(
     protocol_tuple_rule([
-      8538, 8545, 8559, 8563, 8569, 8582, 8592, 8601, 8634, 8668, 8674, 8690,
+      8657, 8658, 8659, 8660, 8661, 8662, 8668, 8674, 8678, 8686, 8687, 8688,
+    ]),
+  )
+  nodes.push(protocol_array_rule(8689, 1, false, -1))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[8606])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[14])
+  nodes.push(protocol_tuple_rule([8691, 8692, 8693, 8694]))
+  nodes.push(protocol_array_rule(8695, 0, false, -1))
+  nodes.push(nodes[8606])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8698, 8699, 8700, 8701, 8702, 8703]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3595])
+  nodes.push(protocol_tuple_rule([8705, 8706, 8707, 8708, 8709]))
+  nodes.push(protocol_tuple_rule([8697, 8704, 8710]))
+  nodes.push(protocol_array_rule(8711, 0, false, -1))
+  nodes.push(
+    protocol_tuple_rule([
+      8560, 8567, 8581, 8585, 8591, 8604, 8614, 8623, 8656, 8690, 8696, 8712,
     ]),
   )
   nodes.push(nodes[2])
@@ -25224,11 +25270,11 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("checkpoint_cid", 8700),
-        ("intent_id", 8701),
-        ("claimant", 8702),
-        ("generation", 8703),
-        ("resolution_cid", 8704),
+        ("checkpoint_cid", 8722),
+        ("intent_id", 8723),
+        ("claimant", 8724),
+        ("generation", 8725),
+        ("resolution_cid", 8726),
       ],
       [
         "checkpoint_cid", "intent_id", "claimant", "generation", "resolution_cid",
@@ -25238,26 +25284,26 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8699, 8705]))
+  nodes.push(protocol_one_of_rule([8721, 8727]))
   nodes.push(nodes[219])
   nodes.push(nodes[2])
   nodes.push(nodes[219])
-  nodes.push(nodes[8512])
+  nodes.push(nodes[8534])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8711, 8712]))
+  nodes.push(protocol_one_of_rule([8733, 8734]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8714, 8715]))
+  nodes.push(protocol_one_of_rule([8736, 8737]))
   nodes.push(
     protocol_object_rule(
       [
-        ("ordinal", 8707),
-        ("slot_cid", 8708),
-        ("attempt_index", 8709),
-        ("state", 8710),
-        ("entry_identity_cid", 8713),
-        ("settlement_identity_cid", 8716),
+        ("ordinal", 8729),
+        ("slot_cid", 8730),
+        ("attempt_index", 8731),
+        ("state", 8732),
+        ("entry_identity_cid", 8735),
+        ("settlement_identity_cid", 8738),
       ],
       [
         "ordinal", "slot_cid", "attempt_index", "state", "entry_identity_cid", "settlement_identity_cid",
@@ -25267,16 +25313,16 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(8717, 0, false, -1))
+  nodes.push(protocol_array_rule(8739, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("scope_cid", 8695),
-        ("input_artifact_cid", 8696),
-        ("fixed_input_receipt_cid", 8697),
-        ("run_version", 8698),
-        ("continuation", 8706),
-        ("slots", 8718),
+        ("scope_cid", 8717),
+        ("input_artifact_cid", 8718),
+        ("fixed_input_receipt_cid", 8719),
+        ("run_version", 8720),
+        ("continuation", 8728),
+        ("slots", 8740),
       ],
       [
         "scope_cid", "input_artifact_cid", "fixed_input_receipt_cid", "run_version",
@@ -25287,16 +25333,16 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8694, 8719]))
+  nodes.push(protocol_one_of_rule([8716, 8741]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8524),
-        ("origin", 8537),
-        ("resource_state", 8691),
-        ("resource_state_cid", 8692),
-        ("resource_phase", 8693),
-        ("cut", 8720),
+        ("version", 8546),
+        ("origin", 8559),
+        ("resource_state", 8713),
+        ("resource_state_cid", 8714),
+        ("resource_phase", 8715),
+        ("cut", 8742),
       ],
       [
         "version", "origin", "resource_state", "resource_state_cid", "resource_phase",
@@ -25307,7 +25353,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([8523, 8721]))
+  nodes.push(AllOfRule([8545, 8743]))
   nodes.push(protocol_string_rule(Some("immediate"), [], 0, 0))
   nodes.push(nodes[1])
   nodes.push(nodes[1])
@@ -25319,10 +25365,10 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("checkpoint_cid", 8727),
-        ("intent_id", 8728),
-        ("claimant", 8729),
-        ("generation", 8730),
+        ("checkpoint_cid", 8749),
+        ("intent_id", 8750),
+        ("claimant", 8751),
+        ("generation", 8752),
       ],
       ["checkpoint_cid", "intent_id", "claimant", "generation"],
       -1,
@@ -25330,13 +25376,13 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8726, 8731]))
+  nodes.push(protocol_one_of_rule([8748, 8753]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_valid_until", 8724),
-        ("dispatch_valid_until", 8725),
-        ("parent_resume_fence", 8732),
+        ("run_valid_until", 8746),
+        ("dispatch_valid_until", 8747),
+        ("parent_resume_fence", 8754),
       ],
       ["run_valid_until", "dispatch_valid_until", "parent_resume_fence"],
       -1,
@@ -25347,7 +25393,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[122])
   nodes.push(
     protocol_object_rule(
-      [("provenance", 8723), ("immediate", 8733), ("deferred", 8734)],
+      [("provenance", 8745), ("immediate", 8755), ("deferred", 8756)],
       [],
       -2,
       0,
@@ -25368,35 +25414,35 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8748, 8749]))
+  nodes.push(protocol_one_of_rule([8770, 8771]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(8751, 0, true, -1))
+  nodes.push(protocol_array_rule(8773, 0, true, -1))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8753, 8754]))
+  nodes.push(protocol_one_of_rule([8775, 8776]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(8756, 0, true, -1))
+  nodes.push(protocol_array_rule(8778, 0, true, -1))
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
       [
-        ("checkpoint_cid", 8738),
-        ("intent_id", 8739),
-        ("claimant", 8740),
-        ("generation", 8741),
-        ("resolution_cid", 8742),
-        ("verified_resolution_cid", 8743),
-        ("lease_expires_ms", 8744),
-        ("prepare_attempt_id", 8745),
-        ("kind", 8746),
-        ("required_artifact_cid", 8747),
-        ("decision_subject_cid", 8750),
-        ("requested_claims", 8752),
-        ("configuration_cid", 8755),
-        ("observed_claims", 8757),
-        ("authority", 8758),
-        ("approval_expires_at", 8759),
+        ("checkpoint_cid", 8760),
+        ("intent_id", 8761),
+        ("claimant", 8762),
+        ("generation", 8763),
+        ("resolution_cid", 8764),
+        ("verified_resolution_cid", 8765),
+        ("lease_expires_ms", 8766),
+        ("prepare_attempt_id", 8767),
+        ("kind", 8768),
+        ("required_artifact_cid", 8769),
+        ("decision_subject_cid", 8772),
+        ("requested_claims", 8774),
+        ("configuration_cid", 8777),
+        ("observed_claims", 8779),
+        ("authority", 8780),
+        ("approval_expires_at", 8781),
       ],
       [
         "checkpoint_cid", "intent_id", "claimant", "generation", "resolution_cid",
@@ -25411,14 +25457,14 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("provenance", 8736), ("immediate", 8737), ("deferred", 8760)],
+      [("provenance", 8758), ("immediate", 8759), ("deferred", 8782)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8735, 8761]))
+  nodes.push(protocol_one_of_rule([8757, 8783]))
   nodes.push(
     protocol_string_rule(Some("actql-model-journal-entry/0.1"), [], 0, 0),
   )
@@ -25449,10 +25495,10 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("checkpoint_cid", 8784),
-        ("intent_id", 8785),
-        ("claimant", 8786),
-        ("generation", 8787),
+        ("checkpoint_cid", 8806),
+        ("intent_id", 8807),
+        ("claimant", 8808),
+        ("generation", 8809),
       ],
       ["checkpoint_cid", "intent_id", "claimant", "generation"],
       -1,
@@ -25460,13 +25506,13 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8783, 8788]))
+  nodes.push(protocol_one_of_rule([8805, 8810]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_valid_until", 8781),
-        ("dispatch_valid_until", 8782),
-        ("parent_resume_fence", 8789),
+        ("run_valid_until", 8803),
+        ("dispatch_valid_until", 8804),
+        ("parent_resume_fence", 8811),
       ],
       ["run_valid_until", "dispatch_valid_until", "parent_resume_fence"],
       -1,
@@ -25474,7 +25520,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8780, 8790]))
+  nodes.push(protocol_one_of_rule([8802, 8812]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
@@ -25484,39 +25530,39 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[4])
   nodes.push(nodes[122])
-  nodes.push(nodes[8746])
+  nodes.push(nodes[8768])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8803, 8804]))
+  nodes.push(protocol_one_of_rule([8825, 8826]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(8806, 0, true, -1))
+  nodes.push(protocol_array_rule(8828, 0, true, -1))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8808, 8809]))
+  nodes.push(protocol_one_of_rule([8830, 8831]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(8811, 0, true, -1))
+  nodes.push(protocol_array_rule(8833, 0, true, -1))
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
       [
-        ("checkpoint_cid", 8793),
-        ("intent_id", 8794),
-        ("claimant", 8795),
-        ("generation", 8796),
-        ("resolution_cid", 8797),
-        ("verified_resolution_cid", 8798),
-        ("lease_expires_ms", 8799),
-        ("prepare_attempt_id", 8800),
-        ("kind", 8801),
-        ("required_artifact_cid", 8802),
-        ("decision_subject_cid", 8805),
-        ("requested_claims", 8807),
-        ("configuration_cid", 8810),
-        ("observed_claims", 8812),
-        ("authority", 8813),
-        ("approval_expires_at", 8814),
+        ("checkpoint_cid", 8815),
+        ("intent_id", 8816),
+        ("claimant", 8817),
+        ("generation", 8818),
+        ("resolution_cid", 8819),
+        ("verified_resolution_cid", 8820),
+        ("lease_expires_ms", 8821),
+        ("prepare_attempt_id", 8822),
+        ("kind", 8823),
+        ("required_artifact_cid", 8824),
+        ("decision_subject_cid", 8827),
+        ("requested_claims", 8829),
+        ("configuration_cid", 8832),
+        ("observed_claims", 8834),
+        ("authority", 8835),
+        ("approval_expires_at", 8836),
       ],
       [
         "checkpoint_cid", "intent_id", "claimant", "generation", "resolution_cid",
@@ -25529,29 +25575,29 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8792, 8815]))
+  nodes.push(protocol_one_of_rule([8814, 8837]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8763),
-        ("run_id", 8764),
-        ("run_definition_cid", 8765),
-        ("prepared_invocation_cid", 8766),
-        ("scope_cid", 8767),
-        ("provider_binding_cid", 8768),
-        ("input_artifact_cid", 8769),
-        ("task_index", 8770),
-        ("strategy_revision", 8771),
-        ("ordinal", 8772),
-        ("slot_cid", 8773),
-        ("attempt_index", 8774),
-        ("attempt_cid", 8775),
-        ("dispatch_authority_cid", 8776),
-        ("admitted_at", 8777),
-        ("model_grant_expires_at", 8778),
-        ("provenance", 8779),
-        ("immediate", 8791),
-        ("deferred", 8816),
+        ("version", 8785),
+        ("run_id", 8786),
+        ("run_definition_cid", 8787),
+        ("prepared_invocation_cid", 8788),
+        ("scope_cid", 8789),
+        ("provider_binding_cid", 8790),
+        ("input_artifact_cid", 8791),
+        ("task_index", 8792),
+        ("strategy_revision", 8793),
+        ("ordinal", 8794),
+        ("slot_cid", 8795),
+        ("attempt_index", 8796),
+        ("attempt_cid", 8797),
+        ("dispatch_authority_cid", 8798),
+        ("admitted_at", 8799),
+        ("model_grant_expires_at", 8800),
+        ("provenance", 8801),
+        ("immediate", 8813),
+        ("deferred", 8838),
       ],
       [
         "version", "run_id", "run_definition_cid", "prepared_invocation_cid", "scope_cid",
@@ -25564,8 +25610,8 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([8762, 8817]))
-  nodes.push(nodes[8723])
+  nodes.push(AllOfRule([8784, 8839]))
+  nodes.push(nodes[8745])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[122])
@@ -25576,10 +25622,10 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("checkpoint_cid", 8823),
-        ("intent_id", 8824),
-        ("claimant", 8825),
-        ("generation", 8826),
+        ("checkpoint_cid", 8845),
+        ("intent_id", 8846),
+        ("claimant", 8847),
+        ("generation", 8848),
       ],
       ["checkpoint_cid", "intent_id", "claimant", "generation"],
       -1,
@@ -25587,13 +25633,13 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8822, 8827]))
+  nodes.push(protocol_one_of_rule([8844, 8849]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_valid_until", 8820),
-        ("dispatch_valid_until", 8821),
-        ("parent_resume_fence", 8828),
+        ("run_valid_until", 8842),
+        ("dispatch_valid_until", 8843),
+        ("parent_resume_fence", 8850),
       ],
       ["run_valid_until", "dispatch_valid_until", "parent_resume_fence"],
       -1,
@@ -25604,14 +25650,14 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[122])
   nodes.push(
     protocol_object_rule(
-      [("provenance", 8819), ("immediate", 8829), ("deferred", 8830)],
+      [("provenance", 8841), ("immediate", 8851), ("deferred", 8852)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(nodes[8736])
+  nodes.push(nodes[8758])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
@@ -25621,39 +25667,39 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[4])
   nodes.push(nodes[122])
-  nodes.push(nodes[8746])
+  nodes.push(nodes[8768])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8844, 8845]))
+  nodes.push(protocol_one_of_rule([8866, 8867]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(8847, 0, true, -1))
+  nodes.push(protocol_array_rule(8869, 0, true, -1))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8849, 8850]))
+  nodes.push(protocol_one_of_rule([8871, 8872]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(8852, 0, true, -1))
+  nodes.push(protocol_array_rule(8874, 0, true, -1))
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
       [
-        ("checkpoint_cid", 8834),
-        ("intent_id", 8835),
-        ("claimant", 8836),
-        ("generation", 8837),
-        ("resolution_cid", 8838),
-        ("verified_resolution_cid", 8839),
-        ("lease_expires_ms", 8840),
-        ("prepare_attempt_id", 8841),
-        ("kind", 8842),
-        ("required_artifact_cid", 8843),
-        ("decision_subject_cid", 8846),
-        ("requested_claims", 8848),
-        ("configuration_cid", 8851),
-        ("observed_claims", 8853),
-        ("authority", 8854),
-        ("approval_expires_at", 8855),
+        ("checkpoint_cid", 8856),
+        ("intent_id", 8857),
+        ("claimant", 8858),
+        ("generation", 8859),
+        ("resolution_cid", 8860),
+        ("verified_resolution_cid", 8861),
+        ("lease_expires_ms", 8862),
+        ("prepare_attempt_id", 8863),
+        ("kind", 8864),
+        ("required_artifact_cid", 8865),
+        ("decision_subject_cid", 8868),
+        ("requested_claims", 8870),
+        ("configuration_cid", 8873),
+        ("observed_claims", 8875),
+        ("authority", 8876),
+        ("approval_expires_at", 8877),
       ],
       [
         "checkpoint_cid", "intent_id", "claimant", "generation", "resolution_cid",
@@ -25668,15 +25714,15 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     protocol_object_rule(
-      [("provenance", 8832), ("immediate", 8833), ("deferred", 8856)],
+      [("provenance", 8854), ("immediate", 8855), ("deferred", 8878)],
       [],
       -2,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8831, 8857]))
-  nodes.push(nodes[8763])
+  nodes.push(protocol_one_of_rule([8853, 8879]))
+  nodes.push(nodes[8785])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -25692,7 +25738,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
-  nodes.push(nodes[8779])
+  nodes.push(nodes[8801])
   nodes.push(nodes[122])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
@@ -25704,10 +25750,10 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("checkpoint_cid", 8880),
-        ("intent_id", 8881),
-        ("claimant", 8882),
-        ("generation", 8883),
+        ("checkpoint_cid", 8902),
+        ("intent_id", 8903),
+        ("claimant", 8904),
+        ("generation", 8905),
       ],
       ["checkpoint_cid", "intent_id", "claimant", "generation"],
       -1,
@@ -25715,13 +25761,13 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8879, 8884]))
+  nodes.push(protocol_one_of_rule([8901, 8906]))
   nodes.push(
     protocol_object_rule(
       [
-        ("run_valid_until", 8877),
-        ("dispatch_valid_until", 8878),
-        ("parent_resume_fence", 8885),
+        ("run_valid_until", 8899),
+        ("dispatch_valid_until", 8900),
+        ("parent_resume_fence", 8907),
       ],
       ["run_valid_until", "dispatch_valid_until", "parent_resume_fence"],
       -1,
@@ -25729,7 +25775,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8876, 8886]))
+  nodes.push(protocol_one_of_rule([8898, 8908]))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
@@ -25739,39 +25785,39 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[4])
   nodes.push(nodes[122])
-  nodes.push(nodes[8746])
+  nodes.push(nodes[8768])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8899, 8900]))
+  nodes.push(protocol_one_of_rule([8921, 8922]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(8902, 0, true, -1))
+  nodes.push(protocol_array_rule(8924, 0, true, -1))
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([8904, 8905]))
+  nodes.push(protocol_one_of_rule([8926, 8927]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(8907, 0, true, -1))
+  nodes.push(protocol_array_rule(8929, 0, true, -1))
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
       [
-        ("checkpoint_cid", 8889),
-        ("intent_id", 8890),
-        ("claimant", 8891),
-        ("generation", 8892),
-        ("resolution_cid", 8893),
-        ("verified_resolution_cid", 8894),
-        ("lease_expires_ms", 8895),
-        ("prepare_attempt_id", 8896),
-        ("kind", 8897),
-        ("required_artifact_cid", 8898),
-        ("decision_subject_cid", 8901),
-        ("requested_claims", 8903),
-        ("configuration_cid", 8906),
-        ("observed_claims", 8908),
-        ("authority", 8909),
-        ("approval_expires_at", 8910),
+        ("checkpoint_cid", 8911),
+        ("intent_id", 8912),
+        ("claimant", 8913),
+        ("generation", 8914),
+        ("resolution_cid", 8915),
+        ("verified_resolution_cid", 8916),
+        ("lease_expires_ms", 8917),
+        ("prepare_attempt_id", 8918),
+        ("kind", 8919),
+        ("required_artifact_cid", 8920),
+        ("decision_subject_cid", 8923),
+        ("requested_claims", 8925),
+        ("configuration_cid", 8928),
+        ("observed_claims", 8930),
+        ("authority", 8931),
+        ("approval_expires_at", 8932),
       ],
       [
         "checkpoint_cid", "intent_id", "claimant", "generation", "resolution_cid",
@@ -25784,31 +25830,31 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8888, 8911]))
+  nodes.push(protocol_one_of_rule([8910, 8933]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8859),
-        ("run_id", 8860),
-        ("run_definition_cid", 8861),
-        ("prepared_invocation_cid", 8862),
-        ("scope_cid", 8863),
-        ("provider_binding_cid", 8864),
-        ("input_artifact_cid", 8865),
-        ("task_index", 8866),
-        ("strategy_revision", 8867),
-        ("ordinal", 8868),
-        ("slot_cid", 8869),
-        ("attempt_index", 8870),
-        ("attempt_cid", 8871),
-        ("dispatch_authority_cid", 8872),
-        ("admitted_at", 8873),
-        ("model_grant_expires_at", 8874),
-        ("provenance", 8875),
-        ("immediate", 8887),
-        ("deferred", 8912),
-        ("self_cid", 8913),
+        ("version", 8881),
+        ("run_id", 8882),
+        ("run_definition_cid", 8883),
+        ("prepared_invocation_cid", 8884),
+        ("scope_cid", 8885),
+        ("provider_binding_cid", 8886),
+        ("input_artifact_cid", 8887),
+        ("task_index", 8888),
+        ("strategy_revision", 8889),
+        ("ordinal", 8890),
+        ("slot_cid", 8891),
+        ("attempt_index", 8892),
+        ("attempt_cid", 8893),
+        ("dispatch_authority_cid", 8894),
+        ("admitted_at", 8895),
+        ("model_grant_expires_at", 8896),
+        ("provenance", 8897),
+        ("immediate", 8909),
+        ("deferred", 8934),
+        ("self_cid", 8935),
       ],
       [
         "version", "run_id", "run_definition_cid", "prepared_invocation_cid", "scope_cid",
@@ -25822,12 +25868,12 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([8858, 8914]))
+  nodes.push(AllOfRule([8880, 8936]))
   nodes.push(protocol_string_rule(Some("SavedSuccess"), [], 0, 0))
   nodes.push(nodes[2509])
   nodes.push(
     protocol_object_rule(
-      [("state", 8916), ("retry_allowed", 8917)],
+      [("state", 8938), ("retry_allowed", 8939)],
       [],
       -2,
       0,
@@ -25835,8 +25881,8 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(protocol_string_rule(Some("SavedFailure"), [], 0, 0))
-  nodes.push(protocol_object_rule([("state", 8919)], [], -2, 0, None))
-  nodes.push(protocol_one_of_rule([8918, 8920]))
+  nodes.push(protocol_object_rule([("state", 8941)], [], -2, 0, None))
+  nodes.push(protocol_one_of_rule([8940, 8942]))
   nodes.push(
     protocol_string_rule(Some("actql-model-journal-settlement/0.1"), [], 0, 0),
   )
@@ -25849,7 +25895,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("cid", 8928), ("holding_cid", 8929)],
+      [("cid", 8950), ("holding_cid", 8951)],
       ["cid", "holding_cid"],
       -1,
       0,
@@ -25860,7 +25906,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("cid", 8931), ("holding_cid", 8932)],
+      [("cid", 8953), ("holding_cid", 8954)],
       ["cid", "holding_cid"],
       -1,
       0,
@@ -25871,7 +25917,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("cid", 8934), ("holding_cid", 8935)],
+      [("cid", 8956), ("holding_cid", 8957)],
       ["cid", "holding_cid"],
       -1,
       0,
@@ -25882,7 +25928,7 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("cid", 8937), ("holding_cid", 8938)],
+      [("cid", 8959), ("holding_cid", 8960)],
       ["cid", "holding_cid"],
       -1,
       0,
@@ -25894,91 +25940,15 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("cid", 8941), ("holding_cid", 8942)],
+      [("cid", 8963), ("holding_cid", 8964)],
       ["cid", "holding_cid"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([8940, 8943]))
+  nodes.push(protocol_one_of_rule([8962, 8965]))
   nodes.push(nodes[122])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(
-    protocol_object_rule(
-      [("cid", 8946), ("holding_cid", 8947)],
-      ["cid", "holding_cid"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(protocol_one_of_rule([8945, 8948]))
-  nodes.push(nodes[122])
-  nodes.push(nodes[14])
-  nodes.push(protocol_one_of_rule([8950, 8951]))
-  nodes.push(
-    protocol_object_rule(
-      [
-        ("model_call_attempt", 8930),
-        ("model_dispatch_authority", 8933),
-        ("model_attempt_accounting", 8936),
-        ("model_attempt_outcome", 8939),
-        ("model_slot_capture", 8944),
-        ("model_capture_bundle", 8949),
-        ("terminal_failure", 8952),
-      ],
-      [
-        "model_call_attempt", "model_dispatch_authority", "model_attempt_accounting",
-        "model_attempt_outcome", "model_slot_capture", "model_capture_bundle", "terminal_failure",
-      ],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(
-    protocol_object_rule(
-      [
-        ("version", 8922),
-        ("entry_identity_cid", 8923),
-        ("state", 8924),
-        ("durable", 8925),
-        ("retry_allowed", 8926),
-        ("settled_at", 8927),
-        ("evidence", 8953),
-      ],
-      [
-        "version", "entry_identity_cid", "state", "durable", "retry_allowed", "settled_at",
-        "evidence",
-      ],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(AllOfRule([8921, 8954]))
-  nodes.push(nodes[8916])
-  nodes.push(nodes[2509])
-  nodes.push(
-    protocol_object_rule(
-      [("state", 8956), ("retry_allowed", 8957)],
-      [],
-      -2,
-      0,
-      None,
-    ),
-  )
-  nodes.push(nodes[8919])
-  nodes.push(protocol_object_rule([("state", 8959)], [], -2, 0, None))
-  nodes.push(protocol_one_of_rule([8958, 8960]))
-  nodes.push(nodes[8922])
-  nodes.push(nodes[2])
-  nodes.push(nodes[8924])
-  nodes.push(nodes[466])
-  nodes.push(nodes[14])
-  nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
@@ -25990,78 +25960,158 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(
-    protocol_object_rule(
-      [("cid", 8971), ("holding_cid", 8972)],
-      ["cid", "holding_cid"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(
-    protocol_object_rule(
-      [("cid", 8974), ("holding_cid", 8975)],
-      ["cid", "holding_cid"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(
-    protocol_object_rule(
-      [("cid", 8977), ("holding_cid", 8978)],
-      ["cid", "holding_cid"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(nodes[122])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(
-    protocol_object_rule(
-      [("cid", 8981), ("holding_cid", 8982)],
-      ["cid", "holding_cid"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(protocol_one_of_rule([8980, 8983]))
-  nodes.push(nodes[122])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(
-    protocol_object_rule(
-      [("cid", 8986), ("holding_cid", 8987)],
-      ["cid", "holding_cid"],
-      -1,
-      0,
-      None,
-    ),
-  )
-  nodes.push(protocol_one_of_rule([8985, 8988]))
+  nodes.push(protocol_one_of_rule([8967, 8970]))
   nodes.push(nodes[122])
   nodes.push(nodes[14])
-  nodes.push(protocol_one_of_rule([8990, 8991]))
+  nodes.push(protocol_one_of_rule([8972, 8973]))
   nodes.push(
     protocol_object_rule(
       [
-        ("model_call_attempt", 8970),
-        ("model_dispatch_authority", 8973),
-        ("model_attempt_accounting", 8976),
-        ("model_attempt_outcome", 8979),
-        ("model_slot_capture", 8984),
-        ("model_capture_bundle", 8989),
-        ("terminal_failure", 8992),
+        ("model_call_attempt", 8952),
+        ("model_dispatch_authority", 8955),
+        ("model_attempt_accounting", 8958),
+        ("model_attempt_outcome", 8961),
+        ("model_slot_capture", 8966),
+        ("model_capture_bundle", 8971),
+        ("terminal_failure", 8974),
+      ],
+      [
+        "model_call_attempt", "model_dispatch_authority", "model_attempt_accounting",
+        "model_attempt_outcome", "model_slot_capture", "model_capture_bundle", "terminal_failure",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8944),
+        ("entry_identity_cid", 8945),
+        ("state", 8946),
+        ("durable", 8947),
+        ("retry_allowed", 8948),
+        ("settled_at", 8949),
+        ("evidence", 8975),
+      ],
+      [
+        "version", "entry_identity_cid", "state", "durable", "retry_allowed", "settled_at",
+        "evidence",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(AllOfRule([8943, 8976]))
+  nodes.push(nodes[8938])
+  nodes.push(nodes[2509])
+  nodes.push(
+    protocol_object_rule(
+      [("state", 8978), ("retry_allowed", 8979)],
+      [],
+      -2,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8941])
+  nodes.push(protocol_object_rule([("state", 8981)], [], -2, 0, None))
+  nodes.push(protocol_one_of_rule([8980, 8982]))
+  nodes.push(nodes[8944])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8946])
+  nodes.push(nodes[466])
+  nodes.push(nodes[14])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [("cid", 8990), ("holding_cid", 8991)],
+      ["cid", "holding_cid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [("cid", 8993), ("holding_cid", 8994)],
+      ["cid", "holding_cid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [("cid", 8996), ("holding_cid", 8997)],
+      ["cid", "holding_cid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+}
+
+///|
+fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit {
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [("cid", 8999), ("holding_cid", 9000)],
+      ["cid", "holding_cid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[122])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [("cid", 9003), ("holding_cid", 9004)],
+      ["cid", "holding_cid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([9002, 9005]))
+  nodes.push(nodes[122])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [("cid", 9008), ("holding_cid", 9009)],
+      ["cid", "holding_cid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([9007, 9010]))
+  nodes.push(nodes[122])
+  nodes.push(nodes[14])
+  nodes.push(protocol_one_of_rule([9012, 9013]))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("model_call_attempt", 8992),
+        ("model_dispatch_authority", 8995),
+        ("model_attempt_accounting", 8998),
+        ("model_attempt_outcome", 9001),
+        ("model_slot_capture", 9006),
+        ("model_capture_bundle", 9011),
+        ("terminal_failure", 9014),
       ],
       [
         "model_call_attempt", "model_dispatch_authority", "model_attempt_accounting",
@@ -26076,14 +26126,14 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 8962),
-        ("entry_identity_cid", 8963),
-        ("state", 8964),
-        ("durable", 8965),
-        ("retry_allowed", 8966),
-        ("settled_at", 8967),
-        ("evidence", 8993),
-        ("self_cid", 8994),
+        ("version", 8984),
+        ("entry_identity_cid", 8985),
+        ("state", 8986),
+        ("durable", 8987),
+        ("retry_allowed", 8988),
+        ("settled_at", 8989),
+        ("evidence", 9015),
+        ("self_cid", 9016),
       ],
       [
         "version", "entry_identity_cid", "state", "durable", "retry_allowed", "settled_at",
@@ -26094,17 +26144,13 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([8961, 8995]))
-  nodes.push(nodes[4214])
-  nodes.push(protocol_object_rule([("status", 8997)], ["status"], -2, 0, None))
-  nodes.push(nodes[4216])
-}
-
-///|
-fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit {
+  nodes.push(AllOfRule([8983, 9017]))
+  nodes.push(nodes[4230])
+  nodes.push(protocol_object_rule([("status", 9019)], ["status"], -2, 0, None))
+  nodes.push(nodes[4232])
   nodes.push(
     protocol_object_rule(
-      [("kind", 8999)],
+      [("kind", 9021)],
       ["kind", "checkpoint_id"],
       -2,
       0,
@@ -26112,68 +26158,68 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(
-    protocol_object_rule([("next_action", 9000)], ["checkpoint"], -2, 0, None),
+    protocol_object_rule([("next_action", 9022)], ["checkpoint"], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(8998, 9001, 9002))
-  nodes.push(nodes[4221])
-  nodes.push(protocol_object_rule([("status", 9004)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(9006))
-  nodes.push(nodes[4225])
+  nodes.push(ConditionalRule(9020, 9023, 9024))
+  nodes.push(nodes[4237])
+  nodes.push(protocol_object_rule([("status", 9026)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(9028))
+  nodes.push(nodes[4241])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9009, 1, true, -1))
+  nodes.push(protocol_array_rule(9031, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 9008), ("effects", 9010)],
+      [("kind", 9030), ("effects", 9032)],
       ["kind", "effects"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4229])
-  nodes.push(nodes[4230])
+  nodes.push(nodes[4245])
+  nodes.push(nodes[4246])
   nodes.push(
     protocol_object_rule(
-      [("kind", 9012), ("reason", 9013)],
+      [("kind", 9034), ("reason", 9035)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([9011, 9014]))
-  nodes.push(protocol_object_rule([("next_action", 9015)], [], -2, 0, None))
-  nodes.push(AllOfRule([9007, 9016]))
+  nodes.push(protocol_one_of_rule([9033, 9036]))
+  nodes.push(protocol_object_rule([("next_action", 9037)], [], -2, 0, None))
+  nodes.push(AllOfRule([9029, 9038]))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9005, 9017, 9018))
-  nodes.push(nodes[4237])
-  nodes.push(protocol_object_rule([("status", 9020)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(9022))
-  nodes.push(nodes[4241])
-  nodes.push(protocol_object_rule([("kind", 9024)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 9025)], [], -2, 0, None))
-  nodes.push(AllOfRule([9023, 9026]))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9021, 9027, 9028))
-  nodes.push(nodes[4247])
-  nodes.push(protocol_object_rule([("status", 9030)], ["status"], -2, 0, None))
-  nodes.push(nodes[4223])
-  nodes.push(NotRule(9032))
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 9034)], ["kind"], -2, 0, None))
-  nodes.push(protocol_object_rule([("next_action", 9035)], [], -2, 0, None))
-  nodes.push(AllOfRule([9033, 9036]))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9031, 9037, 9038))
+  nodes.push(ConditionalRule(9027, 9039, 9040))
+  nodes.push(nodes[4253])
+  nodes.push(protocol_object_rule([("status", 9042)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(9044))
   nodes.push(nodes[4257])
+  nodes.push(protocol_object_rule([("kind", 9046)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 9047)], [], -2, 0, None))
+  nodes.push(AllOfRule([9045, 9048]))
   nodes.push(nodes[270])
-  nodes.push(AllOfRule([9040, 9041]))
+  nodes.push(ConditionalRule(9043, 9049, 9050))
+  nodes.push(nodes[4263])
+  nodes.push(protocol_object_rule([("status", 9052)], ["status"], -2, 0, None))
+  nodes.push(nodes[4239])
+  nodes.push(NotRule(9054))
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 9056)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 9057)], [], -2, 0, None))
+  nodes.push(AllOfRule([9055, 9058]))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(9053, 9059, 9060))
+  nodes.push(nodes[4273])
+  nodes.push(nodes[270])
+  nodes.push(AllOfRule([9062, 9063]))
   nodes.push(
     protocol_object_rule(
-      [("result_availability", 9042)],
+      [("result_availability", 9064)],
       ["result_availability"],
       -2,
       0,
@@ -26181,11 +26227,11 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2509])
-  nodes.push(nodes[4262])
-  nodes.push(protocol_object_rule([("kind", 9045)], [], -2, 0, None))
+  nodes.push(nodes[4278])
+  nodes.push(protocol_object_rule([("kind", 9067)], [], -2, 0, None))
   nodes.push(
     protocol_object_rule(
-      [("result_available", 9044), ("next_action", 9046)],
+      [("result_available", 9066), ("next_action", 9068)],
       [],
       -2,
       0,
@@ -26193,125 +26239,125 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9043, 9047, 9048))
-  nodes.push(nodes[4267])
+  nodes.push(ConditionalRule(9065, 9069, 9070))
+  nodes.push(nodes[4283])
   nodes.push(nodes[1])
-  nodes.push(nodes[4269])
+  nodes.push(nodes[4285])
   nodes.push(nodes[80])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[4273])
+  nodes.push(nodes[4289])
   nodes.push(
     protocol_object_rule(
-      [("checkpoint_id", 9054), ("checkpoint_cid", 9055), ("kind", 9056)],
+      [("checkpoint_id", 9076), ("checkpoint_cid", 9077), ("kind", 9078)],
       ["checkpoint_id", "checkpoint_cid", "kind"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4216])
+  nodes.push(nodes[4232])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 9058), ("checkpoint_id", 9059)],
+      [("kind", 9080), ("checkpoint_id", 9081)],
       ["kind", "checkpoint_id"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4225])
+  nodes.push(nodes[4241])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9062, 1, true, -1))
+  nodes.push(protocol_array_rule(9084, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 9061), ("effects", 9063)],
+      [("kind", 9083), ("effects", 9085)],
       ["kind", "effects"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4282])
+  nodes.push(nodes[4298])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9066, 1, true, -1))
+  nodes.push(protocol_array_rule(9088, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 9065), ("results", 9067)],
+      [("kind", 9087), ("results", 9089)],
       ["kind", "results"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4286])
+  nodes.push(nodes[4302])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9070, 1, true, -1))
+  nodes.push(protocol_array_rule(9092, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("kind", 9069), ("results", 9071)],
+      [("kind", 9091), ("results", 9093)],
       ["kind", "results"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
-  nodes.push(protocol_object_rule([("kind", 9073)], ["kind"], -1, 0, None))
-  nodes.push(nodes[4229])
-  nodes.push(nodes[4230])
+  nodes.push(nodes[4267])
+  nodes.push(protocol_object_rule([("kind", 9095)], ["kind"], -1, 0, None))
+  nodes.push(nodes[4245])
+  nodes.push(nodes[4246])
   nodes.push(
     protocol_object_rule(
-      [("kind", 9075), ("reason", 9076)],
+      [("kind", 9097), ("reason", 9098)],
       ["kind", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([9060, 9064, 9068, 9072, 9074, 9077]))
+  nodes.push(protocol_one_of_rule([9082, 9086, 9090, 9094, 9096, 9099]))
   nodes.push(nodes[14])
-  nodes.push(nodes[4297])
+  nodes.push(nodes[4313])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("code", 9080), ("message", 9081)],
+      [("code", 9102), ("message", 9103)],
       ["code", "message"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4300])
-  nodes.push(protocol_object_rule([("state", 9083)], ["state"], -2, 0, None))
-  nodes.push(nodes[4302])
-  nodes.push(protocol_object_rule([("reason", 9085)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9084, 9086, 9087))
-  nodes.push(nodes[4306])
-  nodes.push(protocol_object_rule([("state", 9089)], ["state"], -2, 0, None))
-  nodes.push(nodes[4308])
-  nodes.push(protocol_object_rule([("reason", 9091)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9090, 9092, 9093))
-  nodes.push(nodes[3004])
-  nodes.push(protocol_object_rule([("state", 9095)], ["state"], -2, 0, None))
-  nodes.push(nodes[4314])
-  nodes.push(protocol_object_rule([("reason", 9097)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9096, 9098, 9099))
+  nodes.push(nodes[4316])
+  nodes.push(protocol_object_rule([("state", 9105)], ["state"], -2, 0, None))
   nodes.push(nodes[4318])
+  nodes.push(protocol_object_rule([("reason", 9107)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(9106, 9108, 9109))
+  nodes.push(nodes[4322])
+  nodes.push(protocol_object_rule([("state", 9111)], ["state"], -2, 0, None))
+  nodes.push(nodes[4324])
+  nodes.push(protocol_object_rule([("reason", 9113)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(9112, 9114, 9115))
+  nodes.push(nodes[3018])
+  nodes.push(protocol_object_rule([("state", 9117)], ["state"], -2, 0, None))
+  nodes.push(nodes[4330])
+  nodes.push(protocol_object_rule([("reason", 9119)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(9118, 9120, 9121))
+  nodes.push(nodes[4334])
   nodes.push(nodes[80])
-  nodes.push(nodes[4320])
+  nodes.push(nodes[4336])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("state", 9101),
-        ("observed_at", 9102),
-        ("reason", 9103),
-        ("cause_cid", 9104),
+        ("state", 9123),
+        ("observed_at", 9124),
+        ("reason", 9125),
+        ("cause_cid", 9126),
       ],
       ["state", "observed_at", "reason"],
       -1,
@@ -26319,17 +26365,17 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([9088, 9094, 9100, 9105]))
-  nodes.push(protocol_named_object_rule([], [], 9106, 0, None, 11))
+  nodes.push(AllOfRule([9110, 9116, 9122, 9127]))
+  nodes.push(protocol_named_object_rule([], [], 9128, 0, None, 11))
   nodes.push(nodes[190])
   nodes.push(nodes[14])
-  nodes.push(nodes[4327])
+  nodes.push(nodes[4343])
   nodes.push(
     protocol_object_rule(
       [
-        ("revision", 9108),
-        ("cancellation_requested", 9109),
-        ("physical_stop", 9110),
+        ("revision", 9130),
+        ("cancellation_requested", 9131),
+        ("physical_stop", 9132),
       ],
       ["revision", "cancellation_requested", "physical_stop"],
       -1,
@@ -26341,17 +26387,17 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9050),
-        ("run_id", 9051),
-        ("status", 9052),
-        ("updated_at", 9053),
-        ("checkpoint", 9057),
-        ("next_action", 9078),
-        ("result_available", 9079),
-        ("terminal_error", 9082),
-        ("result_availability", 9107),
-        ("control", 9111),
-        ("revision", 9112),
+        ("version", 9072),
+        ("run_id", 9073),
+        ("status", 9074),
+        ("updated_at", 9075),
+        ("checkpoint", 9079),
+        ("next_action", 9100),
+        ("result_available", 9101),
+        ("terminal_error", 9104),
+        ("result_availability", 9129),
+        ("control", 9133),
+        ("revision", 9134),
       ],
       [
         "version", "run_id", "status", "updated_at", "next_action", "result_available",
@@ -26362,7 +26408,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(AllOfRule([9003, 9019, 9029, 9039, 9049, 9113]))
+  nodes.push(AllOfRule([9025, 9041, 9051, 9061, 9071, 9135]))
   nodes.push(
     protocol_string_rule(Some("actql-review-projection/0.1"), [], 0, 0),
   )
@@ -26376,17 +26422,17 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       0,
     ),
   )
-  nodes.push(protocol_array_rule(9118, 1, true, -1))
+  nodes.push(protocol_array_rule(9140, 1, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3486])
-  nodes.push(nodes[3487])
+  nodes.push(nodes[3500])
+  nodes.push(nodes[3501])
   nodes.push(nodes[466])
   nodes.push(nodes[1])
   nodes.push(nodes[2430])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("field", 9128)], ["field"], -1, 0, None))
+  nodes.push(protocol_object_rule([("field", 9150)], ["field"], -1, 0, None))
   nodes.push(nodes[1883])
   nodes.push(nodes[1884])
   nodes.push(nodes[1])
@@ -26398,14 +26444,14 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("$actql_ref", 9130),
-        ("version", 9131),
-        ("resource_kind", 9132),
-        ("provider_namespace", 9133),
-        ("provider_identity_cid", 9134),
-        ("authority_scope_cid", 9135),
-        ("boundary_cid", 9136),
-        ("identity_cid", 9137),
+        ("$actql_ref", 9152),
+        ("version", 9153),
+        ("resource_kind", 9154),
+        ("provider_namespace", 9155),
+        ("provider_identity_cid", 9156),
+        ("authority_scope_cid", 9157),
+        ("boundary_cid", 9158),
+        ("identity_cid", 9159),
       ],
       [
         "$actql_ref", "version", "resource_kind", "provider_namespace", "provider_identity_cid",
@@ -26416,23 +26462,23 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([9127, 9129, 9138]))
+  nodes.push(protocol_one_of_rule([9149, 9151, 9160]))
   nodes.push(nodes[219])
   nodes.push(
     protocol_object_rule(
-      [("effect_id", 9125), ("kind", 9126), ("target", 9139), ("count", 9140)],
+      [("effect_id", 9147), ("kind", 9148), ("target", 9161), ("count", 9162)],
       ["effect_id", "kind", "target", "count"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(9141, 0, false, -1))
+  nodes.push(protocol_array_rule(9163, 0, false, -1))
   nodes.push(
-    protocol_object_rule([("effects", 9142)], ["effects"], -1, 0, None),
+    protocol_object_rule([("effects", 9164)], ["effects"], -1, 0, None),
   )
   nodes.push(nodes[242])
-  nodes.push(protocol_array_rule(9144, 0, false, -1))
+  nodes.push(protocol_array_rule(9166, 0, false, -1))
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[242])
@@ -26441,7 +26487,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[219])
   nodes.push(
     protocol_object_rule(
-      [("content_cid", 9150), ("occurrence", 9151)],
+      [("content_cid", 9172), ("occurrence", 9173)],
       ["content_cid", "occurrence"],
       -1,
       0,
@@ -26459,14 +26505,14 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("$actql_ref", 9153),
-        ("version", 9154),
-        ("resource_kind", 9155),
-        ("provider_namespace", 9156),
-        ("provider_identity_cid", 9157),
-        ("authority_scope_cid", 9158),
-        ("boundary_cid", 9159),
-        ("identity_cid", 9160),
+        ("$actql_ref", 9175),
+        ("version", 9176),
+        ("resource_kind", 9177),
+        ("provider_namespace", 9178),
+        ("provider_identity_cid", 9179),
+        ("authority_scope_cid", 9180),
+        ("boundary_cid", 9181),
+        ("identity_cid", 9182),
       ],
       [
         "$actql_ref", "version", "resource_kind", "provider_namespace", "provider_identity_cid",
@@ -26477,7 +26523,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([9148, 9149, 9152, 9161]))
+  nodes.push(protocol_one_of_rule([9170, 9171, 9174, 9183]))
   nodes.push(nodes[270])
   nodes.push(nodes[270])
   nodes.push(nodes[2452])
@@ -26485,7 +26531,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("state", 9166), ("version_cid", 9167)],
+      [("state", 9188), ("version_cid", 9189)],
       ["state", "version_cid"],
       -1,
       0,
@@ -26493,13 +26539,13 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2492])
-  nodes.push(protocol_object_rule([("state", 9169)], ["state"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([9168, 9170]))
+  nodes.push(protocol_object_rule([("state", 9191)], ["state"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([9190, 9192]))
   nodes.push(nodes[2495])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("state", 9172), ("value", 9173)],
+      [("state", 9194), ("value", 9195)],
       ["state", "value"],
       -1,
       0,
@@ -26507,19 +26553,19 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2492])
-  nodes.push(protocol_object_rule([("state", 9175)], ["state"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([9174, 9176]))
+  nodes.push(protocol_object_rule([("state", 9197)], ["state"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([9196, 9198]))
   nodes.push(
     protocol_object_rule(
       [
-        ("effect_id", 9146),
-        ("row_preview_cid", 9147),
-        ("target_row_identity", 9162),
-        ("before", 9163),
-        ("after", 9164),
-        ("preview_strength", 9165),
-        ("target_guard", 9171),
-        ("intended_changes", 9177),
+        ("effect_id", 9168),
+        ("row_preview_cid", 9169),
+        ("target_row_identity", 9184),
+        ("before", 9185),
+        ("after", 9186),
+        ("preview_strength", 9187),
+        ("target_guard", 9193),
+        ("intended_changes", 9199),
       ],
       ["effect_id", "row_preview_cid", "target_row_identity", "before", "after"],
       -1,
@@ -26527,25 +26573,25 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(9178, 0, false, -1))
+  nodes.push(protocol_array_rule(9200, 0, false, -1))
   nodes.push(nodes[81])
-  nodes.push(protocol_array_rule(9180, 0, false, -1))
+  nodes.push(protocol_array_rule(9202, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9115),
-        ("effect_preview_cid", 9116),
-        ("authority_scope_cid", 9117),
-        ("approval_claims", 9119),
-        ("authoring_context_cid", 9120),
-        ("redaction_policy_cid", 9121),
-        ("sensitivity", 9122),
-        ("retention_class", 9123),
-        ("encryption_required", 9124),
-        ("displayed_scope", 9143),
-        ("displayed_permissions", 9145),
-        ("displayed_rows", 9179),
-        ("displayed_authoring_context", 9181),
+        ("version", 9137),
+        ("effect_preview_cid", 9138),
+        ("authority_scope_cid", 9139),
+        ("approval_claims", 9141),
+        ("authoring_context_cid", 9142),
+        ("redaction_policy_cid", 9143),
+        ("sensitivity", 9144),
+        ("retention_class", 9145),
+        ("encryption_required", 9146),
+        ("displayed_scope", 9165),
+        ("displayed_permissions", 9167),
+        ("displayed_rows", 9201),
+        ("displayed_authoring_context", 9203),
       ],
       [
         "version", "effect_preview_cid", "authority_scope_cid", "approval_claims",
@@ -26558,21 +26604,21 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[9115])
+  nodes.push(nodes[9137])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[9118])
-  nodes.push(protocol_array_rule(9186, 1, true, -1))
+  nodes.push(nodes[9140])
+  nodes.push(protocol_array_rule(9208, 1, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3486])
-  nodes.push(nodes[3487])
+  nodes.push(nodes[3500])
+  nodes.push(nodes[3501])
   nodes.push(nodes[466])
   nodes.push(nodes[1])
   nodes.push(nodes[2430])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("field", 9196)], ["field"], -1, 0, None))
+  nodes.push(protocol_object_rule([("field", 9218)], ["field"], -1, 0, None))
   nodes.push(nodes[1883])
   nodes.push(nodes[1884])
   nodes.push(nodes[1])
@@ -26584,14 +26630,14 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("$actql_ref", 9198),
-        ("version", 9199),
-        ("resource_kind", 9200),
-        ("provider_namespace", 9201),
-        ("provider_identity_cid", 9202),
-        ("authority_scope_cid", 9203),
-        ("boundary_cid", 9204),
-        ("identity_cid", 9205),
+        ("$actql_ref", 9220),
+        ("version", 9221),
+        ("resource_kind", 9222),
+        ("provider_namespace", 9223),
+        ("provider_identity_cid", 9224),
+        ("authority_scope_cid", 9225),
+        ("boundary_cid", 9226),
+        ("identity_cid", 9227),
       ],
       [
         "$actql_ref", "version", "resource_kind", "provider_namespace", "provider_identity_cid",
@@ -26602,23 +26648,23 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([9195, 9197, 9206]))
+  nodes.push(protocol_one_of_rule([9217, 9219, 9228]))
   nodes.push(nodes[219])
   nodes.push(
     protocol_object_rule(
-      [("effect_id", 9193), ("kind", 9194), ("target", 9207), ("count", 9208)],
+      [("effect_id", 9215), ("kind", 9216), ("target", 9229), ("count", 9230)],
       ["effect_id", "kind", "target", "count"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(9209, 0, false, -1))
+  nodes.push(protocol_array_rule(9231, 0, false, -1))
   nodes.push(
-    protocol_object_rule([("effects", 9210)], ["effects"], -1, 0, None),
+    protocol_object_rule([("effects", 9232)], ["effects"], -1, 0, None),
   )
   nodes.push(nodes[242])
-  nodes.push(protocol_array_rule(9212, 0, false, -1))
+  nodes.push(protocol_array_rule(9234, 0, false, -1))
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[242])
@@ -26627,7 +26673,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[219])
   nodes.push(
     protocol_object_rule(
-      [("content_cid", 9218), ("occurrence", 9219)],
+      [("content_cid", 9240), ("occurrence", 9241)],
       ["content_cid", "occurrence"],
       -1,
       0,
@@ -26645,14 +26691,14 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("$actql_ref", 9221),
-        ("version", 9222),
-        ("resource_kind", 9223),
-        ("provider_namespace", 9224),
-        ("provider_identity_cid", 9225),
-        ("authority_scope_cid", 9226),
-        ("boundary_cid", 9227),
-        ("identity_cid", 9228),
+        ("$actql_ref", 9243),
+        ("version", 9244),
+        ("resource_kind", 9245),
+        ("provider_namespace", 9246),
+        ("provider_identity_cid", 9247),
+        ("authority_scope_cid", 9248),
+        ("boundary_cid", 9249),
+        ("identity_cid", 9250),
       ],
       [
         "$actql_ref", "version", "resource_kind", "provider_namespace", "provider_identity_cid",
@@ -26663,7 +26709,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([9216, 9217, 9220, 9229]))
+  nodes.push(protocol_one_of_rule([9238, 9239, 9242, 9251]))
   nodes.push(nodes[270])
   nodes.push(nodes[270])
   nodes.push(nodes[2452])
@@ -26671,7 +26717,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("state", 9234), ("version_cid", 9235)],
+      [("state", 9256), ("version_cid", 9257)],
       ["state", "version_cid"],
       -1,
       0,
@@ -26679,13 +26725,13 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2492])
-  nodes.push(protocol_object_rule([("state", 9237)], ["state"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([9236, 9238]))
+  nodes.push(protocol_object_rule([("state", 9259)], ["state"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([9258, 9260]))
   nodes.push(nodes[2495])
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("state", 9240), ("value", 9241)],
+      [("state", 9262), ("value", 9263)],
       ["state", "value"],
       -1,
       0,
@@ -26693,19 +26739,19 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(nodes[2492])
-  nodes.push(protocol_object_rule([("state", 9243)], ["state"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([9242, 9244]))
+  nodes.push(protocol_object_rule([("state", 9265)], ["state"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([9264, 9266]))
   nodes.push(
     protocol_object_rule(
       [
-        ("effect_id", 9214),
-        ("row_preview_cid", 9215),
-        ("target_row_identity", 9230),
-        ("before", 9231),
-        ("after", 9232),
-        ("preview_strength", 9233),
-        ("target_guard", 9239),
-        ("intended_changes", 9245),
+        ("effect_id", 9236),
+        ("row_preview_cid", 9237),
+        ("target_row_identity", 9252),
+        ("before", 9253),
+        ("after", 9254),
+        ("preview_strength", 9255),
+        ("target_guard", 9261),
+        ("intended_changes", 9267),
       ],
       ["effect_id", "row_preview_cid", "target_row_identity", "before", "after"],
       -1,
@@ -26713,27 +26759,27 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(9246, 0, false, -1))
+  nodes.push(protocol_array_rule(9268, 0, false, -1))
   nodes.push(nodes[81])
-  nodes.push(protocol_array_rule(9248, 0, false, -1))
+  nodes.push(protocol_array_rule(9270, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9183),
-        ("effect_preview_cid", 9184),
-        ("authority_scope_cid", 9185),
-        ("approval_claims", 9187),
-        ("authoring_context_cid", 9188),
-        ("redaction_policy_cid", 9189),
-        ("sensitivity", 9190),
-        ("retention_class", 9191),
-        ("encryption_required", 9192),
-        ("displayed_scope", 9211),
-        ("displayed_permissions", 9213),
-        ("displayed_rows", 9247),
-        ("displayed_authoring_context", 9249),
-        ("review_projection_cid", 9250),
+        ("version", 9205),
+        ("effect_preview_cid", 9206),
+        ("authority_scope_cid", 9207),
+        ("approval_claims", 9209),
+        ("authoring_context_cid", 9210),
+        ("redaction_policy_cid", 9211),
+        ("sensitivity", 9212),
+        ("retention_class", 9213),
+        ("encryption_required", 9214),
+        ("displayed_scope", 9233),
+        ("displayed_permissions", 9235),
+        ("displayed_rows", 9269),
+        ("displayed_authoring_context", 9271),
+        ("review_projection_cid", 9272),
       ],
       [
         "version", "effect_preview_cid", "authority_scope_cid", "approval_claims",
@@ -26761,11 +26807,11 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("key_generation_cid", 9252),
-        ("private_namespace", 9253),
-        ("store_authority_cid", 9254),
-        ("store_contract_wire", 9255),
-        ("version", 9256),
+        ("key_generation_cid", 9274),
+        ("private_namespace", 9275),
+        ("store_authority_cid", 9276),
+        ("store_contract_wire", 9277),
+        ("version", 9278),
       ],
       [
         "key_generation_cid", "private_namespace", "store_authority_cid", "store_contract_wire",
@@ -26782,315 +26828,315 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[408])
   nodes.push(
-    protocol_object_rule([("precision", 9262)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9284)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(1L)))
-  nodes.push(protocol_object_rule([("scale", 9264)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9286)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9263, 9265, 9266))
+  nodes.push(ConditionalRule(9285, 9287, 9288))
   nodes.push(protocol_integer_rule(Some(2L), Some(2L)))
   nodes.push(
-    protocol_object_rule([("precision", 9268)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9290)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(2L)))
-  nodes.push(protocol_object_rule([("scale", 9270)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9292)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9269, 9271, 9272))
+  nodes.push(ConditionalRule(9291, 9293, 9294))
   nodes.push(protocol_integer_rule(Some(3L), Some(3L)))
   nodes.push(
-    protocol_object_rule([("precision", 9274)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9296)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(3L)))
-  nodes.push(protocol_object_rule([("scale", 9276)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9298)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9275, 9277, 9278))
+  nodes.push(ConditionalRule(9297, 9299, 9300))
   nodes.push(protocol_integer_rule(Some(4L), Some(4L)))
   nodes.push(
-    protocol_object_rule([("precision", 9280)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9302)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(4L)))
-  nodes.push(protocol_object_rule([("scale", 9282)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9304)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9281, 9283, 9284))
+  nodes.push(ConditionalRule(9303, 9305, 9306))
   nodes.push(protocol_integer_rule(Some(5L), Some(5L)))
   nodes.push(
-    protocol_object_rule([("precision", 9286)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9308)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(5L)))
-  nodes.push(protocol_object_rule([("scale", 9288)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9310)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9287, 9289, 9290))
+  nodes.push(ConditionalRule(9309, 9311, 9312))
   nodes.push(protocol_integer_rule(Some(6L), Some(6L)))
   nodes.push(
-    protocol_object_rule([("precision", 9292)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9314)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(6L)))
-  nodes.push(protocol_object_rule([("scale", 9294)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9316)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9293, 9295, 9296))
+  nodes.push(ConditionalRule(9315, 9317, 9318))
   nodes.push(protocol_integer_rule(Some(7L), Some(7L)))
   nodes.push(
-    protocol_object_rule([("precision", 9298)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9320)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(7L)))
-  nodes.push(protocol_object_rule([("scale", 9300)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9322)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9299, 9301, 9302))
+  nodes.push(ConditionalRule(9321, 9323, 9324))
   nodes.push(protocol_integer_rule(Some(8L), Some(8L)))
   nodes.push(
-    protocol_object_rule([("precision", 9304)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9326)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(8L)))
-  nodes.push(protocol_object_rule([("scale", 9306)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9328)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9305, 9307, 9308))
+  nodes.push(ConditionalRule(9327, 9329, 9330))
   nodes.push(protocol_integer_rule(Some(9L), Some(9L)))
   nodes.push(
-    protocol_object_rule([("precision", 9310)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9332)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(9L)))
-  nodes.push(protocol_object_rule([("scale", 9312)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9334)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9311, 9313, 9314))
+  nodes.push(ConditionalRule(9333, 9335, 9336))
   nodes.push(protocol_integer_rule(Some(10L), Some(10L)))
   nodes.push(
-    protocol_object_rule([("precision", 9316)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9338)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(10L)))
-  nodes.push(protocol_object_rule([("scale", 9318)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9340)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9317, 9319, 9320))
+  nodes.push(ConditionalRule(9339, 9341, 9342))
   nodes.push(protocol_integer_rule(Some(11L), Some(11L)))
   nodes.push(
-    protocol_object_rule([("precision", 9322)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9344)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(11L)))
-  nodes.push(protocol_object_rule([("scale", 9324)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9346)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9323, 9325, 9326))
+  nodes.push(ConditionalRule(9345, 9347, 9348))
   nodes.push(protocol_integer_rule(Some(12L), Some(12L)))
   nodes.push(
-    protocol_object_rule([("precision", 9328)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9350)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(12L)))
-  nodes.push(protocol_object_rule([("scale", 9330)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9352)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9329, 9331, 9332))
+  nodes.push(ConditionalRule(9351, 9353, 9354))
   nodes.push(protocol_integer_rule(Some(13L), Some(13L)))
   nodes.push(
-    protocol_object_rule([("precision", 9334)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9356)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(13L)))
-  nodes.push(protocol_object_rule([("scale", 9336)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9358)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9335, 9337, 9338))
+  nodes.push(ConditionalRule(9357, 9359, 9360))
   nodes.push(protocol_integer_rule(Some(14L), Some(14L)))
   nodes.push(
-    protocol_object_rule([("precision", 9340)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9362)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(14L)))
-  nodes.push(protocol_object_rule([("scale", 9342)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9364)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9341, 9343, 9344))
+  nodes.push(ConditionalRule(9363, 9365, 9366))
   nodes.push(protocol_integer_rule(Some(15L), Some(15L)))
   nodes.push(
-    protocol_object_rule([("precision", 9346)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9368)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(15L)))
-  nodes.push(protocol_object_rule([("scale", 9348)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9370)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9347, 9349, 9350))
+  nodes.push(ConditionalRule(9369, 9371, 9372))
   nodes.push(protocol_integer_rule(Some(16L), Some(16L)))
   nodes.push(
-    protocol_object_rule([("precision", 9352)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9374)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(16L)))
-  nodes.push(protocol_object_rule([("scale", 9354)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9376)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9353, 9355, 9356))
+  nodes.push(ConditionalRule(9375, 9377, 9378))
   nodes.push(protocol_integer_rule(Some(17L), Some(17L)))
   nodes.push(
-    protocol_object_rule([("precision", 9358)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9380)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(17L)))
-  nodes.push(protocol_object_rule([("scale", 9360)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9382)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9359, 9361, 9362))
+  nodes.push(ConditionalRule(9381, 9383, 9384))
   nodes.push(protocol_integer_rule(Some(18L), Some(18L)))
   nodes.push(
-    protocol_object_rule([("precision", 9364)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9386)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(18L)))
-  nodes.push(protocol_object_rule([("scale", 9366)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9388)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9365, 9367, 9368))
+  nodes.push(ConditionalRule(9387, 9389, 9390))
   nodes.push(protocol_integer_rule(Some(19L), Some(19L)))
   nodes.push(
-    protocol_object_rule([("precision", 9370)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9392)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(19L)))
-  nodes.push(protocol_object_rule([("scale", 9372)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9394)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9371, 9373, 9374))
+  nodes.push(ConditionalRule(9393, 9395, 9396))
   nodes.push(protocol_integer_rule(Some(20L), Some(20L)))
   nodes.push(
-    protocol_object_rule([("precision", 9376)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9398)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(20L)))
-  nodes.push(protocol_object_rule([("scale", 9378)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9400)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9377, 9379, 9380))
+  nodes.push(ConditionalRule(9399, 9401, 9402))
   nodes.push(protocol_integer_rule(Some(21L), Some(21L)))
   nodes.push(
-    protocol_object_rule([("precision", 9382)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9404)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(21L)))
-  nodes.push(protocol_object_rule([("scale", 9384)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9406)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9383, 9385, 9386))
+  nodes.push(ConditionalRule(9405, 9407, 9408))
   nodes.push(protocol_integer_rule(Some(22L), Some(22L)))
   nodes.push(
-    protocol_object_rule([("precision", 9388)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9410)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(22L)))
-  nodes.push(protocol_object_rule([("scale", 9390)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9412)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9389, 9391, 9392))
+  nodes.push(ConditionalRule(9411, 9413, 9414))
   nodes.push(protocol_integer_rule(Some(23L), Some(23L)))
   nodes.push(
-    protocol_object_rule([("precision", 9394)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9416)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(23L)))
-  nodes.push(protocol_object_rule([("scale", 9396)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9418)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9395, 9397, 9398))
+  nodes.push(ConditionalRule(9417, 9419, 9420))
   nodes.push(protocol_integer_rule(Some(24L), Some(24L)))
   nodes.push(
-    protocol_object_rule([("precision", 9400)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9422)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(24L)))
-  nodes.push(protocol_object_rule([("scale", 9402)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9424)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9401, 9403, 9404))
+  nodes.push(ConditionalRule(9423, 9425, 9426))
   nodes.push(protocol_integer_rule(Some(25L), Some(25L)))
   nodes.push(
-    protocol_object_rule([("precision", 9406)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9428)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(25L)))
-  nodes.push(protocol_object_rule([("scale", 9408)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9430)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9407, 9409, 9410))
+  nodes.push(ConditionalRule(9429, 9431, 9432))
   nodes.push(protocol_integer_rule(Some(26L), Some(26L)))
   nodes.push(
-    protocol_object_rule([("precision", 9412)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9434)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(26L)))
-  nodes.push(protocol_object_rule([("scale", 9414)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9436)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9413, 9415, 9416))
+  nodes.push(ConditionalRule(9435, 9437, 9438))
   nodes.push(protocol_integer_rule(Some(27L), Some(27L)))
   nodes.push(
-    protocol_object_rule([("precision", 9418)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9440)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(27L)))
-  nodes.push(protocol_object_rule([("scale", 9420)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9442)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9419, 9421, 9422))
+  nodes.push(ConditionalRule(9441, 9443, 9444))
   nodes.push(protocol_integer_rule(Some(28L), Some(28L)))
   nodes.push(
-    protocol_object_rule([("precision", 9424)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9446)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(28L)))
-  nodes.push(protocol_object_rule([("scale", 9426)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9448)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9425, 9427, 9428))
+  nodes.push(ConditionalRule(9447, 9449, 9450))
   nodes.push(protocol_integer_rule(Some(29L), Some(29L)))
   nodes.push(
-    protocol_object_rule([("precision", 9430)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9452)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(29L)))
-  nodes.push(protocol_object_rule([("scale", 9432)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9454)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9431, 9433, 9434))
+  nodes.push(ConditionalRule(9453, 9455, 9456))
   nodes.push(protocol_integer_rule(Some(30L), Some(30L)))
   nodes.push(
-    protocol_object_rule([("precision", 9436)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9458)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(30L)))
-  nodes.push(protocol_object_rule([("scale", 9438)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9460)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9437, 9439, 9440))
+  nodes.push(ConditionalRule(9459, 9461, 9462))
   nodes.push(protocol_integer_rule(Some(31L), Some(31L)))
   nodes.push(
-    protocol_object_rule([("precision", 9442)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9464)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(31L)))
-  nodes.push(protocol_object_rule([("scale", 9444)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9466)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9443, 9445, 9446))
+  nodes.push(ConditionalRule(9465, 9467, 9468))
   nodes.push(protocol_integer_rule(Some(32L), Some(32L)))
   nodes.push(
-    protocol_object_rule([("precision", 9448)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9470)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(32L)))
-  nodes.push(protocol_object_rule([("scale", 9450)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9472)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9449, 9451, 9452))
+  nodes.push(ConditionalRule(9471, 9473, 9474))
   nodes.push(protocol_integer_rule(Some(33L), Some(33L)))
   nodes.push(
-    protocol_object_rule([("precision", 9454)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9476)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(33L)))
-  nodes.push(protocol_object_rule([("scale", 9456)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9478)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9455, 9457, 9458))
+  nodes.push(ConditionalRule(9477, 9479, 9480))
   nodes.push(protocol_integer_rule(Some(34L), Some(34L)))
   nodes.push(
-    protocol_object_rule([("precision", 9460)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9482)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(34L)))
-  nodes.push(protocol_object_rule([("scale", 9462)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9484)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9461, 9463, 9464))
+  nodes.push(ConditionalRule(9483, 9485, 9486))
   nodes.push(protocol_integer_rule(Some(35L), Some(35L)))
   nodes.push(
-    protocol_object_rule([("precision", 9466)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9488)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(35L)))
-  nodes.push(protocol_object_rule([("scale", 9468)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9490)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9467, 9469, 9470))
+  nodes.push(ConditionalRule(9489, 9491, 9492))
   nodes.push(protocol_integer_rule(Some(36L), Some(36L)))
   nodes.push(
-    protocol_object_rule([("precision", 9472)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9494)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(36L)))
-  nodes.push(protocol_object_rule([("scale", 9474)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9496)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9473, 9475, 9476))
+  nodes.push(ConditionalRule(9495, 9497, 9498))
   nodes.push(protocol_integer_rule(Some(37L), Some(37L)))
   nodes.push(
-    protocol_object_rule([("precision", 9478)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9500)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(37L)))
-  nodes.push(protocol_object_rule([("scale", 9480)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9502)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9479, 9481, 9482))
+  nodes.push(ConditionalRule(9501, 9503, 9504))
   nodes.push(protocol_integer_rule(Some(38L), Some(38L)))
   nodes.push(
-    protocol_object_rule([("precision", 9484)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9506)], ["precision"], -2, 0, None),
   )
   nodes.push(protocol_integer_rule(None, Some(38L)))
-  nodes.push(protocol_object_rule([("scale", 9486)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9508)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9485, 9487, 9488))
+  nodes.push(ConditionalRule(9507, 9509, 9510))
   nodes.push(protocol_string_rule(Some("decimal"), [], 0, 0))
   nodes.push(nodes[14])
   nodes.push(protocol_integer_rule(Some(1L), Some(38L)))
   nodes.push(protocol_integer_rule(Some(0L), Some(38L)))
   nodes.push(
     protocol_object_rule(
-      [("type", 9490), ("nullable", 9491), ("precision", 9492), ("scale", 9493)],
+      [("type", 9512), ("nullable", 9513), ("precision", 9514), ("scale", 9515)],
       ["type", "nullable", "precision", "scale"],
       -1,
       0,
@@ -27099,9 +27145,9 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     AllOfRule([
-      9267, 9273, 9279, 9285, 9291, 9297, 9303, 9309, 9315, 9321, 9327, 9333, 9339,
-      9345, 9351, 9357, 9363, 9369, 9375, 9381, 9387, 9393, 9399, 9405, 9411, 9417,
-      9423, 9429, 9435, 9441, 9447, 9453, 9459, 9465, 9471, 9477, 9483, 9489, 9494,
+      9289, 9295, 9301, 9307, 9313, 9319, 9325, 9331, 9337, 9343, 9349, 9355, 9361,
+      9367, 9373, 9379, 9385, 9391, 9397, 9403, 9409, 9415, 9421, 9427, 9433, 9439,
+      9445, 9451, 9457, 9463, 9469, 9475, 9481, 9487, 9493, 9499, 9505, 9511, 9516,
     ]),
   )
   nodes.push(protocol_string_rule(Some("string"), [], 0, 0))
@@ -27112,11 +27158,11 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("type", 9496),
-        ("nullable", 9497),
-        ("min_length", 9498),
-        ("max_codepoints", 9499),
-        ("max_utf8_bytes", 9500),
+        ("type", 9518),
+        ("nullable", 9519),
+        ("min_length", 9520),
+        ("max_codepoints", 9521),
+        ("max_utf8_bytes", 9522),
       ],
       ["type", "nullable"],
       -1,
@@ -27135,7 +27181,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("type", 9502), ("nullable", 9503)],
+      [("type", 9524), ("nullable", 9525)],
       ["type", "nullable"],
       -1,
       0,
@@ -27149,10 +27195,10 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("type", 9505),
-        ("nullable", 9506),
-        ("dimensions", 9507),
-        ("element_type", 9508),
+        ("type", 9527),
+        ("nullable", 9528),
+        ("dimensions", 9529),
+        ("element_type", 9530),
       ],
       ["type", "nullable", "dimensions", "element_type"],
       -1,
@@ -27165,7 +27211,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("type", 9510), ("nullable", 9511), ("resource_kind", 9512)],
+      [("type", 9532), ("nullable", 9533), ("resource_kind", 9534)],
       ["type", "nullable", "resource_kind"],
       -1,
       0,
@@ -27177,7 +27223,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("type", 9514), ("nullable", 9515), ("media_type", 9516)],
+      [("type", 9536), ("nullable", 9537), ("media_type", 9538)],
       ["type", "nullable"],
       -1,
       0,
@@ -27188,7 +27234,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("type", 9518), ("nullable", 9519)],
+      [("type", 9540), ("nullable", 9541)],
       ["type", "nullable"],
       -1,
       0,
@@ -27199,7 +27245,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("type", 9521), ("nullable", 9522)],
+      [("type", 9543), ("nullable", 9544)],
       ["type", "nullable"],
       -1,
       0,
@@ -27207,29 +27253,29 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(
-    protocol_one_of_rule([9495, 9501, 9504, 9509, 9513, 9517, 9520, 9523]),
+    protocol_one_of_rule([9517, 9523, 9526, 9531, 9535, 9539, 9542, 9545]),
   )
   nodes.push(
     protocol_object_rule(
-      [("request_role", 9261), ("value_contract", 9524)],
+      [("request_role", 9283), ("value_contract", 9546)],
       ["request_role", "value_contract"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(9525, 1, true, -1))
+  nodes.push(protocol_array_rule(9547, 1, true, -1))
   nodes.push(nodes[270])
-  nodes.push(protocol_array_rule(9527, 0, false, -1))
-  nodes.push(protocol_array_rule(9528, 0, true, -1))
+  nodes.push(protocol_array_rule(9549, 0, false, -1))
+  nodes.push(protocol_array_rule(9550, 0, true, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9258),
-        ("source_view_contract_cid", 9259),
-        ("request_schema_cid", 9260),
-        ("key_roles", 9526),
-        ("tuples", 9529),
+        ("version", 9280),
+        ("source_view_contract_cid", 9281),
+        ("request_schema_cid", 9282),
+        ("key_roles", 9548),
+        ("tuples", 9551),
       ],
       [
         "version", "source_view_contract_cid", "request_schema_cid", "key_roles",
@@ -27240,321 +27286,321 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[9258])
+  nodes.push(nodes[9280])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(nodes[408])
   nodes.push(
-    protocol_object_rule([("precision", 9535)], ["precision"], -2, 0, None),
+    protocol_object_rule([("precision", 9557)], ["precision"], -2, 0, None),
   )
-  nodes.push(nodes[9264])
-  nodes.push(protocol_object_rule([("scale", 9537)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9536, 9538, 9539))
-  nodes.push(nodes[9268])
-  nodes.push(
-    protocol_object_rule([("precision", 9541)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9270])
-  nodes.push(protocol_object_rule([("scale", 9543)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9542, 9544, 9545))
-  nodes.push(nodes[9274])
-  nodes.push(
-    protocol_object_rule([("precision", 9547)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9276])
-  nodes.push(protocol_object_rule([("scale", 9549)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9548, 9550, 9551))
-  nodes.push(nodes[9280])
-  nodes.push(
-    protocol_object_rule([("precision", 9553)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9282])
-  nodes.push(protocol_object_rule([("scale", 9555)], [], -2, 0, None))
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9554, 9556, 9557))
   nodes.push(nodes[9286])
-  nodes.push(
-    protocol_object_rule([("precision", 9559)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9288])
-  nodes.push(protocol_object_rule([("scale", 9561)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9559)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9560, 9562, 9563))
+  nodes.push(ConditionalRule(9558, 9560, 9561))
+  nodes.push(nodes[9290])
+  nodes.push(
+    protocol_object_rule([("precision", 9563)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9292])
-  nodes.push(
-    protocol_object_rule([("precision", 9565)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9294])
-  nodes.push(protocol_object_rule([("scale", 9567)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9565)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9566, 9568, 9569))
+  nodes.push(ConditionalRule(9564, 9566, 9567))
+  nodes.push(nodes[9296])
+  nodes.push(
+    protocol_object_rule([("precision", 9569)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9298])
-  nodes.push(
-    protocol_object_rule([("precision", 9571)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9300])
-  nodes.push(protocol_object_rule([("scale", 9573)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9571)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9572, 9574, 9575))
+  nodes.push(ConditionalRule(9570, 9572, 9573))
+  nodes.push(nodes[9302])
+  nodes.push(
+    protocol_object_rule([("precision", 9575)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9304])
-  nodes.push(
-    protocol_object_rule([("precision", 9577)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9306])
-  nodes.push(protocol_object_rule([("scale", 9579)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9577)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9578, 9580, 9581))
+  nodes.push(ConditionalRule(9576, 9578, 9579))
+  nodes.push(nodes[9308])
+  nodes.push(
+    protocol_object_rule([("precision", 9581)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9310])
-  nodes.push(
-    protocol_object_rule([("precision", 9583)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9312])
-  nodes.push(protocol_object_rule([("scale", 9585)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9583)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9584, 9586, 9587))
+  nodes.push(ConditionalRule(9582, 9584, 9585))
+  nodes.push(nodes[9314])
+  nodes.push(
+    protocol_object_rule([("precision", 9587)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9316])
-  nodes.push(
-    protocol_object_rule([("precision", 9589)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9318])
-  nodes.push(protocol_object_rule([("scale", 9591)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9589)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9590, 9592, 9593))
+  nodes.push(ConditionalRule(9588, 9590, 9591))
+  nodes.push(nodes[9320])
+  nodes.push(
+    protocol_object_rule([("precision", 9593)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9322])
-  nodes.push(
-    protocol_object_rule([("precision", 9595)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9324])
-  nodes.push(protocol_object_rule([("scale", 9597)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9595)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9596, 9598, 9599))
+  nodes.push(ConditionalRule(9594, 9596, 9597))
+  nodes.push(nodes[9326])
+  nodes.push(
+    protocol_object_rule([("precision", 9599)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9328])
-  nodes.push(
-    protocol_object_rule([("precision", 9601)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9330])
-  nodes.push(protocol_object_rule([("scale", 9603)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9601)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9602, 9604, 9605))
+  nodes.push(ConditionalRule(9600, 9602, 9603))
+  nodes.push(nodes[9332])
+  nodes.push(
+    protocol_object_rule([("precision", 9605)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9334])
-  nodes.push(
-    protocol_object_rule([("precision", 9607)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9336])
-  nodes.push(protocol_object_rule([("scale", 9609)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9607)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9608, 9610, 9611))
+  nodes.push(ConditionalRule(9606, 9608, 9609))
+  nodes.push(nodes[9338])
+  nodes.push(
+    protocol_object_rule([("precision", 9611)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9340])
-  nodes.push(
-    protocol_object_rule([("precision", 9613)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9342])
-  nodes.push(protocol_object_rule([("scale", 9615)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9613)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9614, 9616, 9617))
+  nodes.push(ConditionalRule(9612, 9614, 9615))
+  nodes.push(nodes[9344])
+  nodes.push(
+    protocol_object_rule([("precision", 9617)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9346])
-  nodes.push(
-    protocol_object_rule([("precision", 9619)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9348])
-  nodes.push(protocol_object_rule([("scale", 9621)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9619)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9620, 9622, 9623))
+  nodes.push(ConditionalRule(9618, 9620, 9621))
+  nodes.push(nodes[9350])
+  nodes.push(
+    protocol_object_rule([("precision", 9623)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9352])
-  nodes.push(
-    protocol_object_rule([("precision", 9625)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9354])
-  nodes.push(protocol_object_rule([("scale", 9627)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9625)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9626, 9628, 9629))
+  nodes.push(ConditionalRule(9624, 9626, 9627))
+  nodes.push(nodes[9356])
+  nodes.push(
+    protocol_object_rule([("precision", 9629)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9358])
-  nodes.push(
-    protocol_object_rule([("precision", 9631)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9360])
-  nodes.push(protocol_object_rule([("scale", 9633)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9631)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9632, 9634, 9635))
+  nodes.push(ConditionalRule(9630, 9632, 9633))
+  nodes.push(nodes[9362])
+  nodes.push(
+    protocol_object_rule([("precision", 9635)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9364])
-  nodes.push(
-    protocol_object_rule([("precision", 9637)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9366])
-  nodes.push(protocol_object_rule([("scale", 9639)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9637)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9638, 9640, 9641))
+  nodes.push(ConditionalRule(9636, 9638, 9639))
+  nodes.push(nodes[9368])
+  nodes.push(
+    protocol_object_rule([("precision", 9641)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9370])
-  nodes.push(
-    protocol_object_rule([("precision", 9643)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9372])
-  nodes.push(protocol_object_rule([("scale", 9645)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9643)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9644, 9646, 9647))
+  nodes.push(ConditionalRule(9642, 9644, 9645))
+  nodes.push(nodes[9374])
+  nodes.push(
+    protocol_object_rule([("precision", 9647)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9376])
-  nodes.push(
-    protocol_object_rule([("precision", 9649)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9378])
-  nodes.push(protocol_object_rule([("scale", 9651)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9649)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9650, 9652, 9653))
+  nodes.push(ConditionalRule(9648, 9650, 9651))
+  nodes.push(nodes[9380])
+  nodes.push(
+    protocol_object_rule([("precision", 9653)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9382])
-  nodes.push(
-    protocol_object_rule([("precision", 9655)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9384])
-  nodes.push(protocol_object_rule([("scale", 9657)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9655)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9656, 9658, 9659))
+  nodes.push(ConditionalRule(9654, 9656, 9657))
+  nodes.push(nodes[9386])
+  nodes.push(
+    protocol_object_rule([("precision", 9659)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9388])
-  nodes.push(
-    protocol_object_rule([("precision", 9661)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9390])
-  nodes.push(protocol_object_rule([("scale", 9663)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9661)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9662, 9664, 9665))
+  nodes.push(ConditionalRule(9660, 9662, 9663))
+  nodes.push(nodes[9392])
+  nodes.push(
+    protocol_object_rule([("precision", 9665)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9394])
-  nodes.push(
-    protocol_object_rule([("precision", 9667)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9396])
-  nodes.push(protocol_object_rule([("scale", 9669)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9667)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9668, 9670, 9671))
+  nodes.push(ConditionalRule(9666, 9668, 9669))
+  nodes.push(nodes[9398])
+  nodes.push(
+    protocol_object_rule([("precision", 9671)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9400])
-  nodes.push(
-    protocol_object_rule([("precision", 9673)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9402])
-  nodes.push(protocol_object_rule([("scale", 9675)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9673)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9674, 9676, 9677))
+  nodes.push(ConditionalRule(9672, 9674, 9675))
+  nodes.push(nodes[9404])
+  nodes.push(
+    protocol_object_rule([("precision", 9677)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9406])
-  nodes.push(
-    protocol_object_rule([("precision", 9679)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9408])
-  nodes.push(protocol_object_rule([("scale", 9681)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9679)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9680, 9682, 9683))
+  nodes.push(ConditionalRule(9678, 9680, 9681))
+  nodes.push(nodes[9410])
+  nodes.push(
+    protocol_object_rule([("precision", 9683)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9412])
-  nodes.push(
-    protocol_object_rule([("precision", 9685)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9414])
-  nodes.push(protocol_object_rule([("scale", 9687)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9685)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9686, 9688, 9689))
+  nodes.push(ConditionalRule(9684, 9686, 9687))
+  nodes.push(nodes[9416])
+  nodes.push(
+    protocol_object_rule([("precision", 9689)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9418])
-  nodes.push(
-    protocol_object_rule([("precision", 9691)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9420])
-  nodes.push(protocol_object_rule([("scale", 9693)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9691)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9692, 9694, 9695))
+  nodes.push(ConditionalRule(9690, 9692, 9693))
+  nodes.push(nodes[9422])
+  nodes.push(
+    protocol_object_rule([("precision", 9695)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9424])
-  nodes.push(
-    protocol_object_rule([("precision", 9697)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9426])
-  nodes.push(protocol_object_rule([("scale", 9699)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9697)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9698, 9700, 9701))
+  nodes.push(ConditionalRule(9696, 9698, 9699))
+  nodes.push(nodes[9428])
+  nodes.push(
+    protocol_object_rule([("precision", 9701)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9430])
-  nodes.push(
-    protocol_object_rule([("precision", 9703)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9432])
-  nodes.push(protocol_object_rule([("scale", 9705)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9703)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9704, 9706, 9707))
+  nodes.push(ConditionalRule(9702, 9704, 9705))
+  nodes.push(nodes[9434])
+  nodes.push(
+    protocol_object_rule([("precision", 9707)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9436])
-  nodes.push(
-    protocol_object_rule([("precision", 9709)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9438])
-  nodes.push(protocol_object_rule([("scale", 9711)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9709)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9710, 9712, 9713))
+  nodes.push(ConditionalRule(9708, 9710, 9711))
+  nodes.push(nodes[9440])
+  nodes.push(
+    protocol_object_rule([("precision", 9713)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9442])
-  nodes.push(
-    protocol_object_rule([("precision", 9715)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9444])
-  nodes.push(protocol_object_rule([("scale", 9717)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9715)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9716, 9718, 9719))
+  nodes.push(ConditionalRule(9714, 9716, 9717))
+  nodes.push(nodes[9446])
+  nodes.push(
+    protocol_object_rule([("precision", 9719)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9448])
-  nodes.push(
-    protocol_object_rule([("precision", 9721)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9450])
-  nodes.push(protocol_object_rule([("scale", 9723)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9721)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9722, 9724, 9725))
+  nodes.push(ConditionalRule(9720, 9722, 9723))
+  nodes.push(nodes[9452])
+  nodes.push(
+    protocol_object_rule([("precision", 9725)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9454])
-  nodes.push(
-    protocol_object_rule([("precision", 9727)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9456])
-  nodes.push(protocol_object_rule([("scale", 9729)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9727)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9728, 9730, 9731))
+  nodes.push(ConditionalRule(9726, 9728, 9729))
+  nodes.push(nodes[9458])
+  nodes.push(
+    protocol_object_rule([("precision", 9731)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9460])
-  nodes.push(
-    protocol_object_rule([("precision", 9733)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9462])
-  nodes.push(protocol_object_rule([("scale", 9735)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9733)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9734, 9736, 9737))
+  nodes.push(ConditionalRule(9732, 9734, 9735))
+  nodes.push(nodes[9464])
+  nodes.push(
+    protocol_object_rule([("precision", 9737)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9466])
-  nodes.push(
-    protocol_object_rule([("precision", 9739)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9468])
-  nodes.push(protocol_object_rule([("scale", 9741)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9739)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9740, 9742, 9743))
+  nodes.push(ConditionalRule(9738, 9740, 9741))
+  nodes.push(nodes[9470])
+  nodes.push(
+    protocol_object_rule([("precision", 9743)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9472])
-  nodes.push(
-    protocol_object_rule([("precision", 9745)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9474])
-  nodes.push(protocol_object_rule([("scale", 9747)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9745)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9746, 9748, 9749))
+  nodes.push(ConditionalRule(9744, 9746, 9747))
+  nodes.push(nodes[9476])
+  nodes.push(
+    protocol_object_rule([("precision", 9749)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9478])
-  nodes.push(
-    protocol_object_rule([("precision", 9751)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9480])
-  nodes.push(protocol_object_rule([("scale", 9753)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9751)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9752, 9754, 9755))
+  nodes.push(ConditionalRule(9750, 9752, 9753))
+  nodes.push(nodes[9482])
+  nodes.push(
+    protocol_object_rule([("precision", 9755)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9484])
-  nodes.push(
-    protocol_object_rule([("precision", 9757)], ["precision"], -2, 0, None),
-  )
-  nodes.push(nodes[9486])
-  nodes.push(protocol_object_rule([("scale", 9759)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("scale", 9757)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(9758, 9760, 9761))
+  nodes.push(ConditionalRule(9756, 9758, 9759))
+  nodes.push(nodes[9488])
+  nodes.push(
+    protocol_object_rule([("precision", 9761)], ["precision"], -2, 0, None),
+  )
   nodes.push(nodes[9490])
+  nodes.push(protocol_object_rule([("scale", 9763)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(9762, 9764, 9765))
+  nodes.push(nodes[9494])
+  nodes.push(
+    protocol_object_rule([("precision", 9767)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[9496])
+  nodes.push(protocol_object_rule([("scale", 9769)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(9768, 9770, 9771))
+  nodes.push(nodes[9500])
+  nodes.push(
+    protocol_object_rule([("precision", 9773)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[9502])
+  nodes.push(protocol_object_rule([("scale", 9775)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(9774, 9776, 9777))
+  nodes.push(nodes[9506])
+  nodes.push(
+    protocol_object_rule([("precision", 9779)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[9508])
+  nodes.push(protocol_object_rule([("scale", 9781)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(9780, 9782, 9783))
+  nodes.push(nodes[9512])
   nodes.push(nodes[14])
-  nodes.push(nodes[9492])
-  nodes.push(nodes[9493])
+  nodes.push(nodes[9514])
+  nodes.push(nodes[9515])
   nodes.push(
     protocol_object_rule(
-      [("type", 9763), ("nullable", 9764), ("precision", 9765), ("scale", 9766)],
+      [("type", 9785), ("nullable", 9786), ("precision", 9787), ("scale", 9788)],
       ["type", "nullable", "precision", "scale"],
       -1,
       0,
@@ -27563,12 +27609,12 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(
     AllOfRule([
-      9540, 9546, 9552, 9558, 9564, 9570, 9576, 9582, 9588, 9594, 9600, 9606, 9612,
-      9618, 9624, 9630, 9636, 9642, 9648, 9654, 9660, 9666, 9672, 9678, 9684, 9690,
-      9696, 9702, 9708, 9714, 9720, 9726, 9732, 9738, 9744, 9750, 9756, 9762, 9767,
+      9562, 9568, 9574, 9580, 9586, 9592, 9598, 9604, 9610, 9616, 9622, 9628, 9634,
+      9640, 9646, 9652, 9658, 9664, 9670, 9676, 9682, 9688, 9694, 9700, 9706, 9712,
+      9718, 9724, 9730, 9736, 9742, 9748, 9754, 9760, 9766, 9772, 9778, 9784, 9789,
     ]),
   )
-  nodes.push(nodes[9496])
+  nodes.push(nodes[9518])
   nodes.push(nodes[14])
   nodes.push(nodes[219])
   nodes.push(nodes[219])
@@ -27576,11 +27622,11 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("type", 9769),
-        ("nullable", 9770),
-        ("min_length", 9771),
-        ("max_codepoints", 9772),
-        ("max_utf8_bytes", 9773),
+        ("type", 9791),
+        ("nullable", 9792),
+        ("min_length", 9793),
+        ("max_codepoints", 9794),
+        ("max_utf8_bytes", 9795),
       ],
       ["type", "nullable"],
       -1,
@@ -27588,28 +27634,28 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[9502])
+  nodes.push(nodes[9524])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("type", 9775), ("nullable", 9776)],
+      [("type", 9797), ("nullable", 9798)],
       ["type", "nullable"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[9505])
+  nodes.push(nodes[9527])
   nodes.push(nodes[14])
   nodes.push(nodes[2465])
-  nodes.push(nodes[9508])
+  nodes.push(nodes[9530])
   nodes.push(
     protocol_object_rule(
       [
-        ("type", 9778),
-        ("nullable", 9779),
-        ("dimensions", 9780),
-        ("element_type", 9781),
+        ("type", 9800),
+        ("nullable", 9801),
+        ("dimensions", 9802),
+        ("element_type", 9803),
       ],
       ["type", "nullable", "dimensions", "element_type"],
       -1,
@@ -27617,46 +27663,46 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[9510])
+  nodes.push(nodes[9532])
   nodes.push(nodes[14])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("type", 9783), ("nullable", 9784), ("resource_kind", 9785)],
+      [("type", 9805), ("nullable", 9806), ("resource_kind", 9807)],
       ["type", "nullable", "resource_kind"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[9514])
+  nodes.push(nodes[9536])
   nodes.push(nodes[14])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("type", 9787), ("nullable", 9788), ("media_type", 9789)],
+      [("type", 9809), ("nullable", 9810), ("media_type", 9811)],
       ["type", "nullable"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[9518])
+  nodes.push(nodes[9540])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("type", 9791), ("nullable", 9792)],
+      [("type", 9813), ("nullable", 9814)],
       ["type", "nullable"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[9521])
+  nodes.push(nodes[9543])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
-      [("type", 9794), ("nullable", 9795)],
+      [("type", 9816), ("nullable", 9817)],
       ["type", "nullable"],
       -1,
       0,
@@ -27664,31 +27710,31 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(
-    protocol_one_of_rule([9768, 9774, 9777, 9782, 9786, 9790, 9793, 9796]),
+    protocol_one_of_rule([9790, 9796, 9799, 9804, 9808, 9812, 9815, 9818]),
   )
   nodes.push(
     protocol_object_rule(
-      [("request_role", 9534), ("value_contract", 9797)],
+      [("request_role", 9556), ("value_contract", 9819)],
       ["request_role", "value_contract"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(9798, 1, true, -1))
+  nodes.push(protocol_array_rule(9820, 1, true, -1))
   nodes.push(nodes[270])
-  nodes.push(protocol_array_rule(9800, 0, false, -1))
-  nodes.push(protocol_array_rule(9801, 0, true, -1))
+  nodes.push(protocol_array_rule(9822, 0, false, -1))
+  nodes.push(protocol_array_rule(9823, 0, true, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9531),
-        ("source_view_contract_cid", 9532),
-        ("request_schema_cid", 9533),
-        ("key_roles", 9799),
-        ("tuples", 9802),
-        ("self_cid", 9803),
+        ("version", 9553),
+        ("source_view_contract_cid", 9554),
+        ("request_schema_cid", 9555),
+        ("key_roles", 9821),
+        ("tuples", 9824),
+        ("self_cid", 9825),
       ],
       [
         "version", "source_view_contract_cid", "request_schema_cid", "key_roles",
@@ -27713,22 +27759,22 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([9815, 9816]))
+  nodes.push(AnyOfRule([9837, 9838]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9818, 0, false, -1))
+  nodes.push(protocol_array_rule(9840, 0, false, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9820, 0, false, -1))
+  nodes.push(protocol_array_rule(9842, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("identity_field", 9810),
-        ("name_field", 9811),
-        ("version_field", 9812),
-        ("media_type_field", 9813),
-        ("content_utf8_field", 9814),
-        ("path_field", 9817),
-        ("items_path", 9819),
-        ("key_path", 9821),
+        ("identity_field", 9832),
+        ("name_field", 9833),
+        ("version_field", 9834),
+        ("media_type_field", 9835),
+        ("content_utf8_field", 9836),
+        ("path_field", 9839),
+        ("items_path", 9841),
+        ("key_path", 9843),
       ],
       [
         "identity_field", "name_field", "version_field", "media_type_field", "content_utf8_field",
@@ -27742,12 +27788,12 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9805),
-        ("source_view_contract_cid", 9806),
-        ("physical_source_view_contract_cid", 9807),
-        ("request_schema_cid", 9808),
-        ("response_schema_cid", 9809),
-        ("projection", 9822),
+        ("version", 9827),
+        ("source_view_contract_cid", 9828),
+        ("physical_source_view_contract_cid", 9829),
+        ("request_schema_cid", 9830),
+        ("response_schema_cid", 9831),
+        ("projection", 9844),
       ],
       [
         "version", "source_view_contract_cid", "physical_source_view_contract_cid",
@@ -27758,7 +27804,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[9805])
+  nodes.push(nodes[9827])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -27770,22 +27816,22 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([9834, 9835]))
+  nodes.push(AnyOfRule([9856, 9857]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9837, 0, false, -1))
+  nodes.push(protocol_array_rule(9859, 0, false, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9839, 0, false, -1))
+  nodes.push(protocol_array_rule(9861, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("identity_field", 9829),
-        ("name_field", 9830),
-        ("version_field", 9831),
-        ("media_type_field", 9832),
-        ("content_utf8_field", 9833),
-        ("path_field", 9836),
-        ("items_path", 9838),
-        ("key_path", 9840),
+        ("identity_field", 9851),
+        ("name_field", 9852),
+        ("version_field", 9853),
+        ("media_type_field", 9854),
+        ("content_utf8_field", 9855),
+        ("path_field", 9858),
+        ("items_path", 9860),
+        ("key_path", 9862),
       ],
       [
         "identity_field", "name_field", "version_field", "media_type_field", "content_utf8_field",
@@ -27800,13 +27846,13 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9824),
-        ("source_view_contract_cid", 9825),
-        ("physical_source_view_contract_cid", 9826),
-        ("request_schema_cid", 9827),
-        ("response_schema_cid", 9828),
-        ("projection", 9841),
-        ("transport_cid", 9842),
+        ("version", 9846),
+        ("source_view_contract_cid", 9847),
+        ("physical_source_view_contract_cid", 9848),
+        ("request_schema_cid", 9849),
+        ("response_schema_cid", 9850),
+        ("projection", 9863),
+        ("transport_cid", 9864),
       ],
       [
         "version", "source_view_contract_cid", "physical_source_view_contract_cid",
@@ -27831,22 +27877,22 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([9854, 9855]))
+  nodes.push(AnyOfRule([9876, 9877]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9857, 0, false, -1))
+  nodes.push(protocol_array_rule(9879, 0, false, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9859, 0, false, -1))
+  nodes.push(protocol_array_rule(9881, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("identity_field", 9849),
-        ("name_field", 9850),
-        ("version_field", 9851),
-        ("media_type_field", 9852),
-        ("content_utf8_field", 9853),
-        ("path_field", 9856),
-        ("items_path", 9858),
-        ("key_path", 9860),
+        ("identity_field", 9871),
+        ("name_field", 9872),
+        ("version_field", 9873),
+        ("media_type_field", 9874),
+        ("content_utf8_field", 9875),
+        ("path_field", 9878),
+        ("items_path", 9880),
+        ("key_path", 9882),
       ],
       [
         "identity_field", "name_field", "version_field", "media_type_field", "content_utf8_field",
@@ -27860,12 +27906,12 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9844),
-        ("source_view_contract_cid", 9845),
-        ("physical_source_view_contract_cid", 9846),
-        ("request_schema_cid", 9847),
-        ("response_schema_cid", 9848),
-        ("projection", 9861),
+        ("version", 9866),
+        ("source_view_contract_cid", 9867),
+        ("physical_source_view_contract_cid", 9868),
+        ("request_schema_cid", 9869),
+        ("response_schema_cid", 9870),
+        ("projection", 9883),
       ],
       [
         "version", "source_view_contract_cid", "physical_source_view_contract_cid",
@@ -27876,7 +27922,7 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[9844])
+  nodes.push(nodes[9866])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -27888,22 +27934,22 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([9873, 9874]))
+  nodes.push(AnyOfRule([9895, 9896]))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9876, 0, false, -1))
+  nodes.push(protocol_array_rule(9898, 0, false, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9878, 0, false, -1))
+  nodes.push(protocol_array_rule(9900, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("identity_field", 9868),
-        ("name_field", 9869),
-        ("version_field", 9870),
-        ("media_type_field", 9871),
-        ("content_utf8_field", 9872),
-        ("path_field", 9875),
-        ("items_path", 9877),
-        ("key_path", 9879),
+        ("identity_field", 9890),
+        ("name_field", 9891),
+        ("version_field", 9892),
+        ("media_type_field", 9893),
+        ("content_utf8_field", 9894),
+        ("path_field", 9897),
+        ("items_path", 9899),
+        ("key_path", 9901),
       ],
       [
         "identity_field", "name_field", "version_field", "media_type_field", "content_utf8_field",
@@ -27918,13 +27964,13 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9863),
-        ("source_view_contract_cid", 9864),
-        ("physical_source_view_contract_cid", 9865),
-        ("request_schema_cid", 9866),
-        ("response_schema_cid", 9867),
-        ("projection", 9880),
-        ("transport_cid", 9881),
+        ("version", 9885),
+        ("source_view_contract_cid", 9886),
+        ("physical_source_view_contract_cid", 9887),
+        ("request_schema_cid", 9888),
+        ("response_schema_cid", 9889),
+        ("projection", 9902),
+        ("transport_cid", 9903),
       ],
       [
         "version", "source_view_contract_cid", "physical_source_view_contract_cid",
@@ -27947,19 +27993,19 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[408])
   nodes.push(
     protocol_object_rule(
-      [("kind", 9889), ("max_keys_per_batch", 9890)],
+      [("kind", 9911), ("max_keys_per_batch", 9912)],
       ["kind", "max_keys_per_batch"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
+  nodes.push(nodes[4267])
   nodes.push(nodes[122])
   nodes.push(nodes[408])
   nodes.push(
     protocol_object_rule(
-      [("kind", 9892), ("token_contract", 9893), ("max_pages_per_batch", 9894)],
+      [("kind", 9914), ("token_contract", 9915), ("max_pages_per_batch", 9916)],
       ["kind", "token_contract", "max_pages_per_batch"],
       -1,
       0,
@@ -27968,12 +28014,12 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[408])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9897, 0, true, 0))
+  nodes.push(protocol_array_rule(9919, 0, true, 0))
   nodes.push(
     protocol_object_rule(
       [
-        ("max_network_attempts_per_request", 9896),
-        ("retryable_error_codes", 9898),
+        ("max_network_attempts_per_request", 9918),
+        ("retryable_error_codes", 9920),
       ],
       ["max_network_attempts_per_request", "retryable_error_codes"],
       -1,
@@ -27984,15 +28030,15 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9883),
-        ("source_view_contract_cid", 9884),
-        ("adapter_contract_cid", 9885),
-        ("request_schema_cid", 9886),
-        ("response_schema_cid", 9887),
-        ("static_request_values", 9888),
-        ("batching", 9891),
-        ("pagination", 9895),
-        ("retry", 9899),
+        ("version", 9905),
+        ("source_view_contract_cid", 9906),
+        ("adapter_contract_cid", 9907),
+        ("request_schema_cid", 9908),
+        ("response_schema_cid", 9909),
+        ("static_request_values", 9910),
+        ("batching", 9913),
+        ("pagination", 9917),
+        ("retry", 9921),
       ],
       [
         "version", "source_view_contract_cid", "adapter_contract_cid", "request_schema_cid",
@@ -28004,29 +28050,29 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(nodes[9883])
+  nodes.push(nodes[9905])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[81])
-  nodes.push(nodes[9889])
+  nodes.push(nodes[9911])
   nodes.push(nodes[408])
   nodes.push(
     protocol_object_rule(
-      [("kind", 9907), ("max_keys_per_batch", 9908)],
+      [("kind", 9929), ("max_keys_per_batch", 9930)],
       ["kind", "max_keys_per_batch"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[4251])
+  nodes.push(nodes[4267])
   nodes.push(nodes[122])
   nodes.push(nodes[408])
   nodes.push(
     protocol_object_rule(
-      [("kind", 9910), ("token_contract", 9911), ("max_pages_per_batch", 9912)],
+      [("kind", 9932), ("token_contract", 9933), ("max_pages_per_batch", 9934)],
       ["kind", "token_contract", "max_pages_per_batch"],
       -1,
       0,
@@ -28035,12 +28081,12 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[408])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9915, 0, true, 0))
+  nodes.push(protocol_array_rule(9937, 0, true, 0))
   nodes.push(
     protocol_object_rule(
       [
-        ("max_network_attempts_per_request", 9914),
-        ("retryable_error_codes", 9916),
+        ("max_network_attempts_per_request", 9936),
+        ("retryable_error_codes", 9938),
       ],
       ["max_network_attempts_per_request", "retryable_error_codes"],
       -1,
@@ -28052,16 +28098,16 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9901),
-        ("source_view_contract_cid", 9902),
-        ("adapter_contract_cid", 9903),
-        ("request_schema_cid", 9904),
-        ("response_schema_cid", 9905),
-        ("static_request_values", 9906),
-        ("batching", 9909),
-        ("pagination", 9913),
-        ("retry", 9917),
-        ("self_cid", 9918),
+        ("version", 9923),
+        ("source_view_contract_cid", 9924),
+        ("adapter_contract_cid", 9925),
+        ("request_schema_cid", 9926),
+        ("response_schema_cid", 9927),
+        ("static_request_values", 9928),
+        ("batching", 9931),
+        ("pagination", 9935),
+        ("retry", 9939),
+        ("self_cid", 9940),
       ],
       [
         "version", "source_view_contract_cid", "adapter_contract_cid", "request_schema_cid",
@@ -28082,29 +28128,29 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("field", 9928)], ["field"], -1, 0, None))
+  nodes.push(protocol_object_rule([("field", 9950)], ["field"], -1, 0, None))
   nodes.push(nodes[270])
   nodes.push(
-    protocol_object_rule([("literal", 9930)], ["literal"], -1, 0, None),
+    protocol_object_rule([("literal", 9952)], ["literal"], -1, 0, None),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("$param", 9932)], ["$param"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([9929, 9931, 9933]))
-  nodes.push(protocol_object_rule([], [], 9934, 1, None))
+  nodes.push(protocol_object_rule([("$param", 9954)], ["$param"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([9951, 9953, 9955]))
+  nodes.push(protocol_object_rule([], [], 9956, 1, None))
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("request", 9936), ("response", 9937)],
+      [("request", 9958), ("response", 9959)],
       ["request", "response"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(9938, 1, false, -1))
+  nodes.push(protocol_array_rule(9960, 1, false, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9940, 1, true, -1))
+  nodes.push(protocol_array_rule(9962, 1, true, -1))
   nodes.push(
     protocol_string_rule(
       None,
@@ -28116,19 +28162,19 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(protocol_string_rule(None, ["exclude_from_request", "fail"], 0, 0))
   nodes.push(protocol_string_rule(None, ["emit_no_row", "fail"], 0, 0))
   nodes.push(protocol_string_rule(Some("fail"), [], 0, 0))
-  nodes.push(nodes[9945])
-  nodes.push(nodes[9945])
+  nodes.push(nodes[9967])
+  nodes.push(nodes[9967])
   nodes.push(
     protocol_object_rule(
       [
-        ("on", 9939),
-        ("identity", 9941),
-        ("cardinality", 9942),
-        ("null_request_policy", 9943),
-        ("on_missing", 9944),
-        ("on_unrequested_key", 9945),
-        ("on_excess_cardinality", 9946),
-        ("on_duplicate_identity", 9947),
+        ("on", 9961),
+        ("identity", 9963),
+        ("cardinality", 9964),
+        ("null_request_policy", 9965),
+        ("on_missing", 9966),
+        ("on_unrequested_key", 9967),
+        ("on_excess_cardinality", 9968),
+        ("on_duplicate_identity", 9969),
       ],
       [
         "on", "identity", "cardinality", "null_request_policy", "on_missing", "on_unrequested_key",
@@ -28155,19 +28201,19 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   nodes.push(
     protocol_object_rule(
       [
-        ("max_input_rows", 9949),
-        ("max_distinct_keys", 9950),
-        ("max_keys_per_batch", 9951),
-        ("max_batches", 9952),
-        ("max_pages_per_batch", 9953),
-        ("max_requests", 9954),
-        ("max_network_attempts", 9955),
-        ("max_rows_per_key", 9956),
-        ("max_response_rows", 9957),
-        ("max_request_bytes_per_attempt", 9958),
-        ("max_total_request_bytes", 9959),
-        ("max_total_response_bytes", 9960),
-        ("max_total_duration_ms", 9961),
+        ("max_input_rows", 9971),
+        ("max_distinct_keys", 9972),
+        ("max_keys_per_batch", 9973),
+        ("max_batches", 9974),
+        ("max_pages_per_batch", 9975),
+        ("max_requests", 9976),
+        ("max_network_attempts", 9977),
+        ("max_rows_per_key", 9978),
+        ("max_response_rows", 9979),
+        ("max_request_bytes_per_attempt", 9980),
+        ("max_total_request_bytes", 9981),
+        ("max_total_response_bytes", 9982),
+        ("max_total_duration_ms", 9983),
       ],
       [
         "max_input_rows", "max_distinct_keys", "max_keys_per_batch", "max_batches",
@@ -28181,12 +28227,12 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(protocol_string_rule(None, ["complete", "hard_limit_only"], 0, 0))
-  nodes.push(nodes[9945])
+  nodes.push(nodes[9967])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9966, 0, true, -1))
+  nodes.push(protocol_array_rule(9988, 0, true, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(9968, 0, true, -1))
+  nodes.push(protocol_array_rule(9990, 0, true, -1))
   nodes.push(
     protocol_string_rule(
       None,
@@ -28197,54 +28243,54 @@ fn generated_protocol_schema_nodes_9(nodes : Array[ProtocolSchemaRule]) -> Unit 
   )
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[9970])
+  nodes.push(nodes[9992])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9975, 1, true, -1))
+  nodes.push(protocol_array_rule(9997, 1, true, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9977, 1, true, -1))
-  nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9979, 1, true, -1))
-  nodes.push(nodes[9970])
-  nodes.push(nodes[2])
-  nodes.push(protocol_string_rule(Some("not_required"), [], 0, 0))
-  nodes.push(protocol_object_rule([("kind", 9983)], ["kind"], -1, 0, None))
-  nodes.push(protocol_string_rule(Some("required"), [], 0, 0))
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(nodes[1])
-  nodes.push(nodes[2])
-  nodes.push(nodes[9970])
-  nodes.push(protocol_array_rule(9991, 1, true, -1))
-  nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9993, 1, true, -1))
-  nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(9995, 0, true, -1))
-  nodes.push(nodes[2465])
-  nodes.push(nodes[14])
-  nodes.push(nodes[2])
 }
 
 ///|
 fn generated_protocol_schema_nodes_10(
   nodes : Array[ProtocolSchemaRule],
 ) -> Unit {
+  nodes.push(protocol_array_rule(9999, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(10001, 1, true, -1))
+  nodes.push(nodes[9992])
+  nodes.push(nodes[2])
+  nodes.push(protocol_string_rule(Some("not_required"), [], 0, 0))
+  nodes.push(protocol_object_rule([("kind", 10005)], ["kind"], -1, 0, None))
+  nodes.push(protocol_string_rule(Some("required"), [], 0, 0))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[9992])
+  nodes.push(protocol_array_rule(10013, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(10015, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(10017, 0, true, -1))
+  nodes.push(nodes[2465])
+  nodes.push(nodes[14])
+  nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 9985),
-        ("request_data_handling_contract_cid", 9986),
-        ("provider_execution_capability_cid", 9987),
-        ("provider_account_boundary_cid", 9988),
-        ("resolved_region", 9989),
-        ("host_policy_cid", 9990),
-        ("accepted_classifications", 9992),
-        ("allowed_regions", 9994),
-        ("accepted_media_types", 9996),
-        ("max_artifact_bytes", 9997),
-        ("require_full_artifact", 9998),
-        ("egress_requirements_cid", 9999),
+        ("kind", 10007),
+        ("request_data_handling_contract_cid", 10008),
+        ("provider_execution_capability_cid", 10009),
+        ("provider_account_boundary_cid", 10010),
+        ("resolved_region", 10011),
+        ("host_policy_cid", 10012),
+        ("accepted_classifications", 10014),
+        ("allowed_regions", 10016),
+        ("accepted_media_types", 10018),
+        ("max_artifact_bytes", 10019),
+        ("require_full_artifact", 10020),
+        ("egress_requirements_cid", 10021),
       ],
       [
         "kind", "request_data_handling_contract_cid", "provider_execution_capability_cid",
@@ -28256,37 +28302,37 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([9984, 10000]))
+  nodes.push(protocol_one_of_rule([10006, 10022]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 9920),
-        ("barrier_id", 9921),
-        ("input_ref", 9922),
-        ("source_input_ref", 9923),
-        ("output_ref", 9924),
-        ("source_view_contract_cid", 9925),
-        ("request_schema_cid", 9926),
-        ("output_contract_cid", 9927),
-        ("request_mapping", 9935),
-        ("correlation", 9948),
-        ("bounds", 9962),
-        ("capacity_guarantee", 9963),
-        ("on_non_success", 9964),
-        ("capacity_proof_cid", 9965),
-        ("input_artifact_fields", 9967),
-        ("request_input_data_policy_cids", 9969),
-        ("effective_request_classification", 9970),
-        ("effective_request_data_policy_cid", 9971),
-        ("response_source_data_policy_cid", 9972),
-        ("effective_response_classification", 9973),
-        ("effective_response_data_policy_cid", 9974),
-        ("observed_response_fields", 9976),
-        ("correlation_fields", 9978),
-        ("response_identity_fields", 9980),
-        ("effective_output_classification", 9981),
-        ("effective_output_data_policy_cid", 9982),
-        ("egress_requirements", 10001),
+        ("version", 9942),
+        ("barrier_id", 9943),
+        ("input_ref", 9944),
+        ("source_input_ref", 9945),
+        ("output_ref", 9946),
+        ("source_view_contract_cid", 9947),
+        ("request_schema_cid", 9948),
+        ("output_contract_cid", 9949),
+        ("request_mapping", 9957),
+        ("correlation", 9970),
+        ("bounds", 9984),
+        ("capacity_guarantee", 9985),
+        ("on_non_success", 9986),
+        ("capacity_proof_cid", 9987),
+        ("input_artifact_fields", 9989),
+        ("request_input_data_policy_cids", 9991),
+        ("effective_request_classification", 9992),
+        ("effective_request_data_policy_cid", 9993),
+        ("response_source_data_policy_cid", 9994),
+        ("effective_response_classification", 9995),
+        ("effective_response_data_policy_cid", 9996),
+        ("observed_response_fields", 9998),
+        ("correlation_fields", 10000),
+        ("response_identity_fields", 10002),
+        ("effective_output_classification", 10003),
+        ("effective_output_data_policy_cid", 10004),
+        ("egress_requirements", 10023),
       ],
       [
         "version", "barrier_id", "input_ref", "source_input_ref", "output_ref", "source_view_contract_cid",
@@ -28302,7 +28348,7 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[9920])
+  nodes.push(nodes[9942])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
@@ -28311,46 +28357,46 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("field", 10011)], ["field"], -1, 0, None))
+  nodes.push(protocol_object_rule([("field", 10033)], ["field"], -1, 0, None))
   nodes.push(nodes[270])
   nodes.push(
-    protocol_object_rule([("literal", 10013)], ["literal"], -1, 0, None),
+    protocol_object_rule([("literal", 10035)], ["literal"], -1, 0, None),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("$param", 10015)], ["$param"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([10012, 10014, 10016]))
-  nodes.push(protocol_object_rule([], [], 10017, 1, None))
+  nodes.push(protocol_object_rule([("$param", 10037)], ["$param"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([10034, 10036, 10038]))
+  nodes.push(protocol_object_rule([], [], 10039, 1, None))
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("request", 10019), ("response", 10020)],
+      [("request", 10041), ("response", 10042)],
       ["request", "response"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(10021, 1, false, -1))
+  nodes.push(protocol_array_rule(10043, 1, false, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10023, 1, true, -1))
-  nodes.push(nodes[9942])
-  nodes.push(nodes[9943])
-  nodes.push(nodes[9944])
-  nodes.push(nodes[9945])
-  nodes.push(nodes[9945])
-  nodes.push(nodes[9945])
+  nodes.push(protocol_array_rule(10045, 1, true, -1))
+  nodes.push(nodes[9964])
+  nodes.push(nodes[9965])
+  nodes.push(nodes[9966])
+  nodes.push(nodes[9967])
+  nodes.push(nodes[9967])
+  nodes.push(nodes[9967])
   nodes.push(
     protocol_object_rule(
       [
-        ("on", 10022),
-        ("identity", 10024),
-        ("cardinality", 10025),
-        ("null_request_policy", 10026),
-        ("on_missing", 10027),
-        ("on_unrequested_key", 10028),
-        ("on_excess_cardinality", 10029),
-        ("on_duplicate_identity", 10030),
+        ("on", 10044),
+        ("identity", 10046),
+        ("cardinality", 10047),
+        ("null_request_policy", 10048),
+        ("on_missing", 10049),
+        ("on_unrequested_key", 10050),
+        ("on_excess_cardinality", 10051),
+        ("on_duplicate_identity", 10052),
       ],
       [
         "on", "identity", "cardinality", "null_request_policy", "on_missing", "on_unrequested_key",
@@ -28361,57 +28407,57 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[3374])
-  nodes.push(nodes[9945])
+  nodes.push(nodes[3388])
+  nodes.push(nodes[9967])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10034, 0, true, -1))
+  nodes.push(protocol_array_rule(10056, 0, true, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(10036, 0, true, -1))
+  nodes.push(protocol_array_rule(10058, 0, true, -1))
   nodes.push(nodes[266])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[266])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10043, 1, true, -1))
+  nodes.push(protocol_array_rule(10065, 1, true, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10045, 1, true, -1))
+  nodes.push(protocol_array_rule(10067, 1, true, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10047, 1, true, -1))
+  nodes.push(protocol_array_rule(10069, 1, true, -1))
   nodes.push(nodes[266])
   nodes.push(nodes[2])
-  nodes.push(nodes[9983])
-  nodes.push(protocol_object_rule([("kind", 10051)], ["kind"], -1, 0, None))
-  nodes.push(nodes[9985])
+  nodes.push(nodes[10005])
+  nodes.push(protocol_object_rule([("kind", 10073)], ["kind"], -1, 0, None))
+  nodes.push(nodes[10007])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[9970])
-  nodes.push(protocol_array_rule(10059, 1, true, -1))
+  nodes.push(nodes[9992])
+  nodes.push(protocol_array_rule(10081, 1, true, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10061, 1, true, -1))
+  nodes.push(protocol_array_rule(10083, 1, true, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10063, 0, true, -1))
+  nodes.push(protocol_array_rule(10085, 0, true, -1))
   nodes.push(nodes[2465])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 10053),
-        ("request_data_handling_contract_cid", 10054),
-        ("provider_execution_capability_cid", 10055),
-        ("provider_account_boundary_cid", 10056),
-        ("resolved_region", 10057),
-        ("host_policy_cid", 10058),
-        ("accepted_classifications", 10060),
-        ("allowed_regions", 10062),
-        ("accepted_media_types", 10064),
-        ("max_artifact_bytes", 10065),
-        ("require_full_artifact", 10066),
-        ("egress_requirements_cid", 10067),
+        ("kind", 10075),
+        ("request_data_handling_contract_cid", 10076),
+        ("provider_execution_capability_cid", 10077),
+        ("provider_account_boundary_cid", 10078),
+        ("resolved_region", 10079),
+        ("host_policy_cid", 10080),
+        ("accepted_classifications", 10082),
+        ("allowed_regions", 10084),
+        ("accepted_media_types", 10086),
+        ("max_artifact_bytes", 10087),
+        ("require_full_artifact", 10088),
+        ("egress_requirements_cid", 10089),
       ],
       [
         "kind", "request_data_handling_contract_cid", "provider_execution_capability_cid",
@@ -28423,37 +28469,37 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([10052, 10068]))
+  nodes.push(protocol_one_of_rule([10074, 10090]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10003),
-        ("barrier_id", 10004),
-        ("input_ref", 10005),
-        ("source_input_ref", 10006),
-        ("output_ref", 10007),
-        ("source_view_contract_cid", 10008),
-        ("request_schema_cid", 10009),
-        ("output_contract_cid", 10010),
-        ("request_mapping", 10018),
-        ("correlation", 10031),
-        ("capacity_guarantee", 10032),
-        ("on_non_success", 10033),
-        ("input_artifact_fields", 10035),
-        ("request_input_data_policy_cids", 10037),
-        ("effective_request_classification", 10038),
-        ("effective_request_data_policy_cid", 10039),
-        ("response_source_data_policy_cid", 10040),
-        ("effective_response_classification", 10041),
-        ("effective_response_data_policy_cid", 10042),
-        ("observed_response_fields", 10044),
-        ("correlation_fields", 10046),
-        ("response_identity_fields", 10048),
-        ("effective_output_classification", 10049),
-        ("effective_output_data_policy_cid", 10050),
-        ("egress_requirements", 10069),
-        ("lookup_execution_cid", 10070),
+        ("version", 10025),
+        ("barrier_id", 10026),
+        ("input_ref", 10027),
+        ("source_input_ref", 10028),
+        ("output_ref", 10029),
+        ("source_view_contract_cid", 10030),
+        ("request_schema_cid", 10031),
+        ("output_contract_cid", 10032),
+        ("request_mapping", 10040),
+        ("correlation", 10053),
+        ("capacity_guarantee", 10054),
+        ("on_non_success", 10055),
+        ("input_artifact_fields", 10057),
+        ("request_input_data_policy_cids", 10059),
+        ("effective_request_classification", 10060),
+        ("effective_request_data_policy_cid", 10061),
+        ("response_source_data_policy_cid", 10062),
+        ("effective_response_classification", 10063),
+        ("effective_response_data_policy_cid", 10064),
+        ("observed_response_fields", 10066),
+        ("correlation_fields", 10068),
+        ("response_identity_fields", 10070),
+        ("effective_output_classification", 10071),
+        ("effective_output_data_policy_cid", 10072),
+        ("egress_requirements", 10091),
+        ("lookup_execution_cid", 10092),
       ],
       [
         "version", "barrier_id", "input_ref", "source_input_ref", "output_ref", "source_view_contract_cid",
@@ -28470,8 +28516,8 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([10002, 10071]))
-  nodes.push(nodes[9920])
+  nodes.push(protocol_one_of_rule([10024, 10093]))
+  nodes.push(nodes[9942])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
@@ -28480,46 +28526,46 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("field", 10081)], ["field"], -1, 0, None))
+  nodes.push(protocol_object_rule([("field", 10103)], ["field"], -1, 0, None))
   nodes.push(nodes[270])
   nodes.push(
-    protocol_object_rule([("literal", 10083)], ["literal"], -1, 0, None),
+    protocol_object_rule([("literal", 10105)], ["literal"], -1, 0, None),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("$param", 10085)], ["$param"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([10082, 10084, 10086]))
-  nodes.push(protocol_object_rule([], [], 10087, 1, None))
+  nodes.push(protocol_object_rule([("$param", 10107)], ["$param"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([10104, 10106, 10108]))
+  nodes.push(protocol_object_rule([], [], 10109, 1, None))
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("request", 10089), ("response", 10090)],
+      [("request", 10111), ("response", 10112)],
       ["request", "response"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(10091, 1, false, -1))
+  nodes.push(protocol_array_rule(10113, 1, false, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10093, 1, true, -1))
-  nodes.push(nodes[9942])
-  nodes.push(nodes[9943])
-  nodes.push(nodes[9944])
-  nodes.push(nodes[9945])
-  nodes.push(nodes[9945])
-  nodes.push(nodes[9945])
+  nodes.push(protocol_array_rule(10115, 1, true, -1))
+  nodes.push(nodes[9964])
+  nodes.push(nodes[9965])
+  nodes.push(nodes[9966])
+  nodes.push(nodes[9967])
+  nodes.push(nodes[9967])
+  nodes.push(nodes[9967])
   nodes.push(
     protocol_object_rule(
       [
-        ("on", 10092),
-        ("identity", 10094),
-        ("cardinality", 10095),
-        ("null_request_policy", 10096),
-        ("on_missing", 10097),
-        ("on_unrequested_key", 10098),
-        ("on_excess_cardinality", 10099),
-        ("on_duplicate_identity", 10100),
+        ("on", 10114),
+        ("identity", 10116),
+        ("cardinality", 10117),
+        ("null_request_policy", 10118),
+        ("on_missing", 10119),
+        ("on_unrequested_key", 10120),
+        ("on_excess_cardinality", 10121),
+        ("on_duplicate_identity", 10122),
       ],
       [
         "on", "identity", "cardinality", "null_request_policy", "on_missing", "on_unrequested_key",
@@ -28546,19 +28592,19 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("max_input_rows", 10102),
-        ("max_distinct_keys", 10103),
-        ("max_keys_per_batch", 10104),
-        ("max_batches", 10105),
-        ("max_pages_per_batch", 10106),
-        ("max_requests", 10107),
-        ("max_network_attempts", 10108),
-        ("max_rows_per_key", 10109),
-        ("max_response_rows", 10110),
-        ("max_request_bytes_per_attempt", 10111),
-        ("max_total_request_bytes", 10112),
-        ("max_total_response_bytes", 10113),
-        ("max_total_duration_ms", 10114),
+        ("max_input_rows", 10124),
+        ("max_distinct_keys", 10125),
+        ("max_keys_per_batch", 10126),
+        ("max_batches", 10127),
+        ("max_pages_per_batch", 10128),
+        ("max_requests", 10129),
+        ("max_network_attempts", 10130),
+        ("max_rows_per_key", 10131),
+        ("max_response_rows", 10132),
+        ("max_request_bytes_per_attempt", 10133),
+        ("max_total_request_bytes", 10134),
+        ("max_total_response_bytes", 10135),
+        ("max_total_duration_ms", 10136),
       ],
       [
         "max_input_rows", "max_distinct_keys", "max_keys_per_batch", "max_batches",
@@ -28571,58 +28617,58 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[9963])
-  nodes.push(nodes[9945])
-  nodes.push(nodes[2])
-  nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10119, 0, true, -1))
-  nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(10121, 0, true, -1))
-  nodes.push(nodes[9970])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(nodes[9970])
-  nodes.push(nodes[2])
-  nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10128, 1, true, -1))
-  nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10130, 1, true, -1))
-  nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10132, 1, true, -1))
-  nodes.push(nodes[9970])
-  nodes.push(nodes[2])
-  nodes.push(nodes[9983])
-  nodes.push(protocol_object_rule([("kind", 10136)], ["kind"], -1, 0, None))
   nodes.push(nodes[9985])
+  nodes.push(nodes[9967])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(10141, 0, true, -1))
+  nodes.push(nodes[2])
+  nodes.push(protocol_array_rule(10143, 0, true, -1))
+  nodes.push(nodes[9992])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[9992])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(10150, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(10152, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(10154, 1, true, -1))
+  nodes.push(nodes[9992])
+  nodes.push(nodes[2])
+  nodes.push(nodes[10005])
+  nodes.push(protocol_object_rule([("kind", 10158)], ["kind"], -1, 0, None))
+  nodes.push(nodes[10007])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[9970])
-  nodes.push(protocol_array_rule(10144, 1, true, -1))
+  nodes.push(nodes[9992])
+  nodes.push(protocol_array_rule(10166, 1, true, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10146, 1, true, -1))
+  nodes.push(protocol_array_rule(10168, 1, true, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10148, 0, true, -1))
+  nodes.push(protocol_array_rule(10170, 0, true, -1))
   nodes.push(nodes[2465])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 10138),
-        ("request_data_handling_contract_cid", 10139),
-        ("provider_execution_capability_cid", 10140),
-        ("provider_account_boundary_cid", 10141),
-        ("resolved_region", 10142),
-        ("host_policy_cid", 10143),
-        ("accepted_classifications", 10145),
-        ("allowed_regions", 10147),
-        ("accepted_media_types", 10149),
-        ("max_artifact_bytes", 10150),
-        ("require_full_artifact", 10151),
-        ("egress_requirements_cid", 10152),
+        ("kind", 10160),
+        ("request_data_handling_contract_cid", 10161),
+        ("provider_execution_capability_cid", 10162),
+        ("provider_account_boundary_cid", 10163),
+        ("resolved_region", 10164),
+        ("host_policy_cid", 10165),
+        ("accepted_classifications", 10167),
+        ("allowed_regions", 10169),
+        ("accepted_media_types", 10171),
+        ("max_artifact_bytes", 10172),
+        ("require_full_artifact", 10173),
+        ("egress_requirements_cid", 10174),
       ],
       [
         "kind", "request_data_handling_contract_cid", "provider_execution_capability_cid",
@@ -28634,39 +28680,39 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([10137, 10153]))
+  nodes.push(protocol_one_of_rule([10159, 10175]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10073),
-        ("barrier_id", 10074),
-        ("input_ref", 10075),
-        ("source_input_ref", 10076),
-        ("output_ref", 10077),
-        ("source_view_contract_cid", 10078),
-        ("request_schema_cid", 10079),
-        ("output_contract_cid", 10080),
-        ("request_mapping", 10088),
-        ("correlation", 10101),
-        ("bounds", 10115),
-        ("capacity_guarantee", 10116),
-        ("on_non_success", 10117),
-        ("capacity_proof_cid", 10118),
-        ("input_artifact_fields", 10120),
-        ("request_input_data_policy_cids", 10122),
-        ("effective_request_classification", 10123),
-        ("effective_request_data_policy_cid", 10124),
-        ("response_source_data_policy_cid", 10125),
-        ("effective_response_classification", 10126),
-        ("effective_response_data_policy_cid", 10127),
-        ("observed_response_fields", 10129),
-        ("correlation_fields", 10131),
-        ("response_identity_fields", 10133),
-        ("effective_output_classification", 10134),
-        ("effective_output_data_policy_cid", 10135),
-        ("egress_requirements", 10154),
-        ("barrier_cid", 10155),
+        ("version", 10095),
+        ("barrier_id", 10096),
+        ("input_ref", 10097),
+        ("source_input_ref", 10098),
+        ("output_ref", 10099),
+        ("source_view_contract_cid", 10100),
+        ("request_schema_cid", 10101),
+        ("output_contract_cid", 10102),
+        ("request_mapping", 10110),
+        ("correlation", 10123),
+        ("bounds", 10137),
+        ("capacity_guarantee", 10138),
+        ("on_non_success", 10139),
+        ("capacity_proof_cid", 10140),
+        ("input_artifact_fields", 10142),
+        ("request_input_data_policy_cids", 10144),
+        ("effective_request_classification", 10145),
+        ("effective_request_data_policy_cid", 10146),
+        ("response_source_data_policy_cid", 10147),
+        ("effective_response_classification", 10148),
+        ("effective_response_data_policy_cid", 10149),
+        ("observed_response_fields", 10151),
+        ("correlation_fields", 10153),
+        ("response_identity_fields", 10155),
+        ("effective_output_classification", 10156),
+        ("effective_output_data_policy_cid", 10157),
+        ("egress_requirements", 10176),
+        ("barrier_cid", 10177),
       ],
       [
         "version", "barrier_id", "input_ref", "source_input_ref", "output_ref", "source_view_contract_cid",
@@ -28683,7 +28729,7 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[9920])
+  nodes.push(nodes[9942])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
@@ -28692,46 +28738,46 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("field", 10165)], ["field"], -1, 0, None))
+  nodes.push(protocol_object_rule([("field", 10187)], ["field"], -1, 0, None))
   nodes.push(nodes[270])
   nodes.push(
-    protocol_object_rule([("literal", 10167)], ["literal"], -1, 0, None),
+    protocol_object_rule([("literal", 10189)], ["literal"], -1, 0, None),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("$param", 10169)], ["$param"], -1, 0, None))
-  nodes.push(protocol_one_of_rule([10166, 10168, 10170]))
-  nodes.push(protocol_object_rule([], [], 10171, 1, None))
+  nodes.push(protocol_object_rule([("$param", 10191)], ["$param"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([10188, 10190, 10192]))
+  nodes.push(protocol_object_rule([], [], 10193, 1, None))
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("request", 10173), ("response", 10174)],
+      [("request", 10195), ("response", 10196)],
       ["request", "response"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(10175, 1, false, -1))
+  nodes.push(protocol_array_rule(10197, 1, false, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10177, 1, true, -1))
-  nodes.push(nodes[9942])
-  nodes.push(nodes[9943])
-  nodes.push(nodes[9944])
-  nodes.push(nodes[9945])
-  nodes.push(nodes[9945])
-  nodes.push(nodes[9945])
+  nodes.push(protocol_array_rule(10199, 1, true, -1))
+  nodes.push(nodes[9964])
+  nodes.push(nodes[9965])
+  nodes.push(nodes[9966])
+  nodes.push(nodes[9967])
+  nodes.push(nodes[9967])
+  nodes.push(nodes[9967])
   nodes.push(
     protocol_object_rule(
       [
-        ("on", 10176),
-        ("identity", 10178),
-        ("cardinality", 10179),
-        ("null_request_policy", 10180),
-        ("on_missing", 10181),
-        ("on_unrequested_key", 10182),
-        ("on_excess_cardinality", 10183),
-        ("on_duplicate_identity", 10184),
+        ("on", 10198),
+        ("identity", 10200),
+        ("cardinality", 10201),
+        ("null_request_policy", 10202),
+        ("on_missing", 10203),
+        ("on_unrequested_key", 10204),
+        ("on_excess_cardinality", 10205),
+        ("on_duplicate_identity", 10206),
       ],
       [
         "on", "identity", "cardinality", "null_request_policy", "on_missing", "on_unrequested_key",
@@ -28742,57 +28788,57 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[3374])
-  nodes.push(nodes[9945])
+  nodes.push(nodes[3388])
+  nodes.push(nodes[9967])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10188, 0, true, -1))
+  nodes.push(protocol_array_rule(10210, 0, true, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(10190, 0, true, -1))
+  nodes.push(protocol_array_rule(10212, 0, true, -1))
   nodes.push(nodes[266])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[266])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10197, 1, true, -1))
+  nodes.push(protocol_array_rule(10219, 1, true, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10199, 1, true, -1))
+  nodes.push(protocol_array_rule(10221, 1, true, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10201, 1, true, -1))
+  nodes.push(protocol_array_rule(10223, 1, true, -1))
   nodes.push(nodes[266])
   nodes.push(nodes[2])
-  nodes.push(nodes[9983])
-  nodes.push(protocol_object_rule([("kind", 10205)], ["kind"], -1, 0, None))
-  nodes.push(nodes[9985])
+  nodes.push(nodes[10005])
+  nodes.push(protocol_object_rule([("kind", 10227)], ["kind"], -1, 0, None))
+  nodes.push(nodes[10007])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
-  nodes.push(nodes[9970])
-  nodes.push(protocol_array_rule(10213, 1, true, -1))
+  nodes.push(nodes[9992])
+  nodes.push(protocol_array_rule(10235, 1, true, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10215, 1, true, -1))
+  nodes.push(protocol_array_rule(10237, 1, true, -1))
   nodes.push(nodes[1])
-  nodes.push(protocol_array_rule(10217, 0, true, -1))
+  nodes.push(protocol_array_rule(10239, 0, true, -1))
   nodes.push(nodes[2465])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 10207),
-        ("request_data_handling_contract_cid", 10208),
-        ("provider_execution_capability_cid", 10209),
-        ("provider_account_boundary_cid", 10210),
-        ("resolved_region", 10211),
-        ("host_policy_cid", 10212),
-        ("accepted_classifications", 10214),
-        ("allowed_regions", 10216),
-        ("accepted_media_types", 10218),
-        ("max_artifact_bytes", 10219),
-        ("require_full_artifact", 10220),
-        ("egress_requirements_cid", 10221),
+        ("kind", 10229),
+        ("request_data_handling_contract_cid", 10230),
+        ("provider_execution_capability_cid", 10231),
+        ("provider_account_boundary_cid", 10232),
+        ("resolved_region", 10233),
+        ("host_policy_cid", 10234),
+        ("accepted_classifications", 10236),
+        ("allowed_regions", 10238),
+        ("accepted_media_types", 10240),
+        ("max_artifact_bytes", 10241),
+        ("require_full_artifact", 10242),
+        ("egress_requirements_cid", 10243),
       ],
       [
         "kind", "request_data_handling_contract_cid", "provider_execution_capability_cid",
@@ -28804,39 +28850,39 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([10206, 10222]))
+  nodes.push(protocol_one_of_rule([10228, 10244]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10157),
-        ("barrier_id", 10158),
-        ("input_ref", 10159),
-        ("source_input_ref", 10160),
-        ("output_ref", 10161),
-        ("source_view_contract_cid", 10162),
-        ("request_schema_cid", 10163),
-        ("output_contract_cid", 10164),
-        ("request_mapping", 10172),
-        ("correlation", 10185),
-        ("capacity_guarantee", 10186),
-        ("on_non_success", 10187),
-        ("input_artifact_fields", 10189),
-        ("request_input_data_policy_cids", 10191),
-        ("effective_request_classification", 10192),
-        ("effective_request_data_policy_cid", 10193),
-        ("response_source_data_policy_cid", 10194),
-        ("effective_response_classification", 10195),
-        ("effective_response_data_policy_cid", 10196),
-        ("observed_response_fields", 10198),
-        ("correlation_fields", 10200),
-        ("response_identity_fields", 10202),
-        ("effective_output_classification", 10203),
-        ("effective_output_data_policy_cid", 10204),
-        ("egress_requirements", 10223),
-        ("barrier_cid", 10224),
-        ("lookup_execution_cid", 10225),
+        ("version", 10179),
+        ("barrier_id", 10180),
+        ("input_ref", 10181),
+        ("source_input_ref", 10182),
+        ("output_ref", 10183),
+        ("source_view_contract_cid", 10184),
+        ("request_schema_cid", 10185),
+        ("output_contract_cid", 10186),
+        ("request_mapping", 10194),
+        ("correlation", 10207),
+        ("capacity_guarantee", 10208),
+        ("on_non_success", 10209),
+        ("input_artifact_fields", 10211),
+        ("request_input_data_policy_cids", 10213),
+        ("effective_request_classification", 10214),
+        ("effective_request_data_policy_cid", 10215),
+        ("response_source_data_policy_cid", 10216),
+        ("effective_response_classification", 10217),
+        ("effective_response_data_policy_cid", 10218),
+        ("observed_response_fields", 10220),
+        ("correlation_fields", 10222),
+        ("response_identity_fields", 10224),
+        ("effective_output_classification", 10225),
+        ("effective_output_data_policy_cid", 10226),
+        ("egress_requirements", 10245),
+        ("barrier_cid", 10246),
+        ("lookup_execution_cid", 10247),
       ],
       [
         "version", "barrier_id", "input_ref", "source_input_ref", "output_ref", "source_view_contract_cid",
@@ -28853,7 +28899,7 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([10156, 10226]))
+  nodes.push(protocol_one_of_rule([10178, 10248]))
   nodes.push(
     protocol_string_rule(Some("actql-lookup-batch-plan/0.1"), [], 0, 0),
   )
@@ -28862,25 +28908,25 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[4])
   nodes.push(nodes[4])
-  nodes.push(protocol_array_rule(10233, 1, true, -1))
+  nodes.push(protocol_array_rule(10255, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("batch_index", 10232), ("key_indices", 10234)],
+      [("batch_index", 10254), ("key_indices", 10256)],
       ["batch_index", "key_indices"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(10235, 0, false, -1))
+  nodes.push(protocol_array_rule(10257, 0, false, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10228),
-        ("barrier_cid", 10229),
-        ("request_key_set_cid", 10230),
-        ("transport_plan_cid", 10231),
-        ("batches", 10236),
+        ("version", 10250),
+        ("barrier_cid", 10251),
+        ("request_key_set_cid", 10252),
+        ("transport_plan_cid", 10253),
+        ("batches", 10258),
       ],
       [
         "version", "barrier_cid", "request_key_set_cid", "transport_plan_cid", "batches",
@@ -28890,33 +28936,33 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10228])
+  nodes.push(nodes[10250])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[4])
   nodes.push(nodes[4])
-  nodes.push(protocol_array_rule(10243, 1, true, -1))
+  nodes.push(protocol_array_rule(10265, 1, true, -1))
   nodes.push(
     protocol_object_rule(
-      [("batch_index", 10242), ("key_indices", 10244)],
+      [("batch_index", 10264), ("key_indices", 10266)],
       ["batch_index", "key_indices"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(10245, 0, false, -1))
+  nodes.push(protocol_array_rule(10267, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10238),
-        ("barrier_cid", 10239),
-        ("request_key_set_cid", 10240),
-        ("transport_plan_cid", 10241),
-        ("batches", 10246),
-        ("self_cid", 10247),
+        ("version", 10260),
+        ("barrier_cid", 10261),
+        ("request_key_set_cid", 10262),
+        ("transport_plan_cid", 10263),
+        ("batches", 10268),
+        ("self_cid", 10269),
       ],
       [
         "version", "barrier_cid", "request_key_set_cid", "transport_plan_cid", "batches",
@@ -28935,7 +28981,7 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10253, 10254]))
+  nodes.push(AnyOfRule([10275, 10276]))
   nodes.push(nodes[80])
   nodes.push(nodes[4])
   nodes.push(nodes[2])
@@ -28949,26 +28995,26 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[14])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10267, 10268]))
+  nodes.push(AnyOfRule([10289, 10290]))
   nodes.push(nodes[4])
   nodes.push(nodes[4])
   nodes.push(nodes[4])
   nodes.push(
     protocol_object_rule(
       [
-        ("call_slot_cid", 10258),
-        ("network_attempt", 10259),
-        ("dispatched", 10260),
-        ("request_bytes", 10261),
-        ("response_wire_bytes", 10262),
-        ("response_decoded_bytes", 10263),
-        ("redirect_count", 10264),
-        ("duration_ms", 10265),
-        ("usage_final", 10266),
-        ("usage_resolution_event_cid", 10269),
-        ("reserved_wire_bytes", 10270),
-        ("reserved_decoded_bytes", 10271),
-        ("reserved_duration_ms", 10272),
+        ("call_slot_cid", 10280),
+        ("network_attempt", 10281),
+        ("dispatched", 10282),
+        ("request_bytes", 10283),
+        ("response_wire_bytes", 10284),
+        ("response_decoded_bytes", 10285),
+        ("redirect_count", 10286),
+        ("duration_ms", 10287),
+        ("usage_final", 10288),
+        ("usage_resolution_event_cid", 10291),
+        ("reserved_wire_bytes", 10292),
+        ("reserved_decoded_bytes", 10293),
+        ("reserved_duration_ms", 10294),
       ],
       [
         "call_slot_cid", "network_attempt", "dispatched", "request_bytes", "response_wire_bytes",
@@ -28981,7 +29027,7 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(protocol_array_rule(10273, 0, true, -1))
+  nodes.push(protocol_array_rule(10295, 0, true, -1))
   nodes.push(nodes[4])
   nodes.push(nodes[4])
   nodes.push(nodes[4])
@@ -28989,10 +29035,10 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("network_attempts", 10275),
-        ("request_bytes", 10276),
-        ("response_wire_bytes", 10277),
-        ("response_decoded_bytes", 10278),
+        ("network_attempts", 10297),
+        ("request_bytes", 10298),
+        ("response_wire_bytes", 10299),
+        ("response_decoded_bytes", 10300),
       ],
       [
         "network_attempts", "request_bytes", "response_wire_bytes", "response_decoded_bytes",
@@ -29007,17 +29053,17 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10249),
-        ("barrier_cid", 10250),
-        ("batch_plan_cid", 10251),
-        ("input_relation_artifact_cid", 10252),
-        ("previous_accounting_cid", 10255),
-        ("recorded_at", 10256),
-        ("elapsed_ms", 10257),
-        ("attempts", 10274),
-        ("totals", 10279),
-        ("issuer_id", 10280),
-        ("authority_scope_cid", 10281),
+        ("version", 10271),
+        ("barrier_cid", 10272),
+        ("batch_plan_cid", 10273),
+        ("input_relation_artifact_cid", 10274),
+        ("previous_accounting_cid", 10277),
+        ("recorded_at", 10278),
+        ("elapsed_ms", 10279),
+        ("attempts", 10296),
+        ("totals", 10301),
+        ("issuer_id", 10302),
+        ("authority_scope_cid", 10303),
       ],
       [
         "version", "barrier_cid", "batch_plan_cid", "input_relation_artifact_cid",
@@ -29029,13 +29075,13 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10249])
+  nodes.push(nodes[10271])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10287, 10288]))
+  nodes.push(AnyOfRule([10309, 10310]))
   nodes.push(nodes[80])
   nodes.push(nodes[4])
   nodes.push(nodes[2])
@@ -29049,26 +29095,26 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[14])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10301, 10302]))
+  nodes.push(AnyOfRule([10323, 10324]))
   nodes.push(nodes[4])
   nodes.push(nodes[4])
   nodes.push(nodes[4])
   nodes.push(
     protocol_object_rule(
       [
-        ("call_slot_cid", 10292),
-        ("network_attempt", 10293),
-        ("dispatched", 10294),
-        ("request_bytes", 10295),
-        ("response_wire_bytes", 10296),
-        ("response_decoded_bytes", 10297),
-        ("redirect_count", 10298),
-        ("duration_ms", 10299),
-        ("usage_final", 10300),
-        ("usage_resolution_event_cid", 10303),
-        ("reserved_wire_bytes", 10304),
-        ("reserved_decoded_bytes", 10305),
-        ("reserved_duration_ms", 10306),
+        ("call_slot_cid", 10314),
+        ("network_attempt", 10315),
+        ("dispatched", 10316),
+        ("request_bytes", 10317),
+        ("response_wire_bytes", 10318),
+        ("response_decoded_bytes", 10319),
+        ("redirect_count", 10320),
+        ("duration_ms", 10321),
+        ("usage_final", 10322),
+        ("usage_resolution_event_cid", 10325),
+        ("reserved_wire_bytes", 10326),
+        ("reserved_decoded_bytes", 10327),
+        ("reserved_duration_ms", 10328),
       ],
       [
         "call_slot_cid", "network_attempt", "dispatched", "request_bytes", "response_wire_bytes",
@@ -29081,7 +29127,7 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(protocol_array_rule(10307, 0, true, -1))
+  nodes.push(protocol_array_rule(10329, 0, true, -1))
   nodes.push(nodes[4])
   nodes.push(nodes[4])
   nodes.push(nodes[4])
@@ -29089,10 +29135,10 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("network_attempts", 10309),
-        ("request_bytes", 10310),
-        ("response_wire_bytes", 10311),
-        ("response_decoded_bytes", 10312),
+        ("network_attempts", 10331),
+        ("request_bytes", 10332),
+        ("response_wire_bytes", 10333),
+        ("response_decoded_bytes", 10334),
       ],
       [
         "network_attempts", "request_bytes", "response_wire_bytes", "response_decoded_bytes",
@@ -29108,18 +29154,18 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10283),
-        ("barrier_cid", 10284),
-        ("batch_plan_cid", 10285),
-        ("input_relation_artifact_cid", 10286),
-        ("previous_accounting_cid", 10289),
-        ("recorded_at", 10290),
-        ("elapsed_ms", 10291),
-        ("attempts", 10308),
-        ("totals", 10313),
-        ("issuer_id", 10314),
-        ("authority_scope_cid", 10315),
-        ("self_cid", 10316),
+        ("version", 10305),
+        ("barrier_cid", 10306),
+        ("batch_plan_cid", 10307),
+        ("input_relation_artifact_cid", 10308),
+        ("previous_accounting_cid", 10311),
+        ("recorded_at", 10312),
+        ("elapsed_ms", 10313),
+        ("attempts", 10330),
+        ("totals", 10335),
+        ("issuer_id", 10336),
+        ("authority_scope_cid", 10337),
+        ("self_cid", 10338),
       ],
       [
         "version", "barrier_cid", "batch_plan_cid", "input_relation_artifact_cid",
@@ -29132,30 +29178,30 @@ fn generated_protocol_schema_nodes_10(
     ),
   )
   nodes.push(protocol_string_rule(Some("accounting"), [], 0, 0))
-  nodes.push(protocol_object_rule([("kind", 10318)], ["kind"], -2, 0, None))
-  nodes.push(ContainsRule(10319))
+  nodes.push(protocol_object_rule([("kind", 10340)], ["kind"], -2, 0, None))
+  nodes.push(ContainsRule(10341))
   nodes.push(
-    protocol_object_rule([("lifecycle_evidence", 10320)], [], -2, 0, None),
+    protocol_object_rule([("lifecycle_evidence", 10342)], [], -2, 0, None),
   )
   nodes.push(protocol_object_rule([], ["runtime_error_cid"], -2, 0, None))
-  nodes.push(NotRule(10322))
+  nodes.push(NotRule(10344))
   nodes.push(nodes[2717])
   nodes.push(
-    protocol_object_rule([("outcome", 10324)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 10346)], ["outcome"], -2, 0, None),
   )
-  nodes.push(AllOfRule([10323, 10325]))
-  nodes.push(ContainsRule(10326))
+  nodes.push(AllOfRule([10345, 10347]))
+  nodes.push(ContainsRule(10348))
   nodes.push(
-    protocol_object_rule([("attempts", 10327)], ["attempts"], -2, 0, None),
+    protocol_object_rule([("attempts", 10349)], ["attempts"], -2, 0, None),
   )
   nodes.push(protocol_string_rule(Some("attempt_event"), [], 0, 0))
-  nodes.push(protocol_object_rule([("kind", 10329)], ["kind"], -2, 0, None))
-  nodes.push(ContainsRule(10330))
+  nodes.push(protocol_object_rule([("kind", 10351)], ["kind"], -2, 0, None))
+  nodes.push(ContainsRule(10352))
   nodes.push(
-    protocol_object_rule([("lifecycle_evidence", 10331)], [], -2, 0, None),
+    protocol_object_rule([("lifecycle_evidence", 10353)], [], -2, 0, None),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(10328, 10332, 10333))
+  nodes.push(ConditionalRule(10350, 10354, 10355))
   nodes.push(
     protocol_string_rule(Some("actql-lookup-attempt-receipt/0.1"), [], 0, 0),
   )
@@ -29165,12 +29211,12 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10340, 10341]))
+  nodes.push(AnyOfRule([10362, 10363]))
   nodes.push(nodes[80])
   nodes.push(nodes[80])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10345, 10346]))
+  nodes.push(AnyOfRule([10367, 10368]))
   nodes.push(
     protocol_string_rule(
       None,
@@ -29181,16 +29227,16 @@ fn generated_protocol_schema_nodes_10(
   )
   nodes.push(protocol_string_rule(Some("captured"), [], 0, 0))
   nodes.push(
-    protocol_object_rule([("outcome", 10349)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 10371)], ["outcome"], -2, 0, None),
   )
-  nodes.push(nodes[10322])
-  nodes.push(NotRule(10351))
+  nodes.push(nodes[10344])
+  nodes.push(NotRule(10373))
   nodes.push(
     protocol_object_rule([], ["raw_response_artifact_cid"], -2, 0, None),
   )
-  nodes.push(AllOfRule([10352, 10353]))
+  nodes.push(AllOfRule([10374, 10375]))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(10350, 10354, 10355))
+  nodes.push(ConditionalRule(10372, 10376, 10377))
   nodes.push(
     protocol_string_rule(
       None,
@@ -29200,14 +29246,14 @@ fn generated_protocol_schema_nodes_10(
     ),
   )
   nodes.push(
-    protocol_object_rule([("outcome", 10357)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 10379)], ["outcome"], -2, 0, None),
   )
-  nodes.push(nodes[10353])
-  nodes.push(nodes[10322])
-  nodes.push(AnyOfRule([10359, 10360]))
-  nodes.push(NotRule(10361))
+  nodes.push(nodes[10375])
+  nodes.push(nodes[10344])
+  nodes.push(AnyOfRule([10381, 10382]))
+  nodes.push(NotRule(10383))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(10358, 10362, 10363))
+  nodes.push(ConditionalRule(10380, 10384, 10385))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[4])
@@ -29227,15 +29273,15 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("call_slot_cid", 10365),
-        ("semantic_request_cid", 10366),
-        ("batch_index", 10367),
-        ("page_index", 10368),
-        ("network_attempt", 10369),
-        ("provider_request_id", 10370),
-        ("outcome", 10371),
-        ("raw_response_artifact_cid", 10372),
-        ("runtime_error_cid", 10373),
+        ("call_slot_cid", 10387),
+        ("semantic_request_cid", 10388),
+        ("batch_index", 10389),
+        ("page_index", 10390),
+        ("network_attempt", 10391),
+        ("provider_request_id", 10392),
+        ("outcome", 10393),
+        ("raw_response_artifact_cid", 10394),
+        ("runtime_error_cid", 10395),
       ],
       [
         "call_slot_cid", "semantic_request_cid", "batch_index", "page_index", "network_attempt",
@@ -29246,8 +29292,8 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(AllOfRule([10356, 10364, 10374]))
-  nodes.push(protocol_array_rule(10375, 0, true, -1))
+  nodes.push(AllOfRule([10378, 10386, 10396]))
+  nodes.push(protocol_array_rule(10397, 0, true, -1))
   nodes.push(
     protocol_string_rule(
       None,
@@ -29259,29 +29305,29 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 10377), ("cid", 10378)],
+      [("kind", 10399), ("cid", 10400)],
       ["kind", "cid"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(10379, 1, true, -1))
+  nodes.push(protocol_array_rule(10401, 1, true, -1))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10335),
-        ("barrier_cid", 10336),
-        ("input_relation_artifact_cid", 10337),
-        ("request_key_set_cid", 10338),
-        ("batch_plan_cid", 10339),
-        ("source_request_egress_admission_cid", 10342),
-        ("started_at", 10343),
-        ("recorded_at", 10344),
-        ("previous_receipt_cid", 10347),
-        ("state", 10348),
-        ("attempts", 10376),
-        ("lifecycle_evidence", 10380),
+        ("version", 10357),
+        ("barrier_cid", 10358),
+        ("input_relation_artifact_cid", 10359),
+        ("request_key_set_cid", 10360),
+        ("batch_plan_cid", 10361),
+        ("source_request_egress_admission_cid", 10364),
+        ("started_at", 10365),
+        ("recorded_at", 10366),
+        ("previous_receipt_cid", 10369),
+        ("state", 10370),
+        ("attempts", 10398),
+        ("lifecycle_evidence", 10402),
       ],
       [
         "version", "barrier_cid", "input_relation_artifact_cid", "request_key_set_cid",
@@ -29293,87 +29339,87 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(AllOfRule([10321, 10334, 10381]))
-  nodes.push(nodes[10318])
-  nodes.push(protocol_object_rule([("kind", 10383)], ["kind"], -2, 0, None))
-  nodes.push(ContainsRule(10384))
+  nodes.push(AllOfRule([10343, 10356, 10403]))
+  nodes.push(nodes[10340])
+  nodes.push(protocol_object_rule([("kind", 10405)], ["kind"], -2, 0, None))
+  nodes.push(ContainsRule(10406))
   nodes.push(
-    protocol_object_rule([("lifecycle_evidence", 10385)], [], -2, 0, None),
+    protocol_object_rule([("lifecycle_evidence", 10407)], [], -2, 0, None),
   )
-  nodes.push(nodes[10322])
-  nodes.push(NotRule(10387))
+  nodes.push(nodes[10344])
+  nodes.push(NotRule(10409))
   nodes.push(nodes[2717])
   nodes.push(
-    protocol_object_rule([("outcome", 10389)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 10411)], ["outcome"], -2, 0, None),
   )
-  nodes.push(AllOfRule([10388, 10390]))
-  nodes.push(ContainsRule(10391))
+  nodes.push(AllOfRule([10410, 10412]))
+  nodes.push(ContainsRule(10413))
   nodes.push(
-    protocol_object_rule([("attempts", 10392)], ["attempts"], -2, 0, None),
+    protocol_object_rule([("attempts", 10414)], ["attempts"], -2, 0, None),
   )
-  nodes.push(nodes[10329])
-  nodes.push(protocol_object_rule([("kind", 10394)], ["kind"], -2, 0, None))
-  nodes.push(ContainsRule(10395))
+  nodes.push(nodes[10351])
+  nodes.push(protocol_object_rule([("kind", 10416)], ["kind"], -2, 0, None))
+  nodes.push(ContainsRule(10417))
   nodes.push(
-    protocol_object_rule([("lifecycle_evidence", 10396)], [], -2, 0, None),
+    protocol_object_rule([("lifecycle_evidence", 10418)], [], -2, 0, None),
   )
-  nodes.push(nodes[270])
-  nodes.push(ConditionalRule(10393, 10397, 10398))
-  nodes.push(nodes[10335])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(nodes[2])
-  nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10405, 10406]))
-  nodes.push(nodes[80])
-  nodes.push(nodes[80])
-  nodes.push(nodes[2])
-  nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10410, 10411]))
-  nodes.push(nodes[10348])
-  nodes.push(nodes[10349])
-  nodes.push(
-    protocol_object_rule([("outcome", 10414)], ["outcome"], -2, 0, None),
-  )
-  nodes.push(nodes[10322])
-  nodes.push(NotRule(10416))
-  nodes.push(nodes[10353])
-  nodes.push(AllOfRule([10417, 10418]))
   nodes.push(nodes[270])
   nodes.push(ConditionalRule(10415, 10419, 10420))
   nodes.push(nodes[10357])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([10427, 10428]))
+  nodes.push(nodes[80])
+  nodes.push(nodes[80])
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([10432, 10433]))
+  nodes.push(nodes[10370])
+  nodes.push(nodes[10371])
   nodes.push(
-    protocol_object_rule([("outcome", 10422)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 10436)], ["outcome"], -2, 0, None),
   )
-  nodes.push(nodes[10353])
-  nodes.push(nodes[10322])
-  nodes.push(AnyOfRule([10424, 10425]))
-  nodes.push(NotRule(10426))
+  nodes.push(nodes[10344])
+  nodes.push(NotRule(10438))
+  nodes.push(nodes[10375])
+  nodes.push(AllOfRule([10439, 10440]))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(10423, 10427, 10428))
+  nodes.push(ConditionalRule(10437, 10441, 10442))
+  nodes.push(nodes[10379])
+  nodes.push(
+    protocol_object_rule([("outcome", 10444)], ["outcome"], -2, 0, None),
+  )
+  nodes.push(nodes[10375])
+  nodes.push(nodes[10344])
+  nodes.push(AnyOfRule([10446, 10447]))
+  nodes.push(NotRule(10448))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(10445, 10449, 10450))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[4])
   nodes.push(nodes[4])
   nodes.push(nodes[936])
   nodes.push(nodes[1])
-  nodes.push(nodes[10371])
+  nodes.push(nodes[10393])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("call_slot_cid", 10430),
-        ("semantic_request_cid", 10431),
-        ("batch_index", 10432),
-        ("page_index", 10433),
-        ("network_attempt", 10434),
-        ("provider_request_id", 10435),
-        ("outcome", 10436),
-        ("raw_response_artifact_cid", 10437),
-        ("runtime_error_cid", 10438),
+        ("call_slot_cid", 10452),
+        ("semantic_request_cid", 10453),
+        ("batch_index", 10454),
+        ("page_index", 10455),
+        ("network_attempt", 10456),
+        ("provider_request_id", 10457),
+        ("outcome", 10458),
+        ("raw_response_artifact_cid", 10459),
+        ("runtime_error_cid", 10460),
       ],
       [
         "call_slot_cid", "semantic_request_cid", "batch_index", "page_index", "network_attempt",
@@ -29384,37 +29430,37 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(AllOfRule([10421, 10429, 10439]))
-  nodes.push(protocol_array_rule(10440, 0, true, -1))
-  nodes.push(nodes[10377])
+  nodes.push(AllOfRule([10443, 10451, 10461]))
+  nodes.push(protocol_array_rule(10462, 0, true, -1))
+  nodes.push(nodes[10399])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
-      [("kind", 10442), ("cid", 10443)],
+      [("kind", 10464), ("cid", 10465)],
       ["kind", "cid"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_array_rule(10444, 1, true, -1))
+  nodes.push(protocol_array_rule(10466, 1, true, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10400),
-        ("barrier_cid", 10401),
-        ("input_relation_artifact_cid", 10402),
-        ("request_key_set_cid", 10403),
-        ("batch_plan_cid", 10404),
-        ("source_request_egress_admission_cid", 10407),
-        ("started_at", 10408),
-        ("recorded_at", 10409),
-        ("previous_receipt_cid", 10412),
-        ("state", 10413),
-        ("attempts", 10441),
-        ("lifecycle_evidence", 10445),
-        ("self_cid", 10446),
+        ("version", 10422),
+        ("barrier_cid", 10423),
+        ("input_relation_artifact_cid", 10424),
+        ("request_key_set_cid", 10425),
+        ("batch_plan_cid", 10426),
+        ("source_request_egress_admission_cid", 10429),
+        ("started_at", 10430),
+        ("recorded_at", 10431),
+        ("previous_receipt_cid", 10434),
+        ("state", 10435),
+        ("attempts", 10463),
+        ("lifecycle_evidence", 10467),
+        ("self_cid", 10468),
       ],
       [
         "version", "barrier_cid", "input_relation_artifact_cid", "request_key_set_cid",
@@ -29426,14 +29472,14 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(AllOfRule([10386, 10399, 10447]))
+  nodes.push(AllOfRule([10408, 10421, 10469]))
   nodes.push(protocol_string_rule(Some("actql-lookup-evidence/0.1"), [], 0, 0))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(10452, 0, true, -1))
+  nodes.push(protocol_array_rule(10474, 0, true, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(10454, 0, true, -1))
+  nodes.push(protocol_array_rule(10476, 0, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -29442,28 +29488,28 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(protocol_one_of_rule([10462, 10463]))
+  nodes.push(protocol_one_of_rule([10484, 10485]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[219])
   nodes.push(nodes[219])
   nodes.push(nodes[2465])
   nodes.push(nodes[1])
-  nodes.push(nodes[10371])
+  nodes.push(nodes[10393])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("call_slot_cid", 10465),
-        ("semantic_request_cid", 10466),
-        ("batch_index", 10467),
-        ("page_index", 10468),
-        ("network_attempt", 10469),
-        ("provider_request_id", 10470),
-        ("outcome", 10471),
-        ("raw_response_artifact_cid", 10472),
-        ("runtime_error_cid", 10473),
+        ("call_slot_cid", 10487),
+        ("semantic_request_cid", 10488),
+        ("batch_index", 10489),
+        ("page_index", 10490),
+        ("network_attempt", 10491),
+        ("provider_request_id", 10492),
+        ("outcome", 10493),
+        ("raw_response_artifact_cid", 10494),
+        ("runtime_error_cid", 10495),
       ],
       [
         "call_slot_cid", "semantic_request_cid", "batch_index", "page_index", "network_attempt",
@@ -29474,35 +29520,35 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(protocol_array_rule(10474, 0, false, -1))
+  nodes.push(protocol_array_rule(10496, 0, false, -1))
   nodes.push(nodes[2])
   nodes.push(
     protocol_string_rule(None, ["complete", "incomplete", "unknown"], 0, 0),
   )
-  nodes.push(nodes[10477])
+  nodes.push(nodes[10499])
   nodes.push(nodes[2])
   nodes.push(nodes[80])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10449),
-        ("barrier_cid", 10450),
-        ("input_relation_artifact_cid", 10451),
-        ("input_content_ref_cids", 10453),
-        ("request_input_data_policy_cids", 10455),
-        ("effective_request_data_policy_cid", 10456),
-        ("effective_output_data_policy_cid", 10457),
-        ("request_key_set_cid", 10458),
-        ("excluded_null_key_row_count", 10459),
-        ("batch_plan_cid", 10460),
-        ("source_view_contract_cid", 10461),
-        ("source_request_egress_admission_cid", 10464),
-        ("attempts", 10475),
-        ("validated_lookup_relation_cid", 10476),
-        ("upstream_candidate_extent", 10477),
-        ("lookup_for_requested_keys", 10478),
-        ("attempt_receipt_cid", 10479),
-        ("observed_at", 10480),
+        ("version", 10471),
+        ("barrier_cid", 10472),
+        ("input_relation_artifact_cid", 10473),
+        ("input_content_ref_cids", 10475),
+        ("request_input_data_policy_cids", 10477),
+        ("effective_request_data_policy_cid", 10478),
+        ("effective_output_data_policy_cid", 10479),
+        ("request_key_set_cid", 10480),
+        ("excluded_null_key_row_count", 10481),
+        ("batch_plan_cid", 10482),
+        ("source_view_contract_cid", 10483),
+        ("source_request_egress_admission_cid", 10486),
+        ("attempts", 10497),
+        ("validated_lookup_relation_cid", 10498),
+        ("upstream_candidate_extent", 10499),
+        ("lookup_for_requested_keys", 10500),
+        ("attempt_receipt_cid", 10501),
+        ("observed_at", 10502),
       ],
       [
         "version", "barrier_cid", "input_relation_artifact_cid", "input_content_ref_cids",
@@ -29517,13 +29563,13 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10449])
+  nodes.push(nodes[10471])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(10485, 0, true, -1))
+  nodes.push(protocol_array_rule(10507, 0, true, -1))
   nodes.push(nodes[2])
-  nodes.push(protocol_array_rule(10487, 0, true, -1))
+  nodes.push(protocol_array_rule(10509, 0, true, -1))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -29532,28 +29578,28 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(protocol_one_of_rule([10495, 10496]))
+  nodes.push(protocol_one_of_rule([10517, 10518]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[219])
   nodes.push(nodes[219])
   nodes.push(nodes[2465])
   nodes.push(nodes[1])
-  nodes.push(nodes[10371])
+  nodes.push(nodes[10393])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("call_slot_cid", 10498),
-        ("semantic_request_cid", 10499),
-        ("batch_index", 10500),
-        ("page_index", 10501),
-        ("network_attempt", 10502),
-        ("provider_request_id", 10503),
-        ("outcome", 10504),
-        ("raw_response_artifact_cid", 10505),
-        ("runtime_error_cid", 10506),
+        ("call_slot_cid", 10520),
+        ("semantic_request_cid", 10521),
+        ("batch_index", 10522),
+        ("page_index", 10523),
+        ("network_attempt", 10524),
+        ("provider_request_id", 10525),
+        ("outcome", 10526),
+        ("raw_response_artifact_cid", 10527),
+        ("runtime_error_cid", 10528),
       ],
       [
         "call_slot_cid", "semantic_request_cid", "batch_index", "page_index", "network_attempt",
@@ -29564,35 +29610,35 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(protocol_array_rule(10507, 0, false, -1))
+  nodes.push(protocol_array_rule(10529, 0, false, -1))
   nodes.push(nodes[2])
-  nodes.push(nodes[10477])
-  nodes.push(nodes[10477])
+  nodes.push(nodes[10499])
+  nodes.push(nodes[10499])
   nodes.push(nodes[2])
   nodes.push(nodes[80])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10482),
-        ("barrier_cid", 10483),
-        ("input_relation_artifact_cid", 10484),
-        ("input_content_ref_cids", 10486),
-        ("request_input_data_policy_cids", 10488),
-        ("effective_request_data_policy_cid", 10489),
-        ("effective_output_data_policy_cid", 10490),
-        ("request_key_set_cid", 10491),
-        ("excluded_null_key_row_count", 10492),
-        ("batch_plan_cid", 10493),
-        ("source_view_contract_cid", 10494),
-        ("source_request_egress_admission_cid", 10497),
-        ("attempts", 10508),
-        ("validated_lookup_relation_cid", 10509),
-        ("upstream_candidate_extent", 10510),
-        ("lookup_for_requested_keys", 10511),
-        ("attempt_receipt_cid", 10512),
-        ("observed_at", 10513),
-        ("evidence_cid", 10514),
+        ("version", 10504),
+        ("barrier_cid", 10505),
+        ("input_relation_artifact_cid", 10506),
+        ("input_content_ref_cids", 10508),
+        ("request_input_data_policy_cids", 10510),
+        ("effective_request_data_policy_cid", 10511),
+        ("effective_output_data_policy_cid", 10512),
+        ("request_key_set_cid", 10513),
+        ("excluded_null_key_row_count", 10514),
+        ("batch_plan_cid", 10515),
+        ("source_view_contract_cid", 10516),
+        ("source_request_egress_admission_cid", 10519),
+        ("attempts", 10530),
+        ("validated_lookup_relation_cid", 10531),
+        ("upstream_candidate_extent", 10532),
+        ("lookup_for_requested_keys", 10533),
+        ("attempt_receipt_cid", 10534),
+        ("observed_at", 10535),
+        ("evidence_cid", 10536),
       ],
       [
         "version", "barrier_cid", "input_relation_artifact_cid", "input_content_ref_cids",
@@ -29619,23 +29665,23 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("previous_response_artifact_cid", 10522), ("token", 10523)],
+      [("previous_response_artifact_cid", 10544), ("token", 10545)],
       ["previous_response_artifact_cid", "token"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(AnyOfRule([10521, 10524]))
+  nodes.push(AnyOfRule([10543, 10546]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10516),
-        ("source_view_contract_cid", 10517),
-        ("request_schema_cid", 10518),
-        ("transport_plan_cid", 10519),
-        ("request_values", 10520),
-        ("continuation", 10525),
+        ("version", 10538),
+        ("source_view_contract_cid", 10539),
+        ("request_schema_cid", 10540),
+        ("transport_plan_cid", 10541),
+        ("request_values", 10542),
+        ("continuation", 10547),
       ],
       [
         "version", "source_view_contract_cid", "request_schema_cid", "transport_plan_cid",
@@ -29646,7 +29692,7 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10516])
+  nodes.push(nodes[10538])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -29656,25 +29702,25 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[270])
   nodes.push(
     protocol_object_rule(
-      [("previous_response_artifact_cid", 10533), ("token", 10534)],
+      [("previous_response_artifact_cid", 10555), ("token", 10556)],
       ["previous_response_artifact_cid", "token"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(AnyOfRule([10532, 10535]))
+  nodes.push(AnyOfRule([10554, 10557]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10527),
-        ("source_view_contract_cid", 10528),
-        ("request_schema_cid", 10529),
-        ("transport_plan_cid", 10530),
-        ("request_values", 10531),
-        ("continuation", 10536),
-        ("self_cid", 10537),
+        ("version", 10549),
+        ("source_view_contract_cid", 10550),
+        ("request_schema_cid", 10551),
+        ("transport_plan_cid", 10552),
+        ("request_values", 10553),
+        ("continuation", 10558),
+        ("self_cid", 10559),
       ],
       [
         "version", "source_view_contract_cid", "request_schema_cid", "transport_plan_cid",
@@ -29693,11 +29739,11 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10539),
-        ("batch_plan_cid", 10540),
-        ("batch_index", 10541),
-        ("page_index", 10542),
-        ("semantic_request_cid", 10543),
+        ("version", 10561),
+        ("batch_plan_cid", 10562),
+        ("batch_index", 10563),
+        ("page_index", 10564),
+        ("semantic_request_cid", 10565),
       ],
       [
         "version", "batch_plan_cid", "batch_index", "page_index", "semantic_request_cid",
@@ -29707,7 +29753,7 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10539])
+  nodes.push(nodes[10561])
   nodes.push(nodes[2])
   nodes.push(nodes[4])
   nodes.push(nodes[4])
@@ -29716,12 +29762,12 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10545),
-        ("batch_plan_cid", 10546),
-        ("batch_index", 10547),
-        ("page_index", 10548),
-        ("semantic_request_cid", 10549),
-        ("self_cid", 10550),
+        ("version", 10567),
+        ("batch_plan_cid", 10568),
+        ("batch_index", 10569),
+        ("page_index", 10570),
+        ("semantic_request_cid", 10571),
+        ("self_cid", 10572),
       ],
       [
         "version", "batch_plan_cid", "batch_index", "page_index", "semantic_request_cid",
@@ -29741,10 +29787,10 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[936])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10557, 10558]))
+  nodes.push(AnyOfRule([10579, 10580]))
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10560, 10561]))
+  nodes.push(AnyOfRule([10582, 10583]))
   nodes.push(nodes[80])
   nodes.push(nodes[80])
   nodes.push(nodes[1])
@@ -29752,17 +29798,17 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10552),
-        ("barrier_cid", 10553),
-        ("batch_plan_cid", 10554),
-        ("call_slot_cid", 10555),
-        ("network_attempt", 10556),
-        ("previous_activation_cid", 10559),
-        ("previous_attempt_event_cid", 10562),
-        ("recorded_at", 10563),
-        ("deadline", 10564),
-        ("issuer_id", 10565),
-        ("authority_scope_cid", 10566),
+        ("version", 10574),
+        ("barrier_cid", 10575),
+        ("batch_plan_cid", 10576),
+        ("call_slot_cid", 10577),
+        ("network_attempt", 10578),
+        ("previous_activation_cid", 10581),
+        ("previous_attempt_event_cid", 10584),
+        ("recorded_at", 10585),
+        ("deadline", 10586),
+        ("issuer_id", 10587),
+        ("authority_scope_cid", 10588),
       ],
       [
         "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "network_attempt",
@@ -29774,17 +29820,17 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10552])
+  nodes.push(nodes[10574])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[936])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10573, 10574]))
+  nodes.push(AnyOfRule([10595, 10596]))
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10576, 10577]))
+  nodes.push(AnyOfRule([10598, 10599]))
   nodes.push(nodes[80])
   nodes.push(nodes[80])
   nodes.push(nodes[1])
@@ -29793,18 +29839,18 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10568),
-        ("barrier_cid", 10569),
-        ("batch_plan_cid", 10570),
-        ("call_slot_cid", 10571),
-        ("network_attempt", 10572),
-        ("previous_activation_cid", 10575),
-        ("previous_attempt_event_cid", 10578),
-        ("recorded_at", 10579),
-        ("deadline", 10580),
-        ("issuer_id", 10581),
-        ("authority_scope_cid", 10582),
-        ("self_cid", 10583),
+        ("version", 10590),
+        ("barrier_cid", 10591),
+        ("batch_plan_cid", 10592),
+        ("call_slot_cid", 10593),
+        ("network_attempt", 10594),
+        ("previous_activation_cid", 10597),
+        ("previous_attempt_event_cid", 10600),
+        ("recorded_at", 10601),
+        ("deadline", 10602),
+        ("issuer_id", 10603),
+        ("authority_scope_cid", 10604),
+        ("self_cid", 10605),
       ],
       [
         "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "network_attempt",
@@ -29832,17 +29878,17 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10585),
-        ("call_slot_cid", 10586),
-        ("network_attempt", 10587),
-        ("content_cid", 10588),
-        ("size_bytes", 10589),
-        ("media_type", 10590),
-        ("captured_at", 10591),
-        ("effective_data_policy_cid", 10592),
-        ("effective_retention_policy_cid", 10593),
-        ("issuer_id", 10594),
-        ("authority_scope_cid", 10595),
+        ("version", 10607),
+        ("call_slot_cid", 10608),
+        ("network_attempt", 10609),
+        ("content_cid", 10610),
+        ("size_bytes", 10611),
+        ("media_type", 10612),
+        ("captured_at", 10613),
+        ("effective_data_policy_cid", 10614),
+        ("effective_retention_policy_cid", 10615),
+        ("issuer_id", 10616),
+        ("authority_scope_cid", 10617),
       ],
       [
         "version", "call_slot_cid", "network_attempt", "content_cid", "size_bytes",
@@ -29854,7 +29900,7 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10585])
+  nodes.push(nodes[10607])
   nodes.push(nodes[2])
   nodes.push(nodes[936])
   nodes.push(nodes[2])
@@ -29869,18 +29915,18 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10597),
-        ("call_slot_cid", 10598),
-        ("network_attempt", 10599),
-        ("content_cid", 10600),
-        ("size_bytes", 10601),
-        ("media_type", 10602),
-        ("captured_at", 10603),
-        ("effective_data_policy_cid", 10604),
-        ("effective_retention_policy_cid", 10605),
-        ("issuer_id", 10606),
-        ("authority_scope_cid", 10607),
-        ("self_cid", 10608),
+        ("version", 10619),
+        ("call_slot_cid", 10620),
+        ("network_attempt", 10621),
+        ("content_cid", 10622),
+        ("size_bytes", 10623),
+        ("media_type", 10624),
+        ("captured_at", 10625),
+        ("effective_data_policy_cid", 10626),
+        ("effective_retention_policy_cid", 10627),
+        ("issuer_id", 10628),
+        ("authority_scope_cid", 10629),
+        ("self_cid", 10630),
       ],
       [
         "version", "call_slot_cid", "network_attempt", "content_cid", "size_bytes",
@@ -29892,9 +29938,9 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10349])
+  nodes.push(nodes[10371])
   nodes.push(
-    protocol_object_rule([("outcome", 10610)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 10632)], ["outcome"], -2, 0, None),
   )
   nodes.push(nodes[2])
   nodes.push(nodes[122])
@@ -29902,9 +29948,9 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("raw_response_artifact_cid", 10612),
-        ("runtime_error_cid", 10613),
-        ("failure_code", 10614),
+        ("raw_response_artifact_cid", 10634),
+        ("runtime_error_cid", 10635),
+        ("failure_code", 10636),
       ],
       [],
       -2,
@@ -29913,12 +29959,12 @@ fn generated_protocol_schema_nodes_10(
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(10611, 10615, 10616))
+  nodes.push(ConditionalRule(10633, 10637, 10638))
   nodes.push(
     protocol_string_rule(None, ["dispatched", "unknown", "unattempted"], 0, 0),
   )
   nodes.push(
-    protocol_object_rule([("outcome", 10618)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 10640)], ["outcome"], -2, 0, None),
   )
   nodes.push(nodes[122])
   nodes.push(nodes[122])
@@ -29926,9 +29972,9 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("raw_response_artifact_cid", 10620),
-        ("runtime_error_cid", 10621),
-        ("failure_code", 10622),
+        ("raw_response_artifact_cid", 10642),
+        ("runtime_error_cid", 10643),
+        ("failure_code", 10644),
       ],
       [],
       -2,
@@ -29937,15 +29983,15 @@ fn generated_protocol_schema_nodes_10(
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(10619, 10623, 10624))
+  nodes.push(ConditionalRule(10641, 10645, 10646))
   nodes.push(nodes[2717])
   nodes.push(
-    protocol_object_rule([("outcome", 10626)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 10648)], ["outcome"], -2, 0, None),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("failure_code", 10628)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("failure_code", 10650)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(10627, 10629, 10630))
+  nodes.push(ConditionalRule(10649, 10651, 10652))
   nodes.push(
     protocol_string_rule(Some("actql-lookup-attempt-event/0.1"), [], 0, 0),
   )
@@ -29955,7 +30001,7 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[936])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10637, 10638]))
+  nodes.push(AnyOfRule([10659, 10660]))
   nodes.push(nodes[80])
   nodes.push(
     protocol_string_rule(
@@ -29967,31 +30013,31 @@ fn generated_protocol_schema_nodes_10(
   )
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10642, 10643]))
+  nodes.push(AnyOfRule([10664, 10665]))
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10645, 10646]))
+  nodes.push(AnyOfRule([10667, 10668]))
   nodes.push(nodes[1])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10648, 10649]))
+  nodes.push(AnyOfRule([10670, 10671]))
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10632),
-        ("barrier_cid", 10633),
-        ("batch_plan_cid", 10634),
-        ("call_slot_cid", 10635),
-        ("network_attempt", 10636),
-        ("previous_event_cid", 10639),
-        ("recorded_at", 10640),
-        ("outcome", 10641),
-        ("raw_response_artifact_cid", 10644),
-        ("runtime_error_cid", 10647),
-        ("failure_code", 10650),
-        ("issuer_id", 10651),
-        ("authority_scope_cid", 10652),
+        ("version", 10654),
+        ("barrier_cid", 10655),
+        ("batch_plan_cid", 10656),
+        ("call_slot_cid", 10657),
+        ("network_attempt", 10658),
+        ("previous_event_cid", 10661),
+        ("recorded_at", 10662),
+        ("outcome", 10663),
+        ("raw_response_artifact_cid", 10666),
+        ("runtime_error_cid", 10669),
+        ("failure_code", 10672),
+        ("issuer_id", 10673),
+        ("authority_scope_cid", 10674),
       ],
       [
         "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "network_attempt",
@@ -30003,10 +30049,10 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(AllOfRule([10617, 10625, 10631, 10653]))
-  nodes.push(nodes[10349])
+  nodes.push(AllOfRule([10639, 10647, 10653, 10675]))
+  nodes.push(nodes[10371])
   nodes.push(
-    protocol_object_rule([("outcome", 10655)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 10677)], ["outcome"], -2, 0, None),
   )
   nodes.push(nodes[2])
   nodes.push(nodes[122])
@@ -30014,9 +30060,9 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("raw_response_artifact_cid", 10657),
-        ("runtime_error_cid", 10658),
-        ("failure_code", 10659),
+        ("raw_response_artifact_cid", 10679),
+        ("runtime_error_cid", 10680),
+        ("failure_code", 10681),
       ],
       [],
       -2,
@@ -30025,10 +30071,10 @@ fn generated_protocol_schema_nodes_10(
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(10656, 10660, 10661))
-  nodes.push(nodes[10618])
+  nodes.push(ConditionalRule(10678, 10682, 10683))
+  nodes.push(nodes[10640])
   nodes.push(
-    protocol_object_rule([("outcome", 10663)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 10685)], ["outcome"], -2, 0, None),
   )
   nodes.push(nodes[122])
   nodes.push(nodes[122])
@@ -30036,9 +30082,9 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("raw_response_artifact_cid", 10665),
-        ("runtime_error_cid", 10666),
-        ("failure_code", 10667),
+        ("raw_response_artifact_cid", 10687),
+        ("runtime_error_cid", 10688),
+        ("failure_code", 10689),
       ],
       [],
       -2,
@@ -30047,54 +30093,54 @@ fn generated_protocol_schema_nodes_10(
     ),
   )
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(10664, 10668, 10669))
+  nodes.push(ConditionalRule(10686, 10690, 10691))
   nodes.push(nodes[2717])
   nodes.push(
-    protocol_object_rule([("outcome", 10671)], ["outcome"], -2, 0, None),
+    protocol_object_rule([("outcome", 10693)], ["outcome"], -2, 0, None),
   )
   nodes.push(nodes[1])
-  nodes.push(protocol_object_rule([("failure_code", 10673)], [], -2, 0, None))
+  nodes.push(protocol_object_rule([("failure_code", 10695)], [], -2, 0, None))
   nodes.push(nodes[270])
-  nodes.push(ConditionalRule(10672, 10674, 10675))
-  nodes.push(nodes[10632])
+  nodes.push(ConditionalRule(10694, 10696, 10697))
+  nodes.push(nodes[10654])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[936])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10682, 10683]))
+  nodes.push(AnyOfRule([10704, 10705]))
   nodes.push(nodes[80])
-  nodes.push(nodes[10641])
+  nodes.push(nodes[10663])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10687, 10688]))
+  nodes.push(AnyOfRule([10709, 10710]))
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10690, 10691]))
+  nodes.push(AnyOfRule([10712, 10713]))
   nodes.push(nodes[1])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10693, 10694]))
+  nodes.push(AnyOfRule([10715, 10716]))
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10677),
-        ("barrier_cid", 10678),
-        ("batch_plan_cid", 10679),
-        ("call_slot_cid", 10680),
-        ("network_attempt", 10681),
-        ("previous_event_cid", 10684),
-        ("recorded_at", 10685),
-        ("outcome", 10686),
-        ("raw_response_artifact_cid", 10689),
-        ("runtime_error_cid", 10692),
-        ("failure_code", 10695),
-        ("issuer_id", 10696),
-        ("authority_scope_cid", 10697),
-        ("self_cid", 10698),
+        ("version", 10699),
+        ("barrier_cid", 10700),
+        ("batch_plan_cid", 10701),
+        ("call_slot_cid", 10702),
+        ("network_attempt", 10703),
+        ("previous_event_cid", 10706),
+        ("recorded_at", 10707),
+        ("outcome", 10708),
+        ("raw_response_artifact_cid", 10711),
+        ("runtime_error_cid", 10714),
+        ("failure_code", 10717),
+        ("issuer_id", 10718),
+        ("authority_scope_cid", 10719),
+        ("self_cid", 10720),
       ],
       [
         "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "network_attempt",
@@ -30107,7 +30153,7 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(AllOfRule([10662, 10670, 10676, 10699]))
+  nodes.push(AllOfRule([10684, 10692, 10698, 10721]))
   nodes.push(
     protocol_string_rule(Some("actql-lookup-page-adoption/0.1"), [], 0, 0),
   )
@@ -30122,7 +30168,7 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10711, 10712]))
+  nodes.push(AnyOfRule([10733, 10734]))
   nodes.push(nodes[14])
   nodes.push(nodes[270])
   nodes.push(nodes[80])
@@ -30131,22 +30177,22 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10701),
-        ("barrier_cid", 10702),
-        ("batch_plan_cid", 10703),
-        ("call_slot_cid", 10704),
-        ("activation_cid", 10705),
-        ("network_attempt", 10706),
-        ("capture_event_cid", 10707),
-        ("raw_response_artifact_cid", 10708),
-        ("response_schema_cid", 10709),
-        ("page_value_cid", 10710),
-        ("previous_adoption_cid", 10713),
-        ("terminal", 10714),
-        ("next_token", 10715),
-        ("recorded_at", 10716),
-        ("issuer_id", 10717),
-        ("authority_scope_cid", 10718),
+        ("version", 10723),
+        ("barrier_cid", 10724),
+        ("batch_plan_cid", 10725),
+        ("call_slot_cid", 10726),
+        ("activation_cid", 10727),
+        ("network_attempt", 10728),
+        ("capture_event_cid", 10729),
+        ("raw_response_artifact_cid", 10730),
+        ("response_schema_cid", 10731),
+        ("page_value_cid", 10732),
+        ("previous_adoption_cid", 10735),
+        ("terminal", 10736),
+        ("next_token", 10737),
+        ("recorded_at", 10738),
+        ("issuer_id", 10739),
+        ("authority_scope_cid", 10740),
       ],
       [
         "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "activation_cid",
@@ -30159,7 +30205,7 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10701])
+  nodes.push(nodes[10723])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -30171,7 +30217,7 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
-  nodes.push(AnyOfRule([10730, 10731]))
+  nodes.push(AnyOfRule([10752, 10753]))
   nodes.push(nodes[14])
   nodes.push(nodes[270])
   nodes.push(nodes[80])
@@ -30181,23 +30227,23 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10720),
-        ("barrier_cid", 10721),
-        ("batch_plan_cid", 10722),
-        ("call_slot_cid", 10723),
-        ("activation_cid", 10724),
-        ("network_attempt", 10725),
-        ("capture_event_cid", 10726),
-        ("raw_response_artifact_cid", 10727),
-        ("response_schema_cid", 10728),
-        ("page_value_cid", 10729),
-        ("previous_adoption_cid", 10732),
-        ("terminal", 10733),
-        ("next_token", 10734),
-        ("recorded_at", 10735),
-        ("issuer_id", 10736),
-        ("authority_scope_cid", 10737),
-        ("self_cid", 10738),
+        ("version", 10742),
+        ("barrier_cid", 10743),
+        ("batch_plan_cid", 10744),
+        ("call_slot_cid", 10745),
+        ("activation_cid", 10746),
+        ("network_attempt", 10747),
+        ("capture_event_cid", 10748),
+        ("raw_response_artifact_cid", 10749),
+        ("response_schema_cid", 10750),
+        ("page_value_cid", 10751),
+        ("previous_adoption_cid", 10754),
+        ("terminal", 10755),
+        ("next_token", 10756),
+        ("recorded_at", 10757),
+        ("issuer_id", 10758),
+        ("authority_scope_cid", 10759),
+        ("self_cid", 10760),
       ],
       [
         "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "activation_cid",
@@ -30220,11 +30266,11 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10740),
-        ("source_view_contract_cid", 10741),
-        ("request_schema_cid", 10742),
-        ("response_schema_cid", 10743),
-        ("response_encoding", 10744),
+        ("version", 10762),
+        ("source_view_contract_cid", 10763),
+        ("request_schema_cid", 10764),
+        ("response_schema_cid", 10765),
+        ("response_encoding", 10766),
       ],
       [
         "version", "source_view_contract_cid", "request_schema_cid", "response_schema_cid",
@@ -30235,21 +30281,21 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10740])
+  nodes.push(nodes[10762])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[10744])
+  nodes.push(nodes[10766])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10746),
-        ("source_view_contract_cid", 10747),
-        ("request_schema_cid", 10748),
-        ("response_schema_cid", 10749),
-        ("response_encoding", 10750),
-        ("transport_cid", 10751),
+        ("version", 10768),
+        ("source_view_contract_cid", 10769),
+        ("request_schema_cid", 10770),
+        ("response_schema_cid", 10771),
+        ("response_encoding", 10772),
+        ("transport_cid", 10773),
       ],
       [
         "version", "source_view_contract_cid", "request_schema_cid", "response_schema_cid",
@@ -30264,16 +30310,16 @@ fn generated_protocol_schema_nodes_10(
     protocol_string_rule(Some("actql-sample-source-generation/0.1"), [], 0, 0),
   )
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([10754, 10755]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([10776, 10777]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 10756),
-        ("authorityScopeCid", 10757),
-        ("runDefinitionCid", 10758),
+        ("namespaceId", 10778),
+        ("authorityScopeCid", 10779),
+        ("runDefinitionCid", 10780),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -30289,41 +30335,41 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(protocol_string_rule(Some("first_physical_start"), [], 0, 0))
   nodes.push(protocol_string_rule(Some("0"), [], 0, 0))
-  nodes.push(NotRule(10767))
-  nodes.push(nodes[3592])
-  nodes.push(AllOfRule([10768, 10769]))
-  nodes.push(nodes[10767])
-  nodes.push(NotRule(10771))
-  nodes.push(nodes[3592])
-  nodes.push(AllOfRule([10772, 10773]))
+  nodes.push(NotRule(10789))
+  nodes.push(nodes[3606])
+  nodes.push(AllOfRule([10790, 10791]))
+  nodes.push(nodes[10789])
+  nodes.push(NotRule(10793))
+  nodes.push(nodes[3606])
+  nodes.push(AllOfRule([10794, 10795]))
   nodes.push(
     protocol_object_rule(
-      [("kind", 10766), ("start_revision", 10770), ("attempt_sequence", 10774)],
+      [("kind", 10788), ("start_revision", 10792), ("attempt_sequence", 10796)],
       ["kind", "start_revision", "attempt_sequence"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[10767])
-  nodes.push(NotRule(10776))
-  nodes.push(nodes[3592])
-  nodes.push(AllOfRule([10777, 10778]))
+  nodes.push(nodes[10789])
+  nodes.push(NotRule(10798))
+  nodes.push(nodes[3606])
+  nodes.push(AllOfRule([10799, 10800]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10753),
-        ("run_ref", 10759),
-        ("compiled_plan_cid", 10760),
-        ("logical_map_cid", 10761),
-        ("step_id", 10762),
-        ("output_port_id", 10763),
-        ("carrier", 10764),
-        ("carrier_contract_cid", 10765),
-        ("producer_occurrence", 10775),
-        ("committed_generation", 10779),
-        ("self_cid", 10780),
+        ("version", 10775),
+        ("run_ref", 10781),
+        ("compiled_plan_cid", 10782),
+        ("logical_map_cid", 10783),
+        ("step_id", 10784),
+        ("output_port_id", 10785),
+        ("carrier", 10786),
+        ("carrier_contract_cid", 10787),
+        ("producer_occurrence", 10797),
+        ("committed_generation", 10801),
+        ("self_cid", 10802),
       ],
       [
         "version", "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id",
@@ -30335,18 +30381,18 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10753])
+  nodes.push(nodes[10775])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([10783, 10784]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([10805, 10806]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 10785),
-        ("authorityScopeCid", 10786),
-        ("runDefinitionCid", 10787),
+        ("namespaceId", 10807),
+        ("authorityScopeCid", 10808),
+        ("runDefinitionCid", 10809),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -30360,41 +30406,41 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[19])
   nodes.push(nodes[2])
-  nodes.push(nodes[10766])
-  nodes.push(nodes[10767])
-  nodes.push(NotRule(10796))
-  nodes.push(nodes[3592])
-  nodes.push(AllOfRule([10797, 10798]))
-  nodes.push(nodes[10767])
-  nodes.push(NotRule(10800))
-  nodes.push(nodes[3592])
-  nodes.push(AllOfRule([10801, 10802]))
+  nodes.push(nodes[10788])
+  nodes.push(nodes[10789])
+  nodes.push(NotRule(10818))
+  nodes.push(nodes[3606])
+  nodes.push(AllOfRule([10819, 10820]))
+  nodes.push(nodes[10789])
+  nodes.push(NotRule(10822))
+  nodes.push(nodes[3606])
+  nodes.push(AllOfRule([10823, 10824]))
   nodes.push(
     protocol_object_rule(
-      [("kind", 10795), ("start_revision", 10799), ("attempt_sequence", 10803)],
+      [("kind", 10817), ("start_revision", 10821), ("attempt_sequence", 10825)],
       ["kind", "start_revision", "attempt_sequence"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(nodes[10767])
-  nodes.push(NotRule(10805))
-  nodes.push(nodes[3592])
-  nodes.push(AllOfRule([10806, 10807]))
+  nodes.push(nodes[10789])
+  nodes.push(NotRule(10827))
+  nodes.push(nodes[3606])
+  nodes.push(AllOfRule([10828, 10829]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10782),
-        ("run_ref", 10788),
-        ("compiled_plan_cid", 10789),
-        ("logical_map_cid", 10790),
-        ("step_id", 10791),
-        ("output_port_id", 10792),
-        ("carrier", 10793),
-        ("carrier_contract_cid", 10794),
-        ("producer_occurrence", 10804),
-        ("committed_generation", 10808),
+        ("version", 10804),
+        ("run_ref", 10810),
+        ("compiled_plan_cid", 10811),
+        ("logical_map_cid", 10812),
+        ("step_id", 10813),
+        ("output_port_id", 10814),
+        ("carrier", 10815),
+        ("carrier_contract_cid", 10816),
+        ("producer_occurrence", 10826),
+        ("committed_generation", 10830),
       ],
       [
         "version", "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id",
@@ -30412,30 +30458,30 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[10767])
-  nodes.push(NotRule(10816))
-  nodes.push(nodes[3592])
-  nodes.push(AllOfRule([10817, 10818]))
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[10789])
+  nodes.push(NotRule(10838))
+  nodes.push(nodes[3606])
+  nodes.push(AllOfRule([10839, 10840]))
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
   nodes.push(nodes[14])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10810),
-        ("source_generation_cid", 10811),
-        ("control_admission_cid", 10812),
-        ("resolved_profile_cid", 10813),
-        ("strategy", 10814),
-        ("max_items", 10815),
-        ("max_bytes", 10819),
-        ("max_artifacts", 10820),
-        ("ttl_seconds", 10821),
-        ("required", 10822),
-        ("self_cid", 10823),
+        ("version", 10832),
+        ("source_generation_cid", 10833),
+        ("control_admission_cid", 10834),
+        ("resolved_profile_cid", 10835),
+        ("strategy", 10836),
+        ("max_items", 10837),
+        ("max_bytes", 10841),
+        ("max_artifacts", 10842),
+        ("ttl_seconds", 10843),
+        ("required", 10844),
+        ("self_cid", 10845),
       ],
       [
         "version", "source_generation_cid", "control_admission_cid", "resolved_profile_cid",
@@ -30447,32 +30493,32 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10810])
+  nodes.push(nodes[10832])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
-  nodes.push(nodes[3660])
-  nodes.push(nodes[3673])
-  nodes.push(nodes[10767])
-  nodes.push(NotRule(10831))
-  nodes.push(nodes[3592])
-  nodes.push(AllOfRule([10832, 10833]))
-  nodes.push(nodes[3673])
-  nodes.push(nodes[3673])
+  nodes.push(nodes[3674])
+  nodes.push(nodes[3687])
+  nodes.push(nodes[10789])
+  nodes.push(NotRule(10853))
+  nodes.push(nodes[3606])
+  nodes.push(AllOfRule([10854, 10855]))
+  nodes.push(nodes[3687])
+  nodes.push(nodes[3687])
   nodes.push(nodes[14])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10825),
-        ("source_generation_cid", 10826),
-        ("control_admission_cid", 10827),
-        ("resolved_profile_cid", 10828),
-        ("strategy", 10829),
-        ("max_items", 10830),
-        ("max_bytes", 10834),
-        ("max_artifacts", 10835),
-        ("ttl_seconds", 10836),
-        ("required", 10837),
+        ("version", 10847),
+        ("source_generation_cid", 10848),
+        ("control_admission_cid", 10849),
+        ("resolved_profile_cid", 10850),
+        ("strategy", 10851),
+        ("max_items", 10852),
+        ("max_bytes", 10856),
+        ("max_artifacts", 10857),
+        ("ttl_seconds", 10858),
+        ("required", 10859),
       ],
       [
         "version", "source_generation_cid", "control_admission_cid", "resolved_profile_cid",
@@ -30491,21 +30537,21 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(nodes[2])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([10843, 10844]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(protocol_one_of_rule([10865, 10866]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 10847),
-        ("value", 10848),
-        ("unit", 10849),
-        ("scope_cid", 10850),
-        ("basis_cid", 10851),
+        ("kind", 10869),
+        ("value", 10870),
+        ("unit", 10871),
+        ("scope_cid", 10872),
+        ("basis_cid", 10873),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -30513,35 +30559,35 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 10853), ("unit", 10854), ("reason", 10855)],
+      [("kind", 10875), ("unit", 10876), ("reason", 10877)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([10852, 10856]))
-  nodes.push(nodes[5168])
-  nodes.push(nodes[5169])
+  nodes.push(protocol_one_of_rule([10874, 10878]))
+  nodes.push(nodes[5184])
+  nodes.push(nodes[5185])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10839),
-        ("original_capture_cid", 10840),
-        ("source_generation_cid", 10841),
-        ("relation_prefix_cid", 10842),
-        ("ordering_evidence_cid", 10845),
-        ("sampled_items", 10846),
-        ("total", 10857),
-        ("completeness", 10858),
-        ("truncation", 10859),
-        ("self_cid", 10860),
+        ("version", 10861),
+        ("original_capture_cid", 10862),
+        ("source_generation_cid", 10863),
+        ("relation_prefix_cid", 10864),
+        ("ordering_evidence_cid", 10867),
+        ("sampled_items", 10868),
+        ("total", 10879),
+        ("completeness", 10880),
+        ("truncation", 10881),
+        ("self_cid", 10882),
       ],
       [
         "version", "original_capture_cid", "source_generation_cid", "relation_prefix_cid",
@@ -30553,27 +30599,27 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10839])
+  nodes.push(nodes[10861])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(nodes[122])
   nodes.push(nodes[2])
-  nodes.push(protocol_one_of_rule([10866, 10867]))
-  nodes.push(nodes[3581])
-  nodes.push(nodes[3580])
-  nodes.push(nodes[3581])
+  nodes.push(protocol_one_of_rule([10888, 10889]))
+  nodes.push(nodes[3595])
+  nodes.push(nodes[3594])
+  nodes.push(nodes[3595])
   nodes.push(nodes[1])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("kind", 10870),
-        ("value", 10871),
-        ("unit", 10872),
-        ("scope_cid", 10873),
-        ("basis_cid", 10874),
+        ("kind", 10892),
+        ("value", 10893),
+        ("unit", 10894),
+        ("scope_cid", 10895),
+        ("basis_cid", 10896),
       ],
       ["kind", "value", "unit", "scope_cid", "basis_cid"],
       -1,
@@ -30581,33 +30627,33 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[3004])
+  nodes.push(nodes[3018])
   nodes.push(nodes[1])
   nodes.push(nodes[1])
   nodes.push(
     protocol_object_rule(
-      [("kind", 10876), ("unit", 10877), ("reason", 10878)],
+      [("kind", 10898), ("unit", 10899), ("reason", 10900)],
       ["kind", "unit", "reason"],
       -1,
       0,
       None,
     ),
   )
-  nodes.push(protocol_one_of_rule([10875, 10879]))
-  nodes.push(nodes[5168])
-  nodes.push(nodes[5169])
+  nodes.push(protocol_one_of_rule([10897, 10901]))
+  nodes.push(nodes[5184])
+  nodes.push(nodes[5185])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10862),
-        ("original_capture_cid", 10863),
-        ("source_generation_cid", 10864),
-        ("relation_prefix_cid", 10865),
-        ("ordering_evidence_cid", 10868),
-        ("sampled_items", 10869),
-        ("total", 10880),
-        ("completeness", 10881),
-        ("truncation", 10882),
+        ("version", 10884),
+        ("original_capture_cid", 10885),
+        ("source_generation_cid", 10886),
+        ("relation_prefix_cid", 10887),
+        ("ordering_evidence_cid", 10890),
+        ("sampled_items", 10891),
+        ("total", 10902),
+        ("completeness", 10903),
+        ("truncation", 10904),
       ],
       [
         "version", "original_capture_cid", "source_generation_cid", "relation_prefix_cid",
@@ -30620,16 +30666,16 @@ fn generated_protocol_schema_nodes_10(
   )
   nodes.push(protocol_string_rule(Some("actql-sample-reference/0.1"), [], 0, 0))
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([10885, 10886]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([10907, 10908]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 10887),
-        ("authorityScopeCid", 10888),
-        ("runDefinitionCid", 10889),
+        ("namespaceId", 10909),
+        ("authorityScopeCid", 10910),
+        ("runDefinitionCid", 10911),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -30644,12 +30690,12 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10884),
-        ("run_ref", 10890),
-        ("output_port_id", 10891),
-        ("original_capture_cid", 10892),
-        ("emission_provenance_cid", 10893),
-        ("self_cid", 10894),
+        ("version", 10906),
+        ("run_ref", 10912),
+        ("output_port_id", 10913),
+        ("original_capture_cid", 10914),
+        ("emission_provenance_cid", 10915),
+        ("self_cid", 10916),
       ],
       [
         "version", "run_ref", "output_port_id", "original_capture_cid", "emission_provenance_cid",
@@ -30660,18 +30706,18 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10884])
+  nodes.push(nodes[10906])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([10897, 10898]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([10919, 10920]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 10899),
-        ("authorityScopeCid", 10900),
-        ("runDefinitionCid", 10901),
+        ("namespaceId", 10921),
+        ("authorityScopeCid", 10922),
+        ("runDefinitionCid", 10923),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -30685,11 +30731,11 @@ fn generated_protocol_schema_nodes_10(
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10896),
-        ("run_ref", 10902),
-        ("output_port_id", 10903),
-        ("original_capture_cid", 10904),
-        ("emission_provenance_cid", 10905),
+        ("version", 10918),
+        ("run_ref", 10924),
+        ("output_port_id", 10925),
+        ("original_capture_cid", 10926),
+        ("emission_provenance_cid", 10927),
       ],
       [
         "version", "run_ref", "output_port_id", "original_capture_cid", "emission_provenance_cid",
@@ -30703,16 +30749,16 @@ fn generated_protocol_schema_nodes_10(
     protocol_string_rule(Some("actql-sample-adoption-receipt/0.1"), [], 0, 0),
   )
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([10908, 10909]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([10930, 10931]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 10910),
-        ("authorityScopeCid", 10911),
-        ("runDefinitionCid", 10912),
+        ("namespaceId", 10932),
+        ("authorityScopeCid", 10933),
+        ("runDefinitionCid", 10934),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -30722,20 +30768,20 @@ fn generated_protocol_schema_nodes_10(
   )
   nodes.push(nodes[2])
   nodes.push(protocol_string_rule(Some("retained_relation_prefix"), [], 0, 0))
-  nodes.push(nodes[10767])
-  nodes.push(NotRule(10916))
-  nodes.push(nodes[3592])
-  nodes.push(AllOfRule([10917, 10918]))
+  nodes.push(nodes[10789])
+  nodes.push(NotRule(10938))
+  nodes.push(nodes[3606])
+  nodes.push(AllOfRule([10939, 10940]))
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10907),
-        ("run_ref", 10913),
-        ("sample_ref_cid", 10914),
-        ("adoption", 10915),
-        ("expires_at_epoch_ms", 10919),
-        ("self_cid", 10920),
+        ("version", 10929),
+        ("run_ref", 10935),
+        ("sample_ref_cid", 10936),
+        ("adoption", 10937),
+        ("expires_at_epoch_ms", 10941),
+        ("self_cid", 10942),
       ],
       [
         "version", "run_ref", "sample_ref_cid", "adoption", "expires_at_epoch_ms",
@@ -30746,18 +30792,18 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
-  nodes.push(nodes[10907])
+  nodes.push(nodes[10929])
   nodes.push(nodes[451])
-  nodes.push(nodes[3774])
-  nodes.push(AllOfRule([10923, 10924]))
+  nodes.push(nodes[3788])
+  nodes.push(AllOfRule([10945, 10946]))
   nodes.push(nodes[2])
   nodes.push(nodes[2])
   nodes.push(
     protocol_object_rule(
       [
-        ("namespaceId", 10925),
-        ("authorityScopeCid", 10926),
-        ("runDefinitionCid", 10927),
+        ("namespaceId", 10947),
+        ("authorityScopeCid", 10948),
+        ("runDefinitionCid", 10949),
       ],
       ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       -1,
@@ -30766,19 +30812,19 @@ fn generated_protocol_schema_nodes_10(
     ),
   )
   nodes.push(nodes[2])
-  nodes.push(nodes[10915])
-  nodes.push(nodes[10767])
-  nodes.push(NotRule(10931))
-  nodes.push(nodes[3592])
-  nodes.push(AllOfRule([10932, 10933]))
+  nodes.push(nodes[10937])
+  nodes.push(nodes[10789])
+  nodes.push(NotRule(10953))
+  nodes.push(nodes[3606])
+  nodes.push(AllOfRule([10954, 10955]))
   nodes.push(
     protocol_object_rule(
       [
-        ("version", 10922),
-        ("run_ref", 10928),
-        ("sample_ref_cid", 10929),
-        ("adoption", 10930),
-        ("expires_at_epoch_ms", 10934),
+        ("version", 10944),
+        ("run_ref", 10950),
+        ("sample_ref_cid", 10951),
+        ("adoption", 10952),
+        ("expires_at_epoch_ms", 10956),
       ],
       [
         "version", "run_ref", "sample_ref_cid", "adoption", "expires_at_epoch_ms",
@@ -30851,149 +30897,149 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("effect_preview", true) => Some(2658)
     ("effect_source_artifact", false) => Some(2683)
     ("effect_source_artifact", true) => Some(2709)
-    ("effect_local_operation_receipt", false) => Some(2780)
-    ("effect_local_operation_receipt", true) => Some(2853)
-    ("effect_row_outcome_receipt", false) => Some(2922)
-    ("effect_row_outcome_receipt", true) => Some(2993)
-    ("effect_apply_receipt", false) => Some(3046)
-    ("effect_apply_receipt", true) => Some(3100)
-    ("effect_set_apply_receipt", false) => Some(3118)
-    ("effect_set_apply_receipt", true) => Some(3137)
-    ("effect_reconciliation_receipt", false) => Some(3239)
-    ("effect_reconciliation_receipt", true) => Some(3342)
-    ("invocation_bindings", false) => Some(3346)
-    ("invocation_bindings", true) => Some(3351)
-    ("model_effective_inputs", false) => Some(3357)
-    ("model_effective_inputs", true) => Some(3364)
-    ("model_input_artifact", false) => Some(3375)
-    ("model_input_artifact", true) => Some(3387)
-    ("model_input_key", false) => Some(3394)
-    ("model_input_key", true) => Some(3402)
-    ("model_call_slot", false) => Some(3412)
-    ("model_call_slot", true) => Some(3423)
-    ("model_invocation_scope", false) => Some(3443)
-    ("model_invocation_scope", true) => Some(3464)
-    ("model_provider_binding", false) => Some(3470)
-    ("model_provider_binding", true) => Some(3477)
-    ("run_review_projection", false) => Some(3505)
-    ("run_review_projection", true) => Some(3534)
-    ("effect_outcome", true) => Some(3579)
-    ("control_quantity", true) => Some(3590)
-    ("control_money", true) => Some(3597)
-    ("control_guards", true) => Some(3605)
-    ("control_interval", true) => Some(3617)
-    ("control_profile", true) => Some(3691)
-    ("control_profile", false) => Some(3764)
-    ("control_request_intent", true) => Some(3783)
-    ("control_request_intent", false) => Some(3801)
-    ("control_admission", true) => Some(3815)
-    ("control_admission", false) => Some(3828)
-    ("resolved_control_profile", true) => Some(3847)
-    ("resolved_control_profile", false) => Some(3865)
-    ("logical_step_key", true) => Some(3877)
-    ("logical_step_key", false) => Some(3888)
-    ("logical_port_key", true) => Some(3895)
-    ("logical_port_key", false) => Some(3901)
-    ("logical_source_locator", true) => Some(3910)
-    ("logical_port", true) => Some(3929)
-    ("logical_step", true) => Some(3973)
-    ("logical_map", true) => Some(4023)
-    ("logical_map", false) => Some(4072)
-    ("run_control_capabilities", true) => Some(4083)
-    ("plan_view", true) => Some(4161)
-    ("control_resume_origin", true) => Some(4173)
-    ("controlled_run_state", true) => Some(4361)
-    ("control_command", true) => Some(4392)
-    ("control_command", false) => Some(4422)
-    ("control_operation_ref", true) => Some(4432)
-    ("control_operation_receipt", true) => Some(4634)
-    ("control_operation_receipt", false) => Some(4835)
-    ("control_operation_observation", true) => Some(4857)
-    ("control_operation_lookup", true) => Some(5087)
-    ("control_operation_query", true) => Some(5109)
-    ("sample_selector", true) => Some(5129)
-    ("sample_source", true) => Some(5154)
-    ("sample_capture", true) => Some(5173)
-    ("sample_cell", true) => Some(5180)
-    ("sample_relation", true) => Some(5204)
-    ("sample_graph", true) => Some(5256)
-    ("sample_vectors", true) => Some(5273)
-    ("sample_events", true) => Some(5323)
-    ("run_sample", true) => Some(5681)
-    ("run_view", true) => Some(6278)
-    ("run_plan_view", true) => Some(6364)
-    ("effectful_static_plan_view", true) => Some(6519)
-    ("explanation_type", true) => Some(6523)
-    ("explanation_schema", true) => Some(6532)
-    ("explanation_expression_node", true) => Some(6571)
-    ("explanation_predicate", true) => Some(6618)
-    ("explanation_meaning", true) => Some(6699)
-    ("explanation_step", true) => Some(6801)
-    ("explanation_facts", true) => Some(6912)
-    ("explanation_facts", false) => Some(7022)
-    ("run_explanation_view", true) => Some(7147)
-    ("explanation_context", true) => Some(7322)
-    ("static_explanation_view", true) => Some(7844)
-    ("run_explanation_context_view", true) => Some(8224)
-    ("model_response_profile", false) => Some(8313)
-    ("model_response_profile", true) => Some(8403)
-    ("model_raw_capture_policy", false) => Some(8420)
-    ("model_raw_capture_policy", true) => Some(8438)
-    ("model_raw_response", false) => Some(8455)
-    ("model_raw_response", true) => Some(8473)
-    ("model_original_storage_binding", false) => Some(8482)
-    ("model_original_storage_binding", true) => Some(8492)
-    ("model_original_resource_state", true) => Some(8722)
-    ("model_journal_entry", false) => Some(8818)
-    ("model_journal_entry", true) => Some(8915)
-    ("model_journal_settlement", false) => Some(8955)
-    ("model_journal_settlement", true) => Some(8996)
-    ("run_state", true) => Some(9114)
-    ("review_projection", false) => Some(9182)
-    ("review_projection", true) => Some(9251)
-    ("installation_publication_storage_binding", true) => Some(9257)
-    ("request_key_set", false) => Some(9530)
-    ("request_key_set", true) => Some(9804)
-    ("native_file_content_read", false) => Some(9823)
-    ("native_file_content_read", true) => Some(9843)
-    ("declared_file_content_read", false) => Some(9862)
-    ("declared_file_content_read", true) => Some(9882)
-    ("native_file_lookup_transport", false) => Some(9900)
-    ("native_file_lookup_transport", true) => Some(9919)
-    ("lookup_barrier", false) => Some(10072)
-    ("lookup_barrier", true) => Some(10227)
-    ("native_file_lookup_batch_plan", false) => Some(10237)
-    ("native_file_lookup_batch_plan", true) => Some(10248)
-    ("lookup_accounting", false) => Some(10282)
-    ("lookup_accounting", true) => Some(10317)
-    ("acquisition_attempt_receipt", false) => Some(10382)
-    ("acquisition_attempt_receipt", true) => Some(10448)
-    ("lookup_evidence", false) => Some(10481)
-    ("lookup_evidence", true) => Some(10515)
-    ("native_file_lookup_request", false) => Some(10526)
-    ("native_file_lookup_request", true) => Some(10538)
-    ("native_file_lookup_call_slot", false) => Some(10544)
-    ("native_file_lookup_call_slot", true) => Some(10551)
-    ("native_file_lookup_activation", false) => Some(10567)
-    ("native_file_lookup_activation", true) => Some(10584)
-    ("native_file_lookup_raw_response", false) => Some(10596)
-    ("native_file_lookup_raw_response", true) => Some(10609)
-    ("native_file_lookup_attempt_event", false) => Some(10654)
-    ("native_file_lookup_attempt_event", true) => Some(10700)
-    ("native_file_lookup_adoption", false) => Some(10719)
-    ("native_file_lookup_adoption", true) => Some(10739)
-    ("installed_row_source_read", false) => Some(10745)
-    ("installed_row_source_read", true) => Some(10752)
-    ("sample_source_generation", true) => Some(10781)
-    ("sample_source_generation", false) => Some(10809)
-    ("sample_original_capture", true) => Some(10824)
-    ("sample_original_capture", false) => Some(10838)
-    ("sample_emission_provenance", true) => Some(10861)
-    ("sample_emission_provenance", false) => Some(10883)
-    ("sample_reference", true) => Some(10895)
-    ("sample_reference", false) => Some(10906)
-    ("sample_adoption_receipt", true) => Some(10921)
-    ("sample_adoption_receipt", false) => Some(10935)
+    ("effect_local_operation_receipt", false) => Some(2787)
+    ("effect_local_operation_receipt", true) => Some(2867)
+    ("effect_row_outcome_receipt", false) => Some(2936)
+    ("effect_row_outcome_receipt", true) => Some(3007)
+    ("effect_apply_receipt", false) => Some(3060)
+    ("effect_apply_receipt", true) => Some(3114)
+    ("effect_set_apply_receipt", false) => Some(3132)
+    ("effect_set_apply_receipt", true) => Some(3151)
+    ("effect_reconciliation_receipt", false) => Some(3253)
+    ("effect_reconciliation_receipt", true) => Some(3356)
+    ("invocation_bindings", false) => Some(3360)
+    ("invocation_bindings", true) => Some(3365)
+    ("model_effective_inputs", false) => Some(3371)
+    ("model_effective_inputs", true) => Some(3378)
+    ("model_input_artifact", false) => Some(3389)
+    ("model_input_artifact", true) => Some(3401)
+    ("model_input_key", false) => Some(3408)
+    ("model_input_key", true) => Some(3416)
+    ("model_call_slot", false) => Some(3426)
+    ("model_call_slot", true) => Some(3437)
+    ("model_invocation_scope", false) => Some(3457)
+    ("model_invocation_scope", true) => Some(3478)
+    ("model_provider_binding", false) => Some(3484)
+    ("model_provider_binding", true) => Some(3491)
+    ("run_review_projection", false) => Some(3519)
+    ("run_review_projection", true) => Some(3548)
+    ("effect_outcome", true) => Some(3593)
+    ("control_quantity", true) => Some(3604)
+    ("control_money", true) => Some(3611)
+    ("control_guards", true) => Some(3619)
+    ("control_interval", true) => Some(3631)
+    ("control_profile", true) => Some(3705)
+    ("control_profile", false) => Some(3778)
+    ("control_request_intent", true) => Some(3797)
+    ("control_request_intent", false) => Some(3815)
+    ("control_admission", true) => Some(3829)
+    ("control_admission", false) => Some(3842)
+    ("resolved_control_profile", true) => Some(3861)
+    ("resolved_control_profile", false) => Some(3879)
+    ("logical_step_key", true) => Some(3891)
+    ("logical_step_key", false) => Some(3902)
+    ("logical_port_key", true) => Some(3909)
+    ("logical_port_key", false) => Some(3915)
+    ("logical_source_locator", true) => Some(3924)
+    ("logical_port", true) => Some(3943)
+    ("logical_step", true) => Some(3987)
+    ("logical_map", true) => Some(4037)
+    ("logical_map", false) => Some(4086)
+    ("run_control_capabilities", true) => Some(4098)
+    ("plan_view", true) => Some(4177)
+    ("control_resume_origin", true) => Some(4189)
+    ("controlled_run_state", true) => Some(4377)
+    ("control_command", true) => Some(4408)
+    ("control_command", false) => Some(4438)
+    ("control_operation_ref", true) => Some(4448)
+    ("control_operation_receipt", true) => Some(4650)
+    ("control_operation_receipt", false) => Some(4851)
+    ("control_operation_observation", true) => Some(4873)
+    ("control_operation_lookup", true) => Some(5103)
+    ("control_operation_query", true) => Some(5125)
+    ("sample_selector", true) => Some(5145)
+    ("sample_source", true) => Some(5170)
+    ("sample_capture", true) => Some(5189)
+    ("sample_cell", true) => Some(5196)
+    ("sample_relation", true) => Some(5220)
+    ("sample_graph", true) => Some(5272)
+    ("sample_vectors", true) => Some(5289)
+    ("sample_events", true) => Some(5339)
+    ("run_sample", true) => Some(5697)
+    ("run_view", true) => Some(6295)
+    ("run_plan_view", true) => Some(6382)
+    ("effectful_static_plan_view", true) => Some(6538)
+    ("explanation_type", true) => Some(6542)
+    ("explanation_schema", true) => Some(6551)
+    ("explanation_expression_node", true) => Some(6590)
+    ("explanation_predicate", true) => Some(6637)
+    ("explanation_meaning", true) => Some(6718)
+    ("explanation_step", true) => Some(6820)
+    ("explanation_facts", true) => Some(6931)
+    ("explanation_facts", false) => Some(7041)
+    ("run_explanation_view", true) => Some(7166)
+    ("explanation_context", true) => Some(7341)
+    ("static_explanation_view", true) => Some(7865)
+    ("run_explanation_context_view", true) => Some(8246)
+    ("model_response_profile", false) => Some(8335)
+    ("model_response_profile", true) => Some(8425)
+    ("model_raw_capture_policy", false) => Some(8442)
+    ("model_raw_capture_policy", true) => Some(8460)
+    ("model_raw_response", false) => Some(8477)
+    ("model_raw_response", true) => Some(8495)
+    ("model_original_storage_binding", false) => Some(8504)
+    ("model_original_storage_binding", true) => Some(8514)
+    ("model_original_resource_state", true) => Some(8744)
+    ("model_journal_entry", false) => Some(8840)
+    ("model_journal_entry", true) => Some(8937)
+    ("model_journal_settlement", false) => Some(8977)
+    ("model_journal_settlement", true) => Some(9018)
+    ("run_state", true) => Some(9136)
+    ("review_projection", false) => Some(9204)
+    ("review_projection", true) => Some(9273)
+    ("installation_publication_storage_binding", true) => Some(9279)
+    ("request_key_set", false) => Some(9552)
+    ("request_key_set", true) => Some(9826)
+    ("native_file_content_read", false) => Some(9845)
+    ("native_file_content_read", true) => Some(9865)
+    ("declared_file_content_read", false) => Some(9884)
+    ("declared_file_content_read", true) => Some(9904)
+    ("native_file_lookup_transport", false) => Some(9922)
+    ("native_file_lookup_transport", true) => Some(9941)
+    ("lookup_barrier", false) => Some(10094)
+    ("lookup_barrier", true) => Some(10249)
+    ("native_file_lookup_batch_plan", false) => Some(10259)
+    ("native_file_lookup_batch_plan", true) => Some(10270)
+    ("lookup_accounting", false) => Some(10304)
+    ("lookup_accounting", true) => Some(10339)
+    ("acquisition_attempt_receipt", false) => Some(10404)
+    ("acquisition_attempt_receipt", true) => Some(10470)
+    ("lookup_evidence", false) => Some(10503)
+    ("lookup_evidence", true) => Some(10537)
+    ("native_file_lookup_request", false) => Some(10548)
+    ("native_file_lookup_request", true) => Some(10560)
+    ("native_file_lookup_call_slot", false) => Some(10566)
+    ("native_file_lookup_call_slot", true) => Some(10573)
+    ("native_file_lookup_activation", false) => Some(10589)
+    ("native_file_lookup_activation", true) => Some(10606)
+    ("native_file_lookup_raw_response", false) => Some(10618)
+    ("native_file_lookup_raw_response", true) => Some(10631)
+    ("native_file_lookup_attempt_event", false) => Some(10676)
+    ("native_file_lookup_attempt_event", true) => Some(10722)
+    ("native_file_lookup_adoption", false) => Some(10741)
+    ("native_file_lookup_adoption", true) => Some(10761)
+    ("installed_row_source_read", false) => Some(10767)
+    ("installed_row_source_read", true) => Some(10774)
+    ("sample_source_generation", true) => Some(10803)
+    ("sample_source_generation", false) => Some(10831)
+    ("sample_original_capture", true) => Some(10846)
+    ("sample_original_capture", false) => Some(10860)
+    ("sample_emission_provenance", true) => Some(10883)
+    ("sample_emission_provenance", false) => Some(10905)
+    ("sample_reference", true) => Some(10917)
+    ("sample_reference", false) => Some(10928)
+    ("sample_adoption_receipt", true) => Some(10943)
+    ("sample_adoption_receipt", false) => Some(10957)
     _ => None
   }
 }

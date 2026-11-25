@@ -1307,6 +1307,9 @@
         "policy_revision_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "debug_entry": {
+          "const": true
         }
       }
     },
@@ -5634,7 +5637,7 @@
     "logical_port": "sha256:f9bf3a936eded99c37d35dca9552e16e6344e290e1626278b06740f158131c8a",
     "logical_step": "sha256:358b99d025a24cb2136eecd815d76d4420ebca12376ab6e3f2ef9b8a2abb8038",
     "logical_map": "sha256:89c090b128f4cd79aa09cc767eb439890032f8c897f3f44ec93c0159b4495df4",
-    "run_control_capabilities": "sha256:8ef39dfb5463ce5518cc213da341906af7fc9f74996a172608f574dd874a6794",
+    "run_control_capabilities": "sha256:ec77b63d8ce6993243c2431db8d100f11c75b0fbdb1751acf31db9330a82e498",
     "plan_view": "sha256:51856c457b3eae9724d9626319ad865f38baee748f341f179d3575b2558c5bf4",
     "control_resume_origin": "sha256:a6aecb1e607745939e7d1e3a16a89c61ec9d0d6ff272aab22e000f40687ea13f",
     "controlled_run_state": "sha256:95db721d1dd426ae5323fa89b11a045e1c8e445ed720e7f55f6dac54bedb0d2c",
@@ -5799,5 +5802,5 @@
     "observation": "non_atomic_owner_local",
     "schema_registration": "does_not_advertise_runtime_capabilities"
   },
-  "registry_cid": "sha256:6a15d7d0066c647c9a8cafe676e722b2af9a01e1a3dcce6fae380b27266324f3"
+  "registry_cid": "sha256:d83bc96bcf370b40f166ca6d32587aae383f5f822da52648d3ae7aa9a9603f32"
 }

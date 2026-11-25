@@ -9,8 +9,9 @@ type HistoryEntry = Extract<Owner['history'],{kind:'page'}>['entries'][number];
 export type RunObservationModel = Readonly<{
   runRef: RunReference; consistency:'non_atomic'; observationScope:'owner_local';
   run: Readonly<{id:string;status:Run['status'];updatedAt:string;controlRevision:number;terminal:boolean;
-    stopReason?:Run['stop_reason'];boundary?:Run['boundary'];cleanupPending?:boolean;pausePending?:boolean;expiryPending?:boolean;
+    expiresAt?:string;stopReason?:Run['stop_reason'];boundary?:Run['boundary'];cleanupPending?:boolean;pausePending?:boolean;expiryPending?:boolean;
     cancellation:Unavailable|Readonly<{state:'observed';requested:boolean;physicalStop:'unknown'|'confirmed'}>}>;
+  resumeAvailable?: true;
   planBinding:Readonly<{compiledPlanCid:string|null;logicalMapCid:string|null}>;
   components:WireRunView['components'];
   quantities:readonly (Readonly<{kind:'unknown';unit:string;reason:string}>|Readonly<{
@@ -27,8 +28,14 @@ export type RunObservationModel = Readonly<{
   logicalProgress:Unavailable;elapsed:Unavailable;tokens:Unavailable;cost:Unavailable;preview:Unavailable;
 }>;
 export function runObservationModel(view:WireRunView,owners:WireOwnerObservations|null,ref:RunReference):RunObservationModel;
+type ObservedStepPlan = Pick<PlanReadModel, 'compiledPlanCid' | 'logicalMapCid'> & Readonly<{
+  nodes: readonly Pick<PlanReadModel['nodes'][number], 'id'>[];
+}>;
 export function observedPlanStep(observation: RunObservationModel | undefined,
-  ref: RunReference | undefined, plan: PlanReadModel | undefined): Readonly<{
+  ref: RunReference | undefined, plan: ObservedStepPlan | undefined): Readonly<{
     stepId: string; position: NonNullable<Run['boundary']>['position']; number: number;
   }> | undefined;
+export type StoryNextPause = Readonly<{stepId: string; revision: number; expires: number; boundaryCid: string}>;
+export function storyNextPause(observation: RunObservationModel | undefined,
+  ref: RunReference | undefined, plan: ObservedStepPlan | undefined, now: number): StoryNextPause | undefined;
 export function readRunObservation(client:Pick<Client,'attach'>,ref:RunReference,ticket:ReadTicket):Promise<RunObservationModel>;

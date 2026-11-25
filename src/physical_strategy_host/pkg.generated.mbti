@@ -555,6 +555,8 @@ pub fn checked_effect_table_input_stage(@physical_strategy.CheckedEffectTableInp
 
 pub fn checked_effect_table_input_task(@physical_strategy.CheckedEffectTableInputPort) -> Int
 
+pub fn checked_task_control_entry_boundary_issue(@physical_strategy.CheckedDAG) -> Int?
+
 pub fn checked_task_identity(@physical_strategy.CheckedTaskReference) -> @physical_strategy.CheckedTaskIdentity
 
 pub fn checked_task_output_matches(@physical_strategy.CheckedTaskReference, @execution_relation.CompletedOutput) -> Bool

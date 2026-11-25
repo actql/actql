@@ -1,4 +1,4 @@
-import type {WireExplanationNarrative} from '@actql/client-wire';
+import type {WireExplanationNarrative, WireRunSample, WireSampleCapture} from '@actql/client-wire';
 import type {Client, RunReference, ResultDescription} from '@actql/sdk';
 import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireExplanationFacts, WireRunExplanationView,
   WireExplanationContext, WireStaticExplanationView, WireRunExplanationContextView} from '@actql/client-wire';
@@ -8,7 +8,7 @@ export const graphViewLimits: Readonly<{steps: 256; ports: 1024}>;
 type Step = WirePlanView['logical_map']['steps'][number];
 export type PlanReadModel = Readonly<{
   compiledPlanCid: string; logicalMapCid: string; programDefinitionCid: string;
-  observation: 'static'; providerIO: 0;
+  observation: 'static'; providerIO: 0; debugEntry?: true;
   effectful?: Readonly<{scope: 'computation_component'; parameterValuesCid: string;
     checkEnvironmentCid: string; unitId: string;
     members: WireEffectfulStaticPlanView['effect_set']['members'];
@@ -100,3 +100,17 @@ export function readExistingRunStory(client: Pick<Client, 'attach'>,
   ticket: ReadTicket): Promise<OriginalRunStoryReadModel>;
 export function describeExistingResult(client: Pick<Client, 'attach'>,
   ref: RunReference, name: string, ticket: ReadTicket): Promise<ResultDescription>;
+
+export type SamplePortSelection = Readonly<{stepId: string; portId: string; role: 'input' | 'output';
+  compiledPlanCid: string; logicalMapCid: string; carrierContractCid: string; nextRevision?: number}>;
+export function validSamplePortSelection(value: unknown): value is SamplePortSelection;
+export function sampleMatchesPort(value: unknown, ref: RunReference, port: SamplePortSelection): value is WireRunSample;
+export function readExistingRunSample(client: Pick<Client, 'attach'>, ref: RunReference,
+  port: SamplePortSelection, ticket: ReadTicket): Promise<WireRunSample>;
+export function expectedStoryPortColumns(
+  steps: ReadonlyMap<string, ExplanationStoryModel['occurrences'][number]>,
+  step: ExplanationStoryModel['occurrences'][number], port: Step['ports'][number] | undefined,
+): readonly string[] | undefined;
+export function storySamplePorts(step: Pick<Step, 'ports'>): readonly Step['ports'][number][];
+export function sampleCaptureCaption(capture: WireSampleCapture): string;
+export function sampleCellPreview(text: string): string;

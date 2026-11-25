@@ -249,7 +249,8 @@ test('raw additions/deletions/renames/modes and omitted mixed changes refuse bef
 
 test('reviewed real prose and independent JS edits omit product jobs but retain their lint/spec owners', () => {
   for (const path of ['CONTRIBUTING.md', 'docs/contributing/README.md', 'docs/ci-client.md',
-    'scripts/operation-performance.mjs', 'scripts/operation-performance.test.mjs', 'scripts/operation-performance-policy.test.mjs']) {
+    'scripts/operation-performance.mjs', 'scripts/operation-performance-sample-summary.mts',
+    'scripts/operation-performance.test.mjs', 'scripts/operation-performance-policy.test.mjs']) {
     assert(maintenanceFiles.includes(path)); assert(readFileSync(new URL('../' + path, import.meta.url)).length > 0);
     const selected = selectTargets([path], {maintenanceChanges:[{path, before:{mode:'100644', object:hash}, after:{mode:'100644', object:other}}]});
     assert.equal(selected.profile, documentationFiles.includes(path) ? 'documentation' : 'maintenance', path);

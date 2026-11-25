@@ -12,7 +12,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
   openContinuationEvidence} from '../adapters/host-node/local-continuation-evidence.mjs';
-import {loadCheckpointRuntime} from '../adapters/host-node/sqlite-checkpoint-journal.mjs';
+import {loadCheckpointRuntime} from '../adapters/host-node/checkpoint-runtime.mjs';
 
 // Existing independently authored admission inputs, never expected outputs.
 const source = readFileSync(new URL(

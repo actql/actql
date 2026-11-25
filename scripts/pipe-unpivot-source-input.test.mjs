@@ -30,7 +30,7 @@ test('UNPIVOT fixtures independently retain NULL, duplicates, labels and column 
 
 test('UNPIVOT participates in ordinary public acceptance and a narrow bounded selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'pipeUnpivotSuccesses'], ['refusals', 'pipeUnpivotRefusals']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   }

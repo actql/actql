@@ -45,7 +45,7 @@ test('absolute-value fixtures distinguish NULL, lazy demand, type refusal and ch
 
 test('absolute-value corpus participates in the normal producer and a bounded selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'absSuccesses'], ['refusals', 'absRefusals'],
     ['executionFailures', 'absExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

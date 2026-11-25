@@ -278,6 +278,7 @@ pub fn NativeLocalJournalCapture::accept_issued_effect_policy_run_in_original_re
   retention : @publication.PublicationContract,
   issued_at : String,
   now : Double,
+  source_free? : Bool = false,
 ) -> Result[
   Result[
     NativeClientSubmittedIntentRecord,
@@ -304,6 +305,11 @@ pub fn NativeLocalJournalCapture::accept_issued_effect_policy_run_in_original_re
     issued,
     now,
     local_policy=Some((binding, original)),
+    source_free_run_file=if source_free {
+      Some(binding.run_file.name)
+    } else {
+      None
+    },
   )
 }
 

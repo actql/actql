@@ -287,7 +287,7 @@ pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_from_store(
   current : () -> Result[Unit, E],
 ) -> Result[LocalSDKDeliveryTerminal, LocalSDKDeliveryTerminalIssue[E]] {
   self.prepare_terminal_for_source(
-    live_sdk_read_source(preflight),
+    live_sdk_read_source(preflight, selection~),
     account,
     finite,
     selection,
@@ -323,7 +323,7 @@ pub fn[E] LocalSDKDeliveryTerminal::observe_from_store(
   current : () -> Result[Unit, E],
 ) -> Result[Unit, LocalSDKDeliveryTerminalIssue[E]] {
   self.observe_for_source(
-    live_sdk_read_source(preflight),
+    live_sdk_read_source(preflight, selection~),
     account,
     finite,
     selection,

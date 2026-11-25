@@ -3798,7 +3798,7 @@ class LocalCore:
 
     def _try_saved_reader_facts(self, original: _Output, record: _Output, observation: _Input,
                                 configuration: int, result: int, binding: int) -> bool:
-        """Select the compatible private call only on the original closed reader."""
+        """Use paired validation only on the eligible original closed reader."""
         from ._local_host_binding import OriginalHostBinding
         host = getattr(self, '_host_current_binding', None)
         if (type(host) is not OriginalHostBinding
@@ -3821,8 +3821,6 @@ class LocalCore:
             return False
         entry = ('publication_commit_export', 'validate_payload_binding')
         supported = self._call(*entry, 0, 0, 0, -(2**31), 0)
-        if supported == -2:
-            return False
         if supported != 1:
             raise LocalCoreError('saved_reader_facts_capability', supported)
         selector = -(2**30) - (8 * result + binding)

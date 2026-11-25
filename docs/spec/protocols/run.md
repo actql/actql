@@ -33,7 +33,7 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/logical_port sha256:f9bf3a936eded99c37d35dca9552e16e6344e290e1626278b06740f158131c8a -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/logical_step sha256:358b99d025a24cb2136eecd815d76d4420ebca12376ab6e3f2ef9b8a2abb8038 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/logical_map sha256:89c090b128f4cd79aa09cc767eb439890032f8c897f3f44ec93c0159b4495df4 -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_control_capabilities sha256:8ef39dfb5463ce5518cc213da341906af7fc9f74996a172608f574dd874a6794 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_control_capabilities sha256:ec77b63d8ce6993243c2431db8d100f11c75b0fbdb1751acf31db9330a82e498 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/plan_view sha256:51856c457b3eae9724d9626319ad865f38baee748f341f179d3575b2558c5bf4 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_resume_origin sha256:a6aecb1e607745939e7d1e3a16a89c61ec9d0d6ff272aab22e000f40687ea13f -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/controlled_run_state sha256:95db721d1dd426ae5323fa89b11a045e1c8e445ed720e7f55f6dac54bedb0d2c -->
@@ -54,7 +54,7 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/resolved_control_profile sha256:6c2bb8de6b1f74fc37ecd43a3b3b667ff660e46e09c32846d34544dcace804f9 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_query sha256:411c0a6ceb270757a5ded2334285827387b9a67257e2b62bcc29fb28c4bd32ca -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_selector sha256:345ec8f736c15213fc6c312f010cccf9146ec43c0033221d1f3b385a0f74f269 -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:2b0a23342b9435b2aabb38f4a8c453c7e475b551a574af5e541442585b8d6e9e -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:1c579df5dee93fcfc737765441dd53f3b86398e88f6cdce9b48f728b83fa0e3a -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_plan_view sha256:bc7d46d0fead62582cde82f78ce9467814640a8ccd293541ee30e31efba6ed77 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/effectful_static_plan_view sha256:290df7e7a6ceeab8d5198bc7fd39ba4a65d213fa80f83e5a6381b94c6dbde645 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_type sha256:3695d05cd5c60f600347cbe1eb2589a23374966eb9b3c681f9971b743b9417e3 -->
@@ -906,7 +906,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:8b96ef58002bd3dcf7404fba1d692f1e5baf1b7decb54fc493756a08f8e825e1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_source_artifact sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:8b4147335ba233b174f0493e12ca98ce76a39ea7046b2d911653df8ad116e79c
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_local_operation_receipt sha256:285bc022729dbc31c236e58504211da98e85a14d14e3bf88a6953bd4b8840e6d
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_local_operation_receipt sha256:d3b5cddcf6c48beba73b64981011288c01284b1a5e4746bf2af5e3e123fcc3e0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:99680abc66cdaa569fb44ac546fd1f814ed128e5d1ed3002d38d3a885acfe87b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62
@@ -1234,7 +1234,7 @@ The four Sample projections are not full Carrier snapshots or Result schemas.
 The existing compiler, Run, Checkpoint, Ledger, material and publication Owners
 remain authoritative; a read projection does not decide lifecycle transitions.
 
-<!-- requirement-block: interactive-original-intent interactive-legacy-projection interactive-control-cas interactive-receipt interactive-map interactive-sample interactive-observation interactive-pending-observation interactive-pending-unknown interactive-capability -->
+<!-- requirement-block: interactive-original-intent interactive-legacy-projection interactive-control-cas interactive-receipt interactive-map interactive-sample interactive-observation interactive-pending-observation interactive-pending-unknown interactive-capability interactive-debug-entry-capability -->
 Negotiated admission MUST first bind the original SubmissionRef, unchanged
 legacy request fingerprint, normalized requested Profile and optional expected
 Plan, then immutably bind that intent to the originally adopted Plan/map and
@@ -1276,6 +1276,11 @@ An omitted field means an unknown observation and MUST NOT be completed as
 Installed capability publication MUST distinguish static planning/inspection,
 durable control, Sample collection, full intermediates and cost Guards, and
 advertise only independently implemented and publicly verified paths.
+A checked static Plan MAY include `debug_entry: true` when its selected
+installed Host admits the original input for entry-paused Debug and the
+current caller may start it. Omission makes no availability claim. A new
+submission MUST recheck that admission and authority. The flag identifies
+neither an admitted Run nor permission to resume one.
 
 All new identity-bearing envelopes hash their complete canonical body excluding
 only `self_cid`, using the existing SHA-256 canonical JSON rules. The version

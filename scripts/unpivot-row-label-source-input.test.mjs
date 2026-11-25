@@ -42,7 +42,7 @@ test('UNPIVOT row-label oracle distinguishes repeated occurrences NULL and renam
 
 test('UNPIVOT row-label cases run in ordinary packed corpus and retain actual completion data', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'unpivotRowLabelSuccesses'], ['refusals', 'unpivotRowLabelRefusals']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   }

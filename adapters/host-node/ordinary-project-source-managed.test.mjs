@@ -213,12 +213,13 @@ test('Project Source retirement fences new children while original physical clea
 
 const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const hostAst = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'});
-function quoteFixture(refs) {
+function quoteFixture(refs, csvTransports = Object.freeze({})) {
   const node = hostAst.body.find(node => node.type === 'FunctionDeclaration' &&
     node.id.name === 'readSourceManagedRunRequirementsOwned');
   assert(node);
   const declarations = [{}, {}], sources = declarations.map((declaration, index) => ({declaration,
     wire: JSON.stringify({views: [{source_ref: `source${index}`}]}),
+    csvTransports: index === 1 ? csvTransports : Object.freeze({}),
     limits: {maxPages: 2 + index, maxPageBytes: 10 + index}}));
   const bundle = {sources}, calls = [], original = {};
   let reads = 0, compute = 0, valid = true;
@@ -284,6 +285,15 @@ test('actual Host quote follows checked capture occurrences, not configured conn
     assert.equal(f.observed().reads, 2);
     assert.deepEqual(f.installationCalls, ['manifests', 'sequence'], 'One retained installed contract admission');
   }
+  const csv = quoteFixture(['source1', 'source0', 'source1'],
+    Object.freeze({source1: Object.freeze({transferBytes: 31n, executionBytes: 23n})}));
+  csv.quote();
+  const args = csv.calls.find(value => value[0] === 'limits')[1];
+  assert.deepEqual(args[1], [csv.declarations[1], csv.declarations[0], csv.declarations[1]]);
+  assert.deepEqual(args[4], [31n, 20n, 31n]);
+  assert.deepEqual(args[5], [23n, 10n, 23n]);
+  assert.equal(csv.observed().reads, 2);
+  assert.deepEqual(csv.installationCalls, ['manifests', 'sequence']);
 });
 
 test('actual Host zero-capture quote uses the same joint Compute graph without borrowing configured Source bytes', () => {

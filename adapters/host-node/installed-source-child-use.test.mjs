@@ -6,10 +6,10 @@ import {parse} from 'acorn';
 
 // Execute the actual shared callback with explicit current/Site ports. These
 // controls issue no authority, perform no transport and establish no funding.
-const source = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+const source = readFileSync(new URL('./installed-row-source-acquisition.mjs', import.meta.url), 'utf8');
 const syntax = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const owner = syntax.body.map(node => node.declaration ?? node)
-  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createInstalledRowSource');
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createInstalledRowSourceAcquisition');
 assert(owner);
 const callbacks = [];
 function visit(node) {

@@ -6,6 +6,7 @@ import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 const repo = new URL('../../../../', import.meta.url).pathname;
@@ -57,8 +58,9 @@ export async function originalBigQueryRowOwner({selectedFields = fields} = {}) {
   const publication = JSON.stringify({environmentCid: environment.evidenceCid,
     aliases: [{name: 'bigquery.usage_30d', sourceRef: view.source_ref,
       sourceViewContractCid: view.view_cid, schemaContractCid: view.carrier_schema_cid}]});
+  // This fixture uses QueryMaterial, which requires a scan-filter-select prefix.
   const outcome = moon.clientProgramPrepareSourceWithParameters(
-    'SELECT ACCOUNT_ID, ACTIVE_USERS, TREND FROM bigquery.usage_30d',
+    'SELECT ACCOUNT_ID, ACTIVE_USERS, TREND FROM bigquery.usage_30d WHERE TRUE',
     'sql', check, publication, undefined, undefined);
   const program = moon.clientProgramPreparationReady(outcome);
   assert.ok(program, `ordinary SQL must prepare the original declared input: ${
@@ -68,10 +70,12 @@ export async function originalBigQueryRowOwner({selectedFields = fields} = {}) {
     read('spec/contracts/actql-aoa.json').then(JSON.parse),
     read('spec/contracts/actql-query-acquisition.json'),
     read('spec/contracts/actql-query-process-evidence.json')]);
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const contracts = checked(moon.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
   const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-    program, 0, 0, registry, JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    program, 0, 0, contracts, values, fragment, ordered));
   const prepared = checked(moon.clientProgramBigQueryPrepareRead(description,
     declaration, requirement, query, evidence, descriptionLimits, declarationLimits));
   const acquisition = moon.clientProgramBigQueryReadAcquisition(prepared);
@@ -86,14 +90,19 @@ export async function originalBigQueryRowOwner({selectedFields = fields} = {}) {
   return {prepared, acquisition, run, ledger, requestId, requirement,
     originals: {description, declaration, declared, environment, program,
       descriptionLimits, declarationLimits, registry,
-      values: JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])},
+      values, fragment, ordered},
     usage: () => moon.clientProgramMultiCapturedLedgerUsage(ledger),
     assertNoCapture: () => assert.throws(() => checked(moon.clientProgramRowSourceCapture(run)),
       {code: 'MoonBitHostFailure'}),
     captureRows() {
       checked(moon.clientProgramRowSourceFinish(run));
+      checked(moon.clientProgramRowSourceCaptureBegin(run));
+      let done = false;
+      for (let advance = 0; advance < 1000 && !done; advance += 1) {
+        const progress = checked(moon.clientProgramRowSourceCaptureAdvance(run, 1));
+        done = runtimeField(progress, 0) === true;
+      }
+      assert.ok(done, 'the original capture completes within the fixture work bound');
       const captured = checked(moon.clientProgramRowSourceCapture(run));
       const source = checked(moon.clientProgramRowSourceCaptureSource(captured));
       const exported = checked(moon.clientProgramExportSourceCapture(source,

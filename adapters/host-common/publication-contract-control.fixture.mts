@@ -1,0 +1,418 @@
+// Independent adapter-test fixture. Product execution never imports this file;
+// the portable run_publication package is the sole product authority for
+// canonical identity, contract admission, and publication transitions.
+import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+
+type JsonRecord = Record<string, unknown>;
+type Schema = Readonly<{
+  const?: unknown; enum?: readonly unknown[]; type?: string;
+  required?: readonly string[]; properties?: Readonly<Record<string, Schema>>;
+  additionalProperties?: boolean; items?: Schema;
+  minItems?: number; maxItems?: number; uniqueItems?: boolean;
+  minLength?: number; pattern?: string; minimum?: number; maximum?: number;
+  allOf?: readonly Readonly<{if?: Schema; then?: Schema; else?: Schema}>[];
+  not?: Schema;
+}>;
+type Schemas = Readonly<Record<string, Schema | undefined>>;
+type Inspection = Readonly<{name: string; identityField: string; identity: string; wire: string}>;
+type CommitArgs = [
+  runDefinition: Inspection, invocation: Inspection, definitions: readonly Inspection[],
+  artifacts: readonly Inspection[], derivations: readonly Inspection[], orderings: readonly Inspection[],
+  retentions: readonly Inspection[], durableBindings: readonly Inspection[], manifest: Inspection,
+  receipt: Inspection, capturedRun: Inspection, request: Inspection, attempt: Inspection, indexEntry: Inspection,
+];
+
+const registry = JSON.parse(readFileSync(
+  new URL('../../spec/contracts/actql-run-publication.json', import.meta.url),
+  'utf8',
+)) as Readonly<{schemas: Schemas}>;
+const artifactSchemas = (JSON.parse(readFileSync(
+  new URL('../../spec/contracts/actql-protocol-schemas.json', import.meta.url),
+  'utf8',
+)) as Readonly<{artifact_schemas: Schemas}>).artifact_schemas;
+const fixtureArtifactIdentities = Object.freeze({
+  result_manifest: 'result_manifest_cid',
+  run_receipt: 'receipt_identity_cid',
+  captured_run: 'captured_run_cid',
+});
+
+const identityFields = Object.freeze({
+  result_definition: 'result_definition_cid',
+  run_invocation: 'invocation_cid',
+  result_retention_policy: 'effective_retention_policy_cid',
+  durable_result_binding: 'durable_result_binding_cid',
+  publication_request: 'publication_request_cid',
+  publication_attempt: 'publication_attempt_cid',
+  publication_record: 'publication_record_cid',
+  manifest_read_grant: 'manifest_read_grant_cid',
+  result_read_grant: 'result_read_grant_cid',
+  delivery_attempt: 'delivery_attempt_cid',
+  delivery_record: 'delivery_record_cid',
+  public_index_entry: 'public_index_entry_cid',
+});
+const timestampPattern =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
+
+const fail: (code: string, path?: string) => never = (code, path = '$') => {
+  throw Object.assign(new Error(code), {code, path});
+};
+
+function normalizedText(value: string, path: string) {
+  if (typeof value.isWellFormed === 'function' && !value.isWellFormed()) {
+    fail('InvalidCanonicalText', path);
+  }
+  return value.normalize('NFC').replace(/\r\n?/gu, '\n');
+}
+
+export function canonicalJson(value: unknown, path = '$'): string {
+  if (value === null || typeof value === 'boolean') return JSON.stringify(value);
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || Object.is(value, -0)) {
+      fail('InvalidCanonicalNumber', path);
+    }
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'string') {
+    if (!value.isWellFormed()) fail('InvalidCanonicalText', path);
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item: unknown, index: number) =>
+      canonicalJson(item, `${path}[${index}]`)).join(',')}]`;
+  }
+  if (value === null || typeof value !== 'object' ||
+      Object.getPrototypeOf(value) !== Object.prototype) {
+    fail('InvalidCanonicalValue', path);
+  }
+  const entries = Object.entries(value as JsonRecord).map(([key, item]) => [
+    normalizedText(key, `${path}.<key>`), item,
+  ] as const);
+  if (new Set(entries.map(([key]) => key)).size !== entries.length) {
+    fail('CanonicalKeyCollision', path);
+  }
+  entries.sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
+  return `{${entries.map(([key, item]) =>
+    `${JSON.stringify(key)}:${canonicalJson(item, `${path}.${key}`)}`
+  ).join(',')}}`;
+}
+
+export function canonicalCid(value: unknown) {
+  return `sha256:${createHash('sha256').update(canonicalJson(value), 'utf8')
+    .digest('hex')}`;
+}
+
+function equal(left: unknown, right: unknown) {
+  return canonicalJson(left) === canonicalJson(right);
+}
+
+function validateSchema(schema: Schema, value: unknown, path: string) {
+  if (schema.const !== undefined && !equal(schema.const, value)) {
+    fail('PublicationContractConst', path);
+  }
+  if (schema.enum !== undefined &&
+      !schema.enum.some(candidate => equal(candidate, value))) {
+    fail('PublicationContractEnum', path);
+  }
+  if (schema.type === 'object' || schema.required !== undefined ||
+      schema.properties !== undefined ||
+      schema.additionalProperties !== undefined) {
+    if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+        Object.getPrototypeOf(value) !== Object.prototype) {
+      fail('PublicationContractType', path);
+    }
+    for (const key of schema.required ?? []) {
+      if (!Object.hasOwn(value, key)) fail('PublicationContractRequired', `${path}.${key}`);
+    }
+    if (schema.additionalProperties === false) {
+      for (const key of Object.keys(value)) {
+        if (!Object.hasOwn(schema.properties ?? {}, key)) {
+          fail('PublicationContractClosed', `${path}.${key}`);
+        }
+      }
+    }
+    for (const [key, child] of Object.entries(schema.properties ?? {})) {
+      if (Object.hasOwn(value, key)) validateSchema(child, (value as JsonRecord)[key], `${path}.${key}`);
+    }
+  } else if (schema.type === 'array') {
+    if (!Array.isArray(value)) fail('PublicationContractType', path);
+    if (schema.minItems !== undefined && value.length < schema.minItems) {
+      fail('PublicationContractMinimum', path);
+    }
+    if (schema.maxItems !== undefined && value.length > schema.maxItems) {
+      fail('PublicationContractMaximum', path);
+    }
+    if (schema.uniqueItems === true) {
+      const entries = value.map((item: unknown) => canonicalJson(item));
+      if (new Set(entries).size !== entries.length) {
+        fail('PublicationContractUnique', path);
+      }
+    }
+    value.forEach((item: unknown, index: number) =>
+      validateSchema(schema.items ?? {}, item, `${path}[${index}]`));
+  } else if (schema.type === 'string') {
+    if (typeof value !== 'string') fail('PublicationContractType', path);
+    if (schema.minLength !== undefined &&
+        [...value].length < schema.minLength) {
+      fail('PublicationContractMinimum', path);
+    }
+    if (schema.pattern !== undefined && !(new RegExp(schema.pattern, 'u')).test(value)) {
+      fail('PublicationContractPattern', path);
+    }
+  } else if (schema.type === 'integer') {
+    if (!Number.isSafeInteger(value)) fail('PublicationContractType', path);
+    if (schema.minimum !== undefined && (value as number) < schema.minimum) {
+      fail('PublicationContractMinimum', path);
+    }
+    if (schema.maximum !== undefined && (value as number) > schema.maximum) {
+      fail('PublicationContractMaximum', path);
+    }
+  } else if (schema.type === 'boolean' && typeof value !== 'boolean') {
+    fail('PublicationContractType', path);
+  }
+  for (const branch of schema.allOf ?? []) {
+    let condition = true;
+    try { validateSchema(branch.if ?? {}, value, path); }
+    catch { condition = false; }
+    if (condition && branch.then) validateSchema(branch.then, value, path);
+    if (!condition && branch.else) validateSchema(branch.else, value, path);
+  }
+  if (schema.not !== undefined) {
+    let matched = true;
+    try { validateSchema(schema.not, value, path); }
+    catch { matched = false; }
+    if (matched) fail('PublicationContractNot', path);
+  }
+}
+
+function copy(value: unknown): unknown {
+  return JSON.parse(canonicalJson(value));
+}
+
+function freeze<T>(value: T): Readonly<T> {
+  if (value && typeof value === 'object') {
+    for (const child of Object.values(value)) freeze(child);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+export function publicationContractNames() {
+  return Object.freeze(Object.keys(identityFields));
+}
+
+export function publicationContractSchema(name: string) {
+  const schema = registry.schemas[name];
+  if (!schema || !Object.hasOwn(identityFields, name)) {
+    fail('UnknownPublicationContract', `$.${name}`);
+  }
+  return freeze(copy(schema) as Schema);
+}
+
+export function sealPublicationContract(name: string, supplied: unknown) {
+  const schema = registry.schemas[name];
+  const identity = identityFields[name as keyof typeof identityFields];
+  if (!schema || !identity || supplied === null ||
+      typeof supplied !== 'object' || Array.isArray(supplied)) {
+    fail('UnknownPublicationContract', `$.${name}`);
+  }
+  const body = copy(supplied) as JsonRecord;
+  delete body[identity];
+  const sealed = {...body, [identity]: canonicalCid(body)};
+  validateSchema(schema, sealed, '$');
+  if (Object.hasOwn(supplied, identity) && (supplied as JsonRecord)[identity] !== sealed[identity]) {
+    fail('PublicationIdentityMismatch', `$.${identity}`);
+  }
+  return freeze(sealed);
+}
+
+export function admitPublicationContract(name: string, supplied: unknown) {
+  const schema = registry.schemas[name];
+  const identity = identityFields[name as keyof typeof identityFields];
+  if (!schema || !identity) fail('UnknownPublicationContract', `$.${name}`);
+  const body = copy(supplied) as JsonRecord;
+  validateSchema(schema, body, '$');
+  const preimage = {...body};
+  delete preimage[identity];
+  if (body[identity] !== canonicalCid(preimage)) {
+    fail('PublicationIdentityMismatch', `$.${identity}`);
+  }
+  return freeze(body);
+}
+
+export function publicationIdentityField(name: string) {
+  const field = identityFields[name as keyof typeof identityFields];
+  if (!field) fail('UnknownPublicationContract', `$.${name}`);
+  return field;
+}
+
+export function createPublicationContractControlFixture() {
+  const tokens = new WeakMap<Inspection, Readonly<JsonRecord>>();
+  const inspect = (name: string, value: Readonly<JsonRecord>,
+    identityField: string = publicationIdentityField(name)) => {
+    const result = Object.freeze({
+      name,
+      identityField,
+      identity: value[identityField] as string,
+      wire: canonicalJson(value),
+    });
+    tokens.set(result, value);
+    return result;
+  };
+  const token = (value: Inspection) => {
+    const result = tokens.get(value);
+    if (result === undefined) {
+      throw new TypeError('Foreign publication contract');
+    }
+    return result;
+  };
+  return Object.freeze({
+    // Shape/identity-only adapter fixture, not the Core commit-chain verdict.
+    // These closed artifact names deliberately do not extend publication APIs.
+    admitArtifactFixture(name: string, completeWire: string) {
+      if (!Object.hasOwn(fixtureArtifactIdentities, name)) {
+        fail('UnknownPublicationFixtureArtifact');
+      }
+      const identityField = fixtureArtifactIdentities[name as keyof typeof fixtureArtifactIdentities];
+      const value = copy(JSON.parse(completeWire)) as JsonRecord;
+      validateSchema(artifactSchemas[name]!, value, '$');
+      const body = {...value};
+      delete body[identityField];
+      if (value[identityField] !== canonicalCid(body)) {
+        fail('PublicationIdentityMismatch', `$.${identityField}`);
+      }
+      return inspect(name, freeze(value), identityField);
+    },
+    seal(name: string, bodyWire: string) {
+      return inspect(name, sealPublicationContract(name, JSON.parse(bodyWire)));
+    },
+    admit(name: string, completeWire: string) {
+      return inspect(name,
+        admitPublicationContract(name, JSON.parse(completeWire)));
+    },
+    recordTransition(previous: Inspection | undefined, next: Inspection, uncommittedConfirmed?: boolean) {
+      const current = token(next);
+      const prior = previous === undefined ? undefined : token(previous);
+      if (next.name !== 'publication_record' ||
+          previous !== undefined && previous.name !== 'publication_record') {
+        return false;
+      }
+      if (prior === undefined) {
+        return current.sequence === 0 &&
+          !Object.hasOwn(current, 'prior_record_cid') &&
+          current.state === 'preparing';
+      }
+      if (current.publication_attempt_cid !==
+          prior.publication_attempt_cid ||
+          current.sequence !== (prior.sequence as number) + 1 ||
+          current.prior_record_cid !== prior.publication_record_cid) {
+        return false;
+      }
+      const allowed = prior.state === 'preparing'
+        ? ['preparing', 'committing', 'failed', 'cancelled']
+        : ['committing', 'publication_unknown'].includes(prior.state as string)
+          ? ['publication_unknown', 'succeeded', 'failed', 'cancelled']
+          : [];
+      return allowed.includes(current.state as string) &&
+        (!['committing', 'publication_unknown'].includes(prior.state as string) ||
+          !['failed', 'cancelled'].includes(current.state as string) ||
+          uncommittedConfirmed === true);
+    },
+    recordAllowsCommit(record: Inspection) {
+      return record.name === 'publication_record' &&
+        token(record).state === 'committing';
+    },
+    publicIndexSameCommittedContent(committed: Inspection | undefined, candidate: Inspection | undefined) {
+      if (committed?.name !== 'public_index_entry' ||
+          candidate?.name !== 'public_index_entry') return false;
+      const left = token(committed);
+      const right = token(candidate);
+      return [
+        'namespace_id', 'authority_scope_cid', 'run_definition_cid',
+        'invocation_cid', 'result_manifest_cid', 'run_receipt_cid',
+        'captured_run_cid', 'publication_request_cid',
+      ].every(field => left[field] === right[field]) &&
+        equal(left.durable_result_binding_cids,
+          right.durable_result_binding_cids);
+    },
+    effectFreeStoredCommitValid(...args: [...CommitArgs, requireCurrent: () => undefined]) {
+      const requireCurrent = args.pop();
+      if (typeof requireCurrent !== 'function') throw new TypeError('Missing Store fixture owner');
+      requireCurrent();
+      return this.effectFreeCommitValid(...(args as unknown as CommitArgs));
+    },
+    effectFreeCommitValid(
+      runDefinition: Inspection,
+      invocation: Inspection,
+      definitions: readonly Inspection[],
+      artifacts: readonly Inspection[],
+      derivations: readonly Inspection[],
+      orderings: readonly Inspection[],
+      retentions: readonly Inspection[],
+      durableBindings: readonly Inspection[],
+      manifest: Inspection,
+      receipt: Inspection,
+      capturedRun: Inspection,
+      request: Inspection,
+      attempt: Inspection,
+      indexEntry: Inspection,
+    ) {
+      const contracts = [
+        runDefinition,
+        invocation,
+        ...definitions,
+        ...artifacts,
+        ...derivations,
+        ...orderings,
+        ...retentions,
+        ...durableBindings,
+        manifest,
+        receipt,
+        capturedRun,
+        request,
+        attempt,
+        indexEntry,
+      ];
+      return contracts.every(contract => token(contract) !== undefined);
+    },
+    deliveryTransition(previous: Inspection | undefined, next: Inspection) {
+      const current = token(next);
+      const prior = previous === undefined ? undefined : token(previous);
+      if (next.name !== 'delivery_record' ||
+          previous !== undefined && previous.name !== 'delivery_record') {
+        return false;
+      }
+      if (prior === undefined) {
+        return current.sequence === 0 &&
+          !Object.hasOwn(current, 'prior_record_cid');
+      }
+      return current.delivery_attempt_cid === prior.delivery_attempt_cid &&
+        current.sequence === (prior.sequence as number) + 1 &&
+        current.prior_record_cid === prior.delivery_record_cid &&
+        prior.state === 'streaming' &&
+        (current.confirmed_byte_count as number) >= (prior.confirmed_byte_count as number);
+    },
+    deliverySuccessValid(attempt: Inspection, receipt: Inspection, record: Inspection) {
+      const attemptValue = token(attempt);
+      const receiptValue = token(receipt);
+      const recordValue = token(record);
+      return record.name === 'delivery_record' &&
+        receipt.name === 'result_delivery_receipt' &&
+        recordValue.state === 'succeeded' &&
+        recordValue.delivery_attempt_cid ===
+          attemptValue.delivery_attempt_cid &&
+        recordValue.result_delivery_receipt_cid ===
+          receiptValue.result_delivery_receipt_cid &&
+        recordValue.confirmed_byte_count ===
+          receiptValue.delivered_byte_count &&
+        recordValue.delivered_sha256 === receiptValue.delivered_sha256;
+    },
+    trustedClockNotBefore(previous: unknown, observedAt: unknown) {
+      return (previous === undefined ||
+          typeof previous === 'string' && timestampPattern.test(previous)) &&
+        typeof observedAt === 'string' &&
+        timestampPattern.test(observedAt) &&
+        (previous === undefined || observedAt >= previous);
+    },
+  });
+}

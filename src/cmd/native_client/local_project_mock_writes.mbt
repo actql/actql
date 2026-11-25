@@ -3,6 +3,7 @@
 // Observe and write permissions retain their separate authored meanings.
 priv struct LocalProjectMockWriteDeclaration {
   mapping : @row_host.RowMapping
+  operation : String
   writable_fields : Array[String]
   aliases : Array[String]
   _retained_observe_permission : String
@@ -63,7 +64,7 @@ fn local_project_mock_write_null_selected(value : Json?, name : String) -> Bool 
 }
 
 ///|
-// Adapt only the closed Catalog UPDATE and DELETE forms. Common checks the
+// Adapt the closed Catalog file-write forms. Common checks the
 // complete original Relation and every sibling write specification.
 fn local_project_mock_write_declarations(
   entry : Json,
@@ -83,13 +84,14 @@ fn local_project_mock_write_declarations(
   }
   let adapted : Array[Json] = []
   let originals : Array[
-    (String, Array[String], Array[String], Array[String], String),
+    (String, String, Array[String], Array[String], Array[String], String),
   ] = []
   for write in writes {
     guard write is Object(body) else { return Err(InvalidSpecification) }
     let operation = match body.get("operation") {
       None | Some(String("update")) => "update"
       Some(String("delete")) => "delete"
+      Some(String("create")) => "create"
       _ => return Err(InvalidSpecification)
     }
     guard local_project_mock_file_text(write, "resource") is Some(resource) &&
@@ -98,8 +100,7 @@ fn local_project_mock_write_declarations(
       local_project_mock_file_text(write, "observe_permission") is Some(observe) &&
       local_project_mock_file_text(write, "approval") == Some("required") &&
       local_project_mock_write_names(body.get("aliases")) is Some(aliases) &&
-      !aliases.is_empty() &&
-      !originals.any(original => original.0 == resource) else {
+      !aliases.is_empty() else {
       return Err(InvalidSpecification)
     }
     let (names, selected) = if operation == "delete" {
@@ -128,7 +129,8 @@ fn local_project_mock_write_declarations(
       let selected = match body.get("update_fields") {
         None => names
         Some(value) => {
-          guard local_project_mock_write_names(Some(value)) is Some(fields) &&
+          guard operation == "update" &&
+            local_project_mock_write_names(Some(value)) is Some(fields) &&
             !fields.is_empty() &&
             fields.all(name => names.contains(name)) else {
             return Err(InvalidSpecification)
@@ -149,27 +151,35 @@ fn local_project_mock_write_declarations(
       return Err(InvalidSpecification)
     }
     let specification : Json = if operation == "delete" {
-      {
-        "resource": Json::string(resource),
-        "primary_identity": Json::string(identity),
-        "delete": {
-          "permission": Json::string(permission),
-          "approval": "required",
-        },
-      }
+      { "permission": Json::string(permission), "approval": "required" }
     } else {
       {
-        "resource": Json::string(resource),
-        "primary_identity": Json::string(identity),
-        "update": {
-          "fields": Json::array(names.map(Json::string)),
-          "permission": Json::string(permission),
-          "approval": "required",
-        },
+        "fields": Json::array(names.map(Json::string)),
+        "permission": Json::string(permission),
+        "approval": "required",
       }
     }
-    adapted.push(specification)
-    originals.push((resource, names, selected, aliases, observe))
+    let facts : Json = match
+      adapted
+      .iter()
+      .find_first(candidate => {
+        local_project_mock_file_text(candidate, "resource") == Some(resource)
+      }) {
+      Some(value) => value
+      None => {
+        let value : Json = {
+          "resource": Json::string(resource),
+          "primary_identity": Json::string(identity),
+        }
+        adapted.push(value)
+        value
+      }
+    }
+    guard facts is Object(fields) && fields.get(operation) is None else {
+      return Err(InvalidSpecification)
+    }
+    fields[operation] = specification
+    originals.push((resource, operation, names, selected, aliases, observe))
   }
   let wire = match
     local_project_mock_relation_wire({ "writes": Json::array(adapted) }) {
@@ -177,34 +187,37 @@ fn local_project_mock_write_declarations(
     Err(_) => return Err(InvalidSpecification)
   }
   let result : Array[LocalProjectMockWriteDeclaration] = []
-  for index, (resource, names, selected, aliases, observe) in originals {
+  for
+    index, (resource, operation, names, selected, aliases, observe) in originals {
     let null_fields = match writes[index] {
       Object(body) => body.get("write_null_fields")
       _ => None
     }
-    // UPDATE always retains at least one eligible field; an empty field
-    // inventory comes only from the explicit closed DELETE declaration.
-    let admitted = if names.is_empty() {
+    let admitted = if operation == "delete" {
       @row_host.prepare_row_delete_mapping_from_writes(
         declaration, wire, resource,
       )
     } else {
-      @row_host.prepare_row_update_mapping(
-        declaration,
-        wire,
-        resource,
-        selected.map(name => {
-          target: name,
-          field: name,
-          null_behavior: if local_project_mock_write_null_selected(
-              null_fields, name,
-            ) {
-            "write_null"
-          } else {
-            "reject"
-          },
-        }),
-      )
+      let sources : Array[@row_host.RowMappingSource] = selected.map(name => {
+        target: name,
+        field: name,
+        null_behavior: if local_project_mock_write_null_selected(
+            null_fields, name,
+          ) {
+          "write_null"
+        } else {
+          "reject"
+        },
+      })
+      if operation == "create" {
+        @row_host.prepare_row_file_create_mapping(
+          declaration, wire, resource, sources,
+        )
+      } else {
+        @row_host.prepare_row_update_mapping(
+          declaration, wire, resource, sources,
+        )
+      }
     }
     let mapping = match admitted {
       Ok(value) => value
@@ -217,6 +230,7 @@ fn local_project_mock_write_declarations(
     }
     result.push({
       mapping,
+      operation,
       writable_fields,
       aliases,
       _retained_observe_permission: observe,
@@ -242,8 +256,7 @@ fn LocalProjectMockWriteInstallation::matches_file_operation(
   operation : String,
 ) -> Bool {
   match operation {
-    "update" => !self.write.writable_fields.is_empty()
-    "delete" => self.write.writable_fields.is_empty()
+    "create" | "update" | "delete" => self.write.operation == operation
     _ => false
   }
 }

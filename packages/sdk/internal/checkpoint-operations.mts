@@ -1,0 +1,215 @@
+// Existing bounded Checkpoint review and signed resolution operations.
+import type {Client, CheckpointSigner, CheckpointSummary, SignedCheckpointAnswer} from '../index.mjs';
+import type {WireConnection} from '@actql/client-wire';
+
+type CheckpointOperations = Pick<Client, 'checkpoints' | 'reviewCheckpoint' |
+  'resolveCheckpoints' | 'approve' | 'reject'>;
+import {checkedSigner, checkpointAnswerMatches, reviewBytesMatchCid, signedAnswer,
+  signedAnswerFromAdmittedSummary} from '../checkpoints.mjs';
+import {hasCanonicalReviewContentPadding} from './checkpoint-answer-construction.generated.mjs';
+import {captureResponse, freezeInput, positive} from './data.mjs';
+import {ClientError, fail} from './errors.mjs';
+import {reviewEnvelopeBytes} from './transport-response.mjs';
+import {checkpointLimits, validCheckpointLookup, validCheckpointPage, validCheckpointReview, validResolveItem,
+  validResolveResults} from '@actql/client-wire';
+
+export function createCheckpointOperations(connection: WireConnection,
+  exchange: (operation: 'checkpoints' | 'checkpoint-review' | 'resolve',
+    body: Record<string, unknown>, signal?: AbortSignal) => Promise<unknown>,
+  responseValue: (response: unknown, maxWireBytes?: number) => unknown | Promise<unknown>,
+  {answerOriginal, isClosed = () => false}: {
+    answerOriginal?: (summary: CheckpointSummary, decision: 'approved' | 'rejected',
+      signal?: AbortSignal) => unknown | Promise<unknown>;
+    isClosed?: () => boolean;
+  } = {}): CheckpointOperations {
+  const current = (signal?: AbortSignal) => {
+    if (isClosed()) fail('ClientClosed');
+    signal?.throwIfAborted();
+  };
+  const captureSigner = (signer: CheckpointSigner | undefined, signal?: AbortSignal) => {
+    try {
+      if (signer === null || typeof signer !== 'object') fail('InvalidCheckpointSigner');
+      const keyId = signer.keyId, reviewerId = signer.reviewerId;
+      const authorityScopeCid = signer.authorityScopeCid, sign = signer.sign;
+      if (typeof sign !== 'function') fail('InvalidCheckpointSigner');
+      return checkedSigner(Object.freeze({keyId, reviewerId, authorityScopeCid,
+        sign(bytes: Uint8Array) {
+          current(signal);
+          return Reflect.apply(sign, signer, [bytes]);
+        }}));
+    } catch { fail('InvalidCheckpointSigner'); }
+  };
+  // Both callers own and admit their immutable items before this private
+  // continuation. Calling a public method again would create no new boundary.
+  const resolveSigned = async (frozen: readonly SignedCheckpointAnswer[], signal?: AbortSignal): ReturnType<Client['resolveCheckpoints']> => {
+    let answer;
+    try {
+      const response = await exchange('resolve', {items: frozen}, signal);
+      answer = await responseValue(response);
+    } catch (cause) {
+      if (cause instanceof ClientError && cause.code !==
+          'ClientTransportUnknown' && !((cause.status as number) >= 500)) throw cause;
+      throw new ClientError('ResolutionUnknown', {signed: frozen, cause});
+    }
+    try { answer = captureResponse(answer); }
+    catch {
+      throw new ClientError('ResolutionUnknown', {signed: frozen,
+        cause: new ClientError('InvalidHostResolveReply')});
+    }
+    if (!validResolveResults(answer, frozen)) {
+      throw new ClientError('ResolutionUnknown', {signed: frozen,
+        cause: new ClientError('InvalidHostResolveReply')});
+    }
+    return freezeInput({results: answer.results, signed: frozen});
+  };
+  const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',
+    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) => {
+    current(signal);
+    if (!validCheckpointLookup({items: []}, checkpointId)) {
+      fail('InvalidCheckpointReference');
+    }
+    let selectedSigner: ReturnType<typeof checkedSigner> | undefined;
+    if (signer !== undefined) {
+      // Own the original application callback and receiver before lookup.
+      // Neither lookup nor an awaited callback may switch the selected key.
+      selectedSigner = captureSigner(signer, signal);
+    } else if (answerOriginal === undefined) {
+      // Missing original Local signing custody is not permission to use a
+      // Host-attestation key, create a key or send an unsigned approval.
+      fail('CheckpointSignerUnavailable');
+    }
+    const page = await operations.checkpoints({checkpointId, limit: 1, signal});
+    current(signal);
+    if (page.items.length !== 1) fail('CheckpointUnavailable');
+    const summary = page.items[0];
+    let answer;
+    if (selectedSigner !== undefined) {
+      answer = await signedAnswerFromAdmittedSummary(summary, decision, selectedSigner,
+        new Date().toISOString());
+    } else {
+      // The installed provider must independently bind this DATA to its
+      // actual original Checkpoint/key/use and current authority. This
+      // callback returns an existing signed answer, never a generic signer.
+      answer = await answerOriginal!(summary, decision, signal);
+    }
+    current(signal);
+    if (selectedSigner === undefined) {
+      try { answer = freezeInput(captureResponse(answer)); }
+      catch { fail('InvalidCheckpointAnswer'); }
+    }
+    // Keep the envelope's existing finite wire bounds, including application
+    // signature output. Only external original-answer bytes need admission
+    // against the Summary and their self-addressed artifact identities again.
+    if (!validResolveItem(answer)) fail('InvalidCheckpointAnswer');
+    if (selectedSigner === undefined && !await checkpointAnswerMatches(answer, summary, decision)) {
+      // Preserve the actual returned bytes for inspection, not as a retry
+      // permission. Never repair a foreign decision or ask for another sign.
+      throw new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])});
+    }
+    current(signal);
+    // Retain the existing response-loss contract: ResolutionUnknown carries
+    // these exact signed bytes. No automatic re-sign, retry or resend occurs.
+    return resolveSigned(Object.freeze([answer]), signal);
+  };
+  const operations: CheckpointOperations = {
+    checkpoints: async ({after, limit, checkpointId, signal} = {}) => {
+      if (limit === undefined) limit = checkpointId === undefined ? 50 : 1;
+      const lookup = checkpointId !== undefined;
+      if (after !== undefined && (typeof after !== 'string' || !after) ||
+          !positive(limit) || limit > checkpointLimits.maxPageItems) {
+        fail('InvalidCheckpointPage');
+      }
+      if (lookup && (after !== undefined || limit !== 1 ||
+          !validCheckpointLookup({items: []}, checkpointId))) {
+        fail('InvalidCheckpointReference');
+      }
+      const response = await exchange('checkpoints',
+        {after: after ?? '', limit,
+          ...(lookup ? {checkpointId} : {})}, signal);
+      let page;
+      try { page = await responseValue(response); }
+      catch (cause) { throw new ClientError('InvalidHostCheckpointPage', {cause}); }
+      try { page = captureResponse(page); }
+      catch { fail('InvalidHostCheckpointPage'); }
+      if (!(lookup ? validCheckpointLookup(page, checkpointId)
+        : validCheckpointPage(page, limit))) fail('InvalidHostCheckpointPage');
+      return freezeInput(page as typeof page & Awaited<ReturnType<Client['checkpoints']>>);
+    },
+    // The exact review projection a Checkpoint names, when the caller is
+    // authorized to read it. Bounded by `maxBytes` on both sides; the bytes
+    // are verified against the named artifact CID before they are returned.
+    // Aborting this read never cancels the request or Run.
+    reviewCheckpoint: async (checkpoint, {maxBytes = 64 * 1024,
+      signal} = {}) => {
+      const checkpointCid = typeof checkpoint === 'string' ? checkpoint
+        : checkpoint?.checkpointCid;
+      if (typeof checkpointCid !== 'string' ||
+          !/^sha256:[0-9a-f]{64}$/u.test(checkpointCid)) {
+        fail('InvalidCheckpointReference');
+      }
+      if (!positive(maxBytes) || maxBytes > checkpointLimits.maxReviewBytes) {
+        fail('InvalidReviewLimit');
+      }
+      const response = await exchange('checkpoint-review',
+        {checkpointCid, maxBytes}, signal);
+      let review;
+      try { review = await responseValue(response,
+        4 * Math.ceil(maxBytes / 3) + reviewEnvelopeBytes); }
+      catch (cause) { throw new ClientError('ReviewReadUnknown', {cause}); }
+      if (!validCheckpointReview(review, {checkpointCid, maxBytes})) {
+        fail('InvalidHostCheckpointReview');
+      }
+      if (!hasCanonicalReviewContentPadding(review.contentBase64)) fail('ReviewIntegrityFailed');
+      const bytes = Uint8Array.from(atob(review.contentBase64),
+        character => character.charCodeAt(0));
+      if (bytes.byteLength !== review.byteLength ||
+          !await reviewBytesMatchCid(bytes, review.artifactCid) ||
+          typeof checkpoint === 'object' &&
+            checkpoint.reviewProjectionCid !== undefined &&
+            checkpoint.reviewProjectionCid !== review.artifactCid) {
+        fail('ReviewIntegrityFailed');
+      }
+      return Object.freeze({checkpointCid, artifactCid: review.artifactCid,
+        bytes});
+    },
+    // Answer one or more Checkpoints. Each item is either {checkpoint,
+    // decision} (a listed summary and 'approved' | 'rejected', signed here
+    // by `signer`) or a previously signed item returned by an earlier call,
+    // which is resent unchanged. Results are per Checkpoint; the batch is not
+    // atomic. A stored answer is not a resumed or completed Run: follow the
+    // request with lookupRequest, then status()/wait() once the Run exists.
+    // When the reply is lost the error carries the exact signed items to
+    // resend; they are never re-signed with a new decision time.
+    resolveCheckpoints: async (items, {signer, signal} = {}) => {
+      if (!Array.isArray(items) || items.length === 0 ||
+          items.length > checkpointLimits.maxResolveItems) {
+        fail('InvalidCheckpointAnswers');
+      }
+      try { items = captureResponse(items) as typeof items; }
+      catch { fail('InvalidCheckpointAnswers'); }
+      const decidedAt = new Date().toISOString();
+      const signed: SignedCheckpointAnswer[] = [];
+      let key;
+      for (const item of items) {
+        if (validResolveItem(item)) {
+          signed.push(freezeInput(item));
+          continue;
+        }
+        if (key === undefined) key = captureSigner(signer, signal);
+        try {
+          signed.push(await signedAnswer(item?.checkpoint, item?.decision,
+            key, decidedAt));
+        } catch (cause) {
+          throw new ClientError((cause as {message?: string}).message ?? 'InvalidCheckpointAnswer',
+            {cause});
+        }
+      }
+      if (new Set(signed.map(item => item.checkpointCid)).size !==
+          signed.length) fail('DuplicateCheckpointAnswer');
+      return resolveSigned(Object.freeze(signed), signal);
+    },
+    approve: (checkpointId, options) => answerById(checkpointId, 'approved', options),
+    reject: (checkpointId, options) => answerById(checkpointId, 'rejected', options),
+  };
+  return operations;
+}

@@ -91,7 +91,7 @@ for (const name of ['client-host.generated.js',
   assert((await readFile(join(root, 'node_modules', '@actql',
     'client-wire', name), 'utf8')).length > 0);
 }
-for (const name of ['host-port.mjs', 'host-port.d.ts']) {
+for (const name of ['host-port.mjs', 'host-port.d.mts']) {
   assert((await readFile(join(root, 'node_modules', '@actql',
     'sdk', name), 'utf8')).length > 0);
 }

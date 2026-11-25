@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "b50f9a2a827da6bc374bbdab6f0796f5962461e071e480cc4e81b4da0e608850",
+      "sha256": "08e6aea8dfea8a5438ded3cf45163613f26b80fe39aa6e92deeda4242a341850",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog",
@@ -46,6 +46,13 @@
             "options"
           ],
           "async": true
+        },
+        {
+          "name": "mappingSources/mappingSources/mappingSources",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "projectDeclaredCatalog/admit/admit",
@@ -496,13 +503,6 @@
           "async": false
         },
         {
-          "name": "updateSources/updateSources/updateSources",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "wire/wire",
           "parameters": [
             "value"
@@ -510,9 +510,9 @@
           "async": false
         },
         {
-          "name": "writeFacts/writeFacts",
+          "name": "writeFacts/facts/facts",
           "parameters": [
-            "spec"
+            "value"
           ],
           "async": false
         }
@@ -521,7 +521,7 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/runtime-result.mjs",
         "../host-node/declared-project-catalog-construction.mjs",
-        "../host-node/installed-row-source.mjs",
+        "../host-node/installed-row-source-mapping.mjs",
         "../host-node/source-profile-json.mjs",
         "./declared-file-installation.mjs",
         "node:crypto",
@@ -544,25 +544,25 @@
             "loadDeclaredProjectCatalog",
             "projectDeclaredCatalog/admit/admit",
             "projectDeclaredCatalog/facts/facts",
-            "projectDeclaredCatalog/facts/facts#2",
             "projectDeclaredCatalog/facts/facts/content/content",
-            "projectDeclaredCatalog/facts/facts/factViews/factViews",
             "projectDeclaredCatalog/facts/facts/facts",
             "projectDeclaredCatalog/facts/facts/facts#2",
+            "projectDeclaredCatalog/facts/facts/factViews/factViews",
             "projectDeclaredCatalog/facts/facts/listing/listing",
+            "projectDeclaredCatalog/facts/facts#2",
             "projectDeclaredCatalog/fileMethods/fileMethods",
             "projectDeclaredCatalog/finalInput/finalInput",
             "projectDeclaredCatalog/finalInput/finalInput#2",
             "projectDeclaredCatalog/inputStage/inputStage/projection/init:capacity/init:capacity",
             "projectDeclaredCatalog/mappingInput/mappingInput",
-            "projectDeclaredCatalog/mappingInput/mappingInput#2",
             "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings",
+            "projectDeclaredCatalog/mappingInput/mappingInput#2",
             "projectDeclaredCatalog/methods/methods",
             "projectDeclaredCatalog/original/init:capacity/init:capacity",
             "projectDeclaredCatalog/overrideCount/overrideCount",
             "projectDeclaredCatalog/overrideInputs/overrideInputs",
-            "projectDeclaredCatalog/overrideInputs/overrideInputs#2",
             "projectDeclaredCatalog/overrideInputs/overrideInputs/overrideInputs",
+            "projectDeclaredCatalog/overrideInputs/overrideInputs#2",
             "projectDeclaredCatalog/parsed/parsed",
             "projectDeclaredCatalog/parsed/parsed#2",
             "projectDeclaredCatalog/projectDeclaredCatalog",
@@ -591,21 +591,21 @@
             "projectDeclaredCatalog/savedInput/savedInput/savedInput#6",
             "projectDeclaredCatalog/savedInput/savedInput/savedInput#7",
             "projectDeclaredCatalog/selected/selected",
-            "projectDeclaredCatalog/selected/selected#2",
             "projectDeclaredCatalog/selected/selected/queryAliases/queryAliases",
             "projectDeclaredCatalog/selected/selected/selected",
             "projectDeclaredCatalog/selected/selected/selected#2",
             "projectDeclaredCatalog/selected/selected/selected#3",
             "projectDeclaredCatalog/selected/selected/selected#4",
+            "projectDeclaredCatalog/selected/selected#2",
             "projectDeclaredCatalog/source/source",
-            "projectDeclaredCatalog/source/source#2",
             "projectDeclaredCatalog/source/source/source",
             "projectDeclaredCatalog/source/source/source/source",
             "projectDeclaredCatalog/source/source/writes/writes",
+            "projectDeclaredCatalog/source/source#2",
             "text/text",
-            "updateSources/updateSources/updateSources",
             "wire/wire",
-            "writeFacts/writeFacts"
+            "writeFacts/facts/facts",
+            "mappingSources/mappingSources/mappingSources"
           ],
           "exports": [
             "inspectDeclaredProjectCatalog",
@@ -618,7 +618,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "export async function loadDeclaredProjectCatalog"
               }
             ],
@@ -628,7 +628,7 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "sourceMember, sourcePrepared, effectMember, effectPrepared,"
               }
             ],
@@ -638,12 +638,12 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "provider = call('clientProjectConnectionsConnector', connections, selected);"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
-                "anchor": "scopeCid: cid({connection, connector: provider, dataPath, catalog: originalWire})"
+                "path": "adapters/local-node/declared-project-catalog.mts",
+                "anchor": "scopeCid: cid({connection, connector: provider!, dataPath, catalog: originalWire})"
               }
             ],
             "ownership": [
@@ -652,11 +652,11 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "return metadata ? installationInventory.prepareMetadataInput(projection)"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "effectMember.prepareBorrowedDeclaration(sourceMember);"
               }
             ],
@@ -666,15 +666,15 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "const sourceMember = installationInventory === undefined ? undefined"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "if (fileBindings.length) {"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "sourcePrepared = restoreInput(sourceMember, connectorId, registration, revision, finalInput, true);"
               }
             ],
@@ -684,11 +684,11 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "if (quantity == null) fail('InstalledSourceDeclarationCapacityUnavailable');"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "if (connectionIndex < 0 || typeof entryWire !== 'string' ||"
               }
             ],
@@ -698,11 +698,11 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "assertCurrent();"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "await Promise.allSettled([...flights]);"
               }
             ],
@@ -712,19 +712,19 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "const {retained, workspace} = geometry();"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "const quantity = call('clientProgramRelationRestoreConstructionCapacity',"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
-                "anchor": "mappingOriginals = effectPrepared.mappings;"
+                "path": "adapters/local-node/declared-project-catalog.mts",
+                "anchor": "mappingOriginals = effectPrepared.mappings!;"
               },
               {
-                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "path": "adapters/host-node/declared-project-catalog-construction.mts",
                 "anchor": "export function declaredProjectCatalogMappingInputsConstructionGeometry"
               }
             ],
@@ -734,7 +734,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "const connectorId = connection, registration = 'declared_file', revision = registration + '/0.1';"
               }
             ],
@@ -760,7 +760,7 @@
                 "anchor": "test('component catalog Entry quantity refusal precedes its first JavaScript parse'"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
                 "anchor": "test('actual file declarations preserve separate physical strings and logical keyed Content views'"
               },
               {
@@ -770,6 +770,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock binds UPDATE and DELETE to the same original table with distinct mappings"
               }
             ]
           }
@@ -791,8 +795,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
-                "anchor": "export function projectDeclaredProjectWritableInventory(sources)"
+                "path": "adapters/local-node/declared-project-catalog.mts",
+                "anchor": "export function projectDeclaredProjectWritableInventory<Source extends WritableInventorySource>(sources: readonly Source[])"
               }
             ],
             "inputsOutputs": [
@@ -815,19 +819,19 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/mock-file-target.mjs",
+                "path": "adapters/host-node/mock-file-target.mts",
                 "anchor": "constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
               }
             ],
@@ -866,7 +870,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "export async function loadDeclaredProjectCatalog"
               }
             ],
@@ -876,7 +880,7 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "sourceMember, sourcePrepared, effectMember, effectPrepared,"
               }
             ],
@@ -886,12 +890,12 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "provider = call('clientProjectConnectionsConnector', connections, selected);"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
-                "anchor": "scopeCid: cid({connection, connector: provider, dataPath, catalog: originalWire})"
+                "path": "adapters/local-node/declared-project-catalog.mts",
+                "anchor": "scopeCid: cid({connection, connector: provider!, dataPath, catalog: originalWire})"
               }
             ],
             "ownership": [
@@ -900,11 +904,11 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "return metadata ? installationInventory.prepareMetadataInput(projection)"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "effectMember.prepareBorrowedDeclaration(sourceMember);"
               }
             ],
@@ -914,15 +918,15 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "const sourceMember = installationInventory === undefined ? undefined"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "if (fileBindings.length) {"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "sourcePrepared = restoreInput(sourceMember, connectorId, registration, revision, finalInput, true);"
               }
             ],
@@ -932,11 +936,11 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "if (quantity == null) fail('InstalledSourceDeclarationCapacityUnavailable');"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "if (connectionIndex < 0 || typeof entryWire !== 'string' ||"
               }
             ],
@@ -946,11 +950,11 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "assertCurrent();"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "await Promise.allSettled([...flights]);"
               }
             ],
@@ -960,19 +964,19 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "const {retained, workspace} = geometry();"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "const quantity = call('clientProgramRelationRestoreConstructionCapacity',"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
-                "anchor": "mappingOriginals = effectPrepared.mappings;"
+                "path": "adapters/local-node/declared-project-catalog.mts",
+                "anchor": "mappingOriginals = effectPrepared.mappings!;"
               },
               {
-                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "path": "adapters/host-node/declared-project-catalog-construction.mts",
                 "anchor": "export function declaredProjectCatalogMappingInputsConstructionGeometry"
               }
             ],
@@ -982,7 +986,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "path": "adapters/local-node/declared-project-catalog.mts",
                 "anchor": "const connectorId = connection, registration = 'declared_file', revision = registration + '/0.1';"
               }
             ],
@@ -1008,7 +1012,7 @@
                 "anchor": "test('component catalog Entry quantity refusal precedes its first JavaScript parse'"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
                 "anchor": "test('actual file declarations preserve separate physical strings and logical keyed Content views'"
               }
             ]

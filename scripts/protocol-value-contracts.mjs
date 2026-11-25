@@ -6,6 +6,7 @@ import {commandTargetBindingSchemas} from './command-target-bindings.mjs';
 import {publishedCommandTargetSchemas} from './published-command-target.mjs';
 import {commandInputKeySchemas} from './command-input-key.mjs';
 import {createValuesSchemas, checkCreateValuesVectors} from './create-values.mjs';
+import {byteValuesBody} from './byte-values-contract.mjs';
 
 export const valueKinds=['request_schema','command_input','command_output','idempotency_key','checkpoint',
   'lookup_request_key','lookup_batch_request','lookup_response_key'];
@@ -112,25 +113,6 @@ export function signed64Body(protocol) {
     provider:'exact_constraint_support_or_unavailable_no_schema_erasure',
     authority:'type_or_value_admission_is_not_permission_currentness_funding_or_reference_issuance',
     compatibility:'legacy_Number_Decimal_Text_bodies_value_bytes_and_numeric_literal_meaning_unchanged',
-  };
-}
-
-export function byteValuesBody(protocol) {
-  const grammar={type:'object',required:['type','nullable'],additionalProperties:false,
-    properties:{type:{const:'bytes'},nullable:{type:'boolean'}}};
-  for(const name of ['author_value_contract','canonical_value_contract']){
-    const branches=protocol.schemas[name].$defs.value_contract.oneOf
-      .filter(value=>value.properties?.type?.const==='bytes');
-    assert.deepEqual(branches,[grammar],'closed distinct BYTES grammar: '+name);
-  }
-  return {
-    grammar,
-    wire:{type:'string',
-      pattern:'^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/][AQgw]==|[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=)?(?![\\s\\S])'},
-    domain:'exact_octets_including_empty_nullable_governed_separately',
-    identity:'same_octets_and_distinct_typed_bytes_domain',
-    admission:'standard_alphabet_final_padding_zero_unused_bits_encoded_extent_within_existing_value_budget',
-    assignment:'same_leaf_and_existing_nullability_recursive_structure_no_implicit_conversion',
   };
 }
 

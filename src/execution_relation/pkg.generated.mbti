@@ -314,6 +314,8 @@ pub fn bounded_set_cleanup_pending(BoundedSetExecution) -> Bool
 
 pub fn bounded_string_group_borrows_input(@lowering_relation.PreparedKernel) -> Bool
 
+pub fn bounded_unnest_cleanup_continuation(BoundedUnnestExecution) -> Int64
+
 pub fn bounded_unnest_cleanup_pending(BoundedUnnestExecution) -> Bool
 
 pub fn bounded_unpivot_cleanup_pending(BoundedUnpivotExecution) -> Bool

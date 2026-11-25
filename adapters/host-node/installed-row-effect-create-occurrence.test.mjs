@@ -4,23 +4,34 @@ import {readFile, mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
-import {types as nodeTypes} from 'node:util';
+import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
 import {maxHeaderSize} from 'node:http';
 import {parse} from 'acorn';
+import {createInstalledRowEffectRunControls} from './installed-row-effect-run-controls.mjs';
+import {createInstalledRowEffectFootprint, createInstalledRowEffectPreviewContext} from './installed-row-effect-preview.mjs';
+import {createInstalledRowEffectClaims, createInstalledRowEffectRecoveryEntries} from './installed-row-effect-claims.mjs';
+import {createInstalledRowEffectRecoveryBacking} from './installed-row-effect-recovery-backing.mjs';
+import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
+import {createInstalledRowEffectCaptureValues} from './installed-row-effect-capture-values.mjs';
+import {prepareInstalledRowEffectCaptureInputs} from './installed-row-effect-capture-inputs.mjs';
+import {createInstalledRowEffectCaptureRows} from './installed-row-effect-capture-rows.mjs';
+import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
+import {createInstalledRowEffectCapability, createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
+import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild, createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {installedEffectDependencyOriginal, registerInstalledEffectDependencyOriginal, retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
-import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
+import {registerInstalledEffectDependencyOriginal, retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
+import {prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
 // driver request/claim, Resource and physical ports are explicit here.
 const source=await readFile(new URL('./installed-row-effect.mjs',import.meta.url),'utf8');
 const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),nodes=[];
-function walk(node,parents=[]){
+function walk(node,parents=[],found=nodes){
   if(!node||typeof node!=='object')return;
-  if(typeof node.type==='string')nodes.push({node,parents});
-  for(const value of Object.values(node))if(Array.isArray(value))value.forEach(n=>walk(n,[...parents,node]));else if(value&&typeof value==='object')walk(value,[...parents,node]);
+  if(typeof node.type==='string')found.push({node,parents});
+  for(const value of Object.values(node))if(Array.isArray(value))value.forEach(n=>walk(n,[...parents,node],found));else if(value&&typeof value==='object')walk(value,[...parents,node],found);
 }
 walk(ast);
 const variable=name=>{
@@ -31,25 +42,39 @@ const recipePort = ownerOf => expression('recipeOf', {ownerOf,
   // Existing single-recipe fixtures have no codec-size substitution. Keep
   // that explicit port while executing the actual shared kind selection.
   controlRecipes: {get: original => original}});
-const readPorts = (ownerOf, resourceFields = () => ({})) => {
-  const recipeOf = recipePort(ownerOf);
-  const managedReadChild = expression('managedReadChild', {ownerOf, recipeOf, fail, selectInstalledEffectCredentialOperation});
-  const describeMember = expression('describeMember', {ownerOf, managedReadChild, resourceFields});
-  return {recipeOf, managedReadChild, describeMember};
+const unusedReadPort = () => assert.fail('The fixture did not select this read port');
+const readPorts = (ownerOf, resourceFields = () => ({}), recipeOf = recipePort(ownerOf)) => {
+  const {requireSynchronousEffectResource} = createInstalledRowEffectDriverControls({
+    fail, text: value => typeof value === 'string' && value.length > 0,
+    optionalFunction: unusedReadPort, kinds: [], guarded: unusedReadPort,
+  });
+  const managedReadChild = createInstalledRowEffectReadChild({ownerOf, recipeOf, fail, requireSynchronousEffectResource});
+  const {describeMember, observeRows} = createInstalledRowEffectReadOperations({
+    ownerOf, recipeOf, managedReadChild, resourceFields, readDecision: unusedReadPort, fail,
+    sameValue: same, cidPattern: /^sha256:[0-9a-f]{64}$/,
+  });
+  return {recipeOf, managedReadChild, describeMember, observeRows};
+};
+const checkRowsFixture = ({ownerOf, readDecision}) => createInstalledRowEffectReadOperations({
+  ownerOf, recipeOf: recipePort(ownerOf), readDecision, fail, managedReadChild: unusedReadPort,
+  resourceFields: unusedReadPort, sameValue: same, cidPattern: /^sha256:[0-9a-f]{64}$/,
+}).checkRows;
+const routeFixture = ports => {
+  const recipeOf = recipePort(ports.ownerOf);
+  return createInstalledRowEffectPhysicalRoute({
+    ...readPorts(ports.ownerOf, ports.resourceFields, recipeOf), ...ports,
+  });
 };
 const expression=(name,ports)=>{
-  if(name==='recoveredEntries'&&ports.validateRecoveredEntries===undefined) ports={...ports,validateRecoveredEntries:expression('validateRecoveredEntries',ports)};
-  if (['recipeOf', 'decideTargetRead'].includes(name) && ports.targetPlanOf === undefined) {
+  if (name === 'recipeOf' && ports.targetPlanOf === undefined) {
     ports = {...ports, targetPlanOf: expression('targetPlanOf', {fail})};
-  }
-  if (['footprintOf', 'checkRows', 'prepareCredentialOperation', 'physicalRoute', 'decideTargetRead'].includes(name) &&
-      ports.recipeOf === undefined) ports = {...ports, recipeOf: recipePort(ports.ownerOf)};
-  if (name === 'physicalRoute' && ports.describeMember === undefined) {
-    ports = {...readPorts(ports.ownerOf, ports.resourceFields), ...ports};
   }
   return Function(...Object.keys(ports),`return (${source.slice(variable(name).start,variable(name).end)});`)(...Object.values(ports));
 };
-const capture=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='captureStage').node;
+const captureSource=await readFile(new URL('./installed-row-effect-capture-stage.mjs',import.meta.url),'utf8');
+const captureOwner=parse(captureSource,{ecmaVersion:'latest',sourceType:'module'}).body
+  .find(node=>node.declaration?.id?.name==='createInstalledRowEffectCaptureStage').declaration;
+const capture=captureOwner.body.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='captureStage');
 const loops=capture.body.body.filter(n=>n.type==='ForOfStatement'&&n.body.body.some(statement=>statement.type==='VariableDeclaration'&&statement.declarations.some(d=>d.id.name==='description')));
 assert.equal(loops.length,1);
 const loop=loops[0];
@@ -71,11 +96,14 @@ test('managed capability uses the same original control frame before any provide
     return {identity: cid('1'), route: 'single_serial', binding: {
       connector_registration: 'original', connector_revision: '0.1', runtime_bundle_cid: cid('2')}};
   };
-  const actual = expression('admitCapability', {ownerOf: original => {
-    assert.strictEqual(original, member);
-    return {owned: receiver, connectorRegistration: 'original', connectorRevision: '0.1', runtimeBundleCid: cid('2')};
-  }, commonCapability: () => assert.fail('existing provider capability must be used'),
-  cidPattern: /^sha256:[0-9a-f]{64}$/, fail});
+  const useExisting = () => assert.fail('existing provider capability must be used');
+  const {admitCapability: actual} = createInstalledRowEffectCapability({
+    moon: {clientProgramEffectApplyCapabilityFromCodes: useExisting}, ownerOf: original => {
+      assert.strictEqual(original, member);
+      return {owned: receiver, connectorRegistration: 'original', connectorRevision: '0.1', runtimeBundleCid: cid('2')};
+    }, cid: useExisting, cidPattern: /^sha256:[0-9a-f]{64}$/u, CAPABILITY_VERSION: 'unused',
+    contractCidOf: useExisting, installedEffectWriteOperation: useExisting, fail,
+  });
   const frame = (original, method, args) => {
     assert.strictEqual(original, receiver);
     assert.strictEqual(method, receiver.issueCapability);
@@ -101,7 +129,8 @@ test('managed footprint uses the same original control frame and original reques
     return {kind: 'exact_targets', provider_boundary_cid: cid('1'), provider_namespace: 'original',
       resource_kind: 'Account', resource_identity_scheme_cid: cid('2'), provider_object_identity_cids: [cid('3')]};
   };
-  const actual = expression('footprintOf', {ownerOf: () => ({owned: receiver}),
+  const ownerOf = () => ({owned: receiver});
+  const actual = createInstalledRowEffectFootprint({ownerOf, recipeOf: recipePort(ownerOf),
     footprintKinds: ['exact_targets'], cidPattern: /^sha256:[0-9a-f]{64}$/,
     text: value => typeof value === 'string' && value.length > 0, fail});
   const result = actual(member, entries, (original, method, args) => {
@@ -116,17 +145,17 @@ test('actual capture failure input callback retires only its pins after the shar
   const marker = new Error('stop after original cleanup retention'), children = [];
   const input = {}, events = [];
   let releaseInputs, finishCapture, observations = 0;
-  const moon = {clientProgramPinEffectSources: () => ({ok: input}),
+  const moon = {clientProgramPinEffectSources: () => ({$tag:1,_0:input}),
     clientProgramReleaseEffectInputs(original) {assert.strictEqual(original, input); events.push('pins');}};
-  const actual = Function('moon', 'checked', 'runLimits', 'fail', 'releaseInstalledRowCapture',
-    `return (${source.slice(capture.start, capture.end)});`)(moon, checked, () => ({maxPinnedResults: 1}), fail,
-    releaseInstalledRowCapture);
-  await assert.rejects(actual({members:[],ownChildren(original) {
-    original.push({prepared: {status() {observations++; return {pending: false};},
-      release() {assert.fail('already retired');}, retry() {assert.fail('already retired');}}});
-    children.push(...original);
-  }, ownInputs(release, finish) {releaseInputs = release; finishCapture = finish; throw marker;}}),
-  error => error === marker);
+  await assert.rejects(async () => prepareInstalledRowEffectCaptureInputs({
+    moon, runLimits: () => ({maxPinnedResults: 1}), members: [], fail, retireRoute: () => true,
+    ownChildren(original) {
+      original.push({prepared: {status() {observations++; return {pending: false};},
+        release() {assert.fail('already retired');}, retry() {assert.fail('already retired');}}});
+      children.push(...original);
+    },
+    ownInputs(release, finish) {releaseInputs = release; finishCapture = finish; throw marker;},
+  }), error => error === marker);
   finishCapture();
   const control = {
     publicationPreparedReleaseAction(index, count, inspected, pending, attempted) {
@@ -152,7 +181,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     assert.deepEqual(wires,input.map(value=>JSON.stringify({state:'present',value})));
     assert.deepEqual([count,bytes,nodes,depth],[3,10000,100,10]);
     if(inventoryError)throw inventoryError;
-    return {ok:[1,2,0].map((index,i)=>runtimeTupleFromFields({0:index,1:JSON.stringify(issued[i])}))};
+    return {$tag:1,_0:[1,2,0].map((index,i)=>runtimeTupleFromFields({0:index,1:JSON.stringify(issued[i])}))};
   }};
   const prepare=context=>{
     assert.equal(inventoryCalls,1,'Common original identity must exist before provider preparation');
@@ -202,16 +231,14 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan};
   const ownerOf=value=>{assert.strictEqual(value,member);return {owned,managedPlanRecipe:managedRecipe};};
   const limits={preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10},maxRows:3,maxRowsPerMember:3};
-  const createRows=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='prepareInstalledCreateRows').node;
-  const prepareInstalledCreateRows=Function('checked','runtimeField','fail','parseExactJson',
-    `return (${source.slice(createRows.start,createRows.end)});`)(checked,runtimeField,fail,
-      expression('parseExactJson',{fail}));
-  const entryOf=expression('entryOf',{ownerOf,cidPattern:/^sha256:[0-9a-f]{64}$/,targeted:()=>false,fail});
-  const requestEntry=expression('requestEntry',{entryOf,sameEffectValue:(_kind,a,b)=>same(a,b),targeted:()=>false,fail});
+  const {prepareInstalledCreateRows}=createInstalledRowEffectCaptureValues(fail);
   const resourceFields=value=>{assert.strictEqual(value,member);return {runOriginal};};
   const commandContentRow=()=>undefined;
-  const requestsOf=expression('requestsOf',{ownerOf,requestEntry,resourceFields,commandContentRow});
-  const ports={...readPorts(ownerOf, resourceFields),controlConstruction:controlFrame ? (receiver, method, args) => {
+  const {entryOf,requestEntry,requestsOf}=createInstalledRowEffectRequests({
+    ownerOf,cidPattern:/^sha256:[0-9a-f]{64}$/u,targeted:()=>false,
+    sameEffectValue:(_kind,a,b)=>same(a,b),sameValue:same,resourceFields,commandContentRow,fail,
+  });
+  const ports={...readPorts(ownerOf, resourceFields),createInstalledRowEffectCaptureRows,controlConstruction:controlFrame ? (receiver, method, args) => {
     assert.equal(projecting, false);projecting = true;
     try {return Reflect.apply(method, receiver, args);} finally {projecting = false;}
   } : undefined,physicalOperations:()=>assert.fail('No physical call in constructor-only fixture'),
@@ -221,8 +248,8 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     resourceFields,currents:[],rowsOf:[],observations:[],commandContentBorrower:()=>assert.fail('No Command borrow'),
     control:{},prepared,identity,inputs:{},sourceSet:{members:[{payload:{}}]},limits,
     contentBorrowers:[],targeted:()=>false,guarded:()=>false,contentOwner:undefined,
-    requestChildren,prepareInstalledRowCaptureChild,commandContentRow,requestEntry,requestsOf,prepareInstalledCreateRows,fail,
-    managedEffect,prepareInstalledEffectRequestChild,prepareInstalledEffectOwnedRequestChild,retireRequestAliases(){aliasesRetired=true;ports.rowsOf.length=0;ports.currents.length=0;return true;}};
+    requestChildren,commandContentRow,requestEntry,requestsOf,prepareInstalledCreateRows,fail,
+    managedEffect,retireRequestAliases(){aliasesRetired=true;ports.rowsOf.length=0;ports.currents.length=0;return true;}};
   if (requestProjection) ports.controlConstruction.requestProjection = (actualMember, operation, row, receiver, method, args) => {
     assert.deepEqual([actualMember, operation, row], [0, 1, projections]);
     assert.equal(activeConstructor, undefined);
@@ -230,7 +257,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     workspaceEvents.push(['project', row]);
     return ports.controlConstruction(receiver, method, args);
   };
-  const run=()=>Function(...Object.keys(ports),`return (async()=>{${source.slice(loop.start,loop.end)};return {rowsOf,observations,currents};})();`)(...Object.values(ports));
+  const run=()=>Function(...Object.keys(ports),`return (async()=>{${captureSource.slice(loop.start,loop.end)};return {rowsOf,observations,currents};})();`)(...Object.values(ports));
   return {run,contexts,events,requestChildren,workspaceEvents,activeConstructor:()=>activeConstructor,projections:()=>projections,inventoryCalls:()=>inventoryCalls,entryOf,ownerOf,owned,runOriginal,debits,settlements,managedEffect};
 }
 
@@ -270,26 +297,44 @@ test('create original inventory failure retains exact cause before sync or child
 
 test('create cold request preparation receives same admitted Preview identities without issuing another inventory',()=>{
   const identities=issued.map(value=>Object.freeze({...value})),seen=[],claims=identities.map((_,i)=>({canonicalRequestCid:cid(String(i+1))}));
-  const changes=identities.map((identity,i)=>({target_row_identity:identity,after:{value:input[[1,2,0][i]]}}));
+  const order=identities.map((_,i)=>cid(String(i+4)));
+  const changes=identities.map((identity,i)=>({row_preview_cid:order[i],
+    target_row_identity:identity,after:{value:input[[1,2,0][i]]}}));
   const owned={prepareRequest(context){assert.strictEqual(context.createRowIdentity,identities[seen.length]);seen.push(context);
     return {request:{value:context.value},requestCid:claims[seen.length-1].canonicalRequestCid};},requestFacts:request=>({value:request.value,target:undefined})};
   const ownerOf=()=>({owned});
-  const entryOf=expression('entryOf',{ownerOf,cidPattern:/^sha256:[0-9a-f]{64}$/,targeted:()=>false,fail});
-  const recover=expression('recoveredEntries',{singular:{owned},members:[member],ownerOf,resourceFields:()=>({runOriginal:{}}),
-    orderedSourceIndexes:()=>[0,1,2],entryOf,sameEffectValue:(_kind,a,b)=>same(a,b),approvedValue:(_kind,change)=>change.after.value,targeted:()=>false,fail});
-  const result=recover({members:[member],body:{effects:[{changes}]},durable:{},recorded:{members:[{claims}]},previewWire:'original approved Preview',runInvocationCid:cid('c'),dispatches:[cid('d')]});
+  const {entryOf}=createInstalledRowEffectRequests({
+    ownerOf,cidPattern:/^sha256:[0-9a-f]{64}$/u,targeted:()=>false,
+    sameEffectValue:(_kind,a,b)=>same(a,b),sameValue:same,resourceFields:()=>({}),
+    commandContentRow:()=>assert.fail('No Content lookup in the recovered CREATE fixture'),fail,
+  });
+  const {orderedSourceIndexes}=createInstalledRowEffectClaims({fail});
+  const {recoveredEntries}=createInstalledRowEffectRecoveryEntries({singular:{owned},ownerOf,
+    resourceFields:()=>({runOriginal:{}}),orderedSourceIndexes,entryOf,
+    sameEffectValue:(_kind,a,b)=>same(a,b),sameValue:same,targeted:()=>false,fail});
+  const result=recoveredEntries({members:[member],body:{effects:[{changes,row_order:order}]},durable:{},
+    recorded:{members:[{claims}]},previewWire:'original approved Preview',runInvocationCid:cid('c'),dispatches:[cid('d')]});
   assert.equal(seen.length,3);assert.equal(result.entries[0].length,3);
 });
 
 test('non-create request preparation retains its original context without a create occurrence field',()=>{
   for(const kind of ['update','delete','upsert','command']){
     const selected=Object.freeze({kind}),current=Object.freeze({}),runOriginal=Object.freeze({}),seen=[];
-    const rows=[{value:{n:1},selector:'first'},{value:{n:2},selector:'second'}];
-    const owned={prepareRequest(context){seen.push(context);return context.value;}};
-    const requestsOf=expression('requestsOf',{ownerOf:value=>{assert.strictEqual(value,selected);return {owned};},
-      resourceFields:()=>({runOriginal}),commandContentRow:()=>assert.fail('No Content lookup without original borrower'),
-      requestEntry:(member,row,prepared)=>{assert.strictEqual(member,selected);assert.strictEqual(row.value,prepared);return prepared;}});
-    assert.deepEqual(requestsOf(selected,rows,current,undefined,undefined),rows.map(row=>row.value));
+    const rows=['first','second'].map((selector,index)=>({value:kind==='delete'?undefined:{n:index+1},selector}));
+    const requestCid=cid('a');
+    const owned={prepareRequest(context){seen.push(context);
+      return {request:{value:context.value,target:context.selector},requestCid};},
+    requestFacts:request=>request};
+    const {requestsOf}=createInstalledRowEffectRequests({
+      ownerOf:value=>{assert.strictEqual(value,selected);return {owned};},
+      cidPattern:/^sha256:[0-9a-f]{64}$/u,targeted:()=>true,sameEffectValue:(_kind,a,b)=>a===b,
+      sameValue:(a,b)=>a===b,resourceFields:()=>({runOriginal}),
+      commandContentRow:()=>assert.fail('No Content lookup without original borrower'),fail,
+    });
+    const entries=requestsOf(selected,rows,current,undefined,undefined);
+    assert.deepEqual(entries,rows.map(({value,selector})=>({
+      request:{value,target:selector},requestCid,value,target:selector,
+    })));
     seen.forEach((context,index)=>{assert.deepEqual(context,{member:selected,value:rows[index].value,selector:rows[index].selector,current,runOriginal});assert.equal(Object.hasOwn(context,'createRowIdentity'),false);});
   }
 });
@@ -313,30 +358,34 @@ test('actual route retirement waits for its active refresh before severing reque
   const gate=new Promise(resolve=>{proceed=resolve;});
   // All admission/grant/provider ports are explicit. No member or physical
   // operation is fabricated to exercise the real enclosing async borrow fence.
-  const route=expression('physicalRoute',{fail,guarded:()=>false,
+  const route=routeFixture({fail,guarded:()=>false,
     checkRows:async()=>{entered();await gate;},ownerOf:()=>assert.fail('No member'),
     admitCapability:()=>assert.fail('No capability'),routeOf:()=>assert.fail('No route')})({
       members:[],entries:[[{}]],previewRows:[],dispatches:[],subjectCid:'subject'});
-  const currents=[{}],rowsOf=[{}],observations=[{}],proposals=[{}];
-  const declarations=nodes.filter(({node,parents})=>node.type==='VariableDeclarator'&&
-    node.id.name==='retireRequestAliases'&&parents.includes(capture));
-  assert.equal(declarations.length,1,'capture owner retirement');
-  const node=declarations[0].node.init;
-  const scope=Function('route','currents','rowsOf','observations','proposals',`
-    let captureOpen=true,entries=Object.freeze([[{}]]),memberCaptures=[];
-    const retire=${source.slice(node.start,node.end)};
-    return {retire,finish(){captureOpen=false;},entries:()=>entries};
-  `)(route,currents,rowsOf,observations,proposals);
-  assert.equal(scope.retire(),false,'capture is still active');
-  scope.finish();
+  let entries=Object.freeze([[{}]]), finish;
+  let createOriginals=[Object.freeze({})];
+  const captureInputs=prepareInstalledRowEffectCaptureInputs({
+    moon:{clientProgramPinEffectSources:()=>({$tag:1,_0:{}}),clientProgramEffectInputExportLimits:()=>({})},
+    members:[],plan:{outputLimits:{}},fail,runLimits:()=>({body:{}}),store:{},exportLimits:()=>[],
+    preparePinnedEffectSourceSet:async()=>({payloads:[]}),ownChildren(){},
+    ownInputs(_release,complete){finish=complete;},
+    retireRoute(){if(!route.retire())return false;entries=undefined;createOriginals=undefined;return true;},
+  });
+  await captureInputs.sourceExport;
+  const {retireRequestAliases:retire,currents,rowsOf,observations,proposals}=captureInputs;
+  for(const original of [currents,rowsOf,observations,proposals])original.push({});
+  assert.equal(retire(),false,'capture is still active');
+  finish();
   const refresh=route.current({preflight:{observedRows:[]}});
   await observed;
-  assert.equal(scope.retire(),false,'refresh still owns request/current locals');
-  assert.notEqual(scope.entries(),undefined);assert.equal(currents.length,1);
+  assert.equal(retire(),false,'refresh still owns request/current locals');
+  assert.notEqual(entries,undefined);assert.equal(currents.length,1);
+  assert.equal(createOriginals.length,1);
   await assert.rejects(route.current({preflight:{observedRows:[]}}),{code:'InstalledRowEffectRouteRetired'});
   proceed();await refresh;
-  assert.equal(scope.retire(),true);
-  assert.equal(scope.entries(),undefined);
+  assert.equal(retire(),true);
+  assert.equal(entries,undefined);
+  assert.equal(createOriginals,undefined);
   for(const original of [currents,rowsOf,observations,proposals])assert.equal(original.length,0);
   assert.throws(()=>route.bindDispatch({members:[],subjectCid:'subject'}),{code:'InstalledRowEffectRouteRetired'});
 });
@@ -360,8 +409,8 @@ test('actual create check forwards the same issued authorization into its select
     assert.equal(context.request,request);assert.equal(context.authorization.grant,raw.grant);
     assert.equal(context.credential,boundCredential);assert.equal(context.callResource,boundResource);
     events.push('provider');return {checked:true};}};
-  const checkRows=expression('checkRows',{ownerOf:()=>({owned,site,managedPlanRecipe:selectedRecipe}),
-    readDecision:async()=>decision,fail});
+  const checkRows=checkRowsFixture({ownerOf:()=>({owned,site,managedPlanRecipe:selectedRecipe}),
+    readDecision:async()=>decision});
   let forwarded;
   await checkRows({members:[selected],entries:[[{request}]],runInvocationCid:'run',dispatches:['dispatch'],
     subjectOf:()=> 'subject',assertCurrent(){},operationPhase:'capture',
@@ -404,8 +453,7 @@ test('actual capture operation retains the original bound child before invoking 
     callResource(){events.push('read');return Promise.resolve({originalResponse:true});}});
   const recipe={rowOperations:[{},{},{},{operation:'form-read'}],credentialOperations:[
     {phase:'capture-check',operationIndex:3,maxRequestBytes:64,maxResponseBytes:64}]};
-  const actual=expression('prepareCredentialOperation',{moon,ownerOf:()=>({managedPlanRecipe:recipe}),fail,
-    selectInstalledEffectCredentialOperation,
+  const actual=createInstalledRowEffectPhysicalOperation({moon,recipeOf:()=>recipe,fail,
     installedRowCredentialOperationSite:original=>{assert.equal(original,credential);return originalSite;},
     prepareInstalledRowCaptureChild,prepareInstalledEffectCredentialChild});
   const input={member:selected,rowIndex:0,phase:'capture-check',operation:'form-read',site:{credential},originalAuthorization:raw,
@@ -426,17 +474,20 @@ test('managed create checks and cold routes refuse missing original parent reten
   let entered=0;
   const selected={kind:'create'},owner={managedPlanRecipe:{credentialOperations:[]},
     owned:{check:{resource:'rows',operation:'form-read'}},site:{issueReadGrant:()=>{entered++;}}};
-  const checkRows=expression('checkRows',{ownerOf:()=>owner,readDecision:async()=>{entered++;},fail});
+  const checkRows=checkRowsFixture({ownerOf:()=>owner,readDecision:async()=>{entered++;}});
   await assert.rejects(checkRows({members:[selected],entries:[[]],dispatches:[],subjectOf:()=> 'subject'}),
     {code:'InstalledEffectPhysicalPlanUnavailable'});
-  const physicalRoute=expression('physicalRoute',{ownerOf:()=>owner,fail});
+  const physicalRoute=routeFixture({ownerOf:()=>owner,fail});
   assert.throws(()=>physicalRoute({members:[selected],operationPhase:'resume'}),{code:'InstalledEffectPhysicalPlanUnavailable'});
   assert.equal(entered,0);
 });
 
 test('pre-write check selection captures original callback and refuses unfunded or accessor flags before use',()=>{
-  const node=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='captureBeforeSendCheck').node;
-  const capture=Function('nodeTypes','fail','text',`return (${source.slice(node.start,node.end)});`)(nodeTypes,fail,value=>typeof value==='string'&&value.length>0);
+  const captureOnly = () => assert.fail('The hook fixture does not admit another driver');
+  const {captureBeforeSendCheck: capture} = createInstalledRowEffectDriverControls({
+    fail, text: value => typeof value === 'string' && value.length > 0,
+    optionalFunction: captureOnly, kinds: [], guarded: captureOnly,
+  });
   const recipe={rowOperations:[{operation:'form-read'}],credentialOperations:[{phase:'write-check',operationIndex:0}]};
   let called=0;
   const original=function(){called++;},driver={kinds:['create'],check:Object.freeze({resource:'forms',operation:'form-read',beforeSend:true}),checkRequest:original};
@@ -459,9 +510,9 @@ test('a failed original pre-write Form check retains the claim without entering 
   let retainedClaim;
   const ledger={claimDispatch(original){retainedClaim=original;events.push('claim');return {claimed:true,dispatching:{}};},
     beginPhysicalFlight(){events.push('flight');return ()=>events.push('end');},recordResponse(){assert.fail('No mutation response exists');}};
-  const route=expression('physicalRoute',{ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
+  const route=routeFixture({ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
     admitCapability:()=>({identity:'capability'}),routeOf:()=>({}),commitDecisions:()=>new Map(),requireApproval:()=>{},scopeKey:()=> 'scope',
-    admitRow:()=>claim,captureClaimedEffectResponse,
+    admitRow:()=>claim,
     installedEffectWriteOperation(driver,member,updateWriteSlot){
       assert.strictEqual(driver,owned);assert.strictEqual(member,selected);assert.equal(updateWriteSlot,undefined);
       return driver.writeOperation(member);
@@ -479,8 +530,8 @@ test('a failed original pre-write Form check retains the claim without entering 
 // ordering/lifetime, not complete constructor quantities or ordinary authority.
 function prefixFixture({failBorrowAt, exportFailure}={}) {
   const events=[],children=[],input=Object.freeze({}),nativePlan={},parent={},prepared={},identity={};
-  let releaseInputs,finish,borrowCount=0,exportCalls=0;
-  const moon={clientProgramPinEffectSources(){events.push('pin');return {ok:input};},
+  let releaseInputs,finish,sourceSet,borrowCount=0,exportCalls=0;
+  const moon={clientProgramPinEffectSources(){events.push('pin');return {$tag:1,_0:input};},
     clientProgramInstalledEffectDependencySourcesPin(owner,p,r,plan){
       assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);assert.equal(plan,nativePlan);
       return moon.clientProgramPinEffectSources();
@@ -515,12 +566,12 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
     publicationCleanupOwnerAction(index,count,checked,pending,available,attempted){
       return index>=count?'finished':!checked?'inspect':pending&&available&&!attempted?'retry':'advance';
     }};
-  const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,installedEffectDependencyOriginal,
+  const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},fail,
     runLimits:()=>ports.limits,
     limits:{maxPinnedResults:2,maxRows:2,maxRowsPerMember:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
     ownerOf:()=>owned,assertCurrent(){},own(){},ownChildren(value){assert.equal(children.length,0);children.push(value);},
     ownInputs(release,complete){releaseInputs=release;finish=complete;},control,
-    prepareInstalledRowCaptureChild,retainInstalledRowCaptureChild,prepareInstalledEffectRequestChild,releaseInstalledRowCapture,
+    readSourceSet:()=>sourceSet,readEntries:()=>undefined,retireRoute:()=>true,
     prepareCredentialOperation:()=>assert.fail('No physical child in capture prelude'),
     plan:{outputLimits:{maxWireBytes:100}},exportLimits:()=>[],singular:undefined,cid:()=>cid('e'),
     store:{storeAuthorityCid:cid('f')},runInvocationCid:cid('c'),execution:{},signal:undefined,
@@ -538,9 +589,12 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
     assert.ok(value && typeof value === 'object');
     retainedInputs = value;
   }});
-  const end=capture.body.body.find(node=>node.type==='ExpressionStatement'&&node.expression.type==='CallExpression'&&node.expression.callee.name==='own'&&node.expression.arguments[0]?.name==='sourceSet').end;
-  const code=source.slice(capture.body.start+1,end);
-  const run=()=>Function(...Object.keys(ports),`return (async()=>{${code};return {proposals,requestChildren};})();`)(...Object.values(ports));
+  const run=async()=>{
+    const capture=prepareInstalledRowEffectCaptureInputs(ports);
+    sourceSet=await capture.sourceExport;
+    ports.own(sourceSet);
+    return capture;
+  };
   return {run,events,children,primary,exportCalls:()=>exportCalls,cleanup:async()=>{
     finish();
     const marker=Object.freeze(new Error('same original prefix cleanup'));
@@ -603,11 +657,8 @@ test('CREATE inventory consumes the original checked proposal wire before any lo
   const originalIdentity=Object.freeze({content_cid:cid('a'),occurrence:0});
   const moon={clientProgramEffectCreateRowInventory(wires,count){
     assert.deepEqual(wires,[wire]);assert.equal(count,1);
-    return {ok:[runtimeTupleFromFields({0:0,1:JSON.stringify(originalIdentity)})]};}};
-  const declaration=nodes.find(({node})=>node.type==='FunctionDeclaration'&&
-    node.id.name==='prepareInstalledCreateRows').node;
-  const prepare=Function('checked','runtimeField','fail','parseExactJson',
-    `return (${source.slice(declaration.start,declaration.end)});`)(checked,runtimeField,fail,JSON.parse);
+    return {$tag:1,_0:[runtimeTupleFromFields({0:0,1:JSON.stringify(originalIdentity)})]};}};
+  const {prepareInstalledCreateRows:prepare}=createInstalledRowEffectCaptureValues(fail);
   const result=prepare(moon,[Object.freeze({changesWire:wire})],
     {maxWireBytes:10000,maxNodes:100,maxDepth:10});
   assert.strictEqual(result.rows[0],result.createRows[0].entry);
@@ -655,8 +706,8 @@ test('actual CREATE read grant uses its original control frame and returns works
   const f=sameControlFrame(),selected={kind:'create',resource:'rows'},entry={request:{}},decision={},grant={grant:{},scope:{}};
   const site={issueReadGrant(facts){assert.equal(this,site);assert(f.active());assert.equal(facts.decision,decision);f.events.push('grant');return grant;}};
   const owned={check:{operation:'read',resource:'form'},checkRequest(context){assert.equal(context.authorization,grant);assert.equal(context.controlConstruction,f.work);f.events.push('physical');}};
-  const check=expression('checkRows',{ownerOf:()=>({owned,site,managedPlanRecipe:{credentialOperations:[]}}),
-    readDecision:async()=>decision,fail});
+  const check=checkRowsFixture({ownerOf:()=>({owned,site,managedPlanRecipe:{credentialOperations:[]}}),
+    readDecision:async()=>decision});
   await check({members:[selected],entries:[[entry]],runInvocationCid:'run',dispatches:['dispatch'],subjectOf:()=> 'subject',
     controlConstruction:f.work,physicalOperations(facts){assert.equal(f.active(),false);assert.equal(facts.originalAuthorization,grant);return facts.invoke({authorization:grant});}});
   assert.deepEqual(f.events,['begin','grant','complete','physical']);assert.equal(f.work.retire(),true);
@@ -665,8 +716,8 @@ test('actual CREATE read grant uses its original control frame and returns works
 test('ordinary CREATE retains the original Run continuation current fence without a Mapping selection', () => {
   const selected={kind:'create',effectId:'append'},owner={resources:undefined};let reads=0;
   const facts={prepared:{},assertContinuationCurrent(){assert.equal(this,facts);reads++;}};
-  const select=expression('selectionFence',{owners:[],validateOwnerSelections:()=>undefined,ownerOf:member=>{
-    assert.equal(member,selected);return owner;},resourceFields:()=>assert.fail('no legacy Resource original'),
+  const {selectionFence:select}=createInstalledRowEffectRunControls({owners:[],validateOwnerSelections:()=>undefined,ownerOf:member=>{
+    assert.equal(member,selected);return owner;},
     selectionChanged:()=>assert.fail('no Mapping selection is being supplied'),
     assertUpdateTargetSelectionMembersCurrent:()=>assert.fail('no Mapping proof from Run current'),
     requireSynchronousEffectResource:value=>value,fail});
@@ -676,12 +727,14 @@ test('ordinary CREATE retains the original Run continuation current fence withou
 });
 
 test('CREATE continuation namespace follows its original Mapping selection rather than Run current presence', () => {
-  const calls=nodes.filter(({node})=>node.type==='CallExpression'&&node.callee.name==='continuationOf');
+  const captureNodes=[];
+  walk(capture,[],captureNodes);
+  const calls=captureNodes.filter(({node})=>node.type==='CallExpression'&&node.callee.name==='continuationOf');
   assert.equal(calls.length,1);
   const selected=calls[0].node.arguments.at(-1);
-  const choose=Function('assertCurrent','updateTargetSelections',`return (${source.slice(selected.start,selected.end)});`);
+  const choose=Function('assertCurrent','updateTargetSelections',`return (${captureSource.slice(selected.start,selected.end)});`);
   const owner={},installation={binding:'original'};
-  const wire=expression('continuationOf',{canonicalJson:JSON.stringify,
+  const {continuationOf: wire}=createInstalledRowEffectPreviewContext({
     singular:{profile:{continuation:'legacy',continuationBinding:'binding'},continuationBinding:'original'},
     contractCidOf:()=>cid('a'),ownerOf:()=>owner,installationFacts:actual=>{assert.equal(actual,owner);return installation;}});
   const serialize=selections=>JSON.parse(wire({request:'request',attempt:'attempt'},
@@ -697,9 +750,9 @@ test('Run continuation current cannot replace an original Mapping selection curr
   const member={kind:'update',stageIndex:0,effectId:'edit',mapping:{target:'target',mappingRef:'mapping',mappingCid:'cid'}};
   const facts={prepared,updateTargetSelections:selections,assertContinuationCurrent(){assert.fail('Run current is not Mapping current');},
     assertUpdateSelectionCurrent(){assert.equal(this,facts);asserted++;}};
-  const select=expression('selectionFence',{owners:[],validateOwnerSelections:(_owners,original,p)=>{
+  const {selectionFence:select}=createInstalledRowEffectRunControls({owners:[],validateOwnerSelections:(_owners,original,p)=>{
     assert.equal(original,selections);assert.equal(p,prepared);return original;},ownerOf:()=>({resources:undefined}),
-    resourceFields:()=>assert.fail('no legacy Resource original'),requireSynchronousEffectResource:value=>value,
+    requireSynchronousEffectResource:value=>value,
     assertUpdateTargetSelectionMembersCurrent:(original,members,p)=>{assert.equal(original,selections);assert.equal(p,prepared);
       assert.deepEqual(members,[{stage_index:0,effect_id:'edit',target_ref:'target',mapping_ref:'mapping',mapping_cid:'cid'}]);},
     selectionChanged:()=>fail('MissingOriginalMappingCurrent'),fail});
@@ -734,7 +787,11 @@ test('actual Effect execution retains its original cancellation read and avoids 
 test('actual target authorization retains same original grant receiver in its selected control frame', async () => {
   const f=sameControlFrame(),member={resource:'rows'},decision={action:'dispatch'},grant={grant:{},scope:{}};
   const site={issueReadGrant(facts){assert.equal(this,site);assert(f.active());assert.equal(facts.decision,decision);f.events.push('grant');return grant;}};
-  const decide=expression('decideTargetRead',{ownerOf:()=>({connection:'connection',authorization:{authorize:async()=>decision},owned:{targetRead:{operation:'read'}},site}),fail});
+  const ownerOf=()=>({connection:'connection',authorization:{authorize:async()=>decision},owned:{targetRead:{operation:'read'}},site});
+  const decide=createInstalledRowEffectTargetAuthorization({
+    ownerOf,targetPlanOf:(_member,owner)=>{assert.equal(owner.managedTargetPlanRecipes,undefined);},
+    recipeOf:recipePort(ownerOf),fail,
+  });
   const read=await decide({member,runInvocationCid:'run',dispatchRequestCid:'dispatch',subjectCid:'subject',controlConstruction:f.work});
   const result=await read.authorizationForRow(0);assert.equal(result.grant,grant.grant);
   assert.deepEqual(f.events,['begin','grant','complete']);assert.equal(f.work.retire(),true);
@@ -809,15 +866,14 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
         return current;
       }});
   };
-  const managedReadChild = expression('managedReadChild', {recipeOf, ownerOf, fail, selectInstalledEffectCredentialOperation});
-  const describe = expression('describeMember', {ownerOf, managedReadChild, resourceFields: () => ({})});
+  const {describeMember: describe, observeRows: observe} = readPorts(ownerOf, () => ({}), recipeOf);
   assert.strictEqual(await describe({member, runInvocationCid: 'run', dispatchRequestCid: 'dispatch',
     physicalOperations, operationPhase: 'capture', label: 'original', assertCurrent() {}}), current);
-  const decide = expression('decideTargetRead', {ownerOf, recipeOf, fail});
+  const decide = createInstalledRowEffectTargetAuthorization({
+    ownerOf, recipeOf, fail, targetPlanOf: (_member, owner) => {assert.equal(owner.managedTargetPlanRecipes, undefined);},
+  });
   const read = await decide({member, runInvocationCid: 'run', dispatchRequestCid: 'dispatch', subjectCid: 'subject',
     targetReads: {authorize: () => decision}});
-  const observe = expression('observeRows', {ownerOf, managedReadChild, resourceFields: () => ({}),
-    fail, sameValue: same, cidPattern: /^sha256:[0-9a-f]{64}$/});
   const observed = await observe({member, entries: [{target}], current, read, physicalOperations,
     operationPhase: 'capture', runInvocationCid: 'run', dispatchRequestCid: 'dispatch'});
   assert.deepEqual(observed, [{identity: target, state: 'present', versionCid, before: {Name: 'before'}}]);
@@ -877,10 +933,10 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
       events.push(`select-${memberIndex}`); return inputExtents[memberIndex];
     }} : {})}, memberOperations: [{operation: 'capture'}, {operation: 'capture'}]};
   const facts = {members, body: {}, durable: {connectorRecovery: []}, recorded: {}, previewWire: 'unchanged', runInvocationCid: 'run', dispatches: ['a', 'b']};
-  const actual = expression('prepareRecoveredEntries', {moon: runtime, recipeOf: () => recipe, fail,
+  const actual = createInstalledRowEffectRecoveryBacking({moon: runtime, recipeOf: () => recipe, fail,
     ownerOf: member => owners[member.memberIndex], sameValue: same,
     validateRecoveredEntries(input, entries) {assert.strictEqual(input.body, facts.body);assert.strictEqual(entries, original.entries);events.push('recheck');},
-    retainInstalledRowCaptureChild, prepareInstalledEffectRequestChild,
+    prepareInstalledEffectRequestChild,
     recoveredEntries(input) {
       assert.strictEqual(input.body, facts.body);assert.strictEqual(input.members, members);
       assert.deepEqual([...active], [0, 1]);constructions++;events.push('rebuild');

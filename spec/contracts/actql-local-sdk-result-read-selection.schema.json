@@ -11,7 +11,7 @@
     "max_uses",
     "principal",
     "purpose",
-    "result_names",
+    "result_selection",
     "run_policy_profile_cid",
     "sink",
     "version"
@@ -37,9 +37,23 @@
     "purpose": {
       "const": "python-local-read"
     },
-    "result_names": {
-      "const": [
-        "answer"
+    "result_selection": {
+      "oneOf": [
+        {
+          "const": {
+            "authority": "original_result_read",
+            "kind": "requested_original_result"
+          }
+        },
+        {
+          "const": {
+            "authority": "named_result_read",
+            "kind": "finite_result_names",
+            "names": [
+              "answer"
+            ]
+          }
+        }
       ]
     },
     "sink": {

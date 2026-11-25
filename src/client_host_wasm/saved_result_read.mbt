@@ -38,8 +38,16 @@ fn saved_result_read_current(
     resource: "result/" + result_name,
     operation: "read",
   }
-  if @authorization.evaluate_account(configuration.account, tuple)
-    is @authorization.Allow(_) {
+  guard configuration.sdk is Some(sdk) else { return Err(-32) }
+  let installed_original_result = @publication.local_sdk_result_read_selection_uses_installed_result_authority(
+    sdk.read,
+  )
+  if @authorization.local_result_read_authority_resource(
+      configuration.account,
+      tuple,
+      installed_original_result,
+    )
+    is Some(_) {
     Ok(())
   } else {
     Err(-32)
@@ -313,6 +321,7 @@ fn finish_saved_result_read(
       sdk.adoption_cid,
       owner,
       view,
+      selection=sdk.read,
     ) {
     Ok(value) => value
     Err(_) => return Err(-32)
@@ -462,6 +471,7 @@ fn reobserve_saved_result_read(
   retained : StoredSavedResultRead,
   incremental? : Bool = false,
   same_reader_census? : Bool = false,
+  reuse_proven_fence_rows? : Bool = false,
 ) -> Result[Unit, Int] {
   guard configuration.host_current is Some(current_handle) &&
     value.host_currents.get(current_handle) is Some(current) else {
@@ -494,6 +504,7 @@ fn reobserve_saved_result_read(
       read,
       census_ticket=if same_reader_census { current.physical } else { 0 },
       census_current=physical_journal_current_operation,
+      reuse_proven_fence_rows~,
     )
   }
   match
@@ -527,6 +538,7 @@ fn rebind_saved_result_originals(
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
   census_ticket? : Int = 0,
   census_current? : (Int) -> Int64 = _ => -41L,
+  reuse_proven_fence_rows? : Bool = false,
 ) -> Result[Unit, Int] {
   if schema != 0 && schema != 1 {
     return Err(-41)
@@ -575,6 +587,11 @@ fn rebind_saved_result_originals(
       Ok(_) => ()
     }
   }
+  // This use is limited to callbacks of an export that already checked the
+  // exact fence rows above its first borrow. An effect ends the proof.
+  if same && reuse_proven_fence_rows {
+    return Ok(())
+  }
   for (table, key, revision, body) in retained.fences {
     match read(table, key) {
       Ok(Some(row)) if row.key == key &&
@@ -593,6 +610,7 @@ fn validate_saved_result_read(
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
   same_reader_census? : Bool = false,
+  reuse_proven_fence_rows? : Bool = false,
 ) -> Result[Unit, Int] {
   guard record.saved_result is Some(retained) &&
     retained.advances_remaining == 0 &&
@@ -608,6 +626,7 @@ fn validate_saved_result_read(
       retained,
       incremental=record.kind == INCREMENTAL_SAVED_RESULT_KIND,
       same_reader_census~,
+      reuse_proven_fence_rows~,
     ) {
     Err(code) => return Err(code)
     Ok(_) => ()

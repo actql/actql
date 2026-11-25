@@ -3,13 +3,14 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {cp, mkdir, readFile, readdir, writeFile, symlink} from 'node:fs/promises';
+import {cp, mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
 import {existsSync, lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {isBuiltin} from 'node:module';
 import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {build, buildSync} from 'esbuild';
 import {createOwnedScratch} from './owned-scratch.mjs';
+import {prepareCopiedTypeScript} from './copied-typescript-preparation.mjs';
 import {packedNpmCache, normalNpmPackJsonArgs, parseNpmPackJson, normalPackSourceInputs, initializeNormalPackSourceIndex} from './packed-client-packages.mjs';
 import {tokens} from './portable-core.mjs';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
@@ -180,7 +181,7 @@ async function acceptance() {
     sourceHashes.push([path, sha256(bytes)]);
   }
   initializeNormalPackSourceIndex(coreRoot, sourceHashes.map(([path]) => path));
-  await symlink(join(repository, 'node_modules'), join(coreRoot, 'node_modules'), 'dir');
+  await prepareCopiedTypeScript({source: repository, root: coreRoot, environment, run});
   const fixture = join(coreRoot, 'scripts/fixtures/external-compute');
   await cp(join(fixture, 'external-numeric'), sourceRoot, {recursive: true});
   await cp(join(fixture, 'compute-host'), hostRoot, {recursive: true});

@@ -110,7 +110,7 @@ test('positional duplicate controls retain both values, types and scope', () => 
 });
 
 test('CORRESPONDING matching participates in both normal and narrow packed acceptance', () => {
-  const driver = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = readFileSync(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const corpus = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/set-corresponding-source-input.mjs', 'set-corresponding-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_SET_CORRESPONDING_ONLY = '1'"));

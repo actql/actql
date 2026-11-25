@@ -161,7 +161,7 @@ pub fn prepare_client_effect_keyed_generic_source_metadata(
         shape.nodes.to_int64(),
         max_nodes,
         max_depth,
-        fn() {
+        fn(_) {
           let document = match
             @acquisition.parameterized_request_canonical_document(
               @acquisition.source_acquisition_request(acquisition),
@@ -222,7 +222,7 @@ pub fn prepare_client_effect_keyed_generic_source_metadata(
     18L,
     max_nodes,
     max_depth,
-    fn() {
+    fn(_) {
       guard parent.generic is None &&
         !lookup.closed &&
         lookup.left.lookup_issue is None &&
@@ -501,7 +501,7 @@ fn prepare_client_effect_keyed_generic_completion(
     32L,
     max_nodes,
     max_depth,
-    fn() {
+    fn(_) {
       let (input, source) = match
         build_keyed_lookup_source_observation(
           lookup,

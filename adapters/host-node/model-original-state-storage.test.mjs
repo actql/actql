@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
+import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
   openContinuationEvidence} from './local-continuation-evidence.mjs';
 

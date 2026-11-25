@@ -224,6 +224,13 @@ fn task_completion_fixture_sequence(
 ///|
 test "Debug task commit preserves the first identical settlement reentered by the original Ledger current callback" {
   let graph = task_completion_fixture_graph()
+  assert_eq(checked_task_control_entry_boundary_issue(graph), None)
+  let fused = task_completion_fixture_graph(
+    program=(
+      #|{"version":"actql/0.1","id":"boundary.fused","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"n":{"type":"number","nullable":false}},"rows":[{"n":1}]},"as":"data"},{"from":"data","take":{"count":1},"as":"picked"}],"results":{"rows":{"from":"picked","fields":["n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+  )
+  assert_eq(checked_task_control_entry_boundary_issue(fused), Some(0))
   let load = task_completion_fixture_require(task_completion_fixture_url())
   let visit : Ref[(() -> Unit)?] = Ref(None)
   // The fixture funds the new overlapping codec owners. The Sample controls
@@ -541,6 +548,7 @@ test "paused dependency rejects the different raw Input of its computed producer
       "}}",
     stages=4,
   )
+  assert_eq(checked_task_control_entry_boundary_issue(mixed_graph), None)
   assert_eq(graph_data_count(mixed_graph), 3)
   let raw_edge = graph_data_at(mixed_graph, 1).unwrap()
   let good_edge = graph_data_at(mixed_graph, 2).unwrap()

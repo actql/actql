@@ -14,6 +14,7 @@ import {observeImageRoot, imageRuntime, checkIsolatedInputs, checkIsolatedResult
 import {staticElf} from './isolated-execution.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest, isolatedExperimentPaths} from './isolated-contract.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
+import {resourceOriginal, resourceRuntime, runtimeEmit} from '../relation-pipeline/inventory.mjs';
 
 test('actual staged Session dependencies load and bind the ordinary CJS through restoration', t => {
   const repository = fileURLToPath(new URL('../../',import.meta.url));
@@ -40,15 +41,20 @@ test('actual staged Session dependencies load and bind the ordinary CJS through 
   assert.match(output,/^PASS actual staged Session declarations; no operations invoked/u);
   const action = readCatalog().actions.find(value => value.id === 'mutations-js');
   const inputs = actionInputs({tree,revision,action,runtime:{profile:'source-correspondence-only',unresolved:['runtime not executed']}});
-  const bridge = 'adapters/host-node/ordinary-node-resource-runtime.cjs';
-  for (const path of [bridge,'proofs/relation-pipeline/proof-runner-extension.mjs']) {
+  for (const path of [resourceOriginal,'proofs/relation-pipeline/proof-runner-extension.mjs']) {
     assert(staged.files.some(entry => entry.path === 'source/'+path && entry.digest === hash(tree.read(path))));
     assert(inputs.inputs.files.some(entry => entry.path === path && entry.digest === hash(tree.read(path))));
   }
+  assert(!inputs.inputs.files.some(entry => entry.path === resourceRuntime));
+  const derived = runtimeEmit(tree, resourceOriginal, resourceRuntime);
+  const runtimeDigest = hash(derived.bytes);
+  const stagedRuntime = staged.files.find(entry => entry.path === 'source/'+resourceRuntime);
+  assert.deepEqual(stagedRuntime, {path:'source/'+resourceRuntime, mode:derived.mode,
+    bytes:derived.bytes.length, digest:runtimeDigest});
   const expected = snapshotFromGit(tree);
   assert.deepEqual(snapshot(sourceRoot),expected);
-  assert.equal(expected.sources[bridge],hash(tree.read(bridge)));
-  const file = join(sourceRoot,bridge),original = readFileSync(file);
+  assert.equal(expected.sources[resourceRuntime],runtimeDigest);
+  const file = join(sourceRoot,resourceRuntime),original = readFileSync(file);
   try {
     writeFileSync(file,Buffer.concat([original,Buffer.from('\n// changed copied dependency\n')]));
     assert.notEqual(snapshot(sourceRoot).digest,expected.digest);

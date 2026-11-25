@@ -276,11 +276,16 @@ test('workflow selects focused job only for this profile and retains mandatory g
   assert.deepEqual(workflow.jobs.check.needs, gateJobs);
   assert(workflow.jobs.lint.steps.some(step => step.run === 'node --test scripts/ci-focused-tests.test.mjs'));
 });
-test('focused runner installs only Node and MoonBit while preserving upstream artifact preflight', () => {
+test('focused runner prepares typed tooling and MoonBit while preserving upstream artifact preflight', () => {
   const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const focused = jobs['focused-tests'].steps;
   assert(!focused.some(step => step.uses === './.github/actions/setup-toolchain'));
-  assert(!focused.some(step => /npm ci|duckdb\/node/u.test(step.run ?? '')));
+  assert(!focused.some(step => /duckdb\/node/u.test(step.run ?? '')));
+  const prepare = focused.findIndex(step => step.run === 'npm ci');
+  const consumer = focused.findIndex(step => step.run?.includes('node scripts/ci-focused-tests.mjs'));
+  assert(prepare >= 0 && prepare < consumer);
+  assert.equal(focused[prepare].if, undefined);
+  assert.equal(focused[prepare]['continue-on-error'], undefined);
   assert(focused.some(step => step.run?.includes('node scripts/setup-moonbit.mjs')));
   const artifact = 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs';
   assert.equal(jobs.preflight.steps.filter(step => step.run === artifact).length, 1);
@@ -309,7 +314,7 @@ test('full success checkpoint accepts focused-only job skipped but requires ever
   const checkpoint = await resolveMainBaseline(options);
   assert.equal(checkpoint.baseSha, old);
   assert.deepEqual(checkpoint.policy.map(entry => entry.path), policyPaths);
-  assert(policyPaths.includes('scripts/ci-focused-tests.mjs'));
+  assert(policyPaths.includes('scripts/ci-focused-tests.mts'));
   const focused = selection([change()], {event: 'push', mainIntegration: false});
   assert.equal(validateSelection(focused).profile, 'full', 'normal main selection never reuses a prior run to narrow coverage');
   verifyGate({selection: focused, sourceRevision: head}, results(focused), {event: 'push', sourceRevision: head});
