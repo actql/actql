@@ -253,7 +253,7 @@ binding and cancellation facts, not copy claims from the envelope or a query
 reply. The ordinary activation authorization gate also runs again. Initial
 delivery checks this projection before persistence and again after its commit;
 recovery checks it after the query/authorization awaits immediately before
-transport. Missing installation does not opt a legacy transport into R2.
+transport. A Coordinator without the current-context callback cannot redeliver.
 
 | Durable observation at recovery | Current exact query | Common owner decision |
 | --- | --- | --- |
@@ -273,21 +273,17 @@ for a new process to enter the executor. A resident holder has a fresh claimant
 and uses the existing startable-record/runtime-custody checks. Recovery does not
 construct a second execution state machine.
 
-The Node SQLite journal retains delivery bytes in the additive
-`dispatch_deliveries` table, with a foreign key to the exact dispatch intent and
-the `dispatch_delivery = actql-remote-coordinator-delivery/0.1` capability. The
-initial intent and delivery are inserted in the same SQLite transaction. A
-failed/unknown commit gives no send permission; reconstruct the Coordinator
-from the durable journal before attempting recovery. An existing dispatch with
-different envelope bytes is `RemoteDispatchDeliveryMaterialsCollision`.
+The current Node SQLite layout includes `dispatch_deliveries`, with a foreign
+key to the exact dispatch intent and the fixed `dispatch_delivery` metadata
+entry. An exact-delivery Coordinator inserts the initial intent and delivery
+bytes in the same SQLite transaction. A failed or unknown commit gives no
+send permission. Recovery reads the durable journal and refuses different
+envelope bytes with `RemoteDispatchDeliveryMaterialsCollision`.
 
-The history-journal/record and public wire formats remain 0.1 and their canonical
-bodies/CIDs are unchanged. R1-compatible journals without this capability stay
-openable: initializing the additive empty table does not manufacture delivery
-bytes or rewrite their observation records. Their query, evidence and cleanup
-remain usable; `RemoteDispatchDeliveryMaterialsMissing` refuses only automatic
-redelivery. Never attach newly generated materials to such an old intent.
-Pre-R1 journals retain the separate history-required refusal described below.
+A Coordinator without an installed `currentDispatchContext` uses the same
+physical layout. Its admitted intent can still be queried or cleaned up.
+`RemoteDispatchDeliveryMaterialsMissing` prevents a later caller from attaching
+newly generated materials to an existing intent that has no delivery row.
 
 ### Output report custody and acknowledgement
 
@@ -386,29 +382,15 @@ remain replayable. Another of the three bounded profiles at an already admitted
 position may arrive in reverse order, but no new position is admitted and no
 observation can undo physical reclaim or resurrect output.
 
-The wire observation contracts remain 0.1. History-bearing persistent records
-use the distinguishable `actql-remote-coordinator-history-record/0.1`, and the
-Node journal uses `actql-remote-coordinator-history-journal/0.1`. An old
-Coordinator journal cannot provide R1 replay guarantees and is refused with
-`CoordinatorJournalObservationHistoryRequired`; an old canonical record is
-refused with `ObservationHistoryRequired`. Historical admissions are never
-invented from its latest state or accumulated evidence. Refusal preserves the
-original DB, WAL and unfinished cleanup custody; it is not cancellation,
-reclaim, failure confirmation, or permission to resend work. No automatic
-migration is provided.
-
-An operator retaining an old journal must use a separately pinned matching
-implementation, rather than deleting its root or asking the new writer to
-invent receipts. With the same configured authority, the old owner recovers
-the exact dispatch and its outstanding custody, then reconciles and releases
-it using that version's ordinary rules. Returning to the new writer requires
-a separate empty root; rejection alone never terminates the old obligation.
-The fixed-baseline compatibility check in
-`scripts/test-coordinator-legacy-custody.mjs` verifies old-owner continuation
-after a DB+WAL/no-SHM refusal, and that the old writer rejects the new format
-without changing its logical state/history. This is Coordinator custody
-evidence, not a claim that replaying a release observation proves physical Site
-cleanup. Site physical release requires its normal independent evidence.
+The wire observation contracts remain 0.1 and history-bearing records retain
+`actql-remote-coordinator-history-record/0.1`. The Node journal checks the
+current physical schema and configured Coordinator authority in a bounded
+read-only snapshot before opening the original for writes. An unsupported
+physical layout yields `UnknownCoordinatorJournalFormat`. The original DB, WAL, SHM and
+unfinished cleanup custody remain intact. Refusal grants no
+permission to cancel, release or resend work. An old canonical observation
+record lacking admission history still refuses with `ObservationHistoryRequired`.
+Site physical release requires its normal independent evidence.
 
 Before opening an unclassified Node database normally, the adapter inspects a
 private DB+WAL snapshot using read-only source descriptors, retaining file

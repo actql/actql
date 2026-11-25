@@ -44,7 +44,7 @@ for(const [kind,sql]of [
   scratch.passed();
 });
 
-test('known plain legacy metadata preserves observation-history refusal without adopting its records',async()=>{
+test('plain metadata from an unsupported schema refuses without adopting its records',async()=>{
   const {scratch,path,bytes}=await originalDatabase(`
     CREATE TABLE journal_metadata (
       key TEXT PRIMARY KEY NOT NULL,
@@ -52,7 +52,7 @@ test('known plain legacy metadata preserves observation-history refusal without 
     ) STRICT;
     INSERT INTO journal_metadata VALUES ('schema_version','actql-remote-coordinator-journal/0.1');`);
   assert.throws(()=>openSqliteCoordinatorDispatchJournal(scratch.path,
-    {coordinatorAuthority:'original-coordinator'}), {code:'CoordinatorJournalObservationHistoryRequired'});
+    {coordinatorAuthority:'original-coordinator'}), {code:'UnknownCoordinatorJournalFormat'});
   assert.deepEqual(fs.readFileSync(path),bytes);
   scratch.passed();
 });

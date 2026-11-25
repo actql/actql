@@ -45,62 +45,6 @@
       "reason": "Existing test or rejection fixture occurrence; frozen to this context."
     },
     {
-      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-      "token": "actql-remote-coordinator-journal/0.5",
-      "contextSha256": "16a565416bdeeadaf358e3177eab76fcbdf408d182b6d936952382a376e9426c",
-      "line": 171,
-      "count": 1,
-      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
-    },
-    {
-      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-      "token": "actql-remote-coordinator-journal/0.5",
-      "contextSha256": "2658db555c934cc4bdb729b95b8bfc9282cb284a90608ef9db4f566eb90d19c9",
-      "line": 207,
-      "count": 3,
-      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
-    },
-    {
-      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-      "token": "actql-remote-coordinator-journal/0.2",
-      "contextSha256": "5e3494e1bc5af52059d7c7183f8a643d97a7b27876ad7af6b27274f5f8d70fc0",
-      "line": 209,
-      "count": 1,
-      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
-    },
-    {
-      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-      "token": "actql-remote-coordinator-journal/0.3",
-      "contextSha256": "5dff058ba789587bd0b1df9e4e522608a34393ce8ad2ed16300c326c04885ffa",
-      "line": 224,
-      "count": 1,
-      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
-    },
-    {
-      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-      "token": "actql-remote-coordinator-journal/0.4",
-      "contextSha256": "c449af256faf30b7bfc2a307f50c114d59071bc0346295f31d2a0b1fb58a9e09",
-      "line": 242,
-      "count": 1,
-      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
-    },
-    {
-      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-      "token": "actql-remote-coordinator-journal/0.5",
-      "contextSha256": "e53671ec9cbfbaab9c27677e2aa088303f85c1263f56ba508452f3c67dc169af",
-      "line": 245,
-      "count": 1,
-      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
-    },
-    {
-      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
-      "token": "actql-remote-coordinator-journal/0.5",
-      "contextSha256": "e50a1d39bc76ba2a0a2ee5eb44eca487e7b89f1720ad10070689a9b7b9451a0d",
-      "line": 247,
-      "count": 1,
-      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
-    },
-    {
       "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
       "token": "actql-remote-site-journal/0.6",
       "contextSha256": "e9d3c441d74da1f0dcc584772ed50497f5e373230eb59ecfea4fb13485e0ccc6",
