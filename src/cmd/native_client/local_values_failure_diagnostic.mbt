@@ -86,6 +86,7 @@ fn local_values_failure_tags(
           UnknownResult => 2L
           Bridge(_) => 3L
           Transformation(_) => 4L
+          Preparation(_) => 5L
           Export(cause) => {
             if cause is @run_host.Output(original) {
               emit(13, local_completed_export_issue_tag(original))

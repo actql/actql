@@ -103,7 +103,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     max_rounds <= 0 ||
     !entry.arena.matches_business_scope(false) ||
     !managed_relation_file_originals_match(access.source, prepared, request) ||
-    @strategy.graph_result_count(@host.prepared_client_graph(prepared)) != 1 ||
+    @strategy.graph_result_count(@host.prepared_client_graph(prepared)) <= 0 ||
     @strategy.graph_program_has_effects(@host.prepared_client_graph(prepared)) ||
     @host.client_compiled_run_has_infers(compiled) {
     return refuse(Configuration)
@@ -396,7 +396,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     execution: computed,
     plan: ManagedSourceFileExecution(rows, entries, evidence_entries),
     entry,
-    output_bridge: None,
+    output_bridges: None,
     capture_times: Some((started, completed)),
     publication_original: None,
     publication: None,

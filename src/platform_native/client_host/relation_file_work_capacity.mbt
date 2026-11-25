@@ -34,6 +34,8 @@
 // * One retained Common result-export record + Result H2/R3/S2, then the
 //   Work-owned retained Some and return Result H2/R2/S2. Its payload,
 //   exporter and variable row/schema workspace retain their Common inventory.
+// * Two growing arrays with one bridge and one export reference (H6/R32/S4).
+//   Original publication funds additional slots before selecting plural export.
 // * Original StoreOperation business pre-switch frontier H790/R374/S1498:
 //   direct receiver/Read observers H353/R176/S676 and nested begin/leave
 //   H437/R198/S822. This includes all 588 literal Ok(Unit) occurrences,
@@ -70,7 +72,8 @@ fn relation_file_work_control_bytes() -> Int64? {
   @execution.preparation_representation_cost({
     // The existing source field now retains its closed Single/Managed tag:
     // H1/R1/W1, without another physical Source owner.
-    record_headers: 2L +
+    record_headers: 6L +
+    2L +
     1L +
     5L +
     3L +
@@ -97,7 +100,8 @@ fn relation_file_work_control_bytes() -> Int64? {
     296L +
     86L +
     6L,
-    reference_slots: 19L +
+    reference_slots: 32L +
+    19L +
     8L +
     7L +
     11L +
@@ -121,7 +125,8 @@ fn relation_file_work_control_bytes() -> Int64? {
     23L +
     12L +
     1L,
-    scalar_words: 3L +
+    scalar_words: 4L +
+    3L +
     13L +
     4L +
     2L +

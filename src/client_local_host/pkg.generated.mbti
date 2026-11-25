@@ -2481,7 +2481,7 @@ pub fn LocalValuesExecution::completed_output(Self) -> @execution_relation.Manag
 pub fn LocalValuesExecution::material(Self) -> @execution_relation.ManagedRetainedOutput[Int]?
 pub fn LocalValuesExecution::prepare_captured_result_export(Self, @physical_strategy_host.CapturedDAG, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits, before_row? : ((String) -> Bool)?, reserve_row_copy? : ((Int64, Int64) -> Bool)?) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue]
 pub fn LocalValuesExecution::prepare_effect_result_export(Self, @physical_strategy_host.CapturedEffectRunDAG, @physical_strategy_host.CapturedEffectInputs, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits, before_row? : ((String) -> Bool)?, reserve_row_copy? : ((Int64, Int64) -> Bool)?) -> Result[LocalValuesEffectResultExport, LocalValuesEffectResultExportIssue]
-pub fn LocalValuesExecution::prepare_result_export(Self, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits, publication? : ClientProgramPublication?) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue]
+pub fn LocalValuesExecution::prepare_result_export(Self, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits, publication? : ClientProgramPublication?, fund_additional_bridge? : Bool) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue]
 pub fn LocalValuesExecution::rows(Self) -> Result[Array[String], LocalValuesExecutionIssue]
 
 pub struct LocalValuesExecutionFailure {
@@ -2515,6 +2515,7 @@ pub(all) enum LocalValuesResultExportIssue {
   Bridge(@execution_relation.ManagedProducerBridgeIssue)
   Export(@run_publication_host.PublicationOutputExportIssue)
   Transformation(@run_publication_host.CapturedClientResultTransformationIssue)
+  Preparation(ClientClosedValuesPreparationIssue)
 }
 
 #external

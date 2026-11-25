@@ -4,6 +4,7 @@
 fn native_publication_workspace_fixture(
   rows : Int,
   expanded_text? : Bool = false,
+  two_results? : Bool = false,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -13,6 +14,16 @@ fn native_publication_workspace_fixture(
     original_cross_text_working_program()
   } else {
     request_native_numeric_public_program(rows)
+  }
+  let document = if two_results {
+    let source = @json.parse(document)
+    guard source is Object(object) && object["results"] is Object(results) else {
+      fail("missing named Results")
+    }
+    results["answer1"] = results["answer0"]
+    source.stringify()
+  } else {
+    document
   }
   let input = [1]
   let parent = begin_request_preparation(
@@ -120,12 +131,14 @@ fn native_publication_workspace_component(
   snapshot? : Bool = false,
   chain? : Bool = false,
   only_foreign? : Bool = false,
+  second_bridge_refusal? : Bool = false,
   expanded_text? : Bool = false,
   read_validation? : Int = 0,
 ) -> Unit raise {
   let (parent, _input, prepared) = native_publication_workspace_fixture(
     rows,
     expanded_text~,
+    two_results=second_bridge_refusal,
   )
   let assets = @publication_host.client_local_product_assets()
   let contracts = parent.program_source_free.unwrap().installed_contracts
@@ -304,6 +317,52 @@ fn native_publication_workspace_component(
     )
     .unwrap()
   let stream = output.output_export()
+  if second_bridge_refusal {
+    let publication = original_publication.unwrap()
+    let graph = @strategy.captured_dag_graph(execution.run)
+    assert_eq(@strategy.graph_result_count(graph), 2)
+    assert_eq(@strategy.graph_result_name(graph, 0), Some("answer0"))
+    assert_eq(@strategy.graph_result_name(graph, 1), Some("answer1"))
+    let ledger = parent.ledger
+    let limits_before = @resources.ledger_limits(ledger)
+    let before = @resources.ledger_usage(ledger)
+    let pressure = @resources.reserve_capacity(
+      ledger,
+      limits_before.retained_bytes -
+      before.held_bytes -
+      before.reserved_retention_bytes,
+      0L,
+    ).unwrap()
+    let full = @resources.ledger_usage(ledger)
+    assert_true(
+      execution.prepare_result_export(
+        1,
+        row_limits,
+        bridge_entries,
+        65536,
+        limits,
+        publication=Some(publication),
+        fund_additional_bridge=true,
+      )
+      is Err(Preparation(Capacity(Resource(RetentionLimit)))),
+    )
+    assert_eq(@resources.ledger_usage(ledger), full)
+    assert_false(publication.capture_started)
+    assert_true(publication.completed_snapshots.is_empty())
+    assert_true(stream.definition() is Ok(_))
+    assert_false(output.closed)
+    output.close()
+    assert_true(output.closed)
+    assert_true(stream.next() is Err(_))
+    @resources.settle_capacity(ledger, pressure).unwrap()
+    assert_true(execution.close())
+    retire_installed_managed_run(run).unwrap()
+    let after = @resources.ledger_usage(ledger)
+    assert_eq(after.attempts, before.attempts)
+    assert_eq(after.live_reservations, 0)
+    assert_eq(after.holdings, 0)
+    return
+  }
   let mut streamed_bytes = 0
   let mut batches = 0
   while true {
@@ -919,6 +978,16 @@ test "ordinary export refuses copied publication continuation before bridge cons
     false,
     snapshot=true,
     only_foreign=true,
+  )
+}
+
+///|
+test "second named bridge out of quote leaves no publication and retires the first bridge" {
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    second_bridge_refusal=true,
   )
 }
 

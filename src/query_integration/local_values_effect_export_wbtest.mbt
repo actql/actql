@@ -303,6 +303,10 @@ test "Local Values ordinary Named Result export preserves its canonical payload 
         Transformation(ForeignSelection) => "Transformation.ForeignSelection"
         Transformation(InvalidState) => "Transformation.InvalidState"
         Transformation(_) => "Transformation.Other"
+        Preparation(ForeignOriginal) => "Preparation.ForeignOriginal"
+        Preparation(Policy) => "Preparation.Policy"
+        Preparation(Capacity(_)) => "Preparation.Capacity"
+        Preparation(_) => "Preparation.Other"
       }
       fail("Original ordinary Named Result export: " + cause)
     }

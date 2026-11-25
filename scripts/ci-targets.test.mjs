@@ -1178,7 +1178,7 @@ test('reviewed evaluation test modifications retain the existing light gate', ()
     'examples/infer-evaluation/evidence-reference.mjs',
     'packages/sdk/host-port.mjs', 'src/client_local_host/moon.pkg',
     'package.json', 'toolchain.json', '.github/workflows/ci.yml',
-    'proofs/relation-pipeline/inventory.mjs', 'examples/infer-evaluation/new.test.mjs']) {
+    'proofs/relation-pipeline/inventory.mts', 'examples/infer-evaluation/new.test.mjs']) {
     const value = maintenanceSelection([paths[0], input]);
     assert.equal(value.profile, 'full', input);
     assert.equal(deepProofRequired(value), true, input);
@@ -1198,7 +1198,7 @@ test('actual evaluation Source Git changes reject additions deletions renames an
     'examples/infer-evaluation/compare-source-instructions.test.mjs'];
   const shared = ['examples/infer-evaluation/evaluate.mjs', 'packages/sdk/host-port.mjs',
     'src/client_local_host/source_capture.mbt', 'package.json', 'toolchain.json',
-    '.github/workflows/ci.yml', 'proofs/relation-pipeline/inventory.mjs'];
+    '.github/workflows/ci.yml', 'proofs/relation-pipeline/inventory.mts'];
   for (const file of [...reviewed, ...shared, 'docs/development.md']) {
     const target = join(checkout, file); mkdirSync(dirname(target), {recursive: true});
     writeFileSync(target, readFileSync(new URL('../' + file, import.meta.url)));

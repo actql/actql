@@ -10,7 +10,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {nativeMockAcceptanceObservations, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {captureNativeMockCommand, mockTemplates, nativeLauncherEnvelope, requireNativeMockWork, runNativeCliMockScenario,
-  runNativeMixedFileMockScenarios, runNativeNullableMockScenarios, runNativeSharedFileMockScenario}
+  runNativeFileNamedResults, runNativeMixedFileMockScenarios, runNativeNullableMockScenarios, runNativeSharedFileMockScenario}
   from './native-cli-mock-scenario.mjs';
 import {nativeMockInstallOptions} from './test-native-cli-mock-install.mjs';
 import {observeNativeJournalExhaustion, requireNativeJournalCapacityRefusal}
@@ -101,6 +101,81 @@ function observation(pid, events = []) {
     'ACTQL_NATIVE_ACCEPTANCE_END ' + JSON.stringify({pid, count: events.length}) + '\n';
 }
 const observedCid = digit => 'sha256:' + digit.repeat(64);
+
+test('Native File Named Result requires first close and reads both original names without cold work', async t => {
+  const runId = 'one-file-run';
+  const state = (names = ['original', 'selected']) => JSON.stringify({version: 'actql-run-state/0.1',
+    run_id: runId, status: 'succeeded',
+    result_availability: Object.fromEntries(names.map(name => [name, {state: 'available'}]))});
+  const original = [{id: 'a-control', value: 'keep-account'}, {id: 'a1', value: 'A-old'}, {id: 'a2', value: 'A2-old'}];
+  const expected = {original, selected: [original[2]]};
+  for (const fault of ['none', 'adopt-close', 'wrong-result', 'lost-run-name', 'lost-cold-name',
+    'saved-read-execution', 'missing-saved-execution-observation']) {
+    const root = await mkdtemp(join(tmpdir(), 'actql-named-file-result-unit-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const commands = [];
+    const started = runNativeFileNamedResults({root, async run(args, cwd) {
+      const [operation, operand] = args;
+      commands.push(operation === 'result' ? args[3] : operation);
+      const number = commands.length;
+      const program = join(cwd, 'two-results.aql');
+      assert.equal(await readFile(join(cwd, 'mock/data.json'), 'utf8'), threeWriteMockProject().before);
+      if (operation === 'run') {
+        assert.deepEqual(args, ['run', 'two-results.aql', '--format', 'aql', '--json']);
+        assert.equal(await readFile(program, 'utf8'),
+          "FROM salesforce.accounts |> SELECT id, value |> ORDER BY id |> RESULT original |> WHERE id = 'a2' |> RESULT selected\n");
+      }
+      if (operation === 'status' || operation === 'result') assert.equal(operand, runId);
+      if (number >= 5) await assert.rejects(stat(program), {code: 'ENOENT'});
+      const lostName = (fault === 'lost-run-name' && operation === 'run') ||
+        (fault === 'lost-cold-name' && operation === 'status');
+      let stdout = operation === '--mode' ? '' : state(lostName ? ['original'] : undefined);
+      if (operation === 'result') {
+        const name = args[3];
+        assert.deepEqual(args.slice(2), ['--result', name, '--format', 'jsonl']);
+        const rows = fault === 'wrong-result' && name === 'selected' ? original : expected[name];
+        stdout = rows.map(row => JSON.stringify(row)).join('\n') + '\n';
+      }
+      const stderr = observation(800 + number).replace(/^ACTQL_NATIVE_PHASE (.*)\n/gmu, (_line, wire) => {
+        const phase = JSON.parse(wire);
+        if (phase.tag === 3 && fault === 'missing-saved-execution-observation' && number === 6) return '';
+        if (phase.tag === 5 && !(fault === 'adopt-close' && number === 1)) {
+          phase.begins = phase.ends = 1;
+        }
+        if (phase.tag === 3 && fault === 'saved-read-execution' && number === 6) {
+          phase.begins = phase.ends = 1;
+        }
+        return 'ACTQL_NATIVE_PHASE ' + JSON.stringify(phase) + '\n';
+      });
+      return {code: 0, signal: null, stdout, stderr};
+    }});
+    if (fault === 'adopt-close') {
+      await assert.rejects(started, /first Host close/u);
+      assert.deepEqual(commands, ['--mode']);
+    } else if (fault === 'wrong-result') {
+      await assert.rejects(started, {code: 'ERR_ASSERTION'});
+      assert.deepEqual(commands, ['--mode', 'run', 'original', 'selected']);
+    } else if (fault === 'lost-run-name' || fault === 'lost-cold-name') {
+      await assert.rejects(started, /Run must enumerate both original Result names/u);
+      assert.deepEqual(commands, fault === 'lost-run-name'
+        ? ['--mode', 'run'] : ['--mode', 'run', 'original', 'selected', 'status']);
+    } else if (fault === 'saved-read-execution') {
+      await assert.rejects(started, /Cold Named Result must not restart/u);
+      assert.deepEqual(commands, ['--mode', 'run', 'original', 'selected', 'status', 'original']);
+    } else if (fault === 'missing-saved-execution-observation') {
+      await assert.rejects(started, /Incomplete Native phase rows/u);
+      assert.deepEqual(commands, ['--mode', 'run', 'original', 'selected', 'status', 'original']);
+    } else {
+      const result = await started;
+      assert.equal(result.runId, runId);
+      assert.deepEqual(result.resultRows, {original: 3, selected: 1});
+      assert.equal(result.beforeSha256, result.afterSha256);
+      assert.equal(result.firstCloseObserved, true);
+      assert.deepEqual(commands, ['--mode', 'run', 'original', 'selected', 'status', 'original', 'selected']);
+    }
+  }
+});
+
 
 test('Native nullable Mock harness checks original preview, exact Read bindings and separate Saved reads', async t => {
   for (const fault of [undefined, 'null-preview', 'eligible-field-cleared']) {

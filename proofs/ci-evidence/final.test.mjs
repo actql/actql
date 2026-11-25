@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {parse as yaml} from 'yaml';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {readCatalog} from './actions.mjs';
-import {hash, actionInputs, compareInputs, sharedFiles, mutationSnapshotExtras, pipelineInventoryBoundary} from './inputs.mjs';
+import {hash, actionInputs, compareInputs, sharedFiles, mutationSnapshotExtras, pipelineInventoryBoundary, typescriptPreparationInputs} from './inputs.mjs';
 import {canonicalReceipt, sealReceipt, mutationIds} from './receipts.mjs';
 import {checkApplications} from './applications.mjs';
 import {checkPlan} from './check.mjs';
@@ -48,7 +48,9 @@ function familyFixture({mixed = false, changed = false, originEvent = 'workflow_
     repository: 'actql/actql', repositoryId: 1, workflowId: 2, runId: 30, runAttempt: 1, ancestors: ['b'.repeat(40)]};
   const source = new Map([...sharedFiles, ...mutationSnapshotExtras].map(path => [path, path]));
   source.set('scripts/ci-core-partitions.mjs', 'legacy CI partitions');
-  for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies])
+  for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]) source.delete(path);
+  for (const path of [pipelineInventoryBoundary.authoredPath, ...typescriptPreparationInputs,
+    ...pipelineInventoryBoundary.dependencies.map(entry => entry.authoredPath)])
     source.set(path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
   source.set('proofs/ci-evidence/bounded-session-actions.json', encode(catalog));
   for (const directory of ['proofs/bounded-session', 'proofs/events-bridge'])

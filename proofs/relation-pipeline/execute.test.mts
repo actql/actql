@@ -6,11 +6,13 @@ import { minimalRepository, runDriver, successful } from './fixtures/execution-d
 
 const targets = ['js', 'wasm', 'native'];
 const fixture = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
+type TimingComparison = { records: unknown[]; work: unknown[]; values: unknown[] };
+type TimingFailureReport = { records: unknown[]; calls: unknown[]; receipts: number };
 
 test('opt-in phase timing preserves JS calls, observations and canonical receipts', t => {
-  const results = [];
+  const results: TimingComparison[] = [];
   for (const enabled of [false, true]) {
-    const result = runDriver(minimalRepository(t), String.raw`
+    const result = runDriver<TimingComparison>(minimalRepository(t), String.raw`
 const executor = createExecutor(undefined, {targets: ['js'], jobs: 1});
 const values = [executor.execute([makeCase()], registry, 'js', false, 'normal')[0],
   executor.execute([makeCase('never-log-this-case-id', -2, 2)], registry, 'js', true, 'changed')[0]];
@@ -55,7 +57,7 @@ report({records, work: calls().map(call => ({target: call.target, args: call.arg
   values: values.map(({rows, checked, registered, observedCorrespondence}) =>
     ({rows, checked, registered, observedCorrespondence}))});
 `, {ACTQL_PIPELINE_PHASE_TIMING: enabled ? '1' : ''});
-    const data = successful(result);
+    const data = successful(result)!;
     const summaries = result.stdout.split('\n').filter(line => line.startsWith('ACTQL_PIPELINE_PHASE_TIMING:'))
       .map(line => JSON.parse(line.slice('ACTQL_PIPELINE_PHASE_TIMING:'.length)));
     assert.deepEqual(summaries, data.records);
@@ -66,7 +68,7 @@ report({records, work: calls().map(call => ({target: call.target, args: call.arg
 });
 
 test('opt-in phase timing preserves JS failures and a failed diagnostic write', t => {
-  const result = runDriver(minimalRepository(t), String.raw`
+  const result = runDriver<TimingFailureReport>(minimalRepository(t), String.raw`
 const originalWorkspace = workspaceIdentity(root, 'normal');
 let failWorkspace = false, workspaceCalls = 0;
 const workspace = {...originalWorkspace, check() {
@@ -108,7 +110,7 @@ assert.equal(workspaceCalls, 6);
 executor.close();
 report({records, calls: calls().map(({target, args}) => ({target, args})), receipts: executions.length});
 `, {ACTQL_PIPELINE_PHASE_TIMING: '1'});
-  const data = successful(result);
+  const data = successful(result)!;
   const summaries = result.stdout.split('\n').filter(line => line.startsWith('ACTQL_PIPELINE_PHASE_TIMING:'))
     .map(line => JSON.parse(line.slice('ACTQL_PIPELINE_PHASE_TIMING:'.length)));
   assert.equal(summaries.length, 4);
@@ -204,7 +206,7 @@ executor.close();
 
 test('real executor records fresh inputs and observations while unchanged builds stay fixed on three targets', t => {
   const root = minimalRepository(t);
-  const result = runDriver(root, String.raw`
+  const result = runDriver<{ paths: string[]; calls: number }>(root, String.raw`
 const executor = createExecutor();
 for (const target of ['js', 'wasm', 'native']) {
   const first = executor.execute([makeCase()], registry, target, false, 'normal')[0];
@@ -245,7 +247,7 @@ for (const target of ['js', 'wasm', 'native']) {
 executor.close();
 report({ paths, calls: calls().length });
 `);
-  const report = successful(result);
+  const report = successful(result)!;
   assert.equal(report.calls, 9);
   assert.equal(existsSync(join(root, fixture)), false);
   for (const path of report.paths) assert.equal(existsSync(join(root, path)), true);
@@ -268,7 +270,7 @@ for (const [settings, error] of [
   [{ wrongId: true }, /Unbound execution event/],
   [{ unchecked: true }, /Execution identity mismatch/],
   [{ unregistered: true }, /Execution identity mismatch/],
-]) {
+] as const) {
   test(`execution failure cannot publish a receipt or mutation kill: ${JSON.stringify(settings)}`, t => {
     const root = minimalRepository(t);
     const result = runDriver(root, String.raw`

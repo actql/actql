@@ -24,10 +24,11 @@ Session's collector/final/image utilities load the pipeline scientific consumers
 only after selecting a registered local pipeline profile. Session action keys
 therefore exclude the separate pipeline oracle/receipt directory; changing its
 bytes or membership does not invalidate Session evidence. The one remaining
-eager import, `relation-pipeline/inventory.mjs`, is still bound by bytes/mode and
-an exact reviewed import/effect fingerprint. Missing or changed inventory bytes
-leave the action unresolved until its boundary is reviewed. The current module
-imports only Node built-ins and has no top-level filesystem reads. This is a
+generated eager import, `relation-pipeline/inventory.mjs`, and its runner
+extension are derived from their `.mts` sources and the pinned compiler inputs. The authored
+bytes and mode bind the exact reviewed import/effect boundary. Missing or changed
+inputs leave the action unresolved until its boundary is reviewed. The module
+and its reviewed helper have no top-level filesystem reads. This is a
 limited manual dependency boundary, not a general JavaScript dependency parser.
 The pipeline profiles still stage their full own snapshot and use the same
 scientific validators. Session/pipeline, target and local/Actions authority

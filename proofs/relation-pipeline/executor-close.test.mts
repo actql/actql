@@ -1,4 +1,5 @@
 import test from 'node:test';
+import type { TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -7,7 +8,7 @@ import { minimalRepository, runDriver, successful } from './fixtures/execution-d
 
 // Reuse the current bound-fixture/compiler transport. The executor, physical
 // fixture ownership, receipt persistence and live child handoff remain real.
-function workspace(t) {
+function workspace(t: TestContext): string {
   const root = minimalRepository(t);
   const finish = 'proofs/relation-pipeline/capacity/finish.mjs';
   mkdirSync(dirname(join(root, finish)), { recursive: true });

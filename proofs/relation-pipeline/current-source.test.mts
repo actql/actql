@@ -1,18 +1,19 @@
 import assert from 'node:assert/strict';
-import {mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync, chmodSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, symlinkSync, chmodSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import test from 'node:test';
-import {checkCurrentSource} from './inventory.mjs';
+import type {TestContext} from 'node:test';
+import {checkCurrentSource, scratchCompilerConfigs} from './inventory.mjs';
 
-function git(root, ...args) {
+function git(root: string, ...args: string[]): string {
   const result = spawnSync('git', args, {cwd: root, encoding: 'utf8', env: {...process.env,
     GIT_AUTHOR_NAME: 'Fixture', GIT_AUTHOR_EMAIL: 'fixture@example.invalid',
     GIT_COMMITTER_NAME: 'Fixture', GIT_COMMITTER_EMAIL: 'fixture@example.invalid'}});
   assert.equal(result.status, 0, result.stderr); return result.stdout.trim();
 }
-function fixture(t) {
+function fixture(t: TestContext): string {
   const root = mkdtempSync(join(tmpdir(), 'actql-current-source-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   git(root, 'init', '-q'); mkdirSync(join(root, 'src'));
@@ -100,4 +101,58 @@ test('current source rejects an untracked ancestor supplying selected bytes', t 
   symlinkSync('outside', join(root, 'docs'), 'dir');
   git(root, 'diff', '--quiet', 'HEAD', '--', 'docs/spec/language.md');
   assert.throws(() => checkCurrentSource(root), /Untracked current proof inputs/);
+});
+
+function typedPipelineFixture(t: TestContext, stems: readonly string[]) {
+  const root = fixture(t);
+  const outputs = stems.flatMap(stem => [stem + '.mjs', stem + '.d.mts']);
+  const tracked = [...stems.map(stem => stem + '.mts'), ...scratchCompilerConfigs, 'package-lock.json'];
+  for (const path of tracked) {
+    mkdirSync(dirname(join(root, path)), {recursive: true});
+    writeFileSync(join(root, path), readFileSync(new URL(`../../${path}`, import.meta.url)));
+  }
+  git(root, 'add', '--', ...tracked);
+  git(root, 'commit', '-qm', 'Select the reviewed pipeline TypeScript inputs');
+  for (const path of outputs) writeFileSync(join(root, path), readFileSync(new URL(`../../${path}`, import.meta.url)), {mode: 0o644});
+  return {root, outputs};
+}
+
+const typedPipelineStems = [
+  'proof-parts', 'execution-names', 'execution-names.test', 'workspaces', 'workspaces.test', 'fixtures/execution-driver',
+  'execute', 'execute.test', 'execution-original', 'executor-close.test', 'fixture', 'fixture.test',
+  'inventory', 'inventory.test', 'current-source.test', 'proof-runner-extension', 'proof-runner-extension.test',
+].map(name => `proofs/relation-pipeline/${name}`);
+
+test('current source admits only the fixed compiler outputs of tracked pipeline TypeScript', t => {
+  const {root} = typedPipelineFixture(t, typedPipelineStems);
+  assert.equal(checkCurrentSource(root), git(root, 'rev-parse', 'HEAD'));
+
+  const sibling = 'proofs/relation-pipeline/foreign.mjs';
+  writeFileSync(join(root, '.git/info/exclude'), sibling + '\n');
+  writeFileSync(join(root, sibling), 'unregistered generated-looking file');
+  assert.throws(() => checkCurrentSource(root), /Untracked current proof inputs/u);
+  rmSync(join(root, sibling));
+  git(root, 'add', '--', 'proofs/relation-pipeline/execution-names.mjs');
+  git(root, 'commit', '-qm', 'Introduce a competing receipt name runtime');
+  assert.throws(() => checkCurrentSource(root), /Ambiguous authored pipeline TypeScript input/u);
+});
+
+for (const stem of typedPipelineStems) test(`current source rejects altered emit of ${stem}`, t => {
+  // Isolate one author per refusal fixture so a failure does not compile all
+  // unrelated sources again. The complete combination is verified above.
+  const {root, outputs} = typedPipelineFixture(t, [stem]);
+  for (const path of outputs) {
+    const target = join(root, path), canonical = readFileSync(target);
+    writeFileSync(target, 'stale or tampered output');
+    assert.throws(() => checkCurrentSource(root), /Derived pipeline output differs from tested HEAD/u);
+    rmSync(target);
+    assert.throws(() => checkCurrentSource(root), /Missing\/nonregular derived pipeline output/u);
+    writeFileSync(join(root, 'foreign'), canonical);
+    symlinkSync(join(root, 'foreign'), target);
+    assert.throws(() => checkCurrentSource(root), /Missing\/nonregular derived pipeline output/u);
+    rmSync(target);
+    writeFileSync(target, canonical, {mode: 0o755});
+    assert.throws(() => checkCurrentSource(root), /Missing\/nonregular derived pipeline output/u);
+    chmodSync(target, 0o644);
+  }
 });
