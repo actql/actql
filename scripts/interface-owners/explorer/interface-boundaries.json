@@ -594,7 +594,7 @@
     {
       "module": "packages/explorer-ui/checkpoint-panel.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "c573b4e38b4185aafb71fa300d6e95576e1532db28b1e179b856ac0aa78d7348",
+      "sha256": "ff8825145e2e525a783945a3a130c5ec3c03efa1b46668355be509a37eb9a7ae",
       "exports": [
         "CheckpointPanel"
       ],
@@ -602,7 +602,7 @@
         {
           "name": "CheckpointPanel",
           "parameters": [
-            "{page,review,pending,canList,canRead,onList,onRead}:CheckpointPanelProps"
+            "{page,review,pending,canList,canRead,onList,onRead,locale}:CheckpointPanelProps"
           ],
           "result": null
         },
@@ -621,6 +621,7 @@
       ],
       "imports": [
         "./checkpoint-review.js",
+        "./i18n.mjs",
         "@actql/explorer-ui/checkpoint-review"
       ],
       "compilerFields": [],
@@ -738,7 +739,7 @@
     {
       "module": "packages/explorer-ui/checkpoint-review.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "3ff843de62a66a0c8e727f356de81166f2ab8806ad884699ff56edcdbd5f9b65",
+      "sha256": "8dd59b2b5bd07053021e13947936f8e6e1dcdbe47be25cc598ef9b2643306488",
       "exports": [
         "CheckpointEntry",
         "CheckpointPageModel",
@@ -1703,7 +1704,7 @@
     {
       "module": "packages/explorer-ui/flow-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "87245b2a936cae114ab1175673b7258e4c5b2f80adcfcd3f01314b67ec072084",
+      "sha256": "0db33d6ac95c56bcfb16a9075a432fd89920c27e745fb0e1057eeaca2f5ab5ce",
       "exports": [
         "flowPresentation"
       ],
@@ -1711,7 +1712,8 @@
         {
           "name": "flowPresentation",
           "parameters": [
-            "model"
+            "model",
+            "locale"
           ],
           "async": false
         },
@@ -1739,6 +1741,7 @@
         }
       ],
       "imports": [
+        "./i18n.mjs",
         "./read-model.mjs"
       ],
       "compilerFields": [],
@@ -1856,9 +1859,673 @@
       ]
     },
     {
+      "module": "packages/explorer-ui/i18n.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "36306e323b9a53a08b86cff415c3fd9607cf1272a85e19877e5e1ae6200a446f",
+      "exports": [
+        "explorerCopy"
+      ],
+      "operations": [
+        {
+          "name": "english/english",
+          "parameters": [
+            "consistency",
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english/english",
+          "parameters": [
+            "char"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#10",
+          "parameters": [
+            "carrier"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#11",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#12",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#13",
+          "parameters": [
+            "sampled",
+            "total"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#14",
+          "parameters": [
+            "sampled"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#15",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#16",
+          "parameters": [
+            "role",
+            "ordinal",
+            "carrier"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#17",
+          "parameters": [
+            "ordinal",
+            "upstream"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#18",
+          "parameters": [
+            "file"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#19",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#2",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#20",
+          "parameters": [
+            "time"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#21",
+          "parameters": [
+            "sampled",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#22",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#23",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#24",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#25",
+          "parameters": [
+            "artifact",
+            "bytes",
+            "checkpoint"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#26",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#27",
+          "parameters": [
+            "stage",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#28",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#29",
+          "parameters": [
+            "expanded",
+            "row",
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#3",
+          "parameters": [
+            "operator"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#30",
+          "parameters": [
+            "total"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#31",
+          "parameters": [
+            "target",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#32",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#33",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#4",
+          "parameters": [
+            "sampled"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#5",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#6",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#7",
+          "parameters": [
+            "id"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#8",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#9",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "explorerCopy",
+          "parameters": [
+            "locale"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese",
+          "parameters": [
+            "consistency",
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#10",
+          "parameters": [
+            "carrier"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#11",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#12",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#13",
+          "parameters": [
+            "sampled",
+            "total"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#14",
+          "parameters": [
+            "sampled"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#15",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#16",
+          "parameters": [
+            "role",
+            "ordinal",
+            "carrier"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#17",
+          "parameters": [
+            "ordinal",
+            "upstream"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#18",
+          "parameters": [
+            "file"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#19",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#2",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#20",
+          "parameters": [
+            "time"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#21",
+          "parameters": [
+            "sampled",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#22",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#23",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#24",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#25",
+          "parameters": [
+            "artifact",
+            "bytes",
+            "checkpoint"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#26",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#27",
+          "parameters": [
+            "stage",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#28",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#29",
+          "parameters": [
+            "expanded",
+            "row",
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#3",
+          "parameters": [
+            "operator"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#30",
+          "parameters": [
+            "total"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#31",
+          "parameters": [
+            "target",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#32",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#33",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#4",
+          "parameters": [
+            "sampled"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#5",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#6",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#7",
+          "parameters": [
+            "id"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#8",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#9",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "textFor/textFor",
+          "parameters": [
+            "name",
+            "pair"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "role": "observation-presentation",
+      "owner": "existing Explorer presentation and Gateway / SDK boundary",
+      "rationale": "English and Japanese presentation copy shares one authored table. Logical identities and authority stay with the observed originals.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "english/english",
+            "english/english/english",
+            "english/english#10",
+            "english/english#11",
+            "english/english#12",
+            "english/english#13",
+            "english/english#14",
+            "english/english#15",
+            "english/english#16",
+            "english/english#17",
+            "english/english#18",
+            "english/english#19",
+            "english/english#2",
+            "english/english#20",
+            "english/english#21",
+            "english/english#22",
+            "english/english#23",
+            "english/english#24",
+            "english/english#25",
+            "english/english#26",
+            "english/english#27",
+            "english/english#28",
+            "english/english#29",
+            "english/english#3",
+            "english/english#30",
+            "english/english#31",
+            "english/english#32",
+            "english/english#33",
+            "english/english#4",
+            "english/english#5",
+            "english/english#6",
+            "english/english#7",
+            "english/english#8",
+            "english/english#9",
+            "explorerCopy",
+            "japanese/japanese",
+            "japanese/japanese#10",
+            "japanese/japanese#11",
+            "japanese/japanese#12",
+            "japanese/japanese#13",
+            "japanese/japanese#14",
+            "japanese/japanese#15",
+            "japanese/japanese#16",
+            "japanese/japanese#17",
+            "japanese/japanese#18",
+            "japanese/japanese#19",
+            "japanese/japanese#2",
+            "japanese/japanese#20",
+            "japanese/japanese#21",
+            "japanese/japanese#22",
+            "japanese/japanese#23",
+            "japanese/japanese#24",
+            "japanese/japanese#25",
+            "japanese/japanese#26",
+            "japanese/japanese#27",
+            "japanese/japanese#28",
+            "japanese/japanese#29",
+            "japanese/japanese#3",
+            "japanese/japanese#30",
+            "japanese/japanese#31",
+            "japanese/japanese#32",
+            "japanese/japanese#33",
+            "japanese/japanese#4",
+            "japanese/japanese#5",
+            "japanese/japanese#6",
+            "japanese/japanese#7",
+            "japanese/japanese#8",
+            "japanese/japanese#9",
+            "textFor/textFor"
+          ],
+          "exports": [
+            "explorerCopy"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer-ui/i18n.mts",
+                "anchor": "Authored presentation copy."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer-ui/i18n.mts",
+                "anchor": "Original IDs, field names, wire facts"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer-ui/i18n.mts",
+                "anchor": "Original IDs, field names, wire facts"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer-ui/i18n.mts",
+                "anchor": "Original IDs, field names, wire facts"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer-ui/i18n.mts",
+                "anchor": "Original IDs, field names, wire facts"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer-ui/i18n.mts",
+                "anchor": "Original IDs, field names, wire facts"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer-ui/i18n.mts",
+                "anchor": "Original IDs, field names, wire facts"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer-ui/i18n.mts",
+                "anchor": "Original IDs, field names, wire facts"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer-ui/i18n.mts",
+                "anchor": "Original IDs, field names, wire facts"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/packed-explorer-saved-context.mts",
+                "anchor": "元の工程とポート"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "de90758de6bac34329ed5cabfe521a8660285dc672821ca5e09747969ed8bf23",
+      "sha256": "b751dc415b6de69297cca233f37372c4d34605afbfa55846b1f676d9226776e8",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
@@ -1910,7 +2577,7 @@
         {
           "name": "RunInspector",
           "parameters": [
-            "props: {model: RunObservationModel}"
+            "props: {model: RunObservationModel; locale?: 'en' | 'ja'}"
           ],
           "result": "ReactElement"
         },
@@ -2065,7 +2732,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "35992c0918b3b632705791aea1e8167fe88cbf6ee18aab61794bbb3352fa0942",
+      "sha256": "c791f8eeb3624cd88f2a0b094e3b6cfb308d4e0d6a618c0df359400ee1b42ca6",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -2509,7 +3176,8 @@
           "name": "workspaceFlow",
           "parameters": [
             "model: PlanReadModel",
-            "groups?: readonly WorkspaceGraphGroup[]"
+            "groups: readonly WorkspaceGraphGroup[] | undefined",
+            "locale: 'en' | 'ja'"
           ],
           "result": "{nodes: LogicalNode[]; edges: Edge[]; unavailable?: true}"
         },
@@ -2589,6 +3257,7 @@
         "./checkpoint-panel.js",
         "./flow-layout.mjs",
         "./flow-model.mjs",
+        "./i18n.mjs",
         "./read-model.js",
         "./read-model.mjs",
         "./run-inspector.js",
@@ -2928,7 +3597,7 @@
     {
       "module": "packages/explorer-ui/read-model.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "e9e44a6404eebf5f0eea5f6a6a7c143285d1f8a17af58f7d5cdd748dec9a1a05",
+      "sha256": "de586899ac572c34dfcb4c726864c8f836b21c93911f06d5b2cc0573029ac9ab",
       "exports": [
         "ExplanationStoryModel",
         "ExplorerReadError",
@@ -3135,7 +3804,8 @@
         {
           "name": "sampleCaptureCaption",
           "parameters": [
-            "capture: WireSampleCapture"
+            "capture: WireSampleCapture",
+            "locale?: 'en' | 'ja'"
           ],
           "result": "string"
         },
@@ -3592,7 +4262,7 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "220223d13286d9e11da040d4e7a2f60cc0152551598d4ff82d6ca4a5fdfa616a",
+      "sha256": "b1122cf9cbf8f02bd874748a8927c9fc102fa8dade75323d39525b331bd693a6",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
@@ -4061,7 +4731,8 @@
             "sampled",
             "total",
             "completeness",
-            "truncation"
+            "truncation",
+            "locale"
           ],
           "async": false
         },
@@ -4142,6 +4813,7 @@
         }
       ],
       "imports": [
+        "./i18n.mjs",
         "./presentation-limits.mjs",
         "@actql/client-wire"
       ],
@@ -4604,22 +5276,15 @@
     {
       "module": "packages/explorer-ui/run-inspector.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "4c1f2d38a03e50a984ee7a958c58cd504025a7589451fb603ac296b52a96b6f5",
+      "sha256": "6f7c5af807883854d33a434aa66c9c665438700f3c3625fddbed2a6bb760ce97",
       "exports": [
         "RunInspector"
       ],
       "operations": [
         {
-          "name": "fact",
-          "parameters": [
-            "value: boolean | undefined"
-          ],
-          "result": null
-        },
-        {
           "name": "RunInspector",
           "parameters": [
-            "{model}: {model: RunObservationModel}"
+            "{model, locale}: {model: RunObservationModel; locale?: ExplorerLocale}"
           ],
           "result": null
         },
@@ -4660,9 +5325,17 @@
             "index"
           ],
           "result": null
+        },
+        {
+          "name": "RunInspector/fact",
+          "parameters": [
+            "value: boolean | undefined"
+          ],
+          "result": null
         }
       ],
       "imports": [
+        "./i18n.mjs",
         "./run-observation.js"
       ],
       "compilerFields": [],
@@ -4673,13 +5346,13 @@
         {
           "operations": [
             "<module>",
-            "fact",
             "RunInspector",
             "RunInspector/<call>",
             "RunInspector/<call>/<call>",
             "RunInspector/<call>#2",
             "RunInspector/<call>#3",
-            "RunInspector/<call>#4"
+            "RunInspector/<call>#4",
+            "RunInspector/fact"
           ],
           "exports": [
             "RunInspector"
@@ -5223,7 +5896,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "e3aa448e6d14cb036796cc307ec311f7df6e5121774db3c50b05c5fc5014f0e3",
+      "sha256": "f406b01fa2c26e6e2098939f782567ba77ea35d6ae17e7c26f8edf7d029958f2",
       "exports": [],
       "operations": [
         {
@@ -5364,7 +6037,9 @@
         },
         {
           "name": "App/<call>#10",
-          "parameters": [],
+          "parameters": [
+            "port"
+          ],
           "result": null
         },
         {
@@ -5389,23 +6064,21 @@
         },
         {
           "name": "App/<call>#15",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#16",
           "parameters": [
-            "line",
-            "index"
+            "event"
           ],
           "result": null
         },
         {
           "name": "App/<call>#17",
           "parameters": [
-            "event"
+            "line",
+            "index"
           ],
           "result": null
         },
@@ -5430,7 +6103,9 @@
         },
         {
           "name": "App/<call>#20",
-          "parameters": [],
+          "parameters": [
+            "event"
+          ],
           "result": null
         },
         {
@@ -5500,13 +6175,18 @@
         },
         {
           "name": "App/<call>#33",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#34",
           "parameters": [
             "event"
           ],
           "result": null
         },
         {
-          "name": "App/<call>#34",
+          "name": "App/<call>#35",
           "parameters": [
             "event"
           ],
@@ -5539,9 +6219,7 @@
         },
         {
           "name": "App/<call>#9",
-          "parameters": [
-            "port"
-          ],
+          "parameters": [],
           "result": null
         },
         {
@@ -5550,14 +6228,14 @@
           "result": null
         },
         {
-          "name": "App/copy",
+          "name": "App/copyCommand",
           "parameters": [
             "command: string"
           ],
           "result": null
         },
         {
-          "name": "App/copy/<call>",
+          "name": "App/copyCommand/<call>",
           "parameters": [],
           "result": null
         },
@@ -5862,7 +6540,7 @@
         {
           "name": "ColumnTable",
           "parameters": [
-            "{label, names, caption, children}: {\n  label: string; names: readonly (string | null)[]; caption?: string; children?: ReactNode;\n}"
+            "{label, names, caption, children, words}: {\n  words: ExplorerCopy;\n  label: string; names: readonly (string | null)[]; caption?: string; children?: ReactNode;\n}"
           ],
           "result": null
         },
@@ -5884,7 +6562,7 @@
         {
           "name": "ExpandableSampleCell",
           "parameters": [
-            "{text, preview, row, column}: {\n  text: string; preview: string; row: number; column: number;\n}"
+            "{text, preview, row, column, words}: {\n  words: ExplorerCopy;\n  text: string; preview: string; row: number; column: number;\n}"
           ],
           "result": null
         },
@@ -5984,7 +6662,7 @@
         {
           "name": "NextInputs",
           "parameters": [
-            "{step, plan, steps, pause, readSample}: {\n  step: SampleStep; plan: SamplePlan; steps: ReadonlyMap<string, SampleStep>;\n  pause: StoryNextPause; readSample?: SampleRead;\n}"
+            "{step, plan, steps, pause, readSample, locale}: {\n  locale: 'en' | 'ja';\n  step: SampleStep; plan: SamplePlan; steps: ReadonlyMap<string, SampleStep>;\n  pause: StoryNextPause; readSample?: SampleRead;\n}"
           ],
           "result": null
         },
@@ -6080,13 +6758,6 @@
           "result": null
         },
         {
-          "name": "planNodeTitle/<call>",
-          "parameters": [
-            "char"
-          ],
-          "result": null
-        },
-        {
           "name": "PlanSteps",
           "parameters": [
             "{map, boundary, selection, select, graph, locale, pause, readSample, saved}: {\n  map: PlanReadModel; boundary?: {stepId: string; state: StepState}; selection?: string;\n  select(id: string): void; graph: boolean; locale: 'en' | 'ja'; pause?: StoryNextPause; readSample?: SampleRead; saved: boolean;\n}"
@@ -6142,7 +6813,7 @@
         {
           "name": "RetainedRelationTable",
           "parameters": [
-            "{sample, label}: {sample: Extract<WireRunSample, {state: 'available'}>; label: string}"
+            "{sample, label, words, locale}: {sample: Extract<WireRunSample, {state: 'available'}>;\n  label: string; words: ExplorerCopy; locale: 'en' | 'ja';\n}"
           ],
           "result": null
         },
@@ -6187,14 +6858,15 @@
         {
           "name": "SampleCellText",
           "parameters": [
-            "{text, row, column}: {text: string; row: number; column: number}"
+            "{text, row, column, words}: {text: string; row: number; column: number; words: ExplorerCopy}"
           ],
           "result": null
         },
         {
           "name": "sampleMessage",
           "parameters": [
-            "sample: Exclude<SampleDisplay, {state: 'available'}>"
+            "sample: Exclude<SampleDisplay, {state: 'available'}>",
+            "words: ExplorerCopy"
           ],
           "result": null
         },
@@ -6214,7 +6886,7 @@
         {
           "name": "StepData",
           "parameters": [
-            "{step, plan, expectedColumns, saved, readSample}: {\n  step: SampleStep; plan: SamplePlan; expectedColumns?(port: Step['ports'][number]): readonly string[] | undefined;\n  saved: boolean; readSample?: SampleRead;\n}"
+            "{step, plan, expectedColumns, saved, readSample, locale}: {\n  locale: 'en' | 'ja';\n  step: SampleStep; plan: SamplePlan; expectedColumns?(port: Step['ports'][number]): readonly string[] | undefined;\n  saved: boolean; readSample?: SampleRead;\n}"
           ],
           "result": null
         },
@@ -6335,7 +7007,8 @@
           "name": "stepTitle",
           "parameters": [
             "step: Step",
-            "label?: string"
+            "label: string | undefined",
+            "words: ExplorerCopy"
           ],
           "result": null
         },
@@ -6343,13 +7016,6 @@
           "name": "stepTitle/<call>",
           "parameters": [
             "name"
-          ],
-          "result": null
-        },
-        {
-          "name": "stepTitle/<call>#2",
-          "parameters": [
-            "char"
           ],
           "result": null
         },
@@ -6633,7 +7299,7 @@
         {
           "name": "WorkspaceDialog",
           "parameters": [
-            "{title, close, children}: {title: string; close(): void; children: ReactNode}"
+            "{title, close, children, words}: {title: string; close(): void; children: ReactNode; words: ExplorerCopy}"
           ],
           "result": null
         },
@@ -6678,6 +7344,7 @@
         }
       ],
       "imports": [
+        "../../explorer-ui/i18n.mjs",
         "./story-card-groups.mts",
         "./styles.css",
         "@actql/client-wire",
@@ -6761,7 +7428,6 @@
             "graphStepLabels/add",
             "graphStepLabels/<call>#4",
             "StepOrigin/<call>#2",
-            "stepTitle/<call>#2",
             "graphStepLabels/<call>#5",
             "graphStepLabels/<call>#6",
             "App/<call>#21",
@@ -6772,7 +7438,6 @@
             "App/startDraft/<call>",
             "App/<call>#22",
             "planNodeTitle",
-            "planNodeTitle/<call>",
             "PlanSteps",
             "PlanSteps/<call>",
             "PlanSteps/<call>/<call>",
@@ -6814,8 +7479,6 @@
             "App/<call>#30",
             "App/<call>#31",
             "App/<call>#32",
-            "App/copy",
-            "App/copy/<call>",
             "App/followOriginal",
             "App/followOriginal/<call>",
             "App/session/<call>/<call>",
@@ -6825,7 +7488,10 @@
             "saveJson",
             "saveJson/<call>",
             "declaredWrite",
-            "PlanAdvanced"
+            "PlanAdvanced",
+            "App/<call>#35",
+            "App/copyCommand",
+            "App/copyCommand/<call>"
           ],
           "exports": [],
           "attributes": {
@@ -7333,6 +7999,257 @@
               {
                 "path": "adapters/host-node/client-interactive-read-public.test.mts",
                 "anchor": "installed Local SDK Debug steps one original and a cold process reads its Sample and receipt"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/explorer/app/story-card-groups.mts",
+      "responsibilityFacet": "primary",
+      "sha256": "afe587dc0b723cad1970ac981c666550044a36a01c21c3078ad2160b5d4d8d5e",
+      "exports": [
+        "StoryGroup",
+        "storyCardGroups"
+      ],
+      "operations": [
+        {
+          "name": "storyCardGroups",
+          "parameters": [
+            "story: ExplanationStoryModel",
+            "context: Context",
+            "sourceSteps: ReadonlyMap<number, {step: Step}>",
+            "stageResultLinks: PlanReadModel['stageResultLinks']"
+          ],
+          "result": "readonly StoryGroup[]"
+        },
+        {
+          "name": "storyCardGroups/<call>",
+          "parameters": [
+            "step"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>/place",
+          "parameters": [
+            "card: Card"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#2",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#3",
+          "parameters": [
+            "card"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#4",
+          "parameters": [
+            "step",
+            "i"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#5",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#6",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/add",
+          "parameters": [
+            "map: Map<string, Edge[]>",
+            "value: Edge",
+            "id: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/attach",
+          "parameters": [
+            "card: Card",
+            "step: Step"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/create",
+          "parameters": [
+            "kind: Card['kind']",
+            "id: string",
+            "primary?: Step",
+            "item?: Context[number]"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/matchesModelInput",
+          "parameters": [
+            "step: Step"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/matchesModelInput/<call>",
+          "parameters": [
+            "candidate",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/nearest",
+          "parameters": [
+            "id: string",
+            "edges: ReadonlyMap<string, Edge[]>",
+            "reverse = false"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/producer",
+          "parameters": [
+            "stepId: string",
+            "portId: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/producer/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        }
+      ],
+      "imports": [
+        "@actql/explorer-ui/read-model"
+      ],
+      "compilerFields": [],
+      "role": "observation-presentation",
+      "owner": "existing Explorer presentation and Gateway / SDK boundary",
+      "rationale": "Group the admitted original Story Steps without changing their identities or control scope.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "storyCardGroups",
+            "storyCardGroups/<call>",
+            "storyCardGroups/<call>/place",
+            "storyCardGroups/<call>#2",
+            "storyCardGroups/<call>#3",
+            "storyCardGroups/<call>#4",
+            "storyCardGroups/<call>#5",
+            "storyCardGroups/<call>#6",
+            "storyCardGroups/add",
+            "storyCardGroups/attach",
+            "storyCardGroups/create",
+            "storyCardGroups/matchesModelInput",
+            "storyCardGroups/matchesModelInput/<call>",
+            "storyCardGroups/nearest",
+            "storyCardGroups/producer",
+            "storyCardGroups/producer/<call>"
+          ],
+          "exports": [
+            "StoryGroup",
+            "storyCardGroups"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer/app/story-card-groups.mts",
+                "anchor": "export function storyCardGroups("
+              },
+              {
+                "path": "packages/explorer/app/main.tsx",
+                "anchor": "value=\"static-explanation\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/app/story-card-groups.mts",
+                "anchor": "inputs[0].sourcePortId === other.sourcePortId"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "binding.logical_map_cid !== story.logicalMapCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation discards a late read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "narrative = render(wire, locale);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Static Context renders deterministic EN and JA"
+              },
+              {
+                "path": "scripts/fixtures/packed-explorer-saved-context.mts",
+                "anchor": "const staticSteps = page.getByRole('region', {name: 'Original story', exact: true});"
               }
             ]
           }
@@ -10334,257 +11251,6 @@
               {
                 "path": "packages/explorer/launcher.test.mjs",
                 "anchor": "test("
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "packages/explorer/app/story-card-groups.mts",
-      "responsibilityFacet": "primary",
-      "sha256": "afe587dc0b723cad1970ac981c666550044a36a01c21c3078ad2160b5d4d8d5e",
-      "exports": [
-        "StoryGroup",
-        "storyCardGroups"
-      ],
-      "operations": [
-        {
-          "name": "storyCardGroups",
-          "parameters": [
-            "story: ExplanationStoryModel",
-            "context: Context",
-            "sourceSteps: ReadonlyMap<number, {step: Step}>",
-            "stageResultLinks: PlanReadModel['stageResultLinks']"
-          ],
-          "result": "readonly StoryGroup[]"
-        },
-        {
-          "name": "storyCardGroups/<call>",
-          "parameters": [
-            "step"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/<call>/place",
-          "parameters": [
-            "card: Card"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/<call>#2",
-          "parameters": [
-            "edge"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/<call>#3",
-          "parameters": [
-            "card"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/<call>#4",
-          "parameters": [
-            "step",
-            "i"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/<call>#5",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/<call>#6",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/add",
-          "parameters": [
-            "map: Map<string, Edge[]>",
-            "value: Edge",
-            "id: string"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/attach",
-          "parameters": [
-            "card: Card",
-            "step: Step"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/create",
-          "parameters": [
-            "kind: Card['kind']",
-            "id: string",
-            "primary?: Step",
-            "item?: Context[number]"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/matchesModelInput",
-          "parameters": [
-            "step: Step"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/matchesModelInput/<call>",
-          "parameters": [
-            "candidate",
-            "index"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/nearest",
-          "parameters": [
-            "id: string",
-            "edges: ReadonlyMap<string, Edge[]>",
-            "reverse = false"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/producer",
-          "parameters": [
-            "stepId: string",
-            "portId: string"
-          ],
-          "result": null
-        },
-        {
-          "name": "storyCardGroups/producer/<call>",
-          "parameters": [
-            "port"
-          ],
-          "result": null
-        }
-      ],
-      "imports": [
-        "@actql/explorer-ui/read-model"
-      ],
-      "compilerFields": [],
-      "role": "observation-presentation",
-      "owner": "existing Explorer presentation and Gateway / SDK boundary",
-      "rationale": "Group the admitted original Story Steps without changing their identities or control scope.",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "storyCardGroups",
-            "storyCardGroups/<call>",
-            "storyCardGroups/<call>/place",
-            "storyCardGroups/<call>#2",
-            "storyCardGroups/<call>#3",
-            "storyCardGroups/<call>#4",
-            "storyCardGroups/<call>#5",
-            "storyCardGroups/<call>#6",
-            "storyCardGroups/add",
-            "storyCardGroups/attach",
-            "storyCardGroups/create",
-            "storyCardGroups/matchesModelInput",
-            "storyCardGroups/matchesModelInput/<call>",
-            "storyCardGroups/nearest",
-            "storyCardGroups/producer",
-            "storyCardGroups/producer/<call>"
-          ],
-          "exports": [
-            "StoryGroup",
-            "storyCardGroups"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/explorer/app/story-card-groups.mts",
-                "anchor": "export function storyCardGroups("
-              },
-              {
-                "path": "packages/explorer/app/main.tsx",
-                "anchor": "value=\"static-explanation\""
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "return freeze({plan: projectedPlan, story, context:"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/explorer/app/story-card-groups.mts",
-                "anchor": "inputs[0].sourcePortId === other.sourcePortId"
-              },
-              {
-                "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "binding.logical_map_cid !== story.logicalMapCid"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/explorer/browser-source.mts",
-                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
-                "anchor": "Explorer static explanation discards a late read"
-              }
-            ],
-            "resources": [
-              {
-                "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
-              }
-            ],
-            "extension": [
-              {
-                "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "narrative = render(wire, locale);"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
-                "anchor": "Explorer static explanation uses one SDK read"
-              },
-              {
-                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
-                "anchor": "Static Context renders deterministic EN and JA"
-              },
-              {
-                "path": "scripts/fixtures/packed-explorer-saved-context.mts",
-                "anchor": "const staticSteps = page.getByRole('region', {name: 'Original story', exact: true});"
               }
             ]
           }

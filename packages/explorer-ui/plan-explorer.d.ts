@@ -8,7 +8,7 @@ export type {OriginalCancellation, CancellationObservation, CancellationPanelPro
 
 export function CancellationPanel(props: CancellationPanelProps): ReactElement;
 export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;
-export function RunInspector(props: {model: RunObservationModel}): ReactElement;
+export function RunInspector(props: {model: RunObservationModel; locale?: 'en' | 'ja'}): ReactElement;
 
 export type WorkspaceGraphGroup = Readonly<{
   id: string; members: readonly string[]; representative?: string;

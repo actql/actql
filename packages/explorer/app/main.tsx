@@ -12,6 +12,7 @@ import {expectedStoryPortColumns, storySamplePorts, sampleCaptureCaption, sample
 import {createExplorerBrowserSource, type ExplorerStartObservation} from '@actql/explorer/browser-source';
 import '@actql/explorer-ui/styles.css';
 import './styles.css';
+import {explorerCopy, type ExplorerCopy} from '../../explorer-ui/i18n.mjs';
 import {storyCardGroups, type StoryGroup} from './story-card-groups.mts';
 
 type StoryContext = StaticExplanationReadModel['context'];
@@ -39,25 +40,22 @@ function StoryHeading({story, context}: {story: ExplanationStoryModel; context: 
   const requiresApproval = effects.some(({declaration}) => declaration.minimum_approval.kind === 'contract_minimum' &&
     declaration.minimum_approval.value === 'required');
   const ja = story.locale === 'ja';
+  const words = explorerCopy(ja);
   return <>
     <h1><StoryText text={story.narrative.summary}/></h1>
     <div className="story-chips">
       {effects.length > 0 && <span className="workspace-chip" data-tone="amber">{requiresApproval
-        ? ja ? '書き込み先を宣言 · 承認が必要な操作あり' : 'Write declared · approval required for at least one operation'
-        : ja ? '書き込み先を宣言 · 承認要否は未確認' : 'Write declared · approval requirement unknown'}</span>}
-      {sources > 0 && <span className="workspace-chip" data-tone="teal">{ja ? `読み取り元 ${sources} 件` :
-        `${sources} declared ${sources === 1 ? 'source' : 'sources'}`}</span>}
-      {models > 0 && <span className="workspace-chip" data-tone="lilac">{ja ? `モデルタスク ${models} 件 · 入力行ごと` :
-        `${models} Model ${models === 1 ? 'task' : 'tasks'} · input rows`}</span>}
+        ? words.writeDeclaredApprovalRequiredForAtLeastOneOperation
+        : words.writeDeclaredApprovalRequirementUnknown}</span>}
+      {sources > 0 && <span className="workspace-chip" data-tone="teal">{words.declaredSources(sources)}</span>}
+      {models > 0 && <span className="workspace-chip" data-tone="lilac">{words.modelTasks(models)}</span>}
     </div>
   </>;
 }
 
 type StepState = 'Planned' | 'Unknown' | 'Observed' | 'Next';
-const japaneseStepState = {Planned: '予定', Unknown: '不明', Observed: '観測済み', Next: '次のステップ'} as const;
-
 function stepStateLabel(state: StepState | undefined, ja: boolean) {
-  return state && (ja ? japaneseStepState[state] : state);
+  return state && explorerCopy(ja).stepState[state];
 }
 
 function graphStepLabels(story: ExplanationStoryModel | undefined, context: StoryContext,
@@ -83,34 +81,35 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
   }
   const labels = new Map<string, {kind?: string; title: string; inputs?: string; sourceInput?: boolean}>();
   const ja = story?.locale === 'ja';
+  const words = explorerCopy(ja);
   for (const step of story?.occurrences ?? []) {
     const inputs = sources.get(step.stepId), models = tasks.get(step.stepId), outputs = results.get(step.stepId);
     const {meaning} = step.explanation;
     const inputNames = inputs?.map(input=>input.resource).join(', ');
-    const inputDetail = inputNames ? `${ja ? '入力' : 'Input'} · ${inputNames}` : undefined;
+    const inputDetail = inputNames ? `${words.input} · ${inputNames}` : undefined;
     if (meaning.kind === 'join') {
       const key = meaning.keys.find(({left, right})=>!left.startsWith('aql_') && !right.startsWith('aql_'));
-      const name = ja ? '結合' : 'Join';
-      labels.set(step.stepId, {kind: ja ? 'データ結合' : 'Combine', title: key ?
+      const name = words.join;
+      labels.set(step.stepId, {kind: words.combine, title: key ?
         `${name} · ${key.left} = ${key.right}` :
-        meaning.keys.length ? (ja ? '確認済みのキーで結合' : 'Join on checked keys') : name, inputs: inputDetail});
+        meaning.keys.length ? words.joinOnCheckedKeys : name, inputs: inputDetail});
     } else if (models?.length) {
-      labels.set(step.stepId, {kind: 'Model', title: `${ja ? 'モデル' : 'Ask'} ${models.join(', ')}`,
+      labels.set(step.stepId, {kind: words.model, title: `${words.ask} ${models.join(', ')}`,
         inputs: inputDetail});
     } else if (inputs?.length && inputDetail) {
       // A linked declaration names the input port; it does not make this
       // logical occurrence an actual Source attempt or another Graph node.
       const systems = new Set(inputs.map(input=>input.connector));
-      labels.set(step.stepId, {kind: systems.size === 1 ? inputs[0].connector : ja ? '入力' : 'Inputs',
+      labels.set(step.stepId, {kind: systems.size === 1 ? inputs[0].connector : words.inputs,
         title: inputDetail, sourceInput: true});
     } else if (outputs?.length) {
-      labels.set(step.stepId, {kind: 'Result', title: `${ja ? '結果' : 'Return'} ${outputs.join(', ')}`});
+      labels.set(step.stepId, {kind: words.result, title: `${words.return} ${outputs.join(', ')}`});
     } else if (meaning.kind === 'projection' && meaning.operation === 'select') {
-      labels.set(step.stepId, {title: ja ? 'フィールドを選択' : 'Select fields'});
+      labels.set(step.stepId, {title: words.selectFields});
     } else if (step.operator === 'assert_rows') {
-      labels.set(step.stepId, {title: ja ? '行の制約を確認' : 'Check row constraints'});
+      labels.set(step.stepId, {title: words.checkRowConstraints});
     } else if (step.operator === 'filter') {
-      labels.set(step.stepId, {title: ja ? '行を絞り込む' : 'Filter rows'});
+      labels.set(step.stepId, {title: words.filterRows});
     }
   }
   if (story) {
@@ -120,17 +119,17 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
       const {origin} = reads[index];
       if (origin.kind !== 'source') continue;
       const {resource, connector} = origin.source_view;
-      labels.set(step.stepId, {kind: connector, title: ja ? `${resource} を読む` : `Read ${resource}`, sourceInput: true});
+      labels.set(step.stepId, {kind: connector, title: words.readResource(resource), sourceInput: true});
     }
   }
   return labels;
 }
 
-function stepTitle(step: Step, label?: string) {
+function stepTitle(step: Step, label: string | undefined, words: ExplorerCopy) {
   if (label) return label;
   const names = step.names.filter(name=>!name.startsWith('aql_'));
   if (names.length) return names.join(', ');
-  return step.operator?.replaceAll('_', ' ').replace(/^./u, char=>char.toUpperCase()) ?? 'Input / output';
+  return words.operation(step.operator);
 }
 
 function stepState(stepId: string, saved: boolean, boundary?: {stepId: string; state: StepState}): StepState | undefined {
@@ -157,17 +156,17 @@ function StoryCard({ordinal, label, title, detail, system, state, ja, open, sele
 }
 
 function PlanAdvanced({model, ja}: {model: PlanReadModel; ja: boolean}) {
+  const words = explorerCopy(ja);
   return <details className="original-plan-advanced">
-    <summary>{ja ? '詳細 · 元のプラン' : 'Advanced · original Plan'}</summary>
-    <OriginalPlanMetadata model={model} workspace locale={ja ? 'ja' : 'en'}/>
+    <summary>{words.advancedOriginalPlan}</summary>
+    <OriginalPlanMetadata model={model} workspace locale={words.en}/>
   </details>;
 }
 
 type PlanNode = PlanReadModel['nodes'][number];
 
 function planNodeTitle(node: PlanNode, locale: 'en' | 'ja') {
-  return node.operator?.replaceAll('_', ' ').replace(/^./u, char => char.toUpperCase()) ??
-    (locale === 'ja' ? '入出力' : 'Input / output');
+  return explorerCopy(locale).operation(node.operator);
 }
 
 function PlanSteps({map, boundary, selection, select, graph, locale, pause, readSample, saved}: {
@@ -178,28 +177,29 @@ function PlanSteps({map, boundary, selection, select, graph, locale, pause, read
   const steps = useMemo(() => new Map(map.nodes.map(node => [node.id,
     {stepId: node.id, ports: node.ports, title: planNodeTitle(node, locale)}])), [map, locale]);
   const ja = locale === 'ja';
-  return <section aria-label={graph ? 'Selected Step' : 'Original steps'}>
+  const words = explorerCopy(ja);
+  return <section aria-label={graph ? words.selectedStep : words.originalSteps}>
     <ol className="story-steps">
       {map.nodes.map((node, index) => {
         const selected = selection === node.id;
         if (graph && !selected) return null;
         const open = graph || selected && collapsed !== node.id;
         const step = steps.get(node.id)!;
-        return <StoryCard key={node.id} ordinal={index + 1} ja={ja} label={ja ? '論理工程' : 'Logical step'}
+        return <StoryCard key={node.id} ordinal={index + 1} ja={ja} label={words.logicalStep}
           title={planNodeTitle(node, locale)} selected={selected}
           state={node.id === boundary?.stepId ? boundary.state : undefined}
           open={open} onToggle={() => {
             select(node.id);
             setCollapsed(open && !graph ? node.id : undefined);
           }}>
-          {open && <StepData step={step} plan={map} saved={saved} readSample={readSample}/>}
-          {open && pause?.stepId === node.id && <NextInputs key={pause.revision}
+          {open && <StepData locale={locale} step={step} plan={map} saved={saved} readSample={readSample}/>}
+          {open && pause?.stepId === node.id && <NextInputs locale={locale} key={pause.revision}
             step={step} plan={map} steps={steps} pause={pause} readSample={readSample}/>}
-          <details><summary>{ja ? '元の工程とポート' : 'Original step and ports'}</summary>
+          <details><summary>{words.originalStepAndPorts}</summary>
             {node.names.length > 0 && <p>{node.names.map(name => <code key={name}>{name}</code>)}</p>}
             <code>{node.id}</code>
             <ul>{node.ports.map(port => <li key={port.port_id}>
-              {port.role} · {port.carrier} · <code>{port.port_id}</code>
+              {words.portRole[port.role]} · {port.carrier} · <code>{port.port_id}</code>
             </li>)}</ul>
           </details>
           {selected && <PlanAdvanced model={map} ja={ja}/>}
@@ -213,17 +213,18 @@ function StepOrigin({step, label, select, folded = false, state, ja}: {
   step: Step; label?: string; select?(): void; folded?: boolean; state?: StepState; ja: boolean;
 }) {
   const meaning = step.explanation.meaning;
+  const words = explorerCopy(ja);
   return <div className="occurrence-origin">
-    {!folded && <><strong>{stepTitle(step, label)}</strong><p><StoryText text={step.explanation.text}/></p></>}
-    <details><summary>Original step and ports{state && <span className="workspace-chip step-state">{stepStateLabel(state, ja)}</span>}</summary>
+    {!folded && <><strong>{stepTitle(step, label, words)}</strong><p><StoryText text={step.explanation.text}/></p></>}
+    <details><summary>{words.originalStepAndPorts}{state && <span className="workspace-chip step-state">{stepStateLabel(state, ja)}</span>}</summary>
       {folded && <p><StoryText text={step.explanation.text}/></p>}
-      {meaning.kind === 'join' && <ul aria-label="Checked join key pairs">
+      {meaning.kind === 'join' && <ul aria-label={words.checkedJoinKeys}>
         {meaning.keys.map(({left,right},index)=><li key={index}><code>{left}</code> = <code>{right}</code></li>)}
       </ul>}
       {step.names.length > 0 && <p>{step.names.map(name=><code key={name}>{name}</code>)}</p>}
-      {select && <button type="button" className="small" onClick={select}>Select original step</button>}
+      {select && <button type="button" className="small" onClick={select}>{words.selectOriginalStep}</button>}
       <code>{step.stepId}</code>
-      <ul>{step.ports.map(port=><li key={port.port_id}>{port.role} · <code>{port.port_id}</code></li>)}</ul>
+      <ul>{step.ports.map(port=><li key={port.port_id}>{words.portRole[port.role]} · <code>{port.port_id}</code></li>)}</ul>
     </details>
   </div>;
 }
@@ -233,39 +234,41 @@ type SamplePlan = Pick<PlanReadModel, 'compiledPlanCid' | 'logicalMapCid'>;
 type SampleRead = (port: SamplePortSelection) => Promise<WireRunSample | undefined>;
 type SampleDisplay = WireRunSample | {state: 'reading'} | {state: 'read_failed'};
 
-function sampleMessage(sample: Exclude<SampleDisplay, {state: 'available'}>) {
+function sampleMessage(sample: Exclude<SampleDisplay, {state: 'available'}>, words: ExplorerCopy) {
   switch (sample.state) {
-    case 'reading': return 'Reading the retained sample…';
-    case 'read_failed': return 'The Host could not provide this sample.';
-    case 'forbidden': return 'Sample access denied.';
-    case 'expired': return 'This sample has expired.';
-    case 'unknown': return 'The sample read outcome is unknown.';
+    case 'reading': return words.readingSample;
+    case 'read_failed': return words.sampleReadFailed;
+    case 'forbidden': return words.sampleAccessDenied;
+    case 'expired': return words.sampleExpired;
+    case 'unknown': return words.sampleOutcomeUnknown;
     case 'unavailable':
       switch (sample.reason) {
-        case 'not_retained': return 'No sample was retained for this port.';
-        case 'selection_required': return 'This port has no unique retained sample.';
-        case 'not_supported': return 'The Host cannot read a sample for this port.';
-        case 'not_sealed': return 'This sample is not sealed.';
-        case 'evicted': return 'This sample was evicted.';
-        case 'capacity': return 'The sample exceeded the read budget.';
+        case 'not_retained': return words.sampleNotRetained;
+        case 'selection_required': return words.sampleSelectionRequired;
+        case 'not_supported': return words.sampleNotSupported;
+        case 'not_sealed': return words.sampleNotSealed;
+        case 'evicted': return words.sampleEvicted;
+        case 'capacity': return words.sampleCapacity;
       }
   }
 }
 
-function ColumnTable({label, names, caption, children}: {
+function ColumnTable({label, names, caption, children, words}: {
+  words: ExplorerCopy;
   label: string; names: readonly (string | null)[]; caption?: string; children?: ReactNode;
 }) {
   return <div className="step-data-scroll" tabIndex={0} role="region" aria-label={label}>
     <table className="step-data-table">
       {caption !== undefined && <caption>{caption}</caption>}
       <thead><tr>{names.map((name, index)=>
-      <th key={index} scope="col">{name ?? `Column ${index + 1}`}</th>)}</tr></thead>
+      <th key={index} scope="col">{name ?? words.column(index + 1)}</th>)}</tr></thead>
       {children}
     </table>
   </div>;
 }
 
-function ExpandableSampleCell({text, preview, row, column}: {
+function ExpandableSampleCell({text, preview, row, column, words}: {
+  words: ExplorerCopy;
   text: string; preview: string; row: number; column: number;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -273,24 +276,26 @@ function ExpandableSampleCell({text, preview, row, column}: {
   return <>
     <span id={content}>{expanded ? text : preview}{!expanded && <span aria-hidden="true">…</span>}</span>
     <button type="button" className="sample-cell-toggle" aria-expanded={expanded} aria-controls={content}
-      aria-label={`${expanded ? 'Collapse' : 'Expand'} cell in row ${row + 1}, column ${column + 1}`}
-      onClick={()=>setExpanded(!expanded)}>{expanded ? 'Collapse' : 'Expand cell'}</button>
+      aria-label={words.toggleCell(expanded, row + 1, column + 1)}
+      onClick={()=>setExpanded(!expanded)}>{expanded ? words.collapse : words.expandCell}</button>
   </>;
 }
 
-function SampleCellText({text, row, column}: {text: string; row: number; column: number}) {
+function SampleCellText({text, row, column, words}: {text: string; row: number; column: number; words: ExplorerCopy}) {
   const preview = sampleCellPreview(text);
-  return preview === text ? text : <ExpandableSampleCell text={text} preview={preview} row={row} column={column}/>;
+  return preview === text ? text : <ExpandableSampleCell words={words} text={text} preview={preview} row={row} column={column}/>;
 }
 
-function RetainedRelationTable({sample, label}: {sample: Extract<WireRunSample, {state: 'available'}>; label: string}) {
+function RetainedRelationTable({sample, label, words, locale}: {sample: Extract<WireRunSample, {state: 'available'}>;
+  label: string; words: ExplorerCopy; locale: 'en' | 'ja';
+}) {
   const relation = sample.data;
   if (relation.kind !== 'relation') return null;
-  return <ColumnTable label={label} caption={sampleCaptureCaption(sample.capture)}
+  return <ColumnTable words={words} label={label} caption={sampleCaptureCaption(sample.capture, locale)}
     names={relation.columns.map(column=>column.name)}>
     <tbody>{relation.rows.map((row, index)=><tr key={index}>{row.map((cell, column)=>
-      <td key={column}>{cell.presence === 'absent' ? <em>Absent</em> : cell.value === null ? <code>NULL</code> :
-        <SampleCellText text={typeof cell.value === 'string' ? cell.value : JSON.stringify(cell.value)}
+      <td key={column}>{cell.presence === 'absent' ? <em>{words.absent}</em> : cell.value === null ? <code>NULL</code> :
+        <SampleCellText words={words} text={typeof cell.value === 'string' ? cell.value : JSON.stringify(cell.value)}
           row={index} column={column}/>}</td>)}</tr>)}</tbody>
   </ColumnTable>;
 }
@@ -307,10 +312,12 @@ function nextSampleProducer(steps: ReadonlyMap<string, SampleStep>, input: Step[
     output.carrier === input.carrier && output.carrier_contract_cid === input.carrier_contract_cid) ? step : undefined;
 }
 
-function NextInputs({step, plan, steps, pause, readSample}: {
+function NextInputs({step, plan, steps, pause, readSample, locale}: {
+  locale: 'en' | 'ja';
   step: SampleStep; plan: SamplePlan; steps: ReadonlyMap<string, SampleStep>;
   pause: StoryNextPause; readSample?: SampleRead;
 }) {
+  const words = explorerCopy(locale);
   const inputs = useMemo(()=>step.ports.filter(port=>port.role === 'input')
     .filter(port=>port.carrier === 'relation'), [step]);
   const [samples, showSamples] = useState<Record<string, SampleDisplay>>({});
@@ -339,28 +346,30 @@ function NextInputs({step, plan, steps, pause, readSample}: {
     void read();
     return ()=>{mounted = false;};
   }, [compiledPlanCid, expires, inputs, logicalMapCid, readSample, revision, step.stepId, steps]);
-  return <section className="step-data" aria-label="Next step inputs">
-    <strong>Inputs at this pause</strong>
-    {inputs.length === 0 && <p>No Relation inputs are projected for this Step.</p>}
+  return <section className="step-data" aria-label={words.nextStepInputs}>
+    <strong>{words.inputsAtPause}</strong>
+    {inputs.length === 0 && <p>{words.noRelationInputs}</p>}
     {inputs.map(port=>{
       const sample = samples[port.port_id];
       const upstream = sample?.state === 'available' ? nextSampleProducer(steps, port, sample) :
         port.source.kind === 'logical_output' ? steps.get(port.source.step_id) : undefined;
-      const label = `Input ${port.port_ordinal + 1}${upstream ? ` · ${upstream.title}` : ''}`;
+      const label = words.inputPort(port.port_ordinal + 1, upstream?.title);
       return <section className="next-input" key={port.port_id} aria-label={label}>
         <strong>{label}</strong>
-        {!readSample ? <p>Sample reading is unavailable.</p> :
-          sample?.state === 'available' ? <RetainedRelationTable sample={sample} label={`Captured rows · ${label}`}/> :
-          <p role="status">{sampleMessage(sample ?? {state: 'reading'})}</p>}
+        {!readSample ? <p>{words.sampleReadUnavailable}</p> :
+          sample?.state === 'available' ? <RetainedRelationTable words={words} locale={locale} sample={sample} label={words.capturedRows + ' · ' + label}/> :
+          <p role="status">{sampleMessage(sample ?? {state: 'reading'}, words)}</p>}
       </section>;
     })}
   </section>;
 }
 
-function StepData({step, plan, expectedColumns, saved, readSample}: {
+function StepData({step, plan, expectedColumns, saved, readSample, locale}: {
+  locale: 'en' | 'ja';
   step: SampleStep; plan: SamplePlan; expectedColumns?(port: Step['ports'][number]): readonly string[] | undefined;
   saved: boolean; readSample?: SampleRead;
 }) {
+  const words = explorerCopy(locale);
   const ports = storySamplePorts(step);
   const ambiguousOutput = step.ports.filter(port=>port.role === 'output').length > 1;
   const [selectedPort, selectPort] = useState<string>();
@@ -383,22 +392,22 @@ function StepData({step, plan, expectedColumns, saved, readSample}: {
     }
   };
   const retained = sample?.state === 'available' && sample.data.kind === 'relation' ? sample : undefined;
-  return <section className="step-data" data-step-id={step.stepId} aria-label={saved ? 'Step sample' : 'Expected columns'}>
-    <strong>{saved ? 'Sample data' : 'Expected columns'}</strong>
-    {ports.length > 1 && <label className="step-data-port">Relation port <select value={port?.port_id}
+  return <section className="step-data" data-step-id={step.stepId} aria-label={saved ? words.stepSample : words.expectedColumns}>
+    <strong>{saved ? words.sampleData : words.expectedColumns}</strong>
+    {ports.length > 1 && <label className="step-data-port">{words.relationPort} <select value={port?.port_id}
       onChange={event=>{request.current++; selectPort(event.target.value); showSample(undefined);}}>
       {ports.map(item=><option key={item.port_id} value={item.port_id}>
-        {item.role === 'input' ? 'Input' : 'Output'} {item.port_ordinal + 1}
+        {words.portRole[item.role]} {item.port_ordinal + 1}
       </option>)}</select></label>}
-    {!saved && (expected?.length ? <ColumnTable label="Expected columns" names={expected}/> :
-      expected ? <p>The checked output has no columns.</p> :
-        <p>Expected columns are unavailable for this port.</p>)}
-    {saved && <>{ambiguousOutput && <p>Samples for individual outputs of a multi-output Step are unavailable.</p>}
+    {!saved && (expected?.length ? <ColumnTable words={words} label={words.expectedColumns} names={expected}/> :
+      expected ? <p>{words.noOutputColumns}</p> :
+        <p>{words.noExpectedColumns}</p>)}
+    {saved && <>{ambiguousOutput && <p>{words.multiOutputSampleUnavailable}</p>}
       {port && readSample ? <button type="button" className="small"
-      onClick={()=>void load()} disabled={sample?.state === 'reading'}>{sample ? 'Read sample again' : 'Read retained sample'}</button> :
-      <p>No readable Relation sample port is available for this step.</p>}
-      {sample && sample.state !== 'available' && <p role="status">{sampleMessage(sample)}</p>}
-      {retained && <RetainedRelationTable sample={retained} label="Captured rows"/>}
+      onClick={()=>void load()} disabled={sample?.state === 'reading'}>{sample ? words.readSampleAgain : words.readRetainedSample}</button> :
+      <p>{words.noReadableSamplePort}</p>}
+      {sample && sample.state !== 'available' && <p role="status">{sampleMessage(sample, words)}</p>}
+      {retained && <RetainedRelationTable words={words} locale={locale} sample={retained} label="Captured rows"/>}
     </>}
   </section>;
 }
@@ -443,22 +452,22 @@ function storyProjections(story: ExplanationStoryModel, sources: StoryContext,
 function ModelFields({origin, locale}: {
   origin: Extract<StoryContext[number]['origin'], {kind: 'model_task'}>; locale: 'en' | 'ja';
 }) {
-  const ja = locale === 'ja';
+  const words = explorerCopy(locale);
   return <>
     <dl className="model-fields">
-      <dt>{ja ? '入力' : 'Inputs'}</dt>
+      <dt>{words.inputs}</dt>
       <dd>{origin.input_bindings.length ? <ul>{origin.input_bindings.map(({role, binding, type}) =>
         <li key={role}><code>{role}</code>
           {binding.state === 'field' && binding.name !== role && <> ← <code>{binding.name}</code></>}
-          {' · '}{type.kind}{type.nullable ? ja ? '（NULL 可）' : ' · nullable' : ''}</li>)}</ul>
-        : ja ? '未投影' : 'Unprojected'}</dd>
-      <dt>{ja ? '出力' : 'Outputs'}</dt>
+          {' · '}{type.kind}{type.nullable ? words.nullable : ''}</li>)}</ul>
+        : words.unprojected}</dd>
+      <dt>{words.outputs}</dt>
       <dd>{origin.output_fields.length ? <ul>{origin.output_fields.map(({name, type}) =>
         <li key={name}><code>{name}</code>{' · '}{type.kind}
-          {type.nullable ? ja ? '（NULL 可）' : ' · nullable' : ''}</li>)}</ul>
-        : ja ? '未投影' : 'Unprojected'}</dd>
+          {type.nullable ? words.nullable : ''}</li>)}</ul>
+        : words.unprojected}</dd>
     </dl>
-    <details><summary>Original ModelTask contract</summary><code>{origin.contract_cid}</code></details>
+    <details><summary>{words.originalModelContract}</summary><code>{origin.contract_cid}</code></details>
   </>;
 }
 
@@ -475,39 +484,42 @@ function declaredWrite(origin: EffectOrigin) {
 }
 
 function writeCardTitle(origin: EffectOrigin, ja: boolean) {
+  const words = explorerCopy(ja);
   const {target, fields, update} = declaredWrite(origin);
-  if (!target) return ja ? '宣言された変更' : 'Declared changes';
-  const names = fields?.map(field => '"' + field + '"').join(ja ? '、' : ' and ');
+  if (!target) return words.declaredChanges;
+  const names = fields?.map(field => '"' + field + '"').joinwords.and;
   if (update && names) {
-    return ja ? '"' + target + '" の ' + names + ' を更新' : 'Update ' + names + ' on "' + target + '"';
+    return words.updateFields(target, names);
   }
-  return ja ? '"' + target + '" への書き込み' : 'Write to "' + target + '"';
+  return words.writeTarget(target);
 }
 
 function storyGroupTitle(group: StoryGroup, labels: ReturnType<typeof graphStepLabels>, ja: boolean) {
+  const words = explorerCopy(ja);
   const origin = group.item?.origin;
   switch (origin?.kind) {
     case 'source':
-      return ja ? `"${origin.source_view.resource}" を読む` : `Read "${origin.source_view.resource}"`;
+      return words.readResource('"' + origin.source_view.resource + '"');
     case 'model_task': {
       const model = origin.task_id.replace(/^model-task:/u, '');
-      return ja ? `モデルに問い合わせる · "${model}"` : `Ask the model · "${model}"`;
+      return words.askModel(model);
     }
     case 'result':
-      return ja ? `"${origin.name}" を返す` : `Return "${origin.name}"`;
+      return words.returnResult('"' + origin.name + '"');
     case 'effect_set':
       return writeCardTitle(origin, ja);
     default:
-      if (group.kind === 'join' && group.members.length > 1) return ja ? '入力を結合' : 'Join inputs';
-      return group.primary ? stepTitle(group.primary, labels.get(group.primary.stepId)?.title) : '';
+      if (group.kind === 'join' && group.members.length > 1) return words.joinInputs;
+      return group.primary ? stepTitle(group.primary, labels.get(group.primary.stepId)?.title, words) : '';
   }
 }
 
 function storyGroupLabel(group: StoryGroup, ja: boolean) {
+  const words = explorerCopy(ja);
   return ({
-    source: ja ? '読取' : 'Read', model: ja ? 'モデル' : 'Ask model', join: ja ? '結合' : 'Combine',
-    filter: ja ? '絞り込み' : 'Filter', result: ja ? '結果' : 'Result',
-    effect: ja ? '書き込み' : 'Write', operation: ja ? '処理' : 'Compute',
+    source: words.read, model: words.askModel, join: words.combineInputs,
+    filter: words.filter, result: words.result,
+    effect: words.write, operation: words.compute,
   })[group.kind];
 }
 
@@ -521,10 +533,11 @@ function StorySteps({story, groups, sourceColumns, model, saved, boundary, selec
   const [opened, setOpened] = useState<Record<string, boolean>>({});
   const originalSteps = useMemo(() => new Map(story.occurrences.map(step => [step.stepId, step])), [story]);
   const steps = useMemo(() => new Map(story.occurrences.map(step => [step.stepId,
-    {stepId: step.stepId, ports: step.ports, title: stepTitle(step, labels.get(step.stepId)?.title)}])), [story, labels]);
+    {stepId: step.stepId, ports: step.ports, title: stepTitle(step, labels.get(step.stepId)?.title, explorerCopy(story.locale))}])), [story, labels]);
   const ja = story.locale === 'ja';
+  const words = explorerCopy(ja);
   let sourceIndex = 0;
-  return <section aria-label={graph ? 'Selected Step' : 'Original story'}>
+  return <section aria-label={graph ? words.selectedStep : words.originalStory}>
     <ol className="story-steps">
       {groups.map((group, index) => {
         const origin = group.item?.origin;
@@ -551,42 +564,42 @@ function StorySteps({story, groups, sourceColumns, model, saved, boundary, selec
           }}>
           {origin?.kind === 'source' && <>
             {!saved && (columns ? <div className="expected-columns"><table>
-              <caption>{ja ? '予定される列' : 'Expected columns'}</caption>
+              <caption>{words.expectedColumns}</caption>
               <thead><tr>{columns.map(name => <th key={name} scope="col"><code>{name}</code></th>)}</tr></thead>
-            </table></div> : <p>{ja ? '列は投影されていません' : 'Columns not projected'}</p>)}
-            <details><summary>{ja ? '元の読み取り元と接続' : 'Original Source and links'}</summary>
-              <p>Stage {origin.stage_input.stage_ordinal + 1} · input {origin.stage_input.input_port_ordinal + 1}</p>
-              <dl><dt>Contract</dt><dd><code>{origin.source_view.contract_cid}</code></dd>
-                <dt>Catalog</dt><dd><code>{origin.source_view.catalog_cid}</code></dd></dl>
-              {origin.consuming_ports.length > 0 && <ul aria-label="Original consumers">
+            </table></div> : <p>{words.columnsNotProjected}</p>)}
+            <details><summary>{words.originalSourceAndLinks}</summary>
+              <p>{words.stageInput(origin.stage_input.stage_ordinal + 1, origin.stage_input.input_port_ordinal + 1)}</p>
+              <dl><dt>{words.contract}</dt><dd><code>{origin.source_view.contract_cid}</code></dd>
+                <dt>{words.catalog}</dt><dd><code>{origin.source_view.catalog_cid}</code></dd></dl>
+              {origin.consuming_ports.length > 0 && <ul aria-label={words.originalConsumers}>
                 {origin.consuming_ports.map(port => <li key={port.port_id}><code>{port.step_id}</code><br/><code>{port.port_id}</code></li>)}
               </ul>}
             </details>
           </>}
           {origin?.kind === 'model_task' && <ModelFields origin={origin} locale={story.locale}/>}
-          {origin?.kind === 'result' && <p>{ja ? '名前付き結果' : 'Named Result'} <code>{origin.name}</code></p>}
+          {origin?.kind === 'result' && <p>{words.namedResult} <code>{origin.name}</code></p>}
           {origin?.kind === 'effect_set' && <>
-            <p>{ja ? '書き込み内容は現在取得できません。' : 'Write preview is unavailable.'}</p>
-            <details><summary>Original Effect declarations</summary><p>Effect set <code>{origin.unit_id}</code></p>
+            <p>{words.writePreviewIsUnavailable}</p>
+            <details><summary>{words.originalEffectDeclarations}</summary><p>{words.effectSet} <code>{origin.unit_id}</code></p>
               <ul>{origin.members.map(({declaration, write_fields}, position) => <li key={position}>
                 <strong>{declaration.effect_kind}</strong> · <code>{declaration.contract.kind === 'mapping'
                   ? declaration.contract.declared_target : declaration.contract.resource_kind}</code>
-                {write_fields.state === 'declared' && <p>Fields: {write_fields.fields.join(', ')}</p>}
+                {write_fields.state === 'declared' && <p>{words.fields} {write_fields.fields.join(', ')}</p>}
               </li>)}</ul></details>
           </>}
           {open && dataStep && active && (group.kind !== 'source' || saved) && <>
-            <StepData key={active.stepId} step={dataStep} plan={story} saved={saved} readSample={readSample}
+            <StepData locale={story.locale} key={active.stepId} step={dataStep} plan={story} saved={saved} readSample={readSample}
               expectedColumns={port => expectedStoryPortColumns(originalSteps, active, port) ??
                 (origin?.kind === 'model_task' && origin.producer.state === 'projected' &&
                   origin.producer.step_id === active.stepId && origin.producer.port_id === port.port_id
                   ? origin.output_fields.map(field => field.name) : undefined)}/>
-            {pause?.stepId === active.stepId && <NextInputs key={pause.revision} step={dataStep}
+            {pause?.stepId === active.stepId && <NextInputs locale={story.locale} key={pause.revision} step={dataStep}
               plan={story} steps={steps} pause={pause} readSample={readSample}/>}
           </>}
-          {group.kind === 'join' && group.members.length > 1 && <div className="step-data-choice" aria-label="Original step data">
+          {group.kind === 'join' && group.members.length > 1 && <div className="step-data-choice" aria-label={words.originalStepData}>
             {group.members.map((member, index) => <button type="button" className="small" key={member.stepId}
               aria-pressed={active?.stepId === member.stepId} onClick={() => selectStep(member.stepId)}>
-              {ja ? '結合' : 'Join'} {index + 1}{member.stepId === pause?.stepId ? ' · Next' : ''}
+              {words.join} {index + 1}{member.stepId === pause?.stepId && <> · {words.stepState.Next}</>}
             </button>)}
           </div>}
           {group.members.map(member => {
@@ -604,13 +617,13 @@ function StorySteps({story, groups, sourceColumns, model, saved, boundary, selec
   </section>;
 }
 
-function WorkspaceDialog({title, close, children}: {title: string; close(): void; children: ReactNode}) {
+function WorkspaceDialog({title, close, children, words}: {title: string; close(): void; children: ReactNode; words: ExplorerCopy}) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(()=>{dialog.current?.showModal();}, []);
   return <dialog ref={dialog} className="workspace-dialog" aria-label={title}
     onCancel={event=>{event.preventDefault(); close();}} onClick={event=>{if (event.target === event.currentTarget) close();}}>
     <div className="dialog-content">
-      <header><h2>{title}</h2><button type="button" className="small" aria-label="Close dialog" onClick={close}>×</button></header>
+      <header><h2>{title}</h2><button type="button" className="small" aria-label={words.closeDialog} onClick={close}>×</button></header>
       {children}
     </div>
   </dialog>;
@@ -636,16 +649,6 @@ function saveJson(value: unknown, filename: string) {
 type ResumeAttempt = Readonly<{operation: WireControlOperationRef; receipt?: WireControlOperationLookup}>;
 const runKey = (ref: RunReference) => JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);
 
-const startStatus = {
-  held: 'Waiting on a Checkpoint',
-  preparing: 'Preparing the original Run',
-  not_accepted: 'Start refused',
-  preparation_failed: 'Run preparation failed',
-  unresolvable: 'Original start could not be resolved',
-  reply_unknown: 'Start outcome unknown',
-  ready: 'Original Run accepted',
-};
-
 function App() {
   const source = useMemo(() => createExplorerBrowserSource({origin: window.location.origin}), []);
   const [connected, connect] = useState(false), [plan, showPlan] = useState<PlanReadModel>();
@@ -658,6 +661,9 @@ function App() {
   const [drawer, showDrawer] = useState<'connect' | 'open-run' | 'stop'>();
   const [selectedStep, selectStep] = useState<{scope: string; id: string}>();
   const [locale, setLocale] = useState<'en' | 'ja'>('en');
+  const ja = locale === 'ja';
+  const words = explorerCopy(locale);
+  useEffect(() => {document.documentElement.lang = locale;}, [locale]);
   const [analyzedDraft, keepAnalyzedDraft] = useState<{text: string; format: typeof programFormat; debugDefinitionCid?: string}>();
   const [selectedRef, selectRef] = useState<RunReference>();
   const [originalPlan, showOriginalPlan] = useState<OriginalRunPlanReadModel>();
@@ -675,7 +681,7 @@ function App() {
   const [resumes, saveResumes] = useState<ReadonlyMap<string, ResumeAttempt>>(new Map());
   const preparingResume = useRef(false);
   const [start, showStart] = useState<{ref: WireSubmissionRef;
-    state: keyof typeof startStatus; executionProfile?: 'debug'}>();
+    state: keyof ExplorerCopy['startStatus']; executionProfile?: 'debug'}>();
   const starting = useRef(false);
   const [cancellationEnabled, enableCancellation] = useState(false);
   const [stops, showStops] = useState<ReadonlyMap<string, StopAttempt>>(new Map());
@@ -700,10 +706,10 @@ function App() {
     catch (error) {
       if (original !== epoch.current) return;
       if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ExplorerReadUnavailable') {
-        showError('The Host could not provide this read. Check the selection and its access.');
+        showErrorwords.hostReadFailed;
       } else {
         invalidate();
-        showError('The Local connection was lost. Reconnect to open the original again.');
+        showErrorwords.localLost;
       }
     }
     finally {if (original === epoch.current) busy(false);}
@@ -722,15 +728,15 @@ function App() {
         const code = (error as {code?: string} | null)?.code;
         if (code === 'ExplorerSessionExpired' || code === 'ExplorerStaleScope') {
           invalidate();
-          showError('The Local connection was lost. Reconnect to open the original again.');
+          showErrorwords.localLost;
         } else {
           setFollow(false); showRun(undefined); markObserved(undefined);
-          showError('The Host could not provide the current Run status.');
+          showError(words.currentStatusReadFailed);
         }
       }
     }, 1000);
     return () => {active = false; clearTimeout(timer);};
-  }, [follow, run, pending, connected, selectedRef, source, invalidate]);
+  }, [follow, run, pending, connected, selectedRef, source, invalidate, words]);
   useEffect(() => {
     const toggle = (event: KeyboardEvent) => {
       if (event.altKey || event.metaKey || event.ctrlKey || event.shiftKey ||
@@ -783,7 +789,7 @@ function App() {
     const version = ++draftVersion.current;
     const extension = file.name.split('.').at(-1)?.toLowerCase();
     if (file.size > 60000 || !['sql', 'aql', 'json'].some(value=>value === extension)) {
-      showError('Choose a SQL, AQL, or Program JSON file up to 60,000 bytes.');
+      showError(words.chooseProgramFile);
       return;
     }
     try {
@@ -793,7 +799,7 @@ function App() {
       setProgramFormat(extension === 'json' ? 'program' : extension === 'aql' ? 'aql' : 'sql');
       showError('');
     } catch {
-      if (version === draftVersion.current) showError('The selected file could not be read as UTF-8.');
+      if (version === draftVersion.current) showError(words.invalidFileUtf8);
     }
   };
   const readPlan = (event: FormEvent<HTMLFormElement>) => {
@@ -803,7 +809,7 @@ function App() {
     if (format === 'program') {
       const parsed = parseLocalJson(text);
       if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        showError('Enter a valid Program JSON object before reading the Plan.');
+        showError(words.invalidProgramJson);
         return;
       }
       input = parsed as Record<string, unknown>;
@@ -941,7 +947,7 @@ function App() {
     event.preventDefault();
     const original = parseLocalJson(runReference);
     if (!validRunRef(original)) {
-      showError('Enter the complete original Run reference as JSON.');
+      showErrorwords.invalidRunRef;
       return;
     }
     const action = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') ?? 'run-explanation-context';
@@ -964,8 +970,7 @@ function App() {
         !sameRun(selectedRef, stopDraft.cancelRef) || !sameRun(selectedRef, run.runRef)) return;
     if (run.run.terminal || run.run.controlRevision !== stopDraft.cancelRef.expectedRevision) {
       stageStop(undefined); showDrawer(undefined);
-      showError(ja ? 'Run の状態が変わりました。現在の状態を確認してください。' :
-        'The Run changed. Check its current status before stopping it.');
+      showErrorwords.theRunChangedCheckItsCurrentStatusBeforeStoppingIt;
       return;
     }
     const original = stopDraft, key = runKey(selectedRef), scope = epoch.current, selection = runSelection.current;
@@ -997,7 +1002,7 @@ function App() {
     if (!record || Object.keys(record).length !== 2 || !validCancellationRef(record.cancelRef) ||
         !validOperationAttemptRef(record.attemptRef) || record.attemptRef.operation !== 'cancel' ||
         !sameRun(selectedRef, record.cancelRef)) {
-      showError(ja ? 'この Run の元の取消参照を入力してください。' : 'Enter the original cancellation reference for this Run.');
+      showErrorwords.enterTheOriginalCancellationReferenceForThisRun;
       return;
     }
     const key = runKey(selectedRef);
@@ -1120,7 +1125,7 @@ function App() {
           keepResume(run, resumeAttempt);
           if (current()) showError(code === 'ExplorerControlRevisionConflict'
             ? 'The Run changed. Inspect the current status before choosing another action.'
-            : 'That action is unavailable at this pause.');
+            : words.pauseActionUnavailable);
         } else if (current()) throw error;
       } finally {preparingResume.current = false;}
     });
@@ -1145,7 +1150,7 @@ function App() {
       const code = (error as {code?: string} | null)?.code;
       if (code === 'ExplorerSessionExpired' || code === 'ExplorerStaleScope') {
         invalidate();
-        showError('The Local connection was lost. Reconnect to open the original again.');
+        showErrorwords.localLost;
         return;
       }
       throw error;
@@ -1161,97 +1166,95 @@ function App() {
   const selection = selectedStep?.scope === stepScope ? selectedStep.id :
     boundary?.stepId ?? (graph || planOnly ? presentation?.graphGroups[0]?.id ?? map?.nodes[0]?.id : undefined);
   const setSelection = (id: string) => selectStep({scope: stepScope, id});
-  const ja = locale === 'ja';
-  const savedRun = ja ? '保存済み Run' : 'Saved Run';
+  const savedRun = words.savedRun;
   const liveRun = run !== undefined && !run.run.terminal && follow;
-  const runMode = run?.run.status === 'paused' && exactRun ? (ja ? 'デバッグ中' : 'Debug Run') :
-    liveRun ? (ja ? 'ライブ Run' : 'Live Run') : savedRun;
-  const status = stopping ? (ja ? '停止処理中…' : 'Stopping…') :
+  const runMode = run?.run.status === 'paused' && exactRun ? words.debugRun :
+    liveRun ? words.liveRun : savedRun;
+  const status = stopping ? words.stopping :
     run?.run.status === 'paused' ? originalStep ? (ja
       ? `工程 ${originalStep.number} の${originalStep.position === 'before' ? '前' : '後'}で一時停止`
       : `Paused ${originalStep.position} step ${originalStep.number}`) :
-      state?.boundary?.kind === 'entry' ? (ja ? '開始位置で一時停止' : 'Paused at entry') :
-      (ja ? '一時停止中' : 'Paused') :
-    run?.run.status === 'succeeded' ? (ja ? '完了 · 書き込み件数は不明' : 'Finished · writes unknown') :
+      state?.boundary?.kind === 'entry' ? words.pausedAtEntry :
+      words.paused :
+    run?.run.status === 'succeeded' ? words.finishedWritesUnknown :
     run?.run.status === 'failed' ? (originalStep ? (ja ? `工程 ${originalStep.number} で失敗` :
-      `Failed at step ${originalStep.number}`) : (ja ? '失敗' : 'Failed')) :
+      `Failed at step ${originalStep.number}`) : words.failed) :
     run?.run.status === 'cancelled' ? (confirmedStop ? (originalStep ? (ja ?
       `工程 ${originalStep.number} の${originalStep.position === 'before' ? '前' : '後'}で停止` :
-      `Stopped ${originalStep.position} step ${originalStep.number}`) : (ja ? '停止を確認' : 'Stopped')) :
-      (ja ? '取消済み · 物理停止は未確認' : 'Cancelled · physical stop unconfirmed')) :
+      `Stopped ${originalStep.position} step ${originalStep.number}`) : words.stopped) :
+      words.cancelledPhysicalStopUnconfirmed) :
     run ? run.run.status.replaceAll('_', ' ') :
-    selectedRef ? (ja ? '現在の状態は取得できません' : 'Current status unavailable') :
-    map ? (ja ? 'プラン確認済み · 未実行' : 'Plan checked · not run') : (ja ? 'Run 未選択' : 'No Run selected');
-  const stopStatus = unresolvedStop ? (ja ? '元の停止操作は未確認' : 'Original stop outcome is unconfirmed') :
-    stopOutcome?.kind === 'conflict' ? (ja ? 'Run の状態が変わったため停止できませんでした' : 'Stop conflict · the Run changed') :
-    stopOutcome?.kind === 'refused' ? (ja ? '停止が拒否されました' : 'Stop refused') : undefined;
+    selectedRef ? words.currentStatusUnavailable :
+    map ? words.planCheckedNotRun : words.noRunSelected;
+  const stopStatus = unresolvedStop ? words.originalStopOutcomeIsUnconfirmed :
+    stopOutcome?.kind === 'conflict' ? words.stopConflictTheRunChanged :
+    stopOutcome?.kind === 'refused' ? words.stopRefused : undefined;
   const stopEnabled = connected && cancellationEnabled && !!run && !run.run.terminal && selectedRef !== undefined &&
     sameRun(selectedRef, run.runRef) && !stop && !stopping;
   const observedTime = observationAt === undefined ? undefined :
-    new Date(observationAt).toLocaleTimeString(ja ? 'ja-JP' : 'en-GB', {hour12: false});
+    new Date(observationAt).toLocaleTimeString(words.enGb, {hour12: false});
   const launcherCommand = 'npx actql-explorer --local --state-dir .actql --run run.json';
   const cliRunId = run && /^[A-Za-z0-9][A-Za-z0-9._:-]*$/u.test(run.run.id) ? run.run.id : '"$RUN_ID"';
   const cliCommand = 'actql status ' + cliRunId;
-  const copy = (command: string) => {
-    void navigator.clipboard.writeText(command).catch(() => showError(ja ? 'コピーできませんでした。' : 'Could not copy the command.'));
+  const copyCommand = (command: string) => {
+    void navigator.clipboard.writeText(command).catch(() => showErrorwords.couldNotCopyTheCommand);
   };
   const supportedCheckpoint = connected && (checkpointCapabilities.list || checkpointCapabilities.read);
-  const fileLabel = selectedRef ? (ja ? '元のクエリ' : 'Original query') : draftName ?? 'Query draft';
+  const fileLabel = selectedRef ? words.originalQuery : draftName ?? words.queryDraft;
   const independentDraft = !!selectedRef || launcherProgram;
-  const draftStatus = independentDraft ? (editing ? 'Editing independent draft' : 'Independent draft') :
-    editing ? 'Editing draft' : draftName ? `Loaded ${draftName}` : 'Local query draft';
+  const draftStatus = independentDraft ? (editing ? words.editingIndependentDraft : words.independentDraft) :
+    editing ? words.editingDraft : draftName ? words.loadedFile(draftName) : words.localQueryDraft;
   const openDrawer = (next: 'connect' | 'open-run') => {showError(''); showDrawer(next);};
   const closeDrawer = () => {showDrawer(undefined); stageStop(undefined); showError('');};
   return <div className="explorer-workspace">
     <header className="workspace-header">
       <div className="workspace-brand"><strong><span aria-hidden="true">&gt;</span> ActQL<span aria-hidden="true">_</span></strong>
         <span>Explorer</span><span className="breadcrumb-divider" aria-hidden="true">/</span>
-      <span className="workspace-label" aria-label={launcherProgram && !selectedRef ? 'Local draft file' : undefined}>{fileLabel}</span>
+      <span className="workspace-label" aria-label={launcherProgram && !selectedRef ? words.localDraftFile : undefined}>{fileLabel}</span>
       </div>
       <div className="workspace-actions">
         <button type="button" className="small" onClick={()=>showQuery(value=>!value)}
-          aria-controls="query-pane" aria-expanded={queryShown}>{queryShown ? (ja ? 'クエリを隠す' : 'Hide query') : (ja ? 'クエリを表示' : 'Show query')} <kbd>Q</kbd></button>
-        <div className="view-switch" role="group" aria-label="Plan view">
-          <button type="button" className="small" aria-pressed={!graph} onClick={()=>showGraph(false)}>Steps</button>
-          <button type="button" className="small" aria-pressed={graph} onClick={()=>showGraph(true)}>Graph <kbd>G</kbd></button>
+          aria-controls="query-pane" aria-expanded={queryShown}>{queryShown ? words.hideQuery : words.showQuery} <kbd>Q</kbd></button>
+        <div className="view-switch" role="group" aria-label={words.planView}>
+          <button type="button" className="small" aria-pressed={!graph} onClick={()=>showGraph(false)}>{words.steps}</button>
+          <button type="button" className="small" aria-pressed={graph} onClick={()=>showGraph(true)}>{words.graph} <kbd>G</kbd></button>
         </div>
         {connected ? <details className="toolbar-menu connection-menu">
-          <summary><span className="connection-dot"/>Local <span className="sr-only">connection</span></summary>
-          <div className="panel terminal-card"><p>Gateway connected</p>
-            <button type="button" className="small" onClick={invalidate}>Disconnect</button></div>
+          <summary><span className="connection-dot"/>{words.local} <span className="sr-only">{words.connection}</span></summary>
+          <div className="panel terminal-card"><p>{words.gatewayConnected}</p>
+            <button type="button" className="small" onClick={invalidate}>{words.disconnect}</button></div>
         </details> : <button type="button" className="small connect-button" onClick={()=>openDrawer('connect')}>
-          <span className="connection-dot" data-connected={false}/>{error ? 'Reconnect' : 'Connect to Local'}</button>}
-        <details className="shortcut-help"><summary aria-label="Keyboard shortcuts">?</summary>
-          <div className="panel shortcut-card"><p><kbd>Q</kbd> Toggle query pane</p><p><kbd>G</kbd> Switch Steps and Graph</p></div>
+          <span className="connection-dot" data-connected={false}/>{error ? words.reconnect : words.connectLocal}</button>}
+        <details className="shortcut-help"><summary aria-label={words.keyboardShortcuts}>?</summary>
+          <div className="panel shortcut-card"><p><kbd>Q</kbd> {words.toggleQueryPane}</p><p><kbd>G</kbd> {words.switchViews}</p></div>
         </details>
       </div>
     </header>
     <div className={'workspace-grid' + (queryShown ? '' : ' query-hidden')}>
-      {queryShown && <aside id="query-pane" className="query-panel panel" aria-label="Query">
+      {queryShown && <aside id="query-pane" className="query-panel panel" aria-label={words.query}>
         <header><div><span className="connection-dot" data-connected={!independentDraft && !!analyzedDraft && !edited}/>
           <span>{selectedRef ? fileLabel : draftStatus}</span></div>
           {!selectedRef && <button className="small" type="button" onClick={()=>setEditing(value=>!value)}>
-            {editing ? 'Done' : 'Edit'}
+            {editing ? words.done : words.edit}
           </button>}</header>
-        {selectedRef ? <p className="query-scope-note">{ja ? 'この読み取りには元のクエリが保持されていません。' :
-          'Original query not retained in this read'}</p> : <>
-        {independentDraft && <p className="query-scope-note">The launcher supplied the Plan. Edits here apply to a future Run.</p>}
-        {editing ? <label className="query-editor"><span className="sr-only">Program</span>
+        {selectedRef ? <p className="query-scope-note">{words.originalQueryNotRetainedInThisRead}</p> : <>
+        {independentDraft && <p className="query-scope-note">{words.launcherDraft}</p>}
+        {editing ? <label className="query-editor"><span className="sr-only">{words.program}</span>
           <textarea value={programText} onChange={event=>{draftVersion.current++; setProgramText(event.target.value);}}
             maxLength={60000} rows={8} spellCheck={false}/>
-        </label> : <ol className="query-lines" aria-label="Query text">
+        </label> : <ol className="query-lines" aria-label={words.queryText}>
           {programText.split('\n').map((line,index)=><li key={index}><code>{line || ' '}</code></li>)}</ol>}
         <form className="query-controls" onSubmit={readPlan}>
-          <span className="query-format">{({sql:'SQL', aql:'AQL', 'aql-text':'AQL text', program:'Program JSON'})[programFormat]}</span>
-          <button className="small primary" value="static-explanation" disabled={!connected || pending || !programText}>Explain</button>
-          <details className="toolbar-menu query-menu"><summary aria-label="Query options">⋯</summary>
+          <span className="query-format">{words.programFormat[programFormat]}</span>
+          <button className="small primary" value="static-explanation" disabled={!connected || pending || !programText}>{words.explain}</button>
+          <details className="toolbar-menu query-menu"><summary aria-label={words.queryOptions}>⋯</summary>
             <div className="panel query-options">
-              <label className="query-file">Open query file <input type="file" accept=".sql,.aql,.json" onChange={event=>void openDraft(event)}/></label>
-              <label>Format <select name="format" value={programFormat} onChange={event=>{draftVersion.current++; setProgramFormat(event.target.value as typeof programFormat);}}>
-                <option value="sql">SQL</option><option value="aql">AQL</option><option value="aql-text">AQL text</option><option value="program">Program JSON</option></select></label>
-              <label>Language <select value={locale} onChange={event=>setLocale(event.target.value === 'ja' ? 'ja' : 'en')}>
+              <label className="query-file">{words.openQueryFile} <input type="file" accept=".sql,.aql,.json" onChange={event=>void openDraft(event)}/></label>
+              <label>{words.format} <select name="format" value={programFormat} onChange={event=>{draftVersion.current++; setProgramFormat(event.target.value as typeof programFormat);}}>
+                <option value="sql">SQL</option><option value="aql">AQL</option><option value="aql-text">{words.programFormat['aql-text']}</option><option value="program">{words.programFormat.program}</option></select></label>
+              <label>{words.language} <select value={locale} onChange={event=>setLocale(event.target.value === 'ja' ? 'ja' : 'en')}>
                 <option value="en">English</option><option value="ja">日本語</option></select></label>
-              <button className="small" disabled={!connected || pending || !programText}>Read Plan</button>
+              <button className="small" disabled={!connected || pending || !programText}>{words.readPlan}</button>
             </div>
           </details>
         </form>
@@ -1260,89 +1263,89 @@ function App() {
       <main className="story-workspace">
         <div className="story-heading">
           <p className="eyebrow">{selectedRef ? <>{runMode} <code>{run?.run.id ?? selectedRef.runDefinitionCid.slice(7, 19)}</code></> :
-            map ? (ja ? '実行前 · 確認済みプラン' : 'Before run · checked plan') : (ja ? '実行前' : 'Before run')}</p>
-          {run && <p className="observation-line">Observed {run.run.updatedAt}{run.run.cleanupPending ? ' · cleanup pending' : ''}</p>}
+            map ? words.beforeRunCheckedPlan : words.beforeRun}</p>
+          {run && <p className="observation-line">{words.observedAt(run.run.updatedAt)}{run.run.cleanupPending ? words.cleanupPendingSuffix : ''}</p>}
           {story ? <StoryHeading story={story} context={context}/> : <h1>{selectedRef ?
-            explanation?.state === 'not_projected' ? 'Saved explanation unavailable' : 'Original Run' :
-            map ? 'Inspect the checked Plan' : 'Explain your query'}</h1>}
+            explanation?.state === 'not_projected' ? words.savedExplanationUnavailable : words.originalRun :
+            map ? words.inspectCheckedPlan : words.explainQuery}</h1>}
           {explanation?.state === 'not_projected' && <p className="workspace-note">{explanation.reason === 'not_retained'
-            ? 'No explanation was retained for this Run.' : 'The Run profile does not support this explanation.'}</p>}
-          {!selectedRef && !map && <p className="workspace-note">Open a local query or edit the draft. The checked Story will appear here.</p>}
+            ? words.explanationNotRetained : words.explanationUnsupported}</p>}
+          {!selectedRef && !map && <p className="workspace-note">{words.openQueryPrompt}</p>}
         </div>
-        <div className="run-toolbar" aria-label="Run controls and status">
-          <span className="workspace-chip">{selectedRef ? runMode : ja ? 'Run 未開始' : 'No Run yet'}</span>
+        <div className="run-toolbar" aria-label={words.runControls}>
+          <span className="workspace-chip">{selectedRef ? runMode : words.noRunYet}</span>
           {!selectedRef && startEnabled && <>
             <button className={analyzedDraft?.debugDefinitionCid && !edited ? "small" : "small primary"}
-              type="button" onClick={()=>startDraft()} disabled={draftStartPending}>Run</button>
+              type="button" onClick={()=>startDraft()} disabled={draftStartPending}>{words.run}</button>
             {analyzedDraft?.debugDefinitionCid && !edited && <button className="small primary" type="button"
-              onClick={()=>startDraft('debug')} disabled={draftStartPending}>{ja ? 'デバッグ' : 'Debug'}</button>}
+              onClick={()=>startDraft('debug')} disabled={draftStartPending}>{words.debug}</button>}
           </>}
-          <button className="small" type="button" disabled={!connected || pending} onClick={()=>openDrawer('open-run')}>{ja ? 'Run を開く' : 'Open Run'}</button>
+          <button className="small" type="button" disabled={!connected || pending} onClick={()=>openDrawer('open-run')}>{words.openRun}</button>
           {selectedRef && !originalPresentation && <button className="small" type="button" disabled={pending}
-            onClick={()=>readOriginal(selectedRef, 'run-explanation-context')}>Read Story</button>}
+            onClick={()=>readOriginal(selectedRef, 'run-explanation-context')}>{words.readStory}</button>}
           {selectedRef && !map && <button className="small" type="button" disabled={pending}
-            onClick={()=>readOriginal(selectedRef, 'run-plan')}>Read Saved Plan</button>}
+            onClick={()=>readOriginal(selectedRef, 'run-plan')}>{words.readSavedPlan}</button>}
           {selectedRef && <button className="small" type="button" disabled={pending}
-            onClick={()=>readOriginal(selectedRef, 'inspect')}>{ja ? '状態を確認' : 'Inspect status'}</button>}
-          {resumePause && <div className="step-data-choice" aria-label={ja ? '一時停止中の操作' : 'Paused Run actions'}>
+            onClick={()=>readOriginal(selectedRef, 'inspect')}>{words.inspectStatus}</button>}
+          {resumePause && <div className="step-data-choice" aria-label={words.pausedRunActions}>
             {resumePause.step && <button type="button" className="small" disabled={pending}
-              onClick={() => requestResume('step')}>{ja ? '1 工程進む' : 'Step'}</button>}
+              onClick={() => requestResume('step')}>{words.step}</button>}
             <button type="button" className="small" disabled={pending}
-              onClick={() => requestResume('terminal')}>{ja ? '続行' : 'Continue'}</button>
+              onClick={() => requestResume('terminal')}>{words.continue}</button>
           </div>}
           {stopEnabled && <button type="button" className="small" disabled={pending}
-            onClick={prepareCancellation}>{ja ? '停止' : 'Stop'}</button>}
+            onClick={prepareCancellation}>{words.stop}</button>}
           <span className="run-status" role="status" data-known={!!run || !selectedRef}><span className="status-dot"/>
-            {!connected ? (ja ? 'ローカル未接続' : 'Local disconnected') :
-              pending && !run ? (ja ? '読み取り中…' : 'Reading…') : status}</span>
+            {!connected ? words.localDisconnected :
+              pending && !run ? words.reading : status}</span>
           {follow && observedTime && run && (!run.run.terminal || stopping || unresolvedStop) &&
-            <span className="live-observation">{ja ? 'ライブ' : 'Live'} · {observedTime}</span>}
+            <span className="live-observation">{words.live} · {observedTime}</span>}
           {stopStatus && <span className="stop-observation" role="status">{stopStatus}</span>}
           {selectedRef && <details className="toolbar-menu terminal-menu">
-            <summary>{ja ? 'ターミナル' : 'Terminal'}</summary>
+            <summary>{words.terminal}</summary>
             <div className="panel terminal-card">
               <pre>{launcherCommand}</pre>
-              <button className="small" type="button" onClick={()=>copy(launcherCommand)}>{ja ? 'コピー' : 'Copy'}</button>
+              <button className="small" type="button" onClick={()=>copyCommand(launcherCommand)}>{words.copy}</button>
               <pre>{cliCommand}</pre>
-              <button className="small" type="button" onClick={()=>copy(cliCommand)}>{ja ? 'コピー' : 'Copy'}</button>
+              <button className="small" type="button" onClick={()=>copyCommand(cliCommand)}>{words.copy}</button>
               <button className="small" type="button" onClick={()=>saveJson(selectedRef, 'run.json')}>
-                {ja ? 'run.json に保存' : 'Save as run.json'}</button>
-              {cancellationEnabled && <details><summary>{ja ? '元の停止操作を照会' : 'Look up original stop'}</summary>
+                {words.saveAsRunJson}</button>
+              {cancellationEnabled && <details><summary>{words.lookUpOriginalStop}</summary>
                 {stop ? <>
                   <button type="button" className="small" disabled={pending}
-                    onClick={()=>lookupCancellation(stop)}>{ja ? '照会' : 'Look up'}</button>
+                    onClick={()=>lookupCancellation(stop)}>{words.lookUp}</button>
                   <button type="button" className="small" onClick={()=>saveJson(stop.original, 'actql-original-cancellation.json')}>
-                    {ja ? '取消参照を保存' : 'Save cancellation reference'}</button>
-                  {cancellation && <p>{cancellation.kind} · {ja ? '制御 revision' : 'control revision'} {cancellation.revision}</p>}
-                  {stop.history?.kind === 'unknown' && <p>{ja ? '元の取消記録は未確認' : 'Original cancellation history is unknown'}</p>}
+                    {words.saveCancellationReference}</button>
+                  {cancellation && <p>{cancellation.kind} · {words.controlRevision} {cancellation.revision}</p>}
+                  {stop.history?.kind === 'unknown' && <p>{words.originalCancellationHistoryIsUnknown}</p>}
                 </> : <form onSubmit={importCancellation}>
-                  <label>{ja ? '元の取消参照 (JSON)' : 'Original cancellation reference (JSON)'}
+                  <label>{words.originalCancellationReferenceJson}
                     <textarea name="original" maxLength={8192} required/></label>
-                  <button type="submit" disabled={pending}>{ja ? '照会' : 'Look up'}</button>
+                  <button type="submit" disabled={pending}>{words.lookUp}</button>
                 </form>}
               </details>}
             </div>
           </details>}
         </div>
-        {start && <details className="workspace-tools panel"><summary>{startStatus[start.state]}</summary>
-          <p>Look up the original submission to check this outcome.</p>
+        {start && <details className="workspace-tools panel"><summary>{words.startStatus[start.state]}</summary>
+          <p>{words.startLookupHint}</p>
           <button className="small" type="button" onClick={lookupStart}
-            disabled={!connected || !startEnabled || pending}>Look up start</button>
-          <pre aria-label="Original submission reference">{JSON.stringify(start.ref, null, 2)}</pre>
+            disabled={!connected || !startEnabled || pending}>{words.lookupStart}</button>
+          <pre aria-label={words.originalSubmission}>{JSON.stringify(start.ref, null, 2)}</pre>
         </details>}
         {error && !drawer && <p className="workspace-notice" role="alert">{error}</p>}
-        {edited && !selectedRef && map && <p className="workspace-notice">Draft changed. Story and Graph still show the last checked version.</p>}
+        {edited && !selectedRef && map && <p className="workspace-notice">{words.changedDraft}</p>}
         {map && <div className="inspection-strip">
           {resumeAttempt && <button type="button" className="small" disabled={!connected || pending || !debugResumeEnabled}
-            onClick={lookupResume}>{ja ? '元の操作を照会' : 'Look up original control'}</button>}
-          {resumeAttempt && <p role="status">{previousAccepted ? (ja ? '続行操作を受付済み' : 'Resume accepted') :
-            (ja ? '元の操作の受付は未確認' : 'Original control outcome is unconfirmed')}</p>}
-          {run?.run.status === 'paused' && !resumePause && <details className="toolbar-menu capability-menu"><summary>{ja ? 'ステップ操作は利用できません' : 'Step controls unavailable'}</summary>
+            onClick={lookupResume}>{words.lookUpOriginalControl}</button>}
+          {resumeAttempt && <p role="status">{previousAccepted ? words.resumeAccepted :
+            words.originalControlOutcomeIsUnconfirmed}</p>}
+          {run?.run.status === 'paused' && !resumePause && <details className="toolbar-menu capability-menu"><summary>{words.stepControlsUnavailable}</summary>
             <div className="panel terminal-card">
-              <p>Durable Step, breakpoint and Continue controls are unavailable.</p>
-              {!sampleEnabled && <p>Relation Sample reading is unavailable on this connection.</p>}
-              <p>Sealed write review is unavailable on this connection.</p>
-              <p>A Checkpoint decision is separate from stepping.</p>
+              <p>{words.durableControlsUnavailable}</p>
+              {!sampleEnabled && <p>{words.relationSampleUnavailable}</p>}
+              <p>{words.sealedReviewUnavailable}</p>
+              <p>{words.checkpointSeparate}</p>
             </div>
           </details>}
         </div>}
@@ -1352,11 +1355,11 @@ function App() {
               const group = presentation?.groups.find(card => (card.primary?.stepId ?? card.id) === id);
               const effect = group?.item?.origin.kind === 'effect_set' ? declaredWrite(group.item.origin) : undefined;
               if (effect) return {
-                kind: ja ? '書き込み宣言' : 'Declared write',
-                title: effect.target && effect.update ? (ja ? `${effect.target} を更新` : `Update ${effect.target}`)
-                  : effect.target ?? (ja ? '宣言された変更' : 'Declared changes'),
-                effectDeclaration: {fields: effect.fields?.join(ja ? '、' : ', '),
-                  missingProducer: ja ? '入力元のリンクは未投影' : 'Producer link not projected'},
+                kind: words.declaredWrite,
+                title: effect.target && effect.update ? words.updateTarget(effect.target)
+                  : effect.target ?? words.declaredChanges,
+                effectDeclaration: {fields: effect.fields?.joinwords.listJoin,
+                  missingProducer: words.producerLinkNotProjected},
               };
               return group && story ? {
                 state: stepStateLabel(group.members.some(member => member.stepId === boundary?.stepId)
@@ -1370,46 +1373,46 @@ function App() {
         {story && presentation && <StorySteps key={scopeKey} story={story} groups={presentation.groups}
           sourceColumns={presentation.source} model={map} boundary={boundary} saved={!!selectedRef} selectedStep={selection}
           selectStep={setSelection} graph={graph} labels={graphLabels} pause={nextPause} readSample={sample}/>}
-        {graph && !map && <p className="workspace-note">Read a Plan or open an original Run to see its Graph.</p>}
-        {!graph && !story && !planOnly && map && <p className="workspace-note">This read supplies a logical map. Choose Graph to inspect it.</p>}
-        {run && <details className="workspace-tools panel"><summary>Current Run observations</summary><RunInspector model={run}/></details>}
-        {result !== undefined && <details className="workspace-tools panel"><summary>Named Result metadata</summary><pre>{JSON.stringify(result, null, 2)}</pre></details>}
+        {graph && !map && <p className="workspace-note">{words.readPlanToSeeGraph}</p>}
+        {!graph && !story && !planOnly && map && <p className="workspace-note">{words.chooseGraph}</p>}
+        {run && <details className="workspace-tools panel"><summary>{words.currentRunObservations}</summary><RunInspector model={run} locale={locale}/></details>}
+        {result !== undefined && <details className="workspace-tools panel"><summary>{words.namedResultMetadata}</summary><pre>{JSON.stringify(result, null, 2)}</pre></details>}
         {(supportedCheckpoint || run?.run.status === 'waiting_checkpoint') &&
-          <details className="workspace-tools panel"><summary>Checkpoint review</summary>
-            <CheckpointPanel page={checkpointPage} review={review} pending={pending}
+          <details className="workspace-tools panel"><summary>{words.checkpointReview}</summary>
+            <CheckpointPanel locale={locale} page={checkpointPage} review={review} pending={pending}
               canList={connected&&checkpointCapabilities.list} canRead={connected&&checkpointCapabilities.read}
               onList={listCheckpoints} onRead={readReview}/>
           </details>}
       </main>
     </div>
-    {drawer === 'stop' && stopDraft && <WorkspaceDialog title={ja ? 'この Run を停止' : 'Stop this Run'} close={closeDrawer}>
-      <p>{ja ? '現在の revision でこの Run の停止を要求します。' : 'Request a stop for this Run at the observed revision.'}</p>
-      <button className="small" type="button" onClick={closeDrawer}>{ja ? '戻る' : 'Back'}</button>{' '}
+    {drawer === 'stop' && stopDraft && <WorkspaceDialog title={words.stopThisRun} close={closeDrawer} words={words}>
+      <p>{words.requestAStopForThisRunAtTheObservedRevision}</p>
+      <button className="small" type="button" onClick={closeDrawer}>{words.back}</button>{' '}
       <button className="small primary" type="button" disabled={pending} onClick={requestCancellation}>
-        {ja ? '停止を要求' : 'Request stop'}</button>
+        {words.requestStop}</button>
     </WorkspaceDialog>}
-    {drawer === 'connect' && <WorkspaceDialog title="Connect to Local" close={closeDrawer}>
-      <p className="workspace-note">Use a fresh one-use bootstrap from the Local Host.</p>
+    {drawer === 'connect' && <WorkspaceDialog title={words.connectLocal} close={closeDrawer} words={words}>
+      <p className="workspace-note">{words.newBootstrap}</p>
       <form onSubmit={session}>
-        <label>One-use bootstrap <input name="bootstrap" type="password" autoComplete="off" maxLength={43} required disabled={pending}/></label>
-        <button className="primary" disabled={pending}>Connect</button>
+        <label>{words.bootstrap} <input name="bootstrap" type="password" autoComplete="off" maxLength={43} required disabled={pending}/></label>
+        <button className="primary" disabled={pending}>{words.connect}</button>
       </form>
       {error && <p role="alert">{error}</p>}
     </WorkspaceDialog>}
-    {drawer === 'open-run' && <WorkspaceDialog title="Open Run" close={closeDrawer}>
+    {drawer === 'open-run' && <WorkspaceDialog title={words.openRun} close={closeDrawer} words={words}>
       <form className="run-reference-form" onSubmit={readRun}>
-        <label>Original Run reference<textarea name="ref" value={runReference} onChange={event=>setRunReference(event.target.value)}
+        <label>{words.runReference}<textarea name="ref" value={runReference} onChange={event=>setRunReference(event.target.value)}
           maxLength={4096} rows={4} required spellCheck={false}/></label>
         {error && <p role="alert">{error}</p>}
-        <button className="primary" value="run-explanation-context" disabled={pending}>Open Saved explanation</button>
-        <details className="run-options"><summary>Other original reads</summary>
-          <label>Named Result <input name="name" maxLength={1024}/></label>
-          <label>Language <select value={locale} onChange={event=>setLocale(event.target.value === 'ja' ? 'ja' : 'en')}>
+        <button className="primary" value="run-explanation-context" disabled={pending}>{words.openSavedExplanation}</button>
+        <details className="run-options"><summary>{words.otherOriginalReads}</summary>
+          <label>{words.namedResult} <input name="name" maxLength={1024}/></label>
+          <label>{words.language} <select value={locale} onChange={event=>setLocale(event.target.value === 'ja' ? 'ja' : 'en')}>
             <option value="en">English</option><option value="ja">日本語</option></select></label>
           <div className="toolbar-form-actions">
-            <button value="inspect" disabled={pending}>Inspect status</button>
-            <button value="run-plan" disabled={pending}>Read Saved Plan</button>
-            <button value="run-presentation" disabled={pending}>Read original Facts</button>
+            <button value="inspect" disabled={pending}>{words.inspectStatus}</button>
+            <button value="run-plan" disabled={pending}>{words.readSavedPlan}</button>
+            <button value="run-presentation" disabled={pending}>{words.readOriginalFacts}</button>
           </div>
         </details>
       </form>

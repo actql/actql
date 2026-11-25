@@ -1,3 +1,4 @@
+import {explorerCopy, type ExplorerLocale} from './i18n.mjs';
 import type {PlanReadModel} from './read-model.js';
 import type {Node,Edge} from '@xyflow/react';
 type OriginalNode = PlanReadModel['nodes'][number];
@@ -6,7 +7,8 @@ import {graphViewLimits, ExplorerReadError} from './read-model.mjs';
 
 // Positions are presentation only. They do not imply Stage order, a physical
 // execution, a source origin or a missing dependency.
-export function flowPresentation(model:PlanReadModel):{nodes:Node<{original:OriginalNode}>[];edges:Edge[]} {
+export function flowPresentation(model:PlanReadModel, locale?: ExplorerLocale):{nodes:Node<{original:OriginalNode}>[];edges:Edge[]} {
+  const words = explorerCopy(locale);
   const refuse:()=>never = () => {throw new ExplorerReadError('ExplorerInvalidPresentation');};
   if (model?.observation !== 'static' || model.providerIO !== 0 ||
       !Array.isArray(model.nodes) || model.nodes.length > graphViewLimits.steps ||
@@ -38,7 +40,7 @@ export function flowPresentation(model:PlanReadModel):{nodes:Node<{original:Orig
     seen.add(edge.id);
     return {id: edge.id, source: edge.sourceStepId, sourceHandle: edge.sourcePortId,
       target: edge.targetStepId, targetHandle: edge.targetPortId,
-      label: `input ${edge.targetPortOrdinal}`, type: 'default', selectable: false,
+      label: words.graphInput(edge.targetPortOrdinal), type: 'default', selectable: false,
       focusable: false, deletable: false};
   });
   for (const input of model.inputs) {
@@ -70,7 +72,7 @@ export function flowPresentation(model:PlanReadModel):{nodes:Node<{original:Orig
       used.add(target.port.port_id);
       edges.push({id: target.port.port_id, source: source.node.id, target: target.node.id,
         sourceHandle: source.port.port_id, targetHandle: target.port.port_id,
-        label: link.result_projection ? 'Result projection' : 'Stage Result', type: 'default',
+        label: link.result_projection ? words.resultProjection : words.stageResult, type: 'default',
         selectable: false, focusable: false, deletable: false});
     }
   }

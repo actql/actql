@@ -174,6 +174,7 @@ try {
         await pane.waitFor({state: 'hidden'});
         await page.evaluate(() => window.scrollTo(0, 0));
         assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
+        assert.equal(await page.locator('html').getAttribute('lang'), locale);
         await page.screenshot({path: join(evidence, file)});
         return {locale, width, file};
       };
@@ -251,10 +252,10 @@ try {
         await page.evaluate(() => window.scrollTo(0, 0));
         await page.screenshot({path: join(evidence, 'installed-deal-review-before-run.png')});
         const queryClosed = [await captureClosedSteps('en', 1440, 'installed-deal-review-before-en-1440.png')];
-        const graph = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
+        const graph = page.locator('section.actql-explorer[data-workspace="true"]');
         const readGraph = async (narrow: boolean, japanese = false) => {
           await readOpportunity.locator('summary').first().click();
-          await page.getByRole('button', {name: /Graph/}).click();
+          await page.getByRole('button', {name: japanese ? /グラフ/u : /Graph/u}).click();
           assert.equal(await graph.getByRole('navigation', {name: 'Plan presentation'}).count(), 0);
           await graph.locator('.react-flow__node').first().waitFor({state: 'attached'});
           const nodes = graph.locator('.react-flow__node');
@@ -263,6 +264,7 @@ try {
             : 'Data flow, not execution order', {exact: true}).waitFor();
           assert((await nodes.locator('.actql-explorer-node > p').allTextContents())
             .includes(japanese ? '予定' : 'Planned'));
+          if (japanese) assert.doesNotMatch(await graph.innerText(), /\b(?:Planned|operation|Declared inputs|Result projection|input [0-9]+)\b/u);
           assert.equal(await graph.locator('.actql-explorer-flow-metadata').count(), 0);
           const declaredWrite = nodes.filter({has: page.locator('[data-effect-declaration="true"]')});
           assert.equal(await declaredWrite.count(), 1);
@@ -295,7 +297,7 @@ try {
                 edge.x < innerWidth && edge.right >= 0 && edge.y >= 0 && edge.y + 14 < innerHeight;
             }, {stepId: originalLink.producer.step_id, targetPort: originalLink.consumer.port_id});
           }
-          const selectedCard = page.getByRole('region', {name: 'Selected Step', exact: true});
+          const selectedCard = page.getByRole('region', {name: japanese ? '選択した工程' : 'Selected Step', exact: true});
           assert.match(await selectedCard.innerText(), /Opportunity/u);
           const advanced = selectedCard.locator('details.original-plan-advanced');
           assert.equal(await advanced.count(), 1);
@@ -317,16 +319,24 @@ try {
         await page.getByRole('button', {name: /Show query/}).click();
         await page.getByLabel('Query options').click();
         await page.locator('.query-options label').filter({hasText: /^Language/u}).locator('select').selectOption('ja');
-        await page.getByLabel('Query options').click();
-        await page.getByRole('button', {name: 'Explain', exact: true}).click();
+        await page.getByLabel('クエリオプション').click();
+        await page.getByRole('button', {name: '説明', exact: true}).click();
         await heading.filter({hasText: /review\.value\.changed などの条件で絞り込む/u}).waitFor();
         await page.getByText('実行前 · 確認済みプラン', {exact: true}).waitFor();
-        const states = await staticSteps.locator('.step-state[data-state="Planned"]').allTextContents();
+        const japaneseStory = page.getByRole('region', {name: '元のストーリー', exact: true});
+        const japaneseOrigin = japaneseStory.locator('details.story-card[open] .occurrence-origin summary').first();
+        assert((await japaneseOrigin.textContent())?.startsWith('元の工程とポート'));
+        await page.getByRole('button', {name: 'Run を開く', exact: true}).waitFor();
+        const kinds = await japaneseStory.locator('.step-label').allTextContents();
+        assert(kinds.some(label => label.includes('書き込み')));
+        assert(kinds.some(label => label.includes('モデル')));
+        assert(kinds.every(label => !/\b(?:Read|Combine|Compute|Ask model|Result|Write)\b/u.test(label)));
+        const states = await japaneseStory.locator('.step-state[data-state="Planned"]').allTextContents();
         assert(states.length > 0 && states.every(state => state === '予定'));
         queryClosed.push(await captureClosedSteps('ja', 1440, 'installed-deal-review-before-ja-1440.png'));
         await readGraph(false, true);
         await page.screenshot({path: join(evidence, 'installed-deal-review-graph-ja.png')});
-        await page.getByRole('button', {name: 'Steps', exact: true}).click();
+        await page.getByRole('button', {name: '工程', exact: true}).click();
         queryClosed.push(await captureClosedSteps('ja', 390, 'installed-deal-review-narrow-ja.png'));
         await readGraph(true, true);
         await page.screenshot({path: join(evidence, 'installed-deal-review-graph-ja-390.png')});
@@ -350,7 +360,7 @@ try {
           const reply = page.waitForResponse(response =>
             response.url() === connected.origin + '/api/read/run-explanation-context');
           const status = page.waitForResponse(response => response.url() === connected.origin + '/api/read/run');
-          await page.getByRole('button', {name: 'Open Saved explanation', exact: true}).click();
+          await page.getByRole('button', {name: locale === 'ja' ? '保存済みの説明を開く' : 'Open Saved explanation', exact: true}).click();
           const response = await reply;
           await status;
           assert.equal(response.status(), 200);
@@ -366,7 +376,7 @@ try {
             assert.equal(data.explanation.story.locale, locale);
             assert.deepEqual(data.explanation.context.map(item => item.origin), context.items);
           }
-          await page.getByRole('dialog', {name: 'Open Run'}).waitFor({state: 'hidden'});
+          await page.getByRole('dialog', {name: locale === 'ja' ? 'Run を開く' : 'Open Run'}).waitFor({state: 'hidden'});
           const heading = page.locator('.story-heading .eyebrow');
           assert((await heading.textContent())?.includes(original.ref.runDefinitionCid.slice(7, 19)));
         };
@@ -444,7 +454,17 @@ try {
           await openOriginal(true, 'ja');
           assert.deepEqual(requests.slice(beforeLocaleChange), ['/api/read/run-explanation-context', '/api/read/run']);
           await heading.filter({hasText: /Opportunity.*files.*contents.*を読む/u}).waitFor();
-          assert.equal(await story.locator('details.story-card').count(), 8);
+          const japaneseStory = page.getByRole('region', {name: '元のストーリー', exact: true});
+          assert.equal(await japaneseStory.locator('details.story-card').count(), 8);
+          await page.getByRole('button', {name: '状態を確認', exact: true}).waitFor();
+          await page.getByText('ターミナル', {exact: true}).waitFor();
+          const review = page.locator('.workspace-tools').filter({has: page.locator('.actql-checkpoint-review')});
+          if (await review.count()) {
+            assert.equal(await review.locator('summary').textContent(), 'チェックポイントのレビュー');
+            await review.locator('summary').click();
+            await review.getByRole('heading', {name: 'チェックポイントのレビュー', exact: true}).waitFor();
+            await review.locator('summary').click();
+          }
           queryClosed.push(
             await captureClosedSteps('ja', 1440, 'installed-deal-review-saved-ja-1440.png'),
             await captureClosedSteps('ja', 390, 'installed-deal-review-saved-ja-390.png'),
