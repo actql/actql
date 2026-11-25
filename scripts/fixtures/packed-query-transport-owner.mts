@@ -197,7 +197,7 @@ const originalFailureCodes = Object.freeze([
   'InvalidRowSourceCredentialAcquisitionProfile', 'InvalidRowSourceCredentialAcquisitionRequest', 'InvalidRowSourceCredentialSite',
   'InvalidRowSourceInstallationMetadata', 'InvalidRowSourceSecretPresentation', 'InvalidSqliteSnapshotInspectionConfiguration',
   'InvalidWaitCondition', 'InvalidWaitRevision', 'KeyedLookupDurationExceeded',
-  'LegacyClientRequestJournalFormat', 'LocalAccountAdoptedStateMissing', 'LocalAccountConfigurationRejected',
+  'LocalAccountAdoptedStateMissing', 'LocalAccountConfigurationRejected',
   'LocalAccountFirstInitializationUnavailable', 'LocalAccountInitializationChanged', 'LocalAccountInitializationConflict',
   'LocalAccountInitializationExposed', 'LocalAccountInitializationInvalid', 'LocalAccountInitializationLimit',
   'LocalAccountProfileUnavailable', 'LocalMockAdoptedStateMissing', 'LocalMockInitializationAlreadyPending',
