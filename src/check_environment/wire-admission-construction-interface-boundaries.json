@@ -983,12 +983,12 @@
     },
     {
       "module": "src/check_environment/public_model_task_construction.mbt",
-      "sha256": "01461e83d6c2acb48f20b802913710f1245a439d5dc8b054cb36bf3ce5c1dc90",
+      "sha256": "6bbaa4097846d541c25d1ccce4c031a6f7bac15d006cceaca6948cefdb5b3c22",
       "exports": [],
       "operations": [
         {
           "name": "model_task_contract_construction",
-          "declaration": "model_task_contract_construction ( limits : ModelTaskLimits , ) - > RegistryConstructionExtent ?"
+          "declaration": "model_task_contract_construction ( limits : ModelTaskLimits , selected_text : Int , ) - > RegistryConstructionExtent ?"
         },
         {
           "name": "model_task_contract_read_bounds",

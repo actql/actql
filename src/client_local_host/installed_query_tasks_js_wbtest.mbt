@@ -404,6 +404,8 @@ test "installed plural Query continuation joins SAME original captures exactly o
     @builtin.configured_host_driver(value.setup),
   )
   assert_eq(@strategy.next_captured_task(run), Some(2))
+  let driven = []
+  let ready = Ref(true)
   let execution = execute_installed_captured_local_tasks_guarded(
     value.owner,
     value.plan.prepared,
@@ -413,11 +415,71 @@ test "installed plural Query continuation joins SAME original captures exactly o
     1,
     10000,
     () => true,
+    drive_task=Some((index, operations) => {
+      driven.push(index)
+      (operations.execute)().map_err(issue => Driver(issue))
+    }),
+    cleanup_ready=Some(() => ready.val),
   ).unwrap()
+  assert_eq(driven, [2])
   assert_eq(execution.rows().unwrap(), ["{\"id\":2}"])
   assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts + 1)
   assert_true(@strategy.captured_task_completed(run, 2))
+  ready.val = false
+  assert_false(execution.close())
+  assert_true(@strategy.captured_task_completed(run, 2))
+  ready.val = true
   assert_true(execution.close())
+  assert_true(
+    value.captures.all(capture => {
+      @row_source_host.row_capture_source(capture) is Ok(_)
+    }),
+  )
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed Query driver refusal retains original Source and task cleanup" {
+  let value = installed_query_tasks_fixture()
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(value.setup),
+  )
+  let before = @resources.ledger_usage(value.ledger).attempts
+  let ready = Ref(false)
+  let driven = []
+  let failure = execute_installed_captured_local_tasks_guarded(
+    value.owner,
+    value.plan.prepared,
+    value.plan.request,
+    value.setup,
+    value.captures,
+    1,
+    10000,
+    () => true,
+    drive_task=Some((index, operations) => {
+      driven.push(index)
+      match (operations.advance)(1) {
+        Ok(progress) if progress.work == 1L && !progress.complete => Err(Fenced)
+        Ok(_) => Err(UnsupportedGraph)
+        Err(issue) => Err(Driver(issue))
+      }
+    }),
+    cleanup_ready=Some(() => ready.val),
+  ).unwrap_err()
+  assert_eq(driven, [2])
+  assert_true(local_values_execution_failure_issue(failure) is Fenced)
+  assert_true(local_values_execution_failure_cleanup_pending(failure))
+  assert_false(retry_local_values_execution_failure_cleanup(failure))
+  ready.val = true
+  for _ in 0..<1000 {
+    if retry_local_values_execution_failure_cleanup(failure) {
+      break
+    }
+  }
+  assert_false(local_values_execution_failure_cleanup_pending(failure))
+  assert_eq(driven, [2])
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, before + 1)
+  assert_false(@strategy.captured_task_completed(run, 2))
   assert_true(
     value.captures.all(capture => {
       @row_source_host.row_capture_source(capture) is Ok(_)
@@ -445,6 +507,7 @@ test "installed plural Query continuation refuses reordered missing and foreign 
       value.plan.request
     }
     let before = @resources.ledger_usage(value.ledger)
+    let driven = Ref(false)
     let failure = execute_installed_captured_local_tasks_guarded(
       value.owner,
       value.plan.prepared,
@@ -454,12 +517,17 @@ test "installed plural Query continuation refuses reordered missing and foreign 
       1,
       10000,
       () => variant != "current",
+      drive_task=Some((_, _) => {
+        driven.val = true
+        Err(Fenced)
+      }),
     ).unwrap_err()
     assert_true(
       local_values_execution_failure_issue(failure) is UnsupportedGraph ||
       local_values_execution_failure_issue(failure) is Fenced,
     )
     assert_true(retry_local_values_execution_failure_cleanup(failure))
+    assert_false(driven.val)
     assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts)
     close_installed_query_tasks_fixture(value)
   }

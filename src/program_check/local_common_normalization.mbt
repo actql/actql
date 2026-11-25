@@ -190,6 +190,21 @@ fn audit_local_common_normalization_inventory(
           if !physical_equal(execution.subject.owner, identity) {
             return Err(ForeignOriginal)
           }
+          // A shared producer may revisit this immutable resolver object.
+          // Its admitted entry already owns the path and replacement text.
+          // Same-path foreign objects still take the full collision check.
+          let mut visited = false
+          for entry in entries {
+            local_common_charge(budget, 1)
+            if entry.original is Source(original) &&
+              physical_equal(original, source) {
+              visited = true
+              break
+            }
+          }
+          if visited {
+            continue
+          }
           let (entry, left) = match
             local_source_normalization_entry(source, budget.remaining) {
             Some(value) => value

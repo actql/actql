@@ -228,6 +228,14 @@ pub fn NativeClientMockModelWork::advance_settlement_export(
 }
 
 ///|
+#borrow(wire)
+extern "C" fn native_model_confirmation_observation(
+  kind : Int,
+  wire : String,
+  length : Int,
+) -> Unit = "actql_native_model_confirmation_observation"
+
+///|
 /// Outer Read boundary only, after the original Model batch returned. Retain
 /// EACH original Store child before its first fallible persistence. A failure
 /// is sticky on this same record; it cannot resend, replace the child, infer
@@ -344,6 +352,11 @@ pub fn NativeClientMockModelWork::persist_settlement_evidence_in_original_read(
       // The last original confirmation remains known even if the following
       // current fence refuses. Journal COMMIT and Model ACK stay independent.
       saved.store_complete = saved.stored == saved.leaves.length()
+      if @publication.run_evidence_value_name(confirmed) ==
+        "model_attempt_accounting" {
+        let wire = @publication.run_evidence_value_json(confirmed)
+        native_model_confirmation_observation(0, wire, wire.length())
+      }
       mock_model_require(
         self.capture
         .check_current_in_original_read()

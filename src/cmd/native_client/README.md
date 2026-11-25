@@ -143,10 +143,12 @@ source-specific evidence.
 A Native package can include an optional `model-http` runtime member for
 configured Local Model Tasks. The operator configuration selects the adopted
 Provider revision, configuration contract, response profile, execution
-contract and run policy through `native.local.model_http_installation`. The
-Task, selected model, Provider and credential reference must agree with those
-originals. The credential stays in its owner-readable file. Account policy
-must permit the exact inference and any required Raw capture.
+contract and run policy through `native.local.model_http_installations`.
+The list accepts one or two entries with distinct `task_id` values on the
+same configured Provider. Each Task, selected model and credential reference
+must agree with its own adopted originals. The credential stays in its
+owner-readable file. Account policy must permit each exact inference and any
+required Raw capture.
 
 The current portable profile builds OpenAI-compatible Chat Completions
 requests. It uses one original Model Call's prepared body, a bounded verified

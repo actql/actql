@@ -635,6 +635,7 @@ fn whole_source_result_publication_fixture(
   } else {
     Some(reserve_program_publication(owner, prepared).unwrap())
   }
+  let driven = []
   if native_execution {
     let foreign = { ..owner, }
     let callbacks = Ref(0)
@@ -643,7 +644,17 @@ fn whole_source_result_publication_fixture(
       true
     }
     let copied = execute_installed_whole_source_values_guarded(
-      foreign, prepared, request, host, 64, 10000, check,
+      foreign,
+      prepared,
+      request,
+      host,
+      64,
+      10000,
+      check,
+      drive_task=Some((index, _) => {
+        driven.push(index)
+        Err(Fenced)
+      }),
     )
     assert_true(
       copied is Err(original) &&
@@ -660,6 +671,7 @@ fn whole_source_result_publication_fixture(
       local_values_execution_failure_issue(original) is UnsupportedGraph,
     )
     assert_eq(callbacks.val, 0)
+    assert_true(driven.is_empty())
     assert_eq(@strategy.next_captured_task(dag), Some(0))
   }
   let execution = match
@@ -672,6 +684,10 @@ fn whole_source_result_publication_fixture(
         64,
         10000,
         () => true,
+        drive_task=Some((index, operations) => {
+          driven.push(index)
+          (operations.execute)().map_err(issue => Driver(issue))
+        }),
       )
     } else {
       execute_source_free_values_guarded(host, 64, 10000, () => true)
@@ -726,6 +742,15 @@ fn whole_source_result_publication_fixture(
       }
       fail("whole result execution: " + label)
     }
+  }
+  if native_execution {
+    assert_eq(
+      driven,
+      Array::makei(
+        @strategy.graph_task_count(@strategy.captured_dag_graph(dag)),
+        index => index,
+      ),
+    )
   }
   if numeric_case {
     // Match the original ordinary observer's independent JSON value oracle;

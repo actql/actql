@@ -888,6 +888,17 @@ pub fn advance_bounded_join(
 }
 
 ///|
+/// Confirm stop on the same JOIN without advancing it or releasing its inputs.
+pub fn confirm_bounded_join_stop(value : BoundedJoinExecution) -> Bool {
+  if value.token is Some(token) &&
+    @bounded.confirm_requested_stop(value.session, token) {
+    reset_bounded_row_comparison(value.state.pairs.comparison)
+    value.token = None
+  }
+  @bounded.session_stopped(value.session)
+}
+
+///|
 /// Observe outstanding custody independently from cleanup's change result.
 pub fn bounded_join_cleanup_pending(value : BoundedJoinExecution) -> Bool {
   @bounded.cleanup_pending(value.session)

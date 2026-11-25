@@ -194,6 +194,7 @@ test "configured Model settings retain every original under the shared manifest 
     originals,
     None,
     model_files=11,
+    model_bindings=1,
   ).unwrap()
   let text = @utf8.decode(wire)
   for name in names {
@@ -201,25 +202,99 @@ test "configured Model settings retain every original under the shared manifest 
   }
   originals.push({ ..first, name: "last-model-set-member.json", })
   assert_true(
-    client_local_configuration_selection_body(originals, None, model_files=11)
+    client_local_configuration_selection_body(
+      originals,
+      None,
+      model_files=11,
+      model_bindings=1,
+    )
     is Ok(_),
   )
   assert_true(
-    client_local_configuration_selection_body(originals, None, model_files=10)
+    client_local_configuration_selection_body(
+      originals,
+      None,
+      model_files=10,
+      model_bindings=1,
+    )
     is Err(ConfigurationLimit),
   )
   originals.push({ ..first, name: "host.json", })
   assert_true(
-    client_local_configuration_selection_body(originals, None, model_files=11)
+    client_local_configuration_selection_body(
+      originals,
+      None,
+      model_files=11,
+      model_bindings=1,
+    )
     is Ok(_),
   )
   originals.push({ ..first, name: "foreign.json", })
   assert_true(
-    client_local_configuration_selection_body(originals, None, model_files=11)
+    client_local_configuration_selection_body(
+      originals,
+      None,
+      model_files=11,
+      model_bindings=1,
+    )
     is Err(ConfigurationLimit),
   )
   assert_true(
-    client_local_configuration_selection_body(originals, None, model_files=12)
+    client_local_configuration_selection_body(
+      originals,
+      None,
+      model_files=12,
+      model_bindings=1,
+    )
+    is Err(ConfigurationLimit),
+  )
+}
+
+///|
+test "two configured Model bindings retain the exact union under the original manifest byte bound" {
+  let files : Array[ClientLocalOriginalConfigurationFile] = Array::makei(32, index => {
+    name: "original-" + index.to_string() + ".json",
+    content_cid: local_codec_intent,
+    device: 3UL,
+    inode: index.to_uint64(),
+    size: 5L,
+  })
+  let wire = client_local_configuration_selection_body(
+    files,
+    None,
+    model_files=22,
+    model_bindings=2,
+  ).unwrap()
+  assert_true(wire.length() <= 8192)
+  let text = @utf8.decode(wire)
+  for original in files {
+    assert_true(text.contains("\"name\":\"" + original.name + "\""))
+  }
+  assert_true(
+    client_local_configuration_selection_body(
+      files,
+      None,
+      model_files=21,
+      model_bindings=2,
+    )
+    is Err(ConfigurationLimit),
+  )
+  assert_true(
+    client_local_configuration_selection_body(
+      files,
+      None,
+      model_files=23,
+      model_bindings=2,
+    )
+    is Err(ConfigurationLimit),
+  )
+  assert_true(
+    client_local_configuration_selection_body(
+      files,
+      None,
+      model_files=22,
+      model_bindings=1,
+    )
     is Err(ConfigurationLimit),
   )
 }

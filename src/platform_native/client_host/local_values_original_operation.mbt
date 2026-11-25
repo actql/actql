@@ -531,25 +531,26 @@ fn values_original_cleanup_entered(
 ) -> Bool {
   match access {
     None => true
-    Some(value) => {
-      let receiver = value.operation.receiver
-      guard receiver.domain is StoreBusinessDomain(execution) else {
-        return false
-      }
-      guard receiver.original is Some(original) else { return false }
-      let entered = match
-        original.host.observe_domain_retained_execution_scope(execution) {
-        Ok(scope) => Ok(scope)
-        // Cleanup has a separate original/current port once normal current is
-        // retired. Neither an observation failure nor Unentered is a close ACK.
-        Err(_) =>
-          original.host.observe_domain_retained_execution_cleanup_scope(
-            execution,
-          )
-      }
-      entered is Ok(@bootstrap.BackedReadEntered)
-    }
+    Some(value) => value.cleanup_entered()
   }
+}
+
+///|
+fn NativeLocalValuesOriginalAccess::cleanup_entered(
+  self : NativeLocalValuesOriginalAccess,
+) -> Bool {
+  let receiver = self.operation.receiver
+  guard receiver.domain is StoreBusinessDomain(execution) else { return false }
+  guard receiver.original is Some(original) else { return false }
+  let entered = match
+    original.host.observe_domain_retained_execution_scope(execution) {
+    Ok(scope) => Ok(scope)
+    // Cleanup has a separate original/current port once normal current is
+    // retired. Neither an observation failure nor Unentered is a close ACK.
+    Err(_) =>
+      original.host.observe_domain_retained_execution_cleanup_scope(execution)
+  }
+  entered is Ok(@bootstrap.BackedReadEntered)
 }
 
 ///|

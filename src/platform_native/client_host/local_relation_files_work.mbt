@@ -29,6 +29,11 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
   quantum : Int,
   max_rounds : Int,
   current_time : () -> String,
+  drive_task? : ((Int, @local_driver.LocalManagedDispatchOperations[Int]) -> Result[
+    Unit,
+    @local.LocalValuesExecutionIssue,
+  ])? = None,
+  retain_model_sources? : ((@host.ClientInferComposedSources) -> Bool)? = None,
 ) -> Result[NativeClientRelationFileWork, NativeClientRelationFileWorkFailure] {
   guard entry.access is Some(access) &&
     entry.payload is Some((prepared, compiled, definition)) else {
@@ -99,13 +104,31 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     )
   }
   let request = access.base.request
+  // The callback drives only an admitted Model. The retained File Plan's
+  // exact compilation, not the presence of a callback, authorizes this route.
+  let model_origin = match (drive_task, retain_model_sources) {
+    (None, None) if !@host.client_compiled_run_has_infers(compiled) => None
+    (Some(_), Some(_)) => {
+      guard access.source is ManagedWholeRelationFiles(_, _) &&
+        @local.installed_managed_run_compilation_original(managed, prepared)
+        is Some(@host.Tasks(compilation)) &&
+        @host.client_compiled_run_matches_tasks(compiled, prepared, compilation) &&
+        compilation.infers.get(0) is Some(first) else {
+        return refuse(FileWorkSourceBinding)
+      }
+      Some(first.occurrence)
+    }
+    _ => return refuse(FileWorkSourceBinding)
+  }
+  let graph = @host.prepared_client_graph(prepared)
+  let result_count = @strategy.graph_result_count(graph)
   if quantum <= 0 ||
     max_rounds <= 0 ||
     !entry.arena.matches_business_scope(false) ||
     !managed_relation_file_originals_match(access.source, prepared, request) ||
-    @strategy.graph_result_count(@host.prepared_client_graph(prepared)) <= 0 ||
-    @strategy.graph_program_has_effects(@host.prepared_client_graph(prepared)) ||
-    @host.client_compiled_run_has_infers(compiled) {
+    result_count <= 0 ||
+    (model_origin is Some(_) && result_count != 1) ||
+    @strategy.graph_program_has_effects(graph) {
     return refuse(Configuration)
   }
   if !access.current() {
@@ -315,6 +338,13 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     Err(issue) => return refuse(OriginalOperation(issue))
     Ok(_) => ()
   }
+  // Resolve the immutable geometry before opening any dependent DAG port.
+  guard @local.installed_managed_capture_publication_geometry_original(
+      managed, prepared, request,
+    )
+    is Some((_, rows, entries, evidence_entries)) else {
+    return refuse(Configuration)
+  }
   let (setup, _, _) = match
     @local.open_installed_managed_capture_host(
       managed, prepared, request, captured_inputs,
@@ -323,6 +353,86 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     Ok(value) => value
   }
   let run = @driver.dispatch_driver_run(@builtin.configured_host_driver(setup))
+  let owner : NativeClientRelationFileWork = {
+    access,
+    start,
+    prepared,
+    compiled,
+    definition,
+    source: Managed(sources, reads),
+    run,
+    source_usage,
+    execution: None,
+    plan: ManagedSourceFileExecution(rows, entries, evidence_entries),
+    entry,
+    output_bridges: None,
+    capture_times: Some((started, completed)),
+    whole_evidence: None,
+    publication_original: None,
+    publication: None,
+    identity_scan: None,
+    publication_basis: None,
+    publication_growing: false,
+    publication_identity_issue: None,
+    stopping: false,
+  }
+  // The Work already owns the original captures and DAG. All failures in
+  // this pre-compute handoff retire that same Work in its actual scope.
+  if model_origin is Some(origin) &&
+    retain_model_sources is Some(retain) &&
+    access.source is ManagedWholeRelationFiles(_, originals) {
+    guard relation_file_result_publication_control_bytes(result_count)
+      is Some(result_controls) else {
+      return Err(
+        relation_file_work_failure(
+          Configuration,
+          access=Some(access.base),
+          entry=Some(entry),
+          cleanup=Some(() => owner.close_children()),
+        ),
+      )
+    }
+    let admission = owner
+      .prepare_managed_whole_source_evidence(
+        managed,
+        originals,
+        65536,
+        8192,
+        result_controls,
+        model_source_binding=true,
+      )
+      .bind(evidence => {
+        owner.whole_evidence = Some(evidence)
+        owner.admit_managed_whole_model_sources(
+          origin, captured_inputs, originals, evidence,
+        )
+      })
+    let issue = match admission {
+      Err(issue) => Some(issue)
+      Ok(value) =>
+        if retain(value) {
+          None
+        } else {
+          Some(FileWorkSourceBinding)
+        }
+    }
+    if issue is Some(issue) {
+      return Err(
+        relation_file_work_failure(
+          issue,
+          access=Some(access.base),
+          entry=Some(entry),
+          cleanup=Some(() => owner.close_children()),
+        ),
+      )
+    }
+  }
+  let cleanup_ready = if drive_task is Some(_) {
+    let original_access = access.base
+    Some(() => original_access.cleanup_entered())
+  } else {
+    None
+  }
   let computed = match
     (match access.source {
       ManagedRelationFiles(_, _) =>
@@ -336,6 +446,8 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
           max_rounds,
           () => access.require_start_current(start) is Ok(_),
           require_live=Some(() => access.poll_execution_original(start)),
+          drive_task~,
+          cleanup_ready~,
         )
       ManagedWholeRelationFiles(_, _) =>
         @local.execute_installed_whole_source_values_guarded(
@@ -346,6 +458,8 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
           quantum,
           max_rounds,
           () => access.require_start_current(start) is Ok(_),
+          drive_task~,
+          cleanup_ready~,
         )
       _ => return refuse(Configuration)
     }) {
@@ -363,49 +477,13 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
           entry=Some(entry),
           cleanup=Some(() => {
             @local.retry_local_values_execution_failure_cleanup(failure) &&
-            cleanup()
+            owner.close_children()
           }),
         ),
       )
     Ok(value) => value
   }
-  // A post-compute projection cannot lose the dependent execution's custody.
-  // The immutable geometry is bound to the same managed preparation below.
-  let geometry = @local.installed_managed_capture_publication_geometry_original(
-    managed, prepared, request,
-  )
-  guard geometry is Some((_, rows, entries, evidence_entries)) else {
-    return Err(
-      relation_file_work_failure(
-        Configuration,
-        access=Some(access.base),
-        entry=Some(entry),
-        cleanup=Some(() => computed.close() && cleanup()),
-      ),
-    )
-  }
-  let owner : NativeClientRelationFileWork = {
-    access,
-    start,
-    prepared,
-    compiled,
-    definition,
-    source: Managed(sources, reads),
-    run,
-    source_usage,
-    execution: computed,
-    plan: ManagedSourceFileExecution(rows, entries, evidence_entries),
-    entry,
-    output_bridges: None,
-    capture_times: Some((started, completed)),
-    publication_original: None,
-    publication: None,
-    identity_scan: None,
-    publication_basis: None,
-    publication_growing: false,
-    publication_identity_issue: None,
-    stopping: false,
-  }
+  owner.execution = Some(computed)
   match owner.require_current() {
     Err(issue) =>
       Err(
@@ -413,7 +491,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
           issue,
           access=Some(access.base),
           entry=Some(entry),
-          cleanup=Some(() => owner.close()),
+          cleanup=Some(() => owner.close_children()),
         ),
       )
     Ok(_) => Ok(owner)

@@ -54819,7 +54819,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
-      "sha256": "541b71caee759be78804fad939e4e42876241c3e7a0f3246ba8321633e6c3853",
+      "sha256": "ee6c956aad683a2c9d13e5f82af7e1a4b2a929eacd358c754485bbe4280345c6",
       "operations": [
         {
           "name": "[I]begin_request_model_module",
@@ -55008,6 +55008,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "test \"two Source singleton Model component refuses original current loss before its constructor\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "native joined Whole inputs bind the two Model scopes on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "native joined Whole inputs refuse swapped original ports before Model factory selection"
               }
             ]
           }
@@ -87147,12 +87155,16 @@
     {
       "module": "src/run_publication_host/client_acquisition.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c9936ebc8fa3c708c99717c36b08f16de9d8d92631de01f6a817644d4cec36de",
+      "sha256": "4b1eeea224111cdf59abf66f89fc616d86c2eecdae53b796ddd13eaff922da43",
       "exports": [],
       "operations": [
         {
           "name": "client_captured_task_tuple_matches",
           "declaration": "client_captured_task_tuple_matches ( value : PreparedClientProgram , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , requirement : @ planning . QueryRequirement , task : Int , ) - > Bool"
+        },
+        {
+          "name": "client_publication_policy_contains_result",
+          "declaration": "client_publication_policy_contains_result ( candidate : @ checked . PublicationSourcePolicy , original : @ checked . PublicationSourcePolicy , ) - > Bool"
         },
         {
           "name": "client_publication_policy_covers_source_responses",
@@ -87203,6 +87215,10 @@
           "declaration": "prepared_client_captured_task_source_matches ( value : PreparedClientProgram , source : @ query . CapturedInputSource , task : Int , ) - > Bool"
         },
         {
+          "name": "prepared_client_has_checked_sources",
+          "declaration": "prepared_client_has_checked_sources ( value : PreparedClientProgram , ) - > Bool"
+        },
+        {
           "name": "prepared_client_publication_data_policy_cid",
           "declaration": "prepared_client_publication_data_policy_cid ( value : PreparedClientProgram , ) - > String ?"
         },
@@ -87229,7 +87245,8 @@
             "prepare_client_query_requirement_from_acquisition",
             "prepared_client_acquisition_count",
             "prepared_client_captured_task_source_matches",
-            "prepared_client_source_evidence_facts"
+            "prepared_client_source_evidence_facts",
+            "prepared_client_has_checked_sources"
           ],
           "exports": [],
           "attributes": {
@@ -87318,7 +87335,8 @@
         {
           "operations": [
             "client_publication_policy_covers_source_responses",
-            "prepared_client_publication_data_policy_cid"
+            "prepared_client_publication_data_policy_cid",
+            "client_publication_policy_contains_result"
           ],
           "exports": [],
           "attributes": {
@@ -87384,6 +87402,10 @@
               {
                 "path": "src/run_publication_host/client_pure_source_inventory_wbtest.mbt",
                 "anchor": "test \"Pure three Source policy refuses an uncovered checked response and equal foreign owners\""
+              },
+              {
+                "path": "src/run_publication_host/client_mixed_result_policy_wbtest.mbt",
+                "anchor": "test \"mixed Result policies preserve unknown and reject equal CID foreign contributors\""
               }
             ]
           }
@@ -109446,7 +109468,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "8b5d0ff2055c31d828c068c727fdad744a3228f3622c6f842b2644b03783d02e",
+      "sha256": "be24d811750aaefb1f1d4e8ea04f3c5557a36b4164c6911fbc0f4b8d5d604667",
       "exports": [],
       "operations": [
         {
@@ -109463,7 +109485,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::select_business_file_source",
-          "declaration": "LocalCommandPreparationOriginal : : select_business_file_source ( self : LocalCommandPreparationOriginal , prepared : @ run_host . PreparedClientProgram , ) - > LocalProjectMockDeclarations ?"
+          "declaration": "LocalCommandPreparationOriginal : : select_business_file_source ( self : LocalCommandPreparationOriginal , prepared : @ run_host . PreparedClientProgram , model : LocalCommandModelCompilation ? , ) - > LocalCommandFileSources ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -109965,7 +109987,7 @@
     },
     {
       "module": "src/program_check/local_common_normalization.mbt",
-      "sha256": "a6464ce18363b46927033c54298718eaf1899f9909b78ab701b1c96db76d49e3",
+      "sha256": "b3ef5653bc4e5eee179cade8cf3931841e2863a4004317404d0ba53c8843be87",
       "exports": [],
       "operations": [
         {
@@ -110954,7 +110976,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "5536e4fce36e9092cc4c2f783683c2c9d923a1705d213387861454655a0bf553",
+      "sha256": "4882465f532adc3a8f2f45b91700984f8ec07ccaed44fe5cce299f648f1b9fd9",
       "exports": [],
       "operations": [
         {
@@ -117434,7 +117456,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_query_contracts.mbt",
-      "sha256": "81889107dd8f8f3e61d8cbf71c139031e703bb9414e4361426eb8add6e93d54f",
+      "sha256": "1dfdd7c1b2bdfe43ae2caf532b4f5eba5eb61fd3b331dd7f98d7a4882eb3b629",
       "exports": [],
       "operations": [
         {
@@ -117529,12 +117551,16 @@
     },
     {
       "module": "src/cmd/native_client/local_command_file_query_plan.mbt",
-      "sha256": "57f75c049c4c16931d33426eb3eb06d56dadfa21fcfa9cdaccc8508d1d0c6e29",
+      "sha256": "fd595f05dcdbb4778b744e26f4f4431c125b72442579e82539b4e85c1ea60edc",
       "exports": [],
       "operations": [
         {
           "name": "[I]prepare_local_native_file_request_module",
-          "declaration": "[ I ] prepare_local_native_file_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , bodies : ( String , String ) ? , ) - > ( @ local_values . ClientInstalledWholeSourceCapacity ? , LocalCommandFileSources , ) raise ClientStop"
+          "declaration": "[ I ] prepare_local_native_file_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , declarations : Array [ LocalProjectMockSourceDeclaration ] , listings : Array [ LocalProjectMockFileSource ] ? , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , bodies : ( String , String ) ? , ) - > ( @ local_values . ClientInstalledWholeSourceCapacity ? , LocalCommandFileSources , ) raise ClientStop"
+        },
+        {
+          "name": "[I]prepare_local_native_model_file_request_module",
+          "declaration": "[ I ] prepare_local_native_model_file_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ run_host . ClientTaskCompilation , declarations : Array [ LocalProjectMockSourceDeclaration ] , listings : Array [ LocalProjectMockFileSource ] ? , contracts : @ local_values . ClientInstalledSequenceContracts , providers : Int , component_factory : ( ( @ execution . ExecutionCapacity , @ execution . GeneratedSequence , @ execution . GeneratedSequence ? , ) - > @ local_compute . ManagedProvider ) ? , components_factory : ( ( Int , @ execution . ExecutionCapacity , @ execution . GeneratedSequence , @ execution . GeneratedSequence ? , ) - > @ local_compute . ManagedProvider ) ? , ) - > ( @ local_values . ClientInstalledManagedCapturePlan , LocalCommandFileSources ) raise ClientStop"
         },
         {
           "name": "[T]local_command_query_preparation_result",
@@ -117542,7 +117568,11 @@
         },
         {
           "name": "local_command_file_row",
-          "declaration": "local_command_file_row ( original : LocalProjectMockDeclarations , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , LocalProjectMockRowBinding ) raise ClientStop"
+          "declaration": "local_command_file_row ( declarations : Array [ LocalProjectMockSourceDeclaration ] , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , LocalProjectMockRowBinding ) raise ClientStop"
+        },
+        {
+          "name": "local_native_query_file_row",
+          "declaration": "local_native_query_file_row ( declarations : Array [ LocalProjectMockSourceDeclaration ] , direct : @ run_host . ClientDirectAcquisitionOccurrences , index : Int , ) - > ( Int , Int , LocalProjectMockSourceDeclaration , LocalProjectMockRowBinding ) raise ClientStop"
         }
       ],
       "responsibilityFacet": "primary",
@@ -117554,7 +117584,9 @@
           "operations": [
             "[I]prepare_local_native_file_request_module",
             "[T]local_command_query_preparation_result",
-            "local_command_file_row"
+            "local_command_file_row",
+            "[I]prepare_local_native_model_file_request_module",
+            "local_native_query_file_row"
           ],
           "exports": [],
           "attributes": {
@@ -117616,6 +117648,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "two captured Model Request keeps original Direct inventory and all scopes on its one aggregate Plan"
               }
             ]
           }
@@ -117624,7 +117660,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "35576ef933ff9ec86ab0c728e2ebace83f2260e5546af223f2591717973beed2",
+      "sha256": "065e6c49cf00cff6516601f9cba95cbfc9d0dc1bd3a34efcedcf6b25c8cdba23",
       "exports": [],
       "operations": [
         {
@@ -117637,7 +117673,7 @@
         },
         {
           "name": "LocalCommandBusinessPreparation::open_file_work",
-          "declaration": "LocalCommandBusinessPreparation : : open_file_work ( self : Self , entry : @ local_host . NativeClientRelationFileWorkEntry , occurrence : String , ) - > @ local_host . NativeClientRelationFileWork raise ClientStop"
+          "declaration": "LocalCommandBusinessPreparation : : open_file_work ( self : Self , entry : @ local_host . NativeClientRelationFileWorkEntry , occurrence : String , run : LocalRunInstallation , reference : @ local_host . NativeClientSubmissionReference , ) - > @ local_host . NativeClientRelationFileWork raise ClientStop"
         },
         {
           "name": "LocalCommandBusinessPreparation::open_store",
@@ -117996,7 +118032,7 @@
     },
     {
       "module": "src/cmd/native_client/local_relation_file_original_start.mbt",
-      "sha256": "3e085ff3c1bb7190ff747a43c9f08bca4eb18823fc17924f48ab83dc8f934b8a",
+      "sha256": "b03afd6667b4058f41b3ca91e34cb87d561ec0e6de6778b5b5a8a7e1945279de",
       "exports": [],
       "operations": [
         {
@@ -118183,7 +118219,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "49279d2cfd4977e6c3aaac46f7ba6b655fcbd031fb857eb094ef93880db1bbeb",
+      "sha256": "b35b5ea43e43d9da112d23e69521c95bd558ee2ef39c63eea9f00de8ec21abfa",
       "exports": [],
       "operations": [
         {
@@ -118192,7 +118228,7 @@
         },
         {
           "name": "NativeLocalHostConnection::open_original_managed_relation_files_source_work",
-          "declaration": "NativeLocalHostConnection : : open_original_managed_relation_files_source_work ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , entry : NativeClientRelationFileWorkEntry , occurrence : String , quantum : Int , max_rounds : Int , current_time : ( ) - > String , ) - > Result [ NativeClientRelationFileWork , NativeClientRelationFileWorkFailure ]"
+          "declaration": "NativeLocalHostConnection : : open_original_managed_relation_files_source_work ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , entry : NativeClientRelationFileWorkEntry , occurrence : String , quantum : Int , max_rounds : Int , current_time : ( ) - > String , drive_task ? : ( ( Int , @ local_driver . LocalManagedDispatchOperations [ Int ] ) - > Result [ Unit , @ local . LocalValuesExecutionIssue , ] ) ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -118486,12 +118522,16 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_file_work.mbt",
-      "sha256": "f7bdb006fa8fe88666fbefcf1155fa0a6c3e219c805107a33a653822645c4fc9",
+      "sha256": "08897bedf10442add68c70421d9462f9a2a9d68a049bcd5a83b83ece2c42a420",
       "exports": [],
       "operations": [
         {
           "name": "NativeClientRelationFileWork::close",
           "declaration": "NativeClientRelationFileWork : : close ( self : NativeClientRelationFileWork , ) - > Bool"
+        },
+        {
+          "name": "NativeClientRelationFileWork::close_children",
+          "declaration": "NativeClientRelationFileWork : : close_children ( self : Self ) - > Bool"
         },
         {
           "name": "NativeClientRelationFileWork::require_bound_source_current",
@@ -118543,6 +118583,7 @@
           "operations": [
             "<module>",
             "NativeClientRelationFileWork::close",
+            "NativeClientRelationFileWork::close_children",
             "NativeClientRelationFileWork::require_bound_source_current",
             "NativeClientRelationFileWork::require_current",
             "NativeClientRelationFileWork::require_publication_current",
@@ -118622,7 +118663,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_values_original_operation.mbt",
-      "sha256": "fe7b39332e2bcdcf9cbf7a4d1b755edc861bc073c071d26fc8c7827f715c48df",
+      "sha256": "2caf65176a0d413f799115e5fd4015a8aa423de20448d056a0e92ba8f3e6aabc",
       "exports": [],
       "operations": [
         {
@@ -118636,6 +118677,10 @@
         {
           "name": "NativeLocalValuesOriginalAccess::claim",
           "declaration": "NativeLocalValuesOriginalAccess : : claim ( self : NativeLocalValuesOriginalAccess , ) - > Result [ NativeClientWorkFirstStart , NativeClientValuesWorkIssue ]"
+        },
+        {
+          "name": "NativeLocalValuesOriginalAccess::cleanup_entered",
+          "declaration": "NativeLocalValuesOriginalAccess : : cleanup_entered ( self : NativeLocalValuesOriginalAccess , ) - > Bool"
         },
         {
           "name": "NativeLocalValuesOriginalAccess::current",
@@ -118693,6 +118738,7 @@
             "[T]NativeLocalValuesOriginalAccess::in_original_read",
             "NativeLocalHostConnection::open_original_values_work",
             "NativeLocalValuesOriginalAccess::claim",
+            "NativeLocalValuesOriginalAccess::cleanup_entered",
             "NativeLocalValuesOriginalAccess::current",
             "NativeLocalValuesOriginalAccess::lookup",
             "NativeLocalValuesOriginalAccess::poll_execution_original",
@@ -118773,7 +118819,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_publication.mbt",
-      "sha256": "a2651dc373d05c2e515cb06d84f710f808513b34011c8e6eeeaa5d11e3255b50",
+      "sha256": "b0783f5486f7fc98737edf946723a56b862888e8d02ee076e00339c3b2bb3b80",
       "exports": [],
       "operations": [
         {
@@ -118786,7 +118832,7 @@
         },
         {
           "name": "NativeClientRelationFileWork::prepare_local_publication",
-          "declaration": "NativeClientRelationFileWork : : prepare_local_publication ( self : NativeClientRelationFileWork , service : @ native_publication . NativeRunPublicationService , results : Array [ @ native_publication . NativeCapturedResultPublicationContext ] , original_normalization : @ host . ClientLocalNormalization , authoring : @ publication . RunEvidenceValue , intent : @ native_publication . NativeRunPublicationIntent , occurrence : @ native_publication . NativeRunPublicationOccurrence , limits : @ host . PublicationOutputExportLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ native_publication . NativePreparedCapturedRunPublication , NativeClientSourcePublicationIssue , ]"
+          "declaration": "NativeClientRelationFileWork : : prepare_local_publication ( self : NativeClientRelationFileWork , service : @ native_publication . NativeRunPublicationService , results : Array [ @ native_publication . NativeCapturedResultPublicationContext ] , original_normalization : @ host . ClientLocalNormalization , authoring : @ publication . RunEvidenceValue , intent : @ native_publication . NativeRunPublicationIntent , occurrence : @ native_publication . NativeRunPublicationOccurrence , limits : @ host . PublicationOutputExportLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , model_leader ? : NativeClientMockModelWork ?"
         },
         {
           "name": "NativeClientRelationFileWork::publication_entry_limits",
@@ -118898,7 +118944,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_result_export.mbt",
-      "sha256": "2400fc3253a622e8f61e6601305ce5d4b9d9e66185e4a46376feeae893cfd1d7",
+      "sha256": "db7154f68eb76958a8e077751f85f091737de7dc46c579fd8ab5a4a4ac86e084",
       "exports": [],
       "operations": [
         {
@@ -118994,7 +119040,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_work_capacity.mbt",
-      "sha256": "1400c3bc2a052dd685df0806466f7788a7ad968bfc8349ca736096f11b6376e7",
+      "sha256": "38784f0d96ab67f6cbe3371354cd96bde7c6271e530b7027e4e80976fa0cfecb",
       "exports": [],
       "operations": [
         {
@@ -119482,7 +119528,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_layout.mbt",
-      "sha256": "0107ec3f9f10f8c0b43c49db444d2c32b0ef379658b4181a8d26ecdfd80c6a2d",
+      "sha256": "52c424d94a9c857659f61cb0f8fcdc51056d3be3d00583e6d4a4e64accfc48fe",
       "exports": [],
       "operations": [
         {
@@ -119572,7 +119618,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_routes.mbt",
-      "sha256": "a0b19d838e0ff32c4a89227688468cc981b74ff3df92787f84595556e693a1cd",
+      "sha256": "f508b6b10aee7dae7bf081e89c91d1bb765215ee4e8bb421d160c22d2da5caa7",
       "exports": [],
       "operations": [
         {
@@ -119649,6 +119695,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "native joined Whole inputs bind the two Model scopes on the same Request"
               }
             ]
           }
@@ -119748,7 +119798,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_construction.mbt",
-      "sha256": "b83d257f4bdb3f8faa572762275746b1d6bddb8d46fa2be35259a9150529e745",
+      "sha256": "15d5d01adfa02ed383a90f9d7d44e3026705acb3b0810a23bc84afbaab3df527",
       "exports": [],
       "operations": [
         {
@@ -119756,8 +119806,12 @@
           "declaration": "[ I ] prepare_request_native_file_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , bodies : ( String , String ) ? , ) - > Result [ ClientRequestNativeFileSourceInputs , ClientRequestNativeFileSourceIssue , ]"
         },
         {
+          "name": "[I]reserve_request_model_file_source_inputs",
+          "declaration": "[ I ] reserve_request_model_file_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ( @ publication_host . ClientDirectAcquisitionOccurrences , Array [ @ sourceviews . SourceAcquisition ] , ) , ClientRequestProgramPlanIssue , ]"
+        },
+        {
           "name": "[I]reserve_request_selected_whole_source_inputs",
-          "declaration": "[ I ] reserve_request_selected_whole_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , sources : Array [ @ sourceviews . SourceAcquisition ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+          "declaration": "[ I ] reserve_request_selected_whole_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , sources : Array [ @ sourceviews . SourceAcquisition ] , phase ? : ClientRequestPreparationPhase"
         },
         {
           "name": "[I]reserve_request_whole_source_construction",
@@ -119772,6 +119826,7 @@
         {
           "operations": [
             "[I]prepare_request_native_file_source_inputs",
+            "[I]reserve_request_model_file_source_inputs",
             "[I]reserve_request_selected_whole_source_inputs",
             "[I]reserve_request_whole_source_construction"
           ],
@@ -119835,6 +119890,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "native joined Whole inputs bind the two Model scopes on the same Request"
               }
             ]
           }
@@ -119843,7 +119902,7 @@
     },
     {
       "module": "src/client_local_host/execute_source_free_tasks.mbt",
-      "sha256": "2679f364a3d70e4a48fd10afdf7ddbdc20a63668c85db68da3e981709a4da07e",
+      "sha256": "f2397b75f7f0580c7dc11e94eedccdf74cbc89297a1ca0b8e4161f2ed51ad6a3",
       "exports": [],
       "operations": [
         {
@@ -119864,7 +119923,7 @@
         },
         {
           "name": "execute_installed_whole_source_values_guarded",
-          "declaration": "execute_installed_whole_source_values_guarded ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , ) - > Result [ LocalValuesExecution , LocalValuesExecutionFailure ]"
+          "declaration": "execute_installed_whole_source_values_guarded ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , drive_task ? : ( ( Int , @ local_driver . LocalManagedDispatchOperations [ Int ] ) - > Result [ Unit , LocalValuesExecutionIssue , ] ) ?"
         },
         {
           "name": "execute_local_tasks_guarded",
@@ -119981,6 +120040,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/client_local_host/installed_query_tasks_js_wbtest.mbt",
+                "anchor": "installed Query driver refusal retains original Source and task cleanup"
+              },
+              {
+                "path": "src/client_local_host/installed_whole_source_result_js_wbtest.mbt",
+                "anchor": "Native Whole execution retains its bound Plan and refuses copied or unbound Runs"
               }
             ]
           }
@@ -120080,16 +120147,20 @@
     },
     {
       "module": "src/cmd/native_client/local_command_whole_files_plan.mbt",
-      "sha256": "7e15f78c0337bbc5b8afed0bf3d5bdde7de01ee76b6c8c4bf46dcab725e176df",
+      "sha256": "401f933f7154c2951182c7426386e12634eacd6458ae2f4810ee512e1bc80f5b",
       "exports": [],
       "operations": [
         {
           "name": "[I]prepare_local_native_whole_files_request_module",
-          "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , direct : @ run_host . ClientDirectAcquisitionOccurrences , originals : Array [ @ sourceviews . SourceAcquisition ] , ) - > LocalCommandFileSources raise ClientStop"
+          "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , declarations : Array [ LocalProjectMockSourceDeclaration ] , listings : Array [ LocalProjectMockFileSource ] ? , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , direct : @ run_host . ClientDirectAcquisitionOccurrences , originals : Array [ @ sourceviews . SourceAcquisition ] , ) - > LocalCommandFileSources raise ClientStop"
         },
         {
           "name": "local_command_file_listing",
-          "declaration": "local_command_file_listing ( original : LocalProjectMockDeclarations , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , @ row_file . NativeRelationFileListingProvider , LocalProjectMockFileBinding , ) ?"
+          "declaration": "local_command_file_listing ( listings : Array [ LocalProjectMockFileSource ] ? , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , @ row_file . NativeRelationFileListingProvider , LocalProjectMockFileBinding , ) ?"
+        },
+        {
+          "name": "local_native_whole_file_inputs",
+          "declaration": "local_native_whole_file_inputs ( control : LocalCommandPreparationOriginal , prepared : @ run_host . PreparedClientProgram , declarations : Array [ LocalProjectMockSourceDeclaration ] , listings : Array [ LocalProjectMockFileSource ] ? , contracts : @ local_values . ClientInstalledSequenceContracts , direct : @ run_host . ClientDirectAcquisitionOccurrences , originals : Array [ @ sourceviews . SourceAcquisition ] , ) - > ( Array [ @ local_host . NativeRelationFileWholeSource ] , Array [ @ local_values . ClientInstalledWholeSourceCapacity ] , Array [ Int64 ] , Array [ Int64 ] , ) raise ClientStop"
         }
       ],
       "responsibilityFacet": "primary",
@@ -120100,7 +120171,8 @@
         {
           "operations": [
             "[I]prepare_local_native_whole_files_request_module",
-            "local_command_file_listing"
+            "local_command_file_listing",
+            "local_native_whole_file_inputs"
           ],
           "exports": [],
           "attributes": {
@@ -120162,6 +120234,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "two captured Model Request keeps original Direct inventory and all scopes on its one aggregate Plan"
               }
             ]
           }
@@ -120281,7 +120357,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_publication.mbt",
-      "sha256": "14d9e6fee30b973f505ede3d0e0d6a52cb97f342c6b97e93dc75dd0e5aa1c11f",
+      "sha256": "c403ddce2db77dd28a1bb68563ece3beac053f1c0425d455bd6080253ddcb3fa",
       "exports": [],
       "operations": [
         {
@@ -120289,8 +120365,24 @@
           "declaration": "native_whole_source_publication_task ( prepared : @ host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , ) - > Int ?"
         },
         {
+          "name": "NativeClientRelationFileWork::admit_managed_whole_model_sources",
+          "declaration": "NativeClientRelationFileWork : : admit_managed_whole_model_sources ( self : Self , origin : @ host . ClientInferOccurrence , captures : Array [ @ execution_query . CapturedInputSource ] , originals : Array [ NativeRelationFileWholeSource ] , evidence : NativeRelationFileWholeEvidence , ) - > Result [ @ host . ClientInferComposedSources , NativeClientSourceWorkIssue ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::bind_model_publication",
+          "declaration": "NativeClientRelationFileWork : : bind_model_publication ( self : Self , leader : NativeClientMockModelWork , ) - > Result [ Unit , NativeClientSourcePublicationIssue ]"
+        },
+        {
           "name": "NativeClientRelationFileWork::managed_whole_publication_invocation",
           "declaration": "NativeClientRelationFileWork : : managed_whole_publication_invocation ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileWholeSource ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , result_controls : Int64 , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::prepare_managed_whole_source_evidence",
+          "declaration": "NativeClientRelationFileWork : : prepare_managed_whole_source_evidence ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileWholeSource ] , max_wire_bytes : Int , max_nodes : Int , result_controls : Int64 , model_source_binding ~ : Bool , ) - > Result [ NativeRelationFileWholeEvidence , NativeClientSourceWorkIssue ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::retire_model_publication",
+          "declaration": "NativeClientRelationFileWork : : retire_model_publication ( self : Self , ) - > Bool"
         }
       ],
       "responsibilityFacet": "primary",
@@ -120301,8 +120393,12 @@
         {
           "operations": [
             "<module>",
+            "NativeClientRelationFileWork::admit_managed_whole_model_sources",
             "NativeClientRelationFileWork::managed_whole_publication_invocation",
-            "native_whole_source_publication_task"
+            "NativeClientRelationFileWork::prepare_managed_whole_source_evidence",
+            "native_whole_source_publication_task",
+            "NativeClientRelationFileWork::bind_model_publication",
+            "NativeClientRelationFileWork::retire_model_publication"
           ],
           "exports": [],
           "attributes": {
@@ -120467,7 +120563,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "362d7dcff52f0db6ebb9f0044c15f0f424dad3bc534f63eff402f24ed0dbf497",
+      "sha256": "9d53d50673cd448c74d38e2f96c63d18ed9be397b6286b4cb0dca4e77b72bc12",
       "exports": [],
       "operations": [
         {
@@ -120524,7 +120620,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::prepare_adoption",
-          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , model_configuration ? : @ local_host . NativeLocalModelConfigurationSelection ?"
+          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , model_configurations ? : Array [ @ local_host . NativeLocalModelConfigurationSelection , ] ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::read_command",

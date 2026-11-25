@@ -1,9 +1,15 @@
 ///|
 // No configuration parse is performed to quote its parse. The original wire
 // is borrowed from its funded reader; exact UTF-8 length needs no encoded copy.
-fn client_project_admission_geometry(wire : String) -> (Int, Int, Int)? {
-  guard @scalar.admit_utf8_length(wire, 65536) is Ok(bytes) else { return None }
-  let mut nodes = 1
+fn client_project_admission_geometry(
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+) -> (Int, Int, Int)? {
+  guard @scalar.admit_utf8_length(wire, max_bytes) is Ok(bytes) else {
+    return None
+  }
+  let mut nodes = 1L
   let mut depth = 0
   let mut maximum = 0
   let mut quoted = false
@@ -12,9 +18,9 @@ fn client_project_admission_geometry(wire : String) -> (Int, Int, Int)? {
     let unit = wire.code_unit_at(index).to_int()
     // Counting punctuation inside quoted bodies is conservative as well.
     if unit == 123 || unit == 91 {
-      nodes = Int::min(4096, nodes + 2)
+      nodes += 2L
     } else if unit == 58 || unit == 44 || unit == 92 {
-      nodes = Int::min(4096, nodes + 1)
+      nodes += 1L
     }
     if quoted {
       if escaped {
@@ -33,7 +39,13 @@ fn client_project_admission_geometry(wire : String) -> (Int, Int, Int)? {
       depth = Int::max(0, depth - 1)
     }
   }
-  Some((bytes, nodes, Int::min(16, Int::max(1, maximum))))
+  Some(
+    (
+      bytes,
+      Int64::min(max_nodes.to_int64(), nodes).to_int(),
+      Int::min(16, Int::max(1, maximum)),
+    ),
+  )
 }
 
 ///|
@@ -41,7 +53,11 @@ fn client_project_admission_construction_inventory(
   wire : String,
   connection_entries : Bool,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard client_project_admission_geometry(wire) is Some((bytes, nodes, depth)) &&
+  // The existing funded entry bounds bytes. The document reader derives its
+  // node allowance from those bytes, so the quote must cover the same shape.
+  let max_bytes = 65536
+  guard client_project_admission_geometry(wire, max_bytes, max_bytes)
+    is Some((bytes, nodes, depth)) &&
     @decode.preserving_json_admission_construction_inventory(
       Int::max(1, bytes),
       nodes,

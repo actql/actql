@@ -128,6 +128,41 @@ test "mixed Whole Model sources retain imported producer and local ordinal throu
   let prepared = mixed_whole_infer_test_program()
   let models = prepared_client_composed_infer_occurrences(prepared).unwrap()
   assert_eq(models.length(), 2)
+  let execution = client_infer_graph_test_execution(
+    prepared,
+    occurrence=Some(models[0]),
+  )
+  assert_true(
+    client_infer_occurrences_share_model_execution(
+      models[0],
+      models[1],
+      execution,
+    ),
+  )
+  let other = mixed_whole_infer_test_program()
+  let foreign = prepared_client_composed_infer_occurrences(other).unwrap()[1]
+  assert_eq(
+    client_infer_occurrence_model_task_cid(foreign),
+    client_infer_occurrence_model_task_cid(models[1]),
+  )
+  assert_false(
+    client_infer_occurrences_share_model_execution(
+      models[0],
+      foreign,
+      execution,
+    ),
+  )
+  let foreign_execution = client_infer_graph_test_execution(
+    other,
+    occurrence=Some(foreign),
+  )
+  assert_false(
+    client_infer_occurrences_share_model_execution(
+      models[0],
+      models[1],
+      foreign_execution,
+    ),
+  )
   let live = Ref(true)
   let left = mixed_whole_infer_capture(prepared, 0, live)
   let right = mixed_whole_infer_capture(prepared, 1, live)

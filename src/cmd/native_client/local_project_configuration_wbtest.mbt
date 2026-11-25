@@ -119,6 +119,25 @@ test "project selection refuses Remote or conflicting legacy options before file
 }
 
 ///|
+test "explicit Project Model task and protected operator selectors keep their state selection independent" {
+  let matches = command().parse(argv=[
+    "--mode", "local", "--config", "actql.config.json", "--config-root", "/operator",
+    "--config-file", "operator.json", "check", "program.json",
+  ])
+  assert_true(local_project_requires_read(matches))
+  let selected = local_project_select_loaded(
+    matches, "/project", "{\"version\":\"actql-config/0.1\",\"state_dir\":\"./host\",\"model_tasks\":\"models.json\"}",
+  )
+  assert_eq(selected.state_directory, "/project/host")
+  assert_true(local_project_explicit_operator_selected(matches))
+  // State selection stays an original Project comparison beside the operator
+  // bytes. It cannot replace the command's explicitly selected original.
+  assert_eq(optional(matches, "state-dir"), None)
+  assert_eq(required(matches, "config-root"), "/operator")
+  assert_eq(required(matches, "config-file"), "operator.json")
+}
+
+///|
 test "uninstalled project bindings cannot silently run live or fabricate a mock Run" {
   let matches = command().parse(argv=["--mode", "local", "connect"])
   for
@@ -1315,7 +1334,9 @@ test "Native Mock readonly JOIN has a record source and a typed listing source" 
     .iter()
     .find_first(value => value._retained_connection == "drive")
     .unwrap()
-  assert_true(local_command_file_listing(original, "drive", "files") is None)
+  assert_true(
+    local_command_file_listing(original.file_sources, "drive", "files") is None,
+  )
   original.file_sources = Some([
     local_project_mock_file_source(drive, "sha256:" + "8".repeat(64)).unwrap(),
   ])
@@ -1394,7 +1415,9 @@ test "Native Mock readonly JOIN has a record source and a typed listing source" 
   assert_true(observed.contains(("salesforce", "Opportunity", true, false)))
   assert_true(observed.contains(("drive", "files", false, true)))
   let (declaration, provider, binding) = local_command_file_listing(
-    original, "drive", "files",
+    original.file_sources,
+    "drive",
+    "files",
   ).unwrap()
   assert_true(physical_equal(declaration, drive))
   assert_true(
@@ -1412,6 +1435,10 @@ test "Native Mock readonly JOIN has a record source and a typed listing source" 
     ),
   )
   assert_true(
-    local_command_file_listing(original, "salesforce", "files") is None,
+    local_command_file_listing(original.file_sources, "salesforce", "files")
+    is None,
   )
+  let listings = original.file_sources
+  listings.unwrap()[0].retire()
+  assert_true(local_command_file_listing(listings, "drive", "files") is None)
 }

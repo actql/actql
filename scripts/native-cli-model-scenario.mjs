@@ -3,40 +3,42 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
 import {once} from 'node:events';
-import {mkdir, readFile, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, unlink, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {canonicalText} from './check-canonical-json.mjs';
+import {nativeJoinedModelRun, requireModelAttempts} from './fixtures/native-joined-model-run.mjs';
+import {inspectNativeModelCustody} from './fixtures/native-model-custody-observation.mjs';
+import {requireNativeModelAccounting, requireNativeRawReceipts, splitNativeModelConfirmations}
+  from './fixtures/native-model-confirmation-observation.mjs';
 import {providerBindingOriginals} from './fixtures/model-provider-binding-fixture.mjs';
 import {captureNativeMockCommand} from './native-cli-mock-scenario.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 
 const requestBytes = 32_768;
-const model = 'controlled-chat';
+const selectedModels = [
+  {prefix: 'model', taskId: 'model-task:churn-risk.v1', model: 'controlled-chat'},
+  {prefix: 'confirm', taskId: 'model-task:churn-risk-confirm.v1', model: 'controlled-confirm'},
+];
 const provider = 'models/http';
 const completionPath = '/v1/chat/completions';
 const answer = n => ({level: n === 1 ? 'low' : 'high', reason: `controlled reply ${n}`});
+const joinedUsage = [{input_tokens: 0, output_tokens: 8}, {input_tokens: 15, output_tokens: null}];
 const cid = body => 'sha256:' + createHash('sha256').update(canonicalText(body)).digest('hex');
 const seal = body => ({...body, self_cid: cid(body)});
 const json = async path => JSON.parse(await readFile(path, 'utf8'));
 const write = (path, body, flag = 'wx') => writeFile(path, canonicalText(body), {mode: 0o600, flag});
 
-async function configureModelProject({project, endpoint, certPath, token, assets, runtimeSha256}) {
+async function configureModelTask({project, endpoint, certPath, assets, runtimeSha256, selection}) {
+  const {prefix, taskId, model, token} = selection;
+  const file = suffix => `${prefix}-${suffix}.json`;
+  const keyFile = `${prefix}.key`;
   const fixture = await json(new URL('./fixtures/public-model-task-signed64.json', import.meta.url));
-  const task = {...fixture.task, connector_id: provider, authored_model_selector: model, max_items: 1,
+  const task = {...fixture.task, task_id: taskId, version: taskId, connector_id: provider,
+    authored_model_selector: model, max_items: 1,
     generation_config: {...fixture.task.generation_config, max_output_tokens: 100}};
   delete task.contract_cid;
   task.contract_cid = cid(task);
-  const environmentPath = join(project, 'environment.json');
-  const environment = await json(environmentPath);
-  environment.model_task_contracts = [task];
-  Object.assign(environment.host_policy_profile.capacity, {
-    max_model_request_bytes_per_item: requestBytes, max_model_input_tokens_per_item: 256,
-    max_model_total_duration_ms: 6000,
-  });
-  delete environment.evidence_bundle_cid;
-  environment.evidence_bundle_cid = cid(environment);
-  await write(environmentPath, environment, 'w');
 
   const vendor = providerBindingOriginals(provider, {selector: model, endpoint});
   const responseFixture = await json(new URL('../portability/corpus/model-response-profiles.json', import.meta.url));
@@ -64,55 +66,107 @@ async function configureModelProject({project, endpoint, certPath, token, assets
     max_total_cost_units: 0, max_total_duration_ms: 6000, max_total_wire_bytes: 131072,
     max_total_token_reservation: 1024, media_input_contracts: {}, default_publication: 'outcomes'});
   const files = {
-    'model-credential.json': {version: 'actql-config/0.1', native: {preparation_credential: {
-      credential_file: 'model.key', provider_file: 'model-provider.json'}}},
-    'model-profile.json': profile,
-    'model-provider.json': {...JSON.parse(vendor.configuration.wire),
+    [file('credential')]: {version: 'actql-config/0.1', native: {preparation_credential: {
+      credential_file: keyFile, provider_file: file('provider')}}},
+    [file('profile')]: profile,
+    [file('provider')]: {...JSON.parse(vendor.configuration.wire),
       installation_revision_cid: vendor.installationRevision.cid,
       configuration_contract_cid: vendor.configurationContract.cid,
-      response_profile_cid: profile.self_cid, model_id: model, credential_ref: 'file:model.key',
+      response_profile_cid: profile.self_cid, model_id: model, credential_ref: `file:${keyFile}`,
       adapter_kind: 'portable-http', api_mode: 'chat-completions', model_defaults: defaults},
-    'model-execution.json': {contract_cid: execution.self_cid, contract: canonicalText(execution),
+    [file('execution')]: {contract_cid: execution.self_cid, contract: canonicalText(execution),
       prompt: canonicalText(fixture.prompt), retry_policy: canonicalText(retry), backoff: canonicalText(backoff)},
-    'model-policy.json': {ca_path: certPath, connect_timeout_ms: 1500, operation_timeout_ms: 4000,
+    [file('policy')]: {ca_path: certPath, connect_timeout_ms: 1500, operation_timeout_ms: 4000,
       credential_expires_at_ms: Date.now() + 172800000, max_projection_frames: 1000,
       attempt_tokens: 1024, attempt_cost_units: 0, input_classification: 'internal',
       provider_region: 'explicit-fixture-region', provider_retention: false, provider_training_use: false,
-      retention_contract_file: 'model-retention.json', metadata_retention_file: 'model-metadata.json',
-      clock_contract_file: 'model-clock.json', data_policy_file: 'model-data.json',
+      retention_contract_file: file('retention'), metadata_retention_file: file('metadata'),
+      clock_contract_file: file('clock'), data_policy_file: file('data'),
       available_until: '2099-01-01T00:00:00.000Z', delete_by: '2099-01-02T00:00:00.000Z',
       extension_ceiling_at: '2099-01-02T00:00:00.000Z', metadata_delete_by: '2099-01-03T00:00:00.000Z'},
   };
   for (const [name, body] of Object.entries(files)) await write(join(project, name), body);
   const retention = await json(join(project, 'retention.json'));
   const originalWires = {
-    'model-revision.json': vendor.installationRevision.wire,
-    'model-contract.json': vendor.configurationContract.wire,
-    'model-retention.json': retention[0].wire,
-    'model-metadata.json': retention[1].wire,
-    'model-clock.json': retention[2].wire,
-    'model-data.json': assets['result-policy'],
+    [file('revision')]: vendor.installationRevision.wire,
+    [file('contract')]: vendor.configurationContract.wire,
+    [file('retention')]: retention[0].wire,
+    [file('metadata')]: retention[1].wire,
+    [file('clock')]: retention[2].wire,
+    [file('data')]: assets['result-policy'],
   };
   for (const [name, body] of Object.entries(originalWires))
     await writeFile(join(project, name), body, {mode: 0o600, flag: 'wx'});
-  await writeFile(join(project, 'model.key'), token, {mode: 0o600, flag: 'wx'});
+  await writeFile(join(project, keyFile), token, {mode: 0o600, flag: 'wx'});
 
+  const taskFile = `${taskId.slice('model-task:'.length)}.yaml`;
+  const document = fixture.document.replace(`task: ${fixture.task.task_id}`, `task: ${taskId}`)
+    .replace('provider: openai, name: "<model id>"', `provider: "${provider}", name: "${model}"`)
+    .replace('max_items: 5000', 'max_items: 1').replace('max_output_tokens: 200', 'max_output_tokens: 100');
+  assert(document.includes(`task: ${taskId}\nmodel: { provider: "${provider}", name: "${model}" }`));
+  await writeFile(join(project, taskFile), document, {mode: 0o600, flag: 'wx'});
+  return {task, taskFile, files: [...Object.keys(files), ...Object.keys(originalWires)], installation: {
+    task_id: taskId, provider_id: provider, credential_installation: file('credential'),
+    installation_revision: file('revision'), configuration_contract: file('contract'),
+    response_profile: file('profile'), response_profile_cid: profile.self_cid,
+    execution_file: file('execution'), run_policy_file: file('policy'),
+  }};
+}
+
+async function configureModelProject({project, endpoint, certPath, assets, runtimeSha256, selections, joined}) {
+  const environmentPath = join(project, 'environment.json');
+  const environment = await json(environmentPath);
+  assert.deepEqual(environment.model_task_contracts, []);
+  Object.assign(environment.host_policy_profile.capacity, {
+    max_model_request_bytes_per_item: requestBytes, max_model_input_tokens_per_item: 256,
+    max_model_total_duration_ms: 6000,
+  });
+  delete environment.evidence_bundle_cid;
+  environment.evidence_bundle_cid = cid(environment);
+  await write(environmentPath, environment, 'w');
+
+  const configured = [];
+  for (const selection of selections) {
+    configured.push(await configureModelTask({project, endpoint, certPath, assets, runtimeSha256, selection}));
+  }
   const configPath = join(project, 'operator.json');
   const config = await json(configPath);
   config.native.check_environment.evidence_bundle_cid = environment.evidence_bundle_cid;
-  config.native.local.installation_files.push(...Object.keys(files), ...Object.keys(originalWires));
-  config.native.local.model_http_installation = {provider_id: provider, credential_installation: 'model-credential.json',
-    installation_revision: 'model-revision.json', configuration_contract: 'model-contract.json',
-    response_profile: 'model-profile.json', response_profile_cid: profile.self_cid,
-    execution_file: 'model-execution.json', run_policy_file: 'model-policy.json'};
-  await write(configPath, config, 'w');
+  const local = config.native.local;
+  local.installation_files.push(...configured.flatMap(({files}) => files));
+  local.model_http_installations = configured.map(({installation}) => installation);
+
   const accountPath = join(project, 'account.json');
   const account = await json(accountPath);
-  account.entries.unshift({entry_id: 'bounded-native-model', outcome: 'allow', principal: {any_of: [account.account_id]},
-    connection: {any_of: [provider]}, resource: {any_of: [task.contract_cid]},
-    operation: {any_of: ['infer', 'model_raw_capture']}, exclusions: []});
+  const allow = (entry_id, connection, resource, operations) => ({
+    entry_id, outcome: 'allow', principal: {any_of: [account.account_id]},
+    connection: {any_of: [connection]}, resource: {any_of: [resource]},
+    operation: {any_of: operations}, exclusions: [],
+  });
+  account.entries.unshift(...configured.map(({task}, index) => allow(index === 0 ? 'bounded-native-model' :
+    'bounded-native-model-confirm', provider, task.contract_cid, ['infer', 'model_raw_capture'])));
+  if (joined) {
+    const dataFile = join(project, 'source-data.json');
+    await write(dataFile, joined.payload);
+    await write(join(project, 'source-installation.json'), {version: 'actql-config/0.1', native: {source: {
+      kind: 'declared_file', connections: canonicalText(joined.connections), catalog: canonicalText(joined.catalog),
+      data_file: dataFile,
+    }}});
+    local.source_file = 'source-installation.json';
+    local.installation_files.push(local.source_file);
+    account.entries.unshift(...joined.resources.map(resource => allow(`bounded-file-${resource}`, joined.connection,
+      `connector://${joined.connection}/${resource}#records`, ['read'])));
+  }
+  await write(configPath, config, 'w');
   await write(accountPath, account, 'w');
-  return task.task_id;
+
+  await write(join(project, 'actql.config.json'), {version: 'actql-config/0.1',
+    state_dir: './host', model_tasks: './model-tasks.json'});
+  await write(join(project, 'model-tasks.json'), {version: 'actql-model-tasks/0.1',
+    providers: {[provider]: {type: 'openai'}},
+    tasks: Object.fromEntries(configured.map(({task, taskFile}) => [task.task_id, './' + taskFile])),
+    default_provider: provider});
+  return configured.map(({task, installation}) => ({task: task.contract_cid, profile: installation.response_profile_cid}));
 }
 
 function program(contract, n) {
@@ -127,8 +181,18 @@ function program(contract, n) {
   results: {answer: {from: {stage: 'model', result: 'rows'}}}};
 }
 
+async function joinedCustodyOptions(project, tasks) {
+  assert.equal(new Set(tasks).size, 2);
+  const {native: {run}} = await json(join(project, 'run.json'));
+  return {
+    journalPath: join(project, 'host/client.sqlite3'),
+    storePath: join(project, 'results/.actql-publication.sqlite3'),
+    authority: run.store_authority_cid, namespace: run.namespace_id, provider, tasks,
+  };
+}
+
 export async function observeInstalledNativeModel({root, binary, modelImage, prepareProject,
-  environment, runtimeSha256, assets, records}) {
+  environment, runtimeSha256, assets, records, joinedFile = false}) {
   assert(modelImage?.role === 'model-http', 'Required Model HTTPS member is unavailable');
   const project = join(root, 'project');
   const tls = join(root, 'tls');
@@ -139,8 +203,13 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
     'subjectAltName=IP:127.0.0.1', '-keyout', 'key.pem', '-out', 'cert.pem'],
   {cwd: tls, stdio: 'ignore', timeout: 30_000});
   const certPath = join(tls, 'cert.pem');
-  const token = 'synthetic-controlled-model-' + randomUUID();
+  const selections = (joinedFile ? selectedModels : selectedModels.slice(0, 1)).map(selection => ({
+    ...selection, token: 'synthetic-controlled-model-' + randomUUID(),
+  }));
+  const joined = joinedFile ? nativeJoinedModelRun(...selections.map(({taskId}) => taskId)) : null;
+  const expectedSends = joined ? selections.length : 3;
   const calls = [];
+  const fixtures = new Map();
   const phases = [];
   const connections = {tcp: 0, tls: 0};
   const sockets = new Set();
@@ -157,14 +226,28 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       }
       const n = calls.length + 1;
       const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      const call = {method: request.method, path: request.url, authorized: request.headers.authorization === 'Bearer ' + token,
-        model: body.model, notesMatch: JSON.stringify(body.messages).includes(`original input ${n}`)};
+      const selected = selections.find(({model}) => model === body.model);
+      const messages = JSON.stringify(body.messages);
+      const markers = joined ? joined.inputMarkers : [`original input ${n}`];
+      const call = {method: request.method, path: request.url,
+        authorized: selected !== undefined && request.headers.authorization === 'Bearer ' + selected.token,
+        model: body.model, notesMatch: typeof messages === 'string' && markers.every(marker => messages.includes(marker))};
       calls.push(call);
-      assert.deepEqual(call, {method: 'POST', path: completionPath, authorized: true, model, notesMatch: true});
-      assert(n <= 3, 'Unexpected Model resend');
-      const payload = JSON.stringify({id: `controlled-${n}`, model, object: 'chat.completion',
-        choices: [{index: 0, message: {role: 'assistant', content: JSON.stringify(answer(n))}, finish_reason: 'stop'}],
-        usage: {prompt_tokens: n === 1 ? 0 : 15, completion_tokens: 8}});
+      assert.deepEqual(call, {method: 'POST', path: completionPath, authorized: true, model: selected?.model,
+        notesMatch: true});
+      assert(n <= expectedSends, 'Unexpected Model resend');
+      const selectedIndex = selections.indexOf(selected);
+      if (joined) assert(!calls.slice(0, -1).some(request => request.model === selected.model), 'Repeated Model selection');
+      const reply = joined ? joined.answers[selectedIndex] : answer(n);
+      const reported = joined ? joinedUsage[selectedIndex] : {input_tokens: n === 1 ? 0 : 15, output_tokens: 8};
+      const usage = {prompt_tokens: reported.input_tokens,
+        ...(reported.output_tokens === null ? {} : {completion_tokens: reported.output_tokens})};
+      const payload = JSON.stringify({id: `controlled-${n}`, model: selected.model, object: 'chat.completion',
+        choices: [{index: 0, message: {role: 'assistant', content: JSON.stringify(reply)}, finish_reason: 'stop'}], usage});
+      if (joined) fixtures.set(selected.model, {
+        content: 'sha256:' + createHash('sha256').update(payload).digest('hex'),
+        bytes: Buffer.byteLength(payload), status: 200, eof: true,
+      });
       response.writeHead(200, {'content-type': 'application/json',
         'content-length': Buffer.byteLength(payload), connection: 'close'});
       response.end(payload);
@@ -186,13 +269,18 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
     await listening;
     const endpoint = `https://127.0.0.1:${server.address().port}${completionPath}`;
     const {configuration} = await prepareProject(project);
-    const contract = await configureModelProject({project, endpoint, certPath, token, assets, runtimeSha256});
+    const originals = await configureModelProject({project, endpoint, certPath, assets, runtimeSha256, selections, joined});
+    const tasks = originals.map(({task}) => task);
+    const custodyOptions = joined ? await joinedCustodyOptions(project, tasks) : null;
     async function cli(phase, args) {
       const record = {phase, args, physicalRequests: calls.length};
       records.push(record);
       try {
-        const result = await captureNativeMockCommand(binary, [...configuration, ...args], {
-          cwd: project, env: environment, stderrPath: join(root, `${phase}.stderr`),
+        const projectSelection = phase === 'adopt' ? [] : ['--config', 'actql.config.json'];
+        const result = await captureNativeMockCommand(binary, [...configuration, ...projectSelection, ...args], {
+          cwd: project, env: joined && phase === 'run-1' ?
+            {...environment, ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: 'model-confirmations'} : environment,
+          stderrPath: join(root, `${phase}.stderr`),
           timeout: 90_000, maxBuffer: 65_536,
         });
         Object.assign(record, result, {code: 0, signal: null, physicalRequests: calls.length});
@@ -202,7 +290,9 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
         throw serverFailure ?? error;
       }
       if (serverFailure) throw serverFailure;
-      const groups = nativeMockAcceptanceObservations(record.stderr);
+      const {timing, accounting, raw} = splitNativeModelConfirmations(record.stderr, record.pid);
+      if (!joined || phase !== 'run-1') assert.deepEqual([...accounting, ...raw], []);
+      const groups = nativeMockAcceptanceObservations(timing);
       assert.equal(groups.length, 1);
       assert.equal(groups[0].pid, record.pid);
       const close = record.stderr.split('\n').filter(line => line.startsWith('ACTQL_NATIVE_PHASE '))
@@ -211,7 +301,7 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       const observed = {phase, pid: record.pid, firstClose: true, events: groups[0].events,
         physicalRequests: calls.length, connections: {...connections}};
       phases.push(observed);
-      return {stdout: record.stdout, ...observed};
+      return {stdout: record.stdout, ...observed, accounting, raw};
     }
     assert.equal(JSON.parse((await cli('adopt', ['adopt', '--initialize-signing', '--json'])).stdout).kind,
       'local_host_adopted');
@@ -220,33 +310,57 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       assert.equal(calls.length, n);
       assert.deepEqual(connections, {tcp: n, tls: n});
     };
-    for (const n of [1, 2, 3]) {
-      const file = `infer-${n}.json`;
-      await write(join(project, file), program(contract, n));
+    const programs = joined ? [{file: 'joined.json', program: joined.program, rows: joined.expectedRows,
+      sends: expectedSends}] : [1, 2, 3].map(n => ({
+      file: `infer-${n}.json`, program: program(selections[0].taskId, n),
+      rows: [{id: `row${n}`, outcome: 'ok', value: answer(n)}], sends: 1,
+    }));
+    let sends = 0;
+    for (const [index, scenario] of programs.entries()) {
+      const n = index + 1;
+      const {file} = scenario;
+      await write(join(project, file), scenario.program);
       const checked = await cli(`check-${n}`, ['check', file, '--format', 'json', '--json']);
       const check = JSON.parse(checked.stdout);
       assert.equal(check.outcome, 'completed');
       assert.equal(check.report.verdict, 'verified');
       assert.equal(check.report.runnable.verdict, 'yes');
       assert.deepEqual(checked.events, []);
-      requireSends(n - 1);
+      requireSends(sends);
       const started = await cli(`run-${n}`, ['run', file, '--format', 'json', '--json']);
       const state = JSON.parse(started.stdout);
       assert.equal(state.status, 'succeeded');
       assert.match(state.run_id, /^sha256:[0-9a-f]{64}$/u);
-      assert.deepEqual(started.events.map(event => event.tag), [0, 1, 2]);
-      const call = started.events[1].identity;
-      assert(started.events.every(event => event.identity === call && event.ordinal === 0));
-      requireSends(n);
-      // The cold delivery supplies the independent Result evidence for this Run.
+      const attempts = requireModelAttempts(started.events, scenario.sends);
+      sends += scenario.sends;
+      requireSends(sends);
+      const observeCustody = custodyOptions ? () => inspectNativeModelCustody({
+        ...custodyOptions, runId: state.run_id, attempts,
+      }) : null;
+      const custody = observeCustody ? await observeCustody() : null;
+      const accounting = custody ? requireNativeModelAccounting(started.accounting, custody,
+        new Map(tasks.map((task, index) => [task, joinedUsage[index]]))) : null;
+      const raw = custody ? requireNativeRawReceipts(started.raw, custody,
+        new Map(originals.map(({task, profile}, index) => [task, {profile, ...fixtures.get(selections[index].model)}]))) : null;
+      if (joined) {
+        const dataPath = join(project, 'source-data.json');
+        assert.equal(await readFile(dataPath, 'utf8'), canonicalText(joined.payload));
+        await unlink(dataPath);
+        await unlink(join(project, file));
+      }
+      // Fresh-process delivery reads the original Run after its authored inputs
+      // are unavailable in the joined case.
       const saved = await cli(`saved-${n}`, ['result', state.run_id, '--result', 'answer', '--format', 'jsonl']);
       const rows = saved.stdout.trim().split('\n').map(line => JSON.parse(line));
-      assert.deepEqual(rows, [{id: `row${n}`, outcome: 'ok', value: answer(n)}]);
+      assert.deepEqual(rows, scenario.rows);
       assert.deepEqual(saved.events, []);
-      requireSends(n);
-      runs.push({runId: state.run_id, call, rows, coldPid: saved.pid});
+      requireSends(sends);
+      if (observeCustody) assert.deepEqual(await observeCustody(), custody,
+        'Cold Saved changed the retained Model entries, settlements or encrypted Store holdings');
+      runs.push({runId: state.run_id, ...(joined ? {attempts, custody, accounting, raw} : {call: attempts[0]}), rows, coldPid: saved.pid});
     }
-    for (const key of ['runId', 'call']) assert.equal(new Set(runs.map(run => run[key])).size, 3);
+    assert.equal(new Set(runs.map(run => run.runId)).size, programs.length);
+    assert.equal(new Set(runs.flatMap(run => run.attempts ?? [run.call])).size, expectedSends);
     assert.equal(new Set(phases.map(phase => phase.pid)).size, phases.length);
     return {image: modelImage, fixture: 'controlled-loopback-tls', phases, runs, calls, connections};
   } finally {

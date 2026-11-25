@@ -543,12 +543,14 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
         local_quick_query_requested(operation, child) &&
         self.initial_product_selected
       ),
-      model_configuration=settings.model_http_installation.map(selected => {
-        provider_id: selected.provider_id,
-        files: selected.files,
-        execution: selected.execution_file,
-        policy: selected.policy_file,
-        limits: local_project_mock_task_limits().bodies,
+      model_configurations=settings.model_http_installations.map(models => {
+        models.map(selected => {
+          provider_id: selected.provider_id,
+          files: selected.files,
+          execution: selected.execution_file,
+          policy: selected.policy_file,
+          limits: local_project_mock_task_limits().bodies,
+        })
       }),
     ),
     stage=Some("adoption-open"),
@@ -619,7 +621,8 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
           selected_configuration == configuration.configuration_body &&
           capture.selected_configuration_in_original_read(environment_name)
           is Ok(selected_environment) &&
-          selected_environment == configuration.environment_body else {
+          selected_environment == configuration.environment_body &&
+          configuration.declared_file_source_current(capture) else {
           stop("LocalConfigurationChanged")
         }
         let body = if operation == "check" {
@@ -939,22 +942,15 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
           // Return the prepared reply after its commit. No later operation
           // in this callback consumes the invalidated installation snapshot.
           if operation == "adopt" &&
-            settings.model_http_installation is Some(selected) {
-            let model_configuration = match
-              capture.read_model_http_configuration_in_original_read(
-                selected.files,
-                selected.provider_id,
-                selected.response_profile_cid,
-                local_project_mock_task_limits(),
-                execution_file=selected.execution_file,
-              ) {
-              Ok(value) => value
-              Err(Original(issue)) => stop(local_host_issue(issue))
-              Err(_) => stop("LocalModelHttpInstallationRefused")
-            }
+            settings.model_http_installations is Some(selected) {
+            let configurations = self.read_model_http_configurations(
+              capture,
+              selected,
+              local_project_mock_task_limits(),
+            )
             local_host_result(
-              capture.adopt_model_http_configuration_in_original_read(
-                model_configuration,
+              capture.adopt_model_http_configurations_in_original_read(
+                configurations,
               ),
             )
           }

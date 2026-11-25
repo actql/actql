@@ -71,6 +71,20 @@ int main(int argc, char **argv) {
     assert(actql_file_capacity.depth == 0 && actql_file_capacity.ledger == NULL);
     assert(errno == EDOM);
 #undef OBS
+  } else if (strncmp(argv[1], "model-confirmations", 19) == 0) {
+    const char *text = "{\"input_tokens\":0,\"output_tokens\":null}";
+    uint16_t wire[48];
+    size_t bytes = strlen(text);
+    assert(bytes <= sizeof(wire) / sizeof(wire[0]));
+    for (size_t i = 0; i < bytes; i++) wire[i] = (uint16_t)text[i];
+    if (strcmp(argv[1], "model-confirmations-invalid") == 0) wire[1] = '\n';
+    actql_native_model_confirmation_observation(0, wire, (int32_t)bytes);
+    actql_native_model_confirmation_observation(1, wire, (int32_t)bytes);
+    if (strcmp(argv[1], "model-confirmations-overflow") == 0) {
+      actql_native_model_confirmation_observation(0, wire, (int32_t)bytes);
+      actql_native_model_confirmation_observation(0, wire, (int32_t)bytes);
+    }
+    assert(errno == EDOM);
   } else if (strncmp(argv[1], "acceptance", 10) == 0) {
     uint16_t identity[71];
     const char *text = "sha256:1111111111111111111111111111111111111111111111111111111111111111";

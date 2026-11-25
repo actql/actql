@@ -92,11 +92,16 @@ pub(all) struct ClientLocalOriginalManagedRoot {
 }
 
 ///|
-/// The configured Provider has at most eleven distinct nonsecret originals:
-/// installation selector, Provider, revision, contract, profile, execution,
-/// Run policy, and its four evidence dependencies.
-pub fn client_local_model_configuration_file_limit() -> Int {
-  11
+/// The ordinary Native installer admits two Task bindings in one selection.
+pub fn client_local_model_configuration_limit() -> Int {
+  2
+}
+
+///|
+/// Per binding, at most eleven nonsecret originals are selected. Shared
+/// Provider evidence may occupy the same file in multiple bindings.
+pub fn client_local_model_configuration_file_limit(bindings : Int) -> Int {
+  11 * Int::max(0, Int::min(bindings, client_local_model_configuration_limit()))
 }
 
 ///|
@@ -106,10 +111,11 @@ pub fn client_local_configuration_file_count_supported(
   count : Int,
   includes_host : Bool,
   model_files : Int,
+  model_bindings : Int,
 ) -> Bool {
+  client_local_configuration_selection_limits(model_files, model_bindings)
+  is Some(_) &&
   count >= 0 &&
-  model_files >= 0 &&
-  model_files <= client_local_model_configuration_file_limit() &&
   model_files <= count - (if includes_host { 1 } else { 0 }) &&
   count - model_files <= (if includes_host { 11 } else { 10 })
 }
@@ -118,9 +124,12 @@ pub fn client_local_configuration_file_count_supported(
 /// One additional file contributes its object plus five field values.
 pub fn client_local_configuration_selection_limits(
   model_files : Int,
+  model_bindings : Int,
 ) -> (Int, Int, Int)? {
-  if model_files < 0 ||
-    model_files > client_local_model_configuration_file_limit() {
+  if model_bindings < 0 ||
+    model_bindings > client_local_model_configuration_limit() ||
+    model_files < 0 ||
+    model_files > client_local_model_configuration_file_limit(model_bindings) {
     None
   } else {
     Some((8192, 128 + 6 * model_files, 4))
@@ -135,15 +144,17 @@ pub fn client_local_configuration_selection_body(
   files : Array[ClientLocalOriginalConfigurationFile],
   managed : ClientLocalOriginalManagedRoot?,
   model_files? : Int = 0,
+  model_bindings? : Int = 0,
 ) -> Result[Bytes, ClientLocalOriginalCodecIssue] {
   if !client_local_configuration_file_count_supported(
       files.length(),
       files.any(file => file.name == "host.json"),
       model_files,
+      model_bindings,
     ) {
     return Err(ConfigurationLimit)
   }
-  guard client_local_configuration_selection_limits(model_files)
+  guard client_local_configuration_selection_limits(model_files, model_bindings)
     is Some((bytes, nodes, depth)) else {
     return Err(ConfigurationLimit)
   }

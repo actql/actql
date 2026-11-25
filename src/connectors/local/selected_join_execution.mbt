@@ -116,7 +116,12 @@ fn selected_join_execution(
         }
       },
       fn() { @bounded.request_cancel(control) },
-      fn() { terminated.val },
+      fn() {
+        if !terminated.val {
+          terminated.val = @execution.confirm_bounded_join_stop(active)
+        }
+        terminated.val
+      },
       fn() {
         if !terminated.val {
           return Ok(false)

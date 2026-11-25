@@ -5,6 +5,7 @@ priv struct LocalProjectConfiguration {
   metadata : @run_host.ClientProjectConfiguration
   directory : String
   source_free_bindings : @run_host.ClientSourceFreeProjectBindings?
+  portable_model : LocalProjectPortableModel?
   mock_declarations : LocalProjectMockDeclarations?
   state_directory : String
   profile : String?
@@ -74,6 +75,7 @@ fn local_project_select_loaded(
     metadata,
     directory,
     source_free_bindings: None,
+    portable_model: None,
     mock_declarations: None,
     state_directory,
     profile: match optional(matches, "profile") {
@@ -153,6 +155,21 @@ fn local_project_parent_directory(
 }
 
 ///|
+// A Project supplies declarations. For the configured Model path a fully
+// explicit operator selection supplies an independently adopted Host.
+fn local_project_explicit_operator_selected(
+  matches : @argparse.Matches,
+) -> Bool raise ClientStop {
+  optional(matches, "config") is Some(_) &&
+  optional(matches, "state-dir") is None &&
+  matches.sources.get("mode") is Some(@argparse.Argv) &&
+  required(matches, "mode") == "local" &&
+  matches.sources.get("config-file") is Some(@argparse.Argv) &&
+  matches.sources.get("config-root") is Some(@argparse.Argv) &&
+  matches.subcommand is Some(("check" | "run" | "result" | "status", _))
+}
+
+///|
 fn local_project_requires_read(
   matches : @argparse.Matches,
 ) -> Bool raise ClientStop {
@@ -169,7 +186,8 @@ fn local_project_requires_read(
     (
       matches.sources.get("config-file") is Some(@argparse.Argv) ||
       matches.sources.get("config-root") is Some(@argparse.Argv)
-    ) {
+    ) &&
+    !local_project_explicit_operator_selected(matches) {
     stop("ConflictingLocalProjectSelection")
   }
   if explicit is None && !discover {
@@ -347,6 +365,16 @@ fn local_project_require_execution_bindings(
     }
     return
   }
+  if selected.portable_model is Some(_) {
+    guard command_preparation_invocation.val is Some(original) &&
+      original.project is Some(retained) &&
+      physical_equal(retained, selected) &&
+      !original.closing &&
+      !original.closed else {
+      stop("LocalProjectBindingsUnavailable")
+    }
+    return
+  }
   if metadata.connectors_file() is Some(_) ||
     metadata.model_tasks_file() is Some(_) {
     guard selected.source_free_bindings is Some(bindings) &&
@@ -444,11 +472,33 @@ fn local_project_read_execution_bindings(
     Ok(value) => value
     Err(original) => return Err(original)
   }
+  let registry = match (command_preparation_invocation.val, model_tasks) {
+    (Some(owner), Some(wire)) =>
+      Some(local_project_read_funded_model_registry(owner, wire))
+    _ => None
+  }
   let bindings = match
-    @run_host.admit_client_source_free_project_bindings(connectors, model_tasks) {
+    @run_host.admit_client_source_free_project_bindings(
+      connectors,
+      if registry is None {
+        model_tasks
+      } else {
+        None
+      },
+      model_registry=registry,
+    ) {
     Ok(value) => value
-    Err(@run_host.BindingsUnavailable) =>
-      stop("LocalProjectBindingsUnavailable")
+    Err(@run_host.BindingsUnavailable) => {
+      guard metadata.model_tasks_file() is Some(path) &&
+        registry is Some(original) &&
+        @run_host.admit_client_source_free_project_bindings(connectors, None)
+        is Ok(_) else {
+        stop("LocalProjectBindingsUnavailable")
+      }
+      return local_project_read_portable_model(project, path, original).map(model => {
+        Some({ ..project, portable_model: Some(model), })
+      })
+    }
     Err(@run_host.InvalidBindings) => stop("InvalidProjectBindings")
   }
   // These facts only rule out uninstalled declarations. Actual check/run still
@@ -470,7 +520,18 @@ fn local_project_apply_selection(
     if local_project_default_local_candidate(matches) {
       matches.values["mode"] = ["local"]
     }
-    matches.values["state-dir"] = [project.state_directory]
+    if local_project_explicit_operator_selected(matches) {
+      guard project.profile is None &&
+        project.metadata.model_tasks_file() is Some(_) &&
+        (
+          !local_project_execution_operation(operation) ||
+          project.portable_model is Some(_)
+        ) else {
+        stop("ConflictingLocalProjectSelection")
+      }
+    } else {
+      matches.values["state-dir"] = [project.state_directory]
+    }
   } else if local_project_default_local_candidate(matches) &&
     matches.subcommand is Some((operation, child)) &&
     (

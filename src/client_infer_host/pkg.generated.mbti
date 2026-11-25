@@ -227,9 +227,13 @@ pub fn original_local_model_observation_input_dependency_bodies(LocalModelObserv
 
 pub fn original_model_current_state_match_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]?
 
+pub fn original_model_observation_requirements(Array[Execution], Array[@run_publication_host.ClientInferPlanGraph]) -> (ObservationIssuanceLimits, Int64)?
+
 pub fn original_model_parked_read_capacity_available(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int64, Int64) -> Bool
 
 pub fn original_model_preparation_available(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Bool
+
+pub fn original_model_publication_inputs(ObservationIssuance, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> (Array[String], Array[@run_publication.RunEvidenceValue])?
 
 pub fn original_model_resource_invalidation_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]?
 
@@ -238,10 +242,6 @@ pub fn original_model_resource_park_current(Execution, @run_publication_host.Cli
 pub fn original_model_unparked_read_capacity_available(Execution, @run_publication_host.ClientModelReadScope, Int64, Int64) -> Bool
 
 pub fn original_observation_issuance_metadata_bytes(Execution, ObservationIssuanceLimits) -> Int64?
-
-pub fn original_source_free_model_observation_requirements(Array[Execution], Array[@run_publication_host.ClientInferPlanGraph]) -> (ObservationIssuanceLimits, Int64)?
-
-pub fn original_source_free_model_publication_inputs(ObservationIssuance, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> (Array[String], Array[@run_publication.RunEvidenceValue])?
 
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 

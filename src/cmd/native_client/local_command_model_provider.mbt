@@ -90,7 +90,10 @@ fn LocalCommandModelRun::open_model_component(
   suffix : @execution.GeneratedSequence?,
   inputs : Array[@local_compute.ManagedProviderInput],
 ) -> Result[@infer.Execution, @local_host.NativeClientMockModelIssue] {
-  guard self.reads[index] is None else { return Err(ForeignOriginal) }
+  guard self.reads[index] is None &&
+    (self.requirements is Some(_) || self.whole_sources is Some(_)) else {
+    return Err(ForeignOriginal)
+  }
   let scope = self.scopes[index]
   let graph = self.graphs[index]
   let retained = limits.mapping.logical.max_live_value_bytes
@@ -125,6 +128,7 @@ fn LocalCommandModelRun::open_model_component(
       execution,
       retained,
       execution,
+      sources=self.whole_sources,
       input_body_read=Some(read),
       inputs~,
       compiled_prefix=true,

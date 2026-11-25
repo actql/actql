@@ -133,7 +133,7 @@ pub fn admit_client_serialization_captured_input(PreparedClientProgram, ClientSe
 
 pub fn admit_client_serialization_whole_captured_input(PreparedClientProgram, ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @sourceview_resolution.SourceAcquisition, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
-pub fn admit_client_source_free_project_bindings(String?, String?) -> Result[ClientSourceFreeProjectBindings, ClientProjectBindingsIssue]
+pub fn admit_client_source_free_project_bindings(String?, String?, model_registry? : ClientProjectModelRegistry?) -> Result[ClientSourceFreeProjectBindings, ClientProjectBindingsIssue]
 
 pub fn admit_client_submission_epoch_token(String) -> Result[ClientSubmissionEpochToken, ClientSubmissionEpochTokenIssue]
 
@@ -146,6 +146,8 @@ pub fn admit_client_task_run_materials(String, String, @pipeline_check_context.E
 pub fn admit_client_transfer_input(@remote_site_protocol.RemoteInputBinding, Int, Int, Int, Int64) -> Result[ClientTransferInput, ClientTransferInputIssue]
 
 pub fn admit_client_values_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, numeric_profile_cid? : String?) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue]
+
+pub fn[E] admit_funded_client_project_model_registry(String, (@execution_relation.PreparationRepresentationUnits) -> Result[Unit, E], (ClientProjectBindingsIssue) -> E, settle? : ((Int64) -> Result[Unit, E])?) -> Result[ClientProjectModelRegistry, E]
 
 pub fn admit_local_relation_check_environment(String, String) -> @program_check.CheckEnvironment?
 
@@ -1007,6 +1009,8 @@ pub fn client_infer_occurrence_target_name(ClientInferOccurrence) -> String?
 
 pub fn client_infer_occurrence_terminal(ClientInferOccurrence) -> Bool
 
+pub fn client_infer_occurrences_share_model_execution(ClientInferOccurrence, ClientInferOccurrence, @check_environment.ModelExecutionContract) -> Bool
+
 pub fn client_infer_plan_boundary(ClientInferPlanGraph) -> (Int, Int, Int, String)
 
 pub fn client_infer_plan_graph_barrier_cid(ClientInferPlanGraph) -> String
@@ -1159,11 +1163,11 @@ pub fn client_local_configuration_custody_body(Bytes, (UInt64, UInt64, Int64)) -
 
 pub fn client_local_configuration_custody_record(String, (UInt64, UInt64, Int64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
-pub fn client_local_configuration_file_count_supported(Int, Bool, Int) -> Bool
+pub fn client_local_configuration_file_count_supported(Int, Bool, Int, Int) -> Bool
 
-pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfigurationFile], ClientLocalOriginalManagedRoot?, model_files? : Int) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfigurationFile], ClientLocalOriginalManagedRoot?, model_files? : Int, model_bindings? : Int) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
-pub fn client_local_configuration_selection_limits(Int) -> (Int, Int, Int)?
+pub fn client_local_configuration_selection_limits(Int, Int) -> (Int, Int, Int)?
 
 pub fn client_local_default_signing_bootstrap_policy() -> ClientLocalSigningBootstrapPolicy
 
@@ -1179,7 +1183,9 @@ pub fn client_local_journal_custody_body(Bytes, Bytes, (UInt64, UInt64)) -> Resu
 
 pub fn client_local_journal_custody_record(String, String, (UInt64, UInt64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
-pub fn client_local_model_configuration_file_limit() -> Int
+pub fn client_local_model_configuration_file_limit(Int) -> Int
+
+pub fn client_local_model_configuration_limit() -> Int
 
 pub fn client_local_normalization_preparation_work(ClientLocalNormalizationPreparation) -> Int
 
@@ -1390,6 +1396,10 @@ pub fn client_project_catalog_admission_construction_inventory(String) -> @execu
 pub fn client_project_connections_admission_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn client_project_local_files_issue_code(ClientProjectLocalFilesIssue) -> String
+
+pub fn client_project_model_environment_projection_inventory(@check_environment.WireEnvironment, Array[@check_environment.NormalizedPublicModelTask]) -> (@check_environment.ModelTaskLimits, @execution_relation.PreparationRepresentationUnits)?
+
+pub fn client_project_model_environment_read_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn client_project_model_task_selection_for(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
 
@@ -2710,6 +2720,8 @@ pub fn prepared_client_effect_target_selections(PreparedClientEffectComputation)
 pub fn prepared_client_effect_task_sequence_limits(PreparedClientEffectComputation, Int) -> @lowering_relation.SequenceLimits?
 
 pub fn prepared_client_graph(PreparedClientProgram) -> @physical_strategy.CheckedDAG
+
+pub fn prepared_client_has_checked_sources(PreparedClientProgram) -> Bool
 
 pub fn prepared_client_identity(PreparedClientProgram) -> ClientProgramIdentity
 

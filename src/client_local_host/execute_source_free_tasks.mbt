@@ -19,14 +19,17 @@ fn close_local_values_tasks(
   let mut ready = true
   for index = tasks.length() - 1; index >= 0; index = index - 1 {
     if tasks[index] is Some(task) {
+      if !(task.operations.execution_stopped)() {
+        ready = false
+        continue
+      }
       if !task.settled {
         match (task.operations.settle)() {
           Ok(_) => task.settled = true
           Err(_) => ready = false
         }
       }
-      if !(task.operations.execution_stopped)() ||
-        !(task.operations.cleanup_refresh)() {
+      if !(task.operations.cleanup_refresh)() {
         ready = false
       }
     }
@@ -75,6 +78,11 @@ pub fn execute_installed_whole_source_values_guarded(
   finalization_quantum : Int,
   max_finalization_rounds : Int,
   require_current : () -> Bool,
+  drive_task? : ((Int, @local_driver.LocalManagedDispatchOperations[Int]) -> Result[
+    Unit,
+    LocalValuesExecutionIssue,
+  ])? = None,
+  cleanup_ready? : (() -> Bool)? = None,
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(setup),
@@ -103,6 +111,8 @@ pub fn execute_installed_whole_source_values_guarded(
     require_current,
     require_live=None,
     first=0,
+    drive_task~,
+    cleanup_ready~,
     whole_source=Some(plan),
   )
 }
@@ -300,6 +310,11 @@ pub fn execute_installed_captured_local_tasks_guarded(
   max_finalization_rounds : Int,
   require_current : () -> Bool,
   require_live? : (() -> Bool)? = None,
+  drive_task? : ((Int, @local_driver.LocalManagedDispatchOperations[Int]) -> Result[
+    Unit,
+    LocalValuesExecutionIssue,
+  ])? = None,
+  cleanup_ready? : (() -> Bool)? = None,
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(setup),
@@ -344,6 +359,8 @@ pub fn execute_installed_captured_local_tasks_guarded(
     current,
     require_live=live,
     first=@strategy.graph_captured_prefix(plan.graph),
+    drive_task~,
+    cleanup_ready~,
     captured_source=Some(plan),
   )
 }
@@ -398,16 +415,16 @@ fn execute_local_tasks_guarded(
       None => require_current()
     }
   }
+  // The same cleanup closure retains the tasks on either exit. A Host pause
+  // can fail to restore the physical Compute scope before disposal.
+  let cleanup = () => {
+    cleanup_ready.map(ready => ready()).unwrap_or(true) &&
+    close_local_values_tasks(run, tasks)
+  }
   let reject = fn(
     issue : LocalValuesExecutionIssue,
   ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
     available.val = false
-    // A Host pause can fail to restore the physical Compute scope. Keep
-    // the same task handles until their caller can enter cleanup there.
-    let cleanup = () => {
-      cleanup_ready.map(ready => ready()).unwrap_or(true) &&
-      close_local_values_tasks(run, tasks)
-    }
     Err(LocalValuesExecutionFailure::{ issue, cleanup, cleaned: cleanup(), })
   }
   if !current() {
@@ -679,7 +696,6 @@ fn execute_local_tasks_guarded(
     }
     Some((original.operations, output))
   }
-  let cleanup = () => close_local_values_tasks(run, tasks)
   Ok({
     run,
     operations: primary.operations,

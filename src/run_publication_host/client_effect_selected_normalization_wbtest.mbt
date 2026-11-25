@@ -52,7 +52,17 @@ test "selected normalization records the original implicit Source completion" {
     completed,
     allow_source_completion=true,
   ).unwrap()
-  assert_true(proof.inventory is SourceCompletedUpdate(_))
+  guard proof.inventory is SourceCompletedUpdate(inventory) else {
+    fail("expected the original Source completion")
+  }
+  // Both authored stages visit the original Source obligations. The audit
+  // should pay for the completion path once, then compare the same resolver.
+  let computation = @checked.local_common_update_source_normalization_computation(
+    inventory,
+  )
+  assert_true(
+    @checked.local_common_normalization_inventory_work(computation) <= 512,
+  )
   let journal = prepared_client_effect_normalization_evidence(completed, proof).unwrap()
   assert_eq(
     @publication.run_evidence_value_json(journal),

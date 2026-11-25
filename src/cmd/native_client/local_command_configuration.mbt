@@ -10,6 +10,48 @@ priv struct LocalCommandConfiguration {
   environment_body : Bytes
   environment : @checked.CheckEnvironment?
   run_original : LocalCommandRunInstallationOriginal?
+  declared_file_source : LocalCommandDeclaredFileSourceOriginal?
+}
+
+///|
+// The one parsed File selection remains tied to the exact retained Host
+// member. This value does not hold a payload Reader or an Account decision.
+priv struct LocalCommandDeclaredFileSourceOriginal {
+  name : String
+  body : Bytes
+  material : (
+    @run_host.ClientProjectConnections,
+    @run_host.ClientProjectCatalog,
+    String,
+  )
+}
+
+///|
+fn LocalCommandDeclaredFileSourceOriginal::select(
+  self : Self,
+  file : String,
+  body : Bytes,
+) -> (
+  @run_host.ClientProjectConnections,
+  @run_host.ClientProjectCatalog,
+  String,
+)? {
+  if file == self.name && body == self.body {
+    Some(self.material)
+  } else {
+    None
+  }
+}
+
+///|
+fn LocalCommandConfiguration::declared_file_source_current(
+  self : Self,
+  capture : @local_host.NativeLocalJournalCapture,
+) -> Bool {
+  guard self.declared_file_source is Some(original) else { return true }
+  self.settings.source_file == Some(original.name) &&
+  capture.selected_configuration_in_original_read(original.name) is Ok(body) &&
+  original.select(original.name, body) is Some(_)
 }
 
 ///|

@@ -61,6 +61,44 @@ test "a request delivered during one step suppresses completion" {
 }
 
 ///|
+test "idle stop requires the current token and leaves cleanup with the owner" {
+  let execution_control = control()
+  let state = { current: 0, limit: 3, cleanup_calls: 0, cleanup_ready: false, }
+  let (session, first) = start(
+    execution_control,
+    state,
+    counter_step,
+    value => {
+      value.cleanup_calls += 1
+      value.cleanup_ready
+    },
+    _ => true,
+  )
+  let (_, foreign) = start(control(), state, counter_step, _ => true, _ => true)
+  guard advance(session, first, 1) is Ok(ContinueWith(current, ..)) else {
+    fail("the original kernel must make one step before cancellation")
+  }
+  assert_false(confirm_requested_stop(session, current))
+  assert_true(request_cancel(execution_control))
+  assert_false(confirm_requested_stop(session, foreign))
+  assert_false(confirm_requested_stop(session, first))
+  assert_false(session_stopped(session))
+  assert_true(confirm_requested_stop(session, current))
+  assert_false(confirm_requested_stop(session, current))
+  assert_true(session_stopped(session))
+  assert_true(advance(session, current, 1) is Err(Terminal))
+  assert_eq(state.current, 1)
+  assert_eq(state.cleanup_calls, 0)
+  assert_eq(cleanup(session), Ok(false))
+  assert_true(cleanup_pending(session))
+  state.cleanup_ready = true
+  assert_eq(cleanup(session), Ok(true))
+  assert_false(cleanup_pending(session))
+  assert_eq(cleanup(session), Ok(false))
+  assert_eq(state.cleanup_calls, 2)
+}
+
+///|
 test "bounded session rejects invalid reports before cleanup" {
   let invalid_control = control()
   let state = { current: 0, limit: 1, cleanup_calls: 0, cleanup_ready: true, }

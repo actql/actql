@@ -1,6 +1,6 @@
 {
   "source": "a84580b5a0b383c6cc066d32ee5a9da64313239b",
-  "syntaxProjectionSha256": "a5f70916a146b3c7b590172b3a3d294be92aa93367f534ae1b04751d76111cf2",
+  "syntaxProjectionSha256": "b2aef914ddbf5737fe207284e95e4dd55c538252ea5a4592add012e07291aaad",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -82541,7 +82541,7 @@
     },
     {
       "module": "src/cmd/native_client/local_adoption.mbt",
-      "sha256": "cb2992b055ad8b95a64b0d06f1cca40a3a8ca22b99aae849f1b2b45304f73082",
+      "sha256": "85dd5b9344f9e2d553b97aacde60d0268c7933fab1de34126cff204ff4b587b4",
       "exports": [],
       "operations": [
         {
@@ -82571,6 +82571,10 @@
         {
           "name": "local_journal_migration_issue",
           "declaration": "local_journal_migration_issue ( issue : @ local_host . NativeClientRunJournalIssue , ) - > String"
+        },
+        {
+          "name": "local_model_http_installation_selections",
+          "declaration": "local_model_http_installation_selections ( cursor : @ decode . Cursor , installation_files : Array [ String ] , ) - > Array [ LocalModelHttpInstallationSettings ] raise ClientStop"
         },
         {
           "name": "local_model_http_installation_settings",
@@ -82621,7 +82625,8 @@
             "local_submission_lookup_reply",
             "local_submission_lookup_selected",
             "local_host_journal_record_limit",
-            "local_model_http_installation_settings"
+            "local_model_http_installation_settings",
+            "local_model_http_installation_selections"
           ],
           "exports": [],
           "attributes": {
@@ -82889,7 +82894,7 @@
     },
     {
       "module": "src/cmd/native_client/local_start.mbt",
-      "sha256": "10c15d47d569a5e47db6b660ea9f8afe29fd61bac1fd57789c8222e879c3eb78",
+      "sha256": "e0211bacc452da98e9dcadab277853129984ccccabc1969592a69a0c59a078dd",
       "exports": [],
       "operations": [
         {
@@ -87307,7 +87312,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "5ac76edf94e8889e4096bb90da000d5214992b0e04d4e375a4d88655ef796678",
+      "sha256": "7b0374f407261c5516da8a873c00883d08192b74c5d1b7ada6748a4c62e6a788",
       "exports": [],
       "operations": [
         {
@@ -87601,7 +87606,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "362d7dcff52f0db6ebb9f0044c15f0f424dad3bc534f63eff402f24ed0dbf497",
+      "sha256": "9d53d50673cd448c74d38e2f96c63d18ed9be397b6286b4cb0dca4e77b72bc12",
       "exports": [],
       "operations": [
         {
@@ -87658,7 +87663,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::prepare_adoption",
-          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , model_configuration ? : @ local_host . NativeLocalModelConfigurationSelection ?"
+          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , model_configurations ? : Array [ @ local_host . NativeLocalModelConfigurationSelection , ] ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::read_command",
@@ -87866,7 +87871,7 @@
     },
     {
       "module": "src/cmd/native_client/local_host_settings_preparation.mbt",
-      "sha256": "e23acc41294861ce9210af2398024d575e18baeb62107037477fa78ff01d62c5",
+      "sha256": "d8e7145040e6012c7ed7d85ade781c05ee9f5ad7f0c9fe1c78023b09f415d255",
       "exports": [],
       "operations": [
         {
@@ -87895,7 +87900,7 @@
         },
         {
           "name": "local_host_settings_cursor",
-          "declaration": "local_host_settings_cursor ( text : String ) - > @ decode . Cursor raise ClientStop"
+          "declaration": "local_host_settings_cursor ( text : String , max_input_bytes ? : Int"
         },
         {
           "name": "local_host_settings_fields_prepare",

@@ -105,7 +105,7 @@ class NativeTimingProtocol(unittest.TestCase):
         self.assertEqual(result.stdout,'')
         rows=[]
         for line in result.stderr.splitlines():
-            prefix,body=line.split(' ',1);self.assertIn(prefix,('ACTQL_NATIVE_TIMINGS','ACTQL_NATIVE_PHASE','ACTQL_NATIVE_COUNTER','ACTQL_NATIVE_ACCEPTANCE_BEGIN','ACTQL_NATIVE_ACCEPTANCE_EVENT','ACTQL_NATIVE_ACCEPTANCE_END','ACTQL_NATIVE_FILE_CAPACITY'));rows.append((prefix,json.loads(body)))
+            prefix,body=line.split(' ',1);self.assertIn(prefix,('ACTQL_NATIVE_TIMINGS','ACTQL_NATIVE_PHASE','ACTQL_NATIVE_COUNTER','ACTQL_NATIVE_ACCEPTANCE_BEGIN','ACTQL_NATIVE_ACCEPTANCE_EVENT','ACTQL_NATIVE_ACCEPTANCE_END','ACTQL_NATIVE_FILE_CAPACITY','ACTQL_NATIVE_MODEL_ACCOUNTING','ACTQL_NATIVE_MODEL_RAW_RECEIPT'));rows.append((prefix,json.loads(body)))
         return (rows,result.stderr) if retain_raw else rows
     def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope(self):
         for timing, acceptance in ((None,'1'),('1',None),('1','true'),('0','1')):
@@ -164,6 +164,24 @@ class NativeTimingProtocol(unittest.TestCase):
             '-o',str(binary)],check=True,timeout=60)
         result=subprocess.run([str(binary)],capture_output=True,timeout=10)
         self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b'',b''))
+
+    def test_model_confirmations_require_explicit_observation_selection(self):
+        markers = ('ACTQL_NATIVE_MODEL_ACCOUNTING', 'ACTQL_NATIVE_MODEL_RAW_RECEIPT')
+        for timing, selection in ((None,'model-confirmations'),('1',None),('1','1')):
+            self.assertFalse(any(k in markers for k, _ in self.run_protocol('model-confirmations', timing, selection)))
+        rows = self.run_protocol('model-confirmations', '1', 'model-confirmations')
+        timing, = [value for key, value in rows if key == 'ACTQL_NATIVE_TIMINGS']
+        for marker in markers:
+            observed, = [value for key, value in rows if key == marker]
+            self.assertEqual(observed, {'pid': timing['pid'], 'evidence': {'input_tokens': 0, 'output_tokens': None}})
+
+    def test_model_confirmations_reject_nonprintable_wire_and_bound_each_kind(self):
+        markers = ('ACTQL_NATIVE_MODEL_ACCOUNTING', 'ACTQL_NATIVE_MODEL_RAW_RECEIPT')
+        for mode, expected in (('model-confirmations-invalid', (0, 0)), ('model-confirmations-overflow', (2, 1))):
+            rows = self.run_protocol(mode, '1', 'model-confirmations')
+            self.assertEqual(tuple(sum(key == marker for key, _ in rows) for marker in markers), expected)
+            begin, = [value for key, value in rows if key == 'ACTQL_NATIVE_ACCEPTANCE_BEGIN']
+            self.assertIs(begin['complete'], False)
 
     def test_acceptance_is_opt_in_bounded_metadata_with_owned_original_identity(self):
         for selection in (None,'0','true','01'):

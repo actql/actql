@@ -231,7 +231,7 @@ pub fn bind_installed_source_read_effect_program(ClientInstalledSourceRead, @run
 
 pub fn bind_installed_source_read_program(ClientInstalledSourceRead, @run_publication_host.PreparedClientProgram) -> Result[Unit, ClientInstalledSourceReadIssue]
 
-pub fn bind_program_model_publication_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG, @run_publication.RunEvidenceValue, @run_publication.PublicationContract, Array[String], String) -> Result[Unit, ClientClosedValuesPreparationIssue]
+pub fn bind_program_model_publication_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG, @run_publication.RunEvidenceValue, @run_publication.PublicationContract, Array[String], String, whole_sources? : ClientWholeModelPublicationSources?) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
 pub fn[I] bind_request_computation_policy_subject(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, Int, String?) -> Result[Unit, ClientRequestTerminalIssue]
 
@@ -529,9 +529,9 @@ pub fn[I] discard_original_effect_run_explanation(ClientRequestEffectRunExplanat
 
 pub fn execute_captured_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @client_row_source_host.RowSourceCapture, ClientLocalRequirements, Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
-pub fn execute_installed_captured_local_tasks_guarded(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Array[@client_row_source_host.RowSourceCapture], Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
+pub fn execute_installed_captured_local_tasks_guarded(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Array[@client_row_source_host.RowSourceCapture], Int, Int, () -> Bool, require_live? : (() -> Bool)?, drive_task? : ((Int, @driver.LocalManagedDispatchOperations[Int]) -> Result[Unit, LocalValuesExecutionIssue])?, cleanup_ready? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
-pub fn execute_installed_whole_source_values_guarded(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int, () -> Bool) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
+pub fn execute_installed_whole_source_values_guarded(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int, () -> Bool, drive_task? : ((Int, @driver.LocalManagedDispatchOperations[Int]) -> Result[Unit, LocalValuesExecutionIssue])?, cleanup_ready? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
 pub fn execute_retained_effect_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.CapturedEffectRunDAG, Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
@@ -1513,6 +1513,8 @@ pub fn[I] reserve_request_explanation_read(ClientRequestPreparation[I], I, Int, 
 
 pub fn[I] reserve_request_http_input(ClientRequestPreparation[I], I, Int, Int, Int, Int) -> Result[Unit, ClientRequestPreparationIssue]
 
+pub fn[I] reserve_request_model_file_source_inputs(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity) -> Result[(@run_publication_host.ClientDirectAcquisitionOccurrences, Array[@sourceview_resolution.SourceAcquisition]), ClientRequestProgramPlanIssue]
+
 pub fn[I] reserve_request_model_recovery_materials(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, (Int) -> String, Int) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_models_plan_projection(ClientRequestPreparation[I], I, Int, node_physical? : Bool) -> Result[Unit, ClientInstalledManagedRunIssue]
@@ -2340,6 +2342,13 @@ pub(all) struct ClientStaticPlanProjectionLayout {
   reference_array_slots : Int64
   map_bucket_slots : Int64
   scalar_array_items : Int64
+}
+
+pub(all) struct ClientWholeModelPublicationSources {
+  captures : Array[@client_row_source_host.RowSourceCapture]
+  evidence : Array[@run_publication.RunEvidenceValue]
+  started_at : String
+  completed_at : String
 }
 
 type ClosedValuesLexicalFacts derive(Eq, @debug.Debug)
