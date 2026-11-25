@@ -1861,7 +1861,7 @@
     {
       "module": "packages/explorer-ui/i18n.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "36306e323b9a53a08b86cff415c3fd9607cf1272a85e19877e5e1ae6200a446f",
+      "sha256": "e98d266e622e07b37c722380d0445b4805644111c7d181e3bc9cf4cc34665e07",
       "exports": [
         "explorerCopy"
       ],
@@ -1869,8 +1869,8 @@
         {
           "name": "english/english",
           "parameters": [
-            "consistency",
-            "scope"
+            "position",
+            "number"
           ],
           "async": false
         },
@@ -1884,26 +1884,54 @@
         {
           "name": "english/english#10",
           "parameters": [
-            "carrier"
+            "name"
           ],
           "async": false
         },
         {
           "name": "english/english#11",
           "parameters": [
-            "count"
+            "id"
           ],
           "async": false
         },
         {
           "name": "english/english#12",
           "parameters": [
-            "name"
+            "ordinal"
           ],
           "async": false
         },
         {
           "name": "english/english#13",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#14",
+          "parameters": [
+            "carrier"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#15",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#16",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#17",
           "parameters": [
             "sampled",
             "total"
@@ -1911,21 +1939,28 @@
           "async": false
         },
         {
-          "name": "english/english#14",
+          "name": "english/english#18",
           "parameters": [
             "sampled"
           ],
           "async": false
         },
         {
-          "name": "english/english#15",
+          "name": "english/english#19",
           "parameters": [
             "ordinal"
           ],
           "async": false
         },
         {
-          "name": "english/english#16",
+          "name": "english/english#2",
+          "parameters": [
+            "number"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#20",
           "parameters": [
             "role",
             "ordinal",
@@ -1934,7 +1969,7 @@
           "async": false
         },
         {
-          "name": "english/english#17",
+          "name": "english/english#21",
           "parameters": [
             "ordinal",
             "upstream"
@@ -1942,35 +1977,28 @@
           "async": false
         },
         {
-          "name": "english/english#18",
+          "name": "english/english#22",
           "parameters": [
             "file"
           ],
           "async": false
         },
         {
-          "name": "english/english#19",
+          "name": "english/english#23",
           "parameters": [
             "count"
           ],
           "async": false
         },
         {
-          "name": "english/english#2",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "english/english#20",
+          "name": "english/english#24",
           "parameters": [
             "time"
           ],
           "async": false
         },
         {
-          "name": "english/english#21",
+          "name": "english/english#25",
           "parameters": [
             "sampled",
             "observation"
@@ -1978,47 +2006,16 @@
           "async": false
         },
         {
-          "name": "english/english#22",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "english/english#23",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "english/english#24",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "english/english#25",
-          "parameters": [
-            "artifact",
-            "bytes",
-            "checkpoint"
-          ],
-          "async": false
-        },
-        {
           "name": "english/english#26",
           "parameters": [
-            "ordinal"
+            "name"
           ],
           "async": false
         },
         {
           "name": "english/english#27",
           "parameters": [
-            "stage",
-            "input"
+            "name"
           ],
           "async": false
         },
@@ -2032,6 +2029,45 @@
         {
           "name": "english/english#29",
           "parameters": [
+            "artifact",
+            "bytes",
+            "checkpoint"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#3",
+          "parameters": [
+            "position",
+            "number"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#30",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#31",
+          "parameters": [
+            "stage",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#32",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "english/english#33",
+          "parameters": [
             "expanded",
             "row",
             "column"
@@ -2039,21 +2075,14 @@
           "async": false
         },
         {
-          "name": "english/english#3",
-          "parameters": [
-            "operator"
-          ],
-          "async": false
-        },
-        {
-          "name": "english/english#30",
+          "name": "english/english#34",
           "parameters": [
             "total"
           ],
           "async": false
         },
         {
-          "name": "english/english#31",
+          "name": "english/english#35",
           "parameters": [
             "target",
             "fields"
@@ -2061,14 +2090,14 @@
           "async": false
         },
         {
-          "name": "english/english#32",
+          "name": "english/english#36",
           "parameters": [
             "target"
           ],
           "async": false
         },
         {
-          "name": "english/english#33",
+          "name": "english/english#37",
           "parameters": [
             "target"
           ],
@@ -2077,42 +2106,43 @@
         {
           "name": "english/english#4",
           "parameters": [
-            "sampled"
+            "status"
           ],
           "async": false
         },
         {
           "name": "english/english#5",
           "parameters": [
-            "name"
+            "consistency",
+            "scope"
           ],
           "async": false
         },
         {
           "name": "english/english#6",
           "parameters": [
-            "name"
+            "owner"
           ],
           "async": false
         },
         {
           "name": "english/english#7",
           "parameters": [
-            "id"
+            "operator"
           ],
           "async": false
         },
         {
           "name": "english/english#8",
           "parameters": [
-            "ordinal"
+            "sampled"
           ],
           "async": false
         },
         {
           "name": "english/english#9",
           "parameters": [
-            "kind"
+            "name"
           ],
           "async": false
         },
@@ -2126,34 +2156,62 @@
         {
           "name": "japanese/japanese",
           "parameters": [
-            "consistency",
-            "scope"
+            "position",
+            "number"
           ],
           "async": false
         },
         {
           "name": "japanese/japanese#10",
           "parameters": [
-            "carrier"
+            "name"
           ],
           "async": false
         },
         {
           "name": "japanese/japanese#11",
           "parameters": [
-            "count"
+            "id"
           ],
           "async": false
         },
         {
           "name": "japanese/japanese#12",
           "parameters": [
-            "name"
+            "ordinal"
           ],
           "async": false
         },
         {
           "name": "japanese/japanese#13",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#14",
+          "parameters": [
+            "carrier"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#15",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#16",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#17",
           "parameters": [
             "sampled",
             "total"
@@ -2161,21 +2219,28 @@
           "async": false
         },
         {
-          "name": "japanese/japanese#14",
+          "name": "japanese/japanese#18",
           "parameters": [
             "sampled"
           ],
           "async": false
         },
         {
-          "name": "japanese/japanese#15",
+          "name": "japanese/japanese#19",
           "parameters": [
             "ordinal"
           ],
           "async": false
         },
         {
-          "name": "japanese/japanese#16",
+          "name": "japanese/japanese#2",
+          "parameters": [
+            "number"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#20",
           "parameters": [
             "role",
             "ordinal",
@@ -2184,7 +2249,7 @@
           "async": false
         },
         {
-          "name": "japanese/japanese#17",
+          "name": "japanese/japanese#21",
           "parameters": [
             "ordinal",
             "upstream"
@@ -2192,35 +2257,28 @@
           "async": false
         },
         {
-          "name": "japanese/japanese#18",
+          "name": "japanese/japanese#22",
           "parameters": [
             "file"
           ],
           "async": false
         },
         {
-          "name": "japanese/japanese#19",
+          "name": "japanese/japanese#23",
           "parameters": [
             "count"
           ],
           "async": false
         },
         {
-          "name": "japanese/japanese#2",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "japanese/japanese#20",
+          "name": "japanese/japanese#24",
           "parameters": [
             "time"
           ],
           "async": false
         },
         {
-          "name": "japanese/japanese#21",
+          "name": "japanese/japanese#25",
           "parameters": [
             "sampled",
             "observation"
@@ -2228,47 +2286,16 @@
           "async": false
         },
         {
-          "name": "japanese/japanese#22",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "japanese/japanese#23",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "japanese/japanese#24",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "japanese/japanese#25",
-          "parameters": [
-            "artifact",
-            "bytes",
-            "checkpoint"
-          ],
-          "async": false
-        },
-        {
           "name": "japanese/japanese#26",
           "parameters": [
-            "ordinal"
+            "name"
           ],
           "async": false
         },
         {
           "name": "japanese/japanese#27",
           "parameters": [
-            "stage",
-            "input"
+            "name"
           ],
           "async": false
         },
@@ -2282,6 +2309,45 @@
         {
           "name": "japanese/japanese#29",
           "parameters": [
+            "artifact",
+            "bytes",
+            "checkpoint"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#3",
+          "parameters": [
+            "position",
+            "number"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#30",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#31",
+          "parameters": [
+            "stage",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#32",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "japanese/japanese#33",
+          "parameters": [
             "expanded",
             "row",
             "column"
@@ -2289,21 +2355,14 @@
           "async": false
         },
         {
-          "name": "japanese/japanese#3",
-          "parameters": [
-            "operator"
-          ],
-          "async": false
-        },
-        {
-          "name": "japanese/japanese#30",
+          "name": "japanese/japanese#34",
           "parameters": [
             "total"
           ],
           "async": false
         },
         {
-          "name": "japanese/japanese#31",
+          "name": "japanese/japanese#35",
           "parameters": [
             "target",
             "fields"
@@ -2311,14 +2370,14 @@
           "async": false
         },
         {
-          "name": "japanese/japanese#32",
+          "name": "japanese/japanese#36",
           "parameters": [
             "target"
           ],
           "async": false
         },
         {
-          "name": "japanese/japanese#33",
+          "name": "japanese/japanese#37",
           "parameters": [
             "target"
           ],
@@ -2327,42 +2386,43 @@
         {
           "name": "japanese/japanese#4",
           "parameters": [
-            "sampled"
+            "status"
           ],
           "async": false
         },
         {
           "name": "japanese/japanese#5",
           "parameters": [
-            "name"
+            "consistency",
+            "scope"
           ],
           "async": false
         },
         {
           "name": "japanese/japanese#6",
           "parameters": [
-            "name"
+            "owner"
           ],
           "async": false
         },
         {
           "name": "japanese/japanese#7",
           "parameters": [
-            "id"
+            "operator"
           ],
           "async": false
         },
         {
           "name": "japanese/japanese#8",
           "parameters": [
-            "ordinal"
+            "sampled"
           ],
           "async": false
         },
         {
           "name": "japanese/japanese#9",
           "parameters": [
-            "kind"
+            "name"
           ],
           "async": false
         },
@@ -2412,6 +2472,10 @@
             "english/english#31",
             "english/english#32",
             "english/english#33",
+            "english/english#34",
+            "english/english#35",
+            "english/english#36",
+            "english/english#37",
             "english/english#4",
             "english/english#5",
             "english/english#6",
@@ -2446,6 +2510,10 @@
             "japanese/japanese#31",
             "japanese/japanese#32",
             "japanese/japanese#33",
+            "japanese/japanese#34",
+            "japanese/japanese#35",
+            "japanese/japanese#36",
+            "japanese/japanese#37",
             "japanese/japanese#4",
             "japanese/japanese#5",
             "japanese/japanese#6",
@@ -2520,7 +2588,8 @@
             ]
           }
         }
-      ]
+      ],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
@@ -5896,7 +5965,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "f406b01fa2c26e6e2098939f782567ba77ea35d6ae17e7c26f8edf7d029958f2",
+      "sha256": "61a3fa375ae6e0a2bd2f6417285caf40ad3bf729e3995a71079c5709a7ed7fee",
       "exports": [],
       "operations": [
         {
@@ -7044,7 +7113,7 @@
             "group: StoryGroup",
             "ja: boolean"
           ],
-          "result": null
+          "result": "string"
         },
         {
           "name": "storyGroupTitle",

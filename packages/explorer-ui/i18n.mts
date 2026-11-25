@@ -3,6 +3,14 @@ export type ExplorerLocale = 'en' | 'ja';
 // Authored presentation copy. Original IDs, field names, wire facts and the
 // Common narrative remain data and do not pass through this table.
 const text = {
+  couldNotCopyTheCommand: ["Could not copy the command.", "コピーできませんでした。"],
+  enterTheOriginalCancellationReferenceForThisRun: ["Enter the original cancellation reference for this Run.", "この Run の元の取消参照を入力してください。"],
+  fieldsJoin: [" and ", "、"],
+  hostReadFailed: ["The Host could not provide this read. Check the selection and its access.", "Host がこの読み取りを提供できませんでした。選択内容とアクセス権限を確認してください。"],
+  invalidRunRef: ["Enter the complete original Run reference as JSON.", "元の Run の参照を完全な JSON で入力してください。"],
+  listJoin: [", ", "、"],
+  localLost: ["The Local connection was lost. Reconnect to open the original again.", "ローカル接続が切れました。元のデータを再度開くには再接続してください。"],
+  theRunChangedCheckItsCurrentStatusBeforeStoppingIt: ["The Run changed. Check its current status before stopping it.", "Run の状態が変わりました。現在の状態を確認してください。"],
   boundaryNote: ["This is the Owner’s boundary fact, not a progress overlay on a separately read Plan.", "Owner が観測した境界です。別に読み取ったプランの進捗は表しません。"],
   cancellationRequested: ["Cancellation requested", "取消要求"],
   chooseProgramFile: ["Choose a SQL, AQL, or Program JSON file up to 60,000 bytes.", "60,000 バイト以下の SQL、AQL、またはプログラム JSON ファイルを選択してください。"],
@@ -67,8 +75,7 @@ const text = {
   absent: ["Absent", "値なし"],
   advancedOriginalPlan: ["Advanced · original Plan", "詳細 · 元のプラン"],
   approvalNote: ["Contract minimum is not current permission. Required approval does not imply a human-only reviewer. Not represented does not mean none.", "契約上の最低要件は現在の権限とは異なります。承認必須でも承認者が人間に限られるわけではありません。「未表現」は「要件なし」を意味しません。"],
-  ask: ["Ask", "モデル"],
-  askModel: ["Ask model", "モデル"],
+  askModelKind: ["Ask model", "モデル"],
   back: ["Back", "戻る"],
   beforeRun: ["Before run", "実行前"],
   beforeRunCheckedPlan: ["Before run · checked plan", "実行前 · 確認済みプラン"],
@@ -130,7 +137,6 @@ const text = {
   effectGraphNote: ["The graph shows the computation component. Effect declarations do not define physical execution edges.", "グラフは計算コンポーネントを示します。書き込み宣言から物理実行の接続は分かりません。"],
   effectSet: ["Effect set", "書き込み操作の集合"],
   effectUnknown: ["Resolved targets: unknown. Changed values: unknown. Current permission: unknown. Gate: unknown. Approval: unknown. Sealed Preview: unavailable.", "確定した対象、変更値、現在の権限、実行ゲート、承認は未確認です。確定済みのプレビューは取得できません。"],
-  en: ["en", "ja"],
   enGb: ["en-GB", "ja-JP"],
   expandCell: ["Expand cell", "セルを展開"],
   expectedColumns: ["Expected columns", "予定される列"],
@@ -332,7 +338,16 @@ const japaneseOperations = new Map([
   ['projection', '列を射影'], ['select', '列を選択'], ['sort', '並べ替え'], ['values', '値'],
 ]);
 
+const japaneseRunStatus = new Map([
+  ['preparing', '準備中'], ['running', '実行中'], ['resuming', '再開中'],
+  ['waiting_checkpoint', 'チェックポイントで待機中'], ['needs_reconciliation', '照合が必要'],
+]);
+
 const english = {...textFor(0),
+  pausedAtStep: (position: string, number: number) => `Paused ${position} step ${number}`,
+  failedAtStep: (number: number) => `Failed at step ${number}`,
+  stoppedAtStep: (position: string, number: number) => `Stopped ${position} step ${number}`,
+  runStatus: (status: string) => status.replaceAll('_', ' '),
   independentReads: (consistency: string, scope: string) => `Independent reads: ${consistency}; scope: ${scope}.`,
   ownerHistoryName: (owner: string) => `${owner} Owner history`,
   stepState: {Planned: 'Planned', Observed: 'Observed', Unknown: 'Unknown', Next: 'Next'},
@@ -375,6 +390,10 @@ const english = {...textFor(0),
 };
 
 const japanese: typeof english = {...textFor(1),
+  pausedAtStep: (position: string, number: number) => `工程 ${number} の${position === 'before' ? '前' : '後'}で一時停止`,
+  failedAtStep: (number: number) => `工程 ${number} で失敗`,
+  stoppedAtStep: (position: string, number: number) => `工程 ${number} の${position === 'before' ? '前' : '後'}で停止`,
+  runStatus: (status: string) => japaneseRunStatus.get(status) ?? status.replaceAll('_', ' '),
   independentReads: (consistency: string, scope: string) => `独立した読み取り: ${consistency} · 範囲: ${scope}。`,
   ownerHistoryName: (owner: string) => `${owner} の履歴`,
   stepState: {Planned: '予定', Observed: '観測済み', Unknown: '不明', Next: '次の工程'},

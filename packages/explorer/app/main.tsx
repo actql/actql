@@ -94,7 +94,7 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
         `${name} · ${key.left} = ${key.right}` :
         meaning.keys.length ? words.joinOnCheckedKeys : name, inputs: inputDetail});
     } else if (models?.length) {
-      labels.set(step.stepId, {kind: words.model, title: `${words.ask} ${models.join(', ')}`,
+      labels.set(step.stepId, {kind: words.model, title: words.ask(models.join(', ')),
         inputs: inputDetail});
     } else if (inputs?.length && inputDetail) {
       // A linked declaration names the input port; it does not make this
@@ -159,7 +159,7 @@ function PlanAdvanced({model, ja}: {model: PlanReadModel; ja: boolean}) {
   const words = explorerCopy(ja);
   return <details className="original-plan-advanced">
     <summary>{words.advancedOriginalPlan}</summary>
-    <OriginalPlanMetadata model={model} workspace locale={words.en}/>
+    <OriginalPlanMetadata model={model} workspace locale={ja ? 'ja' : 'en'}/>
   </details>;
 }
 
@@ -487,7 +487,7 @@ function writeCardTitle(origin: EffectOrigin, ja: boolean) {
   const words = explorerCopy(ja);
   const {target, fields, update} = declaredWrite(origin);
   if (!target) return words.declaredChanges;
-  const names = fields?.map(field => '"' + field + '"').joinwords.and;
+  const names = fields?.map(field => '"' + field + '"').join(words.fieldsJoin);
   if (update && names) {
     return words.updateFields(target, names);
   }
@@ -514,10 +514,10 @@ function storyGroupTitle(group: StoryGroup, labels: ReturnType<typeof graphStepL
   }
 }
 
-function storyGroupLabel(group: StoryGroup, ja: boolean) {
+function storyGroupLabel(group: StoryGroup, ja: boolean): string {
   const words = explorerCopy(ja);
   return ({
-    source: words.read, model: words.askModel, join: words.combineInputs,
+    source: words.read, model: words.askModelKind, join: words.combineInputs,
     filter: words.filter, result: words.result,
     effect: words.write, operation: words.compute,
   })[group.kind];
@@ -706,10 +706,10 @@ function App() {
     catch (error) {
       if (original !== epoch.current) return;
       if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ExplorerReadUnavailable') {
-        showErrorwords.hostReadFailed;
+        showError(words.hostReadFailed);
       } else {
         invalidate();
-        showErrorwords.localLost;
+        showError(words.localLost);
       }
     }
     finally {if (original === epoch.current) busy(false);}
@@ -728,7 +728,7 @@ function App() {
         const code = (error as {code?: string} | null)?.code;
         if (code === 'ExplorerSessionExpired' || code === 'ExplorerStaleScope') {
           invalidate();
-          showErrorwords.localLost;
+          showError(words.localLost);
         } else {
           setFollow(false); showRun(undefined); markObserved(undefined);
           showError(words.currentStatusReadFailed);
@@ -947,7 +947,7 @@ function App() {
     event.preventDefault();
     const original = parseLocalJson(runReference);
     if (!validRunRef(original)) {
-      showErrorwords.invalidRunRef;
+      showError(words.invalidRunRef);
       return;
     }
     const action = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') ?? 'run-explanation-context';
@@ -970,7 +970,7 @@ function App() {
         !sameRun(selectedRef, stopDraft.cancelRef) || !sameRun(selectedRef, run.runRef)) return;
     if (run.run.terminal || run.run.controlRevision !== stopDraft.cancelRef.expectedRevision) {
       stageStop(undefined); showDrawer(undefined);
-      showErrorwords.theRunChangedCheckItsCurrentStatusBeforeStoppingIt;
+      showError(words.theRunChangedCheckItsCurrentStatusBeforeStoppingIt);
       return;
     }
     const original = stopDraft, key = runKey(selectedRef), scope = epoch.current, selection = runSelection.current;
@@ -1002,7 +1002,7 @@ function App() {
     if (!record || Object.keys(record).length !== 2 || !validCancellationRef(record.cancelRef) ||
         !validOperationAttemptRef(record.attemptRef) || record.attemptRef.operation !== 'cancel' ||
         !sameRun(selectedRef, record.cancelRef)) {
-      showErrorwords.enterTheOriginalCancellationReferenceForThisRun;
+      showError(words.enterTheOriginalCancellationReferenceForThisRun);
       return;
     }
     const key = runKey(selectedRef);
@@ -1150,7 +1150,7 @@ function App() {
       const code = (error as {code?: string} | null)?.code;
       if (code === 'ExplorerSessionExpired' || code === 'ExplorerStaleScope') {
         invalidate();
-        showErrorwords.localLost;
+        showError(words.localLost);
         return;
       }
       throw error;
@@ -1171,19 +1171,14 @@ function App() {
   const runMode = run?.run.status === 'paused' && exactRun ? words.debugRun :
     liveRun ? words.liveRun : savedRun;
   const status = stopping ? words.stopping :
-    run?.run.status === 'paused' ? originalStep ? (ja
-      ? `工程 ${originalStep.number} の${originalStep.position === 'before' ? '前' : '後'}で一時停止`
-      : `Paused ${originalStep.position} step ${originalStep.number}`) :
-      state?.boundary?.kind === 'entry' ? words.pausedAtEntry :
-      words.paused :
+    run?.run.status === 'paused' ? originalStep ? words.pausedAtStep(originalStep.position, originalStep.number) :
+      state?.boundary?.kind === 'entry' ? words.pausedAtEntry : words.paused :
     run?.run.status === 'succeeded' ? words.finishedWritesUnknown :
-    run?.run.status === 'failed' ? (originalStep ? (ja ? `工程 ${originalStep.number} で失敗` :
-      `Failed at step ${originalStep.number}`) : words.failed) :
-    run?.run.status === 'cancelled' ? (confirmedStop ? (originalStep ? (ja ?
-      `工程 ${originalStep.number} の${originalStep.position === 'before' ? '前' : '後'}で停止` :
-      `Stopped ${originalStep.position} step ${originalStep.number}`) : words.stopped) :
-      words.cancelledPhysicalStopUnconfirmed) :
-    run ? run.run.status.replaceAll('_', ' ') :
+    run?.run.status === 'failed' ? originalStep ? words.failedAtStep(originalStep.number) : words.failed :
+    run?.run.status === 'cancelled' ? confirmedStop ?
+      originalStep ? words.stoppedAtStep(originalStep.position, originalStep.number) : words.stopped :
+      words.cancelledPhysicalStopUnconfirmed :
+    run ? words.runStatus(run.run.status) :
     selectedRef ? words.currentStatusUnavailable :
     map ? words.planCheckedNotRun : words.noRunSelected;
   const stopStatus = unresolvedStop ? words.originalStopOutcomeIsUnconfirmed :
@@ -1197,7 +1192,7 @@ function App() {
   const cliRunId = run && /^[A-Za-z0-9][A-Za-z0-9._:-]*$/u.test(run.run.id) ? run.run.id : '"$RUN_ID"';
   const cliCommand = 'actql status ' + cliRunId;
   const copyCommand = (command: string) => {
-    void navigator.clipboard.writeText(command).catch(() => showErrorwords.couldNotCopyTheCommand);
+    void navigator.clipboard.writeText(command).catch(() => showError(words.couldNotCopyTheCommand));
   };
   const supportedCheckpoint = connected && (checkpointCapabilities.list || checkpointCapabilities.read);
   const fileLabel = selectedRef ? words.originalQuery : draftName ?? words.queryDraft;
@@ -1358,7 +1353,7 @@ function App() {
                 kind: words.declaredWrite,
                 title: effect.target && effect.update ? words.updateTarget(effect.target)
                   : effect.target ?? words.declaredChanges,
-                effectDeclaration: {fields: effect.fields?.joinwords.listJoin,
+                effectDeclaration: {fields: effect.fields?.join(words.listJoin),
                   missingProducer: words.producerLinkNotProjected},
               };
               return group && story ? {

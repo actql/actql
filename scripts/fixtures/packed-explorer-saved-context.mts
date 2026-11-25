@@ -212,9 +212,12 @@ try {
           meaning.kind === 'join' && meaning.keys.some(key => key.left === 'name' && key.right === 'name')));
         assert.deepEqual(beforeRun.story.narrative.clauses.find(clause => clause.kind === 'join')?.step_ids,
           checkedJoins.map(step => step.stepId));
-        const readOpportunity = staticSteps.locator('details.story-card').filter({
-          has: page.locator('summary > strong').filter({hasText: /Read Opportunity|Opportunity を読む/u}),
-        });
+        const readOpportunityCard = (japanese = false) =>
+          page.getByRole('region', {name: japanese ? '元のストーリー' : 'Original story', exact: true})
+            .locator('details.story-card').filter({
+              has: page.locator('summary > strong').filter({hasText: /Read Opportunity|Opportunity を読む/u}),
+            });
+        const readOpportunity = readOpportunityCard();
         const opportunity = beforeRun.context.find(({origin}) =>
           origin.kind === 'source' && origin.source_view.resource === 'Opportunity')?.origin;
         assert(opportunity?.kind === 'source');
@@ -254,7 +257,7 @@ try {
         const queryClosed = [await captureClosedSteps('en', 1440, 'installed-deal-review-before-en-1440.png')];
         const graph = page.locator('section.actql-explorer[data-workspace="true"]');
         const readGraph = async (narrow: boolean, japanese = false) => {
-          await readOpportunity.locator('summary').first().click();
+          await readOpportunityCard(japanese).locator('summary').first().click();
           await page.getByRole('button', {name: japanese ? /グラフ/u : /Graph/u}).click();
           assert.equal(await graph.getByRole('navigation', {name: 'Plan presentation'}).count(), 0);
           await graph.locator('.react-flow__node').first().waitFor({state: 'attached'});
@@ -306,6 +309,8 @@ try {
           assert.match(await advanced.innerText(), new RegExp(beforeRun.plan.logicalMapCid, 'u'));
           assert.doesNotMatch(await advanced.innerText(), /Controls, Samples and physical observations are unavailable/u);
           await advanced.locator('summary').click();
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.waitForFunction(() => window.scrollY === 0);
         };
         await readGraph(false);
         await page.screenshot({path: join(evidence, 'installed-deal-review-graph.png')});
