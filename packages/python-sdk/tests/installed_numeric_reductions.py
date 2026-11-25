@@ -1,4 +1,4 @@
-"""Verify the public source-free numeric profile in a normal wheel install."""
+"""Verify public source-free numeric and text-time profiles in a normal wheel."""
 from collections.abc import Mapping
 import json
 import os
@@ -20,6 +20,8 @@ CASES = (
     ('pivot', PIVOT, 'aql-text', [{'east': 1, 'west': 5}]),
     ('sum', VALUES + ' SELECT SUM(v) AS n FROM r', 'sql', [{'n': 6}]),
     ('count', VALUES + ' SELECT COUNT(v) AS n FROM r', 'sql', [{'n': 3}]),
+    ('parse-timestamp', "SELECT PARSE_TIMESTAMP('yyyy-MM-dd', '2026-01-02') AS x",
+     'sql', [{'x': '2026-01-02T00:00:00.000Z'}]),
 )
 
 
@@ -37,10 +39,10 @@ def result(run, expected):
 
 
 def initial(client):
-    unsupported = client.check("SELECT PARSE_TIMESTAMP('yyyy-MM-dd', '2026-01-02') AS x",
-                               kind='text', scope='bound_input', format='sql')
-    assert unsupported.outcome == 'completed'
-    assert unsupported.report.to_dict()['verdict'] == 'undetermined'
+    invalid = client.check("SELECT PARSE_TIMESTAMP('%Y', '2026') AS x",
+                           kind='text', scope='bound_input', format='sql')
+    assert invalid.outcome == 'completed'
+    assert invalid.report.to_dict()['verdict'] == 'invalid'
     originals = {}
     for name, statement, syntax, expected in CASES:
         check = client.check(statement, kind='text', scope='bound_input', format=syntax)

@@ -147,6 +147,8 @@ pub fn admit_client_transfer_input(@remote_site_protocol.RemoteInputBinding, Int
 
 pub fn admit_client_values_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, numeric_profile_cid? : String?) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue]
 
+pub fn admit_local_relation_check_environment(String, String) -> @program_check.CheckEnvironment?
+
 pub fn admit_measured_prepared_client_local_normalization(ClientLocalNormalizationPreparation, String, ClientLocalNormalizationConstruction) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue]
 
 pub fn admit_prepared_client_direct_values_result_root(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootAdmissionIssue]

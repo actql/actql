@@ -4103,6 +4103,14 @@ Unknown; this path never retries the write, parser or Checker. Repeated lookup
 or submission of the same retained terminal observes that outcome rather than
 preparing it again. A distinct submission continues through normal admission.
 
+The source-free and published Source preparation paths use the same Common
+query-order projection as Node. Missing aggregate-local order selects
+`ClientProgramAggregateOrderRequired` with `invalid_input`. An unresolved
+checked order selects `ClientProgramOrderUnresolved` with `operation_failed`.
+Both are retained in the existing Problem and read back from the original
+submission. The public Check reason contract continues to describe its own
+analysis outcome.
+
 The optional physical problem fields are absent from older preparing/ready
 rows, whose canonical bytes remain unchanged. Native readers retain the same
 failure as terminal DATA and refuse fresh execution from that reference.
