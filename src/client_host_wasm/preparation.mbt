@@ -636,6 +636,8 @@ pub fn prepared_outcome(nonce : Int64, handle : Int) -> Int {
 fn preparation_failure_problem(record : StoredPreparation) -> (String, String)? {
   if record.source_issue is Some(issue) {
     return match issue {
+      Frontend(frontend) if @preparation.client_query_order_problem(frontend)
+        is Some(problem) => Some(problem)
       Syntax(_) | Frontend(QuerySyntax(_)) | Pure(Syntax(_)) =>
         Some(("ClientProgramInvalidInput", "invalid_input"))
       Pure(NeedsInputs(_)) =>
@@ -646,6 +648,10 @@ fn preparation_failure_problem(record : StoredPreparation) -> (String, String)? 
     }
   }
   match record.outcome {
+    Some(Err(@preparation.Frontend(frontend))) if @preparation.client_query_order_problem(
+        frontend,
+      )
+      is Some(problem) => Some(problem)
     Some(Err(@preparation.Frontend(QuerySyntax(_))))
     | Some(Err(@preparation.Preparation(Syntax(_)))) =>
       Some(("ClientProgramInvalidInput", "invalid_input"))

@@ -251,3 +251,33 @@ test "published submitted refusal retains same typed issue before any executable
   assert_eq(value.runs.length(), 0)
   published_preparation_close(nonce, pool, capacity, slot, environment_slot)
 }
+
+///|
+test "published submitted collection order retains the original Problem" {
+  let source = "WITH r AS (SELECT 1 AS k, 'one' AS label UNION ALL SELECT 2, 'two') "
+  for
+    (query, code, classification) in [
+      (
+        "SELECT STRING_AGG(label, '|') AS labels FROM r", "ClientProgramAggregateOrderRequired",
+        "invalid_input",
+      ),
+      (
+        "SELECT ARRAY_AGG(k ORDER BY k) AS items FROM r", "ClientProgramOrderUnresolved",
+        "operation_failed",
+      ),
+    ] {
+    let nonce = 6184L
+    let (value, record, pool, capacity, slot, environment_slot) = published_preparation_fixture(
+      nonce,
+      source + query,
+      read_only=true,
+    )
+    assert_eq(prepare_program(nonce, 2), 0)
+    assert_eq(prepared_outcome(nonce, 2), 2)
+    assert_true(record.source_issue is Some(Frontend(_)))
+    assert_eq(preparation_failure_problem(record), Some((code, classification)))
+    assert_true(record.source is None)
+    assert_eq(value.runs.length(), 0)
+    published_preparation_close(nonce, pool, capacity, slot, environment_slot)
+  }
+}
