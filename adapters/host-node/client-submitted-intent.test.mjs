@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -304,31 +304,38 @@ test('a Run-connected Ready receipt cannot be retired by the pre-Run retention o
 });
 
 for (const lost of [false, true]) {
-  test(`retirement feature adoption preserves prior ${lost ? 'lost' : 'intact'} intent custody`, async t => {
+  test(`incomplete current retirement schema refuses reopening with ${lost ? 'lost' : 'intact'} intent custody`, async t => {
     const f = await fixture(t);
     const input = intent();
     const original = f.journal.recordSubmittedIntent(f.ref, input, fields, moon);
-    const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+    assert.equal(original.inserted, true);
+    assert.equal(original.observation, 'recorded');
+    f.journal.close();
+    const path = join(f.path, 'client-requests.sqlite3');
+    const db = new DatabaseSync(path);
+    let retained;
     try {
+      retained = db.prepare('SELECT * FROM client_submitted_intents').all();
+      assert.equal(retained.length, 1);
       db.exec('DROP TABLE client_submitted_intent_retirement');
       if (lost) db.exec('DELETE FROM client_submitted_intents');
     } finally {db.close();}
-    await rm(join(f.path, 'submitted-intent-retirement-format.json'));
-    f.restart();
-    if (lost) {
-      assert.equal(f.lookup(), undefined);
-      assert.throws(() => f.journal.recordSubmittedIntent(f.ref, input, fields, moon),
-        {code: 'ClientSubmittedIntentCustodyLost'});
-    } else {
-      const {inserted, observation, ...expected} = original;
-      assert.equal(inserted, true);
-      assert.equal(observation, 'recorded', 'the original invocation observed its preparing intent');
-      assert.deepEqual(f.lookup(), expected);
-    }
-    const check = new DatabaseSync(join(f.path, 'client-requests.sqlite3'), {readOnly: true});
+    const marker = join(f.path, 'submitted-intent-retirement-format.json');
+    await rm(marker);
+    const bytes = await readFile(path);
+    const {dev, ino} = await stat(path, {bigint: true});
+
+    assert.throws(() => f.restart(), {code: 'UnknownClientRequestJournalFormat'});
+    assert.deepEqual(await readFile(path), bytes);
+    const unchanged = await stat(path, {bigint: true});
+    assert.equal(unchanged.dev, dev);
+    assert.equal(unchanged.ino, ino);
+    await assert.rejects(stat(marker), {code: 'ENOENT'});
+    const check = new DatabaseSync(path, {readOnly: true});
     try {
       assert.equal(check.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count, 1);
-      assert.equal(check.prepare('SELECT retired_count FROM client_submitted_intent_retirement').get().retired_count, 0);
+      assert.equal(check.prepare("SELECT name FROM sqlite_master WHERE name = 'client_submitted_intent_retirement'").get(), undefined);
+      assert.deepEqual(check.prepare('SELECT * FROM client_submitted_intents').all(), lost ? [] : retained);
     } finally {check.close();}
   });
 }

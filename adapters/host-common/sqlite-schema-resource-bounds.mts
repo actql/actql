@@ -245,7 +245,8 @@ function inspectRecordDeclarations(pending: number[], page: Buffer,
 }
 
 export function inspectBoundedSqliteSchema(database: OriginalFile, wal: OriginalFile | undefined,
-  limits: SqliteSchemaReadLimits, maxSourceBytes: number, schemaSqlSupport?: readonly string[]) {
+  limits: SqliteSchemaReadLimits, maxSourceBytes: number, schemaSqlSupport?: readonly string[],
+  checkUserVersion?: (version: number) => void) {
   if (!integer(maxSourceBytes) || maxSourceBytes < 512 || database.bytes < 100) unavailable();
   const header: Buffer = apply(alloc, Buffer, [100]);
   at(database.fd, header, 0);
@@ -325,6 +326,9 @@ export function inspectBoundedSqliteSchema(database: OriginalFile, wal: Original
       }
       const observedSize = half(page, 16);
       if ((observedSize === 1 ? 65536 : observedSize) !== pageSize) unavailable();
+      // Page one has already selected the last checked committed WAL image.
+      // Refuse an unsupported version before inspecting its schema records.
+      checkUserVersion?.(be(page, 60) | 0);
     }
     const start = number === 1 ? 100 : 0;
     const type = page[start];

@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {pushdownBodyContract, pushdownOperations} from './pushdown-contract.mjs';
+import {pushdownBodyContract, pushdownOperations, type PushdownCorpus} from './pushdown-contract.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
-const read = path => JSON.parse(readFileSync(path,'utf8'));
+const read = <Value,>(path: string): Value => JSON.parse(readFileSync(path,'utf8'));
 const contract = pushdownBodyContract();
-const corpus = read('portability/corpus/pushdown-contract.json');
+const corpus = read<PushdownCorpus>('portability/corpus/pushdown-contract.json');
 
 // Independent fixed-rule oracle, not the product checker or a generic schema validator.
-function accepts(body, carrier, operations) {
+function accepts(body: PushdownCorpus['cases'][number]['body'], carrier: string, operations: unknown) {
   if (!['relation','graph','events','vectors'].includes(carrier)
     || !Array.isArray(operations) || new Set(operations).size !== operations.length
     || operations.some(x => !pushdownOperations.includes(x))) return false;
@@ -20,11 +20,12 @@ function accepts(body, carrier, operations) {
     && body.operations.every(x=>pushdownOperations.includes(x))
     && (carrier === 'relation' || body.operations.length === 0)
     && operations.length === body.operations.length
-    && operations.every(x=>body.operations.includes(x));
+    && operations.every(x=>(body.operations as unknown[]).includes(x));
 }
 test('pushdown body grammar and semantic dependency pins are registered',()=>{
   assert.deepEqual(pushdownOperations,['projection','filter','order_by','limit','assert_unique_by']);
-  assert.deepEqual(read('spec/contracts/actql-check-environment.json').pushdown_contract_bodies, contract);
+  assert.deepEqual(read<{pushdown_contract_bodies: unknown}>('spec/contracts/actql-check-environment.json').pushdown_contract_bodies,
+    contract);
   assert.deepEqual(contract.schema.oneOf[0], {type:'object',maxProperties:0});
   const structured = contract.schema.oneOf[1];
   assert.equal(structured.additionalProperties,false);

@@ -4,15 +4,22 @@ import {createHash} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 
 const stem = 'spec/contracts/actql-effect-free-local-common-normalization-';
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
-const canonical = value => value === null || typeof value !== 'object' ? JSON.stringify(value)
+type Catalog = {rules: {id: string}[]; applicability: object};
+type Schema = {additionalProperties: boolean; properties: {applicability: unknown; rules: unknown}};
+type Fixture = {catalog_preimage: string; catalog_cid: string; journal_preimage: string; journal_cid: string};
+type SourceFixture = Fixture & {journal_wire: string; three_stage_preimage: string;
+  three_stage_journal_cid: string; three_stage_wire: string};
+type Journal = {rule_catalog_cid: string; entries: {path: string; rule: string}[]};
+
+const read = <Value,>(path: string): Value => JSON.parse(readFileSync(path, 'utf8'));
+const canonical = (value: unknown): string => value === null || typeof value !== 'object' ? JSON.stringify(value)!
   : Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
-  : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}';
-const hash = text => 'sha256:' + createHash('sha256').update(text).digest('hex');
+  : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical((value as Record<string, unknown>)[key])).join(',') + '}';
+const hash = (text: string) => 'sha256:' + createHash('sha256').update(text).digest('hex');
 
 export function verifyCommonLocalNormalizationCatalog() {
-  const catalog = read(stem + 'catalog.json'), schema = read(stem + 'catalog.schema.json');
-  const fixture = read(stem + 'fixture.json');
+  const catalog = read<Catalog>(stem + 'catalog.json'), schema = read<Schema>(stem + 'catalog.schema.json');
+  const fixture = read<Fixture>(stem + 'fixture.json');
   assert.equal(canonical(catalog), fixture.catalog_preimage);
   assert.equal(hash(fixture.catalog_preimage), fixture.catalog_cid);
   assert.equal(hash(fixture.journal_preimage), fixture.journal_cid);
@@ -31,8 +38,8 @@ export function verifyCommonLocalNormalizationCatalog() {
 
 export function verifySourceLocalNormalizationCatalog() {
   const sourceStem = 'spec/contracts/actql-effect-free-local-source-normalization-';
-  const catalog = read(sourceStem + 'catalog.json'), schema = read(sourceStem + 'catalog.schema.json');
-  const fixture = read(sourceStem + 'fixture.json'), prior = read(stem + 'catalog.json');
+  const catalog = read<Catalog>(sourceStem + 'catalog.json'), schema = read<Schema>(sourceStem + 'catalog.schema.json');
+  const fixture = read<SourceFixture>(sourceStem + 'fixture.json'), prior = read<Catalog>(stem + 'catalog.json');
   assert.equal(canonical(catalog), fixture.catalog_preimage);
   assert.equal(hash(fixture.catalog_preimage), fixture.catalog_cid);
   assert.deepEqual(catalog.rules.filter(rule => rule.id !== 'actql.source.sole-view-completion'), prior.rules);
@@ -44,7 +51,7 @@ export function verifySourceLocalNormalizationCatalog() {
     [fixture.journal_preimage, fixture.journal_cid, fixture.journal_wire],
     [fixture.three_stage_preimage, fixture.three_stage_journal_cid, fixture.three_stage_wire],
   ]) {
-    const value = JSON.parse(preimage);
+    const value: Journal = JSON.parse(preimage);
     assert.equal(canonical(value), preimage);
     assert.equal(value.rule_catalog_cid, fixture.catalog_cid);
     assert.equal(value.entries.length, 1);

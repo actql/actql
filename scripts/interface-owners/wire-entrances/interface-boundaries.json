@@ -712,7 +712,7 @@
                 "anchor": "\"requirement_id\": \"actql.protocol.run/run-observation.state-revision\""
               },
               {
-                "path": "scripts/protocol-value-contracts.test.mjs",
+                "path": "scripts/protocol-value-contracts.test.mts",
                 "anchor": "actual generated structural type validator keeps enum shape"
               },
               {

@@ -15,17 +15,26 @@ import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiag
 
 test('Native requirements construction stays inside the original business scope with its typed failure', async () => {
   const source = await readFile(new URL('../src/cmd/native_client/local_command_business_preparation.mbt', import.meta.url), 'utf8');
-  const enclosed = `let requirements = self.with_business_request(capture, () => {
-    if local_terminal_serialization_occurrence(prepared) is Some(_) {
-      return None
-    }
-    match @local_values.prepare_source_free_runtime_requirements_result(
-      prepared, runtime.installed_contracts, assets.values, Some(assets.fragment), assets.ordered,
-    ) {
-      Ok(original) => Some(original)
-      Err(issue) => local_stop_runtime_requirements(issue)
-    }
-  })`.replace(/\s+/gu, ' ');
+  const entry = 'let (requirements, terminal_content) = self.with_business_request(';
+  const enclosed = `${entry}
+    capture,
+    () => {
+      if local_terminal_serialization_occurrence(prepared) is Some(_) {
+        return (None, true)
+      }
+      match
+        @local_values.prepare_source_free_runtime_requirements_result(
+          prepared,
+          runtime.installed_contracts,
+          assets.values,
+          Some(assets.fragment),
+          assets.ordered,
+        ) {
+        Ok(original) => (Some(original), false)
+        Err(issue) => local_stop_runtime_requirements(issue)
+      }
+    },
+  )`.replace(/\s+/gu, ' ');
   const verify = body => {
     assert.equal(body.split('@local_values.prepare_source_free_runtime_requirements_result(').length, 2);
     // Source-enclosure regression only. The installed Native case must still
@@ -34,8 +43,12 @@ test('Native requirements construction stays inside the original business scope 
       'The unchanged constructor and typed failure must share the original business callback');
   };
   verify(source);
-  assert.throws(() => verify(source.replace('let requirements = self.with_business_request(capture, () => {', 'let requirements = (() => {')));
-  assert.throws(() => verify(source.replace('Err(issue) => local_stop_runtime_requirements(issue)', 'Err(issue) => stop("LocalBusinessProgramUnavailable")')));
+  assert.throws(() => verify(source.replace(entry, 'let (requirements, terminal_content) = outside_business_request(')),
+    {code: 'ERR_ASSERTION'});
+  assert.throws(() => verify(source.replace('return (None, true)', 'return (None, false)')),
+    {code: 'ERR_ASSERTION'});
+  assert.throws(() => verify(source.replace('Err(issue) => local_stop_runtime_requirements(issue)',
+    'Err(issue) => stop("LocalBusinessProgramUnavailable")')), {code: 'ERR_ASSERTION'});
 });
 
 test('Native Mock borrows installed Query contracts before suspending the original Journal Read', async () => {

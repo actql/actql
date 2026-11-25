@@ -10,12 +10,13 @@ import {publicWireLanguageVectors} from './fixtures/public-wire-language-vectors
 
 const empty = {version: 1, baseline: '0.1', entries: []};
 const future = ['0', '2'].join('.');
-const source = version => `const binding = 'actql-installed-duckdb-target/${version}';`;
+type Inventory = Parameters<typeof violations>[1];
+const source = (version: string) => `const binding = 'actql-installed-duckdb-target/${version}';`;
 
 test('existing cross-language old-version refusals admit only their two exact negative contexts', () => {
-  const path = 'scripts/fixtures/public-wire-language-vectors.mjs';
+  const path = 'scripts/fixtures/public-wire-language-vectors.mts';
   const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const inventory: Inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url), 'utf8'));
   const found = occurrences(text, path);
   assert.equal(found.length, 2);
   assert.deepEqual(found.map(value => value.token).sort(),
@@ -35,7 +36,7 @@ test('existing cross-language old-version refusals admit only their two exact ne
 test('BigQuery Job format refusal admits only its original negative context once', () => {
   const path = 'adapters/connectors/bigquery/test/bigquery-node-bridge.test.mjs';
   const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const inventory: Inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url), 'utf8'));
   const found = occurrences(text, path);
   assert.equal(found.length, 1);
   assert.equal(found[0].token, 'actql.bigquery-job-original/' + future);
@@ -100,7 +101,7 @@ test('legacy inventory cannot authorize another file, context or duplicate', () 
 test('reviewed local verification pool admits only its exact script context once', () => {
   const path = 'scripts/local-checks-guard.mjs';
   const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const inventory: Inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url), 'utf8'));
   const token = 'actql-local-heavy-pool/' + String(1);
   const found = occurrences(text, path).filter(entry => entry.token === token);
   assert.equal(found.length, 1);
@@ -144,7 +145,7 @@ test('repository scan catches a real tracked mutation and a new untracked writer
 // Test exact product contexts against the real inventory. No legacy allowance
 // may revive the migrated writer or authorize a fresh benchmark consumer.
 test('policy candidate owner and consumers stay on the initial contract', () => {
-  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const inventory: Inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url), 'utf8'));
   const current = 'actql-policy-candidates/0.1';
   const changed = current.replace('0.1', future);
   assert.equal(inventory.entries.some(entry => entry.token === changed), false);
@@ -164,7 +165,7 @@ test('policy candidate owner and consumers stay on the initial contract', () => 
 test('project configuration malformed-version refusal registers exactly its original negative context', () => {
   const path = 'src/run_publication_host/client_project_configuration_wbtest.mbt';
   const source = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const inventory: Inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url), 'utf8'));
   const found = occurrences(source, path);
   assert.equal(found.length, 1);
   assert.equal(found[0].token, 'actql-config/' + future);
@@ -199,8 +200,8 @@ test('complete repository scan checks tracked and unstaged paths beyond one MiB'
     {cwd: directory, maxBuffer: 16 * 1024 * 1024});
   assert(listed.byteLength > 1024 * 1024);
   assert.deepEqual(repositoryOccurrences(directory).map(value => value.path), paths);
-  assert.throws(() => checkRepository(directory), error =>
-    error.message.includes(paths[0]) && error.message.includes(paths.at(-1)));
+  assert.throws(() => checkRepository(directory), (error: unknown) =>
+    (error as Error).message.includes(paths[0]) && (error as Error).message.includes(paths.at(-1)!));
   for (const path of paths) writeFileSync(join(directory, path), source('0.1'));
   assert.doesNotThrow(() => checkRepository(directory));
 });
@@ -211,7 +212,7 @@ test('owned occurrence locations preserve LF counts and exact contexts across sk
   const first = 'actql-private/' + future, second = 'urn:aoa:frame:' + future;
   const text = 'astral \u{1f642}\r\nactql-same/0.1\n' +
     "'https://pypi.org/project/actql/" + future + "/'\n" + first + '\r\n\u2028' + second + '\n';
-  const expected = [[first, 4], [second, 5]].map(([token, line]) => {
+  const expected = ([[first, 4], [second, 5]] as const).map(([token, line]) => {
     const offset = text.indexOf(token);
     return {path, token, line, contextSha256: createHash('sha256')
       .update(text.slice(Math.max(0, offset - 80), offset + token.length + 80)).digest('hex')};
@@ -226,10 +227,10 @@ test('owned scanner visits line and URL prefixes once per immutable input instea
       'x'.repeat(1500) + ' actql-owned-' + index + '/' + future + '\n').join('');
     let inspected = 0;
     const original = {
-      matchAll: expression => text.matchAll(expression),
-      slice(start, end = text.length) {inspected += Math.max(0, end - start); return text.slice(start, end);},
-      lastIndexOf(needle, offset) {inspected += offset + 1; return text.lastIndexOf(needle, offset);},
-      indexOf(needle, offset = 0) {
+      matchAll: (expression: RegExp) => text.matchAll(expression),
+      slice(start: number, end = text.length) {inspected += Math.max(0, end - start); return text.slice(start, end);},
+      lastIndexOf(needle: string, offset: number) {inspected += offset + 1; return text.lastIndexOf(needle, offset);},
+      indexOf(needle: string, offset = 0) {
         const found = text.indexOf(needle, offset);
         inspected += (found < 0 ? text.length : found + needle.length) - offset;
         return found;
@@ -237,9 +238,10 @@ test('owned scanner visits line and URL prefixes once per immutable input instea
       toString: () => text,
     };
     const textView = new Proxy(original, {get(target, name) {
-      if (typeof name === 'string' && /^(?:0|[1-9][0-9]*)$/u.test(name)) return text[name];
+      if (typeof name === 'string' && /^(?:0|[1-9][0-9]*)$/u.test(name))
+        return text[name as unknown as number];
       return Reflect.get(target, name);
-    }});
+    }}) as Parameters<typeof occurrences>[0];
     const found = occurrences(textView, 'controlled-source.mjs');
     assert.deepEqual(found, occurrences(text, 'controlled-source.mjs'));
     assert.equal(found.length, 160);
@@ -251,7 +253,7 @@ test('owned scanner visits line and URL prefixes once per immutable input instea
 test('usage observation reader admits only the reviewed existing reported-format context', () => {
   const path = 'src/run_publication/model_capture_usage.mbt';
   const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const inventory: Inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url), 'utf8'));
   const found = occurrences(text, path);
   assert.equal(found.length, 1);
   assert.equal(found[0].token, 'actql-model-invocation-evidence/' + future);

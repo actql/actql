@@ -12,31 +12,36 @@ export const tryNumberIdentityLaw = {
 };
 
 const profileSuffix = ' A try_number occurrence whose original checked operand is Number is an ordinary scalar identity, not a String parsing evaluation; it requires no text-time parsing profile or envelope. String occurrences retain the complete profile and envelope requirements.';
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
+type Expression = Parameters<typeof registerExpressionFragment>[1] & {laws: {
+  try_number: typeof tryNumberIdentityLaw; pure_profile_admission: string; profile_binding: string;
+}};
+type Scalar = {conversion_truth_table: {try_number: typeof tryNumberIdentityLaw}};
+type Owner = Parameters<typeof registerExpressionFragment>[0] & {rela_scalar_law_manifest_cid: string};
+const read = <Value,>(path: string): Value => JSON.parse(readFileSync(path, 'utf8'));
 export function verifyTryNumberIdentityContracts(write = false) {
   const expressionPath = 'spec/contracts/actql-expressions.json';
   const scalarPath = 'spec/dependencies/aoa-rela-scalar-laws.json';
-  const expression = read(expressionPath), scalar = read(scalarPath);
+  const expression = read<Expression>(expressionPath), scalar = read<Scalar>(scalarPath);
   if (write) {
     expression.laws.try_number = structuredClone(tryNumberIdentityLaw);
-    for (const name of ['pure_profile_admission', 'profile_binding']) {
+    for (const name of ['pure_profile_admission', 'profile_binding'] as const) {
       if (!expression.laws[name].endsWith(profileSuffix)) expression.laws[name] += profileSuffix;
     }
     scalar.conversion_truth_table.try_number = structuredClone(tryNumberIdentityLaw);
     writeFileSync(expressionPath, JSON.stringify(expression, null, 2) + '\n');
     writeFileSync(scalarPath, JSON.stringify(scalar, null, 2) + '\n');
-    const aoaPath = 'spec/contracts/actql-aoa.json', aoa = read(aoaPath);
+    const aoaPath = 'spec/contracts/actql-aoa.json', aoa = read<Owner>(aoaPath);
     aoa.expression_contract_cid = machineCid(expression);
     aoa.rela_scalar_law_manifest_cid = machineCid(scalar);
-    const registryPath = aoa.pipeline_registry_file, registry = read(registryPath);
+    const registryPath = aoa.pipeline_registry_file, registry = read<Record<string, unknown>>(registryPath);
     registerExpressionFragment(aoa, expression, registry);
     writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
     writeFileSync(aoaPath, JSON.stringify(aoa, null, 2) + '\n');
   }
   assert.deepEqual(expression.laws.try_number, tryNumberIdentityLaw);
   assert.deepEqual(scalar.conversion_truth_table.try_number, tryNumberIdentityLaw);
-  for (const name of ['pure_profile_admission', 'profile_binding']) assert.ok(expression.laws[name].endsWith(profileSuffix));
-  const aoa = read('spec/contracts/actql-aoa.json');
+  for (const name of ['pure_profile_admission', 'profile_binding'] as const) assert.ok(expression.laws[name].endsWith(profileSuffix));
+  const aoa = read<Owner>('spec/contracts/actql-aoa.json');
   checkRegistration(aoa, expression, read(aoa.pipeline_registry_file));
   return {expression: machineCid(expression), scalar: machineCid(scalar)};
 }

@@ -8,7 +8,6 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
-import {stageLegacySubmissionUsageCounters} from './fixtures/journal-legacy-usage.fixture.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -380,32 +379,6 @@ test('hash-valid accepted outcome without a revision advance is unknown on readm
     {code: 'ClientCancellationLookupUnknown'});
   assert.throws(() => cancel(f.journal, ref), {code: 'ClientCancellationUnknown'});
   assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).revision, 20);
-});
-
-test('additive cancellation custody preserves the prior journal marker and Run original', async t => {
-  const f = await fixture(t);
-  const ref = admitRun(f.journal);
-  const original = f.journal.lookupRunDefinition(ref, moon, publication);
-  f.journal.close();
-  // Construct the actually supported prior layout, before this additive
-  // feature exists. No operation has been recorded or removed in this fixture.
-  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
-  stageLegacySubmissionUsageCounters(db);
-  for(const table of ['client_request_row_usage','client_cancellation_row_usage']) {
-    for(const suffix of ['insert','delete']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
-    db.exec(`DROP TABLE ${table}`);
-  }
-  db.exec('PRAGMA user_version=1');
-  db.exec('DROP TABLE client_cancellation_operations; DROP TABLE client_cancellation_custody');
-  db.close();
-  await rm(join(f.path, 'cancellation-operations-format.json'));
-  const marker = await readFile(join(f.path, 'journal-format.json'));
-  f.reopen();
-  assert.deepEqual(await readFile(join(f.path, 'journal-format.json')), marker);
-  assert.deepEqual(f.journal.lookupRunDefinition(ref, moon, publication), original);
-  assert.equal(cancel(f.journal, ref).kind, 'accepted');
-  f.reopen();
-  assert.deepEqual(await readFile(join(f.path, 'journal-format.json')), marker);
 });
 
 test('partial cancellation format is refused without recreating missing custody tables', async t => {

@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
-import {existsSync} from 'node:fs';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync,StatementSync} from 'node:sqlite';
 import {openClientRequestJournal} from './client-request-journal.mjs';
-import {stageLegacySubmissionUsageCounters} from './fixtures/journal-legacy-usage.fixture.mjs';
 
 const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
@@ -54,13 +52,6 @@ function aggregateCounter(t) {
   return {scans,arm(){armed=true;}};
 }
 
-function removeRequestRowUsage(database) {
-  for(const table of ['client_request_row_usage','client_cancellation_row_usage']) {
-    for(const suffix of ['insert','delete']) database.exec(`DROP TRIGGER ${table}_${suffix}`);
-    database.exec(`DROP TABLE ${table}`);
-  }
-}
-
 for (const history of [0,5,25]) {
   test(`new submitted intent uses no historical aggregate with ${history} retained originals`,async t => {
     const counter = aggregateCounter(t), f = await fixture(t);
@@ -78,7 +69,7 @@ for (const history of [0,5,25]) {
     f.journal.close();
     const reopened = f.open();
     assert.equal(reopened.lookupSubmittedIntent(reference,fields,moon).intentCid,result.intentCid);
-    assert.deepEqual(counter.scans,[],'complete ordinary open does not rerun aggregate adoption');
+    assert.deepEqual(counter.scans,[],'current ordinary open performs no history aggregate');
   });
 }
 
@@ -150,30 +141,6 @@ test('lost submitted-intent COMMIT response keeps the same original and exact us
   assert.equal(f.open().lookupSubmittedIntent(reference,fields,moon).requestId,requestId);
 });
 
-test('legacy usage adoption scans one bounded original prefix once and never recreates lost issuance',async t => {
-  const f = await fixture(t), reference = f.ref('legacy');
-  const retained = f.journal.recordSubmittedIntent(reference,intent(),fields,moon);
-  f.journal.close();
-  f.database(db => {
-    for(const table of ['client_submitted_intent_usage','client_submission_restart_usage']) {
-      for(const suffix of ['insert','delete','update']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
-      db.exec(`DROP TABLE ${table}`);
-    }
-    removeRequestRowUsage(db);
-    db.exec('PRAGMA user_version=0');
-  });
-  await rm(join(f.directory,'submission-usage-format.json'),{force:true});
-  const counter = aggregateCounter(t);
-  counter.arm();
-  const reopened = f.open();
-  assert.equal(counter.scans.length,2,'only the two bounded one-time adoption aggregates');
-  assert.equal(reopened.lookupSubmittedIntent(reference,fields,moon).requestId,retained.requestId);
-  reopened.close();
-  counter.scans.length=0;
-  f.open();
-  assert.deepEqual(counter.scans,[]);
-});
-
 test('explicit restart keeps original link usage and unchanged issuance without a history aggregate',async t => {
   const f = await fixture(t,{maxRecords:1}), counter = aggregateCounter(t);
   const prior = f.ref('unresolved');
@@ -202,54 +169,6 @@ test('explicit restart keeps original link usage and unchanged issuance without 
     {code:'ClientSubmissionRestartCustodyLost'});
 });
 
-test('legacy usage adoption preserves formal retirements instead of treating issued as retained',async t => {
-  const f = await fixture(t,{maxRecords:1}), reference = f.ref('retire-before-upgrade');
-  const first = f.journal.recordSubmittedIntent(reference,intent(),fields,moon);
-  f.journal.completeSubmittedIntent(reference,{kind:'preparation_failed',submissionRef:reference,
-    intentCid:first.intentCid,problem:{code:'FixtureFailure',classification:'operation_failed'}},
-  {...fields,connection,expectedRevision:0},moon);
-  f.now(start+1000);
-  f.journal.retireSubmittedIntent(reference,{...fields,expectedRevision:1},moon);
-  f.journal.close();
-  f.database(db => {
-    for(const table of ['client_submitted_intent_usage','client_submission_restart_usage']) {
-      for(const suffix of ['insert','delete','update']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
-      db.exec(`DROP TABLE ${table}`);
-    }
-    removeRequestRowUsage(db);
-    db.exec('PRAGMA user_version=0');
-  });
-  await rm(join(f.directory,'submission-usage-format.json'),{force:true});
-  const reopened = f.open();
-  assert.equal(reopened.recordSubmittedIntent(f.ref('after-retirement',reopened),intent(),fields,moon).inserted,true);
-  f.database(db => {
-    assert.equal(db.prepare('SELECT retained_count FROM client_submitted_intent_usage').get().retained_count,1);
-    assert.equal(db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count,2);
-    assert.equal(db.prepare('SELECT retired_count FROM client_submitted_intent_retirement').get().retired_count,1);
-  });
-});
-
-test('legacy usage adoption refuses missing original intent custody without replacing it',async t => {
-  const f = await fixture(t);
-  f.journal.recordSubmittedIntent(f.ref('lost-legacy'),intent(),fields,moon);
-  f.journal.close();
-  f.database(db => {
-    for(const table of ['client_submitted_intent_usage','client_submission_restart_usage']) {
-      for(const suffix of ['insert','delete','update']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
-      db.exec(`DROP TABLE ${table}`);
-    }
-    removeRequestRowUsage(db);
-    db.exec('PRAGMA user_version=0');
-    db.exec('DELETE FROM client_submitted_intents');
-  });
-  await rm(join(f.directory,'submission-usage-format.json'),{force:true});
-  assert.throws(()=>f.open(),{code:'ClientSubmittedIntentCustodyLost'});
-  f.database(db => {
-    assert.equal(db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count,1);
-    assert.equal(db.prepare("SELECT name FROM sqlite_master WHERE name='client_submitted_intent_usage'").get(),undefined);
-  });
-});
-
 test('retained byte quota refuses before changing original intent or issuance',async t => {
   const f = await fixture(t), reference = f.ref('quota');
   // A negative private accounting-row fixture, not allocated payload backing,
@@ -264,85 +183,8 @@ test('retained byte quota refuses before changing original intent or issuance',a
   });
 });
 
-for(const afterCommit of [false,true]) {
-  test(`usage adoption recovers after a lost native COMMIT response ${afterCommit?'after':'before'} commit`,async t => {
-    const directory = await mkdtemp(join(tmpdir(),'actql-submission-usage-adoption-'));
-    let journal;
-    t.after(async()=>{journal?.close(); await rm(directory,{recursive:true});});
-    // Target retained-format adoption, not unpublished fresh initialization.
-    // The existing fresh schema commits before it publishes any format marker.
-    openClientRequestJournal(directory).close();
-    const legacy = new DatabaseSync(join(directory,'client-requests.sqlite3'));
-    try {
-      for(const table of ['client_submitted_intent_usage','client_submission_restart_usage']) {
-        for(const suffix of ['insert','delete','update']) legacy.exec(`DROP TRIGGER ${table}_${suffix}`);
-        legacy.exec(`DROP TABLE ${table}`);
-      }
-      removeRequestRowUsage(legacy);
-      legacy.exec('PRAGMA user_version=0');
-    } finally {legacy.close();}
-    const exec = DatabaseSync.prototype.exec;
-    let lost = false;
-    const intercepted = t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
-      if (!lost && sql==='COMMIT' && this.prepare(
-        "SELECT name FROM sqlite_master WHERE name='client_submitted_intent_usage'").get()) {
-        lost = true;
-        if(afterCommit) Reflect.apply(exec,this,[sql]);
-        throw Object.assign(new Error('lost usage adoption commit response'),{code:'EIO'});
-      }
-      return Reflect.apply(exec,this,[sql]);
-    });
-    try {
-      assert.throws(()=>openClientRequestJournal(directory),
-        error=>error.code==='ClientRequestJournalCommitOutcomeUnknown'&&error.outcome==='unknown');
-      assert.equal(lost,true);
-    } finally {intercepted.mock.restore();}
-    const counter = aggregateCounter(t);
-    counter.arm();
-    journal = openClientRequestJournal(directory);
-    assert.equal(counter.scans.length,afterCommit?0:2);
-    journal.close();
-    counter.scans.length=0;
-    journal = openClientRequestJournal(directory);
-    assert.deepEqual(counter.scans,[]);
-    const database = new DatabaseSync(join(directory,'client-requests.sqlite3'));
-    try {
-      assert.equal(database.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count,0);
-      assert.equal(database.prepare('SELECT retired_count FROM client_submitted_intent_retirement').get().retired_count,0);
-    } finally {database.close();}
-  });
-}
-
-for(const marker of ['absent','partial']) {
-  test(`complete pre-header usage finishes its original format when the old marker is ${marker}`,async t => {
-    const f = await fixture(t), reference = f.ref('same-original');
-    const retained = f.journal.recordSubmittedIntent(reference,intent(),fields,moon);
-    f.journal.close();
-    const before = f.database(db=>{
-      stageLegacySubmissionUsageCounters(db);
-      removeRequestRowUsage(db);
-      db.exec('PRAGMA user_version=0');
-      return {...db.prepare('SELECT * FROM client_submitted_intent_usage').get()};
-    });
-    const path = join(f.directory,'submission-usage-format.json');
-    if(marker==='partial') await writeFile(path,'{"version":',{mode:0o600});
-    const counter = aggregateCounter(t);
-    counter.arm();
-    const reopened = f.open();
-    assert.equal(reopened.lookupSubmittedIntent(reference,fields,moon).requestId,retained.requestId);
-    assert.deepEqual(counter.scans,[]);
-    f.database(db=>{
-      assert.equal(db.prepare('PRAGMA user_version').get().user_version,3);
-      assert.deepEqual({...db.prepare('SELECT * FROM client_submitted_intent_usage').get()},before);
-      assert.equal(db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count,1);
-    });
-    if(marker==='partial') assert.equal(await readFile(path,'utf8'),'{"version":');
-    else assert.equal(existsSync(path),false,'no separate marker acquisition remains');
-  });
-}
-
 for(const loss of ['table','row','trigger']) {
-  test(`adopted submission usage ${loss} loss refuses without rebuilding coverage`,async t => {
+  test(`current submission usage ${loss} loss refuses without rebuilding coverage`,async t => {
     const f = await fixture(t);
     f.journal.recordSubmittedIntent(f.ref('retained'),intent(),fields,moon);
     f.journal.close();

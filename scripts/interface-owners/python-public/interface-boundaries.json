@@ -9456,7 +9456,7 @@
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
-                "path": "scripts/protocol-value-contracts.test.mjs",
+                "path": "scripts/protocol-value-contracts.test.mts",
                 "anchor": "actual generated structural type validator keeps enum shape"
               },
               {

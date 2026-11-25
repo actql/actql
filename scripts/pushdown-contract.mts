@@ -2,9 +2,15 @@ import {readFileSync} from 'node:fs';
 import {machineCid} from './actql-spec-family.mjs';
 
 export const pushdownOperations = ['projection','filter','order_by','limit','assert_unique_by'];
+type PushdownBody = {version?: unknown; carrier?: unknown; operations?: unknown};
+type Vector = {id: string; body: PushdownBody | null; carrier: string; operations: unknown} & (
+  {accepted: true; expected_body_cid: string} | {accepted: false; expected_body_cid?: never}
+);
+export type PushdownCorpus = {version: string; cases: Vector[]};
+
 export function pushdownBodyContract() {
-  const pin = (path, pointer = '') => {
-    const body = JSON.parse(readFileSync(path, 'utf8'));
+  const pin = (path: string, pointer = '') => {
+    const body: unknown = JSON.parse(readFileSync(path, 'utf8'));
     return {path, pointer, cid: machineCid(body)};
   };
   return {
@@ -15,7 +21,7 @@ export function pushdownBodyContract() {
         carrier:{enum:['relation','graph','events','vectors']},
         operations:{type:'array',uniqueItems:true,items:{enum:pushdownOperations}},
       },allOf:[{if:{properties:{carrier:{enum:['graph','events','vectors']}}},then:{properties:{operations:{maxItems:0}}}}]},
-    ]},
+    ] as const},
     semantics: {
       empty_body:'no_pushdown_operations_on_any_carrier',
       sourceview_agreement:'carrier_equal_when_present_and_same_operation_set_without_rewriting_either_array',

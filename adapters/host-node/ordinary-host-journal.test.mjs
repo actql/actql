@@ -59,32 +59,24 @@ test('fresh Journal initialization shares one actual directory ACK after every o
   finally {after.close();}
 });
 
-test('existing legacy Journal upgrades keep each original marker directory ACK', async t => {
-  const directory = await mkdtemp(join(tmpdir(), 'actql-journal-upgrade-sync-'));
-  const exec = DatabaseSync.prototype.exec, boundary = new Error('legacy schema fixture boundary');
-  let legacyDatabase, legacySql, journal;
-  DatabaseSync.prototype.exec = function(sql) {
-    const result = Reflect.apply(exec, this, [sql]);
-    if (/CREATE TABLE IF NOT EXISTS client_requests/u.test(sql)) {legacyDatabase = this; legacySql = sql; throw boundary;}
-    return result;
-  };
-  try {assert.throws(() => openClientRequestJournal(directory), error => error === boundary);}
-  finally {DatabaseSync.prototype.exec = exec;}
-  assert.equal(legacyDatabase.isOpen, false);
-  // The failed fresh transaction rolled back the base table too. Build this
-  // older-format fixture from its captured original DDL, outside product open.
-  const legacy = new DatabaseSync(join(directory, 'client-requests.sqlite3'));
-  try {legacy.exec(legacySql);} finally {legacy.close();}
-  // A complete base-format fixture, before any submission authority or
-  // additive feature ever existed; not a relabelled adopted Journal.
+test('legacy Journal refusal issues no marker file or directory acknowledgement', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-journal-legacy-sync-'));
+  const path = join(directory, 'client-requests.sqlite3');
+  const legacy = new DatabaseSync(path);
+  try {
+    legacy.exec("CREATE TABLE client_requests(original TEXT); INSERT INTO client_requests VALUES ('original');");
+  } finally {legacy.close();}
   fs.writeFileSync(join(directory, 'journal-format.json'), JSON.stringify({
     version: 'actql-client-request-journal/0.1', isolation: 'execution-namespace',
   }), {mode: 0o600});
-  t.after(() => journal?.close());
-  const observed = initializationSyncs(directory, () => journal = openClientRequestJournal(directory));
-  assert.equal(observed.files.length, 7);
-  assert.equal(observed.directories.length, 7);
-  assert.deepEqual(observed.directories.map(value => value.files.length), [1, 2, 3, 4, 5, 6, 7]);
+  const names = fs.readdirSync(directory).sort();
+  const bytes = names.map(name => fs.readFileSync(join(directory, name)));
+  const observed = initializationSyncs(directory, () =>
+    assert.throws(() => openClientRequestJournal(directory), {code: 'LegacyClientRequestJournalFormat'}));
+  assert.deepEqual(observed.files, []);
+  assert.deepEqual(observed.directories, []);
+  assert.deepEqual(fs.readdirSync(directory).sort(), names);
+  assert.deepEqual(names.map(name => fs.readFileSync(join(directory, name))), bytes);
 });
 
 for (const failClose of [false, true]) {
@@ -324,7 +316,9 @@ test('owned native format refusal retains the captured close and Store exclusion
     await first.openRequestJournal(join(root,'requests'),{});
     assert.equal((await first.close()).pending,false);
     const db=new DatabaseSync(join(root,'requests','client-requests.sqlite3'));
-    db.exec('PRAGMA user_version=99');db.close();
+    // Current version and valid DDL reach the captured native reader. Its
+    // original singleton refusal must retain that reader until real close.
+    db.exec('DELETE FROM client_submission_custody');db.close();
     const nativeClose=DatabaseSync.prototype.close,nativeOpen=DatabaseSync.prototype.open;
     let allow=false,closes=0,replacements=0,opens=0;
     const failure=new Error('OriginalNativeClosePending');

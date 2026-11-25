@@ -6,7 +6,6 @@ import {join} from 'node:path';
 import {DatabaseSync, StatementSync} from 'node:sqlite';
 import test from 'node:test';
 import {openClientRequestJournal} from './client-request-journal.mjs';
-import {stageLegacySubmissionUsageCounters} from './fixtures/journal-legacy-usage.fixture.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from './local-account-config.mjs';
@@ -365,12 +364,12 @@ test('one actual submit and cold reopen use no whole-history quota aggregate',as
   const reopened=openClientRequestJournal(f.root,{submissionEpochNow:()=>start+20});
   try {
     assert.equal(reopened.lookupSubmittedIntent(f.request.submissionRef,fields,moon).phase,'ready');
-    assert.deepEqual(queries,[],'an adopted ordinary reopen does not recount unrelated names or cancellations');
+    assert.deepEqual(queries,[],'a current ordinary reopen does not recount unrelated names or cancellations');
   } finally {reopened.close();}
 });
 
 for(const loss of ['table','row','trigger']) {
-  test(`adopted request usage ${loss} loss refuses instead of resetting issuance`,async t=>{
+  test(`current request usage ${loss} loss refuses instead of resetting issuance`,async t=>{
     const f=await fixture(t);
     assert.equal((await f.service.submitAttempt(f.request)).outcome.kind,'ready');
     f.journal.close();
@@ -384,35 +383,6 @@ for(const loss of ['table','row','trigger']) {
     finally {retained.close();}
   });
 }
-
-test('prior request quota adoption preserves original issued counts and commits no new Run',async t=>{
-  const f=await fixture(t);
-  assert.equal((await f.service.submitAttempt(f.request)).outcome.kind,'ready');
-  f.journal.close();
-  const database=new DatabaseSync(join(f.root,'client-requests.sqlite3'));
-  try {
-    stageLegacySubmissionUsageCounters(database);
-    for(const table of ['client_request_row_usage','client_cancellation_row_usage']) {
-      for(const suffix of ['insert','delete']) database.exec(`DROP TRIGGER ${table}_${suffix}`);
-      database.exec(`DROP TABLE ${table}`);
-    }
-    database.exec('PRAGMA user_version=1');
-  } finally {database.close();}
-  const queries=[], get=StatementSync.prototype.get;
-  t.mock.method(StatementSync.prototype,'get',function(...args) {
-    if(/\bCOUNT\s*\(/iu.test(this.sourceSQL)) queries.push(this.sourceSQL);
-    return Reflect.apply(get,this,args);
-  });
-  const reopened=openClientRequestJournal(f.root,{submissionEpochNow:()=>start+20});
-  try {
-    assert.equal(queries.length,2,'only two bounded same-original adoption counts');
-    assert(queries.every(sql=>sql.includes('LIMIT ?')));
-    assert.equal(reopened.lookupSubmittedIntent(f.request.submissionRef,fields,moon).phase,'ready');
-  } finally {reopened.close();}
-  queries.length=0;
-  const again=openClientRequestJournal(f.root,{submissionEpochNow:()=>start+30});
-  try {assert.deepEqual(queries,[]);} finally {again.close();}
-});
 
 test('an interval crossed during preparation is durably expired without repeated authentication', async t => {
   let f;

@@ -3,21 +3,25 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {canonicalText,verifyIdentity} from './check-canonical-json.mjs';
 
-const corpus=JSON.parse(readFileSync('portability/corpus/command-input-presence.json','utf8'));
+type Corpus = {fields: unknown; output_role_body: unknown; cases: {
+  id: string; required_fields: string[]; body_cid: string; envelope_cid: string; command_cid: string; catalog_cid: string;
+}[]};
+type Envelope = {body: unknown; id: string; kind: string; schema: string; version: string; cid?: string};
+const corpus: Corpus=JSON.parse(readFileSync('portability/corpus/command-input-presence.json','utf8'));
 const output=['// Generated from independent fixed corpus by scripts/command-input-presence-vectors.mjs.'];
-const all=new Set();
+const all=new Set<string>();
 for(const vector of corpus.cases){
   const body={additional_properties:false,fields:corpus.fields,required_fields:vector.required_fields};
   verifyIdentity(body,vector.body_cid);
-  const input={body,id:'crm.input',kind:'command_input',schema:'actql.contract/0.1',version:'external'};
+  const input: Envelope={body,id:'crm.input',kind:'command_input',schema:'actql.contract/0.1',version:'external'};
   verifyIdentity(input,vector.envelope_cid);
   input.cid=vector.envelope_cid;
-  const out={body:corpus.output_role_body,id:'crm.output',kind:'command_output',schema:'actql.contract/0.1',version:'external'};
-  const reference=x=>({cid:x.cid,id:x.id,version:x.version});
+  const out: Envelope={body:corpus.output_role_body,id:'crm.output',kind:'command_output',schema:'actql.contract/0.1',version:'external'};
+  const reference=(x: Envelope)=>({cid:x.cid,id:x.id,version:x.version});
   // Independent hashing builds fixture inputs, never expected product output.
-  const hash=value=>'sha256:'+createHash('sha256').update(canonicalText(value)).digest('hex');
+  const hash=(value: unknown)=>'sha256:'+createHash('sha256').update(canonicalText(value)).digest('hex');
   out.cid=hash(out);
-  const command={atomicity:'single_target',command_id:'command:crm.invoke.v1',connector_id:'example',
+  const command: Record<string, unknown> & {contract_cid?: string}={atomicity:'single_target',command_id:'command:crm.invoke.v1',connector_id:'example',
     idempotency:{support:'unsupported'},input_contract:body,input_schema:reference(input),
     minimum_approval:'required',outcome:'synchronous',output_schema:reference(out),permissions:['crm.write'],
     preview:{strength:'exact'},reversibility:'unknown',schema:'actql.command_contract/0.1',
@@ -25,9 +29,9 @@ for(const vector of corpus.cases){
   verifyIdentity(command,vector.command_cid);
   command.contract_cid=vector.command_cid;
   const catalog={commands:[command],connector_id:'example',connector_version:'external-7',
-    contracts:[input,out].sort((a,b)=>a.cid<b.cid?-1:1),schema:'actql.connector_catalog/0.1',source_views:[]};
+    contracts:[input,out].sort((a,b)=>a.cid! < b.cid! ? -1 : 1),schema:'actql.connector_catalog/0.1',source_views:[]};
   verifyIdentity(catalog,vector.catalog_cid);
-  for(const key of ['body_cid','envelope_cid','command_cid','catalog_cid']){
+  for(const key of ['body_cid','envelope_cid','command_cid','catalog_cid'] as const){
     assert.ok(!all.has(vector[key]),'each complete identity remains distinct');all.add(vector[key]);
   }
   output.push('','///|',`test ${JSON.stringify('Command presence fixed identity '+vector.id)} {`,

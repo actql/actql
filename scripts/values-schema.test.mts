@@ -4,6 +4,10 @@ import {readFileSync} from 'node:fs';
 import {cellSchema,checkValuesSchemas,valuesContract,generatorRule} from './values-schema.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 
+type Protocol = Parameters<typeof checkValuesSchemas>[0];
+type AoA = {target_registry_requirements: Record<string, {inputs: string[]; output: string;
+  execution_contract: {pointer: string}}>};
+
 test('cell grammar reserves exact singleton shapes without recursive substitution',()=>{
   const c=cellSchema();
   assert.deepEqual(c.oneOf[0].required,['$param']);
@@ -16,15 +20,15 @@ test('cell grammar reserves exact singleton shapes without recursive substitutio
   assert.deepEqual(generatorRule.then.not,{required:['from']});
 });
 test('constructible contracts exclude opaque domains recursively and retain decimal guards',()=>{
-  const r=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  const r: Protocol=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'));
   const s=valuesContract(parameterPrograms(r)[0].$defs.value_contract);
-  assert.equal(s.oneOf.find(s=>s.properties.type.const==='decimal').allOf.length,38);
+  assert.equal(s.oneOf.find(s=>s.properties.type.const==='decimal')!.allOf!.length,38);
   const serialized=JSON.stringify(s);
   assert.ok(!serialized.includes('"json"')); assert.ok(!serialized.includes('resource_ref'));assert.ok(!serialized.includes('content_ref'));
   assert.ok(!serialized.includes('"#/$defs/value_contract"'));assert.ok(serialized.includes('"#/$defs/values_contract"'));
 });
 test('embedded values contracts and generator rules detect drift',()=>{
-  const r=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  const r: Protocol=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'));
   checkValuesSchemas(r);
   for(const index of [0,1]) {
     const copy=structuredClone(r);
@@ -34,7 +38,7 @@ test('embedded values contracts and generator rules detect drift',()=>{
 });
 
 test('finite and binary Relation operations require their normative registry signatures',()=>{
-  const a=JSON.parse(readFileSync('spec/contracts/actql-aoa.json'));
+  const a: AoA=JSON.parse(readFileSync('spec/contracts/actql-aoa.json','utf8'));
   assert.deepEqual(a.target_registry_requirements['REL.values'].inputs,[]);
   assert.equal(a.target_registry_requirements['REL.values'].output,'relation');
   assert.equal(a.target_registry_requirements['REL.values'].execution_contract.pointer,'/execution_contracts/REL.values');

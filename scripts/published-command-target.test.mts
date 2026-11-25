@@ -4,19 +4,33 @@ import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
-import {parameterPrograms} from './parameter-schema.mjs';
-import {publishedCommandTargetSchema,publishedCommandTargetSchemas} from './published-command-target.mjs';
+import {parameterPrograms, type ProgramRegistry} from './parameter-schema.mjs';
+import {publishedCommandTargetSchema,publishedCommandTargetSchemas,type CommandProgram} from './published-command-target.mjs';
 import {withoutCreateValuesSchema} from './create-values.mjs';
-const read=p=>JSON.parse(readFileSync(p,'utf8'));
-const protocol=read('spec/contracts/actql-protocol-schemas.json');
-const vectors=read('portability/corpus/published-command-selectors.json');
-const command=p=>p.properties.effects.additionalProperties.oneOf.find(m=>m.properties?.command).properties.command;
+type Program = CommandProgram & Parameters<typeof withoutCreateValuesSchema>[0];
+type Protocol = ProgramRegistry<Program>;
+type TargetArm = {additionalProperties: boolean; required: string[];
+  properties: {published_command: {additionalProperties: boolean; required: string[]}}};
+type SelectorCorpus = {previous_program_file: string; previous_program_cid: string; previous_source: string;
+  program_cid: string; qualification: string;
+  programs: {program: {effects: {send: {command: {contract: string; target: object}}}}; cid: string}[]};
+type Command = {contract_cid: string; target: {binding?: unknown}};
+type Catalog = {catalog_cid: string; commands: Command[]};
+type Environment = {evidence_bundle_cid: string; command_contracts: Command[]; connector_catalogs: Catalog[]};
+type TargetCorpus = Record<string, {environment: Environment; environment_cid: string;
+  command_cid: string; catalog_cid: string; binding: unknown}>;
+
+const read=<Value,>(p: string): Value=>JSON.parse(readFileSync(p,'utf8'));
+const protocol=read<Protocol>('spec/contracts/actql-protocol-schemas.json');
+const vectors=read<SelectorCorpus>('portability/corpus/published-command-selectors.json');
+const command=(p: Program)=>p.properties.effects.additionalProperties.oneOf.find(m=>m.properties?.command)!.properties!.command!;
 
 test('canonical Command selector changes only the declared target alternative in both actual Program schemas',()=>{
   publishedCommandTargetSchemas(protocol);
-  const prior=read(vectors.previous_program_file);
+  const prior=read<Program>(vectors.previous_program_file);
   assert.equal(machineCid(prior),vectors.previous_program_cid);
-  assert.deepEqual(prior,JSON.parse(execFileSync('git',['show',vectors.previous_source+':spec/contracts/actql-protocol-schemas.json'],{encoding:'utf8',maxBuffer:16*1024*1024})).artifact_schemas.executable_plan.properties.execution_material.properties.program);
+  assert.deepEqual(prior,(JSON.parse(execFileSync('git',['show',vectors.previous_source+':spec/contracts/actql-protocol-schemas.json'],
+    {encoding:'utf8',maxBuffer:16*1024*1024})) as Protocol).artifact_schemas.executable_plan.properties.execution_material.properties.program);
   const historical=structuredClone(prior);
   command(historical).properties.target.oneOf.push(publishedCommandTargetSchema());
   assert.equal(machineCid(historical),vectors.program_cid,
@@ -36,11 +50,11 @@ test('canonical Command selector changes only the declared target alternative in
 test('real schema gate rejects missing and mutated Command alternatives without replacing old forms',()=>{
   for(const mutate of [
     p=>command(p).properties.target.oneOf.pop(),
-    p=>{command(p).properties.target.oneOf[2].properties.published_command.additionalProperties=true;},
-    p=>{command(p).properties.target.oneOf[2].properties.published_command.required.push('identifier_field');},
-    p=>{command(p).properties.target.oneOf[0].additionalProperties=true;},
-    p=>{command(p).properties.target.oneOf[1].required=[];},
-  ]) {
+    p=>{(command(p).properties.target.oneOf[2] as TargetArm).properties.published_command.additionalProperties=true;},
+    p=>{(command(p).properties.target.oneOf[2] as TargetArm).properties.published_command.required.push('identifier_field');},
+    p=>{(command(p).properties.target.oneOf[0] as TargetArm).additionalProperties=true;},
+    p=>{(command(p).properties.target.oneOf[1] as TargetArm).required=[];},
+  ] satisfies ((p: Program) => unknown)[]) {
     const changed=structuredClone(protocol);mutate(parameterPrograms(changed)[0]);
     assert.throws(()=>publishedCommandTargetSchemas(changed));
   }
@@ -59,8 +73,8 @@ test('independent complete selector Programs retain authored ID-free input and s
 });
 
 test('actual Common fixture inputs retain independently authored complete Command Catalog and environment identities',()=>{
-  const fixtures=read('portability/corpus/published-command-targets.json');
-  const without=(v,key)=>Object.fromEntries(Object.entries(v).filter(([name])=>name!==key));
+  const fixtures=read<TargetCorpus>('portability/corpus/published-command-targets.json');
+  const without=(v: object,key: string)=>Object.fromEntries(Object.entries(v).filter(([name])=>name!==key));
   const moon=readFileSync('src/stage_results/published_command_fixture_test.mbt','utf8');
   for(const c of Object.values(fixtures)) {
     const environment=c.environment;
