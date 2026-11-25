@@ -2,7 +2,7 @@ import type {TestContext} from 'node:test';
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {connectInProcess} from './index.mjs';
+import {connectInProcess} from './internal/client.mjs';
 import {validClientBody, validRunWaitContract} from '@actql/client-wire';
 
 const cid = (digit: string) => `sha256:${digit.repeat(64)}`;

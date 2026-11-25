@@ -1,5 +1,5 @@
 import type {TestContext} from 'node:test';
-import type {Execution} from './index.d.ts';
+import type {Execution} from './index.mjs';
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {connectInProcess} from './host-port.mjs';

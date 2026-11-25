@@ -36,19 +36,37 @@ test('installed declarations follow relative siblings and leave bare dependency 
   writeFileSync(join(installed, 'package.json'), '{"name":"@actql/sdk","type":"module"}');
   writeFileSync(join(peer, 'package.json'), '{"name":"@actql/client-wire","types":"./index.d.ts"}');
   writeFileSync(join(peer, 'index.d.ts'), 'export interface Wire {}');
-  const member = 'internal/transport.d.mts', sibling = join(installed, 'host-port.d.ts');
+  const member = 'internal/transport.d.mts', sibling = join(installed, 'host-port.d.mts');
   writeFileSync(join(installed, member),
-    'export type Port = import("../host-port.d.ts").Host | import("@actql/client-wire").Wire;');
+    'export type Port = import("../host-port.d.mts").Host | import("@actql/client-wire").Wire;');
   writeFileSync(sibling, 'export interface Host { open(): void; }');
   const checked = typescriptInterfaceInputs(installed, [member]);
-  assert.deepEqual(checked.modules.map(value => value.module), ['host-port.d.ts', member]);
+  assert.deepEqual(checked.modules.map(value => value.module), ['host-port.d.mts', member]);
   assert.deepEqual(checked.external.map(value => value.specifier), ['@actql/client-wire']);
 
   rmSync(sibling);
   assert.throws(() => typescriptInterfaceInputs(installed, [member]),
-    /Unresolved TypeScript interface dependency: internal\/transport.d.mts:\.\.\/host-port.d.ts/u);
+    /Unresolved TypeScript interface dependency: internal\/transport.d.mts:\.\.\/host-port.d.mts/u);
   symlinkSync(join(peer, 'index.d.ts'), sibling);
   assert.throws(() => typescriptInterfaceInputs(installed, [member]), /Escaped TypeScript interface/u);
+});
+
+test('a selected emitted declaration follows the public edge without admitting private runtime imports', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-if-published-types-'));
+  t.after(() => rmSync(root, {recursive: true}));
+  writeFileSync(join(root, 'index.d.ts'), 'export {connect} from "./host-port.mjs";');
+  writeFileSync(join(root, 'host-port.mts'), 'export {connect} from "./runtime.mjs";');
+  writeFileSync(join(root, 'runtime.mts'), 'export function connect() {}');
+  writeFileSync(join(root, 'host-port.d.mts'), 'export declare function connect(): void;');
+  const entrances = ['index.d.ts', 'host-port.d.mts'];
+  const source = typescriptInterfaceInputs(root, entrances);
+  assert.deepEqual(source.modules.map(value => value.module),
+    ['host-port.d.mts', 'host-port.mts', 'index.d.ts', 'runtime.mts']);
+  const published = typescriptInterfaceInputs(root, entrances, ['host-port.d.mts']);
+  assert.deepEqual(published.modules.map(value => value.module), ['host-port.d.mts', 'index.d.ts']);
+  assert.throws(() => typescriptInterfaceInputs(root, entrances, ['runtime.d.mts']), /Unknown public TypeScript declaration/u);
+  rmSync(join(root, 'host-port.d.mts'));
+  assert.throws(() => typescriptInterfaceInputs(root, entrances, ['host-port.d.mts']), /ENOENT/u);
 });
 
 test('private TS arrow helpers and global declaration interfaces have actual names', () => {

@@ -1,4 +1,4 @@
-import type {CheckFormatOptions} from './index.d.ts';
+import type {CheckFormatOptions} from './index.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';

@@ -101,6 +101,7 @@ type PreviewRow = Readonly<{
   identity?: unknown; entry: Readonly<{value?: unknown; target?: unknown}>;
   state?: string; versionCid?: string; before?: unknown;
 }>;
+type PreviewOriginal = Readonly<{descriptor: unknown; sourceBindingCid: string; identity: HeldResult}>;
 type PreviewInput<Member> = Readonly<{
   control: PreviewControl;
   prepared: unknown;
@@ -120,6 +121,7 @@ type PreviewInput<Member> = Readonly<{
   capabilities: readonly HeldResult[];
   footprints: readonly unknown[];
   payloads: readonly Readonly<{summary: Readonly<{artifact?: unknown}>; localResultArtifact: HeldResult}>[];
+  createOriginals?: readonly (PreviewOriginal | undefined)[];
 }>;
 type PreviewControls<Member extends PreviewMember> = Readonly<{
   moon: PreviewRuntime;
@@ -222,11 +224,26 @@ export function createInstalledRowEffectFootprint<Member extends FootprintMember
 export function createInstalledRowEffectPreview<Member extends PreviewMember>({
   moon, permissionsOf, pendingCid, fail,
 }: PreviewControls<Member>) {
+  function memberOriginal({control, prepared, inputs, member, payload, runInvocation, storeAuthorityCid, limits}:
+    Pick<PreviewInput<Member>, 'control' | 'prepared' | 'inputs' | 'limits'> &
+    Pick<PreviewInput<Member>['context'], 'runInvocation' | 'storeAuthorityCid'> &
+    Readonly<{member: Member; payload: PreviewInput<Member>['payloads'][number]}>): PreviewOriginal {
+    const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
+      prepared, member.stageIndex, member.effectId, limits.planWork));
+    const source = control.effectSourceArtifactPreviewBinding(payload.summary.artifact,
+      moon.strategyPublicationContractIdentity(runInvocation), runtimeField(descriptor, 6), storeAuthorityCid);
+    const {maxWireBytes, maxNodes, maxDepth} = limits.preview;
+    const identity = control.issueSourceFreeLocalEffectIdentity(
+      prepared, inputs, runtimeField(descriptor, 0) as number, payload.localResultArtifact,
+      {maxWork: limits.planWork, maxWireBytes, maxNodes, maxDepth});
+    return {descriptor, sourceBindingCid: runtimeField(source, 1) as string, identity};
+  }
+
   // The Preview of the Effect Unit: the common draft with each member's rows
   // (create rows already in canonical order) stated as their exact values,
   // and each update row's observed target, version and before value.
   function authorPreview({control, prepared, inputs, context, requestScope, limits, managedEffect,
-    members, rowsOf, capabilities, footprints, payloads}: PreviewInput<Member>) {
+    members, rowsOf, capabilities, footprints, payloads, createOriginals}: PreviewInput<Member>) {
     const {maxWireBytes, maxNodes, maxDepth} = limits.preview;
     const requestAuthority = moon.clientProgramEffectRequestAuthority(
       requestScope);
@@ -239,15 +256,9 @@ export function createInstalledRowEffectPreview<Member extends PreviewMember>({
     const identities: HeldResult[] = [];
     let rowCount = 0;
     const effects = members.map((member, index) => {
-      const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
-        prepared, member.stageIndex, member.effectId, limits.planWork));
-      const source = control.effectSourceArtifactPreviewBinding(
-        payloads[index].summary.artifact,
-        moon.strategyPublicationContractIdentity(context.runInvocation),
-        runtimeField(descriptor, 6), context.storeAuthorityCid);
-      const identity = control.issueSourceFreeLocalEffectIdentity(
-        prepared, inputs, runtimeField(descriptor, 0) as number, payloads[index].localResultArtifact,
-        {maxWork: limits.planWork, maxWireBytes, maxNodes, maxDepth});
+      const {descriptor, sourceBindingCid, identity} = createOriginals?.[index] ??
+        memberOriginal({control, prepared, inputs, member, payload: payloads[index],
+          runInvocation: context.runInvocation, storeAuthorityCid: context.storeAuthorityCid, limits});
       identities.push(identity);
       const rows = rowsOf[index];
       rowCount += rows.length;
@@ -268,7 +279,7 @@ export function createInstalledRowEffectPreview<Member extends PreviewMember>({
         // export is bound separately by the existing captured-source owner.
         result_artifact_cid: payloads[index].localResultArtifact.identity,
         preview_strength: 'full_diff',
-        source_binding_cid: runtimeField(source, 1),
+        source_binding_cid: sourceBindingCid,
         capability_evidence_cid: capabilities[index].identity,
         authority_scope_cid: requestAuthority,
         write_footprint: footprints[index],
@@ -352,5 +363,5 @@ export function createInstalledRowEffectPreview<Member extends PreviewMember>({
       keys: runtimeField(authored, 1) as readonly (readonly unknown[])[]});
   }
 
-  return authorPreview;
+  return Object.assign(authorPreview, {memberOriginal});
 }

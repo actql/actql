@@ -27,7 +27,7 @@ import type {ClientHostOperation, WireClientAdmission, WireExplanationFacts,
   WireOwnerObservations, WireOwnerCursor, WireRunState} from '@actql/client-wire';
 import type {CancellationExplanation, ConfirmedProfile, EffectUncertaintyExplanation,
   Execution, OperationExplanationOptions, OwnerObservationsExplanation, RunObservationFailureExplanation,
-  CancellationReference, RunReference, RunState} from '../index.d.ts';
+  CancellationReference, RunReference, RunState} from '../index.mjs';
 import type {SelectedConnection} from './connection-options.mjs';
 import type {createClientLifecycle} from './client-lifecycle.mjs';
 

@@ -1,4 +1,4 @@
-import type {Client, RequestLookupTarget, RequestRecovery, RunReference} from './index.js';
+import type {Client, RequestLookupTarget, RequestRecovery, RunReference} from './index.mjs';
 declare const client: Client;
 declare const original: unknown;
 const recovery: RequestRecovery = client.recoverRequest(original);

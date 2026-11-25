@@ -2,6 +2,7 @@
 import {createCheckOperation} from './check-observation.mjs';
 import {createCheckpointOperations} from './checkpoint-operations.mjs';
 import {createClientLifecycle} from './client-lifecycle.mjs';
+import {inProcessOptions} from './connection-options.mjs';
 import {captureResponse, freezeInput} from './data.mjs';
 import {ClientError, fail} from './errors.mjs';
 import {createPlan} from './plan.mjs';
@@ -11,7 +12,7 @@ import {createSubmissionOperations} from './submission-observation.mjs';
 import {createTransport, loadLoopbackTransport} from './transport.mjs';
 import {validClientProfile} from '@actql/client-wire';
 
-import type {Client} from '../index.d.ts';
+import type {Client} from '../index.mjs';
 import type {RuntimeHostPort} from './transport.mjs';
 import type {SelectedConnection} from './connection-options.mjs';
 
@@ -73,4 +74,14 @@ export async function connectSelected(selected: SelectedConnection & {redactCred
     close: lifecycle.close,
     [Symbol.asyncDispose]: lifecycle.close,
   });
+}
+
+// Only an installed Local provider calls this pure Client facade. The port
+// returns typed control values and Result frames; it is never a public URL.
+export async function connectInProcess(options: unknown, port: RuntimeHostPort): Promise<Client> {
+  if (port === null || typeof port !== 'object' ||
+      typeof port.perform !== 'function' ||
+      port.close !== undefined && typeof port.close !== 'function' ||
+      port.seal !== undefined && typeof port.seal !== 'function') fail('InvalidLocalHostPort');
+  return connectSelected(inProcessOptions(options), port);
 }

@@ -6,6 +6,7 @@ export type RowSourceDeleteMappingMethod = (declaration: unknown, writesJson: st
 
 export type RowSourceMappingRuntime = Readonly<{
   clientProgramRowSourcePrepareMapping?: RowSourceMappingMethod;
+  clientProgramRowSourcePrepareFileCreateMapping?: RowSourceMappingMethod;
   clientProgramRowSourcePrepareUpdateMapping?: RowSourceMappingMethod;
   clientProgramRowSourcePrepareDeleteMapping?: RowSourceDeleteMappingMethod;
 }>;
@@ -30,10 +31,11 @@ export {fail as rejectInstalledRowSource};
 // field of the Effect's source result: [{target, field, null_behavior}].
 export function rowSourceMapping(moon: RowSourceMappingRuntime, declaration: unknown,
   writesJson: string, resource: string, sources: readonly unknown[],
-  operation: 'create' | 'update' | 'delete' = 'create', sourcesJson?: string) {
-  if (operation !== 'create' && operation !== 'update' && operation !== 'delete') fail('InvalidInstalledEffectMappings');
+  operation: 'create' | 'file-create' | 'update' | 'delete' = 'create', sourcesJson?: string) {
+  if (operation !== 'create' && operation !== 'file-create' && operation !== 'update' && operation !== 'delete') fail('InvalidInstalledEffectMappings');
   const prepare = operation === 'update' ? moon.clientProgramRowSourcePrepareUpdateMapping
     : operation === 'delete' ? moon.clientProgramRowSourcePrepareDeleteMapping
+    : operation === 'file-create' ? moon.clientProgramRowSourcePrepareFileCreateMapping
     : moon.clientProgramRowSourcePrepareMapping;
   if (typeof prepare !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
   if (operation === 'delete' && (!Array.isArray(sources) || sources.length !== 0)) fail('InvalidInstalledEffectMappings');

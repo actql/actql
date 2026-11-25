@@ -149,7 +149,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       self.prepare_model_compilation(capture, prepared, installation, runtime)
     _ => None
   }
-  let (requirements, file_source) = match
+  let (requirements, file_source, terminal_content) = match
     @local_host.native_client_submitted_preparation(preparation) {
     Computation(prepared) => {
       // This original Pure route retains its unchanged normalization and
@@ -166,33 +166,36 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       // the same Request, once its original occurrences are backed.
       let graph = @run_host.prepared_client_graph(prepared)
       if model_compilation is Some(_) {
-        (None, None)
+        (None, None, false)
       } else if @checked.source_execution_count(@strategy.graph_program(graph)) >
         0 {
         let selected = self
           .select_business_file_source(prepared)
           .unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
-        (None, Some(Project(selected)))
+        (None, Some(Project(selected)), false)
       } else {
         // The same Request already reserved its original Plan/body envelope.
         // Construct sequences in that business allocator, keeping any typed
         // failure primary before the original scope/Journal return can fail.
-        let requirements = self.with_business_request(capture, () => {
-          if local_terminal_serialization_occurrence(prepared) is Some(_) {
-            return None
-          }
-          match
-            @local_values.prepare_source_free_runtime_requirements_result(
-              prepared,
-              runtime.installed_contracts,
-              assets.values,
-              Some(assets.fragment),
-              assets.ordered,
-            ) {
-            Ok(original) => Some(original)
-            Err(issue) => local_stop_runtime_requirements(issue)
-          }
-        })
+        let (requirements, terminal_content) = self.with_business_request(
+          capture,
+          () => {
+            if local_terminal_serialization_occurrence(prepared) is Some(_) {
+              return (None, true)
+            }
+            match
+              @local_values.prepare_source_free_runtime_requirements_result(
+                prepared,
+                runtime.installed_contracts,
+                assets.values,
+                Some(assets.fragment),
+                assets.ordered,
+              ) {
+              Ok(original) => (Some(original), false)
+              Err(issue) => local_stop_runtime_requirements(issue)
+            }
+          },
+        )
         if requirements is Some(requirements) {
           command_preparation_result(
             self.require_business_program(
@@ -205,10 +208,10 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
           )
           |> ignore
         }
-        (requirements, None)
+        (requirements, None, terminal_content)
       }
     }
-    EffectComputation(_) => (None, None)
+    EffectComputation(_) => (None, None, false)
   }
   let selection : LocalCommandBusinessPreparation = {
     original: self,
@@ -245,7 +248,8 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   // exact admitted Runtime/Program/current selection may activate its route.
   if requirements is Some(_) ||
     file_source is Some(_) ||
-    model_compilation is Some(_) {
+    model_compilation is Some(_) ||
+    terminal_content {
     command_preparation_result(
       original_operation
       .activate()

@@ -23,11 +23,11 @@ const libraries = {cryptoLibrary: '/actual/crypto.dylib', sqliteLibrary: '/usr/l
 test('target I/O cases own exact original inputs and fresh backings without namespace reuse', t => {
   assert.equal(nativeScopedTestFiles.filter(file => file === nativeRelationTargetIOTestFile).length, 1);
   assert.equal(nativeCoreScopedAllocationProfile(nativeRelationTargetIOTestFile), 'scoped-review-values');
-  const suffixes = ['update', 'cancel', 'sync', 'funding'];
+  const suffixes = ['update', 'cancel', 'sync', 'funding', 'insert'];
   const source = readFileSync(new URL('../' + nativeRelationTargetIOTestFile, import.meta.url), 'utf8');
   const declared = [...source.matchAll(/^test "[^"]+" \{\n  target_io_fixture_physical\((\d+)\)\n\}/gmu)];
   assert.equal([...source.matchAll(/^test "/gmu)].length, suffixes.length);
-  assert.deepEqual(declared.map(match => Number(match[1])), suffixes.map((_, index) => index));
+  assert.deepEqual(declared.map(match => Number(match[1])), [0, 1, 2, 3, 7]);
   const roots = [];
   for (const [index, suffix] of suffixes.entries()) {
     const namespace = fixture(t), environment = nativeRelationTargetIOFixture(namespace, index);

@@ -800,12 +800,13 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const admitAcquisitionContracts = moon.clientProgramRowSourceAdmitAcquisitionContracts;
   const acquisitionContractsCapacity = moon.clientProgramRowSourceAcquisitionContractsConstructionCapacity;
   const prepareMapping = moon.clientProgramRowSourcePrepareMapping;
+  const prepareFileCreateMapping = moon.clientProgramRowSourcePrepareFileCreateMapping;
   const prepareUpdateMapping = moon.clientProgramRowSourcePrepareUpdateMapping;
   const prepareDeleteMapping = moon.clientProgramRowSourcePrepareDeleteMapping;
   const prepareUpdateMappingCapacity = moon.clientProgramRowSourceUpdateMappingConstructionCapacity;
   installations.set(services, {selected, current, sites, siteInstallations, implementations,
     sourceImplementations, sourceProfiles, moon, root, principalId, initialPreparation, accountCurrent, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
-    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping, prepareDeleteMapping,
+    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareFileCreateMapping, prepareUpdateMapping, prepareDeleteMapping,
     prepareUpdateMappingCapacity});
   return services;
 }

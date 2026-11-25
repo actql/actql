@@ -413,6 +413,10 @@ pub fn effect_computation_capture_holding_cid(PublicationContract, String) -> St
 
 pub fn effect_computation_record_holding_cid(PublicationContract, String) -> String?
 
+pub fn effect_file_create_storage_key(String, String, String, String, Int) -> Result[String, EffectRowOutcomeIssue]
+
+pub fn effect_file_create_storage_key_from_preview(EffectPreviewIdentity, Int, Int, String, String) -> Result[String, EffectRowOutcomeIssue]
+
 pub fn effect_file_operation_receipt_cid(EffectFileOperationReceipt) -> String
 
 pub fn effect_file_operation_receipt_wire(EffectFileOperationReceipt) -> String
@@ -1779,7 +1783,7 @@ pub(all) enum EffectApplyReceiptBindingIssue {
 type EffectCaptureHoldingBinding
 
 pub struct EffectFileOperation {
-  deleting : Bool
+  kind : String
   effect_preview_cid : String
   member_preview_cid : String
   row_preview_cid : String
@@ -1789,7 +1793,7 @@ pub struct EffectFileOperation {
   dispatch_entry_cid : String
   authorization_context_cid : String
   resolution_cid : String
-  target_version_cid : String
+  target_version_cid : String?
 }
 
 pub struct EffectFileOperationReceipt {

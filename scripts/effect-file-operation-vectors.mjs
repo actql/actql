@@ -43,7 +43,7 @@ export function generateEffectFileOperationVectors(){
   s+=`\n///|\ntest "file delete receipt binds the original Preview operation at issuance and restore" {\n`+
     `  let original = admit_effect_preview_identity(${q(deletion.previewWire)}, ${q(originalRun)}, ${q(authoring.authoring_context_cid)}, ${b}).unwrap()\n`+
     op+
-    `  assert_true(operation.deleting)\n`+
+    `  assert_eq(operation.kind, "delete")\n`+
     `  let bytes = @utf8.encode(${q(deletion.replacement)})\n`+
     `  let evidence = admit_effect_file_replacement_evidence(bytes, ${q(deleteGeneration.device)}, ${q(deleteGeneration.inode)}, ${deleteGeneration.size}L, 4096).unwrap()\n`+
     `  let receipt = prepare_effect_file_operation_receipt(operation, evidence, ${q(canonicalText(deletion.outcome))}, ${b}).unwrap()\n`+

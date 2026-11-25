@@ -54,9 +54,11 @@ pub fn prepare_recovered_captured_effect_run(
   let roots = match
     effect_context_dependency_roots(
       sources.map(pair => pair.1),
+      value,
       max_bytes,
       max_nodes,
       max_depth,
+      work=Some(work),
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value

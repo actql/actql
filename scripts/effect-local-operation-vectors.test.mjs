@@ -66,10 +66,15 @@ test('closed file branch preserves original SQLite and HTTP schema preimages', a
   const local=registry.artifact_schemas.effect_local_operation_receipt;
   assert.equal(machineCid(local.oneOf[0]),'sha256:b02752bd4be29b22e064abf4ffb907332f5be4e58f8e0645d2bc12ef256c6bc5');
   assert.equal(local.oneOf[1].properties.backend_kind.const,'json_file');
-  assert.deepEqual(local.oneOf[1].properties.operation_kind.enum,['update','delete']);
+  assert.deepEqual(local.oneOf[1].properties.operation_kind.enum,['update','delete','create']);
+  assert.deepEqual(local.oneOf[1].if,
+    {required:['operation_kind'],properties:{operation_kind:{const:'create'}}});
+  assert.deepEqual(local.oneOf[1].then,{not:{required:['target_version_cid']}});
+  assert.deepEqual(local.oneOf[1].else,{required:['target_version_cid']});
   assert.equal(local.oneOf[1].properties.replacement_status.const,'acknowledged');
   assert.equal(local.oneOf[1].additionalProperties,false);
-  assert.deepEqual(Object.keys(f.receipt).sort(),local.oneOf[1].required.toSorted());
+  assert.deepEqual(Object.keys(f.receipt).sort(),
+    [...local.oneOf[1].required,...local.oneOf[1].else.required].sort());
   assert.deepEqual({targetCid:f.targetCid,receiptCid:f.receipt.receipt_cid,rowCid:f.rowReceipt.receipt_cid},f.expectedPins);
   assert.equal(f.body.replacement_physical_sha256,f.physicalHash(f.replacement));
   assert.equal(f.body.replacement_byte_count,Buffer.byteLength(f.replacement));

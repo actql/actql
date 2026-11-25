@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {existsSync, readFileSync, realpathSync} from 'node:fs';
-import {dirname, relative, resolve} from 'node:path';
+import {dirname, isAbsolute, join, relative, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {providerBundleUrl} from '../adapters/host-node/installed-connectors.mjs';
 import {build} from 'esbuild';
@@ -311,7 +311,22 @@ export async function sourceInterfaceClosure(root: string, {distributionRoots = 
   }
   const moon = moonInterfaceClosure(root, [...new Set([...artifactReferences]
     .flatMap(path => artifacts.get(path)!.sourcePackages))]);
-  const types = typescriptInterfaceClosure(root, declarationEntrances);
+  const hasExecutable = (path: string) => /\.d\.[cm]ts$/u.test(path) &&
+    parsed.has(path.replace(/\.d\.([cm])ts$/u, '.$1js'));
+  const publishedDeclarations = roots.flatMap(({entrances, manifest}) => {
+    const publicEmits = entrances.filter(hasExecutable);
+    if (publicEmits.length === 0 || manifest === undefined) return publicEmits;
+    const {files}: {files?: unknown} = JSON.parse(readFileSync(resolve(root, manifest), 'utf8'));
+    if (!Array.isArray(files)) return publicEmits;
+    // A generated public declaration can re-export other emitted declarations.
+    // Use their exact package members only where the executable was checked above.
+    const siblings = files.filter((file): file is string => typeof file === 'string' &&
+      !isAbsolute(file) && !file.split(/[\\/]/u).includes('..'))
+      .map(file => join(dirname(manifest), file)).filter(hasExecutable);
+    return [...publicEmits, ...siblings];
+  });
+  const types = typescriptInterfaceClosure(root,
+    [...new Set([...declarationEntrances, ...publishedDeclarations])], publishedDeclarations);
   return {qualification: unresolvedEntrances.length ? 'incomplete-source-input-coverage' : 'source-input-coverage-only',
     unresolvedEntrances, runtimeBindings, roots, modules: modules.sort((a, b) => a.module.localeCompare(b.module)),
     assets: assets.sort((a, b) => a.module.localeCompare(b.module)), types, moon,

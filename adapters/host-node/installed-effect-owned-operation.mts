@@ -14,6 +14,8 @@ type CoreRuntime = {
     memberIndex: number, perRow: boolean, operationIndex: number, rowIndex: number, operation: string): CoreResult;
   clientProgramInstalledEffectOperationStart(token: unknown): CoreResult;
   clientProgramInstalledEffectOperationCharge(token: unknown, bytes: bigint): CoreResult;
+  clientProgramInstalledEffectOperationInputBegin?(token: unknown, extent: unknown): CoreResult;
+  clientProgramInstalledEffectOperationResponseProjectionComplete?(token: unknown): CoreResult;
   clientProgramInstalledEffectOwnedPhysicalOperationComplete?(token: unknown): CoreResult;
   clientProgramInstalledEffectOperationRetire(token: unknown, cleanupConfirmed: boolean): CoreResult;
 };
@@ -27,10 +29,12 @@ type ManagedRun = {
   closed?: boolean;
   failure?: unknown;
 };
+type InputExtent = (bytes: number, requestUnits: number) => unknown;
 type PhysicalChild = Readonly<{status(): Readonly<{pending: boolean}>}>;
 export type InstalledEffectPhysicalOperation = Readonly<{
   retainPhysicalChild(original: PhysicalChild): undefined;
   chargeBytes(bytes: bigint): undefined;
+  admitInput?: (bytes: number, requestUnits: number) => undefined;
 }>;
 type OwnedPhysicalOptions<Result> = {
   run: ManagedRun;
@@ -41,6 +45,7 @@ type OwnedPhysicalOptions<Result> = {
   transferBytes: bigint;
   invoke(context: InstalledEffectPhysicalOperation): Result | PromiseLike<Result>;
   requestsRetired(): boolean;
+  inputExtent?: InputExtent;
 };
 type OwnedPhysicalChild<Result> = Readonly<{
   prepare(): Promise<Awaited<Result>>;
@@ -54,7 +59,7 @@ const fail: (code: string) => never = code => {throw Object.assign(new Error(cod
 export function prepareInstalledEffectOwnedPhysicalChild<Result>(
   options: OwnedPhysicalOptions<Result>): OwnedPhysicalChild<Result>;
 export function prepareInstalledEffectOwnedPhysicalChild<Result>({run, memberIndex, rowIndex,
-  operationIndex, operation, transferBytes, invoke, requestsRetired}:
+  operationIndex, operation, transferBytes, invoke, requestsRetired, inputExtent}:
   Omit<OwnedPhysicalOptions<Result>, 'invoke'> & {invoke?: OwnedPhysicalOptions<Result>['invoke']}) {
   if (run === undefined || typeof invoke !== 'function' || typeof requestsRetired !== 'function' ||
       typeof transferBytes !== 'bigint' || transferBytes < 0n) fail('InvalidInstalledEffectOwnedOperation');
@@ -65,10 +70,16 @@ export function prepareInstalledEffectOwnedPhysicalChild<Result>({run, memberInd
   const borrow = runtime?.clientProgramInstalledEffectOperationBorrow;
   const start = runtime?.clientProgramInstalledEffectOperationStart;
   const charge = runtime?.clientProgramInstalledEffectOperationCharge;
-  const complete = runtime?.clientProgramInstalledEffectOwnedPhysicalOperationComplete;
+  const beginInput = runtime?.clientProgramInstalledEffectOperationInputBegin;
+  const complete = inputExtent === undefined
+    ? runtime?.clientProgramInstalledEffectOwnedPhysicalOperationComplete
+    : runtime?.clientProgramInstalledEffectOperationResponseProjectionComplete;
   const retire = runtime?.clientProgramInstalledEffectOperationRetire;
   if (![select, physical, transfer, borrow, start, charge, retire, readPlan]
-      .every(method => typeof method === 'function')) fail('InstalledEffectOperationRuntimeUnavailable');
+      .every(method => typeof method === 'function') || (inputExtent !== undefined &&
+        ![inputExtent, beginInput, complete].every(method => typeof method === 'function'))) {
+    fail('InstalledEffectOperationRuntimeUnavailable');
+  }
   const current = () => {
     if (Object.hasOwn(run, 'failure')) throw run.failure;
     if (run.closed || run.runtime !== runtime || run.value !== parent || run.prepared !== prepared ||
@@ -87,6 +98,7 @@ export function prepareInstalledEffectOwnedPhysicalChild<Result>({run, memberInd
     [parent, prepared, request, plan, memberIndex, true, operationIndex, rowIndex, operation]));
   let attempted = false, preparing = false, stopping = false, releasing = false, retired = false, started = false;
   let child: PhysicalChild | undefined, status: PhysicalChild['status'] | undefined, accountingFailed = false;
+  let inputSelectionStarted = false, inputSelected = false;
   const retainPhysicalChild = (original: PhysicalChild): undefined => {
     current();
     if (!preparing || stopping || child !== undefined || started || original === null ||
@@ -101,9 +113,22 @@ export function prepareInstalledEffectOwnedPhysicalChild<Result>({run, memberInd
     if (stopping) fail('InstalledEffectOperationAlreadyPrepared');
     started = true;
   };
+  const admitInput = (bytes: number, requestUnits: number): undefined => {
+    current();
+    if (!preparing || stopping || !started || inputExtent === undefined || inputSelectionStarted) fail('ForeignInstalledEffectPhysicalChild');
+    inputSelectionStarted = true;
+    const selected = inputExtent(bytes, requestUnits);
+    current();
+    if (stopping) fail('InstalledEffectOperationAlreadyPrepared');
+    checked(Reflect.apply(beginInput!, runtime, [token, selected]));
+    current();
+    if (stopping) fail('InstalledEffectOperationAlreadyPrepared');
+    inputSelected = true;
+  };
   const chargeBytes = (bytes: bigint): undefined => {
     current();
-    if (!preparing || stopping || !started || typeof bytes !== 'bigint' || bytes < 0n) {
+    if (!preparing || stopping || !started || (inputExtent !== undefined && !inputSelected) ||
+        typeof bytes !== 'bigint' || bytes < 0n) {
       fail('ForeignInstalledEffectPhysicalChild');
     }
     try {checked(Reflect.apply(charge, runtime, [token, bytes]));}
@@ -138,9 +163,10 @@ export function prepareInstalledEffectOwnedPhysicalChild<Result>({run, memberInd
       attempted = true; preparing = true;
       try {
         current();
-        const result = await invoke!(Object.freeze({retainPhysicalChild, chargeBytes}));
+        const result = await invoke!(Object.freeze({retainPhysicalChild, chargeBytes,
+          ...(inputExtent === undefined ? {} : {admitInput})}));
         current();
-        if (!started) fail('InstalledEffectPhysicalChildUnavailable');
+        if (!started || (inputExtent !== undefined && !inputSelected)) fail('InstalledEffectPhysicalChildUnavailable');
         if (typeof complete === 'function' && !stopping && !accountingFailed) {
           // The same writer has already performed its own close. Return only
           // ended workspace; keep its object, output and request aliases until

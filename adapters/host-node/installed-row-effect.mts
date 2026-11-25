@@ -452,7 +452,8 @@ function createRowEffectStage(owners: readonly Owner[], environmentWire: string,
     const plan = (owner as Owner).managedTargetPlanRecipes!.byMapping[(member as Extract<RowMember, {mapping: object}>).mapping?.mappingCid];
     const mapping = (member as Extract<RowMember, {mapping: object}>).mapping;
     if (plan === undefined || !mapping.rules.some(rule =>
-      rule.effect_kind === member.kind && rule.permissions?.includes(plan.writeOperation))) {
+      rule.effect_kind === member.kind && rule.permissions?.includes(plan.writeOperation)) ||
+      (plan.targetReadOperation === undefined) !== (member.kind === 'create')) {
       fail('ForeignInstalledEffectOccurrence');
     }
     return plan;

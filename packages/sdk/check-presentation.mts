@@ -4,7 +4,7 @@ import {freezeInput, utf8} from './internal/data.mjs';
 import type {CheckOutcome, CheckOutcomeExplanation, CheckExplanationOptions, CheckFormatOptions,
   CheckPositionEncoding, CheckFailureExplanation,
   resolveCheckLocation as ResolveCheckLocation,
-  resolveCheckTextRangeEncoding as ResolveCheckTextRangeEncoding} from './index.d.ts';
+  resolveCheckTextRangeEncoding as ResolveCheckTextRangeEncoding} from './index.mjs';
 
 type CompleteReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
 type PartialReport = NonNullable<Extract<CheckOutcome, {outcome: 'failed'}>['partial_report']>;
@@ -158,7 +158,8 @@ const japanese: Readonly<Record<string, readonly string[]>> = Object.freeze(Obje
   'constraint.array_size': ['渡された値が宣言された制約を満たしていません。', '宣言された最大要素数以内の配列を渡してください。'],
 }).map(([key, value]) => [key, Object.freeze(value)])));
 
-export function getCheckPresentationInfo(options?: CheckExplanationOptions) {
+export function getCheckPresentationInfo(options?: CheckExplanationOptions):
+  Readonly<{locale: 'en' | 'ja'; translationRevision: string}> {
   let locale: 'en' | 'ja' = 'en';
   try {
     const requested = options?.locale;
@@ -329,6 +330,8 @@ export function renderCheckOutcome(outcome: unknown, options: CheckFormatOptions
 
 // Reason presentation does not decide the report's verdict or outcome branch.
 
+export function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>, options?: CheckExplanationOptions):
+  Readonly<{kind: 'known' | 'unknown'; summary: string; hint?: string}>;
 export function explainCheckReason(reason: unknown, options?: CheckExplanationOptions) {
   const display = selectCheckReasonPresentation(reason);
   if (display) {
@@ -339,7 +342,10 @@ export function explainCheckReason(reason: unknown, options?: CheckExplanationOp
   return Object.freeze({kind: 'unknown', summary});
 }
 
-export function presentCheckFailure(failure: Pick<CheckFailureExplanation, 'kind' | 'problem'>, options?: CheckExplanationOptions) {
+type CheckFailureKind = Pick<Extract<CheckFailureExplanation, {kind: 'uninterpretable'}>, 'kind' | 'problem'> |
+  Pick<Extract<CheckFailureExplanation, {kind: 'protocol_failure'}>, 'kind' | 'problem'>;
+
+export function presentCheckFailure(failure: CheckFailureKind, options?: CheckExplanationOptions): CheckFailureExplanation {
   const messages = {
     unknown_outcome: ['The check reply contains an outcome this SDK cannot interpret.',
       'Review Host and SDK contract support; this observation establishes no check verdict or retry permission.'],
@@ -349,5 +355,6 @@ export function presentCheckFailure(failure: Pick<CheckFailureExplanation, 'kind
       'Ask the Host owner to investigate the protocol failure; it is not a diagnosed source error.'],
   };
   const [summary, hint] = localizeCheck(`protocol.${failure.problem}`, messages[failure.problem], options);
-  return freezeInput({kind: failure.kind, problem: failure.problem, summary, hint});
+  // The original admitted kind and problem are copied together without exposing its input.
+  return freezeInput({kind: failure.kind, problem: failure.problem, summary, hint}) as CheckFailureExplanation;
 }

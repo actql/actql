@@ -9,7 +9,7 @@ import type {Client, CheckOutcome, CheckInput, CheckFix, CheckFailureInput,
   CheckRequirementFrontier, CheckContextRequirement, CheckSupplementationDecision,
   CheckSupplementationSession, CheckDocumentSession, CheckDocumentObservation,
   CheckTextOptions, TextCheckOptions, ProgramCheckOptions, CheckPositionEncoding,
-  CheckTextRange, CheckFormatOptions, CheckExplanationOptions} from '../index.d.ts';
+  CheckTextRange, CheckFormatOptions, CheckExplanationOptions} from '../index.mjs';
 
 type CompleteOutcome = Extract<CheckOutcome, {outcome: 'completed'}>;
 type CompleteReport = CompleteOutcome['report'];
@@ -26,7 +26,7 @@ type ParamFacts = ParamRequirement['facts'];
 type CheckFailure = Parameters<typeof presentCheckFailure>[0] & {input: CheckFailureInput};
 type ResolvedLocation =
   (Extract<WireCheckLocation, {kind: 'text'}> & {input: TextInput; text: string}) |
-  (Extract<WireCheckLocation, {kind: 'structured'}> & {input: StructuredInput});
+  (Extract<WireCheckLocation, {kind: 'structured'}> & {input: StructuredInput; text?: never});
 interface DocumentRecord {ticket: bigint; input?: TextInput; request?: TextRequest}
 type Mutable<T> = {-readonly [K in keyof T]: T[K]};
 
@@ -108,7 +108,8 @@ const unordered = <T,>(values: readonly T[]): T[] => [...new Map(values.map(valu
 
 // Admitted declaration conditions from this call's public Requirement only.
 // This is neither supplied-value admission nor proof of the remaining Program.
-export function getCheckParameterAdmission(outcome: CheckOutcome, parameter: string): ParamFacts['admission'] | undefined {
+export function getCheckParameterAdmission(input: unknown, parameter: string): ParamFacts['admission'] | undefined {
+  const outcome = input as CheckOutcome;
   if (!checkInputs.has(outcome) || outcome.outcome !== 'completed' ||
       typeof parameter !== 'string') return undefined;
   return (outcome.report.requirements.find(reason => reason.code === 'parameter_value_required' &&
@@ -148,6 +149,8 @@ export function equalCheckRequirementFrontiers(first: CheckOutcome, second: Chec
 }
 
 // This bounds read-only checking, not an authoritative supplement write.
+export function createCheckSupplementationSession(client: Pick<Client, 'check'>,
+  options: Readonly<{maxAttempts: number}>): CheckSupplementationSession;
 export function createCheckSupplementationSession(client: Pick<Client, 'check'>,
   {maxAttempts}: {maxAttempts?: number} = {}): CheckSupplementationSession {
   if (typeof client?.check !== 'function' || !Number.isSafeInteger(maxAttempts) || (maxAttempts as number) < 1) {

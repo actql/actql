@@ -1413,7 +1413,7 @@ test('typed predicate diagnostics remain accessible through the SDK contract', (
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
-  '--target', 'ES2022', fileURLToPath(new URL(
+  '--target', 'ES2022', '--lib', 'ES2022,DOM,DOM.Iterable,DOM.AsyncIterable,ES2024.String', fileURLToPath(new URL(
     './predicate-reason.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
@@ -1422,7 +1422,7 @@ test('typed submission explanations preserve reference roles and read-only targe
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
-  '--target', 'ES2022', fileURLToPath(new URL(
+  '--target', 'ES2022', '--lib', 'ES2022,DOM,DOM.Iterable,DOM.AsyncIterable,ES2024.String', fileURLToPath(new URL(
     './submission-explanation.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
@@ -1432,7 +1432,7 @@ test('typed cancellation explanations preserve observation-only targets', () => 
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
-  '--target', 'ES2022', fileURLToPath(new URL(
+  '--target', 'ES2022', '--lib', 'ES2022,DOM,DOM.Iterable,DOM.AsyncIterable,ES2024.String', fileURLToPath(new URL(
     './cancellation-explanation.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
@@ -1441,7 +1441,7 @@ test('typed read failure explanations preserve observed progress and lookup-only
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
-  '--target', 'ES2022', fileURLToPath(new URL(
+  '--target', 'ES2022', '--lib', 'ES2022,DOM,DOM.Iterable,DOM.AsyncIterable,ES2024.String', fileURLToPath(new URL(
     './read-failure-explanation.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
@@ -1450,7 +1450,7 @@ test('typed Requirement frontier consumers cannot change observations or issue w
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
-  '--target', 'ES2022', fileURLToPath(new URL(
+  '--target', 'ES2022', '--lib', 'ES2022,DOM,DOM.Iterable,DOM.AsyncIterable,ES2024.String', fileURLToPath(new URL(
     './check-requirement-frontier.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
@@ -1459,7 +1459,7 @@ test('typed check outcome explanations preserve report binding and incomplete br
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
-  '--target', 'ES2022', fileURLToPath(new URL(
+  '--target', 'ES2022', '--lib', 'ES2022,DOM,DOM.Iterable,DOM.AsyncIterable,ES2024.String', fileURLToPath(new URL(
     './check-outcome-explanation.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
@@ -1552,7 +1552,7 @@ test('binding JSON explanations keep parser facts distinct from budgets and unkn
 
 test('typed Delivery lookup failures preserve lookup-only targets and omit receipt facts', () => {
   execFileSync(process.execPath, [fileURLToPath(new URL('../../node_modules/typescript/bin/tsc', import.meta.url)),
-    '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--target', 'ES2022',
+    '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--target', 'ES2022', '--lib', 'ES2022,DOM,DOM.Iterable,DOM.AsyncIterable,ES2024.String',
     fileURLToPath(new URL('./delivery-observation.typecheck.mts', import.meta.url))],
     {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });

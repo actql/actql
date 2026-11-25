@@ -4,8 +4,8 @@ import {getCheckPresentationInfo} from './check-presentation.mjs';
 import type {CancellationExplanation, CancellationReference, ClientError, DeliveryAttemptLookup,
   HeldRequestExplanation, OwnerObservations, OwnerObservationsExplanation,
   OperationExplanationOptions, ReadFailureExplanation, RequestCancellationExplanation,
-  RequestLookup, RunReference, RunState, RunObservationFailureExplanation,
-  SubmissionAttempt, SubmissionExplanation, SubmissionOutcome, SubmissionReference} from './index.d.ts';
+  RequestLookup, RequestLookupExplanation, RunReference, RunState, RunObservationFailureExplanation,
+  SubmissionAttempt, SubmissionExplanation, SubmissionOutcome, SubmissionReference} from './index.mjs';
 import type {WireCancellationAttempt, WireOperationAttemptRef, WireRequestCancellation} from '@actql/client-wire';
 
 type LookupContext = NonNullable<ClientError['lookupContext']>;
@@ -89,7 +89,8 @@ const summaries: Readonly<Record<string, string>> = Object.freeze({
 });
 const readHint = 'この読み取り参照を保持してください。先頭から新しく読み取るか判断する前に、元の参照で状態を確認してください。';
 
-export function getOperationPresentationInfo(options?: OperationExplanationOptions) {
+export function getOperationPresentationInfo(options?: OperationExplanationOptions):
+  Readonly<{locale: 'en' | 'ja'; translationRevision: string}> {
   const {locale} = getCheckPresentationInfo(options);
   return Object.freeze({locale, translationRevision: `2026-10-09.operations.${locale}.13`});
 }
@@ -279,13 +280,14 @@ export const projectReadExplanation = (result: unknown, context: Omit<ReadFailur
   });
 };
 
-export const submissionLookupExplanation = (observation: string, input: LookupInput) => freezeInput({
+// The same original reference selects both the lookup operation and its locator.
+export const submissionLookupExplanation = (observation: 'acceptance_unknown', input: LookupInput): SubmissionExplanation => freezeInput({
   observation,
   summary: 'Submission acceptance is unknown. Work may already have started.',
   next: {operation: input.submissionRef === undefined ? 'lookupRequest' : 'lookupSubmission',
     ...(input.submissionRef === undefined ? {requestId: input.requestId} : {submissionRef: input.submissionRef}),
     lookupContext: input.lookupContext},
-});
+}) as SubmissionExplanation;
 
 const submissionObservationHint = 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.';
 
@@ -309,7 +311,8 @@ const heldRequestExplanation = (answer: Extract<RequestLookup, {kind: 'held'}>, 
 
 const requestCancellationHint = 'Keep the original request reference and inspect the current request or named Run under current authorization. This observation grants no permission to resubmit, release resources or repeat an external Effect.';
 
-export const projectSubmissionAttemptExplanation = (result: unknown, attempt: Extract<SubmissionAttempt, {kind: 'refused' | 'conflict'}>, snapshot: SubmissionInvocation) => {
+// The admitted invocation branch determines the kind, reason and presence of its guarantee.
+export const projectSubmissionAttemptExplanation = (result: unknown, attempt: Extract<SubmissionAttempt, {kind: 'refused' | 'conflict'}>, snapshot: SubmissionInvocation): SubmissionExplanation => {
   // This admitted invocation fact is separate from the original durable
   // receipt. Keep only the submitted reference, never a conflicting old intent.
   const summaries: Readonly<Record<string, string>> = attempt.kind === 'refused' ? {
@@ -328,10 +331,10 @@ export const projectSubmissionAttemptExplanation = (result: unknown, attempt: Ex
     summary: summaries[attempt.reason],
     hint: 'Keep the original submission reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s acceptance, grant permission to resubmit, or authorize changed input or a new restart decision.',
     next: submissionTarget(snapshot),
-  });
+  }) as SubmissionExplanation;
 };
 
-export const projectSubmissionExplanation = (result: unknown, outcome: SubmissionOutcome, context: SubmissionContext) => {
+export const projectSubmissionExplanation = (result: unknown, outcome: SubmissionOutcome, context: SubmissionContext): SubmissionExplanation => {
   // Called only after admitting the exact Owner response and its binding.
   // Acceptance phase follows its typed branch, never its problem code.
   let explanation: MutableSubmissionExplanation;
@@ -369,7 +372,8 @@ export const projectSubmissionExplanation = (result: unknown, outcome: Submissio
   return freezeInput(explanation);
 };
 
-export const projectRequestLookupExplanation = (answer: RequestLookup, context: RequestContext) => {
+// The admitted lookup kind selects both the public observation and its continuation.
+export const projectRequestLookupExplanation = (answer: RequestLookup, context: RequestContext): RequestLookupExplanation => {
   const observation = answer.kind === 'found' ? 'run_reference_received' :
     answer.kind === 'not_found' ? 'lookup_unresolved' : 'lookup_unavailable';
   return answer.kind === 'held'
@@ -383,11 +387,12 @@ export const projectRequestLookupExplanation = (answer: RequestLookup, context: 
       next: answer.kind === 'found' ? {operation: 'status', ref: {...answer.ref}} :
         {operation: 'lookupRequest', requestId: context.requestId,
           lookupContext: context.lookupContext},
-    });
+    }) as RequestLookupExplanation;
 };
 
+// The caller passes the admitted reply kind, or an explicit unknown problem. The wire checks the Run reference and revision together.
 export const projectRequestCancellationExplanation = (result: WireRequestCancellation | undefined, context: RequestContext,
-  observation: RequestCancellationExplanation['observation'], problem?: 'exchange_failed' | 'response_uninterpretable') => {
+  observation: RequestCancellationExplanation['observation'], problem?: 'exchange_failed' | 'response_uninterpretable'): RequestCancellationExplanation => {
   const summaries: Readonly<Record<string, string>> = {
     accepted: 'The Host recorded cancellation of this request. This response does not establish physical stop or resource release.',
     already_requested: 'The Host reports a previously recorded cancellation of this request. This response does not establish physical stop or resource release.',
@@ -402,7 +407,7 @@ export const projectRequestCancellationExplanation = (result: WireRequestCancell
       ? {operation: 'status', ref: {...result!.ref}}
       : {operation: 'lookupRequest', requestId: context.requestId,
         lookupContext: context.lookupContext},
-  });
+  }) as RequestCancellationExplanation;
 };
 
 export const projectDeliveryLookupFailure = (next: ReadFailureExplanation['next'], observation: 'lookup_unavailable' | 'lookup_uninterpretable') => freezeInput({observation,

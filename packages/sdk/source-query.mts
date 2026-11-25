@@ -1,7 +1,7 @@
 import {captureQueryResultRead, collectCapturedResult} from './internal/result-read.mjs';
 
 import type {Client, ClientError as PublicClientError, Execution,
-  QueryOptions, Result, ResultPromise, RunState, SubmissionInput} from './index.d.ts';
+  QueryOptions, Result, ResultPromise, RunState, SubmissionInput} from './index.mjs';
 import type {ClientSourceFormat} from '@actql/client-wire';
 import type {ClientError as ClientErrorConstructor} from './internal/errors.mjs';
 

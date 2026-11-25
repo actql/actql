@@ -3,6 +3,7 @@
   "compilerOptions": {
     "moduleDetection": "legacy",
     "paths": {
+      "@actql/sdk": ["./packages/sdk/index.mts"],
       "@duckdb/node-api": [
         "./adapters/connectors/duckdb/node/node_modules/@duckdb/node-api/lib/index.d.ts",
         "./adapters/connectors/duckdb/node/neo-session-api.d.mts"
@@ -15,6 +16,7 @@
       "@actql/explorer/launcher": ["./packages/explorer/launcher.d.ts"],
       "@actql/local-node/_internal/compile-cache": ["./adapters/host-node/compile-cache.mts"],
       "@actql/local-node/runtime": ["./scripts/fixtures/installed-common-runtime.d.ts"],
+      "@actql/sdk/host-port": ["./packages/sdk/host-port.mts"],
       "elkjs/lib/elk-api.js": ["./packages/explorer-ui/elk-layout-module.d.ts"],
       "actql-explorer-test-contracts/*": ["./packages/explorer-ui/*.d.ts"]
     },

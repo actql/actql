@@ -27,6 +27,10 @@
   synchronous rechecks are counted by their constructor families. Raw backing is
   counted once; distinct projections and their retained mapping work are summed,
   not replaced by the largest one or by transfer-byte charging.
+  For insertion, add the retained request's decode and typed value work, the
+  physical row writer, and the complete replacement buffer to the same child.
+  The original file size comes from its physical observation. The caller
+  reserves before decoding and accounts separately for transport buffers.
 - Extension: Unsupported contracts require their actual typed constructors and
   refusal peaks to be described before admission, not an arbitrary byte factor.
   Native restore and Host JSON projection are separate constructors with their

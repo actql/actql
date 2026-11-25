@@ -101,6 +101,38 @@ test "Native saved file request measures the same original canonical subtrees be
 }
 
 ///|
+test "Native saved file create request uses the assigned key without a before image or version" {
+  let value = @canonical.from_json(
+    { "Name": "日😀" },
+    8,
+    3,
+    256,
+    data_keys=true,
+  )
+  let key = "33cbd34e407306183290fe3d37d1093e2abe0f21521250a9cc587293255f5743"
+  let expected = "{\"binding\":\"binding\",\"mapping\":\"mapping\",\"target\":\"" +
+    key +
+    "\",\"value\":{\"Name\":\"日😀\"}}"
+  let bytes = @utf8.encode(expected).length()
+  let result = native_local_effect_file_create_request_wire(
+    "binding", "mapping", key, value, bytes, 8, 3,
+  )
+  assert_eq(result.unwrap(), expected)
+  assert_true(
+    native_local_effect_file_create_request_wire(
+      "binding",
+      "mapping",
+      key,
+      value,
+      bytes - 1,
+      8,
+      3,
+    )
+    is Err(_),
+  )
+}
+
+///|
 // Authored two-row input from scripts/fixtures/effect-file-operation-vectors.mjs.
 // Pure immutable-key projection only; no Host, Account, signer or IO is admitted.
 fn native_application_projection_fixture() -> (
@@ -253,4 +285,53 @@ test "Native application row basis retains original key and ordered membership" 
     )
     is Err(_),
   )
+}
+
+///|
+test "Native file CREATE preview binds duplicate values to distinct original insert requests" {
+  let after =
+    #|{"state":"present","value":{"group":"inserted","value":null}}
+  let rows = @publication.derive_effect_create_row_inventory(
+    [after, after],
+    2,
+    4096,
+    64,
+    8,
+  ).unwrap()
+  let original = (
+    "sha256:" + "b".repeat(64),
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "c".repeat(64),
+    "sha256:" + "d".repeat(64),
+  )
+  let pending = "sha256:" + "0".repeat(64)
+  let limits : @checkpoint.WireLimits = {
+    max_wire_bytes: 4096,
+    max_nodes: 64,
+    max_depth: 8,
+  }
+  // Independent SHA-256 vectors for the four-field physical requests.
+  let requests = [
+    "sha256:23a00a374859db7ccb0c94132175f032c8028b8036c329a8a8e62b1f51009056", "sha256:49fb10fef1da246e539ca472e1217ea4e8905c623779be4421a728171be86dc7",
+  ]
+  for index, (_, correlation) in rows {
+    let (change, request) = native_local_effect_file_create_preview_row(
+      @json.parse(after),
+      @json.parse(correlation),
+      original,
+      pending,
+      limits,
+    ).unwrap()
+    assert_eq(request, requests[index])
+    guard change is Object(fields) else { fail("Expected a CREATE row") }
+    assert_eq(fields["before"], { "state": "absent" })
+    assert_eq(fields["target_guard"], { "state": "not_applicable" })
+    assert_eq(fields["after"], @json.parse(after))
+    assert_eq(fields["intended_changes"], fields["after"])
+    let expected : Json = {
+      "content_cid": "sha256:b4be31ec2536048c8e50bc1e32a84ec7c891a944e6c18c4253b166abd6eb000b",
+      "occurrence": Json::number(index.to_double()),
+    }
+    assert_eq(fields["target_row_identity"], expected)
+  }
 }

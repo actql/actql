@@ -437,7 +437,7 @@ test "file delete receipt binds the original Preview operation at issuance and r
     "sha256:4444444444444444444444444444444444444444444444444444444444444444", "sha256:7777777777777777777777777777777777777777777777777777777777777777",
     "sha256:6666666666666666666666666666666666666666666666666666666666666666", "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   ).unwrap()
-  assert_true(operation.deleting)
+  assert_eq(operation.kind, "delete")
   let bytes = @utf8.encode(" {\"items\":[],\"keep\":true}\n")
   let evidence = admit_effect_file_replacement_evidence(
     bytes, "16777234", "18446744073709551615", 26L, 4096,
