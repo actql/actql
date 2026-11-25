@@ -126,6 +126,25 @@ const tableDefinitions = [...schemaSql.matchAll(
   /CREATE TABLE (\w+) \([\s\S]*?\) STRICT;/gu,
 )].map(([sql, name]) => [name, sql.slice(0, -1)]);
 
+function assertCurrentCoordinatorLayout(database, coordinatorAuthority) {
+  // Validate every required table, including the exact plain metadata
+  // table, before selecting values. Comparisons cannot execute a view or
+  // generated column or materialize an oversized schema definition.
+  const schema = database.prepare(`SELECT CASE WHEN length(sql) <= ? THEN sql END AS sql
+    FROM sqlite_schema WHERE type = 'table' AND name = ?`);
+  for (const [name, expected] of tableDefinitions) {
+    if (schema.get(expected.length, name)?.sql !== expected) fail('UnknownCoordinatorJournalFormat');
+  }
+  const metadata = database.prepare('SELECT 1 FROM journal_metadata WHERE key = ? AND value = ?');
+  if (metadata.get('schema_version', journalVersion) === undefined ||
+      metadata.get('dispatch_delivery', deliveryVersion) === undefined) {
+    fail('UnknownCoordinatorJournalFormat');
+  }
+  if (metadata.get('coordinator_authority', coordinatorAuthority) === undefined) {
+    fail('CoordinatorJournalAuthorityMismatch');
+  }
+}
+
 function inspectCoordinatorFormat(root, coordinatorAuthority, maxInspectionEntries, maxInspectionBytes) {
   const path = join(root, 'coordinator-dispatch-journal.sqlite3');
   if (!existsSync(root)) return false;
@@ -137,27 +156,11 @@ function inspectCoordinatorFormat(root, coordinatorAuthority, maxInspectionEntri
     if (entries.length !== 0) fail('UnknownCoordinatorJournalFormat');
     return false;
   }
-  inspectSqliteSnapshot(path, database => {
-    // Validate every required table, including the exact plain metadata
-    // table, before selecting values. Comparisons cannot execute a view or
-    // generated column or materialize an oversized schema definition.
-    const schema = database.prepare(`SELECT CASE WHEN length(sql) <= ? THEN sql END AS sql
-      FROM sqlite_schema WHERE type = 'table' AND name = ?`);
-    for (const [name, expected] of tableDefinitions) {
-      if (schema.get(expected.length, name)?.sql !== expected) fail('UnknownCoordinatorJournalFormat');
-    }
-    const metadata = database.prepare('SELECT 1 FROM journal_metadata WHERE key = ? AND value = ?');
-    if (metadata.get('schema_version', journalVersion) === undefined ||
-        metadata.get('dispatch_delivery', deliveryVersion) === undefined) {
-      fail('UnknownCoordinatorJournalFormat');
-    }
-    if (metadata.get('coordinator_authority', coordinatorAuthority) === undefined) {
-      fail('CoordinatorJournalAuthorityMismatch');
-    }
-  }, {code: 'UnknownCoordinatorJournalFormat', maxSourceBytes: maxInspectionBytes,
-    unavailableCode: 'CoordinatorJournalInspectionUnavailable',
-    validateSource: () => JSON.stringify(inspectEntries()) ===
-      JSON.stringify(entries)});
+  inspectSqliteSnapshot(path, database => assertCurrentCoordinatorLayout(database, coordinatorAuthority),
+    {code: 'UnknownCoordinatorJournalFormat', maxSourceBytes: maxInspectionBytes,
+      unavailableCode: 'CoordinatorJournalInspectionUnavailable',
+      validateSource: () => JSON.stringify(inspectEntries()) ===
+        JSON.stringify(entries)});
   return true;
 }
 
@@ -211,6 +214,11 @@ export function openSqliteCoordinatorDispatchJournal(root, {
   let closed = false;
   let databaseClosed = false;
   try {
+    if (existed) {
+      database.exec('BEGIN');
+      assertCurrentCoordinatorLayout(database, coordinatorAuthority);
+      database.exec('ROLLBACK');
+    }
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     if (!existed) {

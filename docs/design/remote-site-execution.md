@@ -385,8 +385,9 @@ observation can undo physical reclaim or resurrect output.
 The wire observation contracts remain 0.1 and history-bearing records retain
 `actql-remote-coordinator-history-record/0.1`. The Node journal checks the
 current physical schema and configured Coordinator authority in a bounded
-read-only snapshot before opening the original for writes. An unsupported
-physical layout yields `UnknownCoordinatorJournalFormat`. The original DB, WAL, SHM and
+read-only snapshot before opening the original for writes. The opened
+connection checks that same schema and authority again in a deferred read
+transaction before configuring durability. An unsupported physical layout yields `UnknownCoordinatorJournalFormat`. The original DB, WAL, SHM and
 unfinished cleanup custody remain intact. Refusal grants no
 permission to cancel, release or resend work. An old canonical observation
 record lacking admission history still refuses with `ObservationHistoryRequired`.

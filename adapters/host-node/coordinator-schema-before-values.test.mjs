@@ -56,3 +56,55 @@ test('plain metadata from an unsupported schema refuses without adopting its rec
   assert.deepEqual(fs.readFileSync(path),bytes);
   scratch.passed();
 });
+
+for (const [field, value, code] of [
+  ['coordinator_authority', 'foreign-coordinator', 'CoordinatorJournalAuthorityMismatch'],
+  ['dispatch_delivery', 'foreign-delivery-marker', 'UnknownCoordinatorJournalFormat'],
+]) test(`Coordinator rechecks ${field} on the opened original before durability setup`, async () => {
+  const parent = fileURLToPath(new URL('../../_build/', import.meta.url));
+  const scratch = await createOwnedScratch({parent, prefix: 'coordinator-live-schema-', label: 'live Coordinator admission'});
+  const originalRoot = join(scratch.path, 'original');
+  const foreignRoot = join(scratch.path, 'foreign');
+  const options = {coordinatorAuthority: 'original-coordinator'};
+  const original = openSqliteCoordinatorDispatchJournal(originalRoot, options);
+  const path = original.path;
+  assert.equal(original.close(), true);
+  const foreign = openSqliteCoordinatorDispatchJournal(foreignRoot, options);
+  const foreignPath = foreign.path;
+  assert.equal(foreign.close(), true);
+  const changed = new DatabaseSync(foreignPath);
+  try {changed.prepare('UPDATE journal_metadata SET value = ? WHERE key = ?').run(value, field);}
+  finally {changed.close();}
+  const foreignBytes = fs.readFileSync(foreignPath);
+  const originalBytes = fs.readFileSync(path);
+  const originalSaved = join(scratch.path, 'saved');
+  const close = DatabaseSync.prototype.close, exec = DatabaseSync.prototype.exec;
+  let swapped = false, opened;
+  const liveDurability = [];
+  DatabaseSync.prototype.close = function () {
+    const location = this.location();
+    const result = Reflect.apply(close, this, []);
+    if (!swapped && location !== path && location?.endsWith('coordinator-dispatch-journal.sqlite3')) {
+      fs.renameSync(path, originalSaved);
+      fs.renameSync(foreignPath, path);
+      swapped = true;
+    }
+    return result;
+  };
+  DatabaseSync.prototype.exec = function (sql) {
+    if (this.location() === path && /PRAGMA (?:journal_mode|synchronous)/u.test(sql)) liveDurability.push(sql);
+    return Reflect.apply(exec, this, [sql]);
+  };
+  try {
+    assert.throws(() => {opened = openSqliteCoordinatorDispatchJournal(originalRoot, options);}, {code});
+    assert.equal(swapped, true);
+    assert.deepEqual(liveDurability, []);
+    assert.deepEqual(fs.readFileSync(path), foreignBytes);
+    assert.deepEqual(fs.readFileSync(originalSaved), originalBytes);
+  } finally {
+    DatabaseSync.prototype.close = close;
+    DatabaseSync.prototype.exec = exec;
+    opened?.close();
+  }
+  scratch.passed();
+});

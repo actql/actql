@@ -5512,7 +5512,7 @@
     {
       "module": "adapters/host-node/sqlite-coordinator-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "015e759ddb4a64a69c361a7721df95410109412eb96d377afd5004aa0637394c",
+      "sha256": "518d37c0c045d3a823fbca2f1a727068bd5460d4f2747af980f5773f5ddf2ff7",
       "exports": [
         "openSqliteCoordinatorDispatchJournal"
       ],
