@@ -163,9 +163,8 @@ class ClosedWasmSqlTests(unittest.TestCase):
         with patch.object(_SQLiteByteDatabase, '_journal_schema', schema):
             binding.inspect(lambda _: returned.extend(
                 core._call('probe', 'schema') for _ in range(2)))
-        self.assertEqual(len(observed), 2)
-        self.assertEqual(returned, observed)
-        self.assertTrue(all(result in (0, 1) for result in returned))
+        self.assertEqual(observed, [None, None])
+        self.assertEqual(returned, [1, 1])
         self.assertIsNone(store._connection._closed_invocation)
 
     def test_saved_census_proof_stays_inside_the_original_closed_export(self):

@@ -100,7 +100,6 @@ fn targeted_observe(
     "sha256:" + "b".repeat(64),
     "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
     original,
-    (table, cursor) => targeted_row_scan(rows, table, cursor),
     (table, key) => targeted_row_read(rows, table, key),
     submission_append_run_inspection,
     () => {
@@ -116,7 +115,7 @@ fn targeted_observe(
 }
 
 ///|
-test "saved continuation refuses a changed supported schema with identical originals" {
+test "saved continuation refuses an unsupported catalog before reading originals" {
   let rows = indexed_targeted_rows()
   let snapshot = targeted_original(rows)
   let publication : @host.ClientJournalPhysicalRow = {
@@ -141,7 +140,7 @@ test "saved continuation refuses a changed supported schema with identical origi
     owner: None,
     view: None,
     // Indexed admission, then the actual observed phase of the same read.
-    schema_phase: -3,
+    commit_observation: true,
     advances_remaining: 1,
   }
   let queries : Array[(String, String)] = []
@@ -157,11 +156,11 @@ test "saved continuation refuses a changed supported schema with identical origi
   assert_eq(queries.last(), Some(("publication_contract", publication.key)))
   queries.clear()
   assert_true(
-    rebind_saved_result_originals(retained, 0, scan, read) is Err(-32),
+    rebind_saved_result_originals(retained, 0, scan, read) is Err(-41),
   )
   assert_true(queries.is_empty())
   assert_true(
-    rebind_saved_result_originals(retained, -1, scan, read) is Err(-41),
+    rebind_saved_result_originals(retained, 2, scan, read) is Err(-41),
   )
   assert_true(queries.is_empty())
   assert_true(
@@ -174,7 +173,7 @@ test "saved continuation refuses a changed supported schema with identical origi
 
 ///|
 test "completed saved holder freshly reads two original rows and keeps cancellation checks" {
-  let rows = targeted_snapshot_rows()
+  let rows = indexed_targeted_rows()
   let original = targeted_observe(rows, None).unwrap().unwrap()
   let reads : Array[String] = []
   let scans : Array[String] = []
@@ -185,7 +184,6 @@ test "completed saved holder freshly reads two original rows and keeps cancellat
         "sha256:" + "b".repeat(64),
         "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
         Some(original),
-        (_, _) => Err(-99),
         (table, key) => {
           let result = targeted_row_read(rows, table, key)
           if result is Ok(_) {
@@ -248,8 +246,8 @@ test "completed saved holder freshly reads two original rows and keeps cancellat
 }
 
 ///|
-test "initial admission retains full history while completed selection ignores unrelated payload" {
-  let rows = targeted_snapshot_rows()
+test "both selected reads ignore unrelated payload and preserve physical refusal" {
+  let rows = indexed_targeted_rows()
   let original = targeted_original(rows)
   rows.push(
     (
@@ -257,7 +255,7 @@ test "initial admission retains full history while completed selection ignores u
       { key: "unrelated", revision: 0L, body: b"corrupt-unrelated", },
     ),
   )
-  assert_true(targeted_observe(rows, None) is Err(-31))
+  assert_true(targeted_observe(rows, None) is Ok(Some(_)))
   assert_true(targeted_observe(rows, Some(original)) is Ok(Some(_)))
   // Every target observation is still fresh, including a transport failure.
   assert_true(
@@ -266,7 +264,6 @@ test "initial admission retains full history while completed selection ignores u
       "sha256:" + "b".repeat(64),
       "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
       Some(original),
-      (_, _) => Err(-99),
       (_, _) => Err(-98),
       submission_append_run_inspection,
       () => Ok(()),
@@ -348,7 +345,6 @@ test "retained selection keeps exact scope definition and cancellation refusal" 
         scope,
         definition,
         Some(original),
-        (table, cursor) => targeted_row_scan(rows, table, cursor),
         (table, key) => targeted_row_read(rows, table, key),
         submission_append_run_inspection,
         () => Ok(()),
@@ -390,7 +386,6 @@ test "missing selected submission still observes cancellation before absence" {
       "sha256:" + "b".repeat(64),
       "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
       Some(original),
-      (_, _) => Err(-99),
       (table, _) => {
         if table != "client_submitted_intents" {
           return Err(-99)
@@ -449,7 +444,6 @@ test "indexed saved cold lookup selects exact original without unrelated Run aud
     "sha256:" + "b".repeat(64),
     "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
     None,
-    (_, _) => Err(-88),
     (table, selected) => {
       reads.push(table)
       targeted_row_read(rows, table, selected)
@@ -462,7 +456,6 @@ test "indexed saved cold lookup selects exact original without unrelated Run aud
       cancellation += 1
       Ok(())
     },
-    physical_schema=1,
   )
   guard actual is Ok(Some(snapshot)) else { fail("selected original refused") }
   assert_eq(
@@ -524,7 +517,6 @@ test "indexed saved cold lookup refuses missing ambiguous corrupt and foreign or
           },
         )
       })
-    let mut scans = 0
     let actual = submission_run_reference_snapshot(
       if mode == 4 {
         "foreign"
@@ -534,17 +526,11 @@ test "indexed saved cold lookup refuses missing ambiguous corrupt and foreign or
       "sha256:" + "b".repeat(64),
       "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
       None,
-      (_, _) => {
-        scans += 1
-        Err(-88)
-      },
       (table, key) => targeted_row_read(rows, table, key),
       submission_append_run_inspection,
       () => Ok(()),
-      physical_schema=1,
     )
     assert_true(actual is Err(-31))
-    assert_eq(scans, 0)
   }
 }
 
@@ -557,7 +543,6 @@ test "indexed saved cold lookup retains original nested query and cancellation f
       "sha256:" + "b".repeat(64),
       "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
       None,
-      (_, _) => Err(-88),
       (table, key) => {
         if mode == 0 {
           Err(-74)
@@ -573,39 +558,8 @@ test "indexed saved cold lookup retains original nested query and cancellation f
         }
       },
       () => Err(-97),
-      physical_schema=1,
     )
     let expected = if mode == 0 { -74 } else if mode == 1 { -32 } else { -97 }
     assert_true(actual is Err(code) && code == expected)
   }
-}
-
-///|
-test "indexed saved cold lookup rejects unknown physical format before any original IO" {
-  let mut observed = 0
-  let actual = submission_run_reference_snapshot(
-    "scope",
-    "sha256:" + "b".repeat(64),
-    "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
-    None,
-    (_, _) => {
-      observed += 1
-      Err(-88)
-    },
-    (_, _) => {
-      observed += 1
-      Err(-88)
-    },
-    _ => {
-      observed += 1
-      Err(-88)
-    },
-    () => {
-      observed += 1
-      Err(-88)
-    },
-    physical_schema=2,
-  )
-  assert_true(actual is Err(-41))
-  assert_eq(observed, 0)
 }
