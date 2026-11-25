@@ -4953,7 +4953,7 @@
                 "anchor": "cancellation acceptance is separate from physical stop"
               },
               {
-                "path": "packages/explorer-ui/run-observation.test.mjs",
+                "path": "packages/explorer-ui/observed-plan-step.test.mts",
                 "anchor": "test('a Step observation requires the same Run, compiled Plan, Map and original step'"
               }
             ]
