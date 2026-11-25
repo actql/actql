@@ -110,9 +110,11 @@ Use the repository's pinned MoonBit environment and dependencies.
   the Workers dependency reference lacked `acorn`; that environment failure
   is separate from the reproduced generated-source freshness failure.
 
-For the fixed old-owner continuation check, create an unmodified checkout of
-`8028e8a708db6a5ef2b82f6d559b3d2bf7e55041`, build its Node release bridge,
-and build the current tree's Node release bridge. Then run:
+To reproduce the historical old-owner continuation check, create unmodified
+checkouts of the old owner `8028e8a708db6a5ef2b82f6d559b3d2bf7e55041` and
+the pre-retirement runner `85763a585174580b33590bfe58e2ec55780b2a9a`.
+Build the Node release bridge in both checkouts. From the pre-retirement
+runner checkout, run:
 
 ```sh
 node scripts/test-coordinator-legacy-custody.mjs /absolute/legacy/worktree
