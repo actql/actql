@@ -4,17 +4,54 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {checkRegistration, operations} from './calendar-registration.mjs';
 
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
-const aoa = read('spec/contracts/actql-aoa.json');
-const registry = read(aoa.pipeline_registry_file);
-const original = read('portability/fixtures/pipeline-registry-pre-calendar.json');
-const history = read('scripts/fixtures/calendar-registration-history.json');
+type Operation = (typeof operations)[number];
+type Reference = {cid: string};
+type RegistryEntry = {inputs: string[]; output: string; execution_contract: Reference};
+type Registry = Record<string, unknown> & Record<Operation, RegistryEntry> & {
+  'ACTQL.expression_fragment/0.1': RegistryEntry;
+  'REL.derive': {execution_extensions: {ordered_bindings: Reference}};
+  'REL.values': RegistryEntry;
+  'BRIDGE.rows.to_graph': RegistryEntry;
+};
+type Endpoint = {oneOf?: unknown; pattern?: string};
+type CalendarContract = {params_schema: {additionalProperties: boolean; required: string[]; allOf: unknown;
+  properties: {
+    unit: {enum: string[]}; week_start: {enum: string[]}; start: Endpoint; end: Endpoint;
+    profile: {additionalProperties: boolean; required: string[];
+      properties: {conversion_law: {const: string}; table_bytes_cid: {pattern: string}}};
+  }};
+  semantics: {authority: string; runtime: string}};
+type ValueSchema = {$defs: {value_contract: {oneOf: {properties?: {type?: {const: string}}}[]}}};
+type WithDependencies = {dependencies: Record<string, Reference>};
+type AoA = Parameters<typeof checkRegistration>[0] & {
+  execution_contracts: Record<Operation, CalendarContract> & {
+    'ACTQL.expression_fragment/0.1': WithDependencies;
+    'REL.derive.ordered': WithDependencies & {schemas: {context: ValueSchema; shape: ValueSchema};
+      semantics: {value_weight: string}};
+    'REL.values': WithDependencies & {params_schema: ValueSchema; semantics: {byte_values?: string}};
+    'BRIDGE.rows.to_graph': WithDependencies & {params_schema: ValueSchema};
+  };
+  target_registry_requirements: Registry;
+  local_family_execution_profile: {registry_operations: string[]};
+  expression_contract_cid: string;
+};
+type History = {
+  first_registered: {registry: Record<string, unknown>; registry_cid: string};
+  prior_current: {aoa: AoA; aoa_cid: string; registry: Registry; registry_cid: string;
+    series: CalendarContract; series_cid: string};
+};
+
+const read = <Value,>(path: string): Value => JSON.parse(readFileSync(path, 'utf8'));
+const aoa = read<AoA>('spec/contracts/actql-aoa.json');
+const registry = read<Registry>(aoa.pipeline_registry_file);
+const original = read<object>('portability/fixtures/pipeline-registry-pre-calendar.json');
+const history = read<History>('scripts/fixtures/calendar-registration-history.json');
 // Independent ASCII-key machine preimage oracle, never product lowering output.
-const canonical = value => Array.isArray(value) ? `[${value.map(canonical).join(',')}]`
+const canonical = (value: unknown): string => Array.isArray(value) ? `[${value.map(canonical).join(',')}]`
   : value !== null && typeof value === 'object'
-    ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
-    : JSON.stringify(value);
-const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
+    ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`).join(',')}}`
+    : JSON.stringify(value)!;
+const cid = (value: unknown) => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
 
 test('Calendar extends the exact original registry without rewriting its identity', () => {
   assert.equal(cid(original), 'sha256:79aa0a847874d3f277b0fab929ed8d6bd4173ad0f032d60413e3c279487f50b4');
@@ -65,9 +102,9 @@ test('Compiled Calendar parameters retain closed original profile and literal we
   }
   const series = aoa.execution_contracts[operations[1]].params_schema;
   assert.deepEqual(series.required, ['start', 'end', 'unit', 'timezone', 'profile']);
-  for (const key of ['start', 'end']) {
+  for (const key of ['start', 'end'] as const) {
     assert.equal(series.properties[key].oneOf, undefined);
-    const pattern = new RegExp(series.properties[key].pattern);
+    const pattern = new RegExp(series.properties[key].pattern!);
     assert(pattern.test('0001-01-01T00:00:00.000Z'));
     assert(!pattern.test('0000-01-01T00:00:00.000Z'));
     assert(!pattern.test('2000-01-01T00:00:00Z'));
@@ -107,7 +144,7 @@ test('current Calendar registration preserves complete old bodies and changes on
   assert.equal(prior.series_cid, 'sha256:040129c2ff63394a6b4804daf3a7c0641e2bdae4b524389d3c8c362e7e4dc13f');
   const currentSeries = aoa.execution_contracts[operations[1]];
   const restoredSeries = structuredClone(currentSeries);
-  for (const endpoint of ['start', 'end'])
+  for (const endpoint of ['start', 'end'] as const)
     restoredSeries.params_schema.properties[endpoint] = prior.series.params_schema.properties[endpoint];
   assert.deepEqual(restoredSeries, prior.series);
   const restoredOwner = structuredClone(aoa);
@@ -119,7 +156,7 @@ test('current Calendar registration preserves complete old bodies and changes on
     ['REL.derive.ordered', ['expression_contract', 'expression_node', 'source_expression', 'value_contract']],
     ['REL.values', ['canonical_value_contract']],
     ['BRIDGE.rows.to_graph', ['canonical_value_contract']],
-  ]) for (const role of roles) {
+  ] as const) for (const role of roles) {
     const retained = prior.aoa.execution_contracts[name].dependencies[role];
     const current = restoredOwner.execution_contracts[name].dependencies[role];
     assert.deepEqual({...current, cid: retained.cid}, retained);
@@ -127,7 +164,7 @@ test('current Calendar registration preserves complete old bodies and changes on
   }
   // BYTES adds one closed arm and deterministic wire weight. Reverse the
   // current addition before comparing the whole published Calendar owner.
-  const removeByteArm = schema => {
+  const removeByteArm = (schema: ValueSchema) => {
     const alternatives = schema.$defs.value_contract.oneOf;
     const index = alternatives.findIndex(arm => arm.properties?.type?.const === 'bytes');
     assert.notEqual(index, -1);
@@ -154,7 +191,7 @@ test('current Calendar registration preserves complete old bodies and changes on
   restoredRegistry['ACTQL.expression_fragment/0.1'].execution_contract.cid = fragmentCid;
   restoredRegistry['REL.derive'].execution_extensions.ordered_bindings.cid = orderedCid;
   restoredRegistry[operations[1]].execution_contract.cid = prior.series_cid;
-  for (const name of ['REL.values', 'BRIDGE.rows.to_graph']) {
+  for (const name of ['REL.values', 'BRIDGE.rows.to_graph'] as const) {
     const retainedCid = cid(restoredOwner.execution_contracts[name]);
     restoredRegistry[name].execution_contract.cid = retainedCid;
     restoredOwner.target_registry_requirements[name].execution_contract.cid = retainedCid;
@@ -172,8 +209,8 @@ test('current Calendar registration preserves complete old bodies and changes on
 
 test('compiled Calendar endpoint grammar retains canonical exact fractions and rejects alternate spellings', () => {
   // Spelling only; actual date validity and selected TZDB execution remain separate.
-  for (const field of ['start', 'end']) {
-    const pattern = new RegExp(aoa.execution_contracts[operations[1]].params_schema.properties[field].pattern);
+  for (const field of ['start', 'end'] as const) {
+    const pattern = new RegExp(aoa.execution_contracts[operations[1]].params_schema.properties[field].pattern!);
     for (const fraction of ['000', '123', '0001', '1234', '123456789', '000000001'])
       assert(pattern.test('2024-01-01T00:00:00.' + fraction + 'Z'), fraction);
     for (const value of [

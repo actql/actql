@@ -3,32 +3,52 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {gunzipSync} from 'node:zlib';
-import {checkRegistration, registerExpressionFragment} from './expression-fragment-registration.mjs';
-const read = p => JSON.parse(readFileSync(p, 'utf8'));
-const aoa = read('spec/contracts/actql-aoa.json');
-const expressions = read('spec/contracts/actql-expressions.json');
-const registry = read(aoa.pipeline_registry_file);
-const historical = read('portability/fixtures/pipeline-registry-values.json');
+import {checkRegistration, registerExpressionFragment, type executionContract} from './expression-fragment-registration.mjs';
+type FragmentContract = ReturnType<typeof executionContract>;
+type Reference = {cid: string; file: string; pointer: string};
+type RegistryEntry = {inputs: string[]; output: string; execution_contract: Reference};
+type Registry = Record<string, unknown> & {
+  [op]?: RegistryEntry;
+  'REL.derive': {execution_extensions?: unknown};
+  'REL.values': {execution_contract: {cid: string}};
+};
+type Owner = Parameters<typeof checkRegistration>[0] & {
+  execution_contracts: {[op]: FragmentContract};
+  target_registry_requirements: {[op]: {execution_contract: {cid: string}}};
+};
+type Expressions = {schemas: {fragment: {$id: string; additionalProperties: boolean}};
+  laws: {try_number: {number: string}}};
+type Predecessor = {source: string; bodies: {aoa: Owner;
+  pipelineRegistry: Registry & {[op]: RegistryEntry}; checkEnvironment: unknown; grammarManifest: unknown}};
+type Successor = {bodies: {'spec/contracts/actql-expressions.json': Expressions;
+  'spec/contracts/actql-aoa.json': Owner; 'spec/dependencies/aoa-pipeline-registry.json': Registry}};
+
+const read = <Value,>(p: string): Value => JSON.parse(readFileSync(p, 'utf8'));
+const aoa = read<Owner>('spec/contracts/actql-aoa.json');
+const expressions = read<Expressions>('spec/contracts/actql-expressions.json');
+const registry = read<Registry & {[op]: RegistryEntry}>(aoa.pipeline_registry_file);
+const historical = read<Registry>('portability/fixtures/pipeline-registry-values.json');
 const op = 'ACTQL.expression_fragment/0.1';
 // Independent canonical hashing for these already-normalized machine bodies.
-const canonical = v => Array.isArray(v) ? `[${v.map(canonical)}]`
+const canonical = (v: unknown): string => Array.isArray(v) ? `[${v.map(canonical)}]`
   : v !== null && typeof v === 'object'
-    ? `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${canonical(v[k])}`)}}`
-    : JSON.stringify(v);
-const cid = v => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
+    ? `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`)}}`
+    : JSON.stringify(v)!;
+const cid = (v: unknown) => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
 const currentCid =
   'sha256:52e62094b1162213605e27199aa9a0e4832ee7771bcc1be66124f2fefb0a01e7';
 const contractCid = 'sha256:5041f5fb5d612d2db5a86b9aa4d6a47e5644b524db88cdebbc27923957b77736';
 
-function resolve(body, selected, owner = aoa, expr = expressions) {
+function resolve(body: Registry, selected: string, owner = aoa, expr = expressions) {
   assert.equal(cid(body), selected, 'RegistryCidMismatch');
   assert.ok(body[op], 'MissingRegistration');
   const entry = body[op];
   assert.deepEqual(entry.inputs, ['relation']); assert.equal(entry.output, 'relation');
   assert.equal(entry.execution_contract.file, 'spec/contracts/actql-aoa.json');
   assert.equal(entry.execution_contract.pointer, '/execution_contracts/ACTQL.expression_fragment~10.1');
-  const contract = entry.execution_contract.pointer.split('/').slice(1).reduce(
-    (v, k) => v?.[k.replaceAll('~1', '/').replaceAll('~0', '~')], owner);
+  const contract = entry.execution_contract.pointer.split('/').slice(1).reduce<unknown>(
+    (v, k) => (v as Record<string, unknown> | null | undefined)?.[k.replaceAll('~1', '/').replaceAll('~0', '~')],
+    owner) as FragmentContract | undefined;
   assert.ok(contract); assert.equal(cid(contract), entry.execution_contract.cid);
   assert.equal(contract.dependencies.expression_contract.cid, cid(expr));
   assert.equal(contract.dependencies.fragment_schema.cid, cid(expr.schemas.fragment));
@@ -107,7 +127,7 @@ test('rehashed signature and reference mutations cannot satisfy registration', (
     e => {e.execution_contract.file = 'elsewhere.json';},
     e => {e.execution_contract.pointer = '/execution_contracts/ACTQL.expression_fragment/0.1';},
     e => {e.execution_contract.cid = cid(historical);},
-  ]) {
+  ] satisfies ((entry: RegistryEntry) => void)[]) {
     const body = structuredClone(registry); mutate(body[op]);
     assert.throws(() => resolve(body, cid(body)));
   }
@@ -127,14 +147,14 @@ test('contract, expression body and stale expression pin are independently check
 // writer. Only registered references change; the expression/schema law does not.
 const predecessorBytes = gunzipSync(readFileSync(
   'scripts/fixtures/expression-fragment-registration/predecessor.json.gz'));
-const predecessor = JSON.parse(predecessorBytes);
+const predecessor: Predecessor = JSON.parse(predecessorBytes.toString('utf8'));
 
 test('registered closure changes only the stale expression dependency and containing identities', () => {
   assert.equal(predecessor.source, '6f6ebe8a6e4fc4d642614c4753ccf6e8587f3ebf');
   const before = predecessor.bodies;
   // The next retained transition pins this registration's exact successor.
-  const successor = JSON.parse(gunzipSync(readFileSync(
-    'scripts/fixtures/try-timestamp-unary/predecessor.json.gz'))).bodies;
+  const successor = (JSON.parse(gunzipSync(readFileSync(
+    'scripts/fixtures/try-timestamp-unary/predecessor.json.gz')).toString('utf8')) as Successor).bodies;
   const introducedExpressions = successor['spec/contracts/actql-expressions.json'];
   assert.equal(cid(introducedExpressions), 'sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f');
   assert.equal(cid(before.aoa), 'sha256:aace4d39f4f3f214158027007d7bfd27ded49f29f0aac55ca022b48bb0ddc5f0');

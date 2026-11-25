@@ -6,21 +6,49 @@ import assert from 'node:assert/strict';
 const cid = {type:'string', pattern:'^sha256:[a-f0-9]{64}$'};
 const index = {type:'integer', minimum:0, maximum:9007199254740991};
 const name = {type:'string', minLength:1};
-const closed = properties => ({type:'object', additionalProperties:false,
+const closed = <Properties extends Record<string, unknown>>(properties: Properties) => ({type:'object', additionalProperties:false,
   required:Object.keys(properties), properties});
-const array = items => ({type:'array', items});
+const array = <Item,>(items: Item) => ({type:'array', items});
 export const executionKey = 'REL.derive.ordered';
 export const executionPointer = '/execution_contracts/REL.derive.ordered';
 export const sourceParams = () => ({
   $id:'urn:actql:ordered-derive-source-params:0.1',
   ...closed({bindings:{...array(closed({name,expr:{$ref:'urn:actql:expression:0.1'}})),minItems:1}}),
 });
-const deriveStepConstraint = params => ({
+const deriveStepConstraint = <Params,>(params: Params) => ({
   if:{properties:{op:{const:'REL.derive'}},required:['op']},
   then:{properties:{params}},
 });
 
-export function rowKernelSchemas(protocol) {
+type ProtocolSchemas = {schemas: {canonical_value_contract: {$defs: Record<string, unknown>}}};
+type StageSchemas = {schemas: {derive_binding: unknown}};
+type OrderedStepConstraint = ReturnType<typeof deriveStepConstraint<{oneOf: object[]}>>;
+type Steps = {items: {allOf?: OrderedStepConstraint[]}};
+type RowKernelEvidence = {additionalProperties: boolean; required: string[];
+  properties: {bindings: {items: unknown}}};
+type Expressions = {
+  laws: {ordered_derive_binding?: string};
+  schemas: {
+    expression: {$id: string};
+    expression_node: {$id: string};
+    fragment: {required: string[]; properties: {
+      row_kernel_evidence?: RowKernelEvidence;
+      request: {properties: {row_kernel_limits?: object; pipeline: {properties: {steps: Steps}}}};
+      graph: {properties: {steps: Steps}};
+    }};
+  };
+};
+type OrderedExtension = {ordered_bindings: {file: string; pointer: string; cid: string}};
+type PipelineRegistry = {'REL.derive': {execution_extensions?: OrderedExtension}};
+type RegistrationOwner = {
+  execution_contracts: Record<string, unknown>;
+  target_registry_requirements: Record<string, unknown>;
+  expression_contract_cid: string;
+  pipeline_registry_cid: string;
+  pipeline_registry_file: string;
+};
+
+export function rowKernelSchemas(protocol: ProtocolSchemas) {
   const valueContract = protocol.schemas.canonical_value_contract;
   const contract = {$ref:'#/$defs/value_contract'};
   const shape = {
@@ -61,7 +89,7 @@ export function rowKernelSchemas(protocol) {
 
 export const orderedBindingLaw = 'Ordered REL.derive uses the registered row-kernel parameter alternative, with roots at /bindings/i/expr. Bindings remain in authored order; root-list serialization still uses graph-step order then pointer UTF-16 order and does not determine evaluation order. Every field node has exactly one occurrence reference to an input field or earlier slot; literal payloads are opaque. row_kernel_evidence is required exactly when ordered nodes occur, containing their derive bindings and exactly the referenced row contexts and row limits, each once in self-CID order. Regeneration checks complete evidence, same-node/input/type ownership, exact prior-slot prefixes, limits and all self-CIDs. No root or evidence is invented for an absent node. The row-kernel contract is selected through the containing registry, not recursively pinned by this expression contract. Ordered request.pipeline step params contain exactly bindings of name and canonical source expr; parameter references remain source syntax. They contain no references, extension pin, machine nodes or evidence. Graph params contain the selected extension pin, lowered bindings and regenerated references. derive_binding.aoa_node_cid hashes the complete corresponding graph.steps entry {id,in,op,params}, with no wrapper, field omission or evidence. Step and input names are the canonical fragment graph names, not process-local handles.';
 
-export function executionContract(expressions, stages, protocol) {
+export function executionContract(expressions: Expressions, stages: StageSchemas, protocol: ProtocolSchemas) {
   const schemas = rowKernelSchemas(protocol);
   return {
     version:'actql-ordered-derive-execution/0.1', operation:'REL.derive',
@@ -114,7 +142,7 @@ export function executionContract(expressions, stages, protocol) {
 
 // Exported preparation is deliberately separate from registration. The complete
 // contract/vector checks must precede selecting this capability in a registry.
-export function prepareExpressionEvidence(expressions, stages, protocol) {
+export function prepareExpressionEvidence(expressions: Expressions, stages: StageSchemas, protocol: ProtocolSchemas) {
   const {context, limits, shape, params} = rowKernelSchemas(protocol);
   expressions.laws.ordered_derive_binding = orderedBindingLaw;
   expressions.schemas.fragment.properties.row_kernel_evidence = closed({
@@ -136,7 +164,9 @@ export function prepareExpressionEvidence(expressions, stages, protocol) {
   return expressions;
 }
 
-export function checkOrderedRegistration(aoa, expressions, stages, protocol, registry) {
+export function checkOrderedRegistration(
+  aoa: RegistrationOwner, expressions: Expressions, stages: StageSchemas, protocol: ProtocolSchemas, registry: PipelineRegistry,
+) {
   assert.deepEqual(expressions, prepareExpressionEvidence(structuredClone(expressions),stages,protocol));
   const body=executionContract(expressions,stages,protocol);
   assert.deepEqual(aoa.execution_contracts[executionKey],body);
@@ -150,22 +180,22 @@ export function checkOrderedRegistration(aoa, expressions, stages, protocol, reg
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const read = p => JSON.parse(readFileSync(p,'utf8'));
+  const read = <Value,>(p: string): Value => JSON.parse(readFileSync(p,'utf8'));
   const ep='spec/contracts/actql-expressions.json';
-  const expressions=read(ep), stages=read('spec/contracts/actql-stage-contracts.json');
-  const protocol=read('spec/contracts/actql-protocol-schemas.json');
+  const expressions=read<Expressions>(ep), stages=read<StageSchemas>('spec/contracts/actql-stage-contracts.json');
+  const protocol=read<ProtocolSchemas>('spec/contracts/actql-protocol-schemas.json');
   const prepared=prepareExpressionEvidence(expressions,stages,protocol);
   const body=executionContract(prepared,stages,protocol);
   if (process.argv.includes('--write')) {
     const ap='spec/contracts/actql-aoa.json',rp='spec/dependencies/aoa-pipeline-registry.json';
-    const aoa=read(ap),registry=read(rp);
+    const aoa=read<RegistrationOwner>(ap),registry=read<PipelineRegistry>(rp);
     const extension={file:ap,pointer:executionPointer,cid:machineCid(body)};
     registry['REL.derive'].execution_extensions={ordered_bindings:extension};
     aoa.execution_contracts[executionKey]=body;
     aoa.target_registry_requirements['REL.derive']={inputs:['relation'],output:'relation',execution_extensions:{ordered_bindings:extension}};
     aoa.expression_contract_cid=machineCid(prepared);
     aoa.pipeline_registry_cid=machineCid(registry);
-    for(const [p,v]of [[ep,prepared],[ap,aoa],[rp,registry]])writeFileSync(p,JSON.stringify(v,null,2)+'\n');
+    for(const [p,v]of [[ep,prepared],[ap,aoa],[rp,registry]] as const)writeFileSync(p,JSON.stringify(v,null,2)+'\n');
   }
   if (process.argv.includes('--write-draft')) {
     // Review artifact only; this does not mutate any selected contract or pin.

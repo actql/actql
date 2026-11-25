@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-export function operationInventory(source) {
+export function operationInventory(source: string) {
   const start = source.indexOf('<a id="operation-inventory"></a>');
   const end = source.indexOf('<a id="relation-operations"></a>', start);
   assert.ok(start >= 0 && end > start, 'Missing authoritative operation inventory');

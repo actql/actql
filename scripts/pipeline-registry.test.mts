@@ -5,29 +5,40 @@ import test from 'node:test';
 import {isDeepStrictEqual} from 'node:util';
 import {checkExecutionContract} from './values-execution-contract.mjs';
 
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
-const aoa = read('spec/contracts/actql-aoa.json');
-const registry = read('spec/dependencies/aoa-pipeline-registry.json');
-const valuesRegistry = read('portability/fixtures/pipeline-registry-values.json');
-const base = read('portability/fixtures/pipeline-registry-base.json');
-const protocol = read('spec/contracts/actql-protocol-schemas.json');
+type Verifier = Parameters<typeof checkExecutionContract>;
+type Reference = {pointer: string; cid: string};
+type Entry = {inputs: string[]; output: string; execution_contract: Reference & {file: string}};
+type Registry = Record<string, unknown> & {'REL.values'?: Entry};
+type CurrentRegistry = Registry & {'REL.values': Entry};
+type Owner = Verifier[0] & {
+  execution_contracts: {'REL.values': {operation: string; inputs: string[]; output: string;
+    semantics: {row_order: string}; dependencies: {canonical_value_contract: Reference}}};
+  target_registry_requirements: {'REL.values': {inputs: string[]; output: string; execution_contract: Reference}};
+};
+
+const read = <Value,>(path: string): Value => JSON.parse(readFileSync(path, 'utf8'));
+const aoa = read<Owner>('spec/contracts/actql-aoa.json');
+const registry = read<CurrentRegistry>('spec/dependencies/aoa-pipeline-registry.json');
+const valuesRegistry = read<CurrentRegistry>('portability/fixtures/pipeline-registry-values.json');
+const base = read<Registry>('portability/fixtures/pipeline-registry-base.json');
+const protocol = read<Verifier[1]>('spec/contracts/actql-protocol-schemas.json');
 const oldCid = 'sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a';
 const newCid = 'sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311';
 // Independent oracle for these ASCII-key, ordinary JSON registry fixtures.
 // Not the product lowerer, a backend resolver, or a general JSON validator.
-const canonical = v => Array.isArray(v) ? `[${v.map(canonical).join(',')}]`
+const canonical = (v: unknown): string => Array.isArray(v) ? `[${v.map(canonical).join(',')}]`
   : v !== null && typeof v === 'object'
-    ? `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${canonical(v[k])}`).join(',')}}`
-    : JSON.stringify(v);
-const cid = v => `sha256:${createHash('sha256').update(canonical(v)).digest('hex')}`;
-const same = (a,b,message) => {if (!isDeepStrictEqual(a,b)) throw new Error(message);};
+    ? `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(',')}}`
+    : JSON.stringify(v)!;
+const cid = (v: unknown) => `sha256:${createHash('sha256').update(canonical(v)).digest('hex')}`;
+const same = (a: unknown,b: unknown,message: string) => {if (!isDeepStrictEqual(a,b)) throw new Error(message);};
 
 // The registration-only acceptance algorithm, deliberately excluding params
 // admission, backend support, permission, and whole-Program completeness.
-function resolveValues(body, selected = aoa.pipeline_registry_cid, contract = aoa) {
+function resolveValues(body: Registry, selected = aoa.pipeline_registry_cid, contract = aoa) {
   if (cid(body) !== selected) throw new Error('RegistryCidMismatch');
   if (!Object.hasOwn(body,'REL.values')) throw new Error('MissingRegistration');
-  const entry = body['REL.values'];
+  const entry = body['REL.values']!;
   const required = contract.target_registry_requirements['REL.values'];
   same(Object.keys(entry).sort(), ['execution_contract','inputs','output'], 'InvalidRegistration');
   same({inputs:entry.inputs,output:entry.output},
@@ -36,7 +47,8 @@ function resolveValues(body, selected = aoa.pipeline_registry_cid, contract = ao
     file:'spec/contracts/actql-aoa.json', ...required.execution_contract,
   }, 'ContractReferenceMismatch');
   const resolved = entry.execution_contract.pointer.split('/').slice(1)
-    .reduce((value,key) => value?.[key.replace(/~1/g,'/').replace(/~0/g,'~')],contract);
+    .reduce<unknown>((value,key) => (value as Record<string, unknown> | null | undefined)?.[key.replace(/~1/g,'/').replace(/~0/g,'~')],
+      contract) as Owner['execution_contracts']['REL.values'] | undefined;
   if (!resolved || cid(resolved) !== entry.execution_contract.cid) throw new Error('ContractCidMismatch');
   same({operation:resolved.operation,inputs:resolved.inputs,output:resolved.output},
     {operation:'REL.values',inputs:entry.inputs,output:entry.output}, 'ContractSignatureMismatch');
@@ -85,11 +97,11 @@ test('rehashing a changed signature or contract reference does not satisfy the r
   for (const [mutate,issue] of [
     [e => {e.inputs = ['relation'];}, /SignatureMismatch/],
     [e => {e.output = 'events';}, /SignatureMismatch/],
-    [e => {delete e.execution_contract;}, /InvalidRegistration/],
+    [e => {delete (e as Partial<Entry>).execution_contract;}, /InvalidRegistration/],
     [e => {e.execution_contract.cid = oldCid;}, /ContractReferenceMismatch/],
     [e => {e.execution_contract.pointer += '/params_schema';}, /ContractReferenceMismatch/],
     [e => {e.execution_contract.file = 'another-contract.json';}, /ContractReferenceMismatch/],
-  ]) {
+  ] satisfies [(entry: Entry) => void, RegExp][]) {
     const changed = structuredClone(registry); mutate(changed['REL.values']);
     assert.throws(() => resolveValues(changed,cid(changed)),issue);
   }

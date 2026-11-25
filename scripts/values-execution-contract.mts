@@ -3,17 +3,32 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
-import {byteValuesBody} from './protocol-value-contracts.mjs';
+import {byteValuesBody} from './byte-values-contract.mjs';
 import {fieldPattern} from './aggregate-schema.mjs';
 
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
-export function executionContract(protocol) {
+type Bound = {maximum?: number};
+type ValueSchema = {oneOf: {properties: {
+  type: {const?: string; enum?: string[]};
+  min_length?: Bound;
+  max_codepoints?: Bound;
+  max_utf8_bytes?: Bound;
+  max_items?: Bound;
+}}[]};
+type Protocol = {schemas: {
+  canonical_value_contract: {$defs: {value_contract: ValueSchema}};
+  author_value_contract: Parameters<typeof byteValuesBody>[0]['schemas']['author_value_contract'];
+}};
+type Owner = {execution_contracts: Record<string, unknown>;
+  target_registry_requirements: Record<string, unknown>; pipeline_registry_file: string; pipeline_registry_cid: string};
+
+const read = <Value,>(path: string): Value => JSON.parse(readFileSync(path, 'utf8'));
+export function executionContract(protocol: Protocol) {
   const checked = protocol.schemas.canonical_value_contract;
   const type = structuredClone(checked.$defs.value_contract);
-  type.oneOf = type.oneOf.filter(b => !['resource_ref', 'content_ref'].includes(b.properties.type.const));
+  type.oneOf = type.oneOf.filter(b => !(['resource_ref', 'content_ref'] as (string | undefined)[]).includes(b.properties.type.const));
   for (const b of type.oneOf) {
     if (b.properties.type.enum) b.properties.type.enum = b.properties.type.enum.filter(t => t !== 'json');
-    for (const key of ['min_length', 'max_codepoints', 'max_utf8_bytes', 'max_items']) {
+    for (const key of ['min_length', 'max_codepoints', 'max_utf8_bytes', 'max_items'] as const) {
       if (b.properties[key]) b.properties[key].maximum = 9007199254740991;
     }
   }
@@ -78,7 +93,7 @@ export function executionContract(protocol) {
   };
 }
 
-export function checkExecutionContract(aoa, protocol) {
+export function checkExecutionContract(aoa: Owner, protocol: Protocol) {
   const body = executionContract(protocol);
   assert.deepEqual(aoa.execution_contracts['REL.values'], body);
   assert.deepEqual(aoa.target_registry_requirements['REL.values'], {
@@ -91,7 +106,7 @@ export function checkExecutionContract(aoa, protocol) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const path = 'spec/contracts/actql-aoa.json';
-  const aoa = read(path), protocol = read('spec/contracts/actql-protocol-schemas.json');
+  const aoa = read<Owner>(path), protocol = read<Protocol>('spec/contracts/actql-protocol-schemas.json');
   if (process.argv.includes('--write')) {
     const body = executionContract(protocol);
     aoa.execution_contracts ??= {};
@@ -103,7 +118,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     };
     // The selected registry must advertise the exact execution body. Do not
     // relabel historical registry fixtures or repair incoming registries.
-    const registry = read(aoa.pipeline_registry_file);
+    const registry = read<Record<string, unknown>>(aoa.pipeline_registry_file);
     registry['REL.values'] = {inputs: [], output: 'relation', execution_contract: {
       file: path, pointer: '/execution_contracts/REL.values', cid: machineCid(body)}};
     aoa.pipeline_registry_cid = machineCid(registry);

@@ -5,8 +5,11 @@ import {millisecondsSchema} from './window-schema.mjs';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {parameterPrograms} from './parameter-schema.mjs';
+import {parameterPrograms, type ProgramRegistry} from './parameter-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
+
+type EventOperation = keyof ReturnType<typeof eventSchemas>;
+type EventProgram = {properties: {steps: {items: {properties: Record<EventOperation, unknown>}}}};
 
 export function eventSchemas() {
   const calendarCommon = {
@@ -15,11 +18,11 @@ export function eventSchemas() {
   };
   const calendarWeek = [{if:{properties:{unit:{const:'week'}},required:['unit']},
     then:{required:['week_start']},else:{not:{required:['week_start']}}}];
-  const calendarTimestamp = {oneOf:[{type:'string',pattern:'^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])'},parameter]};
+  const calendarTimestamp = {oneOf:[{type:'string',pattern:'^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])'},parameter] as const};
   const field = {type:'string',pattern:fieldPattern};
   const interval = {type:'object',additionalProperties:false,required:['start','end'],properties:{start:field,end:field}};
   const point = {type:'object',additionalProperties:false,required:['time'],properties:{time:field}};
-  const timestamp = {oneOf:[{type:'string',pattern:'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])'},parameter]};
+  const timestamp = {oneOf:[{type:'string',pattern:'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])'},parameter] as const};
   return {
     calendar_bucket:{type:'object',additionalProperties:false,
       required:['time','into','unit','timezone'],allOf:calendarWeek,
@@ -76,10 +79,10 @@ export function eventSchemas() {
   };
 }
 
-export function checkEventSchemas(registry) {
+export function checkEventSchemas(registry: ProgramRegistry<EventProgram>) {
   for (const program of parameterPrograms(registry)) {
     const properties = program.properties.steps.items.properties;
-    for (const operation of Object.keys(eventSchemas())) {
+    for (const operation of Object.keys(eventSchemas()) as EventOperation[]) {
       assert.deepEqual(properties[operation], eventSchemas()[operation]);
     }
   }
@@ -91,10 +94,10 @@ export function checkEventSchemas(registry) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const path = 'spec/contracts/actql-protocol-schemas.json';
-  const registry = JSON.parse(readFileSync(path, 'utf8'));
+  const registry: ProgramRegistry<EventProgram> = JSON.parse(readFileSync(path, 'utf8'));
   if (process.argv.includes('--write')) {
     for (const program of parameterPrograms(registry)) {
-      for (const operation of Object.keys(eventSchemas())) {
+      for (const operation of Object.keys(eventSchemas()) as EventOperation[]) {
         program.properties.steps.items.properties[operation] = eventSchemas()[operation];
       }
     }
