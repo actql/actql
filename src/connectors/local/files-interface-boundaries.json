@@ -428,7 +428,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8177992df7d20e15fa8d85240b40053307c8bcb6f0322771fdb28db7ce83d5c8",
+      "sha256": "5363e8a431a4344e848be64a1b2b6686e4ae0f598890b4ebc540fa455284a1bf",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -736,7 +736,7 @@
         {
           "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
           "parameters": [
-            "name"
+            "source"
           ],
           "async": false
         },
@@ -750,7 +750,7 @@
         {
           "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
           "parameters": [
-            "source"
+            "name"
           ],
           "async": false
         },
@@ -763,6 +763,13 @@
         },
         {
           "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
           "parameters": [
             "ref"
           ],
@@ -923,7 +930,8 @@
             "text/text",
             "installPreparedProjectLocalFiles/adapter/adapter/table/table",
             "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant/init:issueReadGrant",
-            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/csv/csv"
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/csv/csv",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5"
           ],
           "exports": [
             "LOCAL_FILES_DEFAULT_LIMITS",
@@ -2127,7 +2135,7 @@
     {
       "module": "adapters/connectors/local/host/local-project-file-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a5c03e63f006c5d05ec0050bdd9bff7109a08d462ec8c3b86bbb834aa54ae377",
+      "sha256": "6d206ab9ef0aabdd14ee525823cf7639a89c7d58aab70b1beba554af087d3770",
       "exports": [
         "bindLocalProjectFilePreparation"
       ],
@@ -2205,6 +2213,13 @@
           "async": false
         },
         {
+          "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/csvViews/csvViews",
+          "parameters": [
+            "table"
+          ],
+          "async": false
+        },
+        {
           "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/current/current",
           "parameters": [],
           "async": false
@@ -2274,7 +2289,8 @@
             "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
             "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/csvTransports/csvTransports",
             "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/csvTransports/csvTransports/table/table",
-            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles#2"
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles#2",
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/csvViews/csvViews"
           ],
           "exports": [
             "bindLocalProjectFilePreparation"
@@ -3071,7 +3087,7 @@
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ab3f43ad9331abeeda266ab9506213bea3f34bd64185ce0db297008951671878",
+      "sha256": "dbc7c87f644391b556c521a6589abf353d42220a9e88f4c1c72969e4f13f521c",
       "role": "connector-semantics",
       "owner": "Existing Local Connector Catalog/Command/Mapping declaration; DATA only, not Reference or I/O authority",
       "exports": [
@@ -3177,7 +3193,7 @@
             "limits",
             "canonical",
             "cid",
-            "tables"
+            "csvViews"
           ],
           "async": false
         },
@@ -3192,14 +3208,6 @@
           "name": "restoreDeclaration/restoreDeclaration#2",
           "parameters": [
             "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreDeclaration/schema/schema",
-          "parameters": [
-            "name",
-            "type"
           ],
           "async": false
         },
@@ -3230,8 +3238,7 @@
             "sorted/sorted/sorted",
             "restoreDeclaration",
             "restoreDeclaration/restoreDeclaration",
-            "restoreDeclaration/restoreDeclaration#2",
-            "restoreDeclaration/schema/schema"
+            "restoreDeclaration/restoreDeclaration#2"
           ],
           "exports": [
             "localFileStoreDeclaration",
@@ -4863,16 +4870,21 @@
     {
       "module": "adapters/connectors/local/host/local-csv-table.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f5c9e2e1cb8ee54693f3e21e8d4214ccf20c518516a02e724c0ade53563ae7f0",
+      "sha256": "c72792e8793004c98bb5ec382d1725adfc4b7f0af2dd199c490bc6bbee2177b8",
       "exports": [
         "encodeLocalCsvPage",
-        "prepareLocalCsvTable"
+        "prepareLocalCsvTable",
+        "projectLocalCsvRelationView"
       ],
-      "imports": [],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/runtime-result.mjs"
+      ],
       "operations": [
         {
           "name": "encodeLocalCsvPage",
           "parameters": [
+            "moon",
             "bytes",
             "table",
             "maxPageBytes"
@@ -4880,31 +4892,16 @@
           "async": false
         },
         {
-          "name": "localCsvRows/identity/identity",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "localCsvRows/localCsvRows",
+          "name": "encodeLocalCsvPage/encodeLocalCsvPage",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "localCsvRows/localCsvRows#2",
+          "name": "encodeLocalCsvPage/encodeLocalCsvPage#2",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "localCsvRows/row/row",
-          "parameters": [
-            "name",
-            "i"
           ],
           "async": false
         },
@@ -4937,28 +4934,44 @@
             "name"
           ],
           "async": false
+        },
+        {
+          "name": "projectLocalCsvRelationView",
+          "parameters": [
+            "moon",
+            "table"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectLocalCsvRelationView/projected/projected",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         }
       ],
       "role": "connector-semantics",
       "owner": "Existing Local Source and physical Root owner",
-      "rationale": "Projects one exact Project CSV declaration and its bounded original file response into a typed RowRun page.",
+      "rationale": "Admits the Project CSV declaration and projects the original charged bytes through the Common CSV page owner.",
       "contracts": [
         {
           "operations": [
             "<module>",
             "encodeLocalCsvPage",
-            "localCsvRows/identity/identity",
-            "localCsvRows/localCsvRows",
-            "localCsvRows/localCsvRows#2",
-            "localCsvRows/row/row",
             "prepareLocalCsvTable",
             "prepareLocalCsvTable/prepareLocalCsvTable",
             "prepareLocalCsvTable/prepareLocalCsvTable#2",
-            "prepareLocalCsvTable/prepareLocalCsvTable#3"
+            "prepareLocalCsvTable/prepareLocalCsvTable#3",
+            "encodeLocalCsvPage/encodeLocalCsvPage",
+            "encodeLocalCsvPage/encodeLocalCsvPage#2",
+            "projectLocalCsvRelationView",
+            "projectLocalCsvRelationView/projected/projected"
           ],
           "exports": [
             "encodeLocalCsvPage",
-            "prepareLocalCsvTable"
+            "prepareLocalCsvTable",
+            "projectLocalCsvRelationView"
           ],
           "attributes": {
             "responsibility": [
@@ -4993,8 +5006,12 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/local-csv-table.mts",
+                "path": "src/client_row_source_host/local_csv_page.mbt",
                 "anchor": "InvalidLocalCsvEncoding"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-csv-table.mts",
+                "anchor": "LocalCsvRuntimeUnavailable"
               }
             ],
             "cancellation": [
@@ -5023,6 +5040,14 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "actual Common restores distinct declared CSV views"
+              },
+              {
+                "path": "src/client_row_source_host/local_csv_page_wbtest.mbt",
+                "anchor": "Local CSV yields original #3740 rows"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-csv-table.test.mts",
+                "anchor": "ordinary CSV projection preserves the original schema identity and ordered key"
               }
             ]
           }

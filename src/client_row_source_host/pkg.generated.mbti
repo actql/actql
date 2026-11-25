@@ -167,6 +167,8 @@ pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool
 
 pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool
 
+pub fn encode_local_csv_page(Bytes, Array[String], Array[Bool], Array[String], Int, Int, Int, Int) -> Result[String, LocalCsvPageIssue]
+
 pub fn ensure_row_run_response_transfer_capacity(RowRunResponseBorrow, Int64) -> Result[Unit, RowHostIssue]
 
 pub fn export_query_row_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
@@ -216,6 +218,8 @@ pub fn keyed_row_capture_read(RowKeyedSourceCapture) -> Result[@execution_relati
 pub fn keyed_row_read_facts(RowSourceRead) -> @sourceview_resolution.KeyedSourceFacts?
 
 pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)
+
+pub fn local_csv_page_issue_code(LocalCsvPageIssue) -> String
 
 pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?
 
@@ -282,6 +286,8 @@ pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> R
 pub fn prepare_row_source_cursor_progress(Int, Int, Int, Int) -> Result[RowSourceCursorProgress, RowSourceCursorIssue]
 
 pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
+
+pub fn project_local_csv_relation_view(String, Array[String], Array[Bool], Array[String]) -> Result[RowRelationViewSpec, RowHostIssue]
 
 pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]
 
@@ -578,6 +584,24 @@ pub(all) struct DeclaredFileReadFields {
   items_path : Array[String]
   key_path : Array[String]
 }
+
+pub(all) enum LocalCsvPageIssue {
+  InvalidLocalCsvLimits
+  InvalidLocalCsvColumns
+  InvalidLocalCsvKey
+  InvalidLocalCsvHeader
+  InvalidLocalCsvWidth
+  InvalidLocalCsvQuote
+  InvalidLocalCsvSeparator
+  InvalidLocalCsvEncoding
+  InvalidLocalCsvValue
+  InvalidLocalCsvInt64
+  DuplicateLocalCsvKey
+  LocalCsvBytesLimit
+  LocalCsvFieldLimit
+  LocalCsvRowsLimit
+  LocalFilesPageBytesLimit
+} derive(Eq, @debug.Debug)
 
 pub struct MockChurnRiskCatalogue {
   // private fields

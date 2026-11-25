@@ -3076,6 +3076,10 @@ pub fn client_program_kintone_write_values_json(@actql/actql/connectors/kintone/
 
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 
+pub fn client_program_local_csv_page(Bytes, Array[String], Array[Bool], Array[String], Int, Int, Int, Int) -> Result[String, String]
+
+pub fn client_program_local_csv_relation_view(String, Array[String], Array[Bool], Array[String]) -> Result[(String, String, String), @client_row_source_host.RowHostIssue]
+
 pub fn client_program_local_effect_host_run(ClientLocalEffectHost) -> @physical_strategy_host.CapturedEffectRunDAG
 
 pub fn client_program_local_effect_host_runtime(ClientLocalEffectHost) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
