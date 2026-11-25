@@ -4,8 +4,7 @@ export function CheckpointPanel({page,review,pending,canList,canRead,onList,onRe
  const content=review?reviewText(review):null;
  return <section className="actql-checkpoint-review" aria-label="Current Host Checkpoint reviews">
   <h2>Checkpoint review</h2>
-  <p>One current authorized Host page, independent of the selected Run. Listing, review reading and answering need separate permissions.
-   This viewer does not answer a Checkpoint, create a Run or resume execution.</p>
+  <p>This page lists current Checkpoints for the connected Host, independent of the selected Run. Listing, reading a review and answering each require permission. Use an authorized signer to answer.</p>
   <button type="button" disabled={pending||!canList} onClick={onList}>List waiting Checkpoints</button>
   {!canList&&<p>Checkpoint listing is unavailable in this Client.</p>}
   {page&&<><p>{page.items.length===0?'No waiting Checkpoints in this authorized page.':'Original waiting Checkpoint metadata.'}

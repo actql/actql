@@ -36,13 +36,18 @@ pub(all) enum CapturedTaskControlIssue {
 // Only the SAME installed hook retains this state, never an exported alias.
 // The original tuple/subject/context are borrowed admitted Owner DATA. They
 // cannot be replaced by another task's strategy generation or cancellation
-// counter. No command log, operation id, timer, Sample or scheduler is stored.
+// counter. Only scalar commit coordinates are retained per task. No command
+// log, operation id, timer, Sample payload or scheduler is stored.
 priv struct CapturedTaskControl {
   ledger : @resources.Ledger
   reservation : @resources.CapacityReservation
   mut binding : CapturedTaskControlBinding?
   mut revision : Int
   mut phase : CapturedTaskControlPhase
+  mut remaining : Int
+  // Two scalar words per original task: generation, then consumed attempt.
+  mut sample_commits : FixedArray[Int]?
+  mut sample_start_revision : Int
   mut changing : Bool
   mut cleanup_issue : @resources.LedgerIssue?
 }
@@ -62,20 +67,29 @@ priv struct CapturedTaskControlBinding {
 // The existing hook setup separately retains the original readiness iterators.
 let captured_task_control_bytes : Int64 = @execution.preparation_representation_cost({
     record_headers: 4L + 2L + 2L + 2L + 1L + 3L,
-    // Control ledger/token/binding/phase/cleanup5; binding tuple/subject/context3;
+    // Control ledger/token/binding/phase/commits/cleanup6; binding tuple/subject/context3;
     // retained Some2; snapshot2; refusal2; cleanup1; carrier1.
-    reference_slots: 5L + 3L + 2L + 2L + 2L + 1L + 1L,
-    // Revision/fence2; binding/control tags2; OLD+NEW phase tags/payload4;
-    // snapshot2; refusal3; cleanup1; other result tags3.
-    scalar_words: 2L + 2L + 4L + 2L + 3L + 1L + 3L,
+    reference_slots: 6L + 3L + 2L + 2L + 2L + 1L + 1L,
+    // Revision/remaining/start revision/fence4;
+    // binding/control tags2; OLD+NEW phase tags/payload4; snapshot2;
+    // refusal3; cleanup1; other result tags3.
+    scalar_words: 4L + 2L + 4L + 2L + 3L + 1L + 3L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
 ).unwrap()
 
 ///|
-pub fn captured_task_control_construction_bytes() -> Int64 {
-  captured_task_control_bytes
+pub fn captured_task_control_construction_bytes(tasks : Int) -> Int64 {
+  // Fixed array header and length, its Some, and the two scalars per task.
+  captured_task_control_bytes +
+  @execution.preparation_representation_cost({
+    record_headers: 2L,
+    reference_slots: 1L,
+    scalar_words: 2L + 2L * tasks.to_int64(),
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
 }
 
 ///|
@@ -114,9 +128,13 @@ fn captured_control_authorized(
 // Per-operation capability, not a restriction on legal Programs. In
 // particular a fused prefix, Effect, captured acquisition or raw Input does
 // not acquire a manufactured logical boundary by installing a controller.
-fn captured_control_boundary_available(graph : CheckedDAG, task : Int) -> Bool {
-  guard graph_task_unit_index(graph, task) is Some(stage) &&
-    @checked.unit_pipeline(graph_program(graph), stage) is Some(pipeline) else {
+fn checked_control_boundary_available(
+  graph : CheckedDAG,
+  stage : Int,
+  task : Int,
+  entry? : Bool = false,
+) -> Bool {
+  guard @checked.unit_pipeline(graph_program(graph), stage) is Some(pipeline) else {
     return false
   }
   let count = @pipeline.step_count(pipeline)
@@ -132,7 +150,47 @@ fn captured_control_boundary_available(graph : CheckedDAG, task : Int) -> Bool {
       0
     }
   }
-  graph_stage_operation_task(graph, stage, selected) == Some(task)
+  graph_stage_operation_task(graph, stage, selected) == Some(task) &&
+  (!entry || @pipeline.serialization_order(pipeline, selected) is None)
+}
+
+///|
+/// A single captured port does not own a bulk traversal.
+fn captured_control_boundary_available(graph : CheckedDAG, task : Int) -> Bool {
+  guard graph_task_unit_index(graph, task) is Some(stage) else { return false }
+  checked_control_boundary_available(graph, stage, task)
+}
+
+///|
+/// Find the first unavailable entry boundary on the original checked graph.
+/// The caller must fund at most one stage and one operation visit per task.
+/// This changes no Run state and confers neither current authority nor capacity.
+pub fn checked_task_control_entry_boundary_issue(graph : CheckedDAG) -> Int? {
+  let tasks = @graph.graph_task_count(graph)
+  let stages = graph.stage_tasks_count()
+  if tasks == 0 ||
+    stages > tasks ||
+    @graph.graph_captured_prefix(graph) != 0 ||
+    graph_program_has_effects(graph) {
+    return Some(0)
+  }
+  let mut expected = 0
+  for stage in 0..<stages {
+    for task in graph.stage_tasks_iter_at(stage).unwrap() {
+      // Ordinary checked graphs enumerate physical tasks in authored stage
+      // order. A fused alias repeats a physical task and cannot be a stop.
+      if task != expected ||
+        !checked_control_boundary_available(graph, stage, task, entry=true) {
+        return Some(expected)
+      }
+      expected += 1
+    }
+  }
+  if expected == tasks {
+    None
+  } else {
+    Some(expected)
+  }
 }
 
 ///|
@@ -178,32 +236,26 @@ pub fn prepare_captured_task_control(
   hooks.admitting_control = true
   let generation = run.generation
   let tasks = run.done.length()
-  // Validate each original task once, and prepay at most tasks full completion
-  // scans of tasks slots. This bounds all later Debug-only commit work BEFORE
-  // execution; no resource callback is introduced after atomic output commit.
-  if tasks > (2147483647 - tasks) / tasks {
+  // The original boundary check and update plus the two initial scalar
+  // writes and two commit writes. No later observation mutates these slots.
+  if tasks > 2147483647 / 6 {
     hooks.admitting_control = false
     return Err(Resource(@resources.PlanningLimit))
   }
-  let admitted = @resources.charge_planning(run.ledger, tasks + tasks * tasks)
+  let admitted = @resources.charge_planning(run.ledger, tasks * 6)
   if admitted is Err(issue) {
     hooks.admitting_control = false
     refresh_captured_task_boundary_cleanup(run)
     return Err(Resource(issue))
   }
-  for task in 0..<run.done.length() {
-    if !captured_control_boundary_available(run.graph, task) {
-      hooks.admitting_control = false
-      refresh_captured_task_boundary_cleanup(run)
-      return Err(BoundaryUnavailable(task))
-    }
+  if checked_task_control_entry_boundary_issue(run.graph) is Some(task) {
+    hooks.admitting_control = false
+    refresh_captured_task_boundary_cleanup(run)
+    return Err(BoundaryUnavailable(task))
   }
+  let bytes = captured_task_control_construction_bytes(tasks)
   let reservation = match
-    @resources.reserve_capacity(
-      run.ledger,
-      captured_task_control_bytes,
-      captured_task_control_bytes,
-    ) {
+    @resources.reserve_capacity(run.ledger, bytes, bytes) {
     Err(issue) => {
       hooks.admitting_control = false
       refresh_captured_task_boundary_cleanup(run)
@@ -217,6 +269,9 @@ pub fn prepare_captured_task_control(
     binding: Some({ tuple, subject_cid, context_cid, }),
     revision: 0,
     phase: Paused,
+    remaining: tasks,
+    sample_commits: Some(FixedArray::make(2 * tasks, 0)),
+    sample_start_revision: 0,
     changing: false,
     cleanup_issue: None,
   })
@@ -255,6 +310,37 @@ pub fn captured_task_control_state(
     return Err(InProgress)
   }
   Ok((control.revision, control.phase))
+}
+
+///|
+/// Observe the last original task commit while the same controller is paused.
+pub fn captured_task_control_paused_task(
+  run : CapturedDAG,
+  hooks : CapturedTaskBoundaryHooks,
+) -> Result[(Int, Int, Int?, Int), CapturedTaskControlIssue] {
+  match captured_task_control_state(run, hooks) {
+    Err(issue) => Err(issue)
+    Ok((revision, Paused)) => {
+      guard revision >= 2 &&
+        hooks.committed is Some(original) &&
+        original.generation == run.generation &&
+        original.strategy_revision == run.revisions &&
+        original.task >= captured_compute_first_task(run) &&
+        original.task < run.done.length() &&
+        run.done[original.task] else {
+        return Err(InvalidTransition)
+      }
+      Ok(
+        (
+          revision,
+          original.task,
+          next_captured_task_ungated(run),
+          original.generation,
+        ),
+      )
+    }
+    Ok(_) => Err(InvalidTransition)
+  }
 }
 
 ///|
@@ -336,12 +422,13 @@ pub fn command_captured_task_control(
     _ => return Err(InvalidTransition)
   }
   let generation = run.generation
+  let bytes = captured_task_control_construction_bytes(run.done.length())
   control.changing = true
   let checked = @resources.grow_capacity_reservation(
     control.ledger,
     control.reservation,
-    captured_task_control_bytes,
-    captured_task_control_bytes,
+    bytes,
+    bytes,
   )
   control.changing = false
   if run.stopped || hooks.closing {
@@ -381,26 +468,40 @@ fn captured_task_control_allows_activation(run : CapturedDAG) -> Bool {
 }
 
 ///|
-// Called ONLY by the existing successful atomic output commit. Before and
-// settled are the two phases of ONE operation credit. No callback or fallible
-// construction is introduced after that output becomes visible.
+// Called only for the original slot's first successful output commit. Before
+// and settled are the two phases of one operation credit. The same already
+// funded Debug control owns the remaining count.
 fn commit_captured_task_control(
   run : CapturedDAG,
   hooks : CapturedTaskBoundaryHooks,
   task : Int,
+  reservation : @resources.Reservation,
 ) -> Unit {
   guard hooks.control is Some(control) else { return }
   if !captured_control_owner_matches(run, hooks) || control.binding is None {
     return
   }
-  let mut completed = true
-  for index in captured_compute_first_task(run)..<run.done.length() {
-    if !run.done[index] {
-      completed = false
-      break
+  if control.sample_start_revision > 0 &&
+    control.sample_commits is Some(commits) {
+    let relation = match run.outputs[task] {
+      Some(Materialized(output)) => @execution.completed_has_cell_access(output)
+      Some(Managed(_)) => true
+      _ => false
+    }
+    if relation {
+      let attempt = @resources.completed_output_attempt_sequence(
+        run.ledger,
+        reservation,
+      )
+      if attempt > 0 {
+        // commit_task_output already excluded a second commit of this slot.
+        commits[2 * task] = run.generation
+        commits[2 * task + 1] = attempt
+      }
     }
   }
-  if completed {
+  control.remaining -= 1
+  if control.remaining == 0 {
     control.phase = Completed
     control.revision += 1
   } else if control.phase == Stepping(task) || control.phase == PausePending {
@@ -424,6 +525,8 @@ fn retire_captured_task_control(hooks : CapturedTaskBoundaryHooks) -> Unit {
   hooks.admitting_control = true
   hooks.control = None
   control.binding = None
+  control.sample_commits = None
+  control.sample_start_revision = 0
   control.phase = Retired // Scalar tombstone, never a Run outcome.
   match @resources.settle_capacity(control.ledger, control.reservation) {
     Err(issue) => {

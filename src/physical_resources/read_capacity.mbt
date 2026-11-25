@@ -108,7 +108,7 @@ fn reserve_capacity_current(
     execution: execution_bytes,
     open: true,
     attempt_reserved: false,
-    attempt_started: false,
+    attempt_sequence: 0,
     cleanup_pending: false,
     quantities: None,
     uncertain_quantities: None,
@@ -166,7 +166,7 @@ pub fn shrink_capacity_reservation(
   if retained > token.retention ||
     execution > token.execution ||
     token.attempt_reserved ||
-    token.attempt_started {
+    token.attempt_sequence != 0 {
     return Err(InvalidCharge)
   }
   if imported_child_fixed_capacity(ledger, token) {

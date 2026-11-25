@@ -1858,29 +1858,59 @@
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "994b13f07e5809aab12d4e9f43ab3aaa9fe99449a5aa3d319104e08e8f680c0d",
+      "sha256": "57a06bd02e37371d3e2851f995317f6ac675cb2c9db964601200c9b0774fc18b",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
         "CancellationPanelProps",
         "CheckpointPanel",
         "OriginalCancellation",
+        "OriginalPlanMetadata",
         "PlanExplorer",
         "PlanExplorerProps",
-        "RunInspector"
+        "RunInspector",
+        "WorkspaceGraphGroup"
       ],
       "operations": [
+        {
+          "name": "CancellationPanel",
+          "parameters": [
+            "props: CancellationPanelProps"
+          ],
+          "result": "ReactElement"
+        },
+        {
+          "name": "CheckpointPanel",
+          "parameters": [
+            "props: CheckpointPanelProps"
+          ],
+          "result": "ReactElement"
+        },
         {
           "name": "label",
           "parameters": [
             "id: string"
           ],
-          "result": "{kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state: string}"
+          "result": "{kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state?: string;\n      effectDeclaration?: Readonly<{fields?: string; missingProducer: string}>}"
+        },
+        {
+          "name": "OriginalPlanMetadata",
+          "parameters": [
+            "props: {model: PlanReadModel; workspace?: boolean; locale?: 'en' | 'ja'}"
+          ],
+          "result": "ReactElement"
         },
         {
           "name": "PlanExplorer",
           "parameters": [
             "props: PlanExplorerProps"
+          ],
+          "result": "ReactElement"
+        },
+        {
+          "name": "RunInspector",
+          "parameters": [
+            "props: {model: RunObservationModel}"
           ],
           "result": "ReactElement"
         },
@@ -1893,11 +1923,10 @@
         }
       ],
       "imports": [
-        "./cancellation-panel.js",
         "./cancellation-types.js",
-        "./checkpoint-panel.js",
+        "./checkpoint-review.js",
         "./read-model.js",
-        "./run-inspector.js",
+        "./run-observation.js",
         "react"
       ],
       "compilerFields": [],
@@ -1908,9 +1937,13 @@
         {
           "operations": [
             "<module>",
+            "CancellationPanel",
+            "CheckpointPanel",
             "label",
             "PlanExplorer",
-            "select"
+            "RunInspector",
+            "select",
+            "OriginalPlanMetadata"
           ],
           "exports": [
             "CancellationObservation",
@@ -1920,13 +1953,15 @@
             "OriginalCancellation",
             "PlanExplorer",
             "PlanExplorerProps",
-            "RunInspector"
+            "RunInspector",
+            "WorkspaceGraphGroup",
+            "OriginalPlanMetadata"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               },
               {
                 "path": "packages/explorer/README.md",
@@ -1936,7 +1971,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "identity": [
@@ -1946,7 +1981,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "ownership": [
@@ -1956,7 +1991,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "synchronization": [
@@ -1966,7 +2001,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "failure": [
@@ -1976,7 +2011,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "cancellation": [
@@ -1986,7 +2021,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "resources": [
@@ -1996,7 +2031,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "extension": [
@@ -2006,7 +2041,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "verification": [
@@ -2015,8 +2050,12 @@
                 "anchor": "array reversal changes presentation positions"
               },
               {
-                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
-                "anchor": "assert((await step.textContent()).includes(originalStep));"
+                "path": "scripts/fixtures/packed-explorer-saved-context.mts",
+                "anchor": "assert((await step.textContent())?.includes(originalStep));"
+              },
+              {
+                "path": "packages/explorer-ui/plan-explorer.test.mjs",
+                "anchor": "test('workspace metadata keeps original identities"
               }
             ]
           }
@@ -2026,13 +2065,15 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "1d5bc4507d449ffc8994be687fb1cac43f51d1fc35e179ef9d5b54861c6758e9",
+      "sha256": "c7fb7ee54a90b7cf348646b15d0c41bd509758981f5b4411a3c01e00d23c38fa",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
+        "OriginalPlanMetadata",
         "PlanExplorer",
         "PlanExplorerProps",
-        "RunInspector"
+        "RunInspector",
+        "WorkspaceGraphGroup"
       ],
       "operations": [
         {
@@ -2077,13 +2118,20 @@
         {
           "name": "BoundPlanExplorer/<call>/<call>#6",
           "parameters": [
+            "group"
+          ],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>/<call>#7",
+          "parameters": [
             "node",
             "index"
           ],
           "result": null
         },
         {
-          "name": "BoundPlanExplorer/<call>/<call>#7",
+          "name": "BoundPlanExplorer/<call>/<call>#8",
           "parameters": [],
           "result": null
         },
@@ -2094,15 +2142,12 @@
         },
         {
           "name": "BoundPlanExplorer/<call>#11",
-          "parameters": [
-            "node"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "BoundPlanExplorer/<call>#12",
           "parameters": [
-            "_",
             "node"
           ],
           "result": null
@@ -2110,12 +2155,20 @@
         {
           "name": "BoundPlanExplorer/<call>#13",
           "parameters": [
+            "_",
             "node"
           ],
           "result": null
         },
         {
           "name": "BoundPlanExplorer/<call>#14",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>#15",
           "parameters": [
             "port"
           ],
@@ -2138,33 +2191,35 @@
         },
         {
           "name": "BoundPlanExplorer/<call>#5",
-          "parameters": [],
+          "parameters": [
+            "group"
+          ],
           "result": null
         },
         {
           "name": "BoundPlanExplorer/<call>#6",
           "parameters": [
-            "node"
+            "id: string"
           ],
           "result": null
         },
         {
           "name": "BoundPlanExplorer/<call>#7",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>#8",
           "parameters": [
             "node"
           ],
           "result": null
         },
         {
-          "name": "BoundPlanExplorer/<call>#8",
-          "parameters": [
-            "entry"
-          ],
-          "result": null
-        },
-        {
           "name": "BoundPlanExplorer/<call>#9",
-          "parameters": [],
+          "parameters": [
+            "node"
+          ],
           "result": null
         },
         {
@@ -2327,9 +2382,112 @@
           "result": null
         },
         {
+          "name": "narrowWorkspaceViewport",
+          "parameters": [
+            "placed: LogicalNode[]",
+            "focus: LogicalNode",
+            "edges: Edge[]",
+            "width: number"
+          ],
+          "result": null
+        },
+        {
+          "name": "narrowWorkspaceViewport/<call>",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "narrowWorkspaceViewport/<call>#2",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
+          "name": "narrowWorkspaceViewport/<call>#3",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
           "name": "OriginalEdge",
           "parameters": [
             "{id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, label}: EdgeProps"
+          ],
+          "result": null
+        },
+        {
+          "name": "OriginalPlanMetadata",
+          "parameters": [
+            "{model, workspace = false, locale = 'en'}: {\n  model: PlanReadModel; workspace?: boolean; locale?: 'en' | 'ja';\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "OriginalPlanMetadata/<call>",
+          "parameters": [
+            "entry"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects",
+          "parameters": [
+            "nodes: LogicalNode[]",
+            "edges: Edge[]"
+          ],
+          "result": "LogicalNode[]"
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#2",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#3",
+          "parameters": [
+            "node",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#4",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#5",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#6",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "placeUnlinkedEffects/<call>#7",
+          "parameters": [
+            "node"
           ],
           "result": null
         },
@@ -2346,6 +2504,84 @@
             "id: string"
           ],
           "result": "void"
+        },
+        {
+          "name": "workspaceFlow",
+          "parameters": [
+            "model: PlanReadModel",
+            "groups?: readonly WorkspaceGraphGroup[]"
+          ],
+          "result": "{nodes: LogicalNode[]; edges: Edge[]; unavailable?: true}"
+        },
+        {
+          "name": "workspaceFlow/<call>",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>/<call>",
+          "parameters": [
+            "id"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>/<call>#2",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>/<call>#3",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#2",
+          "parameters": [
+            "group"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#3",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#4",
+          "parameters": [
+            "input"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#5",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#6",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
+          "name": "workspaceFlow/<call>#7",
+          "parameters": [
+            "node"
+          ],
+          "result": null
         }
       ],
       "imports": [
@@ -2354,6 +2590,7 @@
         "./flow-layout.mjs",
         "./flow-model.mjs",
         "./read-model.js",
+        "./read-model.mjs",
         "./run-inspector.js",
         "./styles.css",
         "@base-ui/react/button",
@@ -2415,14 +2652,43 @@
             "groupUnlinkedInputs/<call>#6",
             "groupUnlinkedInputs/<call>#7",
             "groupUnlinkedInputs/<call>#8",
-            "groupUnlinkedInputs/<call>#9"
+            "groupUnlinkedInputs/<call>#9",
+            "narrowWorkspaceViewport",
+            "narrowWorkspaceViewport/<call>",
+            "narrowWorkspaceViewport/<call>#2",
+            "narrowWorkspaceViewport/<call>#3",
+            "BoundPlanExplorer/<call>/<call>#8",
+            "BoundPlanExplorer/<call>#15",
+            "workspaceFlow",
+            "workspaceFlow/<call>",
+            "workspaceFlow/<call>/<call>",
+            "workspaceFlow/<call>/<call>#2",
+            "workspaceFlow/<call>/<call>#3",
+            "workspaceFlow/<call>#2",
+            "workspaceFlow/<call>#3",
+            "workspaceFlow/<call>#4",
+            "workspaceFlow/<call>#5",
+            "workspaceFlow/<call>#6",
+            "workspaceFlow/<call>#7",
+            "OriginalPlanMetadata",
+            "OriginalPlanMetadata/<call>",
+            "placeUnlinkedEffects",
+            "placeUnlinkedEffects/<call>",
+            "placeUnlinkedEffects/<call>#2",
+            "placeUnlinkedEffects/<call>#3",
+            "placeUnlinkedEffects/<call>#4",
+            "placeUnlinkedEffects/<call>#5",
+            "placeUnlinkedEffects/<call>#6",
+            "placeUnlinkedEffects/<call>#7"
           ],
           "exports": [
             "CancellationPanel",
             "CheckpointPanel",
             "PlanExplorer",
             "PlanExplorerProps",
-            "RunInspector"
+            "RunInspector",
+            "WorkspaceGraphGroup",
+            "OriginalPlanMetadata"
           ],
           "attributes": {
             "responsibility": [
@@ -2517,8 +2783,12 @@
                 "anchor": "array reversal changes presentation positions"
               },
               {
-                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
-                "anchor": "assert((await step.textContent()).includes(originalStep));"
+                "path": "scripts/fixtures/packed-explorer-saved-context.mts",
+                "anchor": "assert((await step.textContent())?.includes(originalStep));"
+              },
+              {
+                "path": "packages/explorer-ui/plan-explorer.test.mjs",
+                "anchor": "test('workspace metadata keeps original identities"
               }
             ]
           }
@@ -2658,7 +2928,7 @@
     {
       "module": "packages/explorer-ui/read-model.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "ba0d28027d163fcca52e1b7fa208bf189c6b649e973b19bb7e8556cdafb0adab",
+      "sha256": "e9e44a6404eebf5f0eea5f6a6a7c143285d1f8a17af58f7d5cdd748dec9a1a05",
       "exports": [
         "ExplanationStoryModel",
         "ExplorerReadError",
@@ -2668,10 +2938,12 @@
         "PlanReadModel",
         "PlanStoryModel",
         "ReadTicket",
+        "SamplePortSelection",
         "SavedExplanationReadModel",
         "StaticExplanationReadModel",
         "createReadEpoch",
         "describeExistingResult",
+        "expectedStoryPortColumns",
         "explanationStoryModel",
         "graphViewLimits",
         "planReadModel",
@@ -2681,10 +2953,16 @@
         "readExistingRunExplanation",
         "readExistingRunPlan",
         "readExistingRunPresentation",
+        "readExistingRunSample",
         "readExistingRunStory",
         "readStaticExplanation",
         "readStaticPlan",
-        "staticExplanationReadModel"
+        "sampleCaptureCaption",
+        "sampleCellPreview",
+        "sampleMatchesPort",
+        "staticExplanationReadModel",
+        "storySamplePorts",
+        "validSamplePortSelection"
       ],
       "operations": [
         {
@@ -2718,11 +2996,20 @@
           "result": "Promise<ResultDescription>"
         },
         {
+          "name": "expectedStoryPortColumns",
+          "parameters": [
+            "steps: ReadonlyMap<string, ExplanationStoryModel['occurrences'][number]>",
+            "step: ExplanationStoryModel['occurrences'][number]",
+            "port: Step['ports'][number] | undefined"
+          ],
+          "result": "readonly string[] | undefined"
+        },
+        {
           "name": "explanationStoryModel",
           "parameters": [
             "view: WirePlanView | WireEffectfulStaticPlanView",
             "facts: WireExplanationFacts",
-            "options?: {locale?: 'en' | 'ja'}"
+            "presentation: FactsPresentation"
           ],
           "result": "ExplanationStoryModel"
         },
@@ -2783,10 +3070,20 @@
           "parameters": [
             "client: Pick<Client, 'attach'>",
             "ref: RunReference",
-            "options: {locale?: 'en' | 'ja'} | undefined",
+            "presentation: FactsPresentation",
             "ticket: ReadTicket"
           ],
           "result": "Promise<OriginalRunPresentationReadModel>"
+        },
+        {
+          "name": "readExistingRunSample",
+          "parameters": [
+            "client: Pick<Client, 'attach'>",
+            "ref: RunReference",
+            "port: SamplePortSelection",
+            "ticket: ReadTicket"
+          ],
+          "result": "Promise<WireRunSample>"
         },
         {
           "name": "readExistingRunStory",
@@ -2822,10 +3119,41 @@
         {
           "name": "render",
           "parameters": [
+            "facts: WireExplanationFacts",
+            "locale: 'en' | 'ja'"
+          ],
+          "result": "WireExplanationNarrative"
+        },
+        {
+          "name": "render#2",
+          "parameters": [
             "view: WireStaticExplanationView",
             "locale: 'en' | 'ja'"
           ],
-          "result": "Readonly<{context: readonly string[]; steps: readonly string[]}>"
+          "result": "WireExplanationNarrative"
+        },
+        {
+          "name": "sampleCaptureCaption",
+          "parameters": [
+            "capture: WireSampleCapture"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "sampleCellPreview",
+          "parameters": [
+            "text: string"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "sampleMatchesPort",
+          "parameters": [
+            "value: unknown",
+            "ref: RunReference",
+            "port: SamplePortSelection"
+          ],
+          "result": "value is WireRunSample"
         },
         {
           "name": "staticExplanationReadModel",
@@ -2834,6 +3162,20 @@
             "presentation: StaticExplanationPresentation"
           ],
           "result": "StaticExplanationReadModel"
+        },
+        {
+          "name": "storySamplePorts",
+          "parameters": [
+            "step: Pick<Step, 'ports'>"
+          ],
+          "result": "readonly Step['ports'][number][]"
+        },
+        {
+          "name": "validSamplePortSelection",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is SamplePortSelection"
         }
       ],
       "imports": [
@@ -2859,7 +3201,15 @@
             "readExistingRun",
             "readExistingRunPlan",
             "readExistingRunStory",
-            "readStaticPlan"
+            "readStaticPlan",
+            "render#2",
+            "expectedStoryPortColumns",
+            "readExistingRunSample",
+            "sampleCaptureCaption",
+            "sampleCellPreview",
+            "sampleMatchesPort",
+            "storySamplePorts",
+            "validSamplePortSelection"
           ],
           "exports": [
             "ExplanationStoryModel",
@@ -2878,7 +3228,15 @@
             "readExistingRun",
             "readExistingRunPlan",
             "readExistingRunStory",
-            "readStaticPlan"
+            "readStaticPlan",
+            "SamplePortSelection",
+            "expectedStoryPortColumns",
+            "readExistingRunSample",
+            "sampleCaptureCaption",
+            "sampleCellPreview",
+            "sampleMatchesPort",
+            "storySamplePorts",
+            "validSamplePortSelection"
           ],
           "attributes": {
             "responsibility": [
@@ -2969,20 +3327,28 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "static Story renders EN/JA from the same original Plan and logical ports"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "saved Story uses the same original Run without recompilation and captures locale once"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
-                "anchor": "structural Story explains original fields and JOIN keys in EN/JA without observations"
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
+                "anchor": "structural Story explains original fields and JOIN keys in EN/JA with unprojected input origins"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
               }
             ]
           }
@@ -3051,11 +3417,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
@@ -3129,11 +3495,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               },
               {
@@ -3164,7 +3530,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "return freeze({plan, story, context:"
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
@@ -3206,7 +3572,7 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "const narrative = render(view, locale);"
+                "anchor": "narrative = render(wire, locale);"
               }
             ],
             "verification": [
@@ -3226,11 +3592,12 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17b4233a00e23e997b2f7609f452cfa1c8534911e6bb08c829ab6be08efad9e6",
+      "sha256": "220223d13286d9e11da040d4e7a2f60cc0152551598d4ff82d6ca4a5fdfa616a",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
         "describeExistingResult",
+        "expectedStoryPortColumns",
         "explanationStoryModel",
         "graphViewLimits",
         "planReadModel",
@@ -3240,10 +3607,16 @@
         "readExistingRunExplanation",
         "readExistingRunPlan",
         "readExistingRunPresentation",
+        "readExistingRunSample",
         "readExistingRunStory",
         "readStaticExplanation",
         "readStaticPlan",
-        "staticExplanationReadModel"
+        "sampleCaptureCaption",
+        "sampleCellPreview",
+        "sampleMatchesPort",
+        "staticExplanationReadModel",
+        "storySamplePorts",
+        "validSamplePortSelection"
       ],
       "operations": [
         {
@@ -3278,10 +3651,24 @@
           "async": false
         },
         {
+          "name": "checkedContext/input/input",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
           "name": "checkedContext/locator/locator",
           "parameters": [
             "stage_ordinal",
             "input_port_ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedContext/output/output",
+          "parameters": [
+            "port"
           ],
           "async": false
         },
@@ -3333,6 +3720,36 @@
           "async": false
         },
         {
+          "name": "expectedStoryPortColumns",
+          "parameters": [
+            "steps",
+            "step",
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "expectedStoryPortColumns/expectedStoryPortColumns",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "expectedStoryPortColumns/expectedStoryPortColumns#2",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "expectedStoryPortColumns/outputs/outputs",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "explanationContextReadModel/explanationContextReadModel",
           "parameters": [
             "item",
@@ -3359,7 +3776,8 @@
           "parameters": [
             "view",
             "facts",
-            "locale"
+            "locale",
+            "render"
           ],
           "async": false
         },
@@ -3436,13 +3854,6 @@
           "async": false
         },
         {
-          "name": "predicateStory/predicateStory",
-          "parameters": [
-            "state"
-          ],
-          "async": false
-        },
-        {
           "name": "readExistingRun",
           "parameters": [
             "client",
@@ -3510,13 +3921,34 @@
           "parameters": [
             "client",
             "ref",
-            "options",
+            "locale",
+            "render",
             "ticket"
           ],
           "async": true
         },
         {
           "name": "readExistingRunPresentation/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readExistingRunSample",
+          "parameters": [
+            "client",
+            "ref",
+            "port",
+            "ticket"
+          ],
+          "async": true
+        },
+        {
+          "name": "readExistingRunSample/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readExistingRunSample/value/value",
           "parameters": [],
           "async": false
         },
@@ -3563,6 +3995,44 @@
           "async": true
         },
         {
+          "name": "renderExplanation/exactSteps/exactSteps",
+          "parameters": [
+            "step"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderExplanation/presentation/presentation",
+          "parameters": [
+            "kind",
+            "text",
+            "context_items",
+            "step_ids"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderExplanation/presentation/presentation#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderExplanation/renderExplanation",
+          "parameters": [
+            "id"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderExplanation/renderExplanation#2",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "sameDeclaration/sameDeclaration",
           "parameters": [
             "name"
@@ -3585,6 +4055,48 @@
           "async": false
         },
         {
+          "name": "sampleCaptureCaption",
+          "parameters": [
+            "strategy",
+            "sampled",
+            "total",
+            "completeness",
+            "truncation"
+          ],
+          "async": false
+        },
+        {
+          "name": "sampleCellPreview",
+          "parameters": [
+            "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "sampleMatchesPort",
+          "parameters": [
+            "value",
+            "ref",
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "sampleMatchesPort/sampleMatchesPort",
+          "parameters": [
+            "column",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sampleMatchesPort/sampleMatchesPort#2",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
           "name": "staticExplanationReadModel",
           "parameters": [
             "view",
@@ -3594,26 +4106,37 @@
           "async": false
         },
         {
-          "name": "storyConstructionBudget/init:text/init:text",
-          "parameters": [],
+          "name": "storySamplePorts",
+          "parameters": [
+            "step"
+          ],
           "async": false
         },
         {
-          "name": "storyConstructionBudget/init:text/init:text/init:append/init:append",
+          "name": "storySamplePorts/outputs/outputs",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "storySamplePorts/storySamplePorts",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "validSamplePortSelection",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "storyConstructionBudget/init:text/init:text/init:finish/init:finish",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "storyConstructionBudget/init:text/init:text/init:quote/init:quote",
+          "name": "validSamplePortSelection/validSamplePortSelection",
           "parameters": [
-            "value"
+            "key"
           ],
           "async": false
         }
@@ -3649,7 +4172,6 @@
             "planStory/planStory",
             "planStory/planStory#2",
             "planStoryModel",
-            "predicateStory/predicateStory",
             "readExistingRun",
             "readExistingRun/readExistingRun",
             "readExistingRun/run/run",
@@ -3659,10 +4181,30 @@
             "readStaticPlan/readStaticPlan",
             "sameIds/sameIds/original/original",
             "sameIds/sameIds/sameIds",
-            "storyConstructionBudget/init:text/init:text",
-            "storyConstructionBudget/init:text/init:text/init:append/init:append",
-            "storyConstructionBudget/init:text/init:text/init:finish/init:finish",
-            "storyConstructionBudget/init:text/init:text/init:quote/init:quote"
+            "renderExplanation/exactSteps/exactSteps",
+            "renderExplanation/renderExplanation",
+            "renderExplanation/renderExplanation#2",
+            "renderExplanation/presentation/presentation",
+            "renderExplanation/presentation/presentation#2",
+            "checkedContext/input/input",
+            "checkedContext/output/output",
+            "expectedStoryPortColumns",
+            "expectedStoryPortColumns/expectedStoryPortColumns",
+            "expectedStoryPortColumns/expectedStoryPortColumns#2",
+            "expectedStoryPortColumns/outputs/outputs",
+            "readExistingRunSample",
+            "readExistingRunSample/run/run",
+            "readExistingRunSample/value/value",
+            "sampleCaptureCaption",
+            "sampleCellPreview",
+            "sampleMatchesPort",
+            "sampleMatchesPort/sampleMatchesPort",
+            "sampleMatchesPort/sampleMatchesPort#2",
+            "storySamplePorts",
+            "storySamplePorts/outputs/outputs",
+            "storySamplePorts/storySamplePorts",
+            "validSamplePortSelection",
+            "validSamplePortSelection/validSamplePortSelection"
           ],
           "exports": [
             "ExplorerReadError",
@@ -3675,7 +4217,14 @@
             "readExistingRun",
             "readExistingRunPlan",
             "readExistingRunStory",
-            "readStaticPlan"
+            "readStaticPlan",
+            "expectedStoryPortColumns",
+            "readExistingRunSample",
+            "sampleCaptureCaption",
+            "sampleCellPreview",
+            "sampleMatchesPort",
+            "storySamplePorts",
+            "validSamplePortSelection"
           ],
           "attributes": {
             "responsibility": [
@@ -3766,32 +4315,40 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "static Story renders EN/JA from the same original Plan and logical ports"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "saved Story uses the same original Run without recompilation and captures locale once"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
-                "anchor": "structural Story explains original fields and JOIN keys in EN/JA without observations"
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
+                "anchor": "structural Story explains original fields and JOIN keys in EN/JA with unprojected input origins"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "structural construction admits long field and parameter text before quote or output allocation"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "structural construction admits shared-child copies before a large joined predicate exists"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "structural construction admits escaped expansion before the native quote call"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
               }
             ]
           }
@@ -3861,11 +4418,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
@@ -3942,11 +4499,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               },
               {
@@ -3985,7 +4542,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "return freeze({plan, story, context:"
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
@@ -4027,7 +4584,7 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "const narrative = render(view, locale);"
+                "anchor": "narrative = render(wire, locale);"
               }
             ],
             "verification": [
@@ -4227,14 +4784,26 @@
     {
       "module": "packages/explorer-ui/run-observation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "841c247db8ee9509561daa78010a93301ee1104a9bbfc29979b42eee1b86b01b",
+      "sha256": "c7449eb8785b973d2f793edcf5e25724479a99cc8466d935a2945f5d93890439",
       "exports": [
         "RunObservationModel",
+        "StoryNextPause",
+        "observedPlanStep",
         "readRunObservation",
         "runObservationLimits",
-        "runObservationModel"
+        "runObservationModel",
+        "storyNextPause"
       ],
       "operations": [
+        {
+          "name": "observedPlanStep",
+          "parameters": [
+            "observation: RunObservationModel | undefined",
+            "ref: RunReference | undefined",
+            "plan: ObservedStepPlan | undefined"
+          ],
+          "result": "Readonly<{\n    stepId: string; position: NonNullable<Run['boundary']>['position']; number: number;\n  }> | undefined"
+        },
         {
           "name": "readRunObservation",
           "parameters": [
@@ -4252,6 +4821,16 @@
             "ref:RunReference"
           ],
           "result": "RunObservationModel"
+        },
+        {
+          "name": "storyNextPause",
+          "parameters": [
+            "observation: RunObservationModel | undefined",
+            "ref: RunReference | undefined",
+            "plan: ObservedStepPlan | undefined",
+            "now: number"
+          ],
+          "result": "StoryNextPause | undefined"
         }
       ],
       "imports": [
@@ -4268,13 +4847,18 @@
           "operations": [
             "<module>",
             "readRunObservation",
-            "runObservationModel"
+            "runObservationModel",
+            "observedPlanStep",
+            "storyNextPause"
           ],
           "exports": [
             "RunObservationModel",
             "readRunObservation",
             "runObservationLimits",
-            "runObservationModel"
+            "runObservationModel",
+            "observedPlanStep",
+            "StoryNextPause",
+            "storyNextPause"
           ],
           "attributes": {
             "responsibility": [
@@ -4367,6 +4951,10 @@
               {
                 "path": "packages/explorer-ui/run-observation.test.mjs",
                 "anchor": "cancellation acceptance is separate from physical stop"
+              },
+              {
+                "path": "packages/explorer-ui/run-observation.test.mjs",
+                "anchor": "test('a Step observation requires the same Run, compiled Plan, Map and original step'"
               }
             ]
           }
@@ -4376,11 +4964,13 @@
     {
       "module": "packages/explorer-ui/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0ae3d82c88f037fd5d73db8a7345cf1195de981318945394c0ebabd53bfb03b4",
+      "sha256": "041d9e6e70e872fa23ed6cb3f526c0e25f8dea35869095d35a65f632fd0eeec4",
       "exports": [
+        "observedPlanStep",
         "readRunObservation",
         "runObservationLimits",
-        "runObservationModel"
+        "runObservationModel",
+        "storyNextPause"
       ],
       "operations": [
         {
@@ -4401,6 +4991,22 @@
           "name": "historyModel/histories/histories/vector/vector",
           "parameters": [
             "v"
+          ],
+          "async": false
+        },
+        {
+          "name": "observedPlanStep",
+          "parameters": [
+            "observation",
+            "ref",
+            "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "observedPlanStep/index/index",
+          "parameters": [
+            "node"
           ],
           "async": false
         },
@@ -4465,6 +5071,16 @@
             "key"
           ],
           "async": false
+        },
+        {
+          "name": "storyNextPause",
+          "parameters": [
+            "observation",
+            "ref",
+            "plan",
+            "now"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -4491,12 +5107,17 @@
             "runObservationModel",
             "runObservationModel/resultAvailability/resultAvailability",
             "runObservationModel/runObservationModel",
-            "sameRef/sameRef/sameRef"
+            "sameRef/sameRef/sameRef",
+            "observedPlanStep",
+            "observedPlanStep/index/index",
+            "storyNextPause"
           ],
           "exports": [
             "readRunObservation",
             "runObservationLimits",
-            "runObservationModel"
+            "runObservationModel",
+            "observedPlanStep",
+            "storyNextPause"
           ],
           "attributes": {
             "responsibility": [
@@ -4589,6 +5210,10 @@
               {
                 "path": "packages/explorer-ui/run-observation.test.mjs",
                 "anchor": "cancellation acceptance is separate from physical stop"
+              },
+              {
+                "path": "packages/explorer-ui/observed-plan-step.test.mts",
+                "anchor": "test('a Step observation requires the same Run, compiled Plan, Map and original step'"
               }
             ]
           }
@@ -4598,9 +5223,16 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "d41c97abfc07948d9b85c3ec110c91e78d81145c8a1fbb353f19737e3dd233d6",
+      "sha256": "232a5cadf194df5cd6a34ae54659be310ad87b90c82cc6f5081317c536b84018",
       "exports": [],
       "operations": [
+        {
+          "name": "<call>",
+          "parameters": [
+            "port: SamplePortSelection"
+          ],
+          "result": "Promise<WireRunSample | undefined>"
+        },
         {
           "name": "App",
           "parameters": [],
@@ -4613,12 +5245,30 @@
         },
         {
           "name": "App/<call>/<call>",
-          "parameters": [],
+          "parameters": [
+            "current"
+          ],
           "result": null
         },
         {
           "name": "App/<call>/<call>/<call>",
-          "parameters": [],
+          "parameters": [
+            "[key, {original}]"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>/<call>#2",
+          "parameters": [
+            "step"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>/<call>#3",
+          "parameters": [
+            "{step_id, port_id}"
+          ],
           "result": null
         },
         {
@@ -4633,15 +5283,61 @@
         },
         {
           "name": "App/<call>/<call>#4",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#5",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#6",
+          "parameters": [
+            "card"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#7",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#8",
           "parameters": [
             "value"
           ],
           "result": null
         },
         {
-          "name": "App/<call>/<call>#5",
+          "name": "App/<call>/<call>#9",
           "parameters": [
             "value"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/current",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/current#2",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/recheck",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/recheck/<call>",
+          "parameters": [
+            "n"
           ],
           "result": null
         },
@@ -4668,48 +5364,42 @@
         },
         {
           "name": "App/<call>#10",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#11",
-          "parameters": [
-            "line",
-            "index"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#12",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#13",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#14",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#15",
           "parameters": [
             "event"
           ],
           "result": null
         },
         {
-          "name": "App/<call>#15",
-          "parameters": [],
-          "result": null
-        },
-        {
           "name": "App/<call>#16",
-          "parameters": [],
+          "parameters": [
+            "line",
+            "index"
+          ],
           "result": null
         },
         {
@@ -4740,14 +5430,86 @@
         },
         {
           "name": "App/<call>#20",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#21",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#22",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#23",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#24",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#25",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#26",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#27",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#28",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#29",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#3",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#30",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#31",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#32",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#33",
           "parameters": [
             "event"
           ],
           "result": null
         },
         {
-          "name": "App/<call>#3",
-          "parameters": [],
+          "name": "App/<call>#34",
+          "parameters": [
+            "event"
+          ],
           "result": null
         },
         {
@@ -4777,7 +5539,9 @@
         },
         {
           "name": "App/<call>#9",
-          "parameters": [],
+          "parameters": [
+            "port"
+          ],
           "result": null
         },
         {
@@ -4786,21 +5550,85 @@
           "result": null
         },
         {
-          "name": "App/importCancellation",
+          "name": "App/copy",
           "parameters": [
-            "event:FormEvent<HTMLFormElement>"
+            "command: string"
           ],
           "result": null
         },
         {
-          "name": "App/invalidate",
+          "name": "App/copy/<call>",
           "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/displayStart",
+          "parameters": [
+            "answer: ExplorerStartObservation",
+            "ref: WireSubmissionRef",
+            "selected: number",
+            "executionProfile?: 'debug'"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/displayStart/current",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/followOriginal",
+          "parameters": [
+            "ref: RunReference",
+            "current: () => boolean"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/followOriginal/<call>",
+          "parameters": [],
+          "result": "boolean"
+        },
+        {
+          "name": "App/importCancellation",
+          "parameters": [
+            "event: FormEvent<HTMLFormElement>"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/keepResume",
+          "parameters": [
+            "run: string",
+            "attempt: ResumeAttempt | undefined"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/keepResume/<call>",
+          "parameters": [
+            "original"
+          ],
           "result": null
         },
         {
           "name": "App/label",
           "parameters": [
             "id"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/label/<call>",
+          "parameters": [
+            "card"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/label/<call>#2",
+          "parameters": [
+            "member"
           ],
           "result": null
         },
@@ -4816,11 +5644,33 @@
         },
         {
           "name": "App/lookupCancellation",
-          "parameters": [],
+          "parameters": [
+            "stop: StopAttempt"
+          ],
           "result": null
         },
         {
           "name": "App/lookupCancellation/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/lookupResume",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/lookupResume/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/lookupStart",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/lookupStart/<call>",
           "parameters": [],
           "result": null
         },
@@ -4877,6 +5727,13 @@
           "result": null
         },
         {
+          "name": "App/readOriginal/<call>/<call>",
+          "parameters": [
+            "{origin}"
+          ],
+          "result": null
+        },
+        {
           "name": "App/readOriginal/adopt",
           "parameters": [],
           "result": null
@@ -4928,6 +5785,23 @@
           "result": null
         },
         {
+          "name": "App/requestResume",
+          "parameters": [
+            "until: 'step' | 'terminal'"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/requestResume/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/requestResume/current",
+          "parameters": [],
+          "result": null
+        },
+        {
           "name": "App/session",
           "parameters": [
             "event: FormEvent<HTMLFormElement>"
@@ -4940,6 +5814,11 @@
           "result": null
         },
         {
+          "name": "App/session/<call>/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
           "name": "App/setSelection",
           "parameters": [
             "id: string"
@@ -4947,74 +5826,100 @@
           "result": null
         },
         {
-          "name": "computationSummary",
+          "name": "App/startDraft",
           "parameters": [
-            "story: ExplanationStoryModel"
+            "executionProfile?: 'debug'"
           ],
           "result": null
         },
         {
-          "name": "computationSummary/<call>",
+          "name": "App/startDraft/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/updateStop",
           "parameters": [
-            "{explanation}"
+            "key: string",
+            "attempt: StopAttempt"
           ],
           "result": null
         },
         {
-          "name": "computationSummary/<call>#2",
+          "name": "App/updateStop/<call>",
           "parameters": [
-            "join"
+            "current"
           ],
           "result": null
         },
         {
-          "name": "computationSummary/<call>#3",
+          "name": "awaitsPhysicalStop",
           "parameters": [
-            "{left, right}"
+            "run: RunObservationModel"
           ],
           "result": null
         },
         {
-          "name": "computationSummary/<call>#4",
+          "name": "ColumnTable",
           "parameters": [
-            "step"
+            "{label, names, caption, children}: {\n  label: string; names: readonly (string | null)[]; caption?: string; children?: ReactNode;\n}"
           ],
           "result": null
         },
         {
-          "name": "declaredTargetLabel",
+          "name": "ColumnTable/<call>",
           "parameters": [
-            "target: string",
-            "locale: ExplanationStoryModel['locale']"
+            "name",
+            "index"
           ],
+          "result": null
+        },
+        {
+          "name": "declaredWrite",
+          "parameters": [
+            "origin: EffectOrigin"
+          ],
+          "result": null
+        },
+        {
+          "name": "ExpandableSampleCell",
+          "parameters": [
+            "{text, preview, row, column}: {\n  text: string; preview: string; row: number; column: number;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "ExpandableSampleCell/<call>",
+          "parameters": [],
           "result": null
         },
         {
           "name": "graphStepLabels",
           "parameters": [
             "story: ExplanationStoryModel | undefined",
-            "context: StoryContext"
+            "context: StoryContext",
+            "stageResultLinks: PlanReadModel['stageResultLinks']"
           ],
           "result": null
         },
         {
           "name": "graphStepLabels/<call>",
           "parameters": [
-            "port"
+            "link"
           ],
           "result": null
         },
         {
           "name": "graphStepLabels/<call>#2",
           "parameters": [
-            "input"
+            "port"
           ],
           "result": null
         },
         {
           "name": "graphStepLabels/<call>#3",
           "parameters": [
-            "{left, right}"
+            "port"
           ],
           "result": null
         },
@@ -5022,6 +5927,27 @@
           "name": "graphStepLabels/<call>#4",
           "parameters": [
             "input"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>#5",
+          "parameters": [
+            "{left, right}"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>#6",
+          "parameters": [
+            "input"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>#7",
+          "parameters": [
+            "{origin}"
           ],
           "result": null
         },
@@ -5035,17 +5961,99 @@
           "result": null
         },
         {
-          "name": "headlineLabels",
+          "name": "ModelFields",
           "parameters": [
-            "labels: string[]",
-            "locale: ExplanationStoryModel['locale']"
+            "{origin, locale}: {\n  origin: Extract<StoryContext[number]['origin'], {kind: 'model_task'}>; locale: 'en' | 'ja';\n}"
           ],
           "result": null
         },
         {
-          "name": "headlineLabels/<call>",
+          "name": "ModelFields/<call>",
           "parameters": [
-            "label"
+            "{role, binding, type}"
+          ],
+          "result": null
+        },
+        {
+          "name": "ModelFields/<call>#2",
+          "parameters": [
+            "{name, type}"
+          ],
+          "result": null
+        },
+        {
+          "name": "NextInputs",
+          "parameters": [
+            "{step, plan, steps, pause, readSample}: {\n  step: SampleStep; plan: SamplePlan; steps: ReadonlyMap<string, SampleStep>;\n  pause: StoryNextPause; readSample?: SampleRead;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/<call>#2",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/<call>#3",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/current",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/read",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>/read/<call>",
+          "parameters": [
+            "values"
+          ],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>#2",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "NextInputs/<call>#3",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "nextSampleProducer",
+          "parameters": [
+            "steps: ReadonlyMap<string, SampleStep>",
+            "input: Step['ports'][number]",
+            "sample: Extract<WireRunSample, {state: 'available'}>"
+          ],
+          "result": null
+        },
+        {
+          "name": "nextSampleProducer/<call>",
+          "parameters": [
+            "output"
           ],
           "result": null
         },
@@ -5057,6 +6065,118 @@
           "result": "unknown"
         },
         {
+          "name": "PlanAdvanced",
+          "parameters": [
+            "{model, ja}: {model: PlanReadModel; ja: boolean}"
+          ],
+          "result": null
+        },
+        {
+          "name": "planNodeTitle",
+          "parameters": [
+            "node: PlanNode",
+            "locale: 'en' | 'ja'"
+          ],
+          "result": null
+        },
+        {
+          "name": "planNodeTitle/<call>",
+          "parameters": [
+            "char"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps",
+          "parameters": [
+            "{map, boundary, selection, select, graph, locale, pause, readSample, saved}: {\n  map: PlanReadModel; boundary?: {stepId: string; state: StepState}; selection?: string;\n  select(id: string): void; graph: boolean; locale: 'en' | 'ja'; pause?: StoryNextPause; readSample?: SampleRead; saved: boolean;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>/<call>",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>/<call>#2",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>/<call>#3",
+          "parameters": [
+            "name"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>/<call>#4",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>#2",
+          "parameters": [
+            "node",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/select",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "void"
+        },
+        {
+          "name": "RetainedRelationTable",
+          "parameters": [
+            "{sample, label}: {sample: Extract<WireRunSample, {state: 'available'}>; label: string}"
+          ],
+          "result": null
+        },
+        {
+          "name": "RetainedRelationTable/<call>",
+          "parameters": [
+            "column"
+          ],
+          "result": null
+        },
+        {
+          "name": "RetainedRelationTable/<call>/<call>",
+          "parameters": [
+            "cell",
+            "column"
+          ],
+          "result": null
+        },
+        {
+          "name": "RetainedRelationTable/<call>#2",
+          "parameters": [
+            "row",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "runKey",
+          "parameters": [
+            "ref: RunReference"
+          ],
+          "result": null
+        },
+        {
           "name": "sameRun",
           "parameters": [
             "original: RunReference",
@@ -5065,25 +6185,134 @@
           "result": null
         },
         {
+          "name": "SampleCellText",
+          "parameters": [
+            "{text, row, column}: {text: string; row: number; column: number}"
+          ],
+          "result": null
+        },
+        {
+          "name": "sampleMessage",
+          "parameters": [
+            "sample: Exclude<SampleDisplay, {state: 'available'}>"
+          ],
+          "result": null
+        },
+        {
+          "name": "saveJson",
+          "parameters": [
+            "value: unknown",
+            "filename: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "saveJson/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StepData",
+          "parameters": [
+            "{step, plan, expectedColumns, saved, readSample}: {\n  step: SampleStep; plan: SamplePlan; expectedColumns?(port: Step['ports'][number]): readonly string[] | undefined;\n  saved: boolean; readSample?: SampleRead;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#2",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#3",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#4",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#5",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#6",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepData/<call>#7",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StepData/expectedColumns",
+          "parameters": [
+            "port: Step['ports'][number]"
+          ],
+          "result": "readonly string[] | undefined"
+        },
+        {
+          "name": "StepData/load",
+          "parameters": [],
+          "result": null
+        },
+        {
           "name": "StepOrigin",
           "parameters": [
-            "{step, label}: {step: Step; label?: string}"
+            "{step, label, select, folded = false, state}: {\n  step: Step; label?: string; select?(): void; folded?: boolean; state?: StepState;\n}"
           ],
           "result": null
         },
         {
           "name": "StepOrigin/<call>",
           "parameters": [
-            "name"
+            "{left,right}",
+            "index"
           ],
           "result": null
         },
         {
           "name": "StepOrigin/<call>#2",
           "parameters": [
+            "name"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepOrigin/<call>#3",
+          "parameters": [
             "port"
           ],
           "result": null
+        },
+        {
+          "name": "StepOrigin/select",
+          "parameters": [],
+          "result": "void"
         },
         {
           "name": "stepState",
@@ -5092,7 +6321,7 @@
             "saved: boolean",
             "boundary?: {stepId: string; state: StepState}"
           ],
-          "result": "StepState"
+          "result": "StepState | undefined"
         },
         {
           "name": "stepTitle",
@@ -5119,7 +6348,7 @@
         {
           "name": "StoryCard",
           "parameters": [
-            "{ordinal, label, title, detail, system, state, open, selected, onToggle, children}: {\n  ordinal: number; label: string; title: string; detail?: string; system?: string; state: StepState;\n  open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;\n}"
+            "{ordinal, label, title, detail, system, state, open, selected, onToggle, children}: {\n  ordinal: number; label: string; title: string; detail?: string; system?: string; state?: StepState;\n  open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;\n}"
           ],
           "result": null
         },
@@ -5134,6 +6363,23 @@
           "name": "StoryCard/onToggle",
           "parameters": [],
           "result": "void"
+        },
+        {
+          "name": "storyGroupLabel",
+          "parameters": [
+            "group: StoryGroup",
+            "ja: boolean"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyGroupTitle",
+          "parameters": [
+            "group: StoryGroup",
+            "labels: ReturnType<typeof graphStepLabels>",
+            "ja: boolean"
+          ],
+          "result": null
         },
         {
           "name": "StoryHeading",
@@ -5166,137 +6412,191 @@
         {
           "name": "StoryHeading/<call>#4",
           "parameters": [
-            "{origin}"
+            "{declaration}"
           ],
           "result": null
         },
         {
-          "name": "StoryHeading/<call>#5",
+          "name": "storyProjections",
           "parameters": [
-            "{declaration, write_fields}"
+            "story: ExplanationStoryModel",
+            "sources: StoryContext",
+            "stageResultLinks: PlanReadModel['stageResultLinks']"
           ],
           "result": null
         },
         {
-          "name": "StoryHeading/<call>#6",
+          "name": "storyProjections/<call>",
           "parameters": [
-            "part"
-          ],
-          "result": "part is string"
-        },
-        {
-          "name": "StoryHeading/<call>#7",
-          "parameters": [
-            "part"
+            "link"
           ],
           "result": null
         },
         {
-          "name": "StorySteps",
+          "name": "storyProjections/<call>#2",
           "parameters": [
-            "{story, context, saved, boundary, selectedStep, selectStep, graph, labels}: {\n  story: ExplanationStoryModel; context: StoryContext; saved: boolean;\n  boundary?: {stepId: string; state: StepState}; selectedStep?: string;\n  selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;\n}"
+            "step"
           ],
           "result": null
         },
         {
-          "name": "StorySteps/<call>",
+          "name": "storyProjections/kept",
           "parameters": [
-            "item"
+            "step: Step | undefined"
           ],
           "result": null
         },
         {
-          "name": "StorySteps/<call>/<call>",
+          "name": "storyProjections/kept/<call>",
+          "parameters": [
+            "{input, output}"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/kept/<call>#2",
           "parameters": [
             "port"
           ],
           "result": null
         },
         {
+          "name": "storyProjections/kept/<call>#3",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/kept/<call>#4",
+          "parameters": [
+            "field"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps",
+          "parameters": [
+            "{story, groups, sourceColumns, model, saved, boundary, selectedStep, selectStep, graph, labels, pause, readSample}: {\n  story: ExplanationStoryModel; groups: readonly StoryGroup[]; sourceColumns: ReadonlyMap<number, KeptColumns>;\n  model?: PlanReadModel;\n  saved: boolean; boundary?: {stepId: string; state: StepState}; selectedStep?: string;\n  selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;\n  pause?: StoryNextPause; readSample?: SampleRead;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>",
+          "parameters": [
+            "step"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>/<call>",
+          "parameters": [
+            "values"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>/<call>#2",
+          "parameters": [
+            "field"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>/<call>#3",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>/<call>#4",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#10",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#11",
+          "parameters": [
+            "member"
+          ],
+          "result": null
+        },
+        {
           "name": "StorySteps/<call>/<call>#2",
           "parameters": [
-            "item"
+            "step"
           ],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#3",
           "parameters": [
-            "item"
+            "step"
           ],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#4",
           "parameters": [
-            "item"
+            "step"
           ],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#5",
-          "parameters": [
-            "{origin, text}",
-            "index"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#6",
           "parameters": [
-            "{declaration,write_fields}",
+            "name"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#7",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#8",
+          "parameters": [
+            "{declaration, write_fields}",
             "position"
           ],
           "result": null
         },
         {
-          "name": "StorySteps/<call>#2",
+          "name": "StorySteps/<call>/<call>#9",
           "parameters": [
-            "item"
+            "port"
           ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>#2",
+          "parameters": [],
           "result": null
         },
         {
           "name": "StorySteps/<call>#3",
           "parameters": [
-            "{origin,text}",
+            "group",
             "index"
-          ],
-          "result": null
-        },
-        {
-          "name": "StorySteps/<call>#4",
-          "parameters": [
-            "group"
-          ],
-          "result": null
-        },
-        {
-          "name": "StorySteps/<call>#5",
-          "parameters": [
-            "{origin,text}",
-            "index"
-          ],
-          "result": null
-        },
-        {
-          "name": "StorySteps/card",
-          "parameters": [
-            "id: string",
-            "defaultOpen: boolean",
-            "selected?: string"
-          ],
-          "result": null
-        },
-        {
-          "name": "StorySteps/card/onToggle",
-          "parameters": [],
-          "result": null
-        },
-        {
-          "name": "StorySteps/card/onToggle/<call>",
-          "parameters": [
-            "values"
           ],
           "result": null
         },
@@ -5352,9 +6652,25 @@
           "name": "WorkspaceDialog/close",
           "parameters": [],
           "result": "void"
+        },
+        {
+          "name": "writeCardTitle",
+          "parameters": [
+            "origin: EffectOrigin",
+            "ja: boolean"
+          ],
+          "result": null
+        },
+        {
+          "name": "writeCardTitle/<call>",
+          "parameters": [
+            "field"
+          ],
+          "result": null
         }
       ],
       "imports": [
+        "./story-card-groups.mjs",
         "./styles.css",
         "@actql/client-wire",
         "@actql/explorer-ui/checkpoint-review",
@@ -5406,7 +6722,6 @@
             "App/<call>#9",
             "App/closeDrawer",
             "App/importCancellation",
-            "App/invalidate",
             "App/label",
             "App/listCheckpoints",
             "App/listCheckpoints/<call>",
@@ -5431,20 +6746,78 @@
             "WorkspaceDialog/<call>#3",
             "WorkspaceDialog/close",
             "App/<call>#20",
-            "declaredTargetLabel",
             "graphStepLabels",
             "graphStepLabels/<call>",
             "graphStepLabels/<call>#2",
             "graphStepLabels/<call>#3",
             "graphStepLabels/add",
             "graphStepLabels/<call>#4",
-            "computationSummary",
-            "computationSummary/<call>",
-            "computationSummary/<call>#2",
-            "computationSummary/<call>#3",
-            "computationSummary/<call>#4",
             "StepOrigin/<call>#2",
-            "stepTitle/<call>#2"
+            "stepTitle/<call>#2",
+            "graphStepLabels/<call>#5",
+            "graphStepLabels/<call>#6",
+            "App/<call>#21",
+            "App/displayStart",
+            "App/lookupStart",
+            "App/lookupStart/<call>",
+            "App/startDraft",
+            "App/startDraft/<call>",
+            "App/<call>#22",
+            "planNodeTitle",
+            "planNodeTitle/<call>",
+            "PlanSteps",
+            "PlanSteps/<call>",
+            "PlanSteps/<call>/<call>",
+            "PlanSteps/<call>/<call>#2",
+            "PlanSteps/<call>/<call>#3",
+            "PlanSteps/select",
+            "graphStepLabels/<call>#7",
+            "<call>",
+            "App/<call>/<call>/<call>#2",
+            "App/<call>/<call>/<call>#3",
+            "App/<call>/<call>#6",
+            "App/<call>/<call>#7",
+            "App/<call>/<call>#8",
+            "App/<call>/current",
+            "App/<call>/recheck",
+            "App/<call>/recheck/<call>",
+            "App/<call>#23",
+            "App/<call>#24",
+            "App/<call>#25",
+            "App/<call>#26",
+            "App/<call>#27",
+            "App/<call>#28",
+            "App/keepResume",
+            "App/keepResume/<call>",
+            "App/label/<call>",
+            "App/label/<call>#2",
+            "App/lookupResume",
+            "App/lookupResume/<call>",
+            "App/readOriginal/<call>/<call>",
+            "App/requestResume",
+            "App/requestResume/<call>",
+            "App/requestResume/current",
+            "PlanSteps/<call>/<call>#4",
+            "PlanSteps/<call>#2",
+            "runKey",
+            "App/<call>/<call>#9",
+            "App/<call>/current#2",
+            "App/<call>#29",
+            "App/<call>#30",
+            "App/<call>#31",
+            "App/<call>#32",
+            "App/copy",
+            "App/copy/<call>",
+            "App/followOriginal",
+            "App/followOriginal/<call>",
+            "App/session/<call>/<call>",
+            "App/updateStop",
+            "App/updateStop/<call>",
+            "awaitsPhysicalStop",
+            "saveJson",
+            "saveJson/<call>",
+            "declaredWrite",
+            "PlanAdvanced"
           ],
           "exports": [],
           "attributes": {
@@ -5536,8 +6909,32 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
+              },
+              {
+                "path": "packages/explorer-ui/observed-plan-step.test.mts",
+                "anchor": "test('a Step observation requires the same Run, compiled Plan, Map and original step'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer Resume preserves the original lookup"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('browser cancellation keeps the original through lost Gateway ACK"
               }
             ]
           }
@@ -5610,11 +7007,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               },
               {
@@ -5628,8 +7025,6 @@
           "operations": [
             "App/readPlan",
             "App/readPlan/<call>",
-            "headlineLabels",
-            "headlineLabels/<call>",
             "StepOrigin",
             "StepOrigin/<call>",
             "stepState",
@@ -5642,10 +7037,6 @@
             "StoryHeading/<call>",
             "StoryHeading/<call>#2",
             "StoryHeading/<call>#3",
-            "StoryHeading/<call>#4",
-            "StoryHeading/<call>#5",
-            "StoryHeading/<call>#6",
-            "StoryHeading/<call>#7",
             "StorySteps",
             "StorySteps/<call>",
             "StorySteps/<call>/<call>",
@@ -5656,14 +7047,69 @@
             "StorySteps/<call>/<call>#6",
             "StorySteps/<call>#2",
             "StorySteps/<call>#3",
-            "StorySteps/<call>#4",
-            "StorySteps/<call>#5",
-            "StorySteps/card",
-            "StorySteps/card/onToggle",
-            "StorySteps/card/onToggle/<call>",
             "StorySteps/selectStep",
             "StoryText",
-            "StoryText/<call>"
+            "StoryText/<call>",
+            "StepOrigin/select",
+            "storyProjections",
+            "storyProjections/<call>",
+            "storyProjections/<call>#2",
+            "storyProjections/kept",
+            "storyProjections/kept/<call>",
+            "storyProjections/kept/<call>#2",
+            "storyProjections/kept/<call>#3",
+            "storyProjections/kept/<call>#4",
+            "StorySteps/<call>/<call>#7",
+            "StorySteps/<call>/<call>#8",
+            "ModelFields",
+            "ModelFields/<call>",
+            "ModelFields/<call>#2",
+            "StoryHeading/<call>#4",
+            "StorySteps/<call>/<call>#9",
+            "StorySteps/<call>/<call>/<call>",
+            "StepOrigin/<call>#3",
+            "ColumnTable",
+            "ColumnTable/<call>",
+            "ExpandableSampleCell",
+            "ExpandableSampleCell/<call>",
+            "NextInputs",
+            "NextInputs/<call>",
+            "NextInputs/<call>/<call>",
+            "NextInputs/<call>/<call>#2",
+            "NextInputs/<call>/<call>#3",
+            "NextInputs/<call>/current",
+            "NextInputs/<call>/read",
+            "NextInputs/<call>/read/<call>",
+            "NextInputs/<call>#2",
+            "NextInputs/<call>#3",
+            "nextSampleProducer",
+            "nextSampleProducer/<call>",
+            "RetainedRelationTable",
+            "RetainedRelationTable/<call>",
+            "RetainedRelationTable/<call>/<call>",
+            "RetainedRelationTable/<call>#2",
+            "SampleCellText",
+            "sampleMessage",
+            "StepData",
+            "StepData/<call>",
+            "StepData/<call>/<call>",
+            "StepData/<call>#2",
+            "StepData/<call>#3",
+            "StepData/<call>#4",
+            "StepData/<call>#5",
+            "StepData/<call>#6",
+            "StepData/<call>#7",
+            "StepData/expectedColumns",
+            "StepData/load",
+            "storyGroupLabel",
+            "storyGroupTitle",
+            "StorySteps/<call>/<call>/<call>#2",
+            "StorySteps/<call>/<call>/<call>#3",
+            "StorySteps/<call>/<call>/<call>#4",
+            "StorySteps/<call>/<call>#10",
+            "StorySteps/<call>/<call>#11",
+            "writeCardTitle",
+            "writeCardTitle/<call>"
           ],
           "exports": [],
           "attributes": {
@@ -5676,7 +7122,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "return freeze({plan, story, context:"
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
@@ -5718,7 +7164,7 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "const narrative = render(view, locale);"
+                "anchor": "narrative = render(wire, locale);"
               }
             ],
             "verification": [
@@ -5731,8 +7177,153 @@
                 "anchor": "Static Context renders deterministic EN and JA"
               },
               {
-                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
+                "path": "scripts/fixtures/packed-explorer-saved-context.mts",
                 "anchor": "const staticSteps = page.getByRole('region', {name: 'Original story', exact: true});"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "App/<call>#33",
+            "App/<call>#34"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "A checked static Plan MAY include `debug_entry: true`"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "const debug = Object.hasOwn(body, 'executionProfile')"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "plan.programDefinitionCid !== body.programDefinitionCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const authorizeStaticDebugEntry ="
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "const plan = await readStaticPlan({plan: client.plan.bind(client)}"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "if (client.plan === undefined) return {state: 'not_accepted'};"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "ticket.assertCurrent();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_static_pure_context.mbt",
+                "anchor": "client_debug_graph_quotation_control_bytes()"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "pub fn checked_task_control_entry_boundary_issue"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "Explorer starts Debug only from the current checked Plan for the same original input"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "installed Local SDK Debug steps one original and a cold process reads its Sample and receipt"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "App/displayStart/current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "A checked static Plan MAY include `debug_entry: true`"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "const debug = Object.hasOwn(body, 'executionProfile')"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "plan.programDefinitionCid !== body.programDefinitionCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const authorizeStaticDebugEntry ="
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "const plan = await readStaticPlan({plan: client.plan.bind(client)}"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "if (client.plan === undefined) return {state: 'not_accepted'};"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "ticket.assertCurrent();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_static_pure_context.mbt",
+                "anchor": "client_debug_graph_quotation_control_bytes()"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "pub fn checked_task_control_entry_boundary_issue"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "Explorer starts Debug only from the current checked Plan for the same original input"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "installed Local SDK Debug steps one original and a cold process reads its Sample and receipt"
               }
             ]
           }
@@ -5873,9 +7464,12 @@
     {
       "module": "packages/explorer/browser-source.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "dd281955fa24c2f3d5294f2eb5de06f80133c45ce1764cc0779ea4c21bee18fb",
+      "sha256": "91f92239e1ce1a17d5c11434b84d41947e5bfa766da7206886d74feba2dcb7be",
       "exports": [
         "ExplorerCapabilities",
+        "ExplorerResumeSelection",
+        "ExplorerStartObservation",
+        "ExplorerStartSelection",
         "createExplorerBrowserSource"
       ],
       "operations": [
@@ -5884,7 +7478,7 @@
           "parameters": [
             "options: Readonly<{\n  origin: string; fetch?: typeof fetch; now?: () => number;\n}>"
           ],
-          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  staticExplanation(input: Parameters<Client['explain']>[0], options?: Parameters<Client['explain']>[1],\n    locale?: 'en' | 'ja'): Promise<StaticExplanationReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  explain(ref: RunReference): Promise<WireRunExplanationView>;\n  runContext(ref: RunReference, locale?: 'en' | 'ja'): Promise<SavedExplanationReadModel>;\n  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
+          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  prepareStart(): Promise<WireSubmissionRef>;\n  startRun(selection: ExplorerStartSelection): Promise<ExplorerStartObservation>;\n  prepareResume(ref: RunReference, selection: ExplorerResumeSelection): Promise<WireControlCommand>;\n  resume(command: WireControlCommand): Promise<WireControlOperationLookup |\n    Readonly<{state: 'reply_unknown'; operationRef: WireControlOperationRef}>>;\n  lookupControlOperation(operationRef: WireControlOperationRef): Promise<WireControlOperationLookup>;\n  lookupStart(ref: WireSubmissionRef): Promise<ExplorerStartObservation>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  staticExplanation(input: Parameters<Client['explain']>[0], options?: Parameters<Client['explain']>[1],\n    locale?: 'en' | 'ja'): Promise<StaticExplanationReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  explain(ref: RunReference): Promise<WireRunExplanationView>;\n  runContext(ref: RunReference, locale?: 'en' | 'ja'): Promise<SavedExplanationReadModel>;\n  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;\n  runSample(ref: RunReference, port: SamplePortSelection): Promise<WireRunSample>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
         },
         {
           "name": "createExplorerBrowserSource/<call>",
@@ -5950,6 +7544,20 @@
           "result": "Promise<WireCancellationLookup>"
         },
         {
+          "name": "createExplorerBrowserSource/lookupControlOperation",
+          "parameters": [
+            "operationRef: WireControlOperationRef"
+          ],
+          "result": "Promise<WireControlOperationLookup>"
+        },
+        {
+          "name": "createExplorerBrowserSource/lookupStart",
+          "parameters": [
+            "ref: WireSubmissionRef"
+          ],
+          "result": "Promise<ExplorerStartObservation>"
+        },
+        {
           "name": "createExplorerBrowserSource/observe",
           "parameters": [
             "ref: RunReference"
@@ -5963,6 +7571,26 @@
             "options?: Parameters<Client['plan']>[1]"
           ],
           "result": "Promise<PlanReadModel>"
+        },
+        {
+          "name": "createExplorerBrowserSource/prepareResume",
+          "parameters": [
+            "ref: RunReference",
+            "selection: ExplorerResumeSelection"
+          ],
+          "result": "Promise<WireControlCommand>"
+        },
+        {
+          "name": "createExplorerBrowserSource/prepareStart",
+          "parameters": [],
+          "result": "Promise<WireSubmissionRef>"
+        },
+        {
+          "name": "createExplorerBrowserSource/resume",
+          "parameters": [
+            "command: WireControlCommand"
+          ],
+          "result": "Promise<WireControlOperationLookup |\n    Readonly<{state: 'reply_unknown'; operationRef: WireControlOperationRef}>>"
         },
         {
           "name": "createExplorerBrowserSource/reviewCheckpoint",
@@ -5993,6 +7621,21 @@
             "options?: {locale?: 'en' | 'ja'}"
           ],
           "result": "Promise<OriginalRunPresentationReadModel>"
+        },
+        {
+          "name": "createExplorerBrowserSource/runSample",
+          "parameters": [
+            "ref: RunReference",
+            "port: SamplePortSelection"
+          ],
+          "result": "Promise<WireRunSample>"
+        },
+        {
+          "name": "createExplorerBrowserSource/startRun",
+          "parameters": [
+            "selection: ExplorerStartSelection"
+          ],
+          "result": "Promise<ExplorerStartObservation>"
         },
         {
           "name": "createExplorerBrowserSource/staticExplanation",
@@ -6033,11 +7676,21 @@
             "createExplorerBrowserSource/observe",
             "createExplorerBrowserSource/plan",
             "createExplorerBrowserSource/reviewCheckpoint",
-            "createExplorerBrowserSource/runPlan"
+            "createExplorerBrowserSource/runPlan",
+            "createExplorerBrowserSource/lookupStart",
+            "createExplorerBrowserSource/prepareStart",
+            "createExplorerBrowserSource/startRun",
+            "createExplorerBrowserSource/lookupControlOperation",
+            "createExplorerBrowserSource/prepareResume",
+            "createExplorerBrowserSource/resume",
+            "createExplorerBrowserSource/runSample"
           ],
           "exports": [
             "ExplorerCapabilities",
-            "createExplorerBrowserSource"
+            "createExplorerBrowserSource",
+            "ExplorerStartObservation",
+            "ExplorerStartSelection",
+            "ExplorerResumeSelection"
           ],
           "attributes": {
             "responsibility": [
@@ -6130,6 +7783,18 @@
               {
                 "path": "packages/explorer/cancellation.test.mts",
                 "anchor": "lost or malformed cancellation replies"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer Resume preserves the original lookup"
               }
             ]
           }
@@ -6196,11 +7861,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
@@ -6269,11 +7934,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               },
               {
@@ -6298,7 +7963,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "return freeze({plan, story, context:"
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
@@ -6340,7 +8005,7 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "const narrative = render(view, locale);"
+                "anchor": "narrative = render(wire, locale);"
               }
             ],
             "verification": [
@@ -6360,7 +8025,7 @@
     {
       "module": "packages/explorer/browser-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3dbc895420a0beed5af89c1935c1a496f243c6a13660be9a02c04d00bdf350c1",
+      "sha256": "efc0e51c0a86bc6165956cdd3b1af1ab9c05447e013acaa12848213aca412b1d",
       "exports": [
         "createExplorerBrowserSource"
       ],
@@ -6428,6 +8093,20 @@
           "async": true
         },
         {
+          "name": "createExplorerBrowserSource/init:lookupControlOperation/init:lookupControlOperation",
+          "parameters": [
+            "operationRef"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExplorerBrowserSource/init:lookupStart/init:lookupStart",
+          "parameters": [
+            "ref"
+          ],
+          "async": true
+        },
+        {
           "name": "createExplorerBrowserSource/init:observe/init:observe",
           "parameters": [
             "ref"
@@ -6441,6 +8120,28 @@
             "options"
           ],
           "async": false
+        },
+        {
+          "name": "createExplorerBrowserSource/init:prepareResume/init:prepareResume",
+          "parameters": [
+            "ref",
+            "operationId",
+            "expectedRevision",
+            "until"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExplorerBrowserSource/init:prepareStart/init:prepareStart",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createExplorerBrowserSource/init:resume/init:resume",
+          "parameters": [
+            "command"
+          ],
+          "async": true
         },
         {
           "name": "createExplorerBrowserSource/init:reviewCheckpoint/init:reviewCheckpoint",
@@ -6469,6 +8170,21 @@
           "parameters": [
             "ref",
             "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExplorerBrowserSource/init:runSample/init:runSample",
+          "parameters": [
+            "ref",
+            "port"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExplorerBrowserSource/init:startRun/init:startRun",
+          "parameters": [
+            "selection"
           ],
           "async": true
         },
@@ -6527,7 +8243,14 @@
             "createExplorerBrowserSource/init:reviewCheckpoint/init:reviewCheckpoint",
             "createExplorerBrowserSource/init:runPlan/init:runPlan",
             "createExplorerBrowserSource/invalidate/invalidate",
-            "jsonReply/jsonReply"
+            "jsonReply/jsonReply",
+            "createExplorerBrowserSource/init:lookupStart/init:lookupStart",
+            "createExplorerBrowserSource/init:prepareStart/init:prepareStart",
+            "createExplorerBrowserSource/init:startRun/init:startRun",
+            "createExplorerBrowserSource/init:lookupControlOperation/init:lookupControlOperation",
+            "createExplorerBrowserSource/init:prepareResume/init:prepareResume",
+            "createExplorerBrowserSource/init:resume/init:resume",
+            "createExplorerBrowserSource/init:runSample/init:runSample"
           ],
           "exports": [
             "createExplorerBrowserSource"
@@ -6623,6 +8346,18 @@
               {
                 "path": "packages/explorer/cancellation.test.mts",
                 "anchor": "lost or malformed cancellation replies"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer Resume preserves the original lookup"
               }
             ]
           }
@@ -6689,11 +8424,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
@@ -6762,11 +8497,11 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer-ui/test/read-model.actual.test.mts",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               },
               {
@@ -6792,7 +8527,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "return freeze({plan, story, context:"
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
@@ -6834,7 +8569,7 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mts",
-                "anchor": "const narrative = render(view, locale);"
+                "anchor": "narrative = render(wire, locale);"
               }
             ],
             "verification": [
@@ -7183,7 +8918,7 @@
     {
       "module": "packages/explorer/cli-input.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "efa9b9840b4e96e65d44a77b5dd68f89c16f682cc043a6e7b303e0b5a77622ca",
+      "sha256": "fe2f7fd94bb365f58ee0c6d6ecaef16eb8b3873b338cd7086714685cf25643c2",
       "exports": [
         "explorerArguments",
         "explorerLaunchInput"
@@ -7316,6 +9051,10 @@
               {
                 "path": "packages/explorer/launch-input.test.mts",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/explorer/launch-input.test.mts",
+                "anchor": "test('the Local launcher enables ordinary start and Debug resume"
               }
             ]
           }
@@ -7325,7 +9064,7 @@
     {
       "module": "packages/explorer/cli.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b1a0257f69edee1a29b0a30fb1f6d687ce490f0ad672ef5f949ca64214daef6d",
+      "sha256": "d10520af1484d182c4f7211db95405e404493b121061e55aa91799bd2c4472b4",
       "exports": [],
       "operations": [
         {
@@ -7447,6 +9186,10 @@
               {
                 "path": "packages/explorer/launch-input.test.mts",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/explorer/launch-input.test.mts",
+                "anchor": "test('the Local launcher enables ordinary start and Debug resume"
               }
             ]
           }
@@ -7456,7 +9199,7 @@
     {
       "module": "packages/explorer/gateway.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "cf6995c3b9c67acb5d2af7f6a8776abfb7c03497b322da4537ee7b5ca5a2debc",
+      "sha256": "c5974bf15a4e217ab1fc5cddcc6911600083573977d7380c3a36e8e8c0e8e31b",
       "exports": [
         "ExplorerAsset",
         "ExplorerBootstrap",
@@ -7644,12 +9387,20 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test("
               },
               {
                 "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer Resume preserves the original lookup"
               }
             ]
           }
@@ -7659,7 +9410,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "95aee68ed16fab23e451e4cf5be4ce1a99f8c99208b7c31a84930ac009c4df0f",
+      "sha256": "dd0622597f04c29fedf57a314889a5ce54baa9038f52c03d2ad54008be75a7df",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",
@@ -7676,17 +9427,19 @@
             "sessionMs",
             "bootstrapMs",
             "launchInput",
-            "allowCancellation"
+            "allowCancellation",
+            "allowRunStart",
+            "allowSamples",
+            "allowDebugResume"
           ],
           "async": false
         },
         {
           "name": "createExplorerGateway/createExplorerGateway",
           "parameters": [
-            "c",
-            "next"
+            "name"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "createExplorerGateway/createExplorerGateway/createExplorerGateway",
@@ -7733,17 +9486,18 @@
         {
           "name": "createExplorerGateway/createExplorerGateway#2",
           "parameters": [
-            "error",
-            "c"
+            "c",
+            "next"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "createExplorerGateway/createExplorerGateway#3",
           "parameters": [
+            "error",
             "c"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "createExplorerGateway/createExplorerGateway#4",
@@ -7754,6 +9508,13 @@
         },
         {
           "name": "createExplorerGateway/createExplorerGateway#5",
+          "parameters": [
+            "c"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExplorerGateway/createExplorerGateway#6",
           "parameters": [
             "c"
           ],
@@ -7906,6 +9667,7 @@
         "@actql/explorer-ui/read-model",
         "@actql/explorer-ui/run-observation",
         "@actql/local-node/_internal/explanation-narrative",
+        "@actql/sdk",
         "@actql/sdk/host-port",
         "@hono/node-server",
         "hono",
@@ -7954,7 +9716,8 @@
             "startExplorerGateway/server/server",
             "startExplorerGateway/startExplorerGateway",
             "startExplorerGateway/startExplorerGateway#2",
-            "loadExplanationRenderer/loadExplanationRenderer"
+            "loadExplanationRenderer/loadExplanationRenderer",
+            "createExplorerGateway/createExplorerGateway#6"
           ],
           "exports": [
             "createExplorerGateway",
@@ -8082,7 +9845,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/gateway.test.mts",
                 "anchor": "test("
               },
               {
@@ -8108,6 +9871,18 @@
               {
                 "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('the browser reads the retained Relation"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "test('Explorer Resume preserves the original lookup"
               }
             ]
           }
@@ -8550,6 +10325,257 @@
               {
                 "path": "packages/explorer/launcher.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/explorer/app/story-card-groups.mts",
+      "responsibilityFacet": "primary",
+      "sha256": "afe587dc0b723cad1970ac981c666550044a36a01c21c3078ad2160b5d4d8d5e",
+      "exports": [
+        "StoryGroup",
+        "storyCardGroups"
+      ],
+      "operations": [
+        {
+          "name": "storyCardGroups",
+          "parameters": [
+            "story: ExplanationStoryModel",
+            "context: Context",
+            "sourceSteps: ReadonlyMap<number, {step: Step}>",
+            "stageResultLinks: PlanReadModel['stageResultLinks']"
+          ],
+          "result": "readonly StoryGroup[]"
+        },
+        {
+          "name": "storyCardGroups/<call>",
+          "parameters": [
+            "step"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>/place",
+          "parameters": [
+            "card: Card"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#2",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#3",
+          "parameters": [
+            "card"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#4",
+          "parameters": [
+            "step",
+            "i"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#5",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/<call>#6",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/add",
+          "parameters": [
+            "map: Map<string, Edge[]>",
+            "value: Edge",
+            "id: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/attach",
+          "parameters": [
+            "card: Card",
+            "step: Step"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/create",
+          "parameters": [
+            "kind: Card['kind']",
+            "id: string",
+            "primary?: Step",
+            "item?: Context[number]"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/matchesModelInput",
+          "parameters": [
+            "step: Step"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/matchesModelInput/<call>",
+          "parameters": [
+            "candidate",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/nearest",
+          "parameters": [
+            "id: string",
+            "edges: ReadonlyMap<string, Edge[]>",
+            "reverse = false"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/producer",
+          "parameters": [
+            "stepId: string",
+            "portId: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyCardGroups/producer/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        }
+      ],
+      "imports": [
+        "@actql/explorer-ui/read-model"
+      ],
+      "compilerFields": [],
+      "role": "observation-presentation",
+      "owner": "existing Explorer presentation and Gateway / SDK boundary",
+      "rationale": "Group the admitted original Story Steps without changing their identities or control scope.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "storyCardGroups",
+            "storyCardGroups/<call>",
+            "storyCardGroups/<call>/place",
+            "storyCardGroups/<call>#2",
+            "storyCardGroups/<call>#3",
+            "storyCardGroups/<call>#4",
+            "storyCardGroups/<call>#5",
+            "storyCardGroups/<call>#6",
+            "storyCardGroups/add",
+            "storyCardGroups/attach",
+            "storyCardGroups/create",
+            "storyCardGroups/matchesModelInput",
+            "storyCardGroups/matchesModelInput/<call>",
+            "storyCardGroups/nearest",
+            "storyCardGroups/producer",
+            "storyCardGroups/producer/<call>"
+          ],
+          "exports": [
+            "StoryGroup",
+            "storyCardGroups"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer/app/story-card-groups.mts",
+                "anchor": "export function storyCardGroups("
+              },
+              {
+                "path": "packages/explorer/app/main.tsx",
+                "anchor": "value=\"static-explanation\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/app/story-card-groups.mts",
+                "anchor": "inputs[0].sourcePortId === other.sourcePortId"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "binding.logical_map_cid !== story.logicalMapCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation discards a late read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "narrative = render(wire, locale);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Static Context renders deterministic EN and JA"
+              },
+              {
+                "path": "scripts/fixtures/packed-explorer-saved-context.mts",
+                "anchor": "const staticSteps = page.getByRole('region', {name: 'Original story', exact: true});"
               }
             ]
           }

@@ -151,6 +151,61 @@ fn seal_run_evidence_value_with_identity(
     Ok(value) => value
     Err(_) => return Err(RunEvidenceInvalidWire)
   }
+  seal_original_run_evidence_body(
+    name, identity_field, body, max_wire_bytes, max_nodes, max_depth, identify, @json.stringify_value_with_usage,
+  )
+}
+
+///|
+/// The caller owns the closed, admitted DATA and funds validation of both
+/// shapes. Meter both canonical emissions with its synchronous work view.
+pub fn seal_typed_run_evidence_value(
+  name : String,
+  body : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  work : (Int) -> Bool,
+) -> Result[RunEvidenceValue, RunEvidenceValueIssue] {
+  guard run_evidence_identity_field(name) is Some(identity_field) else {
+    return Err(UnknownRunEvidence)
+  }
+  if max_wire_bytes < 1 || max_nodes < 2 || max_depth < 1 {
+    return Err(RunEvidenceInvalidLimits)
+  }
+  seal_original_run_evidence_body(
+    name,
+    identity_field,
+    body,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    (value, bytes, nodes, depth) => {
+      let writer = @encode.work_hashing_writer(bytes, nodes, depth, work)
+      @json.emit_value(value, writer)
+      "sha256:" + @encode.finish_hash(writer)
+    },
+    (value, bytes, nodes, depth) => {
+      let writer = @encode.work_writer(bytes, nodes, depth, work)
+      @json.emit_value(value, writer)
+      let document = @encode.finish_document(writer)
+      let (bytes, nodes, depth) = @encode.document_usage(document)
+      (@encode.document_text(document), bytes, nodes, depth)
+    },
+  )
+}
+
+///|
+fn seal_original_run_evidence_body(
+  name : String,
+  identity_field : String,
+  body : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  identify : (@json.CanonicalValue, Int, Int, Int) -> String raise @encode.EncodeFailure,
+  encode : (@json.CanonicalValue, Int, Int, Int) -> (String, Int, Int, Int) raise @encode.EncodeFailure,
+) -> Result[RunEvidenceValue, RunEvidenceValueIssue] {
   if @json.object_field(body, identity_field) is Some(_) {
     return Err(RunEvidenceIdentityAlreadyPresent)
   }
@@ -183,7 +238,7 @@ fn seal_run_evidence_value_with_identity(
   // This exact body just supplied the identity above. Appending that field
   // cannot change its preimage; do not remove it and hash the body again.
   // The full completed wire still has its own original output bounds.
-  let (wire, wire_bytes, wire_nodes, wire_depth) = @json.stringify_value_with_usage(
+  let (wire, wire_bytes, wire_nodes, wire_depth) = encode(
     complete, max_wire_bytes, max_nodes, max_depth,
   ) catch {
     _ => return Err(RunEvidenceEncoding)
@@ -273,6 +328,19 @@ pub fn run_evidence_value_wire_usage(
   value : RunEvidenceValue,
 ) -> (Int, Int, Int)? {
   value.wire_usage
+}
+
+///|
+/// Borrow the canonical tree of this admitted Logical Map. The compiler
+/// retains this tree with its original seal and exact wire geometry.
+pub fn interactive_logical_map_original(
+  map : RunEvidenceValue,
+) -> @json.CanonicalValue? {
+  if map.name == "logical_map" {
+    Some(map.value)
+  } else {
+    None
+  }
 }
 
 ///|

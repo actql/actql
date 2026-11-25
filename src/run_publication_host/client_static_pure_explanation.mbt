@@ -16,6 +16,7 @@ pub fn capture_client_static_pure_explanation_original(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  debug_entry? : Bool = false,
 ) -> Result[
   (ClientStaticPureExplanationOriginal, String),
   ClientStaticExplanationSourceIssue,
@@ -35,12 +36,13 @@ pub fn capture_client_static_pure_explanation_original(
       false,
       retained_original=Some(retained),
       bounded_capture=true,
+      debug_entry~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(ComputationPlan(issue))
   }
-  guard retained.val is Some(view) &&
-    @canonical.object_field(view, "logical_map") is Some(map) else {
+  guard retained.val is Some(sealed_map) &&
+    @publication.interactive_logical_map_original(sealed_map) is Some(map) else {
     return Err(ForeignOriginal)
   }
   let infers = match compiled {

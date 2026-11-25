@@ -1,3 +1,6 @@
+import {validWireSampleSelectorShape, validWireControlCommandShape, validWireControlOperationRefShape,
+  validWireControlOperationLookupShape} from './interactive-control.generated.js';
+import type {WireControlCommand, WireControlOperationLookup, WireControlOperationRef} from './interactive-control.generated.js';
 import type * as Public from './index.js';
 
 // Unchecked private field views derive from the existing public DTO union.
@@ -411,7 +414,7 @@ export function prepareClientHostRequest(operation: Public.ClientHostOperation, 
   body = {...body, connection};
   if (['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission', 'owner-observations',
     'plan', 'static-explanation', 'inspect-run', 'run-plan', 'run-explanation',
-    'run-explanation-context'].includes(operation)) {
+    'run-explanation-context', 'run-sample', 'lookup-control-operation', 'resume-run'].includes(operation)) {
     try { body = snapshotClientRequest(body) as RequestFields; }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
@@ -420,6 +423,11 @@ export function prepareClientHostRequest(operation: Public.ClientHostOperation, 
   // The structural read's original ref cannot change during awaited Host
   // authentication/authorization. This is its already-captured private copy.
   if (operation === 'run-explanation' || operation === 'run-explanation-context') Object.freeze(body.ref);
+  if (operation === 'run-sample' || operation === 'lookup-control-operation' || operation === 'resume-run') {
+    Object.freeze(body.ref);
+    freezeCapturedRequest(operation === 'run-sample' ? body.selector :
+      operation === 'resume-run' ? body.command : body.operationRef);
+  }
   if (retainSnapshot === true) {
     if (!snapshotted) {
       try { body = snapshotClientRequest(body) as RequestFields; }
@@ -480,8 +488,19 @@ export function validClientBody<O extends Public.ClientHostOperation>(operation:
   }
   if (operation === 'lookup-submission') return validSubmissionRef((body as RequestFields).submissionRef);
   if (operation === 'inspect-run' || operation === 'run-plan' ||
-      operation === 'run-explanation' || operation === 'run-explanation-context') {
-    return validRunRef((body as RequestFields).ref) &&
+      operation === 'run-explanation' || operation === 'run-explanation-context' || operation === 'run-sample' ||
+      operation === 'lookup-control-operation' || operation === 'resume-run') {
+    const fields = body as RequestFields;
+    return validRunRef(fields.ref) &&
+      (operation !== 'run-sample' || validWireSampleSelectorShape(fields.selector) &&
+        (!Object.hasOwn(body, 'nextRevision') || fields.selector.role === 'input' &&
+          fields.selector.step.by === 'id' && fields.selector.input_port_id !== undefined)) &&
+      (operation !== 'lookup-control-operation' || validWireControlOperationRefShape(fields.operationRef) &&
+        boundedText(fields.operationRef.operation_id) && sameRunRef(fields.ref, fields.operationRef.run_ref)) &&
+      (operation !== 'resume-run' || validWireControlCommandShape(fields.command) &&
+        fields.command.operation === 'resume' && boundedText(fields.command.operation_id) &&
+        sameRunRef(fields.ref, fields.command.run_ref) && fields.command.interval?.guards === null &&
+        ['step', 'terminal'].includes(fields.command.interval.until)) &&
       Number.isSafeInteger((body as RequestFields).maxWireBytes) && (body as RequestFields).maxWireBytes >= 1024 && (body as RequestFields).maxWireBytes <= 65536 &&
       Number.isSafeInteger((body as RequestFields).maxNodes) && (body as RequestFields).maxNodes > 0 && (body as RequestFields).maxNodes <= 10000 &&
       Number.isSafeInteger((body as RequestFields).maxDepth) && (body as RequestFields).maxDepth > 0 && (body as RequestFields).maxDepth <= 64;
@@ -728,6 +747,26 @@ export const validCancellationRef: typeof Public.validCancellationRef = (value: 
   value.namespaceId.isWellFormed() && value.cancelId.isWellFormed();
 const sameRunRef = (left: Public.WireRunRef, right: Public.WireRunRef) => (['namespaceId', 'authorityScopeCid', 'runDefinitionCid'] as const)
   .every(key => left[key] === right[key]);
+const sameControlOperationRef = (left: WireControlOperationRef, right: WireControlOperationRef) => sameRunRef(left.run_ref, right.run_ref) &&
+  left.operation_id === right.operation_id && left.command_cid === right.command_cid &&
+  left.accepted_from_revision === right.accepted_from_revision;
+
+export const resumeControlOperationRef = (command: WireControlCommand): WireControlOperationRef => ({
+  run_ref: command.run_ref, operation_id: command.operation_id, command_cid: command.self_cid,
+  accepted_from_revision: command.expected_control_revision,
+});
+
+export function validControlOperationLookup(value: unknown, operationRef: WireControlOperationRef): value is WireControlOperationLookup {
+  if (!validWireControlOperationRefShape(operationRef) || !validWireControlOperationLookupShape(value)) return false;
+  if (value.state !== 'found') return true;
+  const {receipt, observation} = value;
+  const origin = receipt.observed_state.resume_origin;
+  return sameControlOperationRef(receipt.operation_ref, operationRef) &&
+    sameControlOperationRef(observation.operation_ref, operationRef) &&
+    observation.original_receipt_cid === receipt.self_cid &&
+    (receipt.outcome !== 'accepted' || origin?.kind !== 'manual' || origin.command_cid === operationRef.command_cid);
+}
+
 const sameCancellationRef = (left: Public.WireCancellationRef, right: Public.WireCancellationRef) => sameRunRef(left, right) &&
   left.cancelId === right.cancelId && left.expectedRevision === right.expectedRevision;
 export const validCancellation: typeof Public.validCancellation = (value: unknown, expected?: Public.WireCancellationRef): value is Public.WireCancellation => validCancellationShape(value) &&

@@ -126,3 +126,66 @@ pub fn local_managed_start_retained(
     Err(issue) => raise LocalManagedStart(issue)
   }
 }
+
+///|
+/// Selected Node Driver entrance for the original Debug Run. Only the
+/// nominal Sample prefix crosses to the admitted Journal visitor.
+#export_name("strategyModule_local_ManagedStartSample")
+pub fn local_managed_start_sample(
+  setup : @local_driver.LocalManagedDispatchConfiguration[Int],
+  retained_relation : Bool,
+  owner : @client_local_host.ClientInstalledManagedRun,
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  task : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  current : () -> Bool,
+  adopt : (@client_local_host.InstalledRelationSamplePrefix) -> Bool,
+  retain_pending : (@client_local_host.InstalledRelationSamplePrefix) -> Unit,
+  result : (
+    Result[Bool, @client_local_host.InstalledRelationSamplePrefixIssue],
+    Bool,
+    Bool,
+  ) -> Unit,
+) -> @local_driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
+  let on_relation_commit = @client_local_host.installed_relation_sample_driver_requirement(
+    profile, task,
+  ).map(required => {
+    let schema : @execution.RelationSchemaIdentityLimits = {
+      max_fields: max_nodes,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    }
+    (completed, original) => {
+      result(
+        @client_local_host.with_installed_committed_relation_sample(
+          owner, profile, task, completed, original, schema, max_nodes, max_depth,
+          current, adopt, retain_pending,
+        ),
+        required,
+        @client_local_host.installed_relation_sample_driver_cleanup_pending(
+          profile,
+        ),
+      )
+    }
+  })
+  match
+    @local_driver.start_local_managed_dispatch_node(
+      setup,
+      retained_relation~,
+      on_relation_commit~,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise LocalManagedStart(issue)
+  }
+}
+
+///|
+#export_name("strategyModule_local_ReturnPendingSample")
+pub fn local_managed_return_pending_sample(
+  sample : @client_local_host.InstalledRelationSamplePrefix,
+) -> Result[Unit, @strategy.CapturedTaskBoundaryIssue] {
+  @client_local_host.return_installed_relation_sample_prefix(sample)
+}

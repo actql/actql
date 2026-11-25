@@ -87,7 +87,7 @@ Keep its reference and attempt for lookup without resending.
 | --- | --- |
 | connect; new submission | `connect`; `new-submission` |
 | Program/source submit | Local project `run`; Remote `start`/`aql` with explicit format, saved submission reference and explicit invocation attempt ID |
-| Static Effect Explanation | Local project `explain <program> --explanation-json` returns the original Plan, Facts and Context. Use `--explanation-language en` or `--explanation-language ja` for text. Both require current Run-read permission. |
+| Static Explanation | Local project `explain <program> --explanation-json` returns the original Plan, Facts and Context. Use `--explanation-language en` or `--explanation-language ja` for the shared Explorer narrative and logical Step details. Both require current Run-read permission. |
 | Original operation lookup | `lookup-submission`; `lookup-request`; `lookup-cancellation` |
 | Run attach/status/wait | `attach`; `status`; `wait` |
 | Cancel | `cancel` with saved operation ID, original revision and explicit invocation attempt ID |

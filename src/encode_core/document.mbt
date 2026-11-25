@@ -51,7 +51,7 @@ pub fn emit_document(
     CompareOutput(output) | WorkCompareOutput(output, _) =>
       compare_range(output, value.text, 0, value.text.length())
     BufferedTextOutput(buffer) => buffer.text.write_string(value.text)
-    HashOutput(h) =>
+    HashOutput(h) | WorkHashOutput(h, _) =>
       // EncodedDocument text is already validated; stream its scalar UTF-8 bytes.
       for scalar in value.text.iter() {
         hash_scalar(w, h, scalar.to_int())

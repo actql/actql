@@ -55,6 +55,37 @@ pub fn[I] reserve_request_result_read_metadata(
     Some(value) => value
     None => return Err(Policy)
   }
+  reserve_request_result_read_metadata_peak(owner, input, peak)
+}
+
+///|
+/// Reserve an already priced constructor on the same Read and in the same
+/// temporary metadata phase. The caller prices its exact data shape before
+/// materialization and keeps the charge through delivery. No raw byte
+/// pricing is repeated on this capacity.
+pub fn[I] reserve_request_result_read_construction(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  peak : Int,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  if peak <= 0 {
+    return Err(Policy)
+  }
+  reserve_request_result_read_metadata_peak(owner, input, peak.to_int64())
+}
+
+///|
+fn[I] reserve_request_result_read_metadata_peak(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  peak : Int64,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.phase == Open || owner.phase == ResultRead else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
   let old = match
     @resources.preparation_capacity_working_extents(owner.capacity, input) {
     Ok(value) => value

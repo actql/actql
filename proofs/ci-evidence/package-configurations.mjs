@@ -136,7 +136,10 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-21-session-local-namespace-quote-selector-review.json.
   // The retained Request intake uses the UTF-8 and string packages in ordinary
   // code. Its production imports leave all existing target selectors intact.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '69f0f83ea6b499104c1e5b501a6b7b47511e62d422d85cc9281fca18a375d63b', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'b58d8581136cf7b6783d38031e5753d80d47b2e5'}),
+  // The current task authority adds one Local import and a JS-only strategy whitebox fixture.
+  // See docs/reviews/2026-11-25-session-explorer-task-authority-review.json.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '89060694cfab16f512d11e282958f1bd663dcd152ab20c7b519de0739c16b2b3', rule: 'literal-target-selectors-with-bound-source-membership', revision: '207548ec659716c0e8bb181a63e014fd024a0153'}),
+  'src/physical_strategy_host/moon.pkg': Object.freeze({digest: 'ae3a826d73c8fe1b62f16bd442324dc88719309bd469e9a92b80d6e87051ab2c', rule: 'literal-target-selectors-with-bound-source-membership', revision: '207548ec659716c0e8bb181a63e014fd024a0153'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   // One literal timestamp-pattern dependency; existing JS/non-JS selectors unchanged.
   // See docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json.

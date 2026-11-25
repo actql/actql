@@ -45,6 +45,19 @@ export const operationKey = {version: 'actql-logical-step-key/0.1',
 // This oracle never calls a product sealer/compiler or observes a Host result.
 const digest = (body: unknown) => `sha256:${createHash('sha256').update(canonicalText(body)).digest('hex')}`;
 const sealed = <Body extends object>(body: Body) => ({...body, self_cid: digest(body)});
+export const resumeOperationRef = {run_ref: ref, operation_id: command.operation_id,
+  command_cid: digest(command), accepted_from_revision: command.expected_control_revision};
+const resumeReceipt = sealed({version: 'actql-control-operation-receipt/0.1',
+  operation_ref: resumeOperationRef, outcome: 'accepted',
+  observed_state: {...manual, resume_origin: {...manual.resume_origin, command_cid: resumeOperationRef.command_cid}}});
+export function acceptedResumeLookup(manualCommandCid = resumeOperationRef.command_cid) {
+  const receipt = manualCommandCid === resumeOperationRef.command_cid ? resumeReceipt
+    : sealed({version: resumeReceipt.version, operation_ref: resumeOperationRef, outcome: 'accepted',
+      observed_state: {...manual, resume_origin: {...manual.resume_origin, command_cid: manualCommandCid}}});
+  return {state: 'found', receipt: structuredClone(receipt),
+    observation: {original_receipt_cid: receipt.self_cid, operation_ref: structuredClone(resumeOperationRef),
+      outcome: 'accepted', observed_at: time}};
+}
 export const planBody = {version: 'actql-compiled-plan/0.1', compiler_version: '0.1',
   aoa_ir_version: '0.1', executable_plan_cid: cid('2'),
   program_definition_cid: cid('3'), program_semantics_cid: cid('4'),
@@ -98,6 +111,52 @@ export const bindingMutations = ([
   ['control_admission', {...admissionBody, run_ref: {...ref, runDefinitionCid: cid('0')}}],
   ['control_admission', {...admissionBody, run_ref: {...ref, authorityScopeCid: cid('0')}}],
 ] satisfies [string, unknown][]).map(([name, body]) => ({name, body, cid: digest(body)}));
+// Independently spell the checked output inventory. Both have can_sample:false
+// because the complete target inventory precedes installed support filtering.
+const computedStep = sealed({...operationKey, compiled_plan_cid: planCid});
+const computedOutputId = digest({version: 'actql-logical-port-key/0.1',
+  compiled_plan_cid: planCid, step_id: computedStep.self_cid, role: 'output', port_ordinal: 0});
+const inputOnlyOutputId = portKey('output').self_cid;
+const sampleMap = {...mapBody, steps: [...mapBody.steps, {
+  step_id: computedStep.self_cid, key: computedStep, names: ['computed'],
+  operator: 'select', ports: [{...mapBody.steps[0].ports[1],
+    port_id: computedOutputId, source: {kind: 'logical_output',
+      step_id: computedStep.self_cid, output_port_id: computedOutputId}}],
+  can_stop_before: false, can_stop_after: false, stop_reason: 'not_installed',
+}]};
+const allOutputs = [inputOnlyOutputId, computedOutputId];
+type SampleTarget = {by: 'operator'; operator: string} | {by: 'name'; name: string} | {by: 'id'; step_id: string};
+export const sampleBindingCases = ([
+  ['all original outputs', [], allOutputs, true],
+  ['all outputs cannot omit a projected target', [], [computedOutputId], false],
+  ['operator selects the original operation', [{by: 'operator', operator: 'select'}],
+    [computedOutputId], true],
+  ['operator cannot add an unrelated output', [{by: 'operator', operator: 'select'}],
+    allOutputs, false],
+  ['name selects an input-only output', [{by: 'name', name: 'answer'}],
+    [inputOnlyOutputId], true],
+  ['name cannot substitute a different valid output', [{by: 'name', name: 'answer'}],
+    [computedOutputId], false],
+  ['overlapping selectors retain one original port', [
+    {by: 'id', step_id: computedStep.self_cid}, {by: 'name', name: 'computed'},
+  ], [computedOutputId], true],
+] satisfies [string, SampleTarget[], string[], boolean][]).map(([label, targets, outputs, expected]) => {
+  const selectedProfile = {...profile, retain: {samples: {strategy: 'execution_prefix',
+    capture_scope: targets.length ? 'selected_outputs' : 'all_outputs',
+    targets, max_items: 50, max_bytes: '65536', max_artifacts: 2, ttl_seconds: 30,
+    required: true, graph: {max_nodes: 0, max_edges: 0}, vectors: {max_components_per_item: 1}}}};
+  const intent = {...intentBody, requested_profile_cid: digest(selectedProfile)};
+  const resolved = {...resolvedBody, logical_map_cid: digest(sampleMap),
+    requested_profile_cid: digest(selectedProfile), effective_profile_cid: digest(selectedProfile),
+    sample_output_port_ids: outputs};
+  const admission = {...admissionBody, request_intent_cid: digest(intent),
+    logical_map_cid: resolved.logical_map_cid, resolved_profile_cid: digest(resolved)};
+  return {label, expected, records: [
+    ['control_profile', selectedProfile], ['control_request_intent', intent],
+    ['resolved_control_profile', resolved], ['logical_map', sampleMap],
+    ['control_admission', admission],
+  ] as const};
+});
 export const sampleRelation = {version: 'actql-sample-relation/0.1',
   kind: 'relation', schema_cid: cid('7'), columns: [
     {position: 0, name: 'p', value_contract_cid: cid('8'), required: false}],

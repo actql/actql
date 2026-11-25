@@ -167,3 +167,88 @@ test('completed strategy stop without recovery authority remains pending after i
   assert.equal(await execution.cleanup(), false);
   assert.equal(execution.cleanupPending(), true);
 });
+
+
+test('a controlled Driver waits at entry and after one Step before selecting the next task', async () => {
+  const f = completedCleanupFixture();
+  const controller = new AbortController();
+  const waits = [Promise.withResolvers<() => void>(), Promise.withResolvers<() => void>()];
+  let current = 'paused', selected = 0, completed = 0, waiting = 0;
+  Object.assign(f.core, {
+    count: () => 2,
+    nextTask(actual: object) {
+      assert.strictEqual(actual, f.setup);
+      assert.equal(current, 'runnable');
+      return selected;
+    },
+    next() {
+      assert.equal(current, 'runnable');
+      return {index: selected++};
+    },
+    completed: (_setup: object, index: number) => index < completed,
+    finished: () => completed === 2,
+    output: (_setup: object, index: number) => index < completed ? f.output : undefined,
+  });
+  Object.assign(f.contribution, {
+    beforeNext() {f.events.push('prepare');},
+    run({index}: {index: number}) {
+      f.events.push(`compute-${index}`);
+      completed++;
+      current = completed === 2 ? 'completed' : 'paused';
+      return {};
+    },
+  });
+  const running = runInstalledStrategy({setup: f.setup,
+    runtime: {core: f.core, contributions: [f.contribution]},
+    control: {signal: controller.signal, taskControl: {
+      phase(actual) {assert.strictEqual(actual, f.setup); return current;},
+      waitForResume(actual, signal) {
+        assert.strictEqual(actual, f.setup);
+        assert.strictEqual(signal, controller.signal);
+        const resume = Promise.withResolvers<void>();
+        waits[waiting++].resolve(() => {current = 'runnable'; resume.resolve();});
+        return resume.promise;
+      },
+    }},
+  });
+  const start = await waits[0].promise;
+  assert.deepEqual(f.events, []);
+  start();
+  const resume = await waits[1].promise;
+  assert.deepEqual(f.events, ['prepare', 'compute-0']);
+  assert.equal(f.stops(), 0);
+  resume();
+  const execution = await running;
+  assert.equal(execution.status, 'host-tasks-completed');
+  assert.deepEqual(f.events, ['prepare', 'compute-0', 'prepare', 'compute-1']);
+  execution.close();
+});
+
+test('cancelling a paused Driver stops the same setup before task selection', async () => {
+  const f = completedCleanupFixture();
+  const controller = new AbortController(), waiting = Promise.withResolvers<void>();
+  const failure = new Error('cancel the paused original');
+  f.core.next = () => assert.fail('A paused setup cannot enter task selection');
+  const running = runInstalledStrategy({setup: f.setup,
+    runtime: {core: f.core, contributions: [f.contribution]},
+    control: {signal: controller.signal, taskControl: {
+      phase: () => 'paused',
+      waitForResume(actual, signal) {
+        assert.strictEqual(actual, f.setup);
+        const interrupt = new Promise((_, reject) => {
+          signal.addEventListener('abort', () => reject(signal.reason), {once: true});
+        });
+        waiting.resolve();
+        return interrupt;
+      },
+    }},
+  });
+  await waiting.promise;
+  controller.abort(failure);
+  const execution = await running;
+  assert.equal(execution.status, 'host-tasks-failed');
+  assert.strictEqual(execution.failure, failure);
+  assert.equal(f.stops(), 1);
+  assert.deepEqual(f.events, ['stop']);
+  execution.close();
+});

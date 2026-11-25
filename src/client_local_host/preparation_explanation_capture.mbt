@@ -194,8 +194,8 @@ fn construct_original_explanation_capture(
     is Some((retained, execution)) else {
     return Err(ConstructionUnavailable)
   }
-  // view_hold deliberately retains the original parsed view/map, not just the
-  // returned String priced by the old static-only reader. It coexists with
+  // view_hold funds the retained original sealed Map tree and wire, not just
+  // the returned Plan String. It coexists with
   // the complete Facts parser/hash/writer/mandatory validation owner. The
   // identity-free body String passed into seal is separate from the codec's
   // borrowed input and remains live through sealing; price it explicitly.
