@@ -274,10 +274,9 @@ and uses the existing startable-record/runtime-custody checks. Recovery does not
 construct a second execution state machine.
 
 The current Node SQLite layout includes `dispatch_deliveries`, with a foreign
-key to the exact dispatch intent and the fixed `dispatch_delivery` metadata
-entry. An exact-delivery Coordinator inserts the initial intent and delivery
-bytes in the same SQLite transaction. A failed or unknown commit gives no
-send permission. Recovery reads the durable journal and refuses different
+key to the exact dispatch intent. An exact-delivery Coordinator inserts the
+initial intent and delivery bytes in the same SQLite transaction. A failed or
+unknown commit gives no send permission. Recovery reads the durable journal and refuses different
 envelope bytes with `RemoteDispatchDeliveryMaterialsCollision`.
 
 A Coordinator without an installed `currentDispatchContext` uses the same
@@ -387,7 +386,9 @@ The wire observation contracts remain 0.1 and history-bearing records retain
 current physical schema and configured Coordinator authority in a bounded
 read-only snapshot before opening the original for writes. The opened
 connection checks that same schema and authority again in a deferred read
-transaction before configuring durability. An unsupported physical layout yields `UnknownCoordinatorJournalFormat`. The original DB, WAL, SHM and
+transaction before configuring durability. Fresh journals store only the
+Coordinator authority in the metadata table. An unsupported physical layout
+yields `UnknownCoordinatorJournalFormat`. The original DB, WAL, SHM and
 unfinished cleanup custody remain intact. Refusal grants no
 permission to cancel, release or resend work. An old canonical observation
 record lacking admission history still refuses with `ObservationHistoryRequired`.

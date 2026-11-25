@@ -426,9 +426,9 @@ test('a separate Coordinator process restores exact receipts without pending mem
   assert.match(result.stdout, /separate-process-replay-verified/u);
 });
 
-for (const mismatch of ['legacy-version', 'current-version-wrong-schema',
+for (const mismatch of ['wrong-dispatch-history-column',
   'missing-metadata', 'missing-output-table', 'missing-output-constraints',
-  'missing-delivery-schema', 'missing-delivery-marker', 'missing-delivery-table']) {
+  'missing-delivery-constraint', 'missing-delivery-table']) {
   test(`Coordinator refuses ${mismatch} with uncheckpointed WAL and no SHM without source mutation`, async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-wal-refusal-'));
     t.after(() => rm(root, {recursive: true, force: true}));
@@ -442,20 +442,17 @@ for (const mismatch of ['legacy-version', 'current-version-wrong-schema',
       import {DatabaseSync} from 'node:sqlite';
       const database = new DatabaseSync(process.argv[1]);
       database.exec('PRAGMA wal_autocheckpoint = 0');
-      if (process.argv[2] === 'legacy-version') {
-        database.prepare('UPDATE journal_metadata SET value = ? WHERE key = ?')
-          .run('actql-remote-coordinator-journal/0.1', 'schema_version');
-      } else if (process.argv[2] === 'current-version-wrong-schema') {
+      if (process.argv[2] === 'wrong-dispatch-history-column') {
         database.exec('ALTER TABLE dispatch_intents RENAME COLUMN observation_history_json TO unsupported_history');
       } else if (process.argv[2] === 'missing-metadata') {
         database.exec('DROP TABLE journal_metadata');
       } else if (process.argv[2] === 'missing-output-table') {
         database.exec('DROP TABLE output_operations');
-      } else if (process.argv[2].startsWith('missing-delivery-')) {
-        if (process.argv[2] !== 'missing-delivery-marker') database.exec('DROP TABLE dispatch_deliveries');
-        if (process.argv[2] !== 'missing-delivery-table') {
-          database.prepare('DELETE FROM journal_metadata WHERE key = ?').run('dispatch_delivery');
-        }
+      } else if (process.argv[2] === 'missing-delivery-table') {
+        database.exec('DROP TABLE dispatch_deliveries');
+      } else if (process.argv[2] === 'missing-delivery-constraint') {
+        database.exec('DROP TABLE dispatch_deliveries');
+        database.exec('CREATE TABLE dispatch_deliveries (dispatch_request_cid TEXT PRIMARY KEY NOT NULL, envelope_json TEXT NOT NULL) STRICT');
       } else {
         // Keep every column name but remove types/constraints. Comparing only
         // PRAGMA table_info names would silently accept this different format.

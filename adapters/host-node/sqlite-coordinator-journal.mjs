@@ -24,12 +24,10 @@ const fail = (code, cause) => {
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
-const journalVersion = 'actql-remote-coordinator-history-journal/0.1';
 const historyBytes = 131_072;
 // Same bound as the existing materials poll encoder (binding + quoted
 // materials + framing). Configured receivers may impose a smaller bound.
 const deliveryBytes = 1_442_816;
-const deliveryVersion = 'actql-remote-coordinator-delivery/0.1';
 const schemaSql = `
       CREATE TABLE journal_metadata (
         key TEXT PRIMARY KEY NOT NULL,
@@ -136,10 +134,6 @@ function assertCurrentCoordinatorLayout(database, coordinatorAuthority) {
     if (schema.get(expected.length, name)?.sql !== expected) fail('UnknownCoordinatorJournalFormat');
   }
   const metadata = database.prepare('SELECT 1 FROM journal_metadata WHERE key = ? AND value = ?');
-  if (metadata.get('schema_version', journalVersion) === undefined ||
-      metadata.get('dispatch_delivery', deliveryVersion) === undefined) {
-    fail('UnknownCoordinatorJournalFormat');
-  }
   if (metadata.get('coordinator_authority', coordinatorAuthority) === undefined) {
     fail('CoordinatorJournalAuthorityMismatch');
   }
@@ -225,9 +219,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       transaction.run(() => {
         database.exec(schemaSql);
         const insert = database.prepare('INSERT INTO journal_metadata (key, value) VALUES (?, ?)');
-        insert.run('schema_version', journalVersion);
         insert.run('coordinator_authority', coordinatorAuthority);
-        insert.run('dispatch_delivery', deliveryVersion);
       });
       syncDirectory(directory);
     }
