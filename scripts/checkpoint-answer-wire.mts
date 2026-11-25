@@ -1,15 +1,27 @@
 import {project} from './generate-client-publication-wire.mjs';
 
 type Data = Readonly<Record<string, unknown>>;
-type ProfileRecipe = Readonly<{name: string; kind: string; subject: string; approval: string;
-  resolutionSubject: string; preparedInvocationCid: string | null}>;
+type Decision = 'approved' | 'rejected';
+type Approval = 'invocation' | 'effect';
+type ResolutionSubject = 'prepare' | 'run';
+export type CheckpointAnswerFieldRule = Readonly<{
+  constant?: unknown; source?: string; concatenate?: readonly string[];
+  copy?: string; requiredOn?: string; omitOn?: Decision;
+}>;
+type Fields = Readonly<Record<string, CheckpointAnswerFieldRule>>;
+type ProfileRecipe = Readonly<{name: string; kind: string; subject: string; approval: Approval;
+  resolutionSubject: ResolutionSubject; preparedInvocationCid: string | null}>;
 type RegistryInput = Readonly<{checkpoint_answer_construction: Readonly<{
   summary_schema: unknown; checkpoint_profile_source: Readonly<{contract: unknown; schema: unknown}>;
   proof: Readonly<{scheme: unknown; signature: unknown}>;
   signer: Readonly<{token_characters: unknown; token_min_length: number; token_max_length: number}>;
-  profiles: readonly ProfileRecipe[]; decisions: readonly string[];
-  documents: Data; resolution_subject_fields: Data; identities: Data;
-  canonical: Readonly<{identity_text_paths: unknown}>;
+  profiles: readonly ProfileRecipe[]; decisions: readonly Decision[];
+  documents: Readonly<Record<Approval | 'resolution' | 'evidence', Fields>>;
+  resolution_subject_fields: Readonly<Record<ResolutionSubject, Fields>>;
+  identities: Readonly<Record<Approval | 'resolution', Readonly<{selfField: string}>>>;
+  canonical: Readonly<{identity_text_paths: readonly (readonly string[])[]}>;
+  time: Readonly<{width: number}>;
+  limits: Readonly<Record<'max_wire_bytes' | 'max_nodes' | 'max_depth', Readonly<{minimum: number}>>>;
 }>; schemas: Readonly<{checkpoint_summary: unknown}>}>;
 type BranchInput = Readonly<{properties: Readonly<{
   subject: unknown; phase: unknown; kind: unknown; requirements: unknown;
@@ -25,7 +37,7 @@ type ProtocolInput = Readonly<{artifact_schemas: Readonly<{
 }>}>;
 type Profile = Readonly<{kind: string; phase: string; subject: string; artifactType: string;
   requirements: readonly (readonly string[])[]}>;
-type SummaryProjection = ReturnType<typeof project> & Readonly<{$ref?: unknown}>;
+type SummaryProjection = ReturnType<typeof project>;
 type Literal = string | readonly Literal[];
 
 // These are views of the input documents; the original validators still admit each rule.
@@ -135,12 +147,20 @@ export function checkpointAnswerContract(registry: RegistryInput, protocol: Prot
   const summary = project(registry.schemas.checkpoint_summary);
   const cidPaths = new Map<string, readonly string[]>();
   function scalarDomains(schema: SummaryProjection, path: readonly string[] = []) {
-    if (schema.$ref) fail('summary-reference');
     if (schema.pattern === '^sha256:[0-9a-f]{64}$') cidPaths.set(JSON.stringify(path), path);
     for (const [key, child] of Object.entries(schema.properties ?? {})) scalarDomains(child, [...path, key]);
     for (const name of ['oneOf', 'allOf']) for (const child of schema[name as 'oneOf' | 'allOf'] ?? []) scalarDomains(child, path);
     if (schema.items && JSON.stringify(schema.items).includes('sha256:')) fail('summary-cid-array');
   }
+  // The summary is an inline schema in both generated validators.
+  function assertInline(schema: SummaryProjection): void {
+    if (schema.$ref !== undefined) fail('summary-reference');
+    const children = [...Object.values(schema.properties ?? {}), ...(schema.oneOf ?? []),
+      ...(schema.allOf ?? []), schema.items, schema.not, schema.if, schema.then,
+      schema.propertyNames, schema.additionalProperties];
+    for (const child of children) if (typeof child === 'object') assertInline(child);
+  }
+  assertInline(summary);
   scalarDomains(summary);
   if (!Array.isArray(recipe.canonical.identity_text_paths) || recipe.canonical.identity_text_paths.some((path: unknown) =>
       !Array.isArray(path) || path.length === 0 || path.some((key: unknown) => typeof key !== 'string' || !/^[A-Za-z]+$/u.test(key)))) fail('identity-text-paths');

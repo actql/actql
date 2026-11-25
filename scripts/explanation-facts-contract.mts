@@ -1,13 +1,17 @@
 // Meaning definitions for the existing interactive protocol registry. This is
 // not another identity registry or an expression parser. The compiler alone
 // issues and binds facts; shape admission conveys no provenance or permission.
-const cid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'};
-const text = {type: 'string', minLength: 1};
-const integer = {type: 'integer', minimum: 0, maximum: 2147483647};
-const choice = (...values) => ({type: 'string', enum: values});
-const list = items => ({type: 'array', items, minItems: 0});
-const ref = name => ({$ref: `#/schemas/${name}`});
-const object = properties => ({type: 'object', additionalProperties: false,
+import type {project} from './generate-client-publication-wire.mjs';
+
+type Schema = ReturnType<typeof project>;
+
+const cid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'} satisfies Schema;
+const text = {type: 'string', minLength: 1} satisfies Schema;
+const integer = {type: 'integer', minimum: 0, maximum: 2147483647} satisfies Schema;
+const choice = (...values: string[]): Schema => ({type: 'string', enum: values});
+const list = (items: Schema): Schema => ({type: 'array', items, minItems: 0});
+const ref = (name: string) => ({$ref: `#/schemas/${name}`});
+const object = <Fields extends Record<string, Schema>>(properties: Fields) => ({type: 'object' as const, additionalProperties: false,
   required: Object.keys(properties), properties});
 
 // This finite first projection is not the language's supported-expression set.
@@ -17,8 +21,10 @@ export const explanationPredicateOperators = Object.freeze([
   'is_null', 'not_null', 'is_distinct_from',
 ]);
 
-export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
-  const schemas = {};
+export function explanationFactSchemas({logicalOperators, effectDeclaration}: Readonly<{
+  logicalOperators: readonly string[]; effectDeclaration: Schema;
+}>): Record<string, Schema> {
+  const schemas: Record<string, Schema> = {};
   // Inferred Text limits can reveal a literal's UTF-8 length. Do not serialize
   // bounds, enumerations or a contract/value CID as a supposedly safe type.
   // The projection explicitly describes shape/nullability, not a full contract.
@@ -78,11 +84,11 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
       ]}}),
   };
   const consumer = object({step_id: cid, port_id: cid});
-  const producer = {oneOf: [
+  const producer: Schema = {oneOf: [
     object({state: {const: 'projected'}, step_id: cid, port_id: cid}),
     object({state: {const: 'not_projected'}, reason: {const: 'no_original_port'}}),
   ]};
-  const modelBinding = {oneOf: [
+  const modelBinding: Schema = {oneOf: [
     object({state: choice('field', 'parameter'), name: text}),
     object({state: {const: 'redacted'}}),
     object({state: {const: 'not_projected'}, reason: {const: 'expression_form_not_projected'}}),
@@ -90,7 +96,7 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
   const declaredWrites = object({state: {const: 'declared'}, fields: {...list(text), uniqueItems: true}});
   const unprojectedCommand = object({state: {const: 'not_projected'},
     reason: {const: 'command_fields_not_projected'}});
-  const member = {...object({declaration: effectDeclaration,
+  const member: Schema = {...object({declaration: effectDeclaration,
     write_fields: {oneOf: [declaredWrites, unprojectedCommand]}}),
     allOf: [{if: {type: 'object', required: ['declaration'], properties: {
       declaration: {type: 'object', required: ['effect_kind'],
@@ -98,7 +104,7 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
     }},
     then: {type: 'object', properties: {write_fields: unprojectedCommand}},
     else: {type: 'object', properties: {write_fields: declaredWrites}}}]};
-  const item = {oneOf: [
+  const item: Schema = {oneOf: [
     {...object({kind: {const: 'source'}, stage_input: object({kind: {const: 'stage_input'},
       stage_ordinal: integer, input_port_ordinal: integer}),
       source_view: object({catalog_cid: cid, connector: text, contract_cid: cid,
@@ -126,7 +132,7 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
   };
   // A transport envelope around the original Plan and its two facets. Its
   // references share the Plan and Map binding; the reader checks that binding.
-  const explanationView = plan => object({version: {const: 'actql-static-explanation/0.1'},
+  const explanationView = (plan: Schema) => object({version: {const: 'actql-static-explanation/0.1'},
     plan, facts: ref('explanation_facts'), context: ref('explanation_context')});
   schemas.static_explanation_view = {
     $schema: 'https://json-schema.org/draft/2020-12/schema',

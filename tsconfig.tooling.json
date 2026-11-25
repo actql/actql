@@ -95,6 +95,7 @@
     "packages/explorer-ui/built-component-test-types.d.ts"
   ],
   "exclude": [
+    "scripts/templates/checkpoint-answer-construction.mts",
     "**/*.typecheck.mts",
     "**/*.d.mts",
     "**/*.d.cts"

@@ -87,8 +87,6 @@ type CatalogBindings = Readonly<{
   clientProgramRowSourceRestoreRelationDeclaration(connector: string, registration: string, revision: string,
     views: string, expectedCatalogCid: string | undefined): unknown;
   clientProgramRowSourceDeclarationJson(declaration: unknown): string | undefined;
-  clientProgramRelationUpdateMapping(declaration: unknown, resource: string, primaryIdentity: string,
-    writableFields: readonly string[], permission: string, approval: string): unknown;
   clientProgramInstalledSourceConstructionCapacity(retainedNodes: bigint, retainedText: bigint, retainedWire: bigint,
     workspaceNodes: bigint, workspaceText: bigint, workspaceWire: bigint): unknown;
   clientProgramRelationRestoreConstructionCapacity(connector: string, registration: string, revision: string,
@@ -111,9 +109,9 @@ type PhysicalBinding = Readonly<{
 type PublishedWrite = Readonly<WriteSpec & {mappingWire: string}>;
 type WritableInventorySource = Readonly<{
   catalogue: Readonly<{connection: string}>;
-  writes: readonly Readonly<{resource: string}>[];
+  writes: readonly Readonly<{resource: string; operation?: WriteSpec['operation']; mappingWire: string}>[];
   physical: readonly Readonly<{resource: string; itemsPath: readonly string[]; schema: object}>[];
-  effectPrepared?: Readonly<{mappings?: readonly Readonly<{resource: string}>[]}>;
+  effectPrepared?: Readonly<{mappings?: readonly Readonly<{resource: string; body: string}>[]}>;
 }>;
 type CatalogSource = Readonly<{
   declaration: unknown; wire: string; physical: readonly PhysicalBinding[]; writes: readonly PublishedWrite[];
@@ -147,10 +145,28 @@ const freeze = <Value,>(value: Value): Value => {
 };
 const invalid: () => never = () => fail('InvalidInstalledMockCatalog');
 
-const writeFacts = (spec: WriteSpec) => ({resource: spec.resource,
-  primary_identity: spec.primary_identity, ...(spec.operation === 'delete'
-    ? {delete: {permission: spec.permission, approval: spec.approval}}
-    : {update: {fields: spec.writable_fields, permission: spec.permission, approval: spec.approval}})});
+type WritePermission = Pick<WriteBase, 'permission' | 'approval'>;
+type ResourceWriteFacts = {resource: string; primary_identity: string;
+  update?: WritePermission & {fields: readonly string[]}; delete?: WritePermission};
+function writeFacts(specs: readonly WriteSpec[]) {
+  const writes: ResourceWriteFacts[] = [];
+  for (const spec of specs) {
+    let facts = writes.find(value => value.resource === spec.resource);
+    if (facts === undefined) {
+      facts = {resource: spec.resource, primary_identity: spec.primary_identity};
+      writes.push(facts);
+    }
+    const {permission, approval} = spec;
+    if (spec.operation === 'delete') {
+      if (facts.delete !== undefined) invalid();
+      facts.delete = {permission, approval};
+    } else {
+      if (facts.update !== undefined) invalid();
+      facts.update = {fields: spec.writable_fields, permission, approval};
+    }
+  }
+  return {writes};
+}
 const noSources = Object.freeze([]);
 const updateSources = (spec: UpdateWriteSpec) => Object.freeze((spec.update_fields ?? spec.writable_fields).map(name => Object.freeze({
   target: name, field: name, null_behavior: spec.write_null_fields?.includes(name) ? 'write_null' : 'reject',
@@ -196,7 +212,7 @@ async function projectDeclaredCatalog(moon: Runtime, {directory, catalogFile, da
     'clientProjectCatalogRelationDeclarationConstructionCapacity',
     'clientProjectConnectionsCount', 'clientProjectConnectionsName', 'clientProjectConnectionsConnector',
     'clientProgramRowSourceRestoreRelationDeclaration', 'clientProgramRowSourceDeclarationJson',
-    ...(installationInventory === undefined ? ['clientProgramRelationUpdateMapping'] :
+    ...(installationInventory === undefined ? [] :
       ['clientProgramInstalledSourceConstructionCapacity', 'clientProgramRelationRestoreConstructionCapacity'])] as const)
     .map(name => [name, moon?.[name as keyof CatalogBindings]]));
   if (Object.values(methods).some(value => typeof value !== 'function')) fail('InstalledProjectRuntimeUnavailable');
@@ -519,22 +535,18 @@ async function projectDeclaredCatalog(moon: Runtime, {directory, catalogFile, da
     if (installationInventory === undefined) {
       // Explicit non-installed declaration diagnostic only. Installed startup
       // always uses the admitted Effect context and original guarded continuation.
-      let writesJson;
+      const writesJson = wire(writeFacts(writeSpecs));
       mappingOriginals = writeSpecs.map(spec => {
         if (spec.operation === 'delete') {
-          writesJson ??= wire({writes: writeSpecs.map(writeFacts)});
           return rowSourceMapping(moon, declaration, writesJson, spec.resource, noSources, 'delete').body;
         }
-        if (spec.update_fields === undefined && !spec.write_null_fields?.length) return checked(call('clientProgramRelationUpdateMapping', declaration,
-          spec.resource, spec.primary_identity, spec.writable_fields, spec.permission, spec.approval));
-        writesJson ??= wire({writes: writeSpecs.map(writeFacts)});
         return rowSourceMapping(moon, declaration, writesJson, spec.resource, updateSources(spec), 'update').body;
       });
     } else if (writeSpecs.length) {
       effectMember = await installationInventory.begin(connectionOriginal, connectionIndex, 'effect');
       const mappingInput = inputStage(effectMember,
         () => declaredProjectCatalogMappingInputsConstructionGeometry(entryWire, writeSpecs.length), () => {
-        const writesJson = wire({writes: writeSpecs.map(writeFacts)});
+        const writesJson = wire(writeFacts(writeSpecs));
         const mappings = Object.freeze(writeSpecs.map(spec => Object.freeze({resource: spec.resource,
           operation: spec.operation ?? 'update', sources: spec.operation === 'delete' ? noSources : updateSources(spec)})));
         return Object.freeze({writesJson, mappings});
@@ -602,7 +614,9 @@ export function projectDeclaredProjectWritableInventory<Source extends WritableI
   for (const source of sources) for (const write of source.writes) {
     const physical = source.physical.find(value => value.resource === write.resource);
     if (physical === undefined) invalid();
-    const mapping = source.effectPrepared?.mappings!.find(value => value.resource === write.resource);
+    const mapping = source.effectPrepared?.mappings?.find(value =>
+      value.resource === write.resource && value.body === write.mappingWire);
+    if (source.effectPrepared !== undefined && mapping === undefined) invalid();
     targets.push(Object.freeze({source, write, physical, mapping,
       beforeFields: Object.freeze(Object.keys(physical.schema))}));
   }
@@ -617,17 +631,23 @@ export function projectDeclaredProjectWritableInventory<Source extends WritableI
   };
   targets.sort(pathCompare);
   for (let index = 1; index < targets.length; index++) {
-    const before = targets[index - 1].physical.itemsPath;
-    const after = targets[index].physical.itemsPath;
+    const previous = targets[index - 1], current = targets[index];
+    if (previous.source === current.source && previous.physical === current.physical) continue;
+    const before = previous.physical.itemsPath;
+    const after = current.physical.itemsPath;
     if (before.length <= after.length && before.every((part, offset) => part === after[offset])) {
       fail('OverlappingMockWritableCollections');
     }
   }
   targets.sort((left, right) => compare(left.source.catalogue.connection, right.source.catalogue.connection) ||
-    compare(left.write.resource, right.write.resource));
+    compare(left.write.resource, right.write.resource) ||
+    compare(left.write.operation ?? 'update', right.write.operation ?? 'update'));
   for (let index = 1; index < targets.length; index++) {
-    if (targets[index - 1].source.catalogue.connection === targets[index].source.catalogue.connection &&
-        targets[index - 1].write.resource === targets[index].write.resource) {
+    const previous = targets[index - 1], current = targets[index];
+    if (previous.source.catalogue.connection === current.source.catalogue.connection &&
+        previous.write.resource === current.write.resource &&
+        (previous.source !== current.source || previous.physical !== current.physical ||
+         (previous.write.operation ?? 'update') === (current.write.operation ?? 'update'))) {
       fail('DuplicateMockWritableTarget');
     }
   }

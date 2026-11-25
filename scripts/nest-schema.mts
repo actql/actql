@@ -2,8 +2,17 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parameterPrograms } from './parameter-schema.mjs';
+import { parameterPrograms, type ProgramRegistry } from './parameter-schema.mjs';
 import { machineCid } from './actql-spec-family.mjs';
+
+type NestSchema = {
+  properties: {
+    fields: {items: {oneOf: unknown[]}; minItems?: number};
+    on: {minItems?: number; uniqueItems?: boolean};
+    order_by: {minItems?: number};
+  };
+};
+type NestProgram = {properties: {steps: {items: {properties: {nest: NestSchema}}}}};
 
 export const projectionItem = {
   oneOf: [
@@ -13,7 +22,7 @@ export const projectionItem = {
   ],
 };
 
-export function checkNestSchemas(registry) {
+export function checkNestSchemas(registry: ProgramRegistry<NestProgram>) {
   for (const p of parameterPrograms(registry)) {
     const n = p.properties.steps.items.properties.nest;
     assert.deepEqual(n.properties.fields.items, projectionItem);
@@ -30,7 +39,7 @@ export function checkNestSchemas(registry) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const path = 'spec/contracts/actql-protocol-schemas.json';
-  const registry = JSON.parse(readFileSync(path, 'utf8'));
+  const registry: ProgramRegistry<NestProgram> = JSON.parse(readFileSync(path, 'utf8'));
   if (process.argv.includes('--write')) {
     for (const p of parameterPrograms(registry)) p.properties.steps.items.properties.nest.properties.fields.items = structuredClone(projectionItem);
     for (const [name, body] of Object.entries(registry.artifact_schemas)) registry.artifact_schema_cids[name] = machineCid(body);

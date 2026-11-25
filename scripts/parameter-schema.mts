@@ -4,8 +4,24 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { machineCid } from './actql-spec-family.mjs';
 
+type Envelope<Key extends string, Value> = {properties: Record<Key, Value>};
+type ExecutionMaterial<Program> = Envelope<'execution_material', Envelope<'program', Program>>;
+export type ProgramRegistry<Program> = {
+  artifact_schemas: Record<string, unknown> & {
+    executable_plan: ExecutionMaterial<Program>;
+    plan_document: Envelope<'plan', ExecutionMaterial<Program>>;
+  };
+  artifact_schema_cids: Record<string, string>;
+  artifact_registry_cid: string;
+};
+type ParameterProgram = {
+  properties: {params: {additionalProperties: unknown; propertyNames?: unknown}};
+  $defs: {parameter_type: unknown};
+};
+type StageParameters = {source: {parameters: unknown}};
+
 const fieldPattern = '^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$';
-const safeBound = minimum => ({ type: 'integer', minimum, maximum: 9007199254740991 });
+const safeBound = (minimum: number) => ({ type: 'integer', minimum, maximum: 9007199254740991 });
 export function parameterSchema(declaration = false) {
   const bodies = {
     number: { integer: { type: 'boolean' }, minimum: { type: 'number' }, maximum: { type: 'number' } },
@@ -18,7 +34,7 @@ export function parameterSchema(declaration = false) {
   };
   return { oneOf: Object.entries(bodies).map(([type, extra]) => ({
     type: 'object', additionalProperties: false,
-    required: ['type', ...({ decimal: ['precision', 'scale'], array: ['items'], object: ['fields'] }[type] ?? [])],
+    required: ['type', ...(({ decimal: ['precision', 'scale'], array: ['items'], object: ['fields'] } as Partial<Record<string, string[]>>)[type] ?? [])],
     properties: { type: { const: type }, nullable: { type: 'boolean', default: false }, ...extra,
       ...(declaration ? { default: {}, meta: { $ref: '#/$defs/meta' } } : {}) },
     ...(type === 'decimal' ? { allOf: Array.from({ length: 38 }, (_, index) => ({
@@ -39,14 +55,14 @@ export const sourceParameters = {
   bind_once_program_wide: true,
 };
 
-export function parameterPrograms(registry) {
+export function parameterPrograms<Program>(registry: ProgramRegistry<Program>) {
   return [
     registry.artifact_schemas.executable_plan.properties.execution_material.properties.program,
     registry.artifact_schemas.plan_document.properties.plan.properties.execution_material.properties.program,
   ];
 }
 
-export function checkParameterSchemas(registry, stages) {
+export function checkParameterSchemas(registry: ProgramRegistry<ParameterProgram>, stages: StageParameters) {
   assert.deepEqual(stages.source.parameters, sourceParameters);
   for (const program of parameterPrograms(registry)) {
     assert.deepEqual(program.properties.params.additionalProperties, parameterSchema(true));
@@ -62,8 +78,8 @@ export function checkParameterSchemas(registry, stages) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const registryPath = 'spec/contracts/actql-protocol-schemas.json';
   const stagesPath = 'spec/contracts/actql-stage-contracts.json';
-  const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
-  const stages = JSON.parse(readFileSync(stagesPath, 'utf8'));
+  const registry: ProgramRegistry<ParameterProgram> = JSON.parse(readFileSync(registryPath, 'utf8'));
+  const stages: StageParameters = JSON.parse(readFileSync(stagesPath, 'utf8'));
   if (process.argv.includes('--write')) {
     for (const program of parameterPrograms(registry)) {
       program.properties.params.additionalProperties = parameterSchema(true);

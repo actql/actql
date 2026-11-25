@@ -139,6 +139,48 @@ export function mixedDeleteUpdateMockProject() {
   return Object.freeze({files: Object.freeze(files), programFile, before, after, rows});
 }
 
+export function sameResourceMixedMockProject() {
+  const files = {...multipleTargetMockProjectFiles()};
+  const catalog = JSON.parse(files['mock/catalog.json']);
+  const entry = catalog.connections.salesforce;
+  for (const key of ['views', 'data', 'query_aliases', 'writes']) {
+    entry[key] = entry[key].filter((value: Readonly<{resource: string}>) => value.resource === 'Account');
+  }
+  const {writable_fields, ...account} = entry.writes[0];
+  assert.deepEqual(writable_fields, ['value']);
+  entry.writes.push({...account, operation: 'delete',
+    permission: 'salesforce:record:delete', observe_permission: 'salesforce:record:observe-delete',
+    aliases: ['salesforce.AccountDelete']});
+  files['mock/catalog.json'] = json(catalog);
+  const data = JSON.parse(files['mock/data.json']);
+  delete data.salesforce.Contact;
+  data.salesforce.Account.rows.push({id: 'a2', group: 'selected', value: 'A2-old'});
+  const before = files['mock/data.json'] = json(data);
+  const removed = `{
+          "id": "a1",
+          "group": "selected",
+          "value": "A-old"
+        },`;
+  assert.equal(before.split(removed).length, 2);
+  const after = before.replace(removed, '').replace('"A2-old"', '"A2-new"');
+  const programFile = 'multiple-targets.program.json';
+  const target = 'connector://salesforce/Account';
+  const fields = ['id', 'delete_id', 'before', 'next'];
+  files[programFile] = json({version: 'actql/0.1', id: 'fixture.mock-same-resource-mutations',
+    stages: [{id: 'apply', inputs: {accounts: {connector: 'salesforce', resource: 'Account'}},
+      from: 'accounts', steps: [
+        {filter: {eq: [field('id'), {literal: 'a2'}]}},
+        {derive: {delete_id: {literal: 'a1'}, before: field('value'), next: {literal: 'A2-new'}}},
+        {select: fields, as: 'updates'},
+      ], results: {rows: {from: 'updates', fields}}, effects: {
+        a_update: {update: {target, mapping: mapping('Account'), from: {result: 'rows'}, id: 'id',
+          set: {value: field('next')}}},
+        b_delete: {delete: {target, mapping: mapping('Account', 'delete'), from: {result: 'rows'}, id: 'delete_id'}},
+      }}], results: {updates: {from: {stage: 'apply', result: 'rows'}}}});
+  return Object.freeze({files: Object.freeze(files), programFile, before, after,
+    rows: Object.freeze([Object.freeze({id: 'a2', delete_id: 'a1', before: 'A2-old', next: 'A2-new'})])});
+}
+
 export const multipleTargetMockWriteCount = 2;
 export function checkMultipleTargetMockRows(rows: unknown) {
   assert.deepEqual(rows, [{account_id: 'a1', contact_id: 'c1', account_before: 'A-old',

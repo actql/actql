@@ -2121,3 +2121,86 @@ test "same Host keyed prefix borrows one actual joined Result with both original
     host_prefix_inputs=true,
   )
 }
+
+///|
+test "direct singleton Whole Source quotes and retains its original scope" {
+  let (compilation, _, _, _, _) = bound_effect_source_fixture()
+  let prepared = client_effect_compilation_owner(compilation)
+  let authority = "sha256:" + "a".repeat(64)
+  let allowed = issue_client_effect_allowed_run(
+    compilation,
+    authority,
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = issue_client_effect_run_definition(
+    allowed, "whole-singleton", "whole-singleton-run", "2026-11-11T00:00:00.000Z",
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let occurrences = select_client_effect_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).unwrap()
+  assert_eq(occurrences.coordinates, [(0, 0, 0)])
+  let live = Ref(true)
+  let (captured, identity, acquire, observation, input) = combined_unit_whole_capture(
+    prepared, live, 0,
+  )
+  let policy = prepared_client_effect_publication_data_policy_cid(prepared).unwrap()
+  let original = prepare_client_effect_direct_sources_publication(
+    prepared,
+    compilation,
+    client_effect_allowed_run_admission(allowed),
+    definition,
+    occurrences,
+    [captured],
+    [identity],
+    [WholeSourceOriginal(acquire)],
+    [observation],
+    [input],
+    authority,
+    policy,
+    "2026-11-11T00:00:01.000Z",
+    "2026-11-11T00:00:02.000Z",
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let retention = product_expiry_original_retention(product_test_originals())
+  let geometry = client_effect_combined_source_unit_construction_geometry(
+    original, 0, retention, 100000, 10000, 100,
+  ).unwrap()
+  assert_eq(geometry.filter(part => part.0 == "acquisition_scope").length(), 1)
+  assert_eq(geometry.filter(part => part.0 == "request_values").length(), 1)
+  let combined = prepare_client_effect_combined_source_unit(
+    original, 0, retention, 100000, 10000, 100,
+  ).unwrap()
+  assert_eq(combined.contributions.length(), 1)
+  assert_true(physical_equal(combined.scope, combined.contributions[0].scope))
+  assert_true(
+    client_effect_local_invocation_matches(combined.invocation, prepared, 0),
+  )
+  assert_true(
+    prepare_client_effect_combined_source_unit(
+      original, 1, retention, 100000, 10000, 100,
+    )
+    is Err(_),
+  )
+  assert_true(
+    prepare_client_effect_source_unit(
+      combined.original,
+      0,
+      retention,
+      100000,
+      10000,
+      100,
+    )
+    is Err(Invocation(MissingCapturedInput)),
+  )
+  live.val = false
+  assert_true(
+    prepare_client_effect_combined_source_unit(
+      original, 0, retention, 100000, 10000, 100,
+    )
+    is Err(Invocation(ForeignCapturedInput)),
+  )
+}
