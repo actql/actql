@@ -54,6 +54,11 @@ function StoryHeading({story, context}: {story: ExplanationStoryModel; context: 
 }
 
 type StepState = 'Planned' | 'Unknown' | 'Observed' | 'Next';
+const japaneseStepState = {Planned: '予定', Unknown: '不明', Observed: '観測済み', Next: '次のステップ'} as const;
+
+function stepStateLabel(state: StepState | undefined, ja: boolean) {
+  return state && (ja ? japaneseStepState[state] : state);
+}
 
 function graphStepLabels(story: ExplanationStoryModel | undefined, context: StoryContext,
   stageResultLinks: PlanReadModel['stageResultLinks']) {
@@ -132,9 +137,9 @@ function stepState(stepId: string, saved: boolean, boundary?: {stepId: string; s
   return stepId === boundary?.stepId ? boundary.state : saved ? undefined : 'Planned';
 }
 
-function StoryCard({ordinal, label, title, detail, system, state, open, selected, onToggle, children}: {
+function StoryCard({ordinal, label, title, detail, system, state, ja, open, selected, onToggle, children}: {
   ordinal: number; label: string; title: string; detail?: string; system?: string; state?: StepState;
-  open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;
+  ja: boolean; open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;
 }) {
   return <li className="story-row" data-state={state}>
     <span className="step-marker" aria-hidden="true">{ordinal}</span>
@@ -142,7 +147,7 @@ function StoryCard({ordinal, label, title, detail, system, state, open, selected
       <summary onClick={event=>{event.preventDefault(); onToggle();}}>
         <span className="step-label">{label}
           {system && <span className="workspace-chip step-system">{system}</span>}
-          {state && <span className="workspace-chip step-state" data-state={state}>{state}</span>}</span>
+          {state && <span className="workspace-chip step-state" data-state={state}>{stepStateLabel(state, ja)}</span>}</span>
         <strong><StoryText text={title}/></strong>
         {detail && title !== detail && <span className="step-summary"><StoryText text={detail}/></span>}
       </summary>
@@ -180,7 +185,7 @@ function PlanSteps({map, boundary, selection, select, graph, locale, pause, read
         if (graph && !selected) return null;
         const open = graph || selected && collapsed !== node.id;
         const step = steps.get(node.id)!;
-        return <StoryCard key={node.id} ordinal={index + 1} label={ja ? '論理工程' : 'Logical step'}
+        return <StoryCard key={node.id} ordinal={index + 1} ja={ja} label={ja ? '論理工程' : 'Logical step'}
           title={planNodeTitle(node, locale)} selected={selected}
           state={node.id === boundary?.stepId ? boundary.state : undefined}
           open={open} onToggle={() => {
@@ -204,13 +209,13 @@ function PlanSteps({map, boundary, selection, select, graph, locale, pause, read
   </section>;
 }
 
-function StepOrigin({step, label, select, folded = false, state}: {
-  step: Step; label?: string; select?(): void; folded?: boolean; state?: StepState;
+function StepOrigin({step, label, select, folded = false, state, ja}: {
+  step: Step; label?: string; select?(): void; folded?: boolean; state?: StepState; ja: boolean;
 }) {
   const meaning = step.explanation.meaning;
   return <div className="occurrence-origin">
     {!folded && <><strong>{stepTitle(step, label)}</strong><p><StoryText text={step.explanation.text}/></p></>}
-    <details><summary>Original step and ports{state && <span className="workspace-chip step-state">{state}</span>}</summary>
+    <details><summary>Original step and ports{state && <span className="workspace-chip step-state">{stepStateLabel(state, ja)}</span>}</summary>
       {folded && <p><StoryText text={step.explanation.text}/></p>}
       {meaning.kind === 'join' && <ul aria-label="Checked join key pairs">
         {meaning.keys.map(({left,right},index)=><li key={index}><code>{left}</code> = <code>{right}</code></li>)}
@@ -537,7 +542,7 @@ function StorySteps({story, groups, sourceColumns, model, saved, boundary, selec
         const label = storyGroupLabel(group, ja);
         const detail = group.item?.text ?? (group.primary?.explanation.meaning.kind === 'not_projected'
           ? undefined : group.primary?.explanation.text);
-        return <StoryCard key={group.id} ordinal={index + 1} selected={selectedGroup}
+        return <StoryCard key={group.id} ordinal={index + 1} selected={selectedGroup} ja={ja}
           label={label} title={title} detail={detail} state={state} open={open}
           system={origin?.kind === 'source' ? origin.source_view.connector : undefined}
           onToggle={() => {
@@ -588,7 +593,7 @@ function StorySteps({story, groups, sourceColumns, model, saved, boundary, selec
             const folded = member !== group.primary && group.kind !== 'join' || group.kind === 'source' ||
               group.kind === 'model' && member.explanation.meaning.kind === 'not_projected';
             const originalLabel = labels.get(member.stepId)?.title;
-            return <StepOrigin key={member.stepId} step={member} label={originalLabel} folded={folded}
+            return <StepOrigin key={member.stepId} step={member} label={originalLabel} folded={folded} ja={ja}
               state={member.stepId === boundary?.stepId ? boundary.state : undefined}
               select={group.members.length > 1 ? () => selectStep(member.stepId) : undefined}/>;
           })}
@@ -1255,7 +1260,7 @@ function App() {
       <main className="story-workspace">
         <div className="story-heading">
           <p className="eyebrow">{selectedRef ? <>{runMode} <code>{run?.run.id ?? selectedRef.runDefinitionCid.slice(7, 19)}</code></> :
-            map ? 'Before run · checked plan' : 'Before run'}</p>
+            map ? (ja ? '実行前 · 確認済みプラン' : 'Before run · checked plan') : (ja ? '実行前' : 'Before run')}</p>
           {run && <p className="observation-line">Observed {run.run.updatedAt}{run.run.cleanupPending ? ' · cleanup pending' : ''}</p>}
           {story ? <StoryHeading story={story} context={context}/> : <h1>{selectedRef ?
             explanation?.state === 'not_projected' ? 'Saved explanation unavailable' : 'Original Run' :
@@ -1342,7 +1347,7 @@ function App() {
           </details>}
         </div>}
         {graph && map && <PlanExplorer model={map} initialView="flow" scopeKey={scopeKey}
-          workspace={{stepId: selection, select: setSelection, groups: presentation?.graphGroups,
+          workspace={{stepId: selection, select: setSelection, groups: presentation?.graphGroups, locale,
             label: id => {
               const group = presentation?.groups.find(card => (card.primary?.stepId ?? card.id) === id);
               const effect = group?.item?.origin.kind === 'effect_set' ? declaredWrite(group.item.origin) : undefined;
@@ -1354,11 +1359,11 @@ function App() {
                   missingProducer: ja ? '入力元のリンクは未投影' : 'Producer link not projected'},
               };
               return group && story ? {
-                state: group.members.some(member => member.stepId === boundary?.stepId) ? boundary?.state
-                  : selectedRef ? undefined : 'Planned',
+                state: stepStateLabel(group.members.some(member => member.stepId === boundary?.stepId)
+                  ? boundary?.state : selectedRef ? undefined : 'Planned', ja),
                 kind: storyGroupLabel(group, ja), title: storyGroupTitle(group, graphLabels, ja),
                 sourceInput: group.kind === 'source',
-              } : {state: stepState(id, !!selectedRef, boundary), ...graphLabels.get(id)};
+              } : {state: stepStateLabel(stepState(id, !!selectedRef, boundary), ja), ...graphLabels.get(id)};
             }}}/>}
         {planOnly && <PlanSteps key={stepScope} map={planOnly} boundary={boundary} selection={selection}
           select={setSelection} graph={graph} locale={locale} pause={nextPause} readSample={sample} saved={!!selectedRef}/>}

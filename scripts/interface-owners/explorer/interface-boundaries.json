@@ -1858,7 +1858,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "57a06bd02e37371d3e2851f995317f6ac675cb2c9db964601200c9b0774fc18b",
+      "sha256": "de90758de6bac34329ed5cabfe521a8660285dc672821ca5e09747969ed8bf23",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
@@ -2065,7 +2065,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "c7fb7ee54a90b7cf348646b15d0c41bd509758981f5b4411a3c01e00d23c38fa",
+      "sha256": "35992c0918b3b632705791aea1e8167fe88cbf6ee18aab61794bbb3352fa0942",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -5223,7 +5223,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "232a5cadf194df5cd6a34ae54659be310ad87b90c82cc6f5081317c536b84018",
+      "sha256": "e3aa448e6d14cb036796cc307ec311f7df6e5121774db3c50b05c5fc5014f0e3",
       "exports": [],
       "operations": [
         {
@@ -6283,7 +6283,7 @@
         {
           "name": "StepOrigin",
           "parameters": [
-            "{step, label, select, folded = false, state}: {\n  step: Step; label?: string; select?(): void; folded?: boolean; state?: StepState;\n}"
+            "{step, label, select, folded = false, state, ja}: {\n  step: Step; label?: string; select?(): void; folded?: boolean; state?: StepState; ja: boolean;\n}"
           ],
           "result": null
         },
@@ -6324,6 +6324,14 @@
           "result": "StepState | undefined"
         },
         {
+          "name": "stepStateLabel",
+          "parameters": [
+            "state: StepState | undefined",
+            "ja: boolean"
+          ],
+          "result": null
+        },
+        {
           "name": "stepTitle",
           "parameters": [
             "step: Step",
@@ -6348,7 +6356,7 @@
         {
           "name": "StoryCard",
           "parameters": [
-            "{ordinal, label, title, detail, system, state, open, selected, onToggle, children}: {\n  ordinal: number; label: string; title: string; detail?: string; system?: string; state?: StepState;\n  open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;\n}"
+            "{ordinal, label, title, detail, system, state, ja, open, selected, onToggle, children}: {\n  ordinal: number; label: string; title: string; detail?: string; system?: string; state?: StepState;\n  ja: boolean; open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;\n}"
           ],
           "result": null
         },
@@ -6670,7 +6678,7 @@
         }
       ],
       "imports": [
-        "./story-card-groups.mjs",
+        "./story-card-groups.mts",
         "./styles.css",
         "@actql/client-wire",
         "@actql/explorer-ui/checkpoint-review",
@@ -7028,6 +7036,7 @@
             "StepOrigin",
             "StepOrigin/<call>",
             "stepState",
+            "stepStateLabel",
             "stepTitle",
             "stepTitle/<call>",
             "StoryCard",

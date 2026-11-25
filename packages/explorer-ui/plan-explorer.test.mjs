@@ -66,6 +66,7 @@ test('real React render escapes source text and labels unavailable controls with
   assert(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
   assert(!html.includes('<script>')); assert(html.includes('e\u0301\r\n'));
   assert(html.includes('Original logical occurrences')); assert(html.includes(cid('1')));
+  assert.match(html, /Data dependencies · layout does not indicate execution order\./u);
   assert(html.includes('Controls, Samples and physical observations are unavailable'));
   assert(!html.includes('Pause')); assert(!html.includes('Approve')); assert(!html.includes('Run ID'));
 });
@@ -99,4 +100,8 @@ test('workspace metadata keeps original identities and leaves live capabilities 
   assert(html.includes(model.compiledPlanCid));
   assert(html.includes(model.logicalMapCid));
   assert.doesNotMatch(html, /Controls, Samples|Sealed Preview: unavailable/u);
+  const graph = renderToStaticMarkup(createElement(PlanExplorer, {model, scopeKey: 'workspace-ja',
+    workspace: {locale: 'ja', select() {}, label() {return {};}}}));
+  assert.match(graph, /データの流れを表示します。実行順序は示しません。/u);
+  assert.doesNotMatch(graph, /Data flow, not execution order|Data dependencies/u);
 });

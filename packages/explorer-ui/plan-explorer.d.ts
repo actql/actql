@@ -15,7 +15,7 @@ export type WorkspaceGraphGroup = Readonly<{
   source?: Readonly<{stageOrdinal: number; inputOrdinal: number; inputs: readonly Readonly<{stepId: string; portId: string}>[]}>;
 }>;
 export type PlanExplorerProps = {model: PlanReadModel; scopeKey: string; initialView?: 'list' | 'flow';
-  workspace?: {stepId?: string; select(id: string): void; groups?: readonly WorkspaceGraphGroup[];
+  workspace?: {stepId?: string; select(id: string): void; groups?: readonly WorkspaceGraphGroup[]; locale?: 'en' | 'ja';
     label(id: string): {kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state?: string;
       effectDeclaration?: Readonly<{fields?: string; missingProducer: string}>}}};
 export function OriginalPlanMetadata(props: {model: PlanReadModel; workspace?: boolean; locale?: 'en' | 'ja'}): ReactElement;

@@ -63,7 +63,7 @@ export type WorkspaceGraphGroup = Readonly<{
   source?: Readonly<{stageOrdinal: number; inputOrdinal: number; inputs: readonly Readonly<{stepId: string; portId: string}>[]}>;
 }>;
 export type PlanExplorerProps = {model: PlanReadModel; scopeKey: string; initialView?: 'list' | 'flow';
-  workspace?: {stepId?: string; select(id: string): void; groups?: readonly WorkspaceGraphGroup[];
+  workspace?: {stepId?: string; select(id: string): void; groups?: readonly WorkspaceGraphGroup[]; locale?: 'en' | 'ja';
     label(id: string): NodePresentation}};
 
 function workspaceFlow(model: PlanReadModel, groups?: readonly WorkspaceGraphGroup[]):
@@ -302,7 +302,8 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
     <header className="actql-explorer-header">
       <div>{!workspace && <p className="actql-explorer-kind">STATIC PLAN · PROVIDER I/O 0</p>}
         {!workspace && <h2>{model.effectful ? 'Computation component' : 'Logical operations'}</h2>}
-        <p>{workspace ? 'Data flow, not execution order' : 'Data dependencies · layout does not indicate execution order.'}</p></div>
+        <p>{workspace ? (workspace.locale === 'ja' ? 'データの流れを表示します。実行順序は示しません。' : 'Data flow, not execution order')
+          : 'Data dependencies · layout does not indicate execution order.'}</p></div>
       {!workspace && <nav aria-label="Plan presentation">
         <Button aria-pressed={mode === 'list'} onClick={() => show('list')}><List aria-hidden/>List</Button>
         <Button aria-pressed={mode === 'flow'} onClick={() => show('flow')}><Workflow aria-hidden/>Flow</Button>
