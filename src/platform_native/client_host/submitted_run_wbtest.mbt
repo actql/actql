@@ -444,3 +444,154 @@ test "Native original accepted Run rejects altered admission custody without rep
   assert_eq(run_journal_custody(database, 8).unwrap().0, 1)
   database.close_checked().unwrap()
 }
+
+///|
+test "Native terminal Content accepts the original Run with its unrepresentable static view absent" {
+  let name = "native-terminal-content-accepted"
+  let (database, journal, authority, reference) = submitted_test_setup(name)
+  let scope = "sha256:" + "a".repeat(64)
+  let intent = @host.prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":" +
+    "{\"version\":\"actql/0.1\",\"id\":\"mock-terminal-content\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1},{\"id\":2}]},\"as\":\"seed\"},{\"serialize\":{\"format\":\"jsonl\",\"fields\":[\"id\"],\"name\":\"two.jsonl\",\"preserve_order\":true,\"bounds\":{\"max_rows\":2,\"max_bytes\":64}},\"as\":\"file\"}],\"results\":{\"file\":{\"from\":\"file\",\"fields\":[\"name\",\"content\",\"media_type\",\"size_bytes\",\"row_count\"]}}}],\"results\":{\"file\":{\"from\":{\"stage\":\"main\",\"result\":\"file\"}}}}" +
+    ",\"parameters\":null}",
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let assets = @host.client_local_product_assets()
+  guard @json.parse(assets.environment) is Object(fields) &&
+    fields.get("evidence_bundle_cid") is Some(String(cid)) else {
+    fail("packaged Environment evidence missing")
+  }
+  let environment = @host.admit_client_check_environment(
+    assets.environment,
+    cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let preparation = prepare_native_client_submitted_program(
+    intent,
+    environment,
+    None,
+    [],
+    @host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  guard preparation.preparation is Computation(prepared) else {
+    fail("terminal Content must retain the checked computation")
+  }
+  let policy_cid = "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
+  let policy_wire =
+    #|{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}
+  let policy = @host.admit_source_free_result_policy_body(
+    policy_cid, policy_wire, 65536, 8192, 64,
+  ).unwrap()
+  let component = @host.issue_prepared_client_serialization_plan_graph(
+    prepared,
+    0,
+    1,
+    policy,
+    2,
+    128,
+    3,
+    @host.prepared_client_values_sequence_limits(prepared),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let manifests = @host.admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  let tasks = @host.issue_prepared_client_serialization_compilation(
+    prepared, component, manifests, 1000, 1000, 65536, 8192, 64,
+  ).unwrap()
+  let compiled = @host.issue_client_task_compiled_run(
+    prepared,
+    tasks,
+    scope,
+    "sha256:" + "b".repeat(64),
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let compiled = @host.with_client_source_free_result_policy(
+    compiled, policy_cid, policy_wire, 65536, 8192, 64,
+  ).unwrap()
+  let definition = @host.issue_client_compiled_run_definition(
+    compiled,
+    "local-test",
+    reference.request_id,
+    "2026-10-10T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let request = @host.prepare_source_free_client_request_identity(
+    prepared,
+    scope,
+    reference.request_id,
+  ).unwrap()
+  assert_true(
+    capture_native_run_plan_original(
+      prepared,
+      compiled,
+      definition,
+      before_construction=Some((_, _, _) => Ok(())),
+    )
+    is Err(UnsupportedPreparation),
+  )
+  assert_true(native_terminal_content_omits_static_plan(prepared, compiled))
+  let (_, other, other_compiled, _) = journal_test_run("other", "other")
+  assert_false(native_terminal_content_omits_static_plan(other, compiled))
+  assert_false(native_terminal_content_omits_static_plan(other, other_compiled))
+  journal
+  .record_submitted_intent(authority, reference, intent, scope, true, 1001.0)
+  .unwrap()
+  |> ignore
+  assert_true(
+    journal.accept_submitted_run(
+      authority, reference, preparation, request, compiled, definition, scope, false,
+      1002.0,
+    )
+    is Err(AuthorizationDenied),
+  )
+  assert_true(journal.retained(request).unwrap() is None)
+  journal
+  .accept_submitted_run(
+    authority, reference, preparation, request, compiled, definition, scope, true,
+    1002.0,
+  )
+  .unwrap()
+  |> ignore
+  database.close_checked().unwrap()
+
+  let restored = epoch_test_database(name)
+  let journal = open_native_client_run_journal(restored, 8).unwrap()
+  guard journal.lookup(request, true) is Ok(Retained(run)) &&
+    run.run_observation_originals is Some(wire) else {
+    fail("missing original cold Run observation")
+  }
+  let original = read_native_stored_run_observation(
+    wire,
+    definition,
+    Some(@host.client_request_program_cid(request)),
+  ).unwrap()
+  assert_true(original.plan is None)
+  assert_eq(
+    @publication.run_evidence_value_identity(original.observation.prepared()),
+    @publication.run_evidence_value_identity(
+      @host.client_compiled_run_prepared(compiled),
+    ),
+  )
+  assert_eq(
+    @publication.run_evidence_value_identity(
+      original.observation.authorization(),
+    ),
+    @publication.run_evidence_value_identity(
+      @host.client_compiled_run_authorization(compiled),
+    ),
+  )
+  assert_false(run.dispatch_reserved)
+  assert_false(run.physical_start_claimed)
+  assert_eq(run_journal_custody(restored, 8).unwrap().0, 1)
+  restored.close_checked().unwrap()
+}
