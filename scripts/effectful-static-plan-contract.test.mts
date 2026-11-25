@@ -69,6 +69,10 @@ test('Effectful static envelope preserves the independent original Plan/map sche
     'sha256:51856c457b3eae9724d9626319ad865f38baee748f341f179d3575b2558c5bf4');
   assert.equal(validWireEffectfulStaticPlanViewShape(effectfulStaticPlan), true);
   assert.equal(validWirePlanViewShape(computationPlan), true);
+  assert.equal(validWirePlanViewShape({...computationPlan,
+    capabilities: {...computationPlan.capabilities, debug_entry: true}}), true);
+  assert.equal(validWirePlanViewShape({...computationPlan,
+    capabilities: {...computationPlan.capabilities, debug_entry: false}}), false);
   assert.equal(validWirePlanViewShape(effectfulStaticPlan), false);
   assert.equal(Object.hasOwn(registry.identity_domains, 'effectful_static_plan_view'), false);
   assert.equal(JSON.parse(canonicalText(effectfulStaticPlan)).computation.scope, 'computation_component');
@@ -84,9 +88,12 @@ test('versioned static Explanation composes the existing closed schema families'
   assert.equal(expressionPin, 'sha256:94384e11128cb1984bad30bd7f3a8867ab73cdfce8a18ded1dd17e4f0cdc00bd');
   assert.match(added, /^sha256:[0-9a-f]{64}$/u);
   assert.match(saved, /^sha256:[0-9a-f]{64}$/u);
+  // Debug entry adds a true-only optional capability to the existing Plan view.
+  assert.equal(originalPins.run_control_capabilities,
+    'sha256:ec77b63d8ce6993243c2431db8d100f11c75b0fbdb1751acf31db9330a82e498');
   assert.equal(Object.keys(originalPins).length, 43);
   assert.equal(createHash('sha256').update(canonicalText(originalPins)).digest('hex'),
-    'cbc75a5d68ee9bc7ba81c5667bee173f95c3fafc599c6a9ec33ea5a21da58a99');
+    '873792c429fd20181e9b5959992af3172cbfad5bc4954d6b240f0978ca690beb');
   assert.equal(Object.hasOwn(registry.identity_domains, 'static_explanation_view'), false);
   const binding = {program_definition_cid: effectfulStaticPlan.program_definition_cid,
     parameter_values_cid: effectfulStaticPlan.parameter_values_cid,
