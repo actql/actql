@@ -687,6 +687,24 @@ test('Native SQL row-policy fixture declares the exact result before adoption wi
   assert.equal(existsSync(join(project, 'host')), false, 'All selections precede ordinary adoption');
 });
 
+test('Native terminal Content fixture emits its exact Account grant in canonical order', async t => {
+  const parent = await mkdtemp(join(tmpdir(), 'actql-terminal-content-account-test-'));
+  t.after(() => rm(parent, {recursive: true, force: true}));
+  const project = join(parent, 'operator');
+  await prepareNativeNumericOperator({project, ...numericOperatorInputs(), maxRows: 16,
+    additionalResultNames: ['file']});
+  const account = JSON.parse(await readFile(join(project, 'account.json'), 'utf8'));
+  assert.deepEqual(account.entries.map(entry => entry.entry_id),
+    ['numeric-result', 'numeric-result-file', 'numeric-run']);
+  const content = account.entries[1];
+  assert.deepEqual([content.resource.any_of, content.operation.any_of], [['result/file'], ['read']]);
+  for (const file of ['read.json', 'file-read.json']) {
+    const selected = JSON.parse(await readFile(join(project, file), 'utf8')).native.result_read;
+    assert.deepEqual(selected.result_names, ['answer0', 'file']);
+  }
+  assert.equal(existsSync(join(project, 'host')), false, 'All selections precede ordinary adoption');
+});
+
 test('Native numeric operator harness uses one selected install and preserves distinct low-policy refusal', async t => {
   const parent = await mkdtemp(join(tmpdir(), 'actql-numeric-operator-harness-'));
   t.after(() => rm(parent, {recursive: true, force: true}));
