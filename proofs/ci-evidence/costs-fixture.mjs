@@ -1,6 +1,6 @@
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {readFileSync} from 'node:fs';
-import {actionInputs, hash, sharedFiles, mutationSnapshotExtras, pipelineInventoryBoundary} from './inputs.mjs';
+import {actionInputs, hash, sharedFiles, mutationSnapshotExtras, pipelineInventoryBoundary, typescriptPreparationInputs} from './inputs.mjs';
 import {readCatalog} from './actions.mjs';
 import {sealReceipt, canonicalReceipt, mutationIds} from './receipts.mjs';
 
@@ -29,7 +29,9 @@ export function costFixture(reused = false, fullCatalog = false) {
     'scripts/ci-core-partitions.mjs',
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs', 'mutations.mjs', 'evidence.mjs'].map(path => `proofs/bounded-session/${path}`),
     ...['bounded_execution', 'connectors/local', 'query_integration'].map(path => `src/${path}/moon.pkg`)].map(path => [path, path]));
-  for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies])
+  for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]) files.delete(path);
+  for (const path of [pipelineInventoryBoundary.authoredPath, ...typescriptPreparationInputs,
+    ...pipelineInventoryBoundary.dependencies.map(entry => entry.authoredPath)])
     files.set(path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
   for (const name of ['check.mjs', 'Composition.lean', 'CompositionClaims.lean', 'Events.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'])
     files.set(`proofs/events-bridge/${name}`, name);

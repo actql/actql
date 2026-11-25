@@ -332,6 +332,23 @@ test('the staged fixed JS replay can load its actual mutation and scratch depend
   const staged = stagePipelineFixedJsSource({tree, destination});
   assert.equal(staged.files.filter(file => file.path === `source/${scratchRuntime}`).length, 1);
   assert(!pipelineFixedJsSourcePaths(tree).includes(scratchRuntime));
+  const stagedRoot = join(destination, 'source');
+  const checked = checkMutationCheckout({root: stagedRoot, tree, profile: 'pipeline-fixed-js'});
+  const authored = new Set(pipelineFixedJsSourcePaths(tree));
+  for (const name of [
+    'proof-parts', 'execution-names', 'execution-names.test', 'workspaces', 'workspaces.test', 'fixtures/execution-driver',
+    'execute', 'execute.test', 'execution-original', 'executor-close.test', 'fixture', 'fixture.test', 'inventory',
+  ]) {
+    const stem = `proofs/relation-pipeline/${name}`;
+    assert(authored.has(stem + '.mts'));
+    for (const path of [stem + '.mjs', stem + '.d.mts']) {
+      assert(!authored.has(path));
+      const installed = readFileSync(join(stagedRoot, path));
+      assert.deepEqual(installed, readFileSync(join(root, path)));
+      assert.equal(checked.sources[path], hash(installed));
+      assert.equal(staged.files.filter(file => file.path === `source/${path}`).length, 1);
+    }
+  }
   const source = join(destination, 'source/proofs/relation-pipeline');
   const replay = await import(pathToFileURL(join(source, 'fixed-js-replay.mjs')).href);
   // Import the dynamically loaded entry without running its mutation campaign.

@@ -1,11 +1,20 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+import type {BinaryLike} from 'node:crypto';
 
-export const proofRunnerFiles = ['proofs/relation-chain/check.mjs',
+export type ProofRunnerExtension = {
+  revision: string;
+  parent: string;
+  files: Record<string, string>;
+  preserved: Record<string, string>;
+};
+
+const hash = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
+
+export const proofRunnerFiles: string[] = ['proofs/relation-chain/check.mjs',
   'proofs/relation-chain/retirement-check.mjs', 'proofs/bounded-session/proof-command.mjs'];
-export const preservedProofInputs = ['proofs/bounded-session/Session.lean',
+export const preservedProofInputs: string[] = ['proofs/bounded-session/Session.lean',
   'proofs/bounded-session/Claims.lean', 'proofs/relation-chain/Chain.lean',
   'proofs/relation-chain/Claims.lean', 'proofs/relation-chain/StopAccounting.lean',
   'proofs/relation-chain/StopClaims.lean', 'proofs/relation-chain/Retirement.lean',
@@ -14,7 +23,7 @@ export const preservedProofInputs = ['proofs/bounded-session/Session.lean',
 // The reviewed change is subprocess custody only. Compare the entire checker
 // to its original bytes after these exact mechanical substitutions, retaining
 // every model, typed claim, theorem inventory, Lean flag and axiom check.
-export function custodyChecker(original) {
+export function custodyChecker(original: string): string {
   const substitutions = [
     ["import { spawnSync } from 'node:child_process';",
       "import {runProofCommand} from '../bounded-session/proof-command.mjs';"],
@@ -30,14 +39,14 @@ export function custodyChecker(original) {
   return original;
 }
 
-export function checkProofRunnerExtension(root, extension, read) {
+export function checkProofRunnerExtension(root: string, extension: ProofRunnerExtension, read: (path: string) => Buffer | string): void {
   assert.deepEqual(Object.keys(extension).sort(), ['files', 'parent', 'preserved', 'revision'].sort());
   assert.match(extension.revision, /^[a-f0-9]{40}$/);
   assert.match(extension.parent, /^[a-f0-9]{40}$/);
   const original = '977f59480e4761e654f6360a590caffb878b6899';
   assert.deepEqual(Object.keys(extension.files).sort(), [...proofRunnerFiles].sort());
   assert.deepEqual(Object.keys(extension.preserved).sort(), [...preservedProofInputs].sort());
-  const git = args => {
+  const git = (args: string[]) => {
     const result = spawnSync('git', args, {cwd: root});
     assert.equal(result.status, 0, 'Missing actual runner extension history');
     return result.stdout;
@@ -45,7 +54,7 @@ export function checkProofRunnerExtension(root, extension, read) {
   assert.equal(git(['show', '-s', '--format=%P', extension.revision]).toString().trim(), extension.parent);
   git(['merge-base', '--is-ancestor', extension.revision, 'HEAD']);
   git(['merge-base', '--is-ancestor', original, extension.parent]);
-  const blob = (revision, path) => git(['show', `${revision}:${path}`]);
+  const blob = (revision: string, path: string) => git(['show', `${revision}:${path}`]);
   for (const path of proofRunnerFiles) {
     const current = blob(extension.revision, path);
     assert.equal(hash(current), extension.files[path], 'Unrelated runner extension history');
