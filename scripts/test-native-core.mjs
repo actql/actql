@@ -354,10 +354,11 @@ if (full) {
             child.once('error', value => { error = value; });
             child.once('close', (status, signal) => resolve({status, signal, error}));
           });
-          if (result.error || result.status !== 0) return result;
+          if (result.error || result.status !== 0) { console.log(`PROBE_FAIL ${test.source} #${test.index}`); continue; }
+          console.log(`PROBE_PASS ${test.source} #${test.index}`);
           passedCases++;
         }
-        return {status: 0};
+        return {status: passedCases === tests.length ? 0 : 1};
       } finally {
         try {
           console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({phase: 'scoped-profile', profile,
