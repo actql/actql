@@ -17,7 +17,7 @@ type TargetRecipe = Readonly<{
   entryLimit: number;
   responseLimit: number;
   writeOperation: string;
-  targetReadOperation: string;
+  targetReadOperation: string | undefined;
 }>;
 type PreparedTargetRecipes = Readonly<{
   byMapping: Readonly<Partial<Record<string, TargetRecipe>>>;
@@ -159,14 +159,17 @@ export function createInstalledRowEffectPlanCapture({fail, text}: CaptureOptions
         reject('InvalidInstalledEffectPlanRecipe');
       }
       const entry = Object.getOwnPropertyDescriptors(value);
-      const operation: unknown = entry.targetReadOperation?.value;
-      if (Reflect.ownKeys(entry).length !== 2 || !text(operation) || !operation.isWellFormed() ||
+      const read = entry.targetReadOperation, operation: unknown = read?.value;
+      if (Reflect.ownKeys(entry).length !== 2 || !Object.hasOwn(read ?? {}, 'value') ||
+          (operation !== undefined && (!text(operation) || !operation.isWellFormed())) ||
           !Object.hasOwn(entry.recipe ?? {}, 'value')) reject('InvalidInstalledEffectPlanRecipe');
       const recipe = captureInstalledEffectPlanRecipe(entry.recipe.value, localContractLimits.maxNodes);
-      const writeOperation = recipe?.rowOperations[recipe.physicalWrite?.operationIndex as number]?.operation;
-      if (!text(writeOperation) ||
-          recipe?.ownedReadOperations?.length !== 3 || recipe.ownedReadOperations.some(read =>
-            recipe.rowOperations[read.operationIndex].operation !== operation + '.' + read.phase)) {
+      if (recipe === undefined || recipe.physicalWrite === undefined) reject('InvalidInstalledEffectPlanRecipe');
+      const writeOperation = recipe.rowOperations[recipe.physicalWrite.operationIndex]?.operation;
+      const reads = recipe.ownedReadOperations;
+      if (!text(writeOperation) || (operation === undefined ? reads !== undefined :
+          reads?.length !== 3 || reads.some(read =>
+            recipe.rowOperations[read.operationIndex].operation !== operation + '.' + read.phase))) {
         reject('InvalidInstalledEffectPlanRecipe');
       }
       const entryLimit = recipe.savedControlCodec?.maxEntryBytes ?? effectLedgerImplementationBounds.maxEntryBytes;

@@ -73,24 +73,30 @@ priv struct LocalNativeSavedEffectFileRow {
 }
 
 ///|
-fn LocalNativeSavedEffectFileRow::deleting(self : Self) -> Bool {
-  self._retained_installation.write.writable_fields.is_empty()
-}
-
-///|
 fn LocalNativeSavedEffectFileRow::file_write_construction(
   self : Self,
-  bytes : Int,
+  observed_bytes : Int?,
 ) -> (@execution.ExecutionCapacity, Int64)? {
   let provider = self._retained_row_binding.provider
-  if self.deleting() {
-    @row_file.native_relation_file_target_delete_construction(provider, bytes)
-  } else {
-    @row_file.native_relation_file_target_update_construction(
-      provider,
-      self._retained_installation.write.writable_fields.length(),
-      bytes,
-      self.changes_wire,
-    )
+  match self._retained_installation.write.operation {
+    "create" =>
+      @row_file.native_relation_file_target_insert_construction(
+        provider,
+        observed_bytes,
+        Some(self.changes_wire),
+      )
+    "delete" =>
+      @row_file.native_relation_file_target_delete_construction(
+        provider,
+        observed_bytes.unwrap_or(0),
+      )
+    "update" =>
+      @row_file.native_relation_file_target_update_construction(
+        provider,
+        self._retained_installation.write.writable_fields.length(),
+        observed_bytes.unwrap_or(0),
+        self.changes_wire,
+      )
+    _ => None
   }
 }

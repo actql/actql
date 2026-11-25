@@ -12,7 +12,7 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
     self.first._retained_models.is_empty() &&
     self._retained_import_recipes.length() == 2 &&
     self.direct_sources is Some(direct) &&
-    direct._retained_publication is Some(publication) &&
+    direct.publication_originals() is Some((observation, invocation)) &&
     self.effect_capture is Some(captured) &&
     self.effect_host is Some(host) &&
     self.suffix is Some(execution) else {
@@ -26,6 +26,14 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
   ).unwrap_or_else(() => stop("LocalOriginalEffectResultUnavailable"))
   let wire = limits.payload_wire
   let effect_limits = @run_host.client_standard_effect_computation_limits().effects
+  // The compact Values row bound is independent of the static dependency
+  // bodies and the Result Manifest. Use the existing Effect admission policy
+  // for those CREATE originals; construction still quotes their actual extent.
+  let (metadata_nodes, metadata_depth) = if self.first.is_mock_values_create() {
+    (effect_limits.max_admission_nodes, effect_limits.max_admission_depth)
+  } else {
+    (wire.max_nodes, wire.max_depth)
+  }
   let installed = @builtin.configured_local_module(
     @builtin.configured_host_modules(host),
   ).unwrap_or_else(() => stop("LocalOriginalEffectResultUnavailable"))
@@ -94,12 +102,6 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
     source_copy: None,
   }
   held.construction = Some(construction)
-  let observation = @run_host.client_effect_direct_sources_publication_observation(
-    publication,
-  )
-  let invocation = @run_host.client_effect_direct_sources_publication_invocation(
-    publication,
-  )
   let admission = @run_host.client_effect_allowed_run_admission(
     self.first.allowed,
   )
@@ -166,16 +168,37 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
       stage
     }
   }
-  let combined = @local_values.prepare_installed_effect_combined_source_unit(
-      run, plan, request, publication, source_unit, retention, 16384, 1024, 20,
-    )
-    .map_err(issue => LocalNativeMockEffectProposalIssue::UnitPublication(issue))
-    .native_effect_proposal_with_cause(report)
-  held._retained_combined_source_unit = Some(combined)
-  let source_invocation = @run_host.client_effect_combined_source_unit_invocation(
-    combined,
-  )
-  let mut local_invocation = source_invocation
+  let mut local_invocation = match direct._retained_publication {
+    Some(publication) => {
+      let combined = @local_values.prepare_installed_effect_combined_source_unit(
+          run, plan, request, publication, source_unit, retention, 16384, 1024, 20,
+        )
+        .map_err(issue => {
+          LocalNativeMockEffectProposalIssue::UnitPublication(issue)
+        })
+        .native_effect_proposal_with_cause(report)
+      held._retained_combined_source_unit = Some(combined)
+      @run_host.client_effect_combined_source_unit_invocation(combined)
+    }
+    None => {
+      guard direct._retained_values_publication is Some(_) &&
+        self.first.is_mock_values_create() &&
+        unit == 0 &&
+        captured_import is None else {
+        stop("LocalOriginalEffectInvocationUnavailable")
+      }
+      construction
+      .prepare_body_result(native_mock_values_invocation_metadata_capacity())
+      .native_effect_proposal_with_cause(report)
+      @run_host.issue_source_free_captured_client_effect_local_invocation(
+        prepared, inputs, 0, 16384, 1024, 20,
+      )
+      .map_err(issue => {
+        LocalNativeMockEffectProposalIssue::Source(Invocation(issue))
+      })
+      .native_effect_proposal_with_cause(report)
+    }
+  }
   let stages = if source_unit == unit { [unit] } else { [source_unit, unit] }
   for stage in stages {
     if stage != source_unit {
@@ -307,7 +330,9 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
         .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
         .native_effect_proposal_with_cause(report)
       entry.receipt = Some(receipt)
-      let artifact = @local_values.prepare_installed_effect_combined_source_result_artifact(
+      let artifact = if direct._retained_publication is Some(publication) &&
+        held._retained_combined_source_unit is Some(combined) {
+        @local_values.prepare_installed_effect_combined_source_result_artifact(
           run,
           plan,
           request,
@@ -326,6 +351,37 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
           LocalNativeMockEffectProposalIssue::UnitPublication(issue)
         })
         .native_effect_proposal_with_cause(report)
+      } else {
+        construction
+        .prepare_body_result(native_mock_values_artifact_metadata_capacity())
+        .native_effect_proposal_with_cause(report)
+        let name = @execution.managed_result_occurrence_name(
+          @strategy.captured_any_result_borrow_occurrence(
+            @strategy.captured_effect_local_result_borrow(result),
+          ),
+        )
+        let definition = @run_host.issue_client_effect_local_result_definition(
+          prepared, stage, name, 16384, 1024, 20,
+        ).unwrap_or_else(() => stop("LocalOriginalEffectResultUnavailable"))
+        @run_host.issue_source_free_exported_client_effect_local_result_artifact(
+          prepared,
+          inputs,
+          exported,
+          definition,
+          local_invocation,
+          receipt,
+          retention,
+          admission,
+          materials.run_definition,
+          invocation,
+          observation,
+          16384,
+          1024,
+          20,
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Artifact(issue))
+        .native_effect_proposal_with_cause(report)
+      }
       entry.artifact = Some(artifact)
       let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
           stream, receipt,
@@ -376,8 +432,8 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
           receipt,
           rows,
           max_bytes,
-          wire.max_nodes,
-          wire.max_depth,
+          metadata_nodes,
+          metadata_depth,
           before_body=Some((bytes, nodes, depth) => {
             construction
             .prepare_body_result(
@@ -417,14 +473,8 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
       }
     }
     let manifest = @local_values.prepare_installed_effect_model_unit_manifest(
-        run,
-        plan,
-        request,
-        local_invocation,
-        artifacts,
-        max_bytes,
-        wire.max_nodes,
-        wire.max_depth,
+        run, plan, request, local_invocation, artifacts, max_bytes, metadata_nodes,
+        metadata_depth,
       )
       .map_err(issue => {
         LocalNativeMockEffectProposalIssue::UnitPublication(issue)
@@ -437,6 +487,23 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
       held._retained_direct_source_manifest = Some(manifest)
     }
   }
+}
+
+///|
+// These returned owners remain on the capture through Manifest and review.
+// Plan and runtime use the same quotes.
+fn native_mock_values_invocation_metadata_capacity() -> @execution.ExecutionCapacity? {
+  @run_host.client_protocol_metadata_construction_bytes(16384, 1024L).bind(value => {
+    @execution.execution_capacity(value.0, value.0)
+  })
+}
+
+///|
+fn native_mock_values_artifact_metadata_capacity() -> @execution.ExecutionCapacity? {
+  @run_host.client_protocol_metadata_construction_bytes(16384, 1024L, copies=5).bind(value => {
+      @execution.execution_capacity(value.0, value.0)
+    },
+  )
 }
 
 ///|

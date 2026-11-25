@@ -209,7 +209,7 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
     if (managedTargetPlanRecipes !== undefined && (standard !== undefined || !Array.isArray(commands) || commands.length !== 0 ||
         suppliedRecipe !== undefined || suppliedRecipes !== undefined || planDefinition !== undefined ||
         managedPlanConstruction !== undefined || managedTargetPlanOriginals.get(managedTargetPlanRecipes) !== mappings ||
-        (owned as DefinitionDriver).kinds.length === 0 || !(owned as DefinitionDriver).kinds.every(kind => kind === 'update' || kind === 'delete') ||
+        (owned as DefinitionDriver).kinds.length === 0 || !(owned as DefinitionDriver).kinds.every(kind => kind === 'create' || kind === 'update' || kind === 'delete') ||
         owned.check !== undefined || owned.confirmResponse !== undefined)) reject('InvalidInstalledEffectPlanRecipe');
     if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined || suppliedRecipes !== undefined)) {
       reject('InvalidInstalledEffectDriverConstruction');
@@ -253,9 +253,11 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
         approval: body.minimum_approval});
     }));
     if (managedTargetPlanRecipes !== undefined) for (const mapping of installed) {
-      const operation = managedTargetPlanRecipes.byMapping[mapping.mappingCid]?.writeOperation;
-      if (operation === undefined ||
-          !mapping.rules.some(rule => (owned as DefinitionDriver).kinds.some(kind => kind === rule.effect_kind) && rule.permissions?.includes(operation))) {
+      const plan = managedTargetPlanRecipes.byMapping[mapping.mappingCid];
+      if (plan === undefined || !mapping.rules.some(rule =>
+        (owned as DefinitionDriver).kinds.some(kind => kind === rule.effect_kind) &&
+        rule.permissions?.includes(plan.writeOperation) &&
+        (plan.targetReadOperation === undefined) === (rule.effect_kind === 'create'))) {
         reject('InvalidInstalledEffectPlanRecipe');
       }
     }

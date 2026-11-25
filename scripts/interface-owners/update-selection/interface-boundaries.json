@@ -506,7 +506,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "6d0490c61f85fdb1d79b3f2062b63321b56a0223991350a8a905957586766f0b",
+      "sha256": "138a964e0e5fbcc1d016f955b4502069bbb7e5f0e06c05d2a2d26a4249fd1dfa",
       "exports": [
         "installUpdateTargetOriginals"
       ],
@@ -564,7 +564,10 @@
             "prepared",
             "allowed",
             "definition",
-            "identity"
+            "identity",
+            "compilation",
+            "runDefinition",
+            "retainForReview"
           ],
           "async": false
         },

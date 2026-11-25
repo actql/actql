@@ -676,6 +676,155 @@ fn emit_relation_document_value(
 }
 
 ///|
+/// Prepare an insertion from the original locked document DATA and mapped
+/// CREATE values. The caller supplies the physical Text identity separately
+/// and owns construction funding, approval and physical replacement.
+pub fn prepare_relation_target_insert(
+  backing : RelationDocument,
+  prepared : RelationDocumentPreparedContract,
+  items_path : Array[String],
+  key_path : Array[String]?,
+  identity : String,
+  mapped_wire : String,
+) -> Result[Bytes, RowSourceIssue] {
+  let document = match
+    project_relation_target_document(
+      backing,
+      prepared.declaration,
+      prepared.resource,
+      items_path,
+      key_path,
+      prepared.primary_identity,
+      [],
+      prepared_contract=Some(prepared),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  defer discard_relation_target_document_original(document) |> ignore
+  try {
+    let limits = document.limits
+    let work = backing.work
+    let bytes = backing.bytes
+    let row_count = document.rows.length()
+    let separator = if row_count == 0 { 0 } else { 1 }
+    let room = limits.max_bytes - bytes.length() - separator
+    let nodes = limits.max_nodes - backing.usage.nodes
+    let depth = limits.max_depth - items_path.length() - 1
+    if row_count >= limits.max_rows ||
+      room < 1 ||
+      nodes < 1 ||
+      depth < 1 ||
+      mapped_wire.length() > limits.max_bytes ||
+      identity.is_empty() ||
+      identity.length() > limits.max_bytes {
+      raise RelationDocumentStop(InvalidPage)
+    }
+    relation_document_work(work, mapped_wire.length())
+    let wire_bytes = @scalar.admit_utf8_length(mapped_wire, limits.max_bytes).unwrap_or_else(() => {
+        raise RelationDocumentStop(InvalidPage)
+      },
+    )
+    relation_document_work(work, wire_bytes)
+    let wire = @utf8.encode(mapped_wire)
+    // Typed wire can be larger or deeper than physical JSON because it
+    // carries wrappers. Bound its construction by the original request
+    // envelope. The writer checks remaining file room independently.
+    let parsed = @source.parse_json_bytes_preserving(wire, {
+      max_input_bytes: limits.max_bytes,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+    }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
+    let cursor = @decode.admit(parsed, {
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      max_string_bytes: limits.max_bytes,
+      max_total_string_bytes: limits.max_bytes,
+    }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
+    let wire_nodes = @decode.admission_usage(cursor).nodes
+    relation_document_work(work, wire_nodes)
+    let object = @decode.closed_object(cursor, document.columns).unwrap_or_else(() => {
+        raise RelationDocumentStop(InvalidPage)
+      },
+    )
+    if @decode.lookup(object, document.columns[document.identity_index])
+      is Some(_) {
+      // The installer supplies the storage key, never the mapped Effect.
+      raise RelationDocumentStop(ForeignSource)
+    }
+    let writer = @encode.writer(room, nodes, depth)
+    @encode.begin_object(writer)
+    for index, name in document.columns {
+      relation_document_work(work, wire_nodes)
+      let contract = @schema.field_at(document.schema, index).unwrap().contract
+      let checked = if index == document.identity_index {
+        relation_document_work(work, identity.length())
+        let key = @admitted.checked_text_value(identity, contract).unwrap_or_else(() => {
+            raise RelationDocumentStop(Value(name))
+          },
+        )
+        for row in document.rows {
+          guard row[index].value is @admitted.Text(previous) else {
+            raise RelationDocumentStop(InvalidInputSchema)
+          }
+          relation_document_work(work, previous.length())
+          relation_document_work(work, identity.length())
+          if previous == identity {
+            raise RelationDocumentStop(InvalidPage)
+          }
+        }
+        key
+      } else {
+        @admitted.admit_wire(contract, relation_document_field(object, name), {
+          max_nodes: wire_nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: limits.max_bytes,
+        }).unwrap_or_else(() => raise RelationDocumentStop(Value(name)))
+      }
+      @encode.key(writer, name)
+      emit_relation_document_value(checked.value, writer)
+    }
+    @encode.end_object(writer)
+    let row = @utf8.encode(@encode.finish(writer))
+    relation_document_work(work, row.length())
+    let array = @decode.cursor_span(document.row_array)
+    let slot = if row_count == 0 {
+      array.start_byte + 1
+    } else {
+      @decode.cursor_span(document.row_cursor(row_count - 1)).end_byte
+    }
+    if array.start_byte < 0 ||
+      array.end_byte > bytes.length() ||
+      slot <= array.start_byte ||
+      slot >= array.end_byte ||
+      bytes[array.start_byte] != b'[' ||
+      bytes[array.end_byte - 1] != b']' ||
+      row.length() > room {
+      raise RelationDocumentStop(InvalidPage)
+    }
+    let inserted = row.length() + separator
+    let size = bytes.length() + inserted
+    relation_document_work(work, size)
+    Ok(
+      Bytes::makei(size, index => {
+        if index < slot {
+          bytes[index]
+        } else if separator == 1 && index == slot {
+          b','
+        } else if index < slot + inserted {
+          row[index - slot - separator]
+        } else {
+          bytes[index - inserted]
+        }
+      }),
+    )
+  } catch {
+    RelationDocumentStop(issue) => Err(issue)
+    _ => Err(InvalidPage)
+  }
+}
+
+///|
 /// Prepare byte-preserving changes for an already checked UPDATE. Exact row
 /// version and original correspondence are required, but remain DATA checks:
 /// only the installed file Owner may bind approval/currentness and replace it.

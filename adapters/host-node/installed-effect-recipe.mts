@@ -19,7 +19,8 @@ type CredentialOperation = Readonly<{
   discardResponseProjection?: true;
 }>;
 type OwnedReadOperation = Readonly<{phase: string; operationIndex: number}>;
-type PhysicalWrite = Readonly<{operationIndex: number; transferBytes: bigint}>;
+type PhysicalWrite = Readonly<{operationIndex: number; transferBytes: bigint;
+  inputExtent?: (bytes: number, requestUnits: number) => unknown}>;
 export type InstalledEffectPlanRecipe = Readonly<{
   memberOperations: readonly Operation[];
   rowOperations: readonly Operation[];
@@ -254,12 +255,18 @@ export function captureInstalledEffectPlanRecipe(recipe: unknown, maxOperations:
   }
   let physicalWrite: PhysicalWrite | undefined;
   if (fields.physicalWrite !== undefined) {
-    const selected = own(fields.physicalWrite.value, ['operationIndex', 'transferBytes']);
+    const original = fields.physicalWrite.value;
+    const selected = own(original, ['operationIndex', 'transferBytes',
+      ...(Object.hasOwn(original, 'inputExtent') ? ['inputExtent'] : [])]);
     const operationIndex: number = selected.operationIndex.value, transferBytes: unknown = selected.transferBytes.value;
     if (credentialOperations !== undefined || !Number.isSafeInteger(operationIndex) || operationIndex < 0 ||
         operationIndex >= rowOperations.length || operationIndex === requestConstruction?.operationIndex ||
         typeof transferBytes !== 'bigint' || transferBytes < 0n) fail('InvalidInstalledEffectPlanRecipe');
-    physicalWrite = Object.freeze({operationIndex, transferBytes});
+    const inputExtent: PhysicalWrite['inputExtent'] = selected.inputExtent?.value;
+    if (selected.inputExtent !== undefined && (typeof inputExtent !== 'function' ||
+        nodeTypes.isProxy(inputExtent) || nodeTypes.isAsyncFunction(inputExtent))) fail('InvalidInstalledEffectPlanRecipe');
+    physicalWrite = Object.freeze({operationIndex, transferBytes,
+      ...(inputExtent === undefined ? {} : {inputExtent})});
   }
   let ownedReadOperations: readonly OwnedReadOperation[] | undefined;
   if (fields.ownedReadOperations !== undefined) {

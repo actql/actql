@@ -1,9 +1,11 @@
 ///|
 fn effect_context_dependency_roots(
   local_sources : Array[@json.CanonicalValue],
+  inventory : @json.CanonicalValue,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[Array[CapturedEffectDependencyBody], CapturedEffectDependencyIssue] {
   let roots : Array[CapturedEffectDependencyBody] = []
   let seen : Map[String, Bool] = Map([])
@@ -16,10 +18,21 @@ fn effect_context_dependency_roots(
       evidence_string_array(relations) is Some(relations) else {
       return Err(InvalidBody)
     }
-    // A Values root has no acquired/imported runtime dependency. Do not
-    // manufacture a closure for that existing source-free capture.
-    if observations.is_empty() && relations.is_empty() {
-      continue
+    // A standalone Values Effect can record the original Result's closure
+    // (including its accepted Policy). The inventory-free Values form stays
+    // valid. Only the captured Result's own declared entry selects a root.
+    let recorded = if observations.is_empty() && relations.is_empty() {
+      if local_sources.length() != 1 {
+        continue
+      }
+      match
+        effect_context_recorded_source_free_result(source, inventory, work) {
+        Ok(Some(body)) => Some(body)
+        Ok(None) => continue
+        Err(issue) => return Err(issue)
+      }
+    } else {
+      None
     }
     guard @json.object_field(source, "artifact") is Some(artifact) &&
       @json.object_field(source, "definition") is Some(definition) &&
@@ -30,6 +43,15 @@ fn effect_context_dependency_roots(
       canonical_value_wire(artifact, max_bytes, max_nodes, max_depth)
       is Some(wire) else {
       return Err(InvalidBody)
+    }
+    if recorded is Some(body) {
+      if !dependency_validation_work(work, wire.length()) {
+        return Err(ReferenceLimit)
+      }
+      if canonical_value_wire(body, max_bytes, max_nodes, max_depth) !=
+        Some(wire) {
+        return Err(InvalidBody)
+      }
     }
     let root = match
       admit_publication_effect_dependency_body(
@@ -55,6 +77,37 @@ fn effect_context_dependency_roots(
 }
 
 ///|
+fn effect_context_recorded_source_free_result(
+  source : @json.CanonicalValue,
+  inventory : @json.CanonicalValue,
+  work : ((Int) -> Bool)?,
+) -> Result[@json.CanonicalValue?, CapturedEffectDependencyIssue] {
+  guard @json.object_field(source, "definition") is Some(definition) &&
+    evidence_string(definition, "version") ==
+    Some("actql-local-result-definition/0.1") &&
+    @json.object_field(source, "artifact") is Some(artifact) &&
+    evidence_string(artifact, "result_artifact_cid") is Some(cid) &&
+    valid_contract_cid(cid) else {
+    return Ok(None)
+  }
+  guard inventory is @json.Array(entries) else { return Err(InvalidBody) }
+  for index in 0..<@json.array_count(entries) {
+    if !dependency_validation_work(work, 1 + cid.length()) {
+      return Err(ReferenceLimit)
+    }
+    let entry = @json.array_at(entries, index).unwrap()
+    if evidence_string(entry, "kind") == Some("result_artifact") &&
+      evidence_string(entry, "cid") == Some(cid) {
+      guard @json.object_field(entry, "body") is Some(body) else {
+        return Err(InvalidBody)
+      }
+      return Ok(Some(body))
+    }
+  }
+  Ok(None)
+}
+
+///|
 fn effect_context_dependency_limits(
   max_bytes : Int,
 ) -> CapturedEffectDependencyLimits {
@@ -76,19 +129,21 @@ fn admit_effect_context_dependencies(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[CapturedEffectDependencyInventory, CapturedEffectDependencyIssue] {
+  let limits = effect_context_dependency_limits(max_bytes)
+  let inventory = match
+    parse_contract_wire(wire, limits.max_total_bytes, max_nodes, max_depth) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidBody)
+  }
   let roots = match
     effect_context_dependency_roots(
-      local_sources, max_bytes, max_nodes, max_depth,
+      local_sources, inventory, max_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  admit_captured_effect_dependency_inventory(
-    wire,
-    roots,
-    effect_context_dependency_limits(max_bytes),
-    max_nodes,
-    max_depth,
+  admit_captured_effect_dependency_inventory_material(
+    inventory, wire, roots, limits, max_nodes, max_depth,
   )
 }
 
@@ -221,7 +276,8 @@ fn captured_effect_dependency_source_values_match(
       evidence_string_array(relations) is Some(relations) else {
       return false
     }
-    if observations.is_empty() && relations.is_empty() {
+    let source_free = observations.is_empty() && relations.is_empty()
+    if source_free && (count != 1 || expected.is_empty()) {
       continue
     }
     guard @json.object_field(source, "artifact") is Some(artifact) &&
@@ -235,6 +291,9 @@ fn captured_effect_dependency_source_values_match(
       _ => return false
     }
     let key = dependency_key(kind, cid)
+    if source_free && (kind != "result_artifact" || !expected.contains(key)) {
+      continue
+    }
     guard expected.get(key) is Some(original) &&
       canonical_value_wire(artifact, max_bytes, max_nodes, max_depth) ==
       Some(original.wire) else {

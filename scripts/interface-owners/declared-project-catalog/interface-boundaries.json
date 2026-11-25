@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "6b7ca44a21dc13df53dfc987c6ea84cb947def16799556387ee7677e9589837f",
+      "sha256": "08e6aea8dfea8a5438ded3cf45163613f26b80fe39aa6e92deeda4242a341850",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog",
@@ -46,6 +46,13 @@
             "options"
           ],
           "async": true
+        },
+        {
+          "name": "mappingSources/mappingSources/mappingSources",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "projectDeclaredCatalog/admit/admit",
@@ -496,13 +503,6 @@
           "async": false
         },
         {
-          "name": "updateSources/updateSources/updateSources",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "wire/wire",
           "parameters": [
             "value"
@@ -603,9 +603,9 @@
             "projectDeclaredCatalog/source/source/writes/writes",
             "projectDeclaredCatalog/source/source#2",
             "text/text",
-            "updateSources/updateSources/updateSources",
             "wire/wire",
-            "writeFacts/facts/facts"
+            "writeFacts/facts/facts",
+            "mappingSources/mappingSources/mappingSources"
           ],
           "exports": [
             "inspectDeclaredProjectCatalog",

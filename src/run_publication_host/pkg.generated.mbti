@@ -869,6 +869,8 @@ pub fn client_effect_source_free_invocation_original_matches(ClientEffectSourceF
 
 pub fn client_effect_source_free_invocation_original_observation(ClientEffectSourceFreeInvocationOriginal) -> @run_publication.RunEvidenceValue
 
+pub fn client_effect_source_free_result_original_scope(ClientEffectLocalResultArtifact, ClientEffectSourceFreeInvocationOriginal) -> @run_publication.PublicationContract?
+
 pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
 
 pub fn client_effect_source_unit_artifact_construction_geometry(ClientEffectCombinedSourceUnit, String, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], ClientEffectLocalResultArtifactIssue]

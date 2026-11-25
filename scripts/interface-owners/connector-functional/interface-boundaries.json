@@ -4871,7 +4871,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-authorization.mjs",
-      "sha256": "de9ec3aa8a1dcdbbbe05acf0e06d8484d1583223ef067827f8ff18aa58b26af7",
+      "sha256": "eb9977a41068b77c82b3d48b755aa0f940aa55f7d3f524581242c869cef08a42",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5650,7 +5650,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-capture-rows.mjs",
-      "sha256": "6ef99379295483d9b6d4ebd98546ea8a12eba72cddcf450969b82179da337ac3",
+      "sha256": "11f887059a75acb622542485d9371d1057a05bfa0b7022a263093151132f6150",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5681,6 +5681,7 @@
             "signal",
             "assertCurrent",
             "contentOwner",
+            "fileCreateIdentity",
             "resourceFields",
             "physicalOperations",
             "guarded",
@@ -5860,7 +5861,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-capture-stage.mjs",
-      "sha256": "b0c0abd4f15b91b8f4a85bae39b08180c5c43705776a9a19da0203c299cdf5f6",
+      "sha256": "6deb2c626295614c305fa0cd0688e4a0b2d055254077b583295b3964fc963d1b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -7991,7 +7992,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-construction.mjs",
-      "sha256": "5bee9c9f5f4fc8f420144f36859047e1fc02968666d9fe893f02918a1f338cf3",
+      "sha256": "2769a87d8a2a614ccb1dc3ed14cd28b7f7f3ae0de252603997dd4201899e013b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -9661,7 +9662,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-physical-read.mjs",
-      "sha256": "e4da4173e19690f43f0a398e209f8ab2e9fbe7ab86da1a7722a3687296b63051",
+      "sha256": "347a4e1672dc34823783ee5231339ab0e5a4210dfcec8d130473f660db911299",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -10448,7 +10449,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-plan-capture.mjs",
-      "sha256": "c5c4ccfcdf7f05a9a6a6e66f66621866923affa03e1d86121b8219d82084d3ef",
+      "sha256": "b5f3b64075865ae4c4dfb82dc4d099a316a0263c0ad8e9d828de047faf885179",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -10798,7 +10799,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-preview.mjs",
-      "sha256": "593d22f51a7512295f462cc6ca62745c88ac23dfefce3234d66c44ff5a68b9d6",
+      "sha256": "7d0e6d18e39623fef0ab766638546e46e0d82242e8464564ba9c4ed4157b7c99",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -10855,7 +10856,8 @@
             "rowsOf",
             "capabilities",
             "footprints",
-            "payloads"
+            "payloads",
+            "createOriginals"
           ],
           "async": false
         },
@@ -10871,6 +10873,20 @@
           "name": "createInstalledRowEffectPreview/authorPreview/effects/effects/effects",
           "parameters": [
             "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreview/memberOriginal",
+          "parameters": [
+            "control",
+            "prepared",
+            "inputs",
+            "member",
+            "payload",
+            "runInvocation",
+            "storeAuthorityCid",
+            "limits"
           ],
           "async": false
         },
@@ -11040,7 +11056,8 @@
             "createInstalledRowEffectPreview",
             "createInstalledRowEffectPreview/authorPreview",
             "createInstalledRowEffectPreview/authorPreview/effects/effects",
-            "createInstalledRowEffectPreview/authorPreview/effects/effects/effects"
+            "createInstalledRowEffectPreview/authorPreview/effects/effects/effects",
+            "createInstalledRowEffectPreview/memberOriginal"
           ],
           "exports": [
             "createInstalledRowEffectPreview"
@@ -12982,7 +12999,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "41a7903d3fa88f7bf72d500afebcf84ce6d48a5bb4bce4f320ba5303a5fc1a2a",
+      "sha256": "d74c5ea81f01a368d6a235e8e191e212b4bf645910a04fd765dab2a47189a7c4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -25964,7 +25981,7 @@
       "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "553246d28cd65538282f0ca12c2de72864002f846176985e7e8c0ec1512b089f",
+      "sha256": "267de0f2b88016f357e44aebd229f96fc829eee2960368cc00f25d07320f334b",
       "contracts": [
         {
           "operations": [
@@ -30099,7 +30116,8 @@
             "requestConstruction",
             "physicalConstruction",
             "targetReadOperation",
-            "footprintCapacity"
+            "footprintCapacity",
+            "physicalInput"
           ],
           "async": false
         },
@@ -30124,6 +30142,14 @@
           "name": "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
           "parameters": [
             "phase"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#3",
+          "parameters": [
+            "bytes",
+            "requestUnits"
           ],
           "async": false
         },
@@ -30188,7 +30214,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "c63524fc0ad0c86fcfea90bf8a229066cb53c2de0b30cc8bec4f8e0d0bf17eea",
+      "sha256": "69d949b5666169972d60a6000aaf9e4aee882b67d4b2105ac845e546f62b6671",
       "contracts": [
         {
           "operations": [
@@ -30405,7 +30431,8 @@
             "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
             "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
-            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected"
+            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected",
+            "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#3"
           ],
           "exports": [
             "prepareInstalledPhysicalWritePlanRecipe",
@@ -30715,7 +30742,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "df6700c6e87849d58af5f258de33047fdad20084150fcd51c370b195de071a94",
+      "sha256": "b26bf5a20003387241cfb98c4c5922abb9aa91264f857b23d224b3517289e73f",
       "contracts": [
         {
           "operations": [
@@ -31552,7 +31579,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-owned-operation.mjs",
-      "sha256": "14fba9741173805d7190925cef818d832dc66a50e006958e5809249d062cca66",
+      "sha256": "f5a315fee6a3d7a1d03e0440c102ffd7b197faba7fb53d8c49865ade717bea1f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Effect operation occurrence; original Content child retains physical cleanup and authority",
@@ -31570,7 +31597,16 @@
             "operation",
             "transferBytes",
             "invoke",
-            "requestsRetired"
+            "requestsRetired",
+            "inputExtent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/admitInput/admitInput",
+          "parameters": [
+            "bytes",
+            "requestUnits"
           ],
           "async": false
         },
@@ -31595,6 +31631,13 @@
         },
         {
           "name": "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#3",
           "parameters": [],
           "async": false
         },
@@ -31626,7 +31669,9 @@
             "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild",
             "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#2",
             "prepareInstalledEffectOwnedPhysicalChild/release/release",
-            "prepareInstalledEffectOwnedPhysicalChild/retainPhysicalChild/retainPhysicalChild"
+            "prepareInstalledEffectOwnedPhysicalChild/retainPhysicalChild/retainPhysicalChild",
+            "prepareInstalledEffectOwnedPhysicalChild/admitInput/admitInput",
+            "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#3"
           ],
           "exports": [
             "prepareInstalledEffectOwnedPhysicalChild"
@@ -31718,6 +31763,10 @@
               {
                 "path": "adapters/host-node/installed-effect-owned-operation.test.mts",
                 "anchor": "test('physical extent refusal precedes any borrow and foreign Run cannot dispatch'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.test.mts",
+                "anchor": "staged physical work joins one locked input on the same reservation before charging"
               }
             ]
           }

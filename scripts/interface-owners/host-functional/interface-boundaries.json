@@ -23176,7 +23176,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "012892ae194646ab66eb602cf0f3fca946c5fd92ccf093ec5aef5cb6db57c3a9",
+      "sha256": "db458f90082cf7bcb64d36f78d0cf49bdc5a8b1dcd7e76a558754934e7d992d5",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -23203,6 +23203,7 @@
             "validateInstallation",
             "updateTargetOriginals",
             "reserveOriginal",
+            "localPolicySigning",
             "now"
           ],
           "async": false
@@ -128829,7 +128830,7 @@
     {
       "module": "adapters/host-node/mock-file-target.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7f2d1d8c9a03a012e837309ae3d27c0acd5e47efa64e55a0c222e6c81efad685",
+      "sha256": "c0ead0cbb009fcfc7cca338ec087f9d9a33d4a942b9c150494d437780e406060",
       "exports": [
         "createMockFileTarget"
       ],
@@ -128970,7 +128971,9 @@
         },
         {
           "name": "createMockFileTarget/makeChild/read",
-          "parameters": [],
+          "parameters": [
+            "fundRead"
+          ],
           "async": true
         },
         {
@@ -129038,7 +129041,8 @@
             "replace",
             "signal",
             "checkCurrent",
-            "runOriginal"
+            "runOriginal",
+            "fundRead"
           ],
           "async": false
         },
@@ -129220,6 +129224,10 @@
               {
                 "path": "adapters/host-node/mock-file-target.test.mts",
                 "anchor": "test('Mock Run close waits for the original late FD acquisition before its physical ACK'"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.test.mts",
+                "anchor": "Mock writer observes the locked file extent before its first body read"
               }
             ]
           }
@@ -129333,7 +129341,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7e792d4bb47ed4d90ecc4735514f5a515b1707869ea2cd9b6c2e89418da39ca4",
+      "sha256": "d640b805dabc5f12fcf2413331105f84872a6a2233a5446bf3c82c1336fd401a",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -129354,7 +129362,8 @@
           "parameters": [
             "bundle",
             "original",
-            "call"
+            "call",
+            "createContracts"
           ],
           "async": false
         },
@@ -129362,7 +129371,8 @@
           "name": "createMockFileRowCodec/admit/admit",
           "parameters": [
             "bytes",
-            "target"
+            "target",
+            "includeTarget"
           ],
           "async": false
         },
@@ -129414,6 +129424,13 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectMockEffects/create/create",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockEffects/current",
           "parameters": [],
           "async": false
@@ -129455,6 +129472,14 @@
           "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed/constructed#2",
           "parameters": [
             "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed/insertion/insertion",
+          "parameters": [
+            "size",
+            "units"
           ],
           "async": false
         },
@@ -129527,7 +129552,23 @@
             "moon",
             "bundle",
             "operation",
-            "targetReadOperation"
+            "targetReadOperation",
+            "insertion"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockFileEffectPlanRecipe/capacity/capacity",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockFileEffectPlanRecipe/init:capacity/init:capacity",
+          "parameters": [
+            "size",
+            "requestUnits"
           ],
           "async": false
         },
@@ -129751,6 +129792,13 @@
           "async": false
         },
         {
+          "name": "mockRowEffectDriver/driver/init:send/init:send/child/child#2",
+          "parameters": [
+            "size"
+          ],
+          "async": false
+        },
+        {
           "name": "mockRowEffectDriver/driver/init:send/init:send/child/init:authorize/init:authorize",
           "parameters": [],
           "async": false
@@ -129777,43 +129825,6 @@
           "async": false
         },
         {
-          "name": "mockRowEffectDriver/readChild",
-          "parameters": [
-            "member",
-            "selector",
-            "value",
-            "selected",
-            "authorizationForRow",
-            "signal",
-            "runOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockRowEffectDriver/readChild/child/child",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "mockRowEffectDriver/readChild/child/init:authorize/init:authorize",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "mockRowEffectDriver/readChild/child/init:consume/init:consume",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockRowEffectDriver/readChild/init:retainedOutputWire/init:retainedOutputWire",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "mockRowEffectDriver/recover/recover",
           "parameters": [
             "durable",
@@ -129834,7 +129845,8 @@
         {
           "name": "mockRowEffectDriver/recover/recover/requests/requests",
           "parameters": [
-            "record"
+            "record",
+            "row"
           ],
           "async": false
         },
@@ -129844,6 +129856,60 @@
             "_",
             "index"
           ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild",
+          "parameters": [
+            "member",
+            "selector",
+            "value",
+            "selected",
+            "authorizationForRow",
+            "signal",
+            "runOriginal",
+            "createRowIdentity",
+            "fileCreateIdentity"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/child/child",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/child/init:authorize/init:authorize",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/child/init:consume/init:consume",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/init:retainedOutputWire/init:retainedOutputWire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/release/release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/requestChild",
+          "parameters": [],
           "async": false
         },
         {
@@ -129883,6 +129949,13 @@
         },
         {
           "name": "mockRowEffectDriver/supportedKinds/supportedKinds",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/supportedKinds/supportedKinds/supportedKinds",
           "parameters": [
             "target"
           ],
@@ -129925,6 +129998,7 @@
       "imports": [
         "../../packages/sdk/host-port.mjs",
         "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "../host-node/declared-project-catalog-construction.mjs",
         "../host-node/installed-effect-inventory.mjs",
@@ -129984,11 +130058,6 @@
             "mockRowEffectDriver/driver/init:send/init:send/child/child",
             "mockRowEffectDriver/driver/init:send/init:send/child/init:authorize/init:authorize",
             "mockRowEffectDriver/driver/init:send/init:send/child/init:replace/init:replace",
-            "mockRowEffectDriver/readChild",
-            "mockRowEffectDriver/readChild/child/child",
-            "mockRowEffectDriver/readChild/child/init:authorize/init:authorize",
-            "mockRowEffectDriver/readChild/child/init:consume/init:consume",
-            "mockRowEffectDriver/readChild/init:retainedOutputWire/init:retainedOutputWire",
             "mockRowEffectDriver/recover/recover",
             "mockRowEffectDriver/recover/recover/entries/entries",
             "mockRowEffectDriver/recover/recover/requests/requests",
@@ -130001,7 +130070,19 @@
             "mockRowEffectDriver/supportedKinds/supportedKinds",
             "observeInstalledMockEffectResources",
             "synchronous/synchronous/synchronous",
-            "wire/wire"
+            "wire/wire",
+            "mockFileEffectPlanRecipe/capacity/capacity",
+            "mockFileEffectPlanRecipe/init:capacity/init:capacity",
+            "mockRowEffectDriver/driver/init:send/init:send/child/child#2",
+            "mockRowEffectDriver/requestChild",
+            "mockRowEffectDriver/requestChild/child/child",
+            "mockRowEffectDriver/requestChild/child/init:authorize/init:authorize",
+            "mockRowEffectDriver/requestChild/child/init:consume/init:consume",
+            "mockRowEffectDriver/requestChild/init:prepare/init:prepare",
+            "mockRowEffectDriver/requestChild/init:retainedOutputWire/init:retainedOutputWire",
+            "mockRowEffectDriver/requestChild/release/release",
+            "mockRowEffectDriver/requestChild/requestChild",
+            "mockRowEffectDriver/supportedKinds/supportedKinds/supportedKinds"
           ],
           "exports": [
             "createMockFileRowCodec",
@@ -130442,7 +130523,9 @@
             "mockRowEffectDriver/describe/construct/construct",
             "mockRowEffectDriver/targetForRecord/target/target",
             "mockRowEffectDriver/issue/issue",
-            "mockRowEffectDriver/memberCurrent/target/target"
+            "mockRowEffectDriver/memberCurrent/target/target",
+            "installPreparedProjectMockEffects/create/create",
+            "installPreparedProjectMockEffects/installed/installed/constructed/constructed/insertion/insertion"
           ],
           "exports": [],
           "attributes": {
@@ -130516,6 +130599,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock binds UPDATE and DELETE to the same original table with distinct mappings"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock admits the closed file CREATE mapping beside an original UPDATE"
               }
             ]
           }
@@ -130524,7 +130611,7 @@
     },
     {
       "module": "adapters/host-node/local-checkpoint-answer.mjs",
-      "sha256": "c02f88aa94b4cdf8b026e297a331c92a29d4069d2b6c454841b700cb0edc6582",
+      "sha256": "fe7032fdc92af9741786b1f1bb91bd8cb3599bdd6157d803e25917e91a6430c2",
       "exports": [
         "createLocalCheckpointAnswer",
         "createLocalSigningOriginalReader"
@@ -138439,7 +138526,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "6e452020a844763e6f720b0acc80d28bb7ec8276026d22d8429656dc58739a62",
+      "sha256": "b88ecca87599639d646a0bdb5462f4f878e1dc180fe7edf87ec2f023347d239f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -139841,7 +139928,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-context-construction.mjs",
-      "sha256": "368b5aa7617bb9df3bc756b55a7aa020b6d5f98af096b4a36b6bc7edc6ae893a",
+      "sha256": "ef356795501ae8755f6c0e3163762313259e83916923f6cc3466a9220385b953",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -140163,6 +140250,13 @@
         },
         {
           "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime#3",
           "parameters": [
             "args"
           ],
@@ -141040,7 +141134,8 @@
             "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime",
             "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project#2",
             "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime#2",
-            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping#2"
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping#2",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime#3"
           ],
           "exports": [],
           "attributes": {

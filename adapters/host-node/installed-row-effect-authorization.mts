@@ -64,7 +64,7 @@ type TargetOptions<Member> = Readonly<{
 }>;
 type TargetControls<Member> = Readonly<{
   ownerOf(member: Member): TargetOwner<Member>;
-  targetPlanOf(member: Member, owner: TargetOwner<Member>): Readonly<{targetReadOperation: string}> | undefined;
+  targetPlanOf(member: Member, owner: TargetOwner<Member>): Readonly<{targetReadOperation: string | undefined}> | undefined;
   recipeOf(member: Member): InstalledEffectPlanRecipe | undefined;
   fail(code: string): never;
 }>;
@@ -167,7 +167,9 @@ export function createInstalledRowEffectTargetAuthorization<Member extends Membe
   const decideTargetRead = async ({member, runInvocationCid,
     dispatchRequestCid, subjectCid, signal, targetReads, assertCurrent, controlConstruction}: TargetOptions<Member>) => {
     const owner = ownerOf(member), {connection, authorization, owned, site} = owner;
-    const operation = targetPlanOf(member, owner)?.targetReadOperation ?? owned.targetRead.operation;
+    const plan = targetPlanOf(member, owner);
+    const operation = plan === undefined ? owned.targetRead.operation : plan.targetReadOperation;
+    if (operation === undefined) reject('InstalledEffectPhysicalPlanUnavailable');
     const tuple = {connection, resource: member.resource, operation: 'read'};
     assertCurrent?.();
     const decision = targetReads === undefined

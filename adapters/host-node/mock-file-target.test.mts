@@ -147,6 +147,39 @@ test('Mock target authorization refusal opens no FD and never changes the file',
   await f.finish();
 });
 
+test('Mock writer observes the locked file extent before its first body read', async () => {
+  let reads = 0;
+  const refused = new Error('OriginalCapacityRefused');
+  const f = await fixture({io: {...io, async open(path, ...args) {
+    const handle = await open(path, ...args);
+    if (path.endsWith('/data.json')) {
+      const read = handle.read;
+      Object.defineProperty(handle, 'read', {value: (...args: unknown[]) => {
+        reads++;
+        return Reflect.apply(read, handle, args);
+      }});
+    }
+    return handle;
+  }}});
+  let quoted = 0;
+  const child = f.target.updateChild({authorize() {},
+    fundRead(size) {
+      quoted++;
+      assert.equal(size, Buffer.byteLength(original));
+      assert.equal(reads, 0);
+      throw refused;
+    },
+    replace() {assert.fail('Refused backing cannot enter the projection');}});
+  await assert.rejects(child.prepare(), cause => cause === refused);
+  assert.equal(quoted, 1);
+  assert.equal(reads, 0);
+  assert.equal((await lstat(f.dataPath + '.actql-write.lock')).isFile(), true);
+  assert.equal((await child.release()).pending, false);
+  await assert.rejects(lstat(f.dataPath + '.actql-write.lock'), {code: 'ENOENT'});
+  assert.equal(await readFile(f.dataPath, 'utf8'), original);
+  await f.finish();
+});
+
 test('Mock physical target refuses an original changed during replacement preparation', async () => {
   let changed: Promise<void> | undefined;
   const f = await fixture({io: {...io, async open(path, ...args) {

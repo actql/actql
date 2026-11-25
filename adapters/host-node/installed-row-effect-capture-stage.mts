@@ -49,6 +49,7 @@ type Limits = ReturnType<BaseCapture['runLimits']> & PreviewInput['limits'] & Re
 type Control = BaseCapture['control'] & EffectCapture['control'] & PreviewInput['control'] &
   Parameters<Values['commandContentBorrower']>[0]['control'] & SourceHolding['control'] & DependencyRetention['control'];
 type Runtime = BaseCapture['moon'] & RowOptions['moon'] & VerifyPlan['moon'] & Readonly<{
+  strategyPublicationContractIdentity(value: unknown): string;
   clientProgramEffectInputAt(inputs: unknown, index: number): unknown;
   clientProgramEffectInputStage(input: unknown): number;
   clientProgramEffectPreviewInputLimits(maxWireBytes: number, maxNodes: number, maxDepth: number,
@@ -157,6 +158,7 @@ export function createInstalledRowEffectCaptureStage({
     runInvocationCid, dispatches, requestScope, storedResults, signal,
     targetReads, contentOwner, managedEffect, updateTargetSelections, own, ownInputs, ownChildren, assertCurrent}: StageInputs): Promise<CaptureResult> {
     let sourceSet: SourceSet | undefined;
+    let createOriginals: ReturnType<Preview['memberOriginal']>[] | undefined;
     let entries: Entries | undefined;
     let route: ReturnType<Route> | undefined;
     const {limits, controlConstruction, inputs, commandKeys, contentBorrowers, requestChildren, memberCaptures,
@@ -170,6 +172,7 @@ export function createInstalledRowEffectCaptureStage({
       retireRoute() {
         if (route !== undefined && !route.retire()) return false;
         entries = undefined;
+        createOriginals = undefined;
         return true;
       },
     });
@@ -201,14 +204,28 @@ export function createInstalledRowEffectCaptureStage({
         artifact: sourceSet.members[index].payload.localResultArtifact,
         limits, assertCurrent});
       if (contentOf !== undefined) contentBorrowers.push(contentOf);
+      const recipe = recipeOf(member);
+      let fileCreateIdentity: RowOptions['fileCreateIdentity'];
+      if (member.kind === 'create' && recipe?.requestConstruction !== undefined && recipe.physicalWrite !== undefined) {
+        // The same source and Effect originals fix the allocated storage key
+        // and are later sealed by the Preview.
+        const original = authorPreview.memberOriginal({control, prepared, inputs, member,
+          payload: sourceSet.members[index].payload, runInvocation: previewContext.runInvocation,
+          storeAuthorityCid: store.storeAuthorityCid, limits});
+        (createOriginals ??= [])[index] = original;
+        fileCreateIdentity = Object.freeze({
+          runDefinitionCid: moon.strategyPublicationContractIdentity(previewContext.runDefinition),
+          sourceBindingCid: original.sourceBindingCid, effectIdentityCid: original.identity.identity,
+        });
+      }
       const {constructRows, recoverObservedRows} = createInstalledRowEffectCaptureRows({
         member, index, owned, updateWriteSlot, description, contentOf, moon, proposals, limits, recipeOf,
         managedEffect, prepared, identity, reads, controlConstruction, runInvocationCid, dispatches, signal,
-        assertCurrent, contentOwner, resourceFields, physicalOperations, guarded, targeted, requestChildren,
+        assertCurrent, contentOwner, fileCreateIdentity, resourceFields, physicalOperations, guarded, targeted, requestChildren,
         rowsOf, observations, prepareInstalledCreateRows, commandContentRow, requestEntry, requestsOf,
         observeRows, retireRequestAliases, fail,
       });
-      const observedCapture = recipeOf(member)?.captureConstruction?.inputExtent !== undefined;
+      const observedCapture = recipe?.captureConstruction?.inputExtent !== undefined;
       if (observedCapture) {
         // The proposal Strings are borrowed from the completed original Read.
         // Its same constructor now funds every native map/parse/request below
@@ -239,7 +256,7 @@ export function createInstalledRowEffectCaptureStage({
         runInvocation: previewContext.runInvocation,
         compiledPlan: previewContext.compiledPlan,
         storeAuthorityCid: store.storeAuthorityCid},
-      requestScope, members, rowsOf: rowsOf as PreviewInput['rowsOf'], capabilities, footprints, payloads});
+      requestScope, members, rowsOf: rowsOf as PreviewInput['rowsOf'], capabilities, footprints, payloads, createOriginals});
     const body = (managedEffect === undefined ? JSON.parse(preview.wire)
       : managedEffect.controlConstruction.parsePreview(preview.wire)) as Body;
     // The admitted Preview must state exactly the rows its requests write.

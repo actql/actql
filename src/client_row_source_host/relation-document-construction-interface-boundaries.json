@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_construction.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2cf6515fc5291b2fca953c8658afec6b3b4d3a50172d9b7b4fab1e46af660f4c",
+      "sha256": "e4fd5943834d566027507a2138caf9aaa7ca5a6afacdea47677a654e3900b302",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -60,6 +60,10 @@
         {
           "name": "relation_document_typed_construction",
           "declaration": "relation_document_typed_construction ( original : @ contract . Contract , limits : RowPageLimits , returned_only ? : Bool"
+        },
+        {
+          "name": "relation_target_insert_workspace_inventory",
+          "declaration": "relation_target_insert_workspace_inventory ( prepared : RelationDocumentPreparedContract , items_path_depth : Int , original_bytes : Int , row_wire_utf16 : Int , ) - > @ execution . PreparationRepresentationUnits ?"
         }
       ],
       "contracts": [
@@ -76,7 +80,8 @@
             "relation_document_raw_construction_inventory",
             "relation_document_typed_construction",
             "prepare_relation_document_contract",
-            "relation_document_prepared_contract"
+            "relation_document_prepared_contract",
+            "relation_target_insert_workspace_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -138,6 +143,10 @@
               {
                 "path": "src/client_row_source_host/relation-document-construction-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target_wbtest.mbt",
+                "anchor": "relation insertion workspace includes decoded input row output and full replacement"
               }
             ]
           }
