@@ -9,6 +9,8 @@ on:
     branches: [main]
   schedule:
     - cron: '23 3 * * 1'
+    # macOS main integration: a main push runs no macOS job.
+    - cron: '17 0,6,12,18 * * *'
   workflow_dispatch:
     inputs:
       packed_query_evidence_probe:
@@ -79,7 +81,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || inputs.native_shared_remote_linux && 'linux-shared-remote' || 'normal' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || inputs.native_shared_remote_linux && 'linux-shared-remote' || github.event_name == 'schedule' && 'schedule' || 'normal' }}
   # Keep the active main integration; GitHub retains only the latest pending run.
   # Branch and performance groups cannot cancel normal main integration.
   cancel-in-progress: ${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}
@@ -729,7 +731,7 @@ jobs:
     steps: *core_steps
   core-darwin:
     needs: [select-targets]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.select-targets.result == 'success' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.select-targets.result == 'success' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') && github.event_name != 'push' }}
     name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
     strategy:
       fail-fast: false
@@ -754,6 +756,7 @@ jobs:
           JS_RESULT: ${{ needs.core-js.result }}
           COMMON_RESULT: ${{ needs.core-common.result }}
           DARWIN_RESULT: ${{ needs.core-darwin.result }}
+          DARWIN_DEFERRED: ${{ github.event_name == 'push' }}
         run: |
           node -e '
             const targets = JSON.parse(process.env.CORE_TARGETS || "null");
@@ -761,7 +764,7 @@ jobs:
               new Set(targets).size === targets.length && targets.every(target => ["js", "wasm", "native"].includes(target));
             if (!valid || process.env.JS_RESULT !== (targets.includes("js") ? "success" : "skipped") ||
                 process.env.COMMON_RESULT !== (targets.some(target => target === "wasm" || target === "native") ? "success" : "skipped") ||
-                process.env.DARWIN_RESULT !== (targets.includes("native") ? "success" : "skipped")) {
+                process.env.DARWIN_RESULT !== (targets.includes("native") && process.env.DARWIN_DEFERRED !== "true" ? "success" : "skipped")) {
               console.error(`Core JS=${process.env.JS_RESULT || "missing"}, common=${process.env.COMMON_RESULT || "missing"}, Darwin=${process.env.DARWIN_RESULT || "missing"}`);
               process.exitCode = 1;
             }
@@ -2871,17 +2874,17 @@ jobs:
             > "$RUNNER_TEMP/native-cli-linux-local/approval/source.json"
       - name: Require both complete installed Mock workflows and ordinary maximum smoke
         id: functional_profile
-        if: github.event_name != 'schedule'
+        if: github.event.schedule != '23 3 * * 1'
         timeout-minutes: 5
         run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
       - name: Require installed Native Mock updates across one shared file
         id: shared_file_mock
-        if: github.event_name != 'schedule'
+        if: github.event.schedule != '23 3 * * 1'
         timeout-minutes: 5
         run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release" --shared-file-mock
       - name: Require thirty complete approvals per original Mock workflow on the weekly schedule
         id: approval_profile
-        if: github.event_name == 'schedule'
+        if: github.event.schedule == '23 3 * * 1'
         run: |
           node scripts/test-native-approval-performance.mjs \
             --normal "$RUNNER_TEMP/native-cli-linux-local/release" \

@@ -690,7 +690,8 @@ test('Host independent failures are collected while failed prerequisites and can
 
 test('manual integration keeps full core and explicit macOS opt-in', () => {
   assert.deepEqual(selectTargets(['README.md'], {event: 'push'}).targets, all);
-  assert.equal(selectTargets(['README.md'], {event: 'push'}).macos, true);
+  assert.equal(selectTargets(['README.md'], {event: 'push'}).macos, false);
+  assert.equal(selectTargets(['README.md'], {event: 'schedule'}).macos, true);
   assert.deepEqual(selectTargets([], {event: 'workflow_dispatch'}).targets, all);
   assert.equal(selectTargets([], {event: 'workflow_dispatch'}).macos, false);
   assert.equal(selectTargets([], {event: 'workflow_dispatch', nativeMacos: true}).macos, true);
@@ -756,7 +757,7 @@ test('read-only PR lifecycle, main pushes and explicit dispatch trigger CI', () 
   assert.deepEqual(workflow.on.push.branches, ['main']);
   assert.deepEqual(workflow.on.pull_request.types, ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft']);
   assert.equal(workflow.on.pull_request_target, undefined);
-  assert.deepEqual(workflow.on.schedule, [{cron: '23 3 * * 1'}]);
+  assert.deepEqual(workflow.on.schedule, [{cron: '23 3 * * 1'}, {cron: '17 0,6,12,18 * * *'}]);
   assert.equal(workflow.on.workflow_run, undefined);
   assert.equal(workflow.on.merge_group, undefined);
   assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}");
@@ -790,8 +791,10 @@ test('active main finishes while pending work coalesces and manual campaigns hav
     [{native_shared_remote_linux: true}, 'linux-shared-remote'],
     [{performance_matrix: true, native_shared_remote_linux: true}, 'performance'],
     [{packed_query_evidence_probe: true, native_shared_remote_linux: true}, 'evidence-probe']]) {
-    assert.equal(runInNewContext(selectGroup, {inputs}, {timeout: 100}), group);
+    assert.equal(runInNewContext(selectGroup, {inputs, github: {event_name: 'push'}}, {timeout: 100}), group);
   }
+  // A pending scheduled macOS run is never replaced by a later main push.
+  assert.equal(runInNewContext(selectGroup, {inputs: {}, github: {event_name: 'schedule'}}, {timeout: 100}), 'schedule');
   assert.equal(workflow.concurrency.queue, undefined);
   const expression = workflow.concurrency['cancel-in-progress'].slice(3, -2);
   for (const ref of ['refs/heads/main', 'refs/heads/feature']) {
@@ -1470,7 +1473,8 @@ test('maintenance plans reject inconsistent fields identities and input membersh
     const value = selectTargets(maintenanceFiles, {event, maintenanceChanges: changes(maintenanceFiles)});
     assert.equal(value.profile, 'full'); assert.deepEqual(value.targets, all);
     assert.throws(() => validateSelection({...value, targets: ['js']}));
-    if (event !== 'workflow_dispatch') assert.throws(() => validateSelection({...value, macos: false}));
+    if (event === 'push') assert.throws(() => validateSelection({...value, macos: true}));
+    else if (event !== 'workflow_dispatch') assert.throws(() => validateSelection({...value, macos: false}));
   }
 });
 
@@ -1488,10 +1492,10 @@ test('maintenance N/A is explicit and cannot hide execution or selected check fa
 });
 
 // Exercise the real GitHub job expressions, including always() behavior.
-const scheduled = (name, needs, inputs = {}, isCancelled = false) => {
+const scheduled = (name, needs, inputs = {}, isCancelled = false, event = 'pull_request') => {
   const expression = jobs[name].if.slice(3, -3).replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
   return Function('needs', 'inputs', 'always', 'cancelled', 'vars', 'github', 'toJSON', 'fromJSON', 'contains', `return (${expression});`)(needs, inputs, () => true, () => isCancelled,
-    {}, {event: {repository: {visibility: 'public', private: false}}}, JSON.stringify, JSON.parse, (values, value) => values.includes(value));
+    {}, {event_name: event, event: {repository: {visibility: 'public', private: false}}}, JSON.stringify, JSON.parse, (values, value) => values.includes(value));
 };
 test('pipeline evidence aggregates dependency failures but stops on workflow cancellation', () => {
   const names = jobs['pipeline-evidence'].needs;
@@ -1812,7 +1816,7 @@ test('normal workflow has no historical declaration admission or artifact requir
 test('main cumulative product changes retain all backend coverage even for portable PR paths', () => {
   for (const paths of [['proofs/relation-pipeline/new-record.json', 'src/source_span/span.mbt'], ['src/source_span/span.mbt'], ['README.md']]) {
     const selected = validateSelection(selectTargets(paths, {event: 'push', mainIntegration: false}));
-    assert.equal(selected.profile, 'full'); assert.deepEqual(selected.targets, all); assert.equal(selected.macos, true);
+    assert.equal(selected.profile, 'full'); assert.deepEqual(selected.targets, all); assert.equal(selected.macos, false);
   }
 });
 test('normal selection needs no Actions token or history API permission', () => {
@@ -1956,7 +1960,7 @@ test('automatic main integration remains full without cumulative evidence', () =
   for (const inputs of cases) {
     const selected = validateSelection(selectTargets(inputs.paths, {...inputs, event: 'push'}));
     assert.equal(selected.profile, 'full');
-    assert.deepEqual(selected.targets, all); assert.equal(selected.macos, true);
+    assert.deepEqual(selected.targets, all); assert.equal(selected.macos, false);
     const lines = verifyGate(plan(selected), results(selected), {...context, event: 'push'});
     assert(!lines.some(line => line.startsWith('NOT APPLICABLE core')));
   }
@@ -2154,7 +2158,8 @@ test('main CLI selects full checks from a fresh checkout without API token or pr
   assert.match(readFileSync(output, 'utf8'), /^python_wheels=true$/mu);
   assert.equal(plan.selection.profile, 'full');
   assert.deepEqual(plan.selection.targets, ['js', 'wasm', 'native']);
-  assert.equal(plan.selection.macos, true);
+  assert.equal(plan.selection.macos, false);
+  assert.equal(plan.selection.darwinWheels, false);
   assert.equal(Object.hasOwn(plan.selection, 'mainBaseline'), false);
   assert.deepEqual(plan.selection.paths, []);
 });
@@ -2191,7 +2196,9 @@ test('select Mac wheel and workload platforms from affected inputs and event sco
     [ordinary, {failure: 'diff unavailable'}, true, ['linux-x64', 'darwin-arm64']],
     [[], {draft: true}, false, ['linux-x64']],
     [both, {draft: true}, false, ['linux-x64']],
-    [ordinary, {event: 'push'}, true, ['linux-x64', 'darwin-arm64']],
+    [ordinary, {event: 'push'}, false, ['linux-x64']],
+    [both, {event: 'push'}, false, ['linux-x64']],
+    [ordinary, {event: 'schedule'}, true, ['linux-x64', 'darwin-arm64']],
     [[], {event: 'workflow_dispatch'}, false, ['linux-x64', 'darwin-arm64']],
     [[], {event: 'workflow_dispatch', nativeMacos: true}, true, ['linux-x64', 'darwin-arm64']],
   ]) {
@@ -2207,6 +2214,11 @@ test('select Mac wheel and workload platforms from affected inputs and event sco
     for (const job of ['native-workloads', 'native-http', 'core-darwin'])
       assert.equal(scheduled(job, needs), !options.draft, job);
     assert.equal(scheduled('python-wheels', needs), true);
+    // The Linux Core legs still run on a main push; only the macOS leg waits for the schedule.
+    if (options.event) {
+      assert.equal(scheduled('core-darwin', needs, {}, false, options.event), options.event !== 'push', options.event);
+      assert.equal(scheduled('core-common', needs, {}, false, options.event), true, options.event);
+    }
   }
 });
 
@@ -2315,7 +2327,8 @@ test('normal wheel platforms reject foreign machines and keep independent same-p
   const job = jobs['python-wheels'];
   assert.equal(job.strategy['fail-fast'], false);
   assert.equal(job.strategy.matrix, '${{ fromJSON(needs.select-targets.outputs.python_wheel_matrix) }}');
-  const platforms = pythonWheelMatrix(selectTargets([], {event: 'push'})).include;
+  assert.deepEqual(pythonWheelMatrix(selectTargets([], {event: 'push'})).include.map(row => row.platform), ['linux-x64']);
+  const platforms = pythonWheelMatrix(selectTargets([], {event: 'schedule'})).include;
   assert.deepEqual(platforms.map(row => row.platform).sort(), ['darwin-arm64', 'linux-x64']);
   const expected = {'darwin-arm64': ['macos-15', 'Darwin', 'arm64'],
     'linux-x64': ['ubuntu-24.04', 'Linux', 'x86_64']};
@@ -2659,7 +2672,9 @@ test('a Ready PR that changes no Core target input directory uses JS core and ma
       assert.equal(gateJobRequired(ready, name), true, `${paths[0]}/${name}`);
     assert.equal(gateJobRequired(ready, 'native-macos'), false);
     const main = validateSelection(selectTargets(paths, {event: 'push'}));
-    assert.deepEqual(main.targets, all, paths[0]); assert.equal(main.macos, true); assert.equal(main.darwinWheels, true);
+    assert.deepEqual(main.targets, all, paths[0]); assert.equal(main.macos, false); assert.equal(main.darwinWheels, false);
+    const nightly = validateSelection(selectTargets(paths, {event: 'schedule'}));
+    assert.equal(nightly.macos, true); assert.equal(nightly.darwinWheels, true);
     assert.equal(validateSelection(selectTargets(paths, {draft: true})).profile, 'draft');
     for (const event of ['schedule', 'workflow_dispatch'])
       assert.deepEqual(validateSelection(selectTargets(paths, {event})).targets, all, event);

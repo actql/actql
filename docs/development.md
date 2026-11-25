@@ -1222,7 +1222,8 @@ shell without rerunning packed product acceptance or a mutation campaign.
 ## Pull request checks and main integration
 
 Normal CI runs on pull requests (`opened`, `synchronize`, `reopened`,
-`ready_for_review`, and `converted_to_draft`), pushes to `main`, weekly Monday
+`ready_for_review`, and `converted_to_draft`), pushes to `main`, a scheduled
+main run every six hours (00:17, 06:17, 12:17 and 18:17 UTC), weekly Monday
 03:23 UTC deep validation, and explicit manual dispatch. The repository must be public. No repository activation
 variable is required: enable or disable the workflow through GitHub Actions.
 This workflow does not change repository visibility, permissions, branch
@@ -1509,7 +1510,11 @@ coverage; local `run session-evidence` retains both sequences serially.
 ### Full integration and release evidence
 
 Every main push selects full runtime coverage, including all three Core
-backends and macOS. Complete Session and pipeline mutation/search campaigns run
+backends on Linux. A main push runs no macOS job: the scheduled main run every
+six hours owns the macOS Core partitions, macOS workloads and macOS wheels, so
+a macOS-only regression is reported there, up to six hours after its merge and
+together with the other merges of that window. Manual dispatch on `main` with
+`native_macos=true` checks macOS immediately. Complete Session and pipeline mutation/search campaigns run
 when their actual source snapshot or safety/orchestration inputs change. Their
 snapshot includes all Core source and vendor files; ownership, resource,
 platform, build and unknown inputs conservatively select deep coverage. Other
@@ -1536,8 +1541,10 @@ FIFO or test every intermediate merge. An active main run validates its
 immutable event SHA and may finish after main advances. PR and working-branch
 runs still reject superseded heads. Performance/probe runs have separate groups.
 
-Weekly scheduled validation runs complete runtime and deep campaigns on its
-authenticated main event SHA. Manual normal dispatch also selects all deep
+Scheduled validation runs complete runtime and deep campaigns on its
+authenticated main event SHA. Scheduled runs use their own concurrency group,
+so a later main push never replaces a pending scheduled run. Only the weekly
+Monday run replaces the installed Mock workflows with thirty formal approvals. Manual normal dispatch also selects all deep
 campaigns, with optional `native_macos=true`. Scheduled receipt authentication
 retains the same source/run/attempt checks; it does not authorize new cross-run
 proof reuse.
