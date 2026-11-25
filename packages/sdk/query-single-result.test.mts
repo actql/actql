@@ -2,7 +2,7 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {connectInProcess} from './host-port.mjs';
+import {connectInProcess} from './internal/client.mjs';
 import {readySubmissionAttempt, submissionEpoch} from './submission-fixture.mjs';
 
 const cid = (digit: string) => `sha256:${digit.repeat(64)}`;

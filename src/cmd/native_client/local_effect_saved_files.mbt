@@ -78,6 +78,7 @@ fn LocalCommandPreparationOriginal::require_saved_effect_file_write(
       row._retained_installation._retained_source._retained_declaration,
       row._retained_installation.write.mapping,
       row._retained_installation.binding,
+      row._retained_installation.write.operation,
     ) {
     Ok(_) => ()
     Err(issue) => {
@@ -266,7 +267,7 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_response_construction(
     self.business is Some(business) &&
     business.saved_effect_files is Some(actual) &&
     physical_equal(work, actual) &&
-    row.file_write_construction(bytes) is Some((physical, raw)) &&
+    row.file_write_construction(Some(bytes)) is Some((physical, raw)) &&
     saved_effect_file_application_capacity(
       business.saved_effect_rows.length(),
       physical,
@@ -474,8 +475,10 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
       ).map_err(issue => CommandSavedFileResource(issue))
       let reservation = command_preparation_result(reservation)
       work.reservation = Some(reservation)
-      let deleting = row.deleting()
-      let staging = (if deleting { "actql-delete-" } else { "actql-update-" }) +
+      let operation = row._retained_installation.write.operation
+      let staging = "actql-" +
+        operation +
+        "-" +
         member_index.to_string() +
         "-" +
         ordinal.to_string()
@@ -496,24 +499,35 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
         )
       }
       let child = match
-        (if deleting {
-          @row_file.prepare_native_relation_file_target_delete_io(
-            provider,
-            row.identity,
-            row.version,
-            staging,
-            prepare_response,
-            predecessor~,
-          )
-        } else {
-          @row_file.prepare_native_relation_file_target_update_io(
-            provider,
-            row._retained_installation.write.writable_fields,
-            row.identity,
-            (row.version, row.changes_wire, staging),
-            prepare_response,
-            predecessor~,
-          )
+        (match operation {
+          "create" =>
+            @row_file.prepare_native_relation_file_target_insert_io(
+              provider,
+              row.identity,
+              row.changes_wire,
+              staging,
+              prepare_response,
+              predecessor~,
+            )
+          "delete" =>
+            @row_file.prepare_native_relation_file_target_delete_io(
+              provider,
+              row.identity,
+              row.version,
+              staging,
+              prepare_response,
+              predecessor~,
+            )
+          "update" =>
+            @row_file.prepare_native_relation_file_target_update_io(
+              provider,
+              row._retained_installation.write.writable_fields,
+              row.identity,
+              (row.version, row.changes_wire, staging),
+              prepare_response,
+              predecessor~,
+            )
+          _ => stop("LocalOriginalEffectTargetUnavailable")
         }) {
         Ok(value) => value
         Err(issue) => {

@@ -1,8 +1,9 @@
 import type {TestContext} from 'node:test';
-import type {ClientError as SdkFailure, OperationFormatOptions} from './index.d.ts';
+import type {ClientError as SdkFailure, OperationFormatOptions} from './index.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as sdk from './index.mjs';
+import {connectInProcess} from './internal/client.mjs';
 
 const cid = (value: string) => `sha256:${value.repeat(64)}`;
 const ref = {namespaceId: 'format-original-run', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
@@ -18,7 +19,7 @@ const cases = [
 ] as const;
 async function failure(t: TestContext, operation: 'status' | 'wait' | 'reconcile', reply?: unknown) {
   const calls: string[] = [];
-  const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {perform(name: string, body: Record<string, unknown>) {
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {perform(name: string, body: Record<string, unknown>) {
     calls.push(name);
     if (name === 'connect') return profile;
     if (name === 'attach') return {ref: body.ref, durability: 'durable', revision: 1};

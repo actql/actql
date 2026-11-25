@@ -33,6 +33,7 @@ type Original = Parameters<Accounting['sourceMaterial']>[0] &
   Readonly<{moon: EnvironmentArgs[0] & Parameters<typeof composeEnvironment>[1]; declarationJson: CoreMethod;
     restoreDeclaration?: unknown; restoreAuthoredDeclaration?: unknown;
     prepareMapping?: RowSourceMappingMethod; prepareUpdateMapping?: RowSourceMappingMethod;
+    prepareFileCreateMapping?: RowSourceMappingMethod;
     prepareDeleteMapping?: RowSourceDeleteMappingMethod;
     prepareUpdateMappingCapacity?: CoreMethod;
     current(): void}>;
@@ -851,7 +852,7 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
             !Object.isFrozen(writes) || writes.length === 0) fail('InvalidInstalledEffectMappings');
         // Inspect only checked immutable own String DATA before the current/
         // resize boundary. Do not stringify proportional input before backing.
-        let units = 0n, guarded = true, hasDelete = false;
+        let units = 0n, guarded = true, requiresGuarded = false;
         const field = (value: unknown, name: string): unknown => {
           if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || !Object.isFrozen(value)) {
             fail('InvalidInstalledEffectMappings');
@@ -866,13 +867,14 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
               !Object.isFrozen(sources)) fail('InvalidInstalledEffectMappings');
           const operationField = Object.getOwnPropertyDescriptor(write as object, 'operation');
           const operation = operationField === undefined ? 'create' : field(write, 'operation');
-          if (operation !== 'create' && operation !== 'update' && operation !== 'delete' ||
+          if (operation !== 'create' && operation !== 'file-create' && operation !== 'update' && operation !== 'delete' ||
+              operation === 'file-create' && typeof original.prepareFileCreateMapping !== 'function' ||
               operation === 'update' && typeof original.prepareUpdateMapping !== 'function' ||
               operation === 'delete' && (sources.length !== 0 || typeof original.prepareDeleteMapping !== 'function')) {
             fail('InvalidInstalledEffectMappings');
           }
           guarded &&= operation !== 'create';
-          hasDelete ||= operation === 'delete';
+          requiresGuarded ||= operation === 'file-create' || operation === 'delete';
           units += BigInt(resource.length + operation.length);
           for (let j = 0; j < sources.length; j++) {
             const source = field(sources, String(j));
@@ -883,7 +885,7 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
             }
           }
         }
-        if (!guarded && hasDelete) fail('InvalidInstalledEffectMappings');
+        if (!guarded && requiresGuarded) fail('InvalidInstalledEffectMappings');
         if (guarded) {
           const capacity = original.prepareUpdateMappingCapacity;
           if (typeof capacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
@@ -931,11 +933,14 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
               capacity: () => checked(Reflect.apply(capacity, original.moon,
                 [originalPrepared.declaration, writesJson, write.resource, sourceWire.wire])),
               project() {
-                const runtime = Object.freeze({clientProgramRowSourcePrepareUpdateMapping: (...args: Parameters<RowSourceMappingMethod>) =>
-                  Reflect.apply(original.prepareUpdateMapping!, original.moon, args)});
+                const runtime = write.operation === 'file-create'
+                  ? Object.freeze({clientProgramRowSourcePrepareFileCreateMapping: (...args: Parameters<RowSourceMappingMethod>) =>
+                    Reflect.apply(original.prepareFileCreateMapping!, original.moon, args)})
+                  : Object.freeze({clientProgramRowSourcePrepareUpdateMapping: (...args: Parameters<RowSourceMappingMethod>) =>
+                    Reflect.apply(original.prepareUpdateMapping!, original.moon, args)});
                 return Object.freeze({resource: write.resource,
                   ...rowSourceMapping(runtime, originalPrepared.declaration,
-                    writesJson, write.resource, write.sources, 'update', sourceWire.wire)});
+                    writesJson, write.resource, write.sources, write.operation, sourceWire.wire)});
               },
             }), inputProjections, validate, retainNativeInput) as MappingCarrier & MappingOutput;
             mappings.push(mapping);

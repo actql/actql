@@ -298,8 +298,8 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(
   }
   let scope = match
     @publication.seal_publication_contract(
-      "acquisition_scope", "{\"sources\":[],\"version\":\"actql-acquisition-scope/0.1\"}",
-      max_bytes, max_nodes, max_depth,
+      "acquisition_scope", source_free_effect_result_scope_body, max_bytes, max_nodes,
+      max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Scope(issue))

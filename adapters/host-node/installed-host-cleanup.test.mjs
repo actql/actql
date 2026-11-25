@@ -8,7 +8,7 @@ import {syncBuiltinESMExports} from 'node:module';
 import {compileFunction} from 'node:vm';
 import {createServer} from 'node:http';
 import {parse} from 'acorn';
-import {join} from 'node:path';
+import {basename, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash, generateKeyPairSync} from 'node:crypto';
 import {DatabaseSync} from 'node:sqlite';
@@ -38,7 +38,12 @@ test('observation read cleanup retains its retry phase and never closes a succes
   await shutdown.close();assert.equal(closes,2);
 });
 
-// Fault the real request database, not the read-only format-inspection copy.
+function initializesRequestJournalWriter(database, sql) {
+  return sql === 'PRAGMA journal_mode = WAL' &&
+    basename(database.location() ?? '') === 'client-requests.sqlite3';
+}
+
+// Fault the real request database, not the read-only format inspection.
 // Keep the fault armed: cleanup must never retry schema or statement setup.
 function failRequestJournalInitialization(t, phase, closeFailures) {
   const exec = DatabaseSync.prototype.exec;
@@ -50,16 +55,17 @@ function failRequestJournalInitialization(t, phase, closeFailures) {
   const calls = {schema: 0, prepare: 0, close: 0};
   let closeAllowed = false;
   DatabaseSync.prototype.exec = function(sql) {
+    if (initializesRequestJournalWriter(this, sql)) databases.add(this);
     const result = exec.call(this, sql);
-    if (sql.includes('CREATE TABLE IF NOT EXISTS client_requests')) {
-      databases.add(this);
+    if (databases.has(this) && sql.startsWith('CREATE TABLE client_requests (')) {
       calls.schema++;
       if (phase === 'schema') throw primary;
     }
     return result;
   };
   DatabaseSync.prototype.prepare = function(sql) {
-    if (databases.has(this)) {
+    if (databases.has(this) &&
+        /\bFROM client_requests\s+WHERE authority_scope_cid = \? AND caller_request_id = \?$/u.test(sql)) {
       calls.prepare++;
       if (phase === 'prepare') throw primary;
     }
@@ -86,13 +92,13 @@ function failRequestJournalInitialization(t, phase, closeFailures) {
     }};
 }
 
-// Install before the constructor captures its native close. Only the actual
-// request writer identified by its original DDL is faulted, after arming.
+// Install before the constructor captures its native close. Arm only the
+// original request writer selected by the WAL configuration.
 function failRequestJournalClose(t, failure) {
   const exec = DatabaseSync.prototype.exec, close = DatabaseSync.prototype.close;
   const databases = new Set(); let armed = false, calls = 0;
   DatabaseSync.prototype.exec = function(sql) {
-    if (sql.includes('CREATE TABLE IF NOT EXISTS client_requests')) databases.add(this);
+    if (initializesRequestJournalWriter(this, sql)) databases.add(this);
     return Reflect.apply(exec, this, [sql]);
   };
   DatabaseSync.prototype.close = function() {
@@ -115,8 +121,9 @@ for (const phase of ['schema', 'prepare']) {
       await mkdir(root, {recursive: true});
       const directory = await mkdtemp(join(root, 'request-init-'));
       t.after(() => rm(directory, {recursive: true, force: true}));
-      // A valid root can be reopened after recovery; no format repair is used.
-      openClientRequestJournal(directory).close();
+      // Schema DDL only runs on fresh v3 initialization. Statement setup
+      // also runs on a valid reopen.
+      if (phase === 'prepare') openClientRequestJournal(directory).close();
       const fault = failRequestJournalInitialization(t, phase, closeFailures);
       let failure;
       assert.throws(() => openClientRequestJournal(directory), error => {
@@ -140,11 +147,22 @@ for (const phase of ['schema', 'prepare']) {
         assert.deepEqual(failure.cleanupHandle.status().owners, []);
         assert.equal(failure.cleanupHandle.retry().pending, false);
       }
-      assert.deepEqual(fault.calls, {schema: 1,
+      assert.deepEqual(fault.calls, {schema: phase === 'schema' ? 1 : 0,
         prepare: phase === 'prepare' ? 1 : 0, close: closeFailures + 1});
       fault.assertClosed();
       fault.restore();
-      openClientRequestJournal(directory).close();
+      if (phase === 'schema') {
+        const path = join(directory, 'client-requests.sqlite3');
+        const database = new DatabaseSync(path, {readOnly: true});
+        try {
+          assert.equal(database.prepare('PRAGMA user_version').get().user_version, 0);
+          assert.equal(database.prepare("SELECT name FROM sqlite_master WHERE name = 'client_requests'").get(), undefined);
+        } finally {database.close();}
+        const original = await readFile(path);
+        assert.throws(() => openClientRequestJournal(directory),
+          {code: 'LegacyClientRequestJournalFormat'});
+        assert.deepEqual(await readFile(path), original);
+      } else openClientRequestJournal(directory).close();
     });
   }
 
@@ -160,8 +178,10 @@ for (const phase of ['schema', 'prepare']) {
       let registrations=0;
       const options = {directory, authenticate: () => 'owner',
         registerModelProviders:()=>{registrations++;return [];}};
-      const initial = await openInstalledRemoteHttpHost(options);
-      await initial.close();
+      if (phase === 'prepare') {
+        const initial = await openInstalledRemoteHttpHost(options);
+        await initial.close();
+      }
       // Hold the same real native close fault through every initializer drain.
       const fault = failRequestJournalInitialization(t, phase, Infinity);
       let failure;
@@ -193,14 +213,21 @@ for (const phase of ['schema', 'prepare']) {
       assert.equal(failure.cleanupPending, false);
       assert.deepEqual(failure.cleanupHandle.status().owners, []);
       assert.equal((await failure.cleanupHandle.retry()).pending, false);
-      assert.deepEqual(fault.calls, {schema: 1,
+      assert.deepEqual(fault.calls, {schema: phase === 'schema' ? 1 : 0,
         prepare: phase === 'prepare' ? 1 : 0, close: pendingCloses + 1});
       fault.assertClosed();
       fault.restore();
-      const reopened = await openInstalledRemoteHttpHost(options);
+      const recoveryDirectory = phase === 'schema'
+        ? await mkdtemp(join(root, 'request-host-recovery-')) : directory;
+      if (recoveryDirectory !== directory) {
+        t.after(() => rm(recoveryDirectory, {recursive: true, force: true}));
+      }
+      const reopened = await openInstalledRemoteHttpHost({...options,
+        directory: recoveryDirectory});
       await reopened.close();
       await reopened.close();
-      assert.equal(registrations,3,'cleanup must not reopen the provider table');
+      assert.equal(registrations, phase === 'schema' ? 2 : 3,
+        'cleanup must not reopen the provider table');
     });
 }
 

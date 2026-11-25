@@ -109,6 +109,7 @@ type Installation<Value> = Readonly<{moon: Runtime; publicationControl?: Publica
   validateInstallation?(input: Pick<DefinitionFacts, 'prepared' | 'compilation'>): unknown;
   updateTargetOriginals?: UpdateOriginals;
   reserveOriginal?: ReserveOriginal;
+  localPolicySigning?: boolean;
   now?: () => string;
 }>;
 
@@ -150,6 +151,7 @@ export function installNodeClientEffectRun<Value>({moon,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
   prepareDefinition, captureDefinitionExplanation, assertRequestedStopAvailable, requestIdentityFor,
   inferPlanFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals, reserveOriginal,
+  localPolicySigning = false,
   now = () => new Date().toISOString()}: Installation<Value>) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
       typeof authorizeRequest !== 'function' ||
@@ -164,6 +166,7 @@ export function installNodeClientEffectRun<Value>({moon,
       (resultPolicyOriginalFor !== undefined &&
         typeof resultPolicyOriginalFor !== 'function') ||
       (validateInstallation !== undefined && typeof validateInstallation !== 'function') ||
+      typeof localPolicySigning !== 'boolean' ||
       (reserveOriginal !== undefined && typeof reserveOriginal !== 'function') ||
       (updateTargetOriginals !== undefined &&
         (typeof moon?.clientProgramEffectTargetSelections !== 'function' ||
@@ -416,7 +419,9 @@ export function installNodeClientEffectRun<Value>({moon,
           // Ordinary approval also resumes in another process without an
           // explicit commit stop. Its original must survive that same boundary.
           const effectOriginalRunWire = updateTargetRunOriginal !== undefined
-            ? undefined : updateTargetOriginals?.captureEffectMaterials({prepared, allowed, definition, identity});
+            ? undefined : updateTargetOriginals?.captureEffectMaterials({prepared, allowed, definition, identity,
+              compilation: definitionCompilation, runDefinition,
+              retainForReview: requestedStop || (submission !== undefined && localPolicySigning)});
           if (requestedStop && updateTargetRunOriginal === undefined && effectOriginalRunWire === undefined) {
             throw Object.assign(new Error('RequestedEffectStopOriginalUnavailable'),
               {code: 'RequestedEffectStopOriginalUnavailable'});

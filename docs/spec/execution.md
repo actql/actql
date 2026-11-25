@@ -2450,16 +2450,21 @@ and row-receipt identities with distinct file-replacement semantics. Its target
 CID hashes `{backend_kind: "json_file", installation_cid, directory, name,
 resource, row_identity}` canonically, preserving opaque location and row DATA.
 It binds the exact Preview/member/row, original installation, canonical request,
-dispatch, approved target version, actual `authorization_context_cid` and approved
-`resolution_cid`. The context is a binding, not a grant or use proof. The original
+dispatch, the approved target guard, actual `authorization_context_cid` and
+approved `resolution_cid`. The context binds the receipt to the original
+authorization. The original
 Account DispatchAuthorization MUST still admit the exact tuple, row and target
 immediately before durable dispatch and physical replacement.
 
-<!-- requirement-block: reconciliation.file-operation-kind-bound -->
+<!-- requirement-block: reconciliation.file-operation-kind-bound reconciliation.file-operation-version-bound reconciliation.file-create-key-bound reconciliation.file-create-absence-bound -->
 At issuance and recovery the receipt's `operation_kind` MUST match the approved
-`update` or `delete` member, including when the receipt has a valid self CID.
-A DELETE acknowledges replacement with the selected row removed and has no
-intended field-value body.
+`create`, `update`, or `delete` member, including when the receipt has a valid
+self CID. UPDATE and DELETE MUST carry `target_version_cid` from the approved
+existing row. CREATE MUST omit `target_version_cid` and bind the assigned
+storage key from the approved CREATE occurrence. The Writer MUST verify that
+key is absent under the original file lock before replacement. A DELETE
+acknowledges replacement with the selected row removed and has no intended
+field-value body.
 
 <!-- requirement-block: reconciliation.file-operation-generation-size-bound -->
 Only the original Writer's acknowledged staging and directory synchronization

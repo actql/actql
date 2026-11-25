@@ -77,6 +77,7 @@ type PhysicalOptions = Readonly<{
   physicalConstruction?: unknown;
   targetReadOperation?: string;
   footprintCapacity?: unknown;
+  physicalInput?: Readonly<{initialCapacity: unknown; capacity(bytes: number, requestUnits: number): unknown}>;
 }>;
 type CredentialSlot = Pick<HttpOccurrence, 'maxRequestBytes' | 'maxResponseBytes'> & Readonly<{
   phase: string; operationIndex: number; maxTargetBytes?: number; slot?: string;
@@ -341,10 +342,23 @@ export function prepareInstalledDeclaredUpdatePlanRecipe({moon, providerMoon, wr
 // extents describe returned/workspace DATA, never policy, grants or a Plan.
 // Common alone composes the native quantities, control codec and operation slots.
 export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputLimits, limits, construction,
-  requestConstruction, physicalConstruction, targetReadOperation, footprintCapacity}: PhysicalOptions): InstalledEffectPlanRecipe {
+  requestConstruction, physicalConstruction, targetReadOperation, footprintCapacity, physicalInput}: PhysicalOptions): InstalledEffectPlanRecipe {
   if (typeof operation !== 'string' || !operation || !operation.isWellFormed() ||
       !construction || nodeTypes.isProxy(construction) || !Object.isFrozen(construction)) {
     fail('InstalledPhysicalWriteConstructionUnavailable');
+  }
+  let physicalInputCapacity: NonNullable<PhysicalOptions['physicalInput']>['capacity'] | undefined;
+  let initialPhysicalCapacity: unknown;
+  if (physicalInput !== undefined) {
+    if (!physicalInput || nodeTypes.isProxy(physicalInput) || !Object.isFrozen(physicalInput) ||
+        Reflect.ownKeys(physicalInput).length !== 2) fail('InstalledPhysicalWriteConstructionUnavailable');
+    const fields = Object.getOwnPropertyDescriptors(physicalInput);
+    physicalInputCapacity = fields.capacity?.value;
+    initialPhysicalCapacity = fields.initialCapacity?.value;
+    if (typeof physicalInputCapacity !== 'function' || nodeTypes.isProxy(physicalInputCapacity) ||
+        nodeTypes.isAsyncFunction(physicalInputCapacity) || initialPhysicalCapacity === undefined) {
+      fail('InstalledPhysicalWriteConstructionUnavailable');
+    }
   }
   const dimensions = ['nodes', 'text', 'wire'];
   const selected = ['retained', 'workspace'].flatMap(name => {
@@ -423,9 +437,14 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
 
   const extent = (name: string, capacity: unknown, transfer: bigint, physical: boolean) => checked(
     moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(name, capacity, transfer, physical));
+  const transferBytes = BigInt(limits.maxTransferBytes);
+  const writeExtent = (capacity: unknown) => extent(operation, capacity, transferBytes, true);
+  const maximum = writeExtent(quantities[3]);
+  const write = physicalInputCapacity === undefined ? maximum : checked(
+    moon.clientProgramInstalledEffectOperationStagedExtentPrepare(writeExtent(initialPhysicalCapacity), maximum));
   const rowOperations = [
     Object.freeze({operation: requestOperation, extent: extent(requestOperation, quantities[2], 0n, false)}),
-    Object.freeze({operation, extent: extent(operation, quantities[3], BigInt(limits.maxTransferBytes), true)}),
+    Object.freeze({operation, extent: write}),
   ];
   let ownedReadOperations;
   if (targetReadOperation !== undefined) {
@@ -455,7 +474,9 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
     recoveryConstruction: Object.freeze({operationIndex: 1, inputExtent: recoveryInputExtent}),
     ...(footprintConstruction === undefined ? {} : {footprintConstruction}),
     requestConstruction: Object.freeze({operationIndex: 0}),
-    physicalWrite: Object.freeze({operationIndex: 1, transferBytes: BigInt(limits.maxTransferBytes)}),
+    physicalWrite: Object.freeze({operationIndex: 1, transferBytes,
+      ...(physicalInputCapacity === undefined ? {} : {inputExtent: (bytes: number, requestUnits: number) =>
+        writeExtent(physicalInputCapacity!(bytes, requestUnits))})}),
   }), rowOperations.length + memberOperations.length);
 }
 

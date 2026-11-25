@@ -162,31 +162,36 @@ test('installed target recipes retain two exact Mappings and reject inconsistent
   const root = await mkdtemp(join(tmpdir(), 'actql-mock-target-recipes-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const cid = letter => 'sha256:' + letter.repeat(64);
-  const [account, contact, lead] = [['Account', 'a'], ['Contact', 'b'], ['Lead', 'e']].map(([resource, letter]) => {
+  const [account, contact, lead, newLead] = [
+    ['Account', 'a'], ['Contact', 'b'], ['Lead', 'e'], ['NewLead', 'f', 'create'],
+  ].map(([resource, letter, kind = 'update']) => {
     const mappingCid = cid(letter), operation = 'write-' + letter;
     return Object.freeze({resource, mappingCid, mappingRef: 'mapping:crm/' + resource,
       body: JSON.stringify({mapping_contract_cid: mappingCid, minimum_approval: 'required',
-        target_ref: 'connector://crm/' + resource, permission_rules: [{effect_kind: 'update', permissions: [operation]}]})});
+        target_ref: 'connector://crm/' + resource, permission_rules: [{effect_kind: kind, permissions: [operation]}]})});
   });
   // Explicit compiler/plan ports observe selected recipes. The real Host
   // entrance runs, but no native Plan, grant, managed Run or I/O is issued.
   const prepared = Object.freeze({}), identity = Object.freeze({});
-  const compilation = Object.freeze({}), composedCompilation = Object.freeze({});
+  const compilation = Object.freeze({}), composedCompilation = Object.freeze({}), createCompilation = Object.freeze({});
   const demand = [];
   const ok = value => ({$tag: 1, _0: value});
   const moon = {
     strategyRemoteManagedOutputEvidenceKind: () => 'fixture-unused',
     clientProgramEffectCompilationPlanWire(actual) {
-      assert(actual === compilation || actual === composedCompilation);
+      assert(actual === compilation || actual === composedCompilation || actual === createCompilation);
       return JSON.stringify({execution_material: {program: {id: 'p',
         stages: [{id: 's', steps: [{values: {}}], effects: actual === compilation
-          ? {contact: {}, account: {}} : {contact: {}, lead: {}}}]}}});
+          ? {contact: {}, account: {}} : actual === createCompilation
+            ? {contact: {}, newLead: {}} : {contact: {}, lead: {}}}]}}});
     },
     clientProgramEffectMemberDescriptor(actual, stage, effectId) {
       assert.equal(actual, prepared);
       assert.equal(stage, 0);
-      const [index, mapping] = effectId === 'contact' ? [0, contact] : [1, effectId === 'account' ? account : lead];
-      return ok(runtimeTupleFromFields([index, effectId, 'update', 'connector://crm/' + mapping.resource,
+      const [index, mapping] = effectId === 'contact' ? [0, contact] :
+        [1, {account, lead, newLead}[effectId]];
+      return ok(runtimeTupleFromFields([index, effectId, mapping === newLead ? 'create' : 'update',
+        'connector://crm/' + mapping.resource,
         mapping.mappingRef, mapping.mappingCid, Object.freeze({})]));
     },
     clientProgramEffectAcquisitionCount: actual => {assert.equal(actual, prepared); return 0;},
@@ -235,6 +240,19 @@ test('installed target recipes retain two exact Mappings and reject inconsistent
   ]) {
     await assert.rejects(createInstalledRowEffect(changed), {code: 'InvalidInstalledEffectPlanRecipe'});
   }
+  const createRoute = letter => Object.freeze({recipe: physicalRecipe('write-' + letter),
+    targetReadOperation: undefined});
+  const mixedMappings = Object.freeze([contact, newLead]);
+  const mixedOptions = {...options, mappings: mixedMappings,
+    driver: {...options.driver, kinds: ['update', 'create']}};
+  for (const entries of [
+    {[contact.mappingCid]: createRoute('b'), [newLead.mappingCid]: createRoute('f')},
+    {[contact.mappingCid]: route('b'), [newLead.mappingCid]: route('f')},
+  ]) {
+    const mixed = prepareInstalledTargetPlanRecipes(mixedMappings, Object.freeze(entries));
+    await assert.rejects(createInstalledRowEffect({...mixedOptions, managedTargetPlanRecipes: mixed}),
+      {code: 'InvalidInstalledEffectPlanRecipe'});
+  }
   assert.deepEqual(await readdir(root), [], 'refused recipes cannot initialize the ledger');
   const effect = await createInstalledRowEffect({...options, managedTargetPlanRecipes: funded});
   assert.deepEqual(effect.effectSelectors.map(value => value.mappingCid), [account.mappingCid, contact.mappingCid]);
@@ -261,6 +279,19 @@ test('installed target recipes retain two exact Mappings and reject inconsistent
       rows: ['write-e.request', 'write-e', 'read-e.capture-target', 'read-e.apply-target', 'read-e.resume-target'],
       controls: 'exact'},
   ]);
+  const mixed = await createInstalledRowEffect({...mixedOptions,
+    managedTargetPlanRecipes: prepareInstalledTargetPlanRecipes(mixedMappings, Object.freeze({
+      [contact.mappingCid]: route('b'), [newLead.mappingCid]: createRoute('f'),
+    }))});
+  demand.length = 0;
+  assert.deepEqual(mixed.prepareManagedPlan({prepared, identity, compilation: createCompilation}, inputs), [
+    {id: 'contact', members: ['write-b.capture', 'write-b.capture'],
+      rows: ['write-b.request', 'write-b', 'read-b.capture-target', 'read-b.apply-target', 'read-b.resume-target'],
+      controls: 'exact'},
+    {id: 'newLead', members: ['write-f.capture', 'write-f.capture'],
+      rows: ['write-f.request', 'write-f'], controls: 'exact'},
+  ]);
   assert.equal(await effect.close(), true);
   assert.equal(await legacy.close(), true);
+  assert.equal(await mixed.close(), true);
 });

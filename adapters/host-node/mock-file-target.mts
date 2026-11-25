@@ -25,6 +25,7 @@ type Io = {
   rename(from: string, to: string): unknown;
 };
 type Current = () => unknown;
+type FundRead = (size: number) => unknown;
 type TargetOptions = Readonly<{
   dataPath: string;
   maxBytes: number;
@@ -53,7 +54,7 @@ type RunScope = {closing: boolean; flight?: Promise<TargetStatus>};
 type ChildOperations = Readonly<{
   acquire(path: string, flags: number, mode?: number, ownsPath?: boolean): Promise<Slot>;
   call<Name extends keyof Handle>(slot: Slot, name: Name, ...args: Parameters<Handle[Name]>): ReturnType<Handle[Name]>;
-  read(): Promise<{bytes: Buffer; file: Slot; before: BigIntStats}>;
+  read(fundRead?: FundRead): Promise<{bytes: Buffer; file: Slot; before: BigIntStats}>;
   unchanged(slot: Slot, before: BigIntStats): Promise<void>;
   originalPath(slot: Slot): Promise<void>;
   current(): void;
@@ -144,13 +145,19 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent, observe
           !sameFile(before, now) || !sameFile(before, named)) fail('MockFileTargetChanged');
       childCurrent();
     }
-    async function read() {
+    async function read(fundRead?: FundRead) {
       const file = await acquire(dataPath, constants.O_RDONLY | constants.O_NOFOLLOW);
       const before = await call(file, 'stat', {bigint: true});
       if (!before.isFile() || before.nlink !== 1n || before.size > BigInt(maxBytes)) {
         fail('InvalidMockTargetFile');
       }
       const size = Number(before.size);
+      // The selected writer may grow its same physical reservation from
+      // this locked FD's checked size, before allocating or reading the body.
+      if (fundRead !== undefined) {
+        synchronous(fundRead(size));
+        childCurrent();
+      }
       const bytes = Buffer.alloc(size);
       let offset = 0;
       while (offset < size) {
@@ -247,10 +254,11 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent, observe
       return value;
     }, signal, checkCurrent, runOriginal);
   }
-  function updateChild({authorize, replace, signal, assertCurrent: checkCurrent, runOriginal}:
-    ChildOptions & Readonly<{replace(bytes: Buffer): unknown}>) {
+  function updateChild({authorize, replace, signal, assertCurrent: checkCurrent, runOriginal, fundRead}:
+    ChildOptions & Readonly<{replace(bytes: Buffer): unknown; fundRead?: FundRead}>) {
     if (typeof authorize !== 'function' || typeof replace !== 'function' ||
-        (checkCurrent !== undefined && typeof checkCurrent !== 'function')) fail('InvalidMockFileUpdate');
+        (checkCurrent !== undefined && typeof checkCurrent !== 'function') ||
+        (fundRead !== undefined && typeof fundRead !== 'function')) fail('InvalidMockFileUpdate');
     current(signal);
     return makeChild(async ({acquire, call, read, unchanged, originalPath, current}) => {
       // This is entered only by the Row Effect's original durable dispatch claim.
@@ -260,7 +268,7 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent, observe
       const lock = await acquire(dataPath + '.actql-write.lock',
         constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
         0o600, true);
-      const {bytes, file, before} = await read();
+      const {bytes, file, before} = await read(fundRead);
       if (before.uid !== BigInt(process.getuid!()) || (before.mode & 0o200n) === 0n) {
         fail('MockFileTargetNotWritable');
       }

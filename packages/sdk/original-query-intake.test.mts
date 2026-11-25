@@ -1,5 +1,5 @@
 import type {TestContext} from 'node:test';
-import type {QueryOptions} from './index.d.ts';
+import type {QueryOptions} from './index.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connectInProcess} from './host-port.mjs';

@@ -1,5 +1,5 @@
 // Existing bounded Checkpoint review and signed resolution operations.
-import type {Client, CheckpointSigner, CheckpointSummary, SignedCheckpointAnswer} from '../index.d.ts';
+import type {Client, CheckpointSigner, CheckpointSummary, SignedCheckpointAnswer} from '../index.mjs';
 import type {WireConnection} from '@actql/client-wire';
 
 type CheckpointOperations = Pick<Client, 'checkpoints' | 'reviewCheckpoint' |

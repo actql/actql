@@ -1103,6 +1103,7 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
   // the isolated wrapper checkout.
   for (const path of ['packages/native-cli/lib/project-template.mjs',
     'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs',
+    'adapters/host-node/fixtures/mock-file-create.fixture.mjs',
     'adapters/host-node/fixtures/mock-nullable-update.fixture.mjs']) {
     const target = join(checkout, path);
     mkdirSync(dirname(target), {recursive: true});
@@ -1453,7 +1454,7 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
     assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, undefined);
     const index = Number(process.argv[process.argv.indexOf('--index') + 1]);
     const lineage = process.argv.includes('src/platform_native/row_source/target_io_lineage_physical_scoped_wbtest.mbt');
-    const suffix = (lineage ? ['chain', 'inplace', 'replaced'] : ['update', 'cancel', 'sync', 'funding'])[index]; assert(suffix);
+    const suffix = (lineage ? ['chain', 'inplace', 'replaced'] : ['update', 'cancel', 'sync', 'funding', 'insert'])[index]; assert(suffix);
     const root = process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT;
     assert.equal(statSync(root).mode & 0o777, 0o700);
     assert.equal(statSync(join(root, 'target-backing-' + suffix)).size, 384 * 1024 ** 2);
@@ -2685,7 +2686,7 @@ test('Native Core routes Content, target lineage and original file receipts with
     }
     assert(content.every(call => call.profile === 'runtime-values'));
     const targets = selected.filter(call => call.args.includes(targetFile));
-    assert.deepEqual(targets.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? ['0'] : ['0', '1', '2', '3']);
+    assert.deepEqual(targets.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? ['0'] : ['0', '1', '2', '3', '4']);
     assert.equal(new Set(targets.map(call => call.targetRoot)).size, targets.length);
     for (const call of targets) {
       assert.equal(call.profile, 'scoped-review-values');
@@ -2719,9 +2720,9 @@ test('Native Core routes Content, target lineage and original file receipts with
     }
     for (const call of selected.filter(call => !content.includes(call))) assert.equal(call.effectPlanOnly, undefined);
     if (!failed) {
-      assert.equal(calls.length, 20 + 4 + 3 + 5 + 11,
-        'all old cases plus three lineage/five file-response cases and their original signing producer');
-      assert.match(result.stdout, /"scoped":39,"physical":38,"repeatedGeometry":1/u);
+      assert.equal(calls.length, 20 + 5 + 3 + 5 + 11,
+        'Content, target I/O, lineage, file responses and original supporting cases all run');
+      assert.match(result.stdout, /"scoped":40,"physical":39,"repeatedGeometry":1/u);
     } else assert.match(result.stderr + result.stdout, /no successfully executed test cases|expected tests=1/u);
     f.verifyExternal();
   }

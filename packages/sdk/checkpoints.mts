@@ -4,7 +4,7 @@
 // never evaluates accounts or holds a key.
 import {createCheckpointAnswerCodec} from './internal/checkpoint-answer-construction.generated.mjs';
 import {validAnswerEvidence, validAnswerResolution} from './internal/checkpoint-answer-contract.generated.mjs';
-import type {SignedCheckpointAnswer} from './index.d.ts';
+import type {SignedCheckpointAnswer} from './index.mjs';
 import type {AnswerEvidence} from './internal/checkpoint-answer-contract.generated.mjs';
 
 type OptionalAuthorityApproval = AnswerEvidence['compatibility_approval'] &

@@ -472,13 +472,13 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
   store_authority : String,
   max_bytes : Int,
   report : (LocalNativeMockEffectProposalIssue) -> Unit,
+  values_installation? : LocalValuesInstallation? = None,
 ) -> Unit raise ClientStop {
   guard state.first._retained_models.is_empty() &&
     state.direct_sources is Some(direct) &&
     direct.captures.length() == direct.identities.length() &&
     state.proposals is Some(proposals) &&
     proposals.materials is Some(materials) &&
-    proposals._retained_combined_source_unit is Some(combined) &&
     proposals._retained_local_manifest is Some(manifest) &&
     proposals.invocation is Some(invocation) &&
     proposals.construction is Some(construction) &&
@@ -491,6 +491,22 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
   }
   let prepared = state._retained_prepared
   let limits = @run_host.client_standard_effect_computation_limits().effects
+  let combined = proposals._retained_combined_source_unit
+  let values_scope = if combined is None {
+    guard state.first.is_mock_values_create() &&
+      direct._retained_values_publication is Some(publication) &&
+      proposals.members is [entry] &&
+      entry._retained_artifact is Some(artifact) &&
+      @run_host.client_effect_source_free_result_original_scope(
+        artifact, publication,
+      )
+      is Some(scope) else {
+      stop("LocalOriginalEffectDependencyInventoryUnavailable")
+    }
+    Some(scope)
+  } else {
+    None
+  }
   let measuring = mock_effect_dependency_measurement_bytes(
     limits.max_admission_nodes,
     limits.max_admission_depth,
@@ -504,7 +520,18 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
     Int64::max(construction.workspace, measuring),
   )
   .native_effect_proposal_with_cause(report)
-  let policy_bodies = @run_host.prepared_client_effect_publication_policy_bodies(
+  // Values CREATE has no checked Source policy. Its immutable installation
+  // already owns the one policy body retained at original Run acceptance.
+  let values_policy = if values_scope is Some(_) {
+    guard values_installation is Some(_) else {
+      stop("LocalOriginalEffectDependencyInventoryUnavailable")
+    }
+    values_installation
+  } else {
+    None
+  }
+  let policy_bodies = if values_policy is None {
+    @run_host.prepared_client_effect_publication_policy_bodies(
       prepared,
       max_bytes,
       limits.max_admission_nodes,
@@ -522,15 +549,22 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
       LocalNativeMockEffectProposalIssue::PolicyDependency(issue)
     })
     .native_effect_proposal_with_cause(report)
+  } else {
+    []
+  }
   let mut entries = retention.length().to_int64() +
     policy_bodies.length().to_int64() +
+    (if values_policy is Some(_) { 1L } else { 0L }) +
     2L * direct.identities.length().to_int64() +
-    @run_host.client_effect_combined_source_unit_dependency_body_count(combined)
-  let (_, source_stage, _) = @run_host.client_effect_combined_source_unit_catalog_subject(
-    combined,
-  )
+    combined
+    .map(@run_host.client_effect_combined_source_unit_dependency_body_count)
+    .unwrap_or(1L)
+  let source_stage = combined.map(value => {
+    @run_host.client_effect_combined_source_unit_catalog_subject(value).1
+  })
   if proposals.imports is Some(_) {
     guard proposals._retained_direct_source_manifest is Some(_) &&
+      source_stage is Some(stage) &&
       proposals.import_observations.length() == 1 else {
       stop("LocalOriginalEffectDependencyInventoryUnavailable")
     }
@@ -544,7 +578,7 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
         is Some(result) else {
         stop("LocalOriginalEffectDependencyInventoryUnavailable")
       }
-      if @strategy.captured_effect_local_result_stage(result) == source_stage {
+      if @strategy.captured_effect_local_result_stage(result) == stage {
         guard entry._retained_dependency is Some(capture) else {
           stop("LocalOriginalEffectDependencyInventoryUnavailable")
         }
@@ -636,6 +670,9 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
   for (kind, cid, wire) in policy_bodies {
     append(kind, cid, wire)
   }
+  if values_policy is Some(values) {
+    append("data_policy", values.result_policy_cid, values.result_policy_wire)
+  }
   // The Source relations and schemas are distinct from the completed Result.
   // Borrow the preimages already backed by each original Source identity scan.
   for index, identity in direct.identities {
@@ -657,13 +694,24 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
       schema,
     )
   }
-  for
-    (kind, cid, wire) in @run_host.client_effect_combined_source_unit_dependency_bodies(
-      combined,
-    ) {
-    append(kind, cid, wire)
+  if combined is Some(combined) {
+    for
+      (kind, cid, wire) in @run_host.client_effect_combined_source_unit_dependency_bodies(
+        combined,
+      ) {
+      append(kind, cid, wire)
+    }
+  } else if values_scope is Some(scope) {
+    append(
+      "acquisition_scope",
+      @publication.publication_contract_identity(scope),
+      @publication.publication_contract_json(scope),
+    )
   }
   if proposals.imports is Some(imported) {
+    guard source_stage is Some(stage) else {
+      stop("LocalOriginalEffectDependencyInventoryUnavailable")
+    }
     let source_manifest = proposals._retained_direct_source_manifest.unwrap()
     kinds.push("local_manifest")
     identities.push(
@@ -693,7 +741,7 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
         is Some(result) else {
         stop("LocalOriginalEffectDependencyInventoryUnavailable")
       }
-      if @strategy.captured_effect_local_result_stage(result) == source_stage {
+      if @strategy.captured_effect_local_result_stage(result) == stage {
         guard entry.artifact is Some(artifact) &&
           entry._retained_dependency is Some(capture) else {
           stop("LocalOriginalEffectDependencyInventoryUnavailable")

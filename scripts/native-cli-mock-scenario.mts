@@ -1,6 +1,7 @@
 import {nativeMockAcceptanceObservations, projectInitialAdoptionArguments} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {mixedDeleteUpdateMockProject, sameResourceMixedMockProject,
   threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {fileCreateMockProject} from '../adapters/host-node/fixtures/mock-file-create.fixture.mjs';
 // Public README/Quickstart commands only. The installed runner supplies a new
 // exited process for every invocation. Unit doubles validate these assertions,
 // not Native execution, signatures, custody or an installed package.
@@ -417,9 +418,11 @@ export function runNativeSharedFileMockScenario<Command extends CommandRecord>(
     fixture, changes, decision: 'approve', run, launcherTimings});
 }
 
-type SharedMockChange = Readonly<{kind: 'update' | 'delete'; resource: string; id: string; after?: string}>;
+type SharedMockChange = Readonly<{kind: 'update' | 'delete'; resource: string; id: string; after?: string}>
+  | Readonly<{kind: 'create'; resource: string; id: Readonly<{content_cid: string; occurrence: number}>; after: unknown}>;
 type SharedMockFixture = Readonly<{files: Readonly<Record<string, string>>;
-  before: string; after: string; programFile: string; rows: readonly unknown[]}>;
+  before: string; after?: string; programFile: string; rows: readonly unknown[];
+  resultName?: string; assertCreatedFile?(bytes: string): void}>;
 type SharedMockScenario<Command extends CommandRecord> = Omit<ScenarioOptions<Command>, 'template'>;
 export function runNativeMixedFileMockScenarios<Command extends CommandRecord>(
   {root, run, launcherTimings = 'optional'}: SharedMockScenario<Command>) {
@@ -428,7 +431,7 @@ export function runNativeMixedFileMockScenarios<Command extends CommandRecord>(
     {kind: 'delete', resource: 'Account', id: 'a1'},
     {kind: 'update', resource: 'Contact', id: 'c1', after: 'C-new'},
   ];
-  return runNativeMixedFileDecisions({root, run, launcherTimings}, 'native-mixed-file', fixture, changes);
+  return runNativeSharedFileDecisions({root, run, launcherTimings}, 'native-mixed-file', fixture, changes);
 }
 
 export function runNativeSameResourceMockScenarios<Command extends CommandRecord>(
@@ -438,10 +441,10 @@ export function runNativeSameResourceMockScenarios<Command extends CommandRecord
     {kind: 'update', resource: 'Account', id: 'a2', after: 'A2-new'},
     {kind: 'delete', resource: 'Account', id: 'a1'},
   ];
-  return runNativeMixedFileDecisions({root, run, launcherTimings}, 'native-same-resource', fixture, changes);
+  return runNativeSharedFileDecisions({root, run, launcherTimings}, 'native-same-resource', fixture, changes);
 }
 
-async function runNativeMixedFileDecisions<Command extends CommandRecord>(
+async function runNativeSharedFileDecisions<Command extends CommandRecord>(
   {root, run, launcherTimings}: SharedMockScenario<Command> & {launcherTimings: LauncherTimings},
   projectName: string, fixture: SharedMockFixture, changes: readonly SharedMockChange[]) {
   const results = [];
@@ -451,6 +454,12 @@ async function runNativeMixedFileDecisions<Command extends CommandRecord>(
     results.push({decision, ...result});
   }
   return results;
+}
+
+export function runNativeFileCreateMockScenarios<Command extends CommandRecord>(
+  {root, run, launcherTimings = 'optional'}: SharedMockScenario<Command>) {
+  const fixture = fileCreateMockProject();
+  return runNativeSharedFileDecisions({root, run, launcherTimings}, 'native-file-create', fixture, fixture.changes);
 }
 
 async function runNativeSharedFileMutation<Command extends CommandRecord>(
@@ -497,8 +506,9 @@ async function runNativeSharedFileMutation<Command extends CommandRecord>(
     `  Effect: "${kind}"  Target: "connector://salesforce/${resource}"`,
     '  Items: 1', '  Preview strength: "full_diff"', '  Changes:',
     `    Row: ${JSON.stringify(id)}`,
-    ['Before', {state: 'present', value: originalDocument.salesforce[resource].rows.find(row => row.id === id)}],
-    ['After', kind === 'delete' ? {state: 'absent'} : {state: 'present', value: {value: after}}],
+    ['Before', kind === 'create' ? {state: 'absent'} :
+      {state: 'present', value: originalDocument.salesforce[resource].rows.find(row => row.id === id)}],
+    ['After', kind === 'create' ? after : kind === 'delete' ? {state: 'absent'} : {state: 'present', value: {value: after}}],
   ]), 'Original Review must preserve ordered targets and every intended change');
   assert.deepEqual(await targetSnapshot(file), before, 'Pending status must not write');
 
@@ -509,7 +519,7 @@ async function runNativeSharedFileMutation<Command extends CommandRecord>(
   const after = await targetSnapshot(file);
   const common = {runId, checkpointId: checkpoint, checkpointCid: original.checkpoint.checkpoint_cid,
     beforeSha256: before.sha256, afterSha256: after.sha256, lockPathAbsent: true};
-  const resultArguments = ['result', runId, '--result', 'updates', '--format', 'jsonl'];
+  const resultArguments = ['result', runId, '--result', fixture.resultName ?? 'updates', '--format', 'jsonl'];
   if (decision === 'reject') {
     assert.deepEqual(after, before, 'Rejection must not replace the original file');
     runState(await invoke('saved-status', ['status', runId, '--json']), 'cancelled', runId);
@@ -520,11 +530,16 @@ async function runNativeSharedFileMutation<Command extends CommandRecord>(
     await assert.rejects(lstat(file + '.actql-write.lock'), {code: 'ENOENT'});
     return {...common, resultRefusal, commands};
   }
-  if (changes.some(change => change.kind === 'delete')) {
-    assert.equal(after.bytes, fixture.after, 'The ordered DELETE and UPDATE must preserve every untouched byte');
+  if (fixture.assertCreatedFile) {
+    fixture.assertCreatedFile(after.bytes);
   } else {
-    assert.deepEqual(JSON.parse(after.bytes), JSON.parse(fixture.after),
-      'Only the independently expected updates may change');
+    assert(typeof fixture.after === 'string', 'Existing-row fixtures require independent expected file bytes');
+    if (changes.some(change => change.kind === 'delete')) {
+      assert.equal(after.bytes, fixture.after, 'The ordered DELETE and UPDATE must preserve every untouched byte');
+    } else {
+      assert.deepEqual(JSON.parse(after.bytes), JSON.parse(fixture.after),
+        'Only the independently expected updates may change');
+    }
   }
   assert.notEqual(after.sha256, before.sha256);
   runState(await invoke('completed-status', ['status', runId, '--json']), 'succeeded', runId);

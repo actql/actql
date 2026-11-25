@@ -636,14 +636,20 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
           stop("LocalOriginalEffectRequestUnavailable")
         }
       }
-      let target_value = @canonical.object_field(
-        original_row, "target_row_identity",
-      ).unwrap_or_else(() => stop("LocalOriginalEffectRowUnavailable"))
-      let selector = @canonical.stringify_value(
-        target_value, local_project_mock_relation_wire_bytes, local_project_mock_relation_wire_nodes,
-        local_project_mock_relation_wire_depth,
-      ) catch {
-        _ => stop("LocalOriginalEffectRowUnavailable")
+      let selector = if descriptor.2 == "create" {
+        // The restored key is the fixed ASCII digest derived from this same
+        // Preview. Its content/occurrence remains the logical row identity.
+        "\"" + identity + "\""
+      } else {
+        let target_value = @canonical.object_field(
+          original_row, "target_row_identity",
+        ).unwrap_or_else(() => stop("LocalOriginalEffectRowUnavailable"))
+        @canonical.stringify_value(
+          target_value, local_project_mock_relation_wire_bytes, local_project_mock_relation_wire_nodes,
+          local_project_mock_relation_wire_depth,
+        ) catch {
+          _ => stop("LocalOriginalEffectRowUnavailable")
+        }
       }
       let selected = row_binding._retained_selection
       let target_cid = @publication.effect_file_target_cid(
@@ -676,7 +682,7 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
       }
       business.saved_effect_rows.push(prepared_row)
       let (physical, raw) = prepared_row
-        .file_write_construction(0)
+        .file_write_construction(None)
         .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
       demand = Some(
         match demand {

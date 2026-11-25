@@ -1,0 +1,145 @@
+import assert from 'node:assert/strict';
+import {test} from 'node:test';
+import {readFileSync} from 'node:fs';
+import {eventSchemas,checkEventSchemas} from './event-schema.mjs';
+import {parameterPrograms} from './parameter-schema.mjs';
+
+test('calendar literal selectors enforce week origin and preserve field provenance syntax',()=>{
+  const {calendar_bucket:b,calendar_series:s}=eventSchemas();
+  for(const body of [b,s]) {
+    assert.equal(body.additionalProperties,false);
+    assert.deepEqual(body.allOf[0].then,{required:['week_start']});
+    assert.deepEqual(body.allOf[0].else,{not:{required:['week_start']}});
+    assert.deepEqual(body.properties.unit.enum,['day','week','month','quarter','year']);
+    assert.equal(body.properties.timezone.type,'string');
+  }
+  const time=new RegExp(b.properties.time.pattern);
+  for(const name of ['time','left.time','right.line\nname']) assert.ok(time.test(name));
+  for(const name of ['left.__cid','left.a.b','__actql_x','']) assert.ok(!time.test(name));
+  const stamp=new RegExp(s.properties.start.oneOf[0].pattern);
+  assert.ok(stamp.test('0001-01-01T00:00:00.000Z'));
+  assert.ok(!stamp.test('0000-01-01T00:00:00.000Z'));
+});
+
+test('sequence shares predicate grammar and never inserts implicit match limits',()=>{
+  const s=eventSchemas().sequence;
+  assert.deepEqual(s.required,['id','time','pattern','within']);
+  assert.deepEqual(s.properties.by.default,[]);
+  assert.equal(s.properties.overlap.default,'disallow');
+  assert.equal(s.properties.contiguity.default,'adjacent');
+  assert.equal(s.additionalProperties,false);
+  assert.equal((s.properties.by as typeof s.properties.by & {minItems?: number; uniqueItems?: boolean}).minItems,undefined);
+  assert.equal((s.properties.by as typeof s.properties.by & {minItems?: number; uniqueItems?: boolean}).uniqueItems,undefined);
+  assert.equal(s.properties.pattern.minItems,2);
+  assert.deepEqual(s.properties.pattern.items.properties.where,{$ref:'#/$defs/predicate'});
+  assert.equal(s.properties.pattern.items.additionalProperties,false);
+  for(const key of ['max_matches_per_key','max_output_rows'] as const) {
+    assert.equal((s.properties[key] as typeof s.properties[typeof key] & {default?: unknown}).default,undefined);
+    assert.equal(s.properties[key].oneOf[0].minimum,1);
+  }
+});
+
+test('as-of source syntax separates temporal keys, identity evidence and projection',()=>{
+  const s=eventSchemas().asof_join;
+  assert.equal(s.additionalProperties,false);
+  assert.deepEqual(s.required,['with','kind','by','left_time','right_time','direction','tolerance','select']);
+  assert.deepEqual(s.properties.kind.enum,['left','inner']);
+  assert.deepEqual(s.properties.direction.enum,['backward','forward','nearest']);
+  for(const name of ['by','right_tie_break'] as const) {
+    assert.equal((s.properties[name] as typeof s.properties[typeof name] & {minItems?: number; uniqueItems?: boolean}).minItems,undefined);
+    assert.equal((s.properties[name] as typeof s.properties[typeof name] & {minItems?: number; uniqueItems?: boolean}).uniqueItems,undefined);
+  }
+  assert.deepEqual(s.properties.by.items.required,['left','right']);
+  assert.equal(s.properties.by.items.additionalProperties,false);
+  assert.equal(s.properties.select.minProperties,1);
+  assert.equal((s.properties as typeof s.properties & {null_key?: unknown}).null_key,undefined);
+  assert.equal(s.properties.tolerance.oneOf[0].minimum,1);
+  assert.equal(s.properties.tolerance.oneOf[0].maximum,Number.MAX_SAFE_INTEGER);
+});
+
+test('event dedupe preserves empty and repeated partition keys but requires order',()=>{
+  const s=eventSchemas().dedupe_events;
+  assert.equal(s.additionalProperties,false);
+  assert.deepEqual(s.required,['by','order_by']);
+  assert.equal((s.properties.by as typeof s.properties.by & {minItems?: number; uniqueItems?: boolean}).minItems,undefined);
+  assert.equal((s.properties.by as typeof s.properties.by & {minItems?: number; uniqueItems?: boolean}).uniqueItems,undefined);
+  assert.equal(s.properties.order_by.minItems,1);
+});
+
+test('session schema pairs relation roles and shares positive millisecond syntax',()=>{
+  const s=eventSchemas().session;
+  assert.deepEqual(s.required,['by','gap']);
+  assert.deepEqual(s.dependentRequired,{id:['time'],time:['id']});
+  assert.equal(s.additionalProperties,false);
+  assert.equal(s.properties.gap.oneOf[0].minimum,1);
+  assert.equal((s.properties.by as typeof s.properties.by & {minItems?: number; uniqueItems?: boolean}).minItems,undefined);
+});
+
+test('watermark event options admit a whole Parameter and require explicit policy',()=>{
+  assert.deepEqual(eventSchemas().watermark_events, {
+    type:'object',additionalProperties:false,required:['watermark_ms','policy'],
+    properties:{watermark_ms:{oneOf:[{type:'number'},{type:'object',additionalProperties:false,required:['$param'],properties:{$param:{type:'string',pattern:'^[A-Za-z_][A-Za-z0-9_]*$'}}}]},policy:{enum:['drop','mark']}},
+  });
+});
+test('embedded event schemas and identity pins reject drift',()=>{
+  const registry: Parameters<typeof checkEventSchemas>[0] = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
+  checkEventSchemas(registry);
+  for (const index of [0,1]) {
+    for (const name of Object.keys(eventSchemas()) as (keyof ReturnType<typeof eventSchemas>)[]) {
+      const copy=structuredClone(registry);
+      parameterPrograms(copy)[index].properties.steps.items.properties[name]={};
+      assert.throws(()=>checkEventSchemas(copy));
+    }
+  }
+});
+
+test('interval joins require closed temporal operands and preserve repeated equality conditions',()=>{
+  const s=eventSchemas().interval_join;
+  assert.deepEqual(s.required,['with','kind','mode','on','left','right']);
+  assert.deepEqual(s.properties.kind.enum,['inner','left','semi','anti']);
+  assert.equal(s.additionalProperties,false);
+  assert.equal((s.properties.on as typeof s.properties.on & {minItems?: number; uniqueItems?: boolean}).minItems,undefined);
+  assert.equal((s.properties.on as typeof s.properties.on & {minItems?: number; uniqueItems?: boolean}).uniqueItems,undefined);
+  assert.deepEqual(s.properties.on.items.required,['left','right']);
+  assert.equal(s.properties.on.items.additionalProperties,false);
+  assert.deepEqual(s.allOf[0].then.properties.left.required,['time']);
+  assert.deepEqual(s.allOf[0].else.properties.left.required,['start','end']);
+  assert.equal(s.allOf[0].then.properties.left.additionalProperties,false);
+  assert.equal(s.allOf[0].else.properties.left.additionalProperties,false);
+  assert.deepEqual(s.properties.right.required,['start','end']);
+  assert.equal(s.properties.select.minProperties,1);
+});
+
+// This checks only the closed endpoint spelling. Gregorian validity and exact
+// instant semantics remain with the existing Common Timestamp owner.
+test('authored event endpoints extend precision without widening operational clocks',()=>{
+  const schemas=eventSchemas();
+  for(const name of ['time_series','calendar_series'] as const) {
+    const stamp=new RegExp(schemas[name].properties.start.oneOf[0].pattern);
+    for(const fraction of ['000','123','1234','123456','123456789'])
+      assert.ok(stamp.test(`1970-01-01T00:00:00.${fraction}Z`),fraction);
+    for(const value of ['1970-01-01T00:00:00.12Z',
+      '1970-01-01T00:00:00.1230Z','1970-01-01T00:00:00.000000000Z',
+      '1970-01-01T00:00:00.1234567891Z','1970-01-01T00:00:00.123+00:00',
+      '1970-01-01 00:00:00.123Z','1970-01-01T00:00:00.123Z\n'])
+      assert.ok(!stamp.test(value),value);
+    assert.deepEqual(schemas[name].properties.start.oneOf[1],
+      schemas[name].properties.end.oneOf[1]);
+  }
+  const registry: Parameters<typeof checkEventSchemas>[0] = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
+  let operational=0;
+  function visit(value: unknown) {
+    if(!value||typeof value!=='object')return;
+    for(const [key,child] of Object.entries(value) as [string, {pattern?: string} | null][]) {
+      if(key==='observed_at'&&child?.pattern) {
+        const stamp=new RegExp(child.pattern);
+        assert.ok(stamp.test('1970-01-01T00:00:00.123Z'));
+        assert.ok(!stamp.test('1970-01-01T00:00:00.123000001Z'));
+        operational++;
+      }
+      visit(child);
+    }
+  }
+  visit(registry.artifact_schemas);
+  assert.ok(operational>0,'the existing operational observations were inspected');
+});

@@ -307,6 +307,248 @@ fn preview_identity_test_wire(
 }
 
 ///|
+test "file CREATE storage keys preserve Run and equal-content occurrences" {
+  let installation = preview_identity_test_cid("a")
+  let run = preview_identity_test_cid("b")
+  let other_run = preview_identity_test_cid("c")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let content = "sha256:9f9eea815fedc32b706f3a87007cb26f3b61d5f16117949904ae53a88c508f9f"
+  let zero = "{\"content_cid\":\"\{content}\",\"occurrence\":0}"
+  let one = "{\"content_cid\":\"\{content}\",\"occurrence\":1}"
+  let update = preview_identity_test_wire(
+    run,
+    authoring,
+    preview_identity_test_cid("4"),
+    "create-row-sentinel",
+    installation,
+    installation,
+  )
+  let parsed = parse_effect_preview_shape(update, 8192, 256, 12).unwrap()
+  guard @json.object_field(parsed, "effects") is Some(@json.Array(members)) &&
+    @json.array_at(members, 0) is Some(first_member) &&
+    @json.object_field(first_member, "changes") is Some(@json.Array(changes)) else {
+    fail("missing original fixture member")
+  }
+  let first = @json.stringify_value(
+    @json.array_at(changes, 0).unwrap(),
+    8192,
+    256,
+    12,
+  )
+  let first_create = first
+    .replace(old="\"create-row-sentinel\"", new=zero)
+    .replace(
+      old="{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}}",
+      new="{\"state\":\"absent\"}",
+    )
+    .replace(
+      old="{\"state\":\"version\",\"version_cid\":\"\{installation}\"}",
+      new="{\"state\":\"not_applicable\"}",
+    )
+  let second_create = first_create.replace(old=zero, new=one)
+  let draft = update
+    .replace(
+      old="\"changes\":[" + first + "]",
+      new="\"changes\":[" + first_create + "," + second_create + "]",
+    )
+    .replace(old="\"effect_kind\":\"update\"", new="\"effect_kind\":\"create\"")
+    .replace(old="\"count\":1", new="\"count\":2")
+    .replace(old="\"max_items\":1", new="\"max_items\":2")
+
+  let (wire, original) = author_effect_preview_semantic_wire(
+    draft, run, authoring, 8192, 512, 12,
+  ).unwrap()
+  let zero_key = effect_file_create_storage_key_from_preview(
+    original, 0, 0, run, installation,
+  ).unwrap()
+  let one_key = effect_file_create_storage_key_from_preview(
+    original, 0, 1, run, installation,
+  ).unwrap()
+  // Standalone SHA-256 over sorted JSON of the fixed original domains.
+  assert_eq(
+    zero_key, "33cbd34e407306183290fe3d37d1093e2abe0f21521250a9cc587293255f5743",
+  )
+  assert_eq(
+    one_key, "508a3b9732c172e0de65b4892dffe51b4f03488beedbbdcbb3ae1193f91fb4c7",
+  )
+  assert_eq(
+    effect_file_create_storage_key(run, installation, installation, content, 0).unwrap(),
+    zero_key,
+  )
+  assert_true(
+    effect_file_create_storage_key(run, installation, installation, content, -1)
+    is Err(ForeignRow),
+  )
+  assert_eq(
+    effect_preview_ordered_row_correlation_wire(original, 0, 0),
+    Some(zero),
+  )
+  assert_eq(
+    effect_preview_ordered_row_correlation_wire(original, 0, 1),
+    Some(one),
+  )
+
+  let (completed, _) = complete_effect_preview_dispatch_keys_with_identity(
+    wire,
+    [[preview_identity_test_cid("4"), preview_identity_test_cid("5")]],
+    run,
+    authoring,
+    8192,
+    512,
+    12,
+  ).unwrap()
+  let readmitted = admit_effect_preview_identity(
+    completed, run, authoring, 8192, 512, 12,
+  ).unwrap()
+  assert_eq(
+    effect_file_create_storage_key_from_preview(
+      readmitted, 0, 0, run, installation,
+    ).unwrap(),
+    zero_key,
+  )
+  assert_eq(
+    effect_file_create_storage_key_from_preview(
+      readmitted, 0, 1, run, installation,
+    ).unwrap(),
+    one_key,
+  )
+  let dispatch = preview_identity_test_cid("4")
+  let target = effect_file_target_cid(
+    installation,
+    "/mock",
+    "data.json",
+    "Account",
+    "\"" + zero_key + "\"",
+    8192,
+    512,
+    12,
+  ).unwrap()
+  let operation = prepare_effect_file_operation(
+    readmitted, 0, 0, installation, target, dispatch, dispatch, installation, installation,
+    "",
+  ).unwrap()
+  assert_eq(operation.kind, "create")
+  assert_eq(operation.target_version_cid, None)
+  assert_true(
+    prepare_effect_file_operation(
+      readmitted, 0, 0, installation, target, dispatch, dispatch, installation, installation,
+      installation,
+    )
+    is Err(InvalidDispatch),
+  )
+  let replacement = @utf8.encode(
+    "{\"items\":[{\"Name\":\"After\",\"id\":\"" + zero_key + "\"}]}",
+  )
+  let evidence = admit_effect_file_replacement_evidence(
+    replacement,
+    "1",
+    "44",
+    replacement.length().to_int64(),
+    8192,
+  ).unwrap()
+  let outcome = "{\"result\":{\"id\":\"" +
+    zero_key +
+    "\"},\"state\":\"applied\"}"
+  let receipt = prepare_effect_file_operation_receipt(
+    operation, evidence, outcome, 8192, 512, 12,
+  ).unwrap()
+  assert_true(
+    @json.object_field(receipt.contract.value, "target_version_cid") is None,
+  )
+  let saved = admit_saved_effect_file_operation_receipt(
+    effect_file_operation_receipt_wire(receipt),
+    replacement,
+    8192,
+    8192,
+    512,
+    12,
+  ).unwrap()
+  assert_eq(saved.operation.kind, "create")
+  assert_true(
+    issue_effect_row_outcome_receipt_from_file(
+      readmitted, 0, 0, dispatch, saved, 8192, 512, 12,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    issue_effect_row_outcome_receipt_from_file(
+      readmitted, 0, 1, dispatch, saved, 8192, 512, 12,
+    )
+    is Err(ForeignRow),
+  )
+  let receipt_body = @json.object_without_field(
+    receipt.contract.value,
+    "receipt_cid",
+  ).unwrap()
+  let data = @json.stringify_value(receipt_body, 8192, 512, 12)
+  for
+    invalid in [
+      data.replace(
+        old="\"operation_kind\":\"create\"",
+        new="\"operation_kind\":\"update\"",
+      ),
+      data.replace(
+        old="\"operation_kind\":\"create\"",
+        new="\"operation_kind\":\"delete\"",
+      ),
+      "{\"target_version_cid\":null," + data[1:].to_owned(),
+      "{\"target_version_cid\":\"" + installation + "\"," + data[1:].to_owned(),
+    ] {
+    assert_true(
+      seal_publication_contract(
+        "effect_local_operation_receipt", invalid, 8192, 512, 12,
+      )
+      is Err(_),
+    )
+  }
+  let (_, independent) = author_effect_preview_semantic_wire(
+    draft.replace(
+      old="\"run_identity_cid\":\"\{run}\"",
+      new="\"run_identity_cid\":\"\{other_run}\"",
+    ),
+    other_run,
+    authoring,
+    8192,
+    512,
+    12,
+  ).unwrap()
+  assert_eq(
+    effect_preview_ordered_row_identity(independent, 0, 0),
+    effect_preview_ordered_row_identity(original, 0, 0),
+  )
+  assert_true(
+    effect_file_create_storage_key_from_preview(
+      independent, 0, 0, other_run, installation,
+    ).unwrap() !=
+    zero_key,
+  )
+
+  assert_true(
+    effect_file_create_storage_key_from_preview(
+      original, 0, 0, other_run, installation,
+    )
+    is Err(ForeignRow),
+  )
+  assert_true(
+    effect_file_create_storage_key_from_preview(original, 0, 0, run, other_run)
+    is Err(ForeignRow),
+  )
+  assert_true(
+    effect_file_create_storage_key_from_preview(
+      original, 0, 2, run, installation,
+    )
+    is Err(ForeignRow),
+  )
+  let (_, update) = author_effect_preview_semantic_wire(
+    update, run, authoring, 8192, 512, 12,
+  ).unwrap()
+  assert_true(
+    effect_file_create_storage_key_from_preview(update, 0, 0, run, installation)
+    is Err(ForeignRow),
+  )
+}
+
+///|
 test "Preview authoring seals row, member, set and late dispatch bindings" {
   let a = preview_identity_test_cid("a")
   let run = preview_identity_test_cid("b")

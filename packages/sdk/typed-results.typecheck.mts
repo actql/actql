@@ -1,4 +1,4 @@
-import type {Client, DynamicRow, Reader, Result, StandardSchemaV1} from './index.js';
+import type {Client, DynamicRow, Reader, Result, StandardSchemaV1} from './index.mjs';
 declare const client: Client;
 declare const result: Result;
 declare const transformed: StandardSchemaV1<{n: number}, {when: Date; count: bigint}>;

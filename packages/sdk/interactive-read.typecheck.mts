@@ -1,4 +1,4 @@
-import type {Client, Execution} from './index.js';
+import type {Client, Execution} from './index.mjs';
 import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView, WireRunExplanationView, WireRunExplanationContextView} from '@actql/client-wire';
 
 declare const client: Client;

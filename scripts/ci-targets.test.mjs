@@ -170,7 +170,8 @@ test('early Source admission runs original recipes once and refuses plan publica
   assert.equal(config.options.strict, true);
   assert.equal(config.options.noEmit, true);
   assert.equal(config.options.skipLibCheck, false);
-  for (const required of ['packages/sdk/index.d.ts', 'packages/sdk/host-port.d.ts',
+  assert(config.options.lib.includes('lib.es2024.string.d.ts'));
+  for (const required of ['packages/sdk/index.mts', 'packages/sdk/host-port.mts',
     'packages/client-wire/index.d.ts', 'scripts/fixtures/installed-connector-table.typecheck.mts']) {
     assert(config.fileNames.includes(join(root, required)), required);
   }

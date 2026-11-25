@@ -22,6 +22,35 @@ priv struct LocalEffectFirstCompilation {
 }
 
 ///|
+fn LocalEffectFirstCompilation::is_mock_values_create(self : Self) -> Bool {
+  if !self._retained_models.is_empty() || !self._retained_sources.is_empty() {
+    return false
+  }
+  let prepared = @run_host.client_effect_compilation_owner(
+    self.allowed.compilation,
+  )
+  let candidate = @run_host.prepared_client_effect_computation_candidate(
+    prepared,
+  )
+  let program = @checked.effect_program_static_checked_computation(candidate)
+  let headers = @checked.effect_program_static_headers(candidate)
+  @checked.unit_count(program) == 1 &&
+  @checked.unit_result_import_count(program, 0) == Some(0) &&
+  @checked.unit_import_cid_count(program, 0) == Some(0) &&
+  @run_host.client_effect_direct_acquisition_count(prepared, 100000) is Ok(0) &&
+  @run_host.prepared_client_effect_infer_count(prepared) == Some(0) &&
+  @strategy.graph_source_free_inputs_complete(
+    @strategy.checked_effect_computation_graph(
+      @run_host.prepared_client_effect_computation_graph(prepared),
+    ),
+  ) &&
+  @run_host.prepared_client_effect_serialization_occurrences(prepared).is_empty() &&
+  @syntax.effect_header_count(headers) == 1 &&
+  @syntax.effect_header_at(headers, 0) is Some(header) &&
+  @syntax.effect_header_kind(header) == "create"
+}
+
+///|
 fn local_effect_request_identity(
   preparation : @local_host.NativeClientSubmittedPreparation,
   scope : String,
@@ -307,7 +336,10 @@ fn local_effect_prepare_start_with_clocks(
     Some(selected) if original._retained_models.length() == 1 ||
       (
         original._retained_models.is_empty() &&
-        !original._retained_sources.is_empty() &&
+        (
+          !original._retained_sources.is_empty() ||
+          (values_supported && original.is_mock_values_create())
+        ) &&
         selected.original.project is Some(project) &&
         project.mock_declarations is Some(_)
       ) => {

@@ -106,7 +106,9 @@ export function installedDeclarationEmits(repository: string, source: string, me
     assert.equal(actual, expected, `Changed original TypeScript dependency: ${key}`);
     return bytes.toString('utf8').replace(/^\uFEFF/u, '');
   };
-  const program = ts.createProgram(authors, config.options, host);
+  // Use the preparation's complete root order. TypeScript can order inferred
+  // declarations differently when it checks only the installed members.
+  const program = ts.createProgram(config.fileNames, config.options, host);
   const emitted = program.emit(undefined, (filename, output, bom, _error, files) => {
     const module = relative(repository, filename), author = inputs.get(module);
     if (author === undefined) return;

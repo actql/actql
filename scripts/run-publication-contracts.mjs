@@ -282,7 +282,7 @@ export function effectFileOperationReceiptSchema(outcome) {
   const {applied} = localUpdateOutcomes(outcome);
   const identities = ['effect_preview_cid', 'effect_member_preview_cid', 'row_preview_cid',
     'installation_cid', 'target_cid', 'canonical_request_cid', 'dispatch_entry_cid',
-    'authorization_context_cid', 'resolution_cid', 'target_version_cid', 'typed_outcome_cid', 'receipt_cid'];
+    'authorization_context_cid', 'resolution_cid', 'typed_outcome_cid', 'receipt_cid'];
   const generationWord = {type: 'string', pattern: fileGenerationWordPattern};
   return {type: 'object', additionalProperties: false,
     required: ['version', ...identities, 'backend_kind', 'operation_kind',
@@ -290,14 +290,18 @@ export function effectFileOperationReceiptSchema(outcome) {
       'replacement_generation', 'typed_outcome'],
     properties: {version: {const: 'actql-local-effect-operation-receipt/0.1'},
       ...Object.fromEntries(identities.map(name => [name, clone(cid)])),
-      backend_kind: {const: 'json_file'}, operation_kind: {enum: ['update', 'delete']},
+      backend_kind: {const: 'json_file'}, operation_kind: {enum: ['update', 'delete', 'create']},
+      target_version_cid: clone(cid),
       replacement_status: {const: 'acknowledged'},
       replacement_physical_sha256: {type: 'string', pattern: '^[0-9a-f]{64}$'},
       replacement_byte_count: {type: 'integer', minimum: 0, maximum: 9007199254740991},
       replacement_generation: {type: 'object', additionalProperties: false,
         required: ['device', 'inode', 'size'], properties: {
           device: clone(generationWord), inode: clone(generationWord), size: clone(generationWord)}},
-      typed_outcome: applied}};
+      typed_outcome: applied},
+    if: {required: ['operation_kind'], properties: {operation_kind: {const: 'create'}}},
+    then: {not: {required: ['target_version_cid']}},
+    else: {required: ['target_version_cid']}};
 }
 
 export function effectLocalOperationReceiptSchema(outcome) {

@@ -358,10 +358,13 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "122902a7991f8fd3c929740a94ac599a3e55729e6b168406b55bdf6c55f9eed8",
+      "sha256": "e18033f1251eeeda6696ee2f8ddddd03eb5ad70f60a38b6f34596d6743447b8e",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
+        "pub enum RowKeyedPagePoll {",
+        "pub enum RowListingPagePoll {",
+        "pub enum RowResponseSelection {",
         "pub fn abort_row_run(RowRun) -> Unit",
         "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_relation_document(RowRun, RowPageCharge, RowAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]",
@@ -480,10 +483,12 @@
         "pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPageLimits) -> Result[RelationDocumentPreparedContract, RowMappingIssue]",
         "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_relation_target_delete(RelationTargetDocument, RelationTargetRow, String, Int) -> Result[Bytes, RowSourceIssue]",
+        "pub fn prepare_relation_target_insert(RelationDocument, RelationDocumentPreparedContract, Array[String], Array[String]?, String, String) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]",
+        "pub fn prepare_row_file_create_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]",
         "pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
@@ -506,6 +511,7 @@
         "pub fn relation_public_projection_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_restore_construction_inventory(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_target_before(RelationTargetRow) -> String?",
+        "pub fn relation_target_insert_workspace_inventory(RelationDocumentPreparedContract, Int, Int, Int) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_target_row_count(RelationTargetDocument) -> Int?",
         "pub fn relation_target_row_identity(RelationTargetDocument, Int) -> String?",
         "pub fn relation_target_text(RelationTargetRow, String) -> String?",
@@ -637,10 +643,7 @@
         "pub struct RelationTargetRow {",
         "pub struct RowDeclaration {",
         "pub struct RowDeclaredView {",
-        "pub enum RowKeyedPagePoll {",
-        "pub enum RowListingPagePoll {",
         "pub struct RowMapping {",
-        "pub enum RowResponseSelection {",
         "pub struct RowRunResponseBorrow {"
       ],
       "operations": [
@@ -1117,6 +1120,10 @@
           "declaration": "pub fn prepare_relation_target_delete(RelationTargetDocument, RelationTargetRow, String, Int) -> Result[Bytes, RowSourceIssue]"
         },
         {
+          "name": "prepare_relation_target_insert",
+          "declaration": "pub fn prepare_relation_target_insert(RelationDocument, RelationDocumentPreparedContract, Array[String], Array[String]?, String, String) -> Result[Bytes, RowSourceIssue]"
+        },
+        {
           "name": "prepare_relation_target_update",
           "declaration": "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]"
         },
@@ -1131,6 +1138,10 @@
         {
           "name": "prepare_row_delete_mapping_from_writes",
           "declaration": "pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]"
+        },
+        {
+          "name": "prepare_row_file_create_mapping",
+          "declaration": "pub fn prepare_row_file_create_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]"
         },
         {
           "name": "prepare_row_input_acquisition",
@@ -1219,6 +1230,10 @@
         {
           "name": "relation_target_before",
           "declaration": "pub fn relation_target_before(RelationTargetRow) -> String?"
+        },
+        {
+          "name": "relation_target_insert_workspace_inventory",
+          "declaration": "pub fn relation_target_insert_workspace_inventory(RelationDocumentPreparedContract, Int, Int, Int) -> @execution_relation.PreparationRepresentationUnits?"
         },
         {
           "name": "relation_target_row_count",
@@ -3852,7 +3867,8 @@
             "relation_target_row_identity",
             "relation_target_text",
             "relation_target_text_bytes",
-            "relation_target_version"
+            "relation_target_version",
+            "prepare_relation_target_insert"
           ],
           "exports": [
             "pub fn accept_charged_relation_document(RowRun, RowPageCharge, RowAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]",
@@ -3871,7 +3887,8 @@
             "pub fn relation_target_version(RelationTargetRow) -> String?",
             "pub struct RelationDocument {",
             "pub struct RelationTargetDocument {",
-            "pub struct RelationTargetRow {"
+            "pub struct RelationTargetRow {",
+            "pub fn prepare_relation_target_insert(RelationDocument, RelationDocumentPreparedContract, Array[String], Array[String]?, String, String) -> Result[Bytes, RowSourceIssue]"
           ],
           "attributes": {
             "responsibility": [
@@ -3943,11 +3960,13 @@
         {
           "operations": [
             "prepare_row_update_mapping",
-            "prepare_row_delete_mapping_from_writes"
+            "prepare_row_delete_mapping_from_writes",
+            "prepare_row_file_create_mapping"
           ],
           "exports": [
             "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
-            "pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]"
+            "pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]",
+            "pub fn prepare_row_file_create_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]"
           ],
           "attributes": {
             "responsibility": [
@@ -4116,7 +4135,8 @@
             "relation_document_projection_contract",
             "relation_document_raw_construction_inventory",
             "prepare_relation_document_contract",
-            "relation_document_prepared_contract"
+            "relation_document_prepared_contract",
+            "relation_target_insert_workspace_inventory"
           ],
           "exports": [
             "pub fn relation_document_construction_inventory(RowPageLimits, Array[RelationDocumentProjectionConstruction]) -> @execution_relation.PreparationRepresentationUnits?",
@@ -4125,7 +4145,8 @@
             "pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]",
             "pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?",
             "pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPageLimits) -> Result[RelationDocumentPreparedContract, RowMappingIssue]",
-            "pub fn relation_document_prepared_contract(RelationDocumentPreparedContract) -> @value_contract.Contract"
+            "pub fn relation_document_prepared_contract(RelationDocumentPreparedContract) -> @value_contract.Contract",
+            "pub fn relation_target_insert_workspace_inventory(RelationDocumentPreparedContract, Int, Int, Int) -> @execution_relation.PreparationRepresentationUnits?"
           ],
           "attributes": {
             "responsibility": [

@@ -48,6 +48,11 @@
   unchanged. The new UPDATE port shares its metadata/source-map adapter and
   delegates to the original typed Relation Mapping owner, preserving Decimal,
   nested Array/Object and declared nullable contracts without primitive labels.
+  The file Mock CREATE input selects `create` instead of `update` with the same
+  closed write facts. It requires approval and a non-null Text key that accepts
+  the profile's 64 lowercase hexadecimal characters. Every non-key storage
+  field is required in the Mapping, while explicit `write_null` still requires
+  a nullable field. The mapped values never include the physical key.
 - Verification: `relation_update_mapping_wbtest.mbt` covers full-type constructor
   equivalence, null/omission rules, invalid closed facts and sibling checks.
   `client_relation_update_mapping_wbtest.mbt` checks actual bridge metadata and
