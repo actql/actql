@@ -13,6 +13,10 @@ import {checkoutState, initializeNormalPackSourceIndex, normalPackSourceInputs} 
 const reviewAudit = 'reviews/2026-10-13-vector-scalar-installed-source/public-audit.mts';
 const reviewRunner = 'reviews/2026-10-14-time-series-release-matrix/prepared-release-public.mts';
 const unselectedReview = 'reviews/2026-10-14-time-series-release-matrix/other.mts';
+const proofInventory = 'proofs/relation-pipeline/inventory.mts';
+const proofExtension = 'proofs/relation-pipeline/proof-runner-extension.mts';
+const proofOutput = 'proofs/relation-pipeline/inventory.mjs';
+const proofReceipt = 'proofs/relation-pipeline/receipt.json';
 
 const attributes = ['responsibility', 'inputsOutputs', 'identity', 'ownership',
   'synchronization', 'failure', 'cancellation', 'resources', 'extension', 'verification'];
@@ -42,7 +46,12 @@ function fixture(t: TestContext) {
   put('release/input.json', '{}\n');
   put('portability/corpus/generation.json', '{"original":true}\n');
   put('docs/spec/generation.md', 'Original normative generation input\n');
-  put('tsconfig.tooling.json', JSON.stringify({include: ['scripts/**/*.mts', reviewAudit, reviewRunner]}));
+  const configure = (...paths: string[]) => put('tsconfig.tooling.json', JSON.stringify({include: paths}));
+  configure('scripts/**/*.mts', reviewAudit, reviewRunner, proofInventory, proofExtension);
+  put(proofInventory, "export {identity} from './proof-runner-extension.mjs';\n");
+  put(proofExtension, 'export const identity = true;\n');
+  put(proofOutput, 'export const stale = true;\n');
+  put(proofReceipt, '{}\n');
   put(reviewAudit, 'export {};\n');
   put(reviewRunner, 'export {};\n');
   put('reviews/2026-10-13-vector-scalar-installed-source/receipt.json', '{}\n');
@@ -56,7 +65,7 @@ function fixture(t: TestContext) {
       copyFileSync(join(source, path), join(producer, path));
     }
   };
-  return {root, source, producer, put, save, declaration, listed, copy};
+  return {root, source, producer, put, save, declaration, listed, copy, configure};
 }
 
 test('normal pack copied sources satisfy the original required interface entrance without history', async t => {
@@ -67,6 +76,10 @@ test('normal pack copied sources satisfy the original required interface entranc
   assert(paths.includes('docs/spec/generation.md'));
   assert(paths.includes(reviewAudit));
   assert(paths.includes(reviewRunner));
+  assert(paths.includes(proofInventory));
+  assert(paths.includes(proofExtension));
+  assert(!paths.includes(proofOutput));
+  assert(!paths.includes(proofReceipt));
   assert(!paths.includes(unselectedReview));
   assert(!paths.includes('reviews/2026-10-13-vector-scalar-installed-source/receipt.json'));
   assert(!paths.includes('docs/not-an-input.md'));
@@ -92,6 +105,7 @@ test('normal pack copied sources satisfy the original required interface entranc
 test('normal package freshness includes new normative generation inputs without unrelated documentation', t => {
   const f = fixture(t);
   rmSync(join(f.source, reviewRunner));
+  rmSync(join(f.source, proofInventory));
   execFileSync('git', ['add', '.'], {cwd: f.source});
   execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid',
     'commit', '-qm', 'Authored source fixture'], {cwd: f.source});
@@ -101,7 +115,9 @@ test('normal package freshness includes new normative generation inputs without 
   assert.equal(checkoutState(f.source).clean, false);
   rmSync(join(f.source, reviewRunner));
   assert.equal(checkoutState(f.source).clean, true);
-  for (const path of ['portability/corpus/new.json', 'docs/spec/new.md']) {
+  f.put(proofOutput + '.receipt', '{}\n');
+  assert.equal(checkoutState(f.source).clean, true);
+  for (const path of ['portability/corpus/new.json', 'docs/spec/new.md', proofInventory]) {
     f.put(path, 'New normative generation input\n');
     assert.equal(checkoutState(f.source).clean, false, path);
     rmSync(join(f.source, path));
@@ -122,6 +138,22 @@ test('normal pack reference acquisition preserves canonical malformed and missin
   f.declaration.contracts[0].attributes.failure = [{path: 'docs/not-listed.md', anchor: 'Original'}];
   f.save();
   await assert.rejects(normalPackSourceInputs(f.source, f.listed()), /UnlistedNormalPackSourceReference/u);
+});
+
+test('normal pack acquisition requires concrete listed proof authors', async t => {
+  const f = fixture(t);
+  await assert.rejects(normalPackSourceInputs(f.source, f.listed().filter(path => path !== proofExtension)),
+    /UnlistedNormalPackSourceReference:proofs\/relation-pipeline\/proof-runner-extension\.mts/u);
+  for (const path of ['proofs/**/*.mts', 'proofs/../outside.mts', proofOutput, proofReceipt]) {
+    f.configure(path);
+    await assert.rejects(normalPackSourceInputs(f.source, f.listed()),
+      /Expected a concrete normal pack TypeScript source/u);
+  }
+  f.configure(proofInventory);
+  rmSync(join(f.source, proofInventory));
+  writeFileSync(join(f.root, 'outside.mts'), 'export {};\n');
+  symlinkSync(join(f.root, 'outside.mts'), join(f.source, proofInventory));
+  await assert.rejects(normalPackSourceInputs(f.source, f.listed()), /EscapedNormalPackSourceReference/u);
 });
 
 test('normal pack acquisition refuses an original reference symlink outside the copied source root', async t => {
