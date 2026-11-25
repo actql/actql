@@ -28639,7 +28639,8 @@
             "signal",
             "managed",
             "retainRecoveryResources",
-            "boundOriginal"
+            "boundOriginal",
+            "signing"
           ],
           "async": false
         },
@@ -31503,7 +31504,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "916c6983eb923985516ca5ceb2d5ce63c274ab199c638fbf3c9cd15b1f515124"
+      "sha256": "ec41d40718cb517ff89276318638c684b6f64d96dd2193f06b528087cc6c327e"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

@@ -9415,7 +9415,7 @@ pub fn client_program_row_source_prepare_mapping(
   sources_json : String,
 ) -> String {
   client_row_source_prepare_mapping(
-    declaration, writes_json, resource, sources_json, false,
+    declaration, writes_json, resource, sources_json, false, @client_row_source_host.prepare_row_mapping,
   )
 }
 
@@ -9430,7 +9430,20 @@ pub fn client_program_row_source_prepare_update_mapping(
   sources_json : String,
 ) -> String {
   client_row_source_prepare_mapping(
-    declaration, writes_json, resource, sources_json, true,
+    declaration, writes_json, resource, sources_json, true, @client_row_source_host.prepare_row_update_mapping,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourcePrepareFileCreateMapping")
+pub fn client_program_row_source_prepare_file_create_mapping(
+  declaration : @client_row_source_host.RowDeclaration,
+  writes_json : String,
+  resource : String,
+  sources_json : String,
+) -> String {
+  client_row_source_prepare_mapping(
+    declaration, writes_json, resource, sources_json, true, @client_row_source_host.prepare_row_file_create_mapping,
   )
 }
 
@@ -9454,14 +9467,23 @@ fn client_row_source_prepare_mapping(
   writes_json : String,
   resource : String,
   sources_json : String,
-  update : Bool,
+  guarded : Bool,
+  prepare : (
+    @client_row_source_host.RowDeclaration,
+    String,
+    String,
+    Array[@client_row_source_host.RowMappingSource],
+  ) -> Result[
+    @client_row_source_host.RowMapping,
+    @client_row_source_host.RowMappingIssue,
+  ],
 ) -> String {
   let refused = (name : String) => {
     ({ "issue": name.to_json() } : Json).stringify()
   }
-  // Keep the established CREATE entry unchanged. The new UPDATE entrance
-  // validates the bounded complete source map before stdlib reconstruction.
-  if update &&
+  // File Mapping entrances validate the bounded source map before the stdlib
+  // reconstruction. The established non-file CREATE entry keeps its parser.
+  if guarded &&
     @source.parse_json(sources_json, {
       max_input_bytes: 4000000,
       max_nodes: 400000,
@@ -9489,16 +9511,9 @@ fn client_row_source_prepare_mapping(
         @client_row_source_host.RowMappingSource),
     )
   }
-  let prepared = if update {
-    @client_row_source_host.prepare_row_update_mapping(
-      declaration, writes_json, resource, sources,
-    )
-  } else {
-    @client_row_source_host.prepare_row_mapping(
-      declaration, writes_json, resource, sources,
-    )
-  }
-  client_row_mapping_result_json(prepared)
+  client_row_mapping_result_json(
+    prepare(declaration, writes_json, resource, sources),
+  )
 }
 
 ///|

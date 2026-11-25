@@ -8,6 +8,7 @@ fn target_io_fixture_provider(
   directory : String,
   name : String,
   items? : String = "items",
+  max_rows? : Int = 2,
 ) -> NativeRelationFilePreparedProvider {
   prepare_native_relation_file_provider(
     capture_fixture_declaration(),
@@ -20,7 +21,7 @@ fn target_io_fixture_provider(
       primary_identity: "id",
     },
     {
-      page: { max_bytes: 4096, max_nodes: 128, max_depth: 8, max_rows: 2, },
+      page: { max_bytes: 4096, max_nodes: 128, max_depth: 8, max_rows, },
       max_work: 1000000,
       chunk_bytes: 32,
       diagnostic_ceiling: 256,
@@ -255,6 +256,7 @@ fn target_io_fixture_physical(kind : Int) -> Unit raise {
     4 => "chain"
     5 => "inplace"
     6 => "replaced"
+    7 => "insert"
     _ => "funding"
   }
   let path = @utf8.encode(directory + "/target-backing-" + suffix + "\u{0000}")
@@ -309,6 +311,7 @@ fn target_io_fixture_physical(kind : Int) -> Unit raise {
     1 => target_io_fixture_cancel_work(directory)
     2 => target_io_fixture_sync_work(directory)
     4 | 5 | 6 => target_io_fixture_lineage_work(directory, kind)
+    7 => target_io_fixture_insert_work(directory)
     _ => target_io_fixture_funding_work(directory)
   }
   arena.leave_domain_retained_execution(execution).unwrap()
@@ -593,4 +596,105 @@ fn target_io_fixture_funding_work(directory : String) -> Unit raise {
 ///|
 test "Native target response funding uses the original size before Reader and buffer" {
   target_io_fixture_physical(3)
+}
+
+///|
+fn target_io_fixture_insert_work(directory : String) -> Unit raise {
+  let provider = target_io_fixture_provider(
+    directory,
+    "target-insert.json",
+    max_rows=3,
+  )
+  let mapped_wire = "{\"value\":3}"
+  let original_bytes = target_io_fixture_text.length()
+  let (initial, _) = native_relation_file_target_insert_construction(
+    provider,
+    None,
+    None,
+  ).unwrap()
+  assert_true(
+    native_relation_file_target_insert_construction(
+      provider,
+      Some(provider.limits.page.max_bytes),
+      Some(mapped_wire),
+    )
+    is None,
+  )
+  let placed = Ref(0)
+  let insert = prepare_native_relation_file_target_insert_io(
+    provider,
+    "third",
+    mapped_wire,
+    "target-insert-stage",
+    bytes => {
+      placed.val = bytes
+      guard native_relation_file_target_insert_construction(
+          provider,
+          Some(bytes),
+          Some(mapped_wire),
+        )
+        is Some((actual, _)) else {
+        return false
+      }
+      @execution.execution_capacity_execution_bytes(actual) >
+      @execution.execution_capacity_execution_bytes(initial)
+    },
+  ).unwrap()
+  target_io_fixture_run(insert)
+  assert_eq(placed.val, original_bytes)
+  let acknowledgment = insert.replacement_acknowledgment().unwrap()
+  let expected = " {\"items\":[{\"id\":\"first\",\"value\":1},{\"id\":\"second\",\"value\":2},{\"id\":\"third\",\"value\":3}],\"keep\":\"untouched\"}\n"
+  assert_true(acknowledgment.is_insert())
+  assert_false(acknowledgment.is_delete())
+  assert_eq(acknowledgment.identity(), "third")
+  assert_eq(acknowledgment.changes_wire(), mapped_wire)
+  assert_eq(acknowledgment.replacement(), @utf8.encode(expected))
+  assert_eq(
+    insert.byte_counts(),
+    (original_bytes.to_int64(), expected.length().to_int64()),
+  )
+  assert_eq(insert.snapshot(), None)
+  assert_true(insert.close().unwrap())
+  assert_true(
+    insert.root is None && insert.lock is None && insert.writer is None,
+  )
+  assert_true(insert.replacement_acknowledgment() is None)
+
+  // The same path can be locked again after the first owner's actual close.
+  // A full collection must still refuse before creating a replacement.
+  let refused = prepare_native_relation_file_target_insert_io(
+    provider,
+    "fourth",
+    "{\"value\":4}",
+    "target-refused-insert",
+    _ => true,
+  ).unwrap()
+  let mut stopped = false
+  for _ in 0..<100 {
+    match refused.advance() {
+      Ok(false) => ()
+      Err(Document(@rows.InvalidPage)) => {
+        stopped = true
+        break
+      }
+      _ => fail("full collection did not refuse before native replacement")
+    }
+  }
+  assert_true(stopped)
+  assert_eq(refused.byte_counts(), (expected.length().to_int64(), 0L))
+  assert_true(refused.replacement_acknowledgment() is None)
+  assert_true(refused.close().unwrap())
+  let reopened = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "third",
+  ).unwrap()
+  target_io_fixture_run(reopened)
+  assert_eq(reopened.snapshot().unwrap().0, "{\"id\":\"third\",\"value\":3}")
+  assert_true(reopened.close().unwrap())
+}
+
+///|
+test "Native target I/O inserts one typed row with original lock and cleanup" {
+  target_io_fixture_physical(7)
 }

@@ -5377,7 +5377,8 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
     }
   };
   const recoverEffectCapture = (ref: WireRunRef, signal: AbortSignal | undefined, managed?: EffectPlanRun,
-      retainRecoveryResources?: EffectRecoveryOptions['retainRecoveryResources'], boundOriginal?: RestoredEffectOriginal) => {
+      retainRecoveryResources?: EffectRecoveryOptions['retainRecoveryResources'], boundOriginal?: RestoredEffectOriginal,
+      signing = false) => {
     // An existing live Request already owns this exact compiler. Its saved
     // material admission must bind that original instead of compiling again.
     // A wire-only cold restoration still needs its own funded continuation.
@@ -5443,12 +5444,17 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
         }
         const originalSubmittedIntent = journal!.originalSubmittedIntent(requestIdentity,
           {namespaceId}, moon, control);
+        const requestedStop = originalSubmittedIntent !== undefined &&
+          moon.clientSubmittedIntentRequestsCommitStop(originalSubmittedIntent.intent);
+        // The signer has already selected the exact open Effect Checkpoint.
+        // Its typed original is needed for both ways that review can arise.
         if (originalSubmittedIntent !== undefined &&
-            moon.clientSubmittedIntentRequestsCommitStop(originalSubmittedIntent.intent)) {
+            (signing || requestedStop)) {
           if (restored.materials === undefined) {
             const wire = saved.runAdmissionEvidence?.effectOriginalRunWire;
             if (typeof wire !== 'string' || updateTargetOriginals === undefined) {
-              throw new Error('RequestedEffectStopOriginalUnavailable');
+              throw clientOperationError(requestedStop
+                ? 'RequestedEffectStopOriginalUnavailable' : 'LocalSigningOriginalConflict');
             }
             restored = updateTargetOriginals.restoreEffectMaterials(wire,
               saved.runDefinition, requestIdentity, originalCompilation, managed?.prepared);
@@ -5749,6 +5755,7 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
             clientOperationError('RequestedEffectStopUnavailable'));
         }
       },
+      localPolicySigning: mode === 'local' && mockAccount?.reviewer !== undefined && checkpoints !== undefined,
       now, inferPlanFor: prepared => inferSelections.get(prepared as object)?.graph,
       captureDefinitionExplanation: function captureDefinitionExplanation(facts, readEvidence, hasIntent) {
         return preparation.captureEffectRunExplanation(moon, facts as OrdinaryEffectExplanationArgs[2], readEvidence, journal!, hasIntent);

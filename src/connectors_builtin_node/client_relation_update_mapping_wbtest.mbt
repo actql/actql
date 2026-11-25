@@ -56,3 +56,36 @@ test "installed UPDATE bridge returns the existing mapping metadata projection" 
     )
   }
 }
+
+///|
+test "installed file CREATE bridge binds typed fields and approval" {
+  let declaration = installed_update_bridge_declaration()
+  let writes =
+    #|{"writes":[{"resource":"records","primary_identity":"id","create":{"fields":["amount","choices","label"],"permission":"fixture:create","approval":"required"}}]}
+  let sources =
+    #|[{"target":"amount","field":"a","null_behavior":"write_null"},{"target":"choices","field":"c","null_behavior":"reject"},{"target":"label","field":"l","null_behavior":"reject"}]
+  let output = client_program_row_source_prepare_file_create_mapping(
+    declaration, writes, "records", sources,
+  )
+  guard @json.parse(output) is Object(metadata) &&
+    metadata.get("body") is Some(String(body)) else {
+    fail("missing file CREATE Mapping")
+  }
+  assert_true(body.contains("\"effect_kind\":\"create\""))
+  assert_true(body.contains("\"minimum_approval\":\"required\""))
+  assert_true(
+    body.contains("\"required_fields\":[\"amount\",\"choices\",\"label\"]"),
+  )
+  assert_eq(
+    client_program_row_source_prepare_file_create_mapping(
+      declaration,
+      writes,
+      "records",
+      sources.replace(
+        old="\"target\":\"label\"",
+        new="\"target\":\"id\",\"target\":\"label\"",
+      ),
+    ),
+    "{\"issue\":\"InvalidSpecification\"}",
+  )
+}

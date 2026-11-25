@@ -191,6 +191,11 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
       is Some(binding) else {
       stop("LocalOriginalEffectTargetsUnavailable")
     }
+    if descriptor.2 == "create" {
+      // The checked CREATE proposal carries values; only approval may
+      // enter the file child that tests key absence under its write lock.
+      continue
+    }
     let authorize = () => {
       require_target_read(
         installation._retained_source._retained_connection,

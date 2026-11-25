@@ -947,6 +947,58 @@ test "Native Mock binds UPDATE and DELETE to one original collection" {
 }
 
 ///|
+test "Native Mock Catalog prepares CREATE with the original nullable file schema" {
+  let original =
+    #|{"views":[{"resource":"Account","resource_kind":"record","data_classification":"internal","schema":{"id":{"type":"string","nullable":false},"group":{"type":"string","nullable":false},"value":{"type":"string","nullable":true}},"facts":{"relation_keys":{"candidate_keys":[["id"]]}}}],"data":[{"resource":"Account","items_path":["accounts","rows"],"key_path":["accounts","key"],"primary_identity":"id"}],"writes":[{"resource":"Account","operation":"create","primary_identity":"id","writable_fields":["group","value"],"write_null_fields":["value"],"permission":"salesforce:record:create","observe_permission":"salesforce:record:observe","approval":"required","aliases":["salesforce.Account"]}]}
+  let entry = @json.parse(original)
+  let declaration = @row_host.restore_relation_row_declaration(
+    "salesforce",
+    "declared_file",
+    "declared_file/0.1",
+    local_project_mock_relation_input(entry).unwrap(),
+    None,
+  ).unwrap()
+  let write = local_project_mock_write_declarations(entry, declaration).unwrap()[0]
+  assert_eq(write.operation, "create")
+  assert_eq(write.writable_fields, ["group", "value"])
+  assert_eq(write.mapping.omittable, [])
+  assert_true(
+    write.mapping.body.contains("\"required_fields\":[\"group\",\"value\"]"),
+  )
+  assert_true(write.mapping.body.contains("\"minimum_approval\":\"required\""))
+  assert_true(
+    write.mapping.body.contains(
+      "\"value\":{\"field\":\"value\",\"null_behavior\":\"write_null\"}",
+    ),
+  )
+  assert_true(
+    write.mapping.body.contains(
+      "\"effect_kind\":\"create\",\"permissions\":[\"salesforce:record:create\"],\"selector_class\":\"none\"",
+    ),
+  )
+  for
+    invalid in [
+      original.replace(
+        old="\"writable_fields\":[\"group\",\"value\"]",
+        new="\"writable_fields\":[\"id\",\"value\"]",
+      ),
+      original.replace(
+        old="\"write_null_fields\":[\"value\"]",
+        new="\"update_fields\":[\"value\"]",
+      ),
+      original.replace(
+        old="\"writable_fields\":[\"group\",\"value\"]",
+        new="\"writable_fields\":[\"value\"]",
+      ),
+    ] {
+    assert_true(
+      local_project_mock_write_declarations(@json.parse(invalid), declaration)
+      is Err(InvalidSpecification),
+    )
+  }
+}
+
+///|
 test "Native Project Mock installs original typed answer Model once and retires its cycles" {
   let original = native_project_mock_model_fixture("deal-review")
   defer original.retire()

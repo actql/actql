@@ -184,7 +184,7 @@ fn NativeClientRunJournal::record_effect_file_response_with_operations(
       dispatch.dispatching.cid,
       operation.authorization_context_cid,
       operation.resolution_cid,
-      operation.target_version_cid,
+      operation.target_version_cid.unwrap_or(""),
     ) {
     Ok(value) => value
     Err(_) => return Err(Checkpoint(InvalidMaterial))
@@ -194,13 +194,14 @@ fn NativeClientRunJournal::record_effect_file_response_with_operations(
   } else {
     Some(ack.changes_wire())
   }
-  if operation.deleting != expected.deleting ||
+  if operation.kind != expected.kind ||
     operation.effect_preview_cid != expected.effect_preview_cid ||
     operation.member_preview_cid != expected.member_preview_cid ||
     operation.row_preview_cid != expected.row_preview_cid ||
     operation.dispatch_entry_cid != expected.dispatch_entry_cid ||
-    ack.is_delete() != expected.deleting ||
-    ack.expected_version() != operation.target_version_cid ||
+    ack.is_delete() != (expected.kind == "delete") ||
+    ack.is_insert() != (expected.kind == "create") ||
+    ack.expected_version() != operation.target_version_cid.unwrap_or("") ||
     @publication.effect_preview_ordered_row_intended_value_wire(
       preview, member_index, row_index,
     ) !=
@@ -233,11 +234,25 @@ fn NativeClientRunJournal::record_effect_file_response_with_operations(
     Ok(cid) => cid == operation.target_cid
     Err(_) => false
   }
-  if @publication.effect_preview_ordered_row_correlation_wire(
+  let row_matches = if ack.is_insert() {
+    match
+      @publication.effect_file_create_storage_key_from_preview(
+        preview,
+        member_index,
+        row_index,
+        @publication.effect_preview_run_identity(preview),
+        operation.installation_cid,
+      ) {
+      Ok(key) => key == ack.identity()
+      Err(_) => false
+    }
+  } else {
+    @publication.effect_preview_ordered_row_correlation_wire(
       preview, member_index, row_index,
-    ) !=
-    Some(selector) ||
-    !target_matches {
+    ) ==
+    Some(selector)
+  }
+  if !row_matches || !target_matches {
     return Err(Checkpoint(InvalidMaterial))
   }
   let body = ack.replacement()

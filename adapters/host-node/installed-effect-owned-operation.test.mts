@@ -31,11 +31,40 @@ function fixture<Result>(invoke: Invoke<Result>) {
     clientProgramInstalledEffectOperationRetire(selected, ack) {assert.strictEqual(selected, token); assert.equal(ack, true); calls.push('retire'); return ok(true);},
   };
   const run: Run = {runtime, value: parent, prepared, request, operationPlan: plan, readPlan: () => ok(plan)};
-  const create = () => prepareInstalledEffectOwnedPhysicalChild({run, memberIndex: 0, rowIndex: 2,
+  const create = (inputExtent?: Parameters<typeof prepareInstalledEffectOwnedPhysicalChild>[0]['inputExtent']) => prepareInstalledEffectOwnedPhysicalChild({run, memberIndex: 0, rowIndex: 2,
     operationIndex: 1, operation: 'files.write', transferBytes: 10n,
-    invoke: context => invoke(context, original, calls), requestsRetired: () => aliases});
+    invoke: context => invoke(context, original, calls), requestsRetired: () => aliases, inputExtent});
   return {create, run, runtime, original, calls, close() {pending = false;}, retireAliases() {aliases = true;}};
 }
+
+test('staged physical work joins one locked input on the same reservation before charging', async () => {
+  const selected = {}, staged: unknown[] = [];
+  const f = fixture(({retainPhysicalChild, admitInput, chargeBytes}, original, calls) => {
+    assert.equal(typeof admitInput, 'function');
+    assert.throws(() => admitInput!(7, 11), {code: 'ForeignInstalledEffectPhysicalChild'});
+    retainPhysicalChild(original);
+    assert.throws(() => chargeBytes(7n), {code: 'ForeignInstalledEffectPhysicalChild'});
+    admitInput!(7, 11);
+    assert.throws(() => admitInput!(7, 11), {code: 'ForeignInstalledEffectPhysicalChild'});
+    chargeBytes(7n);
+    f.close();
+    return 'original observation';
+  });
+  f.runtime.clientProgramInstalledEffectOperationInputBegin = (token, input) => {
+    assert.strictEqual(input, selected); staged.push(token); f.calls.push('admit'); return ok();
+  };
+  f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete = token => {
+    assert.strictEqual(token, staged[0]); f.calls.push('complete'); return ok();
+  };
+  const child = f.create((bytes, requestUnits) => {
+    assert.deepEqual([bytes, requestUnits], [7, 11]); return selected;
+  });
+  assert.equal(await child.prepare(), 'original observation');
+  assert.deepEqual(f.calls, ['borrow', 'start', 'admit', ['charge', 7n], 'complete']);
+  assert.equal(child.release(), false);
+  f.retireAliases();
+  assert.equal(child.retry(), true);
+});
 
 test('same physical child starts once and charges chunks without a second writer or cleanup owner', async () => {
   const f = fixture(({retainPhysicalChild, chargeBytes}, original, calls) => {

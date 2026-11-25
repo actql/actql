@@ -43,7 +43,7 @@ type ReaderOptions<Managed, Original, Runtime, Control extends SigningReaderCont
   restoreEffectManagedPreparation(ref: Ref, signal?: AbortSignal):
     Restored<Managed, Original> | PromiseLike<Restored<Managed, Original>>;
   recoverEffectCapture(ref: Ref, signal: AbortSignal | undefined, managedEffect: Managed,
-    preparation: undefined, original: Original | undefined): Recovered | PromiseLike<Recovered>;
+    preparation: undefined, original: Original | undefined, signing: true): Recovered | PromiseLike<Recovered>;
   localSigningRecoveries: Set<Recovered>;
   assertCurrent(): unknown;
   releaseLocalSigningRecovery(original: Recovered): unknown;
@@ -112,7 +112,7 @@ export function createLocalSigningOriginalReader<Managed, Original, Runtime,
       throw clientOperationError('LocalSigningOriginalConflict');
     }
     let restored: Restored<Managed, Original> | undefined = await restoreEffectManagedPreparation(ref, signal);
-    let recovered: Recovered | undefined = await recoverEffectCapture(ref, signal, restored.managedEffect, undefined, restored.original);
+    let recovered: Recovered | undefined = await recoverEffectCapture(ref, signal, restored.managedEffect, undefined, restored.original, true);
     localSigningRecoveries.add(recovered);
     let originalFailure: unknown, failed = false;
     try {

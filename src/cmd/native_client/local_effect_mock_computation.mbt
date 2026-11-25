@@ -80,12 +80,16 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
   report : (LocalNativeMockEffectProposalIssue) -> Unit,
   managed_run? : @local_values.ClientInstalledManagedRun? = None,
 ) -> Unit raise ClientStop {
+  let values_publication = state.direct_sources.bind(value => {
+    value._retained_values_publication
+  })
   guard state.effect_capture is Some(captured) &&
     state.proposals is Some(proposals) &&
     proposals.materials is Some(materials) &&
     (
       proposals.acquired is Some(_) ||
-      proposals._retained_combined_source_unit is Some(_)
+      proposals._retained_combined_source_unit is Some(_) ||
+      values_publication is Some(_)
     ) &&
     state.preview is Some(preview) &&
     preview._retained_dependency_inventory is Some(inventory) &&
@@ -98,7 +102,9 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
   let policy = @run_host.client_standard_effect_computation_limits()
   let max_nodes = policy.effects.max_admission_nodes
   let max_depth = policy.effects.max_admission_depth
-  if proposals._retained_combined_source_unit is Some(_) {
+  let direct = proposals._retained_combined_source_unit is Some(_) ||
+    values_publication is Some(_)
+  if direct {
     // Dependency construction returned its scratch. Re-enter the original
     // capture workspace before issuing the public receipt and snapshot.
     construction
@@ -131,9 +137,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
   // exports for its members and other Unit Results. Reuse those pins and
   // receipts under the original public limits instead of copying rows again.
   let measured_capture = proposals.measured_model_capture
-  let reuse_original_exports = proposals._retained_combined_source_unit
-    is Some(_) ||
-    measured_capture
+  let reuse_original_exports = direct || measured_capture
   let bridge = proposals.bridge_limits
   let row = bridge.row
   for
@@ -265,6 +269,10 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
             index,
             preview._retained_invocation,
             preview._retained_observation,
+          )
+        (None, None) if values_publication is Some(publication) =>
+          native_mock_values_public_result_evidence(
+            materials, original, publication, preview,
           )
         _ => Err(ForeignOwner)
       })
@@ -464,7 +472,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
     .map_err(issue => LocalNativeMockEffectProposalIssue::PublicReceipt(issue))
     .native_effect_proposal_with_cause(report)
   held._retained_receipt = Some(receipt)
-  if proposals._retained_combined_source_unit is Some(_) {
+  if direct {
     guard managed_run is Some(managed) else {
       stop("LocalOriginalEffectComputationUnavailable")
     }
@@ -548,6 +556,57 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
     .map_err(issue => LocalNativeMockEffectProposalIssue::CapturedSource(issue))
     .native_effect_proposal_with_cause(report),
   )
+}
+
+///|
+fn native_mock_values_public_result_evidence(
+  materials : @run_host.ClientEffectRunMaterials,
+  artifact : @run_host.ClientEffectLocalResultArtifact,
+  publication : @run_host.ClientEffectSourceFreeInvocationOriginal,
+  preview : LocalNativeMockEffectPreview,
+) -> Result[
+  (String, Array[String], String, String, String),
+  @run_host.ClientEffectLocalResultArtifactIssue,
+] {
+  guard @run_host.client_effect_source_free_result_original_scope(
+      artifact, publication,
+    )
+    is Some(scope) &&
+    physical_equal(
+      preview._retained_observation,
+      @run_host.client_effect_source_free_invocation_original_observation(
+        publication,
+      ),
+    ) &&
+    physical_equal(
+      preview._retained_invocation,
+      @run_host.client_effect_source_free_invocation_original_invocation(
+        publication,
+      ),
+    ) else {
+    return Err(ForeignInvocation)
+  }
+  @publication.resolve_run_local_result_evidence_refs(
+    @run_host.client_effect_allowed_run_admission(materials.allowed),
+    materials.run_definition,
+    preview._retained_invocation,
+    preview._retained_observation,
+    @run_host.client_effect_local_result_retention(artifact),
+  )
+  .map_err(issue => {
+    @run_host.ClientEffectLocalResultArtifactIssue::Context(issue)
+  })
+  .map(value => {
+    (
+      @publication.publication_contract_identity(
+        @run_host.client_effect_compilation_compiled_plan(materials.compilation),
+      ),
+      [],
+      @publication.publication_contract_identity(scope),
+      value.1,
+      value.2,
+    )
+  })
 }
 
 ///|

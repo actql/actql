@@ -28,9 +28,10 @@ type RecoveryEntry = Readonly<{kind?: string; observationCid?: string; wire?: st
 type ObservedRow = Awaited<ReturnType<ObserveRows<RequestMember>>>[number] & Readonly<{versionCid?: string; before?: unknown}>;
 type PreviewRow = Readonly<{entry: RequestEntry | CreateRow['entry']; state?: ObservedRow['state'];
   versionCid?: ObservedRow['versionCid']; before?: ObservedRow['before']; identity?: unknown}>;
+type FileCreateIdentity = Readonly<{runDefinitionCid: string; sourceBindingCid: string; effectIdentityCid: string}>;
 type RequestContext<Member> = Readonly<{
   member: Member; value: unknown; selector: unknown; current: unknown;
-  createRowIdentity?: unknown; proposalWire?: string; content: ReturnType<Values['commandContentRow']>;
+  createRowIdentity?: unknown; fileCreateIdentity?: FileCreateIdentity; proposalWire?: string; content: ReturnType<Values['commandContentRow']>;
   signal?: AbortSignal; contentOwner?: unknown; rowIndex?: number; assertCurrent?: Current;
   authorizationForRow?: Read['authorizationForRow'];
 }>;
@@ -54,7 +55,7 @@ type Options<Member extends RequestMember> = Readonly<{
   managedEffect?: DirectRequest['run']; prepared: unknown; identity: unknown; reads: readonly (Read | undefined)[];
   controlConstruction?: ReturnType<typeof prepareInstalledEffectControlConstruction>;
   runInvocationCid: string; dispatches: readonly string[]; signal?: AbortSignal; assertCurrent?: Current;
-  contentOwner?: unknown; resourceFields(member: Member): Readonly<{runOriginal?: object}>;
+  contentOwner?: unknown; fileCreateIdentity?: FileCreateIdentity; resourceFields(member: Member): Readonly<{runOriginal?: object}>;
   physicalOperations?: PhysicalOperations<Member>; guarded(kind: Member['kind']): boolean; targeted(kind: Member['kind']): boolean;
   requestChildren: RetainRequest['children']; rowsOf: (readonly PreviewRow[] | (() => Promise<RecoveryEntry | undefined>))[];
   observations: (readonly ObservedRow[] | RecoveryEntry | undefined)[];
@@ -66,7 +67,7 @@ type Options<Member extends RequestMember> = Readonly<{
 export function createInstalledRowEffectCaptureRows<Member extends RequestMember>({
   member, index, owned, updateWriteSlot, description, contentOf, moon, proposals, limits, recipeOf,
   managedEffect, prepared, identity, reads, controlConstruction, runInvocationCid, dispatches, signal,
-  assertCurrent, contentOwner, resourceFields, physicalOperations, guarded, targeted, requestChildren,
+  assertCurrent, contentOwner, fileCreateIdentity, resourceFields, physicalOperations, guarded, targeted, requestChildren,
   rowsOf, observations, prepareInstalledCreateRows, commandContentRow, requestEntry, requestsOf,
   observeRows, retireRequestAliases, fail,
 }: Options<Member>) {
@@ -96,6 +97,7 @@ export function createInstalledRowEffectCaptureRows<Member extends RequestMember
         const context = {member, value: row.value, selector: row.selector,
           ...(member.kind === 'create' ? {createRowIdentity: createRows![rowIndex].identity,
             proposalWire: row.proposalWire} : {}),
+          ...(fileCreateIdentity === undefined ? {} : {fileCreateIdentity}),
           current: description, content: commandContentRow(contentOf, rowIndex), signal,
           ...(contentOwner === undefined ? {} : {contentOwner}),
           ...resourceFields(member),

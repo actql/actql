@@ -363,12 +363,13 @@ test('actual route retirement waits for its active refresh before severing reque
     admitCapability:()=>assert.fail('No capability'),routeOf:()=>assert.fail('No route')})({
       members:[],entries:[[{}]],previewRows:[],dispatches:[],subjectCid:'subject'});
   let entries=Object.freeze([[{}]]), finish;
+  let createOriginals=[Object.freeze({})];
   const captureInputs=prepareInstalledRowEffectCaptureInputs({
     moon:{clientProgramPinEffectSources:()=>({$tag:1,_0:{}}),clientProgramEffectInputExportLimits:()=>({})},
     members:[],plan:{outputLimits:{}},fail,runLimits:()=>({body:{}}),store:{},exportLimits:()=>[],
     preparePinnedEffectSourceSet:async()=>({payloads:[]}),ownChildren(){},
     ownInputs(_release,complete){finish=complete;},
-    retireRoute(){if(!route.retire())return false;entries=undefined;return true;},
+    retireRoute(){if(!route.retire())return false;entries=undefined;createOriginals=undefined;return true;},
   });
   await captureInputs.sourceExport;
   const {retireRequestAliases:retire,currents,rowsOf,observations,proposals}=captureInputs;
@@ -379,10 +380,12 @@ test('actual route retirement waits for its active refresh before severing reque
   await observed;
   assert.equal(retire(),false,'refresh still owns request/current locals');
   assert.notEqual(entries,undefined);assert.equal(currents.length,1);
+  assert.equal(createOriginals.length,1);
   await assert.rejects(route.current({preflight:{observedRows:[]}}),{code:'InstalledRowEffectRouteRetired'});
   proceed();await refresh;
   assert.equal(retire(),true);
   assert.equal(entries,undefined);
+  assert.equal(createOriginals,undefined);
   for(const original of [currents,rowsOf,observations,proposals])assert.equal(original.length,0);
   assert.throws(()=>route.bindDispatch({members:[],subjectCid:'subject'}),{code:'InstalledRowEffectRouteRetired'});
 });

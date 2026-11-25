@@ -48,7 +48,14 @@ fn LocalCommandBusinessPreparation::persist_mock_effect_review(
     guard business.model_work.is_empty() &&
       state.source_start is Some(first) &&
       state.source_review is None &&
-      proposals._retained_combined_source_unit is Some(_) &&
+      (
+        proposals._retained_combined_source_unit is Some(_) ||
+        (
+          state.first.is_mock_values_create() &&
+          state.direct_sources is Some(direct) &&
+          direct._retained_values_publication is Some(_)
+        )
+      ) &&
       business.request_run is Some(run) else {
       stop("LocalOriginalEffectReviewUnavailable")
     }

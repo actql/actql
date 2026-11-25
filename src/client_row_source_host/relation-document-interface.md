@@ -49,6 +49,16 @@
   whitespace outside the row and all other bytes are preserved. The DELETE work
   bound covers the separator gap and every output byte. Its caller must fund
   the output buffer, up to the original input length, while the original remains live.
+- Insertion takes the mapped CREATE values and a separately supplied physical
+  Text identity. It refuses an identity field in the mapped values and requires
+  every non-key field of the closed storage schema. Common checks the key against
+  its original Text contract and rejects duplicates in the selected collection.
+  It appends the row within the original byte,
+  node, depth, row and cumulative work bounds. The typed input wire uses its
+  own bounded construction workspace. The emitted JSON uses the remaining file
+  room after Common removes typed wrappers. Other file bytes are preserved,
+  including other collections. The caller owns physical
+  identity assignment, construction funding, approval and conditional replacement.
 - Extension: physical values follow declared full nested contracts rather than
   inferred row shapes. Int64 accepts canonical decimal Text and exact JSON
   integer tokens, read from original byte spans without a Double conversion.
