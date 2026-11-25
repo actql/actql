@@ -10,9 +10,9 @@
     "#loopback-http": {"node": "./loopback-http.mjs", "default": "./loopback-http-unavailable.mjs"}
   },
   "exports": {
-    ".": { "types": "./index.d.ts", "default": "./index.mjs" },
+    ".": { "types": "./index.d.mts", "default": "./index.mjs" },
     "./host-port": {
-      "types": "./host-port.d.ts", "default": "./host-port.mjs"
+      "types": "./host-port.d.mts", "default": "./host-port.mjs"
     },
     "./_internal/source-preparation": "./internal/private-source-preparation.mjs",
     "./_internal/client-errors": "./internal/client-errors.mjs"
@@ -35,6 +35,6 @@
     "internal/submission-observation.d.mts", "internal/submission-observation.mjs",
     "internal/transport-response.d.mts", "internal/transport-response.mjs",
     "internal/transport.d.mts", "internal/transport.mjs",
-    "internal/README.md", "source-query.mjs", "result-schema.mjs", "standard-schema.d.ts", "STANDARD-SCHEMA-LICENSE", "index.d.ts", "connection-string.mjs", "loopback-http.mjs", "loopback-http-unavailable.mjs", "checkpoints.mjs", "check-presentation.mjs", "check-reason-catalog.generated.js", "check-reason-catalog.generated.d.ts", "operation-presentation.mjs", "operation-formats.mjs", "json-value-wire.generated.mjs", "json-value-wire.generated.d.mts", "host-port.mjs",
-    "host-port.d.ts", "README.md"]
+    "internal/README.md", "source-query.mjs", "result-schema.mjs", "standard-schema.d.ts", "STANDARD-SCHEMA-LICENSE", "index.d.mts", "connection-string.mjs", "loopback-http.mjs", "loopback-http-unavailable.mjs", "checkpoints.mjs", "check-presentation.mjs", "check-presentation.d.mts", "check-reason-catalog.generated.js", "check-reason-catalog.generated.d.ts", "operation-presentation.mjs", "operation-presentation.d.mts", "operation-formats.mjs", "json-value-wire.generated.mjs", "json-value-wire.generated.d.mts", "host-port.mjs",
+    "host-port.d.mts", "README.md"]
 }

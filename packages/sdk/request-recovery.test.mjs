@@ -271,6 +271,6 @@ test('request recovery preserves the complete original epoch across a reconnect'
 
 test('request recovery public types retain the existing lookup union and associated ready/found attachment', () => {
   execFileSync(process.execPath, [fileURLToPath(new URL('../../node_modules/typescript/bin/tsc', import.meta.url)),
-    '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--target', 'ES2022',
+    '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--target', 'ES2022', '--lib', 'ES2022,DOM,DOM.Iterable,DOM.AsyncIterable,ES2024.String',
     fileURLToPath(new URL('./request-recovery.typecheck.mts', import.meta.url))], {stdio: 'inherit'});
 });

@@ -1,5 +1,5 @@
 import {explainOwnerObservations, formatOwnerObservations, type OwnerObservationsExplanation,
-  type Execution, type OwnerCursor, type OwnerObservations} from './index.js';
+  type Execution, type OwnerCursor, type OwnerObservations} from './index.mjs';
 
 declare const run: Execution;
 declare const cursor: OwnerCursor;

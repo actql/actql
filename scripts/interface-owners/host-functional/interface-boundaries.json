@@ -50330,7 +50330,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "32469268d07fe3a4880da2755c5a3cabd4c4434566c12bdfe7f65e0a366bd969",
+      "sha256": "1fa7eacd63f2cf9fdeac2fb026a47f238924058700d195b8e13b7ba53980c572",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -51073,7 +51073,7 @@
                 "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
-                "path": "packages/sdk/host-port.d.ts",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               },
               {
@@ -51468,7 +51468,7 @@
                 "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
-                "path": "packages/sdk/host-port.d.ts",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               }
             ],
@@ -51920,7 +51920,7 @@
                 "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
-                "path": "packages/sdk/host-port.d.ts",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               },
               {
@@ -52419,7 +52419,7 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
-        "../../packages/sdk/host-port.mjs",
+        "../../packages/sdk/index.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
         "../host-common/ledger-contract.generated.mjs",
         "../host-common/runtime-result.mjs",

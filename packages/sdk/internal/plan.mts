@@ -1,5 +1,5 @@
 // Read-only static compiler projection through the existing wire validator.
-import type {Client} from '../index.d.ts';
+import type {Client} from '../index.mjs';
 import type {WireConnection, WirePlanView, WireEffectfulStaticPlanView, WireStaticExplanationView} from '@actql/client-wire';
 
 interface StaticProducer {

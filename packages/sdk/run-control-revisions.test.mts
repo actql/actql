@@ -1,8 +1,9 @@
 import type {TestContext} from 'node:test';
-import type {ClientError as SdkFailure, RunState} from './index.d.ts';
+import type {ClientError as SdkFailure, RunState} from './index.mjs';
+import {connectInProcess} from './internal/client.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {ClientError, connectInProcess, explainRunObservationFailure, formatRunObservationFailure,
+import {ClientError, explainRunObservationFailure, formatRunObservationFailure,
   explainEffectUncertainty} from './index.mjs';
 
 const cid = (digit: string) => `sha256:${digit.repeat(64)}`;

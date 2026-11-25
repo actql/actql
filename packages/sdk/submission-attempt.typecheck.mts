@@ -1,5 +1,5 @@
 import {getSubmissionAttempt, getSubmissionOutcome, explainSubmission,
-  type Client, type SubmissionAttempt} from './index.js';
+  type Client, type SubmissionAttempt} from './index.mjs';
 
 declare const client: Client;
 declare const received: unknown;

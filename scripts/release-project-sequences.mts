@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {mockTemplates, expectedChanges} from './native-cli-mock-scenario.mjs';
 import {assertProjectStaticCheckControls, projectStaticCheckControls} from './release-project-node-action.mjs';
 import type {runReleaseProjectNodeAction} from './release-project-node-action.mjs';
-import type {RunReference, RunState} from '../packages/sdk/index.d.ts';
+import type {RunReference, RunState} from '../packages/sdk/index.mjs';
 
 type Template = typeof mockTemplates[number];
 type StaticControl = keyof typeof cliStaticFiles;

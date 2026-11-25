@@ -9,7 +9,7 @@ import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {cid, resource} from './fixtures/file-listing-source.fixture.mjs';
 
-import type {RunReference, RunState} from '../../packages/sdk/index.d.ts';
+import type {RunReference, RunState} from '../../packages/sdk/index.mjs';
 
 type Entrance = 'Local' | 'HTTPS';
 type SourceFormat = 'program' | 'sql' | 'aql-text';

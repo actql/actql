@@ -119,7 +119,7 @@ test('typed Effect explanations separate physical stop, owner revision and recon
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
-  '--target', 'ES2022', fileURLToPath(new URL(
+  '--target', 'ES2022', '--lib', 'ES2022,DOM,DOM.Iterable,DOM.AsyncIterable,ES2024.String', fileURLToPath(new URL(
     './effect-uncertainty.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });

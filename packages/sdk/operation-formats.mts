@@ -2,7 +2,7 @@
 // References are data. Presentation neither performs their operations nor
 // substitutes a partial fact set when the caller's output budget is too small.
 import {getOperationPresentationInfo, localizeOperation} from './operation-presentation.mjs';
-import type {OperationFormatOptions} from './index.d.ts';
+import type {OperationFormatOptions} from './index.mjs';
 
 const utf8 = new TextEncoder();
 const safeJson = (value: unknown) => JSON.stringify(value).replace(

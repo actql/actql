@@ -185,7 +185,7 @@ jobs:
       # Keep the original raw JS/compiler inputs here for the strict interface
       # verifier. This does not repack or substitute a released runtime.
       - name: Test the full fixed release installation on its original producer
-        run: node scripts/test-package-release-install.mjs "$RUNNER_TEMP/node-release-rc"
+        run: node --max-old-space-size=3072 scripts/test-package-release-install.mjs "$RUNNER_TEMP/node-release-rc"
       - name: Retain the same fixed release, originals and native input pins
         id: artifact
         if: always()

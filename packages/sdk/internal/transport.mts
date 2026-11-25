@@ -9,10 +9,9 @@ import {submissionNotSent, submissionUnknown} from './submission-observation.mjs
 import {captureSourcePreparation, sourcePreparationPort} from './private-source-preparation.mjs';
 
 import type {ClientHostOperation} from '@actql/client-wire';
-import type {InProcessHostPort, InProcessHostRequest} from '../host-port.d.ts';
+import type {InProcessHostPort, InProcessHostRequest} from '../host-port.mjs';
 import type {LifecyclePort} from './client-lifecycle.mjs';
 import type {SelectedConnection} from './connection-options.mjs';
-import type {requestLoopbackClient} from '../loopback-http.mjs';
 
 type CancellationContext = NonNullable<Parameters<typeof retainCancellationExplanation>[1]>;
 type Selected = SelectedConnection & {redactCredentialErrors?: boolean};
@@ -25,15 +24,18 @@ export type RuntimeHostPort = LifecyclePort & {
   answerCheckpoint?: (...args: Parameters<NonNullable<InProcessHostPort['answerCheckpoint']>>) => unknown;
 };
 interface TraceContext {traceId?: unknown; spanId?: unknown; traceFlags?: number}
+type DirectLoopback = (url: URL, options: {
+  method: 'POST'; headers: Record<string, string>; body: string; signal?: AbortSignal; redirect: 'error';
+}) => Promise<Response>;
 
 // Return the import promise itself so only the existing loopback branch yields.
-export const loadLoopbackTransport = () => import('#loopback-http');
+export const loadLoopbackTransport = (): Promise<{requestLoopbackClient: DirectLoopback}> => import('#loopback-http');
 
 const isSubmission = (operation: ClientHostOperation) => operation === 'submit-intent' ||
   operation === 'submit-named-intent' || operation === 'restart-intent';
 
 export function createTransport(selected: Selected, port: RuntimeHostPort | undefined,
-  isClosed: () => boolean, directLoopback?: typeof requestLoopbackClient) {
+  isClosed: () => boolean, directLoopback?: DirectLoopback) {
   // A structural wire port is not selection of the builtin Local provider.
   // Any selected binding, including an inherited one, still uses strict capture.
   const capturedSourcePreparation = port !== undefined && sourcePreparationPort in port

@@ -2,7 +2,8 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {connect, connectInProcess} from './index.mjs';
+import {connect} from './index.mjs';
+import {connectInProcess} from './internal/client.mjs';
 
 const profile = (mode: string) => ({version: 'actql-client-host/0.1', mode, owner: mode,
   durability: 'durable', scopeRef: 'start-order', capabilities: [], limits: {

@@ -6,7 +6,7 @@ import {pathToFileURL, fileURLToPath} from 'node:url';
 import {join} from 'node:path';
 import test from 'node:test';
 import type {TestContext} from 'node:test';
-import type {Client} from '../packages/sdk/index.d.ts';
+import type {Client} from '../packages/sdk/index.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
 // The explicit selector double captures raw options, including invalid values.

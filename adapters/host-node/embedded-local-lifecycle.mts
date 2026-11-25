@@ -1,6 +1,6 @@
 // The existing installed Host owns execution and durable data. This registry
 // only leases its in-process connection and retains its physical close retry.
-import {connectInProcess} from '../../packages/sdk/host-port.mjs';
+import {connectInProcess} from '../../packages/sdk/index.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {ledgerLimitsFields, ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 import {captureSourcePreparation, sourcePreparationPort} from
@@ -9,9 +9,11 @@ import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure,
   retainInstalledHostInitializationFailure, originalInitialControlClose}
   from './installed-host-cleanup.mjs';
 import type {SynchronousAction} from './installed-host-cleanup.mjs';
-import type {RunReference} from '../../packages/sdk/index.d.ts';
+import type {RunReference} from '../../packages/sdk/index.mjs';
+import type {RuntimeHostPort} from '../../packages/sdk/internal/transport.mjs';
 
-type HostPort = Parameters<typeof connectInProcess>[1];
+type ClientPort = Parameters<typeof connectInProcess>[1];
+type HostPort = Omit<RuntimeHostPort, 'answerCheckpoint'> & Pick<ClientPort, 'answerCheckpoint'>;
 type PortPerform = Parameters<HostPort['perform']>;
 type PortAnswer = Parameters<NonNullable<HostPort['answerCheckpoint']>>;
 type SourcePreparation = NonNullable<ReturnType<typeof captureSourcePreparation>>;
@@ -309,7 +311,7 @@ export function createEmbeddedHostRegistry(sameInstallation: (original: unknown,
     forget(undefined, entry);
   },
   async connect(root: unknown, identity: unknown, open: () => EmbeddedHost | PromiseLike<EmbeddedHost>,
-    options: Parameters<typeof connectInProcess>[0], preparedHost?: object,
+    options: unknown, preparedHost?: object,
     releaseUnadopted?: () => unknown, initialControl?: InitialControl) {
     const retainedControl = initialControl === undefined ? undefined :
       Object.freeze({close: originalInitialControlClose(initialControl)});
@@ -495,7 +497,7 @@ export function createEmbeddedHostRegistry(sameInstallation: (original: unknown,
       opened.handling.set(pending, undefined);
       return receipt;
     };
-    const port: HostPort = Object.freeze({
+    const port: ClientPort = Object.freeze({
       ...(sourcePreparation === undefined ? {} : {[sourcePreparationPort]: Object.freeze<SourcePreparation>({
         beforeSourceSnapshot(kind, input, options, originalConnection) {
           if (sealed || opened.closing) throw closing();
@@ -598,7 +600,8 @@ export function createEmbeddedHostRegistry(sameInstallation: (original: unknown,
         return pending;
       }, close, seal,
     });
-    return await connectInProcess(options, port);
+    // The SDK admits these original captured options after binding the physical port.
+    return await connectInProcess(options as Parameters<typeof connectInProcess>[0], port);
     } catch (cause) {
       try { await close(); }
       catch {

@@ -8,7 +8,7 @@ import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
 import type {createLocalSigningMetadata} from '../host-common/local-signing-metadata.mjs';
 import type {initializeOrdinaryMockAccount} from './ordinary-mock-account.mjs';
-import type {CheckpointSummary} from '../../packages/sdk/index.js';
+import type {CheckpointSummary} from '../../packages/sdk/index.mjs';
 
 type Decision = 'approved' | 'rejected';
 type ProofRole = 'approval' | 'resolution';

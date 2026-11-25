@@ -1,5 +1,5 @@
 import type {TestContext} from 'node:test';
-import type {Client, ClientError as SdkFailure, StandardSchemaV1} from './index.d.ts';
+import type {Client, ClientError as SdkFailure, StandardSchemaV1} from './index.mjs';
 import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
@@ -368,7 +368,7 @@ test('raw aggregate quota failure now stays inside the owner and retains cleanup
 test('typed Result and query public declarations infer the schema output', () => {
   const result = spawnSync(process.execPath, [
     fileURLToPath(new URL('../../node_modules/typescript/bin/tsc', import.meta.url)),
-    '--strict', '--target', 'ES2022', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--noEmit',
+    '--strict', '--target', 'ES2022', '--lib', 'ES2022,DOM,DOM.Iterable,DOM.AsyncIterable,ES2024.String', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--noEmit',
     fileURLToPath(new URL('./typed-results.typecheck.mts', import.meta.url)),
   ], {encoding: 'utf8', timeout: 30000});
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);

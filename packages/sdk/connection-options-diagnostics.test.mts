@@ -85,7 +85,7 @@ test('endpoint diagnostics never echo URL userinfo, path, query or fragment', as
 test('unknown connection-string option names and conflicting credentials remain private', async t => {
   noFetch(t);
   const dsn = `actql://token:${encodeURIComponent(secret)}@host.example/workspace-id`;
-  await assert.rejects(connectSdk(dsn, {[secret]: secret}), (error:unknown) => {
+  await assert.rejects(Reflect.apply(connectSdk, undefined, [dsn, {[secret]: secret}]), (error:unknown) => {
     safe(error); assert.equal(error.code, 'InvalidConnectionOptions');
     assert(error.hint.includes('accept only token, durability, consentRefs and traceContext'));
     return true;
@@ -114,7 +114,7 @@ test('public option getter failures discard secret-bearing borrowed errors', asy
 
 test('embedded Local advice retains its distinct code and requires no Host credentials', async t => {
   noFetch(t);
-  await assert.rejects(connectSdk({mode: 'local', owner: 'local'}), (error:unknown) => {
+  await assert.rejects(Reflect.apply(connectSdk, undefined, [{mode: 'local', owner: 'local'}]), (error:unknown) => {
     safe(error); assert.equal(error.code, 'LocalProviderNotInstalled');
     assert(error.hint.includes('@actql/node'));
     assert(error.hint.includes('use open() without a Host or token'));
