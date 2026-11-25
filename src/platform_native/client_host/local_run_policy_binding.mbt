@@ -657,18 +657,22 @@ fn NativeLocalRunPolicyBinding::accept_submitted_run_with_operations(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let plan = match
-    capture_native_run_plan_original(
-      prepared,
-      compiled,
-      definition,
-      before_construction=run_metadata_construction(
-        self.host.journal.database,
-        operations.map(value => value.reads),
-      ),
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let plan = if native_terminal_content_omits_static_plan(prepared, compiled) {
+    None
+  } else {
+    match
+      capture_native_run_plan_original(
+        prepared,
+        compiled,
+        definition,
+        before_construction=run_metadata_construction(
+          self.host.journal.database,
+          operations.map(value => value.reads),
+        ),
+      ) {
+      Ok(value) => Some(value)
+      Err(issue) => return Err(issue)
+    }
   }
   self.host.journal.accept_original_submitted_run(
     self.host.epoch,
@@ -680,7 +684,7 @@ fn NativeLocalRunPolicyBinding::accept_submitted_run_with_operations(
     current(),
     local_run_policy_original=Some(original),
     run_observation_originals=Some(observation),
-    run_plan_original=Some(plan),
+    run_plan_original=plan,
     current_fence=Some(current),
     operations~,
   )

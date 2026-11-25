@@ -7,7 +7,7 @@
 // text/wire bodies remain borrowed.
 let request_serialization_output_retained_controls : Int64 = @execution.preparation_representation_cost({
     record_headers: 13L,
-    reference_slots: 15L,
+    reference_slots: 16L,
     scalar_words: 70L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -26,8 +26,30 @@ let request_serialization_output_retained_controls : Int64 = @execution.preparat
 // These are finite actual constructor carriers, never a row-sized allowance.
 let request_serialization_output_execution_controls : Int64 = @execution.preparation_representation_cost({
     record_headers: 13L + 6L + 22L + 3L + 2L + 32L + 4L,
-    reference_slots: 15L + 6L + 20L + 4L + 32L + 5L,
+    reference_slots: 16L + 6L + 20L + 4L + 32L + 5L,
     scalar_words: 70L + 63L + 60L + 39L + 4L + 32L + 57L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
+let terminal_result_controls : Int64 = @execution.preparation_representation_cost({
+    record_headers: 5L,
+    reference_slots: 5L,
+    scalar_words: 20L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
+// Typed Result profile, two export limits, capacity sums and temporary
+// inventory, coheld with the already quoted input projection.
+let terminal_result_construction : Int64 = @execution.preparation_representation_cost({
+    record_headers: 24L,
+    reference_slots: 24L,
+    scalar_words: 64L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
@@ -38,6 +60,7 @@ pub(all) struct ClientSerializationOutputDemand {
   limits : ClientSerializationWorkspaceLimits
   capacity : @execution.ExecutionCapacity
   generation_rows : Int
+  result_limits : @publication_host.PublicationOutputExportLimits?
 }
 
 ///|
@@ -50,6 +73,7 @@ pub fn[I] prepare_request_serialization_output_limits(
   component : @publication_host.ClientSerializationPlanGraph,
   generation_rows : Int,
   construct_limits : () -> ClientSerializationWorkspaceLimits?,
+  terminal? : Bool = false,
 ) -> Result[ClientSerializationOutputDemand, ClientRequestPreparationIssue] {
   let previous = owner.phase
   guard (previous == ContentPlanReserved || previous == ModelPlanReserved) &&
@@ -68,11 +92,17 @@ pub fn[I] prepare_request_serialization_output_limits(
     Err(issue) => return Err(Capacity(issue))
   }
   guard @execution.checked_preparation_add_product(
-      r, request_serialization_output_retained_controls, 1L,
+      r,
+      request_serialization_output_retained_controls +
+      (if terminal { terminal_result_controls } else { 0L }),
+      1L,
     )
     is Some(r) &&
     @execution.checked_preparation_add_product(
-      e, request_serialization_output_execution_controls, 1L,
+      e,
+      request_serialization_output_execution_controls +
+      (if terminal { terminal_result_construction } else { 0L }),
+      1L,
     )
     is Some(e) else {
     return Err(Policy)
@@ -123,10 +153,25 @@ pub fn[I] prepare_request_serialization_output_limits(
         Some(value) => value
         None => return Err(Policy)
       }
+      let (workspace, result_limits) = if terminal {
+        guard client_terminal_content_result_workspace(
+            limits,
+            @publication_host.prepared_client_result_count(prepared),
+          )
+          is Some((result_limits, result_capacity)) &&
+          @execution.add_execution_capacity(workspace, result_capacity)
+          is Some(combined) else {
+          return Err(Policy)
+        }
+        (combined, Some(result_limits))
+      } else {
+        (workspace, None)
+      }
       let demand = {
         limits: selected,
         capacity: workspace,
         generation_rows: Int::min(generation_rows, component.max_rows),
+        result_limits,
       }
       // The same original imported current check must still run even though
       // the already-admitted extents do not change. No current result is kept.

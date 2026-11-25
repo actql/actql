@@ -323,6 +323,8 @@ pub fn cleanup_installed_managed_keyed_serialization_prefix(ClientInstalledManag
 
 pub fn cleanup_installed_managed_serialization_prefix(ClientInstalledManagedRun, ClientInstalledManagedSerializationPreparation) -> Result[Bool, ClientInstalledManagedRunIssue]
 
+pub fn cleanup_installed_managed_terminal_serialization(ClientInstalledManagedRun) -> Result[Bool, ClientInstalledManagedRunIssue]
+
 pub fn[I, P] clear_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] clear_program_json_preparation(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
@@ -580,6 +582,8 @@ pub fn[I] finish_request_native_intake_wire(ClientRequestPreparation[I], I, @run
 pub fn[I] finish_request_result_metadata(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] finish_request_submitted_intent(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
+
+pub fn fund_terminal_serialization_store(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @execution_relation.PreparationRepresentationUnits) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn grow_installed_effect_operation_input(ClientInstalledEffectOperationBorrow, ClientInstalledEffectOperationExtent, reuse_execution_peak? : Bool) -> Result[Unit, ClientInstalledManagedRunIssue]
 
@@ -862,6 +866,8 @@ pub fn issue_program_captured_publication_invocation(ClientInstalledManagedRun, 
 pub fn issue_program_initial_retention(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientClosedValuesPreparationIssue]
 
 pub fn issue_program_publication_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ClientClosedValuesPreparationIssue]
+
+pub fn issue_program_terminal_serialization_invocation(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationGeneration, ClientSerializationOutputDemand, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, @run_publication.BoundContentGeneration), ClientClosedValuesPreparationIssue]
 
 pub fn issue_program_whole_source_publication_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ClientClosedValuesPreparationIssue]
 
@@ -1249,13 +1255,15 @@ pub fn[I] prepare_request_serialization_compilation(ClientRequestPreparation[I],
 
 pub fn[I] prepare_request_serialization_graph(ClientRequestPreparation[I], I, Int, Int, String, String, Int, Int, Bool, ClientInstalledSequenceContracts, manifests~ : @run_publication_host.ClientCompilationManifests, compilation_limits~ : @run_publication_host.ClientPureCompilationLimits, model_occurrence? : @run_publication_host.ClientInferOccurrence?) -> Result[@run_publication_host.ClientSerializationPlanGraph, ClientRequestProgramPlanIssue]
 
-pub fn[I] prepare_request_serialization_output_limits(ClientRequestPreparation[I], I, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationPlanGraph, Int, () -> ClientSerializationWorkspaceLimits?) -> Result[ClientSerializationOutputDemand, ClientRequestPreparationIssue]
+pub fn[I] prepare_request_serialization_output_limits(ClientRequestPreparation[I], I, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationPlanGraph, Int, () -> ClientSerializationWorkspaceLimits?, terminal? : Bool) -> Result[ClientSerializationOutputDemand, ClientRequestPreparationIssue]
 
 pub fn[I] prepare_request_serialization_plan(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.ExecutionCapacity?) -> Result[ClientInstalledManagedSerializationPreparation, ClientInstalledManagedRunIssue]
 
 pub fn[I] prepare_request_source_input(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, String) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I, T] prepare_request_submitted_intent(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T]) -> Result[String, ClientRequestPreparationIssue]
+
+pub fn[I] prepare_request_terminal_serialization_plan(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[ClientInstalledManagedSerializationPreparation, ClientInstalledManagedRunIssue]
 
 pub fn prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
@@ -1673,6 +1681,8 @@ pub fn start_installed_managed_keyed_serialization_prefix(ClientInstalledManaged
 
 pub fn start_installed_managed_serialization_prefix(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, ClientInstalledManagedSerializationPreparation) -> Result[ClientSerializationPrefix, ClientInstalledManagedRunIssue]
 
+pub fn start_installed_managed_terminal_serialization(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[(ClientInstalledManagedSerializationPreparation, ClientSerializationPrefix, ClientSerializationOutputDemand), ClientInstalledManagedRunIssue]
+
 pub fn start_installed_original_composed_keyed_host_prefix(ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowCapturedInput], @physical_strategy_host.CapturedEffectRunDAG, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue]
 
 pub fn start_installed_original_composed_keyed_input_prefix(ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowCapturedInput], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue]
@@ -1708,6 +1718,12 @@ pub fn[I, P] take_program_compilation_preparation(ClientProgramCheckPreparation[
 pub fn[I, P] take_program_json_preparation_input(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.ParsedProgramInput, ClientProgramJsonPreparationIssue]
 
 pub fn[I, P] take_program_json_preparation_program(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.Program, ClientProgramJsonPreparationIssue]
+
+pub fn terminal_serialization_evidence_entries(ClientInstalledManagedRun) -> Int?
+
+pub fn terminal_serialization_execution_work(ClientInstalledManagedSerializationPreparation) -> Int
+
+pub fn terminal_serialization_run_matches(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn[I] try_capture_request_effect_run_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[ClientRequestEffectRunExplanation[I]?, ClientRequestStaticContextIssue]
 
@@ -2250,6 +2266,7 @@ pub(all) struct ClientSerializationOutputDemand {
   limits : ClientSerializationWorkspaceLimits
   capacity : @execution_relation.ExecutionCapacity
   generation_rows : Int
+  result_limits : @run_publication_host.PublicationOutputExportLimits?
 }
 
 type ClientSerializationPrefix

@@ -68,6 +68,8 @@ test "Business child cleanup retries the same failed physical entry after origin
     request_parent: None,
     request_body: None,
     request_run: None,
+    terminal_content_selected: false,
+    terminal_content_custody: None,
     file_entry: None,
     file_work: None,
     file_failure: None,
@@ -108,6 +110,25 @@ test "Business child cleanup retries the same failed physical entry after origin
     result_cleanup_issue: None,
     active: false,
   }
+  // A terminal Content commit that returned without confirmation cannot
+  // authorize releasing its private generation.
+  business.terminal_content_selected = true
+  business.publication_attempted = true
+  business.publication_result = Some({
+    public_index_entry_cid: "",
+    publication_request_cid: "",
+    publication_attempt_cid: "",
+    committed: false,
+    idempotent: false,
+  })
+  assert_true(
+    business.close_publication_children() is Err(CommandBusinessPublication),
+  )
+  assert_false(business.publication_retired)
+  assert_true(business.publication_result is Some(_))
+  business.publication_result = None
+  business.publication_attempted = false
+  business.terminal_content_selected = false
   // An actual entered parent excludes the child Read. The failed constructor
   // owns the attempted entry even though no C child frame was installed.
   let parent = host.borrow_backing().unwrap()

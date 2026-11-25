@@ -586,6 +586,14 @@ fn LocalCommandPreparationOriginal::close_business_children(
         Ok(true) => business.model_run = None
       }
     }
+    if business.terminal_content_selected {
+      guard business.request_run is Some(run) &&
+        @local_values.cleanup_installed_managed_terminal_serialization(run)
+        is Ok(true) else {
+        return Err(CommandBusinessChildren)
+      }
+      business.terminal_content_selected = false
+    }
     // Source preparation DATA is retained by this same caller only until its
     // logical children finish. Do not root it through physical C retirement.
     business.file_capacity = None

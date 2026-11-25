@@ -185,6 +185,7 @@ fn PublicationOutputExport::retained_effect_result_available(
 struct PublicationOutputReplay {
   stream : @execution.CompletedOutputExport
   expected : (String, Int, Int, Int)
+  workspace_slots : Int
   mut finished : Bool
 }
 
@@ -561,7 +562,14 @@ pub fn prepare_all_captured_result_publication_exports(
 pub fn PublicationOutputExport::replay(
   self : PublicationOutputExport,
 ) -> Result[PublicationOutputReplay, PublicationOutputExportIssue] {
-  guard self.receipt is Some(receipt) else { return Err(InvalidState) }
+  guard self.receipt is Some(receipt) &&
+    @execution.completed_output_export_workspace_slots(
+      self.replay_values,
+      self.replay_wire,
+    )
+    is Some(workspace_slots) else {
+    return Err(InvalidState)
+  }
   let expected = @execution.output_stream_identity(
     @execution.completed_relation_export_content(receipt),
   )
@@ -572,7 +580,7 @@ pub fn PublicationOutputExport::replay(
     self.replay_wire,
     self.max_batch_bytes,
   )
-  .map(stream => { stream, expected, finished: false, })
+  .map(stream => { stream, expected, workspace_slots, finished: false, })
   .map_err(issue => Output(issue))
 }
 
@@ -584,6 +592,40 @@ pub fn PublicationOutputReplay::next(
     return Err(InvalidState)
   }
   @execution.next_completed_output_export(self.stream).map_err(issue => {
+    Output(issue)
+  })
+}
+
+///|
+/// Step the same exact replay without exceeding the caller's grant. Consumed
+/// work is reported even when the original cursor refuses the next row.
+pub fn PublicationOutputReplay::advance(
+  self : PublicationOutputReplay,
+  quantum : Int,
+) -> (
+  @execution.CompletedOutputExportAdvance?,
+  Int,
+  PublicationOutputExportIssue?,
+) {
+  if self.finished {
+    return (None, 0, Some(InvalidState))
+  }
+  advance_publication_output_stream(
+    self.stream,
+    quantum,
+    self.workspace_slots,
+    false,
+  )
+}
+
+///|
+pub fn PublicationOutputReplay::rows_complete(
+  self : PublicationOutputReplay,
+) -> Result[Bool, PublicationOutputExportIssue] {
+  if self.finished {
+    return Err(InvalidState)
+  }
+  @execution.completed_output_export_rows_complete(self.stream).map_err(issue => {
     Output(issue)
   })
 }
@@ -656,13 +698,27 @@ pub fn PublicationOutputExport::advance(
     is Some(slots) else {
     return (None, 0, Some(InvalidState))
   }
+  advance_publication_output_stream(self.stream, quantum, slots, batch)
+}
+
+///|
+fn advance_publication_output_stream(
+  stream : @execution.CompletedOutputExport,
+  quantum : Int,
+  slots : Int,
+  batch : Bool,
+) -> (
+  @execution.CompletedOutputExportAdvance?,
+  Int,
+  PublicationOutputExportIssue?,
+) {
   let result = @execution.advance_completed_output_export(
-    self.stream,
+    stream,
     quantum,
     slots,
     batch~,
   )
-  let used = @execution.completed_output_export_poll_steps(self.stream)
+  let used = @execution.completed_output_export_poll_steps(stream)
   match result {
     Ok(progress) => (Some(progress), used, None)
     Err(issue) => (None, used, Some(Output(issue)))

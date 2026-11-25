@@ -240,6 +240,8 @@ fn prepare_local_command_preparation_original(
       request_parent: None,
       request_body: None,
       request_run: None,
+      terminal_content_selected: false,
+      terminal_content_custody: None,
       file_entry: None,
       file_work: None,
       file_failure: None,

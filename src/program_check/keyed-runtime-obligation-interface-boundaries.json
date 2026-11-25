@@ -634,7 +634,7 @@
     {
       "module": "src/program_check/check.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "88636b72f73903851e3d1fe63e7479dd8aac149adc6344ae34d4139ea5950098",
+      "sha256": "eb6b8291a005dfe9294fbebb9d034fee8198bc2138d56257bd58d9988b57961b",
       "role": "common-semantics",
       "owner": "Existing SourceView, pipeline producer context and checked Program owners",
       "exports": [],
@@ -664,8 +664,16 @@
           "declaration": "checked_environment ( program : CheckedProgram , ) - > @ environment . WireEnvironment"
         },
         {
+          "name": "checked_host_capacity_policy",
+          "declaration": "checked_host_capacity_policy ( program : CheckedProgram ) - > @ policy . Policy"
+        },
+        {
           "name": "checked_model_tasks",
           "declaration": "checked_model_tasks ( program : CheckedProgram , ) - > @ environment . ModelTasks ?"
+        },
+        {
+          "name": "checked_program_artifact_limits",
+          "declaration": "checked_program_artifact_limits ( program : CheckedProgram , ) - > ( Int , Int , Int )"
         },
         {
           "name": "checked_program_has_effects",
@@ -713,7 +721,9 @@
             "requirements",
             "unit_count",
             "unit_definition_cid",
-            "unit_pipeline"
+            "unit_pipeline",
+            "checked_host_capacity_policy",
+            "checked_program_artifact_limits"
           ],
           "exports": [],
           "attributes": {

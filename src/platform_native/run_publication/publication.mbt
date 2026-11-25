@@ -43,6 +43,8 @@ pub(all) enum NativePublicationOutputIssue {
     @publication.DurableResultBindingIssue,
     @store.NativePublicationStoreIssue
   )
+  TerminalWorkLimit
+  TerminalWorkCleanup(@store.NativePublicationStoreIssue)
 }
 
 ///|
@@ -301,6 +303,54 @@ fn reclaim_after_store_failure(
 }
 
 ///|
+priv enum NativeResultCursorIssue {
+  NativeResultCursorFailure(@publication_host.PublicationOutputExportIssue)
+  NativeResultCursorWorkLimit
+}
+
+///|
+/// The same allowance pays both the original identity pass and the verified
+/// Store replay. An exhausted cursor may only close its already-complete rows.
+fn native_result_next(
+  remaining : Ref[Int],
+  complete : () -> Result[Bool, @publication_host.PublicationOutputExportIssue],
+  advance : (Int) -> (
+    @execution.CompletedOutputExportAdvance?,
+    Int,
+    @publication_host.PublicationOutputExportIssue?,
+  ),
+) -> Result[String?, NativeResultCursorIssue] {
+  while remaining.val > 0 {
+    let quantum = Int::min(32, remaining.val)
+    let (progress, used, issue) = advance(quantum)
+    if used < 0 || used > quantum {
+      return Err(NativeResultCursorWorkLimit)
+    }
+    remaining.val -= used
+    if issue is Some(cause) {
+      return Err(NativeResultCursorFailure(cause))
+    }
+    guard progress is Some(progress) else {
+      return Err(NativeResultCursorWorkLimit)
+    }
+    if progress.batch is Some(chunk) {
+      return Ok(Some(chunk))
+    }
+    if progress.complete {
+      return Ok(None)
+    }
+    if used == 0 {
+      return Err(NativeResultCursorWorkLimit)
+    }
+  }
+  match complete() {
+    Ok(true) => Ok(None)
+    Ok(false) => Err(NativeResultCursorWorkLimit)
+    Err(issue) => Err(NativeResultCursorFailure(issue))
+  }
+}
+
+///|
 /// Persist one exact checked Result without routing its cells through an
 /// environment-owned semantic implementation. The first bounded traversal
 /// establishes identity. Only then does the Store receive a second bounded
@@ -313,6 +363,7 @@ pub fn persist_publication_output_native(
   max_nodes : Int,
   max_depth : Int,
   publication? : @local.ClientProgramPublication? = None,
+  work_remaining? : Ref[Int]? = None,
 ) -> Result[NativePublishedOutput, NativePublicationOutputIssue] {
   if max_wire_bytes < 1 ||
     max_nodes < 1 ||
@@ -331,12 +382,23 @@ pub fn persist_publication_output_native(
   }
   let mut identified = false
   while !identified {
-    match output.next() {
+    let next = match work_remaining {
+      Some(work) =>
+        native_result_next(work, () => output.rows_complete(), quantum => {
+          output.advance(quantum)
+        })
+      None => output.next().map_err(issue => NativeResultCursorFailure(issue))
+    }
+    match next {
       Ok(Some(_)) => ()
       Ok(None) => identified = true
-      Err(issue) => {
+      Err(NativeResultCursorFailure(issue)) => {
         output.cancel()
         return Err(Output(issue))
+      }
+      Err(NativeResultCursorWorkLimit) => {
+        output.cancel()
+        return Err(TerminalWorkLimit)
       }
     }
   }
@@ -463,7 +525,14 @@ pub fn persist_publication_output_native(
   }
   let mut replayed = false
   while !replayed {
-    match replay.next() {
+    let next = match work_remaining {
+      Some(work) =>
+        native_result_next(work, () => replay.rows_complete(), quantum => {
+          replay.advance(quantum)
+        })
+      None => replay.next().map_err(issue => NativeResultCursorFailure(issue))
+    }
+    match next {
       Ok(Some(chunk)) =>
         match writer.append(@utf8.encode(chunk)) {
           Ok(_) => ()
@@ -474,10 +543,18 @@ pub fn persist_publication_output_native(
           }
         }
       Ok(None) => replayed = true
-      Err(issue) => {
+      Err(NativeResultCursorFailure(issue)) => {
         replay.cancel()
         output.cancel()
         return Err(cancel_writer_after_output_failure(writer, issue))
+      }
+      Err(NativeResultCursorWorkLimit) => {
+        replay.cancel()
+        output.cancel()
+        return match writer.cancel() {
+          Ok(_) => Err(TerminalWorkLimit)
+          Err(issue) => Err(TerminalWorkCleanup(issue))
+        }
       }
     }
   }
@@ -591,6 +668,7 @@ fn assemble_native_effect_free_publication_owned(
   max_nodes : Int,
   max_depth : Int,
   publication? : @local.ClientProgramPublication? = None,
+  content? : Array[@publication.BoundContentGeneration] = [],
 ) -> Result[
   (NativeEffectFreePublicationEvidence, @local.ClientProgramCapture?),
   NativeRunPublicationAssemblyIssue,
@@ -649,6 +727,7 @@ fn assemble_native_effect_free_publication_owned(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      content_generations=content,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Receipt(issue))
@@ -656,7 +735,7 @@ fn assemble_native_effect_free_publication_owned(
   let mut original_capture : @local.ClientProgramCapture? = None
   let captured_result = match publication {
     Some(original) => {
-      if !context.source_advances.is_empty() {
+      if !context.source_advances.is_empty() || !content.is_empty() {
         return Err(InvalidAssembly)
       }
       let capture = match
@@ -713,6 +792,7 @@ fn assemble_native_effect_free_publication_owned(
         max_wire_bytes,
         max_nodes,
         max_depth,
+        content_generations=content,
       ).map_err(issue => Capture(issue))
   }
   let captured_run = match captured_result {

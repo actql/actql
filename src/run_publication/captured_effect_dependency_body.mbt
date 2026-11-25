@@ -9,6 +9,20 @@ struct CapturedEffectDependencyBody {
 }
 
 ///|
+/// Classification of the already checked effective policy, without a second
+/// parse or a classification derived from the generated payload.
+pub fn captured_effective_data_policy_classification(
+  body : CapturedEffectDependencyBody,
+) -> String? {
+  guard body.node.kind == "data_policy" &&
+    @json.object_field(body.value, "classification")
+    is Some(@json.String(value)) else {
+    return None
+  }
+  Some(value)
+}
+
+///|
 /// Original final encoder facts of this same admitted body. These DATA are
 /// neither permission nor a resource grant and do not traverse its tree.
 pub fn captured_effect_dependency_body_wire_usage(

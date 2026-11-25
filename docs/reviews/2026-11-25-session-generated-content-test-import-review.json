@@ -1,0 +1,49 @@
+{
+  "source": "db07e2ae81067b7b43a796865406c3a191c03c70",
+  "path": "src/platform_native/publication_store/moon.pkg",
+  "mode": "100644",
+  "sha256": "17dacd486d2805531f33f08c17a65e34d224b508031b323375a5c19c9268a99f",
+  "bytes": 2971,
+  "qualification": "Exact JS Session closure for the existing Native generated Content and portable refusal tests. This review establishes input identity only.",
+  "previousRevision": "f13e742e7e04ea47c5593d5ad70e7c510356809a",
+  "previousSha256": "59da613d0a27cb9c8b4c016b2df11a2c50058626e0d5286bfa1b93b7ae5bb310",
+  "previousBytes": 2845,
+  "previousReview": "docs/reviews/2026-11-24-session-native-effectful-publication-selector-review.json",
+  "rule": "literal-native-options-with-bound-source-membership",
+  "testImports": [
+    {
+      "package": "actql/actql/relation_schema",
+      "alias": "schema"
+    },
+    {
+      "package": "actql/actql/value_admission",
+      "alias": "admitted"
+    },
+    {
+      "package": "actql/actql/value_contract",
+      "alias": "contract"
+    }
+  ],
+  "fixtures": [
+    {
+      "path": "src/platform_native/publication_store/generated_content_fixture_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "ae1f2f2791e36de9446599bac42b8d5d17938db4119f96a465bc8e6d7373a60d",
+      "bytes": 1055
+    },
+    {
+      "path": "src/platform_native/publication_store/captured_content_custody_native_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "d492218e141289c2f977b5f9829289d1d53daf071402aef0d4c9b1468ce34d62",
+      "bytes": 35708
+    },
+    {
+      "path": "src/platform_native/publication_store/store_unsupported_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "169eb4f2f66ed42a9ae5857a71858e669841088bf0e6001ed00234849a59e81c",
+      "bytes": 1578
+    }
+  ],
+  "meaning": "The existing Native Store custody and portable refusal exercise the same checked JSONL encoder and rows. These literal dependencies appear only in the white-box test import block. Removing the exact three lines restores the complete previously reviewed descriptor. All target selectors, production imports, compiler options and source-membership checks are unchanged.",
+  "refusalPolicy": "Only the exact descriptor and existing JS toolchain qualify. Previous digests and changed imports, aliases, options, selectors, paths, targets and toolchains do not qualify for current reuse."
+}

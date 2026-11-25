@@ -77,6 +77,23 @@ fn validate_native_run_plan_original(
 }
 
 ///|
+// LogicalMap/0.1 lacks SERIALIZE. Only the genuine source-free Content
+// compiler makes its optional static view unavailable at Native admission.
+// The caller still binds and retains the same checked Run and authorization.
+fn native_terminal_content_omits_static_plan(
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+) -> Bool {
+  @host.client_compiled_run_matches(compiled, prepared) &&
+  @host.prepared_client_acquisition_count(prepared) == 0 &&
+  compiled.compilation is @host.Tasks(original) &&
+  physical_equal(original.owner, prepared) &&
+  original.infers.is_empty() &&
+  original.serialization is Some(content) &&
+  physical_equal(content.owner, prepared)
+}
+
+///|
 fn capture_native_run_plan_original(
   prepared : @host.PreparedClientProgram,
   compiled : @host.ClientCompiledRun,
