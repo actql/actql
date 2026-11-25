@@ -4,7 +4,8 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {canonicalText} from './check-canonical-json.mjs';
 import {contract} from './pivot-numeric-slot.mjs';
-const cid = body => 'sha256:' + createHash('sha256').update(canonicalText(body)).digest('hex');
+import type {NumericSlotSchema} from './numeric-slot.mjs';
+const cid = (body: unknown) => 'sha256:' + createHash('sha256').update(canonicalText(body)).digest('hex');
 // Symbolic Units isolate the normative preimage, not fabricated CheckedPrograms.
 const base = {version: 'actql-pivot-numeric-slot/0.1', unit_definition_cid: 'sha256:' + '0'.repeat(64),
   source_ordinal: 0, output_name: 'a', reduction_profile_cid: 'sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df'};
@@ -18,13 +19,13 @@ const moon = '// Generated independent pivot numeric slot preimages.\n' + vector
 const moonPath = 'src/canonical_json/pivot_numeric_slot.generated_test.mbt';
 if (process.argv.includes('--write')) writeFileSync(moonPath, moon);
 assert.equal(readFileSync(moonPath, 'utf8'), moon);
-function shape(v) {
-  const s = contract.schemas.pivot_slot;
+function shape(v: unknown) {
+  const s: NumericSlotSchema = contract.schemas.pivot_slot;
   if (!v || typeof v !== 'object' || Array.isArray(v) || Object.keys(v).length !== s.required.length) return false;
   return s.required.every(k => {
-    const p = s.properties[k], x = v[k];
+    const p = s.properties[k], x = (v as Record<string, unknown>)[k];
     if (p.const) return x === p.const;
-    if (p.type === 'integer') return Number.isSafeInteger(x) && x >= 0 && !Object.is(x, -0);
+    if (p.type === 'integer') return Number.isSafeInteger(x) && (x as number) >= 0 && !Object.is(x, -0);
     return typeof x === 'string' && (!p.pattern || new RegExp(p.pattern).test(x)) && (!p.minLength || x.length >= p.minLength);
   });
 }
@@ -42,17 +43,17 @@ test('closed shape rejects future observations and malformed static coordinates'
   for (const key of ['input_artifact_cid', 'index_key', 'value', 'fill_result', 'count', 'invocation_cid', 'member_cid', 'producer_visit', 'self_cid']) assert(!shape({...base, [key]: 0}));
   for (const source_ordinal of [-1, 0.5, Number.MAX_SAFE_INTEGER + 1, -0]) assert(!shape({...base, source_ordinal}));
   for (const output_name of ['', null, 0]) assert(!shape({...base, output_name}));
-  for (const key of Object.keys(base)) { const copy = {...base}; delete copy[key]; assert(!shape(copy)); }
+  for (const key of Object.keys(base)) { const copy: Partial<typeof base> = {...base}; delete copy[key as keyof typeof copy]; assert(!shape(copy)); }
 });
 test('bucket membership and fill do not redefine static column templates', () => {
-  const slots = values => values.map(output_name => ({...base, output_name}));
+  const slots = (values: string[]) => values.map(output_name => ({...base, output_name}));
   assert.deepEqual(slots([]), []);
   assert.deepEqual(new Set(slots(['a', 'z']).map(cid)), new Set(slots(['z', 'a']).map(cid)));
   // Holding the Unit fixed isolates column selection; reordering authored values
   // can still change the real Unit identity under the language's ordinary rules.
   const rows = [{id: 1, kind: null, value: 9}, {id: 1, kind: 'a', value: null},
     {id: 1, kind: 'z', value: 2}, {id: 1, kind: 'z', value: 2}, {id: 2, kind: 'a', value: 2}];
-  const contributors = (id, name) => rows.filter(r => r.id === id && r.kind === name && r.value !== null).map(r => r.value);
+  const contributors = (id: number, name: string) => rows.filter(r => r.id === id && r.kind === name && r.value !== null).map(r => r.value);
   assert.deepEqual(contributors(1, 'a'), []);
   assert.deepEqual(contributors(1, 'z'), [2, 2]);
   assert.deepEqual(contributors(2, 'a'), [2]);

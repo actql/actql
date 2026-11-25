@@ -2,30 +2,46 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+
+type TestExports = {
+  memory: WebAssembly.Memory;
+  _start(): void;
+  moonbit_test_driver_internal_execute(file: string, index: number): void;
+  moonbit_test_driver_finish(): void;
+};
+type TestInstance = WebAssembly.Instance & {exports: TestExports};
+type StringReader = {value: string; offset: number};
+type Case = {name: string; index: number};
+type TestResult = {type: string; index: number; message: string};
+// The pinned Node lines expose exception imports that the compiler's DOM types omit.
+type WasmWithExceptions = typeof WebAssembly & {
+  Tag: new (descriptor: {parameters: []}) => WebAssembly.ImportValue;
+  Exception: new (tag: WebAssembly.ImportValue, args: []) => object;
+};
 const artifact = process.argv[2];
 const selected = process.argv[4] ?? 'original_metadata_wbtest.mbt';
 assert.match(selected, /^[a-z0-9_]+_wbtest\.mbt$/u);
-const bytes = fs.readFileSync(artifact);
+const bytes = fs.readFileSync(artifact) as Buffer<ArrayBuffer>;
 const module = new WebAssembly.Module(bytes);
-let instance;
+let instance: TestInstance;
 let output = '';
 let hostCalls = 0;
 // The selected non-GC Wasm imports an empty exception tag and void throw.
-const tag = new WebAssembly.Tag({parameters: []});
+const tag = new (WebAssembly as WasmWithExceptions).Tag({parameters: []});
 const imports = {
-  exception: {tag, throw() {throw new WebAssembly.Exception(tag, []);}},
+  exception: {tag, throw() {throw new (WebAssembly as WasmWithExceptions).Exception(tag, []);}},
   __moonbit_fs_unstable: {
-    begin_read_string(value) {assert.equal(typeof value, 'string'); return {value, offset: 0};},
-    string_read_char(handle) {
+    begin_read_string(value: unknown) {assert.equal(typeof value, 'string'); return {value, offset: 0};},
+    string_read_char(handle: StringReader) {
       if (handle.offset >= handle.value.length) return -1;
-      const cp = handle.value.codePointAt(handle.offset);
+      const cp = handle.value.codePointAt(handle.offset)!;
       handle.offset += cp > 65535 ? 2 : 1;
       return cp;
     },
     finish_read_string() {},
   },
   wasi_snapshot_preview1: {
-    fd_write(fd, vectors, length, written) {
+    fd_write(fd: number, vectors: number, length: number, written: number) {
       assert.ok(fd === 1 || fd === 2);
       const memory = instance.exports.memory.buffer;
       const view = new DataView(memory);
@@ -42,7 +58,7 @@ const imports = {
       return 0;
     },
   },
-  actql_host: {},
+  actql_host: {} as Record<string, () => never>,
 };
 for (const entry of WebAssembly.Module.imports(module)) {
   if (entry.module === 'actql_host') {
@@ -53,9 +69,9 @@ for (const entry of WebAssembly.Module.imports(module)) {
     };
   }
 }
-instance = new WebAssembly.Instance(module, imports);
+instance = new WebAssembly.Instance(module, imports) as TestInstance;
 instance.exports._start();
-const info = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+const info: {tests: Record<string, Case[]>} = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
 const declared = info.tests[selected];
 assert.ok(Array.isArray(declared) && declared.length >= 2);
 // Optional exact names select real compiler-declared controls; default CI
@@ -69,7 +85,7 @@ for (const {index} of tests) {
   instance.exports.moonbit_test_driver_internal_execute(selected, index);
 }
 instance.exports.moonbit_test_driver_finish();
-const results = output.split('\n').filter(line => line.startsWith('{')).map(line => JSON.parse(line)).filter(row => row.type === 'result');
+const results = output.split('\n').filter(line => line.startsWith('{')).map((line): TestResult => JSON.parse(line)).filter(row => row.type === 'result');
 assert.equal(hostCalls, 0);
 assert.equal(results.length, tests.length);
 assert.deepEqual(results.map(row => row.index).sort((a,b)=>a-b), tests.map(row => row.index).sort((a,b)=>a-b));

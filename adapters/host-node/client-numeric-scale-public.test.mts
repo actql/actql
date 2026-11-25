@@ -11,7 +11,10 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {verifyLocalSourceRuntime, assertSourceRuntimeReceiptCurrent} from '../../scripts/verify-local-source-runtime.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-let coherence, prepared, scratch, startedCases = 0, completedCases = 0;
+let coherence: Awaited<ReturnType<typeof verifyLocalSourceRuntime>>,
+  prepared: Awaited<ReturnType<typeof prepareNumericScaleConsumer>>,
+  scratch: Awaited<ReturnType<typeof createOwnedScratch>>,
+  startedCases = 0, completedCases = 0;
 before(async () => {
   coherence = await verifyLocalSourceRuntime(root);
   scratch = await createOwnedScratch({parent: join(root, '..', '.codex-scratch'), prefix: 'actql-numeric-consumer-',
@@ -23,6 +26,7 @@ before(async () => {
         maxBuffer: 8 * 1024 * 1024});
       assert.ifError(child.error); assert.equal(child.signal, null, child.stderr);
       assert.equal(child.status, 0, child.stderr);
+      return {stdout: child.stdout};
     }});
 });
 after(async () => {
