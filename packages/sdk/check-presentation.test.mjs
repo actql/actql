@@ -70,8 +70,13 @@ test('packed SDK public exports and browser bundle include their presentation mo
       .replaceAll("from './index.mjs'", "from '@actql/sdk'")
       .replaceAll("from './host-port.mjs'", "from '@actql/sdk/host-port'"));
   }
-  const report = run(process.execPath, ['--test-reporter=tap', '--test',
-    ...consumers.map(name => `${name}.test.mjs`)]);
+  let report;
+  try {
+    report = run(process.execPath, ['--test-reporter=tap', '--test',
+      ...consumers.map(name => `${name}.test.mjs`)]);
+  } catch (error) {
+    throw new Error([error.message, error.stdout, error.stderr].filter(Boolean).join('\n'), {cause: error});
+  }
   const count = Number(/^# tests (\d+)$/mu.exec(report)?.[1]);
   assert(count > 0, report);
   assert.match(report, /^# fail 0$/mu);

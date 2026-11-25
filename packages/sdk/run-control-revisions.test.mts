@@ -1,6 +1,6 @@
 import type {TestContext} from 'node:test';
 import type {ClientError as SdkFailure, RunState} from './index.mjs';
-import {connectInProcess} from './internal/client.mjs';
+import {connectInProcess} from './host-port.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {ClientError, explainRunObservationFailure, formatRunObservationFailure,
@@ -23,7 +23,7 @@ const state = (controlRevision: number, revision = 41) => ({version: 'actql-run-
 
 async function fixture(t: TestContext, answer: (operation: string) => unknown) {
   const calls: string[] = [];
-  const client = await connectInProcess({mode: 'local', owner: 'local'}, {perform(operation: string, body: Record<string, unknown>) {
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {async perform(operation: string, body: Record<string, unknown>) {
     calls.push(operation);
     if (operation === 'connect') return profile;
     if (operation === 'attach') return {ref, durability: 'durable', revision: 1};

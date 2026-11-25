@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connect} from './index.mjs';
-import {connectInProcess} from './internal/client.mjs';
+import {connectInProcess} from './host-port.mjs';
 
 const profile = (mode: string) => ({version: 'actql-client-host/0.1', mode, owner: mode,
   durability: 'durable', scopeRef: 'start-order', capabilities: [], limits: {
@@ -14,7 +14,7 @@ const profile = (mode: string) => ({version: 'actql-client-host/0.1', mode, owne
 test('in-process connection invokes its original port before yielding', async () => {
   const calls: string[] = [];
   const pending = connectInProcess({mode: 'local', owner: 'local'}, {
-    perform(operation) { calls.push(operation); return profile('local'); },
+    async perform(operation) { calls.push(operation); return profile('local'); },
   });
   // Observe the scheduling contract before awaiting the connection result.
   const beforeYield = [...calls];
