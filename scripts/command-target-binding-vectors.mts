@@ -4,12 +4,22 @@ import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 
-export function commandTargetBindingVectors(corpus) {
+type Envelope = {cid: string};
+type Command = {contract_cid: string; connector_id: string; target: {binding?: unknown}};
+type Catalog = {catalog_cid: string; connector_id: string; commands: Command[]; contracts: Envelope[]};
+type Environment = {evidence_bundle_cid: string; connector_catalogs: Catalog[];
+  command_contracts: Command[]; contract_registry: Envelope[]};
+type Corpus = {original_command: unknown; input_envelope: Envelope; output_envelope: Envelope; cases: {
+  id: string; environment: Environment; environment_cid: string; catalog_cid: string; command_cid: string;
+  binding: unknown;
+}[]};
+
+export function commandTargetBindingVectors(corpus: Corpus) {
   const output=['// Generated from independent fixed corpus by scripts/command-target-binding-vectors.mjs.'];
   const expected=['legacy-field','installation','identifier'];
   assert.deepEqual(corpus.cases.map(value=>value.id),expected);
-  const identities=new Set();
-  const self=(body,field)=>{
+  const identities=new Set<string>();
+  const self=(body: Record<string, unknown>,field: string)=>{
     const {[field]:claimed,...preimage}=body;
     assert.equal(machineCid(preimage),claimed,field);
     return claimed;
@@ -57,7 +67,7 @@ export function commandTargetBindingVectors(corpus) {
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
-  const corpus=JSON.parse(readFileSync('portability/corpus/command-target-bindings.json','utf8'));
+  const corpus: Corpus=JSON.parse(readFileSync('portability/corpus/command-target-bindings.json','utf8'));
   const output=commandTargetBindingVectors(corpus);
   const path='src/check_environment/command_target_bindings.generated_test.mbt';
   if(process.argv.includes('--write'))writeFileSync(path,output);

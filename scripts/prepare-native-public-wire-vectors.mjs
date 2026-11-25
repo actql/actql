@@ -51,7 +51,7 @@ export async function prepareNativeWireVectors(parent) {
  const scratch=await mkdtemp(join(parent,'native-wire-'));
  const path=join(scratch,'codec');await mkdir(path);
  const inputs=[];
- for(const file of ['src/cmd/native_client/wire.generated.mbt','src/cmd/native_client/main.mbt','scripts/fixtures/public-wire-language-vectors.mjs','toolchain.json','spec/contracts/actql-client-host.json','spec/contracts/actql-protocol-schemas.json','scripts/generate-native-client-wire.mjs','scripts/generate-client-host-wire.mjs','scripts/client-check-report-rules.mjs']) {
+ for(const file of ['src/cmd/native_client/wire.generated.mbt','src/cmd/native_client/main.mbt','scripts/fixtures/public-wire-language-vectors.mts','scripts/fixtures/public-wire-language-vectors.mjs','toolchain.json','spec/contracts/actql-client-host.json','spec/contracts/actql-protocol-schemas.json','scripts/generate-native-client-wire.mjs','scripts/generate-client-host-wire.mjs','scripts/client-check-report-rules.mjs']) {
   const bytes=await readFile(join(root,file));inputs.push({path:file,sha256:hash(bytes),bytes:bytes.length});
  }
  const codec=await readFile(join(root,inputs[0].path));

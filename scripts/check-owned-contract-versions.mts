@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 type Occurrence = {path: string; token: string; contextSha256: string; line: number};
 type Inventory = {version: number; baseline: string; entries: (Omit<Occurrence, 'line'> & {
   count: number; reason: string})[]};
+type SourceText = Pick<string, 'matchAll' | 'indexOf' | 'slice'> & {readonly [index: number]: string};
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const inventoryPath = 'scripts/owned-contract-version-legacy.json';
@@ -21,7 +22,7 @@ const tokens = new RegExp([
   String.raw`\burn:(?:actql|aoa):[A-Za-z0-9_.:-]+:(${number})`,
 ].join('|'), 'g');
 
-function registryPackageVersionEnd(text: string, start: number) {
+function registryPackageVersionEnd(text: SourceText, start: number) {
   if (start < 0 || (start > 0 && !/[\s"'`<>()]/u.test(text[start - 1]))) return -1;
   const raw = /^[^\s"'`<>()]+/u.exec(text.slice(start))?.[0];
   if (!raw) return -1;
@@ -38,7 +39,7 @@ function registryPackageVersionEnd(text: string, start: number) {
   return external ? start + raw.length : -1;
 }
 
-export function occurrences(text: string, path: string) {
+export function occurrences(text: SourceText, path: string) {
   const result: Occurrence[] = [];
   // Offsets increase within this one immutable text. Retain parser positions,
   // never a source admission or verdict between inputs. Look ahead lazily so

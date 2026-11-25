@@ -5,8 +5,14 @@ import {pathToFileURL} from 'node:url';
 import {canonicalText} from './check-canonical-json.mjs';
 import {generateQueryEvidenceVectors} from './query-evidence-vectors.mjs';
 
-const hash = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
-export function queryTimeAcquisitionVectors(originals) {
+type Requirement = {owner: Record<string, unknown>};
+type Observation = {actual_access: Record<string, unknown>};
+type Original<T> = {body: T};
+type Originals = [Original<Requirement>, Original<unknown>, Original<Observation>,
+  Original<unknown>, Original<unknown>, Original<object>, ...Original<unknown>[]];
+
+const hash = (value: unknown) => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
+export function queryTimeAcquisitionVectors(originals: Originals) {
   const requirement = originals[0].body;
   const observation = originals[2].body;
   const access = originals[5].body;
@@ -23,7 +29,7 @@ export function queryTimeAcquisitionVectors(originals) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const originals = JSON.parse(readFileSync('portability/corpus/query-acquisition-identities.json', 'utf8'));
+  const originals: Originals = JSON.parse(readFileSync('portability/corpus/query-acquisition-identities.json', 'utf8'));
   const records = queryTimeAcquisitionVectors(originals);
   const path = 'portability/corpus/query-time-acquisition-identities.json';
   const moon = 'src/canonical_json/query_time_acquisition.generated_test.mbt';

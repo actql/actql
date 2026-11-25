@@ -2,19 +2,22 @@
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
-import {parameterPrograms} from './parameter-schema.mjs';
+import {parameterPrograms, type ProgramRegistry} from './parameter-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
+import type {CommandProgram} from './published-command-target.mjs';
 
 export const commandInputKeySchema = {type: 'string', minLength: 1};
 
-export function commandInputKeySchemas(protocol, write = false) {
-  const prior = JSON.parse(readFileSync(new URL(
+type Protocol = ProgramRegistry<CommandProgram>;
+
+export function commandInputKeySchemas(protocol: Protocol, write = false) {
+  const prior: CommandProgram = JSON.parse(readFileSync(new URL(
     '../portability/fixtures/program-grammar-before-command-input-key.json', import.meta.url), 'utf8'));
   const original = prior.properties.effects.additionalProperties.oneOf
-    .find(member => member.properties?.command).properties.command;
+    .find(member => member.properties?.command)!.properties!.command!;
   for (const program of parameterPrograms(protocol)) {
     const command = program.properties.effects.additionalProperties.oneOf
-      .find(member => member.properties?.command).properties.command;
+      .find(member => member.properties?.command)!.properties!.command!;
     if (write) {
       if (Object.hasOwn(command.properties, 'input_key')) {
         assert.deepEqual(command.properties.input_key, commandInputKeySchema);
@@ -40,7 +43,7 @@ export function commandInputKeySchemas(protocol, write = false) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const path = 'spec/contracts/actql-protocol-schemas.json';
-  const protocol = JSON.parse(readFileSync(path, 'utf8'));
+  const protocol: Protocol = JSON.parse(readFileSync(path, 'utf8'));
   commandInputKeySchemas(protocol, process.argv.includes('--write'));
   if (process.argv.includes('--write')) writeFileSync(path, JSON.stringify(protocol, null, 2) + '\n');
   console.log('Canonical Command input-key correspondence retains the original absent-field Program.');

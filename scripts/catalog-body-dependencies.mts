@@ -5,12 +5,31 @@ import {machineCid} from './actql-spec-family.mjs';
 import {resolvePointer} from './check-canonical-json.mjs';
 import {verifyTryNumberIdentityContracts} from './try-number-identity-contract.mjs';
 import {verifyCommonLocalNormalizationCatalog} from './local-common-normalization-catalog.mjs';
+import type {ProgramRegistry} from './parameter-schema.mjs';
+import type {pushdownBodyContract} from './pushdown-contract.mjs';
+
+type Pointer = {pointer: string; cid: string};
+type PathPin = Pointer & {path: string; file?: never};
+type FilePin = Pointer & {file: string; path?: never};
+type Contract = {
+  value_contract_bodies: {schema: FilePin};
+  pushdown_contract_bodies: ReturnType<typeof pushdownBodyContract>;
+  policy_components: {text_time_evaluation: {schema: PathPin | FilePin}; capacity: {contract: PathPin | FilePin}};
+};
+type Base = {source_schema: unknown; evaluation_envelope_schema: unknown; barrier_schema: unknown};
+type Inherited = {
+  regex_grammar: unknown; regex_ast_schema: unknown; regex_replacement_ast_schema: unknown;
+  timestamp_pattern_grammar: unknown; timestamp_pattern_ast_schema: unknown; unicode_semantics: unknown;
+};
+type Expression = {grammar: string; grammar_sha256: string; inherited_text_time_profile_cid: string;
+  regex_ast_contract: PathPin; laws: {consumer_capacity_contract_cid: string}};
+type SpecFamily = {documents: {machine_contracts?: PathPin[]}[]};
 
 verifyTryNumberIdentityContracts();
 verifyCommonLocalNormalizationCatalog();
 
 // The interpretation contract is not the concrete Check Environment envelope.
-const contract = JSON.parse(readFileSync('spec/contracts/actql-check-environment.json', 'utf8'));
+const contract: Contract = JSON.parse(readFileSync('spec/contracts/actql-check-environment.json', 'utf8'));
 const pushdown = contract.pushdown_contract_bodies;
 const operations = pushdown.schema.oneOf[1].properties.operations.items.enum;
 const text = [
@@ -32,9 +51,9 @@ console.log('Catalog body interpretation contract pin verified.');
 
 // Only declared reference positions are edges. Schema field names, source-file
 // checksums, and CID-shaped application data do not participate in this graph.
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
-const base = read('spec/dependencies/actql-text-time-base.json');
-const inherited = read('spec/dependencies/actql-text-time-base-dependencies.json');
+const read = <Value,>(path: string): Value => JSON.parse(readFileSync(path, 'utf8'));
+const base = read<Base>('spec/dependencies/actql-text-time-base.json');
+const inherited = read<Inherited>('spec/dependencies/actql-text-time-base-dependencies.json');
 const unicode = read('spec/dependencies/actql-text-time-unicode-data.json');
 const bodies = {
   Base: base,
@@ -49,7 +68,8 @@ const bodies = {
   UnicodeSemantics: inherited.unicode_semantics,
   UnicodeData: unicode,
 };
-const edges = {
+type BodyName = keyof typeof bodies;
+const edges: Record<BodyName, [string, BodyName][]> = {
   Base: [
     ['/source_schema_cid', 'SourceSchema'],
     ['/evaluation_envelope_schema_cid', 'EnvelopeSchema'],
@@ -68,11 +88,12 @@ const edges = {
 };
 assert.deepEqual(Object.keys(edges), Object.keys(bodies));
 const pins = Object.fromEntries(Object.entries(bodies).map(([name, body]) => [name, machineCid(body)]));
-assert.equal(pins.Base, read('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid);
+assert.equal(pins.Base, read<Expression>('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid);
 assert.equal(new Set(Object.values(pins)).size, Object.keys(bodies).length);
 for (const [name, references] of Object.entries(edges)) {
   for (const [pointer, target] of references) {
-    assert.equal(pointer.slice(1).split('/').reduce((value, part) => value[part], bodies[name]), pins[target]);
+    assert.equal(pointer.slice(1).split('/').reduce<unknown>(
+      (value, part) => (value as Record<string, unknown>)[part], bodies[name as BodyName]), pins[target]);
   }
 }
 const lines = [
@@ -111,8 +132,8 @@ if (process.argv.includes('--write')) writeFileSync(inheritedPath, inheritedText
 assert.equal(readFileSync(inheritedPath, 'utf8'), inheritedText);
 console.log('Inherited text/time dependency roles and body pins verified.');
 
-const expression = read('spec/contracts/actql-expressions.json');
-const regex = read(expression.regex_ast_contract.path);
+const expression = read<Expression>('spec/contracts/actql-expressions.json');
+const regex = read<{schema: PathPin}>(expression.regex_ast_contract.path);
 assert.equal(expression.regex_ast_contract.pointer, '');
 assert.equal(regex.schema.pointer, '');
 const expressionBodies = {
@@ -138,7 +159,7 @@ if (process.argv.includes('--write')) writeFileSync(expressionPath, expressionTe
 assert.equal(readFileSync(expressionPath, 'utf8'), expressionText);
 console.log('Current expression dependency pins and grammar bytes verified.');
 
-const aoa = read('spec/contracts/actql-aoa.json');
+const aoa = read<Record<string, string>>('spec/contracts/actql-aoa.json');
 const adopted = [
   ['RelaScalar', 'aoa-rela-scalar-laws', 'rela_scalar_law_manifest_cid'],
   ['RelaPrimitive', 'aoa-rela-primitive-laws', 'rela_primitive_law_manifest_cid'],
@@ -169,7 +190,7 @@ const propertyCountText = '// Generated by scripts/catalog-body-dependencies.mjs
 if (process.argv.includes('--write')) writeFileSync(propertyCountPath, propertyCountText);
 assert.equal(readFileSync(propertyCountPath, 'utf8'), propertyCountText);
 
-const grammarReferences = [
+const grammarReferences: [string, string, PathPin | FilePin][] = [
   ['ValueGrammarBody', '/value_contract_bodies/schema/cid', contract.value_contract_bodies.schema],
   ['GraphLawBody', '/carrier_contract_bodies/schema/oneOf/1/properties/identity_law_cid/const',
     {path: 'spec/dependencies/actql-graph-laws.json', pointer: '', cid: aoa.graph_law_manifest_cid}],
@@ -182,7 +203,7 @@ const grammarReferences = [
 ];
 for (const [, pointer, ref] of grammarReferences) {
   assert.equal(resolvePointer(contract, pointer), ref.cid);
-  assert.equal(machineCid(resolvePointer(read(ref.path ?? ref.file), ref.pointer)), ref.cid);
+  assert.equal(machineCid(resolvePointer(read((ref.path ?? ref.file)!), ref.pointer)), ref.cid);
 }
 const grammarText = [
   '// Generated by scripts/catalog-body-dependencies.mjs; do not edit.', '',
@@ -205,18 +226,18 @@ console.log('Catalog interpretation dependency bodies and explicit roles verifie
 
 // The Program resource owns its recursive $defs. A parameter subschema alone
 // would lose that scope; the enclosing Plan artifact is not the source grammar.
-const protocol = read('spec/contracts/actql-protocol-schemas.json');
+const protocol = read<ProgramRegistry<unknown>>('spec/contracts/actql-protocol-schemas.json');
 const program = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
 assert.deepEqual(program, protocol.artifact_schemas.plan_document.properties.plan.properties.execution_material.properties.program);
 for (const name of ['executable_plan', 'plan_document']) {
   assert.equal(machineCid(protocol.artifact_schemas[name]), protocol.artifact_schema_cids[name]);
 }
-function checkProgramRefs(value, root = false) {
+function checkProgramRefs(value: unknown, root = false) {
   if (!value || typeof value !== 'object') return;
   if (!root) assert.ok(!Object.hasOwn(value, '$id'), 'nested schema resource needs explicit scope handling');
-  if (typeof value.$ref === 'string') {
-    assert.ok(value.$ref.startsWith('#/'), 'external Program schema dependency needs explicit handling');
-    assert.ok(resolvePointer(program, value.$ref.slice(1)));
+  if (typeof (value as {$ref?: unknown}).$ref === 'string') {
+    assert.ok((value as {$ref: string}).$ref.startsWith('#/'), 'external Program schema dependency needs explicit handling');
+    assert.ok(resolvePointer(program, (value as {$ref: string}).$ref.slice(1)));
   }
   for (const child of Object.values(value)) checkProgramRefs(child);
 }
@@ -233,13 +254,13 @@ console.log('Program source grammar scope and containing artifact pins verified.
 
 const stagePath = 'spec/contracts/actql-stage-contracts.json';
 const stageContracts = read(stagePath);
-const imports = read('spec/spec-family.json').documents.flatMap(d => d.machine_contracts ?? []);
+const imports = read<SpecFamily>('spec/spec-family.json').documents.flatMap(d => d.machine_contracts ?? []);
 const stageSemantics = [['SourceRules', '/source'], ['StageLaws', '/laws'],
   ['ResultImportInterface', '/schemas/result_import_interface'],
   ['LocalContracts', '/schemas/local_contracts'],
   ['LocalDependencies', '/schemas/local_dependencies'],
   ['GateRequirement', '/schemas/gate_requirement']];
-const semanticLines = [];
+const semanticLines: string[] = [];
 for (const [name, pointer] of stageSemantics) {
   const body = resolvePointer(stageContracts, pointer);
   const refs = imports.filter(r => r.path === stagePath && r.pointer === pointer);
