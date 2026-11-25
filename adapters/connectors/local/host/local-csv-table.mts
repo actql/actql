@@ -1,19 +1,8 @@
-const decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
-const int64 = /^(?:0|-?[1-9][0-9]{0,18})$/u;
-const minimumInt64 = -9223372036854775808n;
-const maximumInt64 = 9223372036854775807n;
-const unquotedDelimiters = new Set([0x2c, 0x0a, 0x0d]);
+import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 
 function fail(code: string, cause?: unknown): never {
   throw Object.assign(new Error(code, {cause}), {code});
-}
-
-function decodeField(bytes: Uint8Array): string {
-  let text;
-  try {text = decoder.decode(bytes);}
-  catch (cause) {fail('InvalidLocalCsvEncoding', cause);}
-  if (text.includes('\0')) fail('InvalidLocalCsvValue');
-  return text;
 }
 
 // The caller supplies a member of the admitted Project connector JSON.
@@ -54,87 +43,41 @@ export function prepareLocalCsvTable(resource: string, table: CsvDefinition, lim
     maxBytes, maxRows, maxFieldBytes: maxBytes, transport});
 }
 
-// Keep only one record under construction. The input belongs to the original
-// file reader, and the caller retains its backing until this cursor returns.
-function* records(bytes: Buffer, width: number, maxFieldBytes: number): Generator<string[], void> {
-  let offset = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf ? 3 : 0;
-  while (offset < bytes.length) {
-    const fields = [];
-    for (;;) {
-      if (fields.length === width) fail('InvalidLocalCsvWidth');
-      const quoted = bytes[offset] === 0x22;
-      const start = quoted ? ++offset : offset;
-      let end;
-      if (quoted) {
-        for (;;) {
-          const quote = bytes.indexOf(0x22, offset);
-          if (quote === -1) fail('InvalidLocalCsvQuote');
-          if (quote - start > maxFieldBytes) fail('LocalCsvFieldLimit');
-          offset = quote + 1;
-          if (bytes[offset] !== 0x22) {end = quote; break;}
-          offset++;
-        }
-      } else {
-        while (offset < bytes.length && !unquotedDelimiters.has(bytes[offset])) {
-          if (bytes[offset] === 0x22) fail('InvalidLocalCsvQuote');
-          if (offset - start === maxFieldBytes) fail('LocalCsvFieldLimit');
-          offset++;
-        }
-        end = offset;
-      }
-      const value = decodeField(bytes.subarray(start, end));
-      fields.push(quoted ? value.replaceAll('""', '"') : value);
-      if (offset === bytes.length) break;
-      const separator = bytes[offset++];
-      if (separator === 0x2c) continue;
-      if (separator === 0x0d && bytes[offset] === 0x0a) offset++;
-      else if (separator !== 0x0a) fail('InvalidLocalCsvSeparator');
-      break;
-    }
-    if (fields.length !== width) fail('InvalidLocalCsvWidth');
-    yield fields;
-  }
+export type LocalCsvDeclarationRuntime = Readonly<{
+  clientProgramLocalCsvRelationView(resource: string, names: readonly string[],
+    integerColumns: readonly boolean[], keys: readonly string[]): unknown;
+}>;
+export function projectLocalCsvRelationView(moon: Partial<LocalCsvDeclarationRuntime>, table: PreparedLocalCsvTable) {
+  if (typeof moon.clientProgramLocalCsvRelationView !== 'function') fail('LocalCsvRuntimeUnavailable');
+  const names = Object.keys(table.columnTypes);
+  const projected = checked(moon.clientProgramLocalCsvRelationView(table.resource, names,
+    names.map(name => table.columnTypes[name] === 'int64'), table.key));
+  const schema_wire = runtimeField(projected, 0), schema_cid = runtimeField(projected, 1),
+    facts_wire = runtimeField(projected, 2);
+  if (typeof schema_wire !== 'string' || typeof schema_cid !== 'string' ||
+    typeof facts_wire !== 'string') fail('InvalidLocalCsvColumns');
+  return {resource:table.resource, resource_kind:'record', schema_wire, schema_cid, facts_wire};
 }
 
-function* localCsvRows(bytes: Buffer, {columnTypes, key, maxBytes, maxRows, maxFieldBytes}: PreparedLocalCsvTable) {
-  if (!Buffer.isBuffer(bytes) || ![maxBytes,maxRows,maxFieldBytes].every(value =>
-    Number.isSafeInteger(value) && value > 0)) fail('InvalidLocalCsvLimits');
-  if (bytes.length > maxBytes) fail('LocalCsvBytesLimit');
-  const names = Object.keys(columnTypes);
-  const input = records(bytes, names.length, maxFieldBytes);
-  const header = input.next().value;
-  if (header === undefined || new Set(header).size !== names.length ||
-    header.some(name => !Object.hasOwn(columnTypes, name))) fail('InvalidLocalCsvHeader');
-  const keyRows = new Set();
-  let rowCount = 0;
-  for (const fields of input) {
-    if (++rowCount > maxRows) fail('LocalCsvRowsLimit');
-    for (let i = 0; i < header.length; i++) {
-      if (columnTypes[header[i]] === 'string') continue;
-      const value = fields[i];
-      if (!int64.test(value)) fail('InvalidLocalCsvInt64');
-      const number = BigInt(value);
-      if (number < minimumInt64 || number > maximumInt64) fail('InvalidLocalCsvInt64');
-    }
-    const row = Object.fromEntries(header.map((name, i) => [name, fields[i]]));
-    if (key.length) {
-      const identity = JSON.stringify(key.map(name => row[name]));
-      if (keyRows.has(identity)) fail('DuplicateLocalCsvKey');
-      keyRows.add(identity);
-    }
-    yield row;
-  }
-}
+export type LocalCsvRuntime = Readonly<{
+  clientProgramLocalCsvPage(bytes: Uint8Array, names: readonly string[], integerColumns: readonly boolean[],
+    keys: readonly string[], maxBytes: number, maxFieldBytes: number, maxRows: number, maxPageBytes: number): unknown;
+}>;
 
-export function encodeLocalCsvPage(bytes: Buffer, table: PreparedLocalCsvTable, maxPageBytes: number) {
-  const parts = [];
-  let size = 2;
-  for (const row of localCsvRows(bytes, table)) {
-    const wire = JSON.stringify(row);
-    size += Buffer.byteLength(wire) + (parts.length === 0 ? 0 : 1);
-    if (size > maxPageBytes) fail('LocalFilesPageBytesLimit');
-    parts.push(wire);
+export function encodeLocalCsvPage(moon: LocalCsvRuntime, bytes: Buffer, table: PreparedLocalCsvTable, maxPageBytes: number) {
+  if (!Buffer.isBuffer(bytes) || ![table.maxBytes, table.maxRows, table.maxFieldBytes].every(value =>
+    Number.isSafeInteger(value) && value > 0 && value <= 2147483647)) fail('InvalidLocalCsvLimits');
+  if (typeof moon.clientProgramLocalCsvPage !== 'function') fail('LocalCsvRuntimeUnavailable');
+  const names = Object.keys(table.columnTypes);
+  let page;
+  try {
+    page = checked(moon.clientProgramLocalCsvPage(bytes, names, names.map(name => table.columnTypes[name] === 'int64'),
+      table.key, table.maxBytes, table.maxFieldBytes, table.maxRows, maxPageBytes));
+  } catch (cause) {
+    if (cause instanceof Error && (cause as Error & {code?: string}).code === 'MoonBitHostFailure' &&
+        typeof cause.cause === 'string') fail(cause.cause, cause);
+    throw cause;
   }
-  if (size > maxPageBytes) fail('LocalFilesPageBytesLimit');
-  return '[' + parts.join(',') + ']';
+  if (typeof page !== 'string') fail('InvalidLocalCsvPage');
+  return page;
 }

@@ -367,6 +367,88 @@ fn generate_relation_row_declaration_with_resource_identities(
 }
 
 ///|
+let relation_restore_limits : RowDeclarationLimits = {
+  ..declaration_limits,
+  max_fields: 1024,
+}
+
+///|
+/// Project the exact checked CSV fields and optional ordered key into the
+/// same view specification used by Relation restoration. No physical path,
+/// Source capability, or permission is supplied by the schema projection.
+pub fn project_local_csv_relation_view(
+  resource : String,
+  column_names : Array[String],
+  integer_columns : Array[Bool],
+  keys : Array[String],
+) -> Result[RowRelationViewSpec, RowHostIssue] {
+  let limits = relation_restore_limits
+  let width = column_names.length()
+  guard width > 0 &&
+    width <= limits.max_fields &&
+    width == integer_columns.length() &&
+    keys.length() <= width else {
+    return Err(InvalidSpecification)
+  }
+  let schema : Map[String, Json] = Map([])
+  for index in 0..<width {
+    let name = column_names[index]
+    if name.is_empty() || name.contains("\u0000") || schema.contains(name) {
+      return Err(InvalidSpecification)
+    }
+    let kind = if integer_columns[index] { "int64" } else { "string" }
+    schema[name] = Json::object(
+      Map([("nullable", Json::boolean(false)), ("type", Json::string(kind))]),
+    )
+  }
+  let key_fields : Map[String, Unit] = Map([])
+  for key in keys {
+    if !schema.contains(key) || key_fields.contains(key) {
+      return Err(InvalidSpecification)
+    }
+    key_fields[key] = ()
+  }
+  let facts : Json = if keys.is_empty() {
+    Json::object(Map([]))
+  } else {
+    {
+      "relation_keys": {
+        "candidate_keys": Json::array([Json::array(keys.map(Json::string))]),
+      },
+    }
+  }
+  let schema_wire = match
+    relation_declaration_projection_wire(
+      Json::object(schema),
+      limits.max_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    Ok(wire) => wire
+    Err(issue) => return Err(issue)
+  }
+  let facts_wire = match
+    relation_declaration_projection_wire(
+      facts,
+      limits.max_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    Ok(wire) => wire
+    Err(issue) => return Err(issue)
+  }
+  Ok({
+    resource,
+    resource_kind: "record",
+    schema_wire,
+    schema_cid: "sha256:" + @sha.hex(@utf8.encode(schema_wire)),
+    request_schema_wire: None,
+    facts_wire: Some(facts_wire),
+    acquisition_wire: None,
+  })
+}
+
+///|
 /// Restore a Host-installed view from saved common schema material. The
 /// specification is bounded before JSON reconstruction; restored bytes must
 /// reproduce the original Catalog if an expected identity is supplied.
@@ -377,10 +459,7 @@ pub fn restore_relation_row_declaration(
   views_json : String,
   expected_catalog_cid : String?,
 ) -> Result[RowDeclaration, RowHostIssue] {
-  let limits : RowDeclarationLimits = {
-    ..declaration_limits,
-    max_fields: 1024,
-  }
+  let limits = relation_restore_limits
   let source = match
     @source.parse_json(views_json, {
       max_input_bytes: limits.max_bytes,

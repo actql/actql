@@ -490,3 +490,68 @@ test "row Request and facts are sealed in the same Relation declaration owner" {
     is Err(_),
   )
 }
+
+///|
+test "Local CSV view preserves original canonical schema and ordered candidate key" {
+  let view = project_local_csv_relation_view(
+    "small",
+    ["name", "id"],
+    [false, true],
+    ["id", "name"],
+  ).unwrap()
+  assert_eq(view.resource, "small")
+  assert_eq(view.resource_kind, "record")
+  assert_eq(
+    view.schema_wire,
+    "{\"id\":{\"nullable\":false,\"type\":\"int64\"},\"name\":{\"nullable\":false,\"type\":\"string\"}}",
+  )
+  assert_eq(
+    view.schema_cid,
+    "sha256:cb2f3b3b1ae90e17599f0ae3f8991a68796d8a94527353dbf832eb8eb4ebfe0c",
+  )
+  assert_eq(
+    view.facts_wire,
+    Some("{\"relation_keys\":{\"candidate_keys\":[[\"id\",\"name\"]]}}"),
+  )
+  assert_eq(view.request_schema_wire, None)
+  assert_eq(view.acquisition_wire, None)
+  let first = generate_relation_row_declaration(
+    "local",
+    "local",
+    "local/0.1",
+    [view],
+    relation_restore_limits,
+  ).unwrap()
+  let absent = project_local_csv_relation_view(
+    "small",
+    ["name", "id"],
+    [false, true],
+    [],
+  ).unwrap()
+  assert_eq(absent.facts_wire, Some("{}"))
+  let second = generate_relation_row_declaration(
+    "local",
+    "local",
+    "local/0.1",
+    [absent],
+    relation_restore_limits,
+  ).unwrap()
+  assert_eq(first.views[0].source_ref, second.views[0].source_ref)
+  assert_true(first.catalog_cid != second.catalog_cid)
+}
+
+///|
+test "Local CSV view refuses unmatched column types and invalid key components" {
+  for
+    (names, types, key) in [
+      (["id"], [], []),
+      (["id", "id"], [false, true], []),
+      (["id"], [true], ["foreign"]),
+      (["id", "name"], [true, false], ["id", "id"]),
+    ] {
+    assert_true(
+      project_local_csv_relation_view("small", names, types, key)
+      is Err(InvalidSpecification),
+    )
+  }
+}
