@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {prepareNumericScaleConsumer, runNumericScalePhase} from '../../scripts/numeric-scale-installed-fixture.mjs';
-import {verifyNodeBenchmarkPackages} from '../../scripts/benchmark-node-operations.mjs';
+import {verifyNodeBenchmarkPackages} from '../../scripts/node-benchmark-evidence.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {verifyLocalSourceRuntime, assertSourceRuntimeReceiptCurrent} from '../../scripts/verify-local-source-runtime.mjs';
 
