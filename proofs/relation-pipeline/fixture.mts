@@ -3,14 +3,19 @@
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { hash } from './inventory.mjs';
+import type { ExecutionBoundary, PipelineReceipt } from './execute.mjs';
+
+export type ExecutionTarget = 'js' | 'wasm' | 'native';
+export type PipelineProgram = { source: string; steps: string };
+
 export const fixturePath = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
-export const executionCommand = (target, jobs) => {
+export const executionCommand = (target: ExecutionTarget, jobs?: number): string[] => {
   assert(jobs === undefined || (Number.isSafeInteger(jobs) && jobs > 0), 'Invalid execution jobs');
   return ['moon', 'test', fixturePath, '--target', target,
     ...(jobs === undefined ? [] : ['--jobs', String(jobs)]), '--deny-warn'];
 };
 export const inputVariable = 'ACTQL_RELATION_PIPELINE_CASES';
-export const body = `${readFileSync(new URL('./harness.mbt', import.meta.url), 'utf8')}
+export const body: string = `${readFileSync(new URL('./harness.mbt', import.meta.url), 'utf8')}
 // Fixed generated observation driver; no expected semantics.
 ///|
 fn relation_pipeline_input_string(value : Json) -> String {
@@ -43,16 +48,17 @@ test "Relation pipeline generated observation batch" {
   }
 }
 `;
-export const payload = (entries, correspondence) => JSON.stringify(entries.map(({ id, program }) => ({
+export const payload = (entries: ReadonlyArray<{ id: string; program: PipelineProgram }>, correspondence: boolean): string =>
+  JSON.stringify(entries.map(({ id, program }) => ({
   id, source: program.source, steps: program.steps, correspondence,
 })));
 
 // This constant is compiled into the actual test binary, not read from its
 // runtime input environment. A stale or other-workspace binary fails closed.
-export function boundFixture(boundary, {jobs} = {}) {
+export function boundFixture(boundary: ExecutionBoundary, {jobs}: {jobs?: number} = {}): string {
   const marker = 'test "Relation pipeline generated observation batch" {\n';
   if (body.split(marker).length !== 2) throw new Error('Ambiguous observation fixture');
-  const bindings = ['js', 'wasm', 'native'].map(target => {
+  const bindings = (['js', 'wasm', 'native'] as const).map(target => {
     const identity = hash(JSON.stringify({ ...boundary, target, command: executionCommand(target, jobs) }));
     return `///|\n#cfg(target="${target}")\nfn relation_pipeline_build_identity() -> String {\n  "ACTQL_PIPELINE_BUILD:${identity}"\n}\n`;
   }).join('\n');
@@ -62,7 +68,10 @@ export function boundFixture(boundary, {jobs} = {}) {
 // One strict receipt/compiled-fixture contract for both pipeline audits.
 // Callers still independently verify source snapshots, inputs, observations,
 // semantic/capacity claims and archived artifacts. No legacy-byte fallback.
-export function auditFixture(run, fixtureBytes, log, expectedTarget) {
+export function auditFixture(
+  run: Pick<PipelineReceipt, 'target' | 'exit' | 'sourceDigest' | 'boundary' | 'command' | 'buildIdentity' | 'fixtureDigest'>,
+  fixtureBytes: string | Buffer, log: string, expectedTarget: ExecutionTarget,
+): void {
   assert(['js', 'wasm', 'native'].includes(expectedTarget), 'Unknown requested target');
   assert.equal(run.target, expectedTarget, 'Receipt target differs from requested audit target');
   assert.equal(run.exit, 0, 'Failed execution cannot be audited evidence');

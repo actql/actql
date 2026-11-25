@@ -5,12 +5,15 @@ import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,realpathSync} fr
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {invocationIdentity,receiptBasename,receiptSuffixes} from './execution-names.mjs';
+// @ts-expect-error TS7016: The existing capacity harness is still authored in JavaScript.
 import {mutations} from './capacity/instrument.mjs';
+// @ts-expect-error TS7016: The existing mutation registry is still authored in JavaScript.
 import {variants} from './mutation-registry.mjs';
+// @ts-expect-error TS7016: The existing archive reader and writer are still authored in JavaScript.
 import {packArchive,unpackArchive,fileDigest} from './ci-artifacts.mjs';
 import {minimalRepository,runDriver,successful} from './fixtures/execution-driver.mjs';
-const labels=[...mutations.flatMap(v=>['search','shrink','minimal','restored','post-restore'].map(phase=>`capacity-${v.name}-${phase}`)),
- ...variants.flatMap(v=>['search','shrink','minimal','fixed','restored','fixed-post-restore','explore-post-restore'].map(phase=>`${v.name}-${phase}`))];
+const labels: string[]=[...mutations.flatMap((v: {name: string})=>['search','shrink','minimal','restored','post-restore'].map(phase=>`capacity-${v.name}-${phase}`)),
+ ...variants.flatMap((v: {name: string})=>['search','shrink','minimal','fixed','restored','fixed-post-restore','explore-post-restore'].map(phase=>`${v.name}-${phase}`))];
 test('part invocation losslessly encodes timestamp and PID, preserving legacy names',()=>{
  const now=Date.now(),pid=2147483647,value=invocationIdentity('L-C4',now,pid);
  const [time,process]=value.slice('L-C4-'.length).split('-');

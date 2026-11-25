@@ -5,8 +5,10 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import {parse} from 'acorn';
 import {readCatalog} from './actions.mjs';
 import {gitTree, actionInputs, compareInputs, pipelineInventoryBoundary, hash} from './inputs.mjs';
+import {runtimeEmit} from '../relation-pipeline/inventory.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim();
@@ -31,7 +33,7 @@ test('the real 30-action source catalog preserves every key for an unrelated Nod
 });
 
 test('the actual Session catalog does not observe separate pipeline oracle edits', () => {
-  const candidate = changedTree('proofs/relation-pipeline/execution-original.mjs');
+  const candidate = changedTree('proofs/relation-pipeline/execution-original.mts');
   for (const action of catalog.actions) {
     const before = inputs(action), after = inputs(action, candidate);
     assert.equal(after.key, before.key, action.id);
@@ -67,11 +69,13 @@ test('a real Events theorem edit invalidates all Bridge obligations without inva
 test('reviewed current inventory and runner extension preserve eager Session isolation', () => {
   const path = pipelineInventoryBoundary.path;
   const old = execFileSync('git', ['--no-replace-objects', 'show', `38f7801241a0a5ce32a2861a8603960016a29769^:${path}`], {cwd: root}).toString();
-  const current = original.read(path).toString();
+  const {authoredPath, authoredDigest} = pipelineInventoryBoundary;
+  const current = runtimeEmit(original, authoredPath, path).bytes.toString();
   const introduced = execFileSync('git', ['--no-replace-objects', 'show',
     `6e1955f4a2d9598e0292f603a1d928b8d631b108:${path}`], {cwd: root}).toString();
   assert.equal(hash(old), '9a7c1ffef354d2ba1cd60b70f7bbac7c68b49aac378a60cb5a0f66cb4b937e43');
-  assert.equal(hash(current), pipelineInventoryBoundary.digest);
+  assert.equal(hash(original.read(authoredPath)), authoredDigest);
+  assert(!original.entries.has(path), 'The generated runtime must not be tracked as an author');
   // Retain the earlier exact import-isolation comparison independently. The
   // current source adds only lazy current-HEAD validation; it does not restore
   // a per-commit declaration ledger or eagerly read historical proof inputs.
@@ -85,12 +89,20 @@ test('reviewed current inventory and runner extension preserve eager Session iso
     `d6f427871e58fc1770dedfee4237dba5d7ca329d:${path}`], {cwd: root});
   assert.equal(hash(reviewed), pipelineInventoryBoundary.legacyDigest, 'Changed historical inventory binding');
   const baseline = text => text.slice(text.indexOf('export function checkBaseline('));
-  assert.equal(baseline(current), baseline(introduced), 'Changed separately invoked model checker');
-  const helperPath = 'proofs/relation-pipeline/proof-runner-extension.mjs';
-  const helper = original.read(helperPath).toString();
-  assert.equal(hash(helper), 'e510caa50fbdb48c1c0d179f74ab351f158de81e086620e801ecd8f2aa80b9bb');
-  assert.equal(hash(execFileSync('git', ['--no-replace-objects', 'show',
-    `d59370025d07aba9f0f364855e9d97c095d0b23e:${helperPath}`], {cwd: root})), hash(helper));
+  const executable = text => JSON.stringify(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}),
+    (key, value) => ['start', 'end', 'raw', 'shorthand'].includes(key) ? undefined : value);
+  const previousBaseline = baseline(introduced).replace("read('proofs/relation-pipeline/baseline.json')",
+    "read('proofs/relation-pipeline/baseline.json').toString()");
+  assert.equal(executable(baseline(current)), executable(previousBaseline), 'Changed separately invoked model checker');
+  const [{path: helperPath, authoredPath: helperOriginal, authoredDigest: helperDigest, digest: historicalDigest}] =
+    pipelineInventoryBoundary.dependencies;
+  assert.equal(hash(original.read(helperOriginal)), helperDigest);
+  assert(!original.entries.has(helperPath), 'The generated helper must not be tracked as an author');
+  const historicalHelper = execFileSync('git', ['--no-replace-objects', 'show',
+    `d59370025d07aba9f0f364855e9d97c095d0b23e:${helperPath}`], {cwd: root});
+  assert.equal(hash(historicalHelper), historicalDigest);
+  const helper = runtimeEmit(original, helperOriginal, helperPath).bytes.toString();
+  assert.equal(executable(helper), executable(historicalHelper.toString()), 'Changed runner extension behavior');
   assert.equal(readFileSync(new URL(`../../${helperPath}`, import.meta.url)).toString(), helper);
   assert.equal(readFileSync(new URL(`../../${path}`, import.meta.url)).toString(), current,
     'The executed module must match the actual Git input');
