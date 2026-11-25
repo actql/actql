@@ -4,23 +4,21 @@ import {dirname, resolve} from 'node:path';
 import {installedProjectOriginalsForRuntime} from '../../../host-node/installed-project-configuration.mjs';
 import {loadInstalledProjectConnections} from '../../../host-node/installed-project-connections.mjs';
 import {restoreDeclaration} from './local-file-store-declaration.mjs';
-import {prepareLocalCsvTable, projectLocalCsvRelationView, type LocalCsvDeclarationRuntime, type PreparedLocalCsvTable} from './local-csv-table.mjs';
+import {prepareLocalCsvProjectEntry, type LocalCsvProjectRuntime, type PreparedLocalCsvTable} from './local-csv-table.mjs';
 
-type OriginalCalls = Readonly<{
+type OriginalCalls = LocalCsvProjectRuntime & Readonly<{
   clientProjectConnectionsCount(connections: unknown): number;
   clientProjectConnectionsName(connections: unknown, index: number): unknown;
   clientProjectConnectionsConnector(connections: unknown, index: number): unknown;
-  clientProjectConnectionsEntryOriginalJson(connections: unknown, index: number): unknown;
   clientProgramRowSourceRestoreRelationDeclaration(connection: string, registration: string, revision: string,
     viewsWire: string, expectedCatalogCid: undefined): unknown;
   clientProgramRowSourceDeclarationJson(original: unknown): string;
 }>;
-type Runtime = NonNullable<Parameters<typeof loadInstalledProjectConnections>[0]> & Partial<OriginalCalls & LocalCsvDeclarationRuntime>;
+type Runtime = NonNullable<Parameters<typeof loadInstalledProjectConnections>[0]> & Partial<OriginalCalls>;
 type Project = Parameters<typeof loadInstalledProjectConnections>[1];
 type ConnectionView = Awaited<ReturnType<typeof loadInstalledProjectConnections>>;
 type ConnectionOriginal = ReturnType<ConnectionView['originalsForRuntime']>;
 type ProjectOriginal = ReturnType<typeof installedProjectOriginalsForRuntime>;
-type ConnectionEntry = Readonly<{connector?: unknown; root?: unknown; version?: unknown; tables?: Record<string, Readonly<{format?: unknown; path?: unknown; columns?: unknown; key?: unknown}> | null>}>;
 type Options = Readonly<{assertCurrent?: () => unknown; limits?: unknown; openFile?: unknown}>;
 type Helpers = Readonly<{
   fail(code: string): never; canonical(value: unknown): string; cid(value: unknown): string;
@@ -28,7 +26,7 @@ type Helpers = Readonly<{
 }>;
 type FileSource = ReturnType<typeof restoreDeclaration> & Readonly<{
   connection: string; connectorId: string; registration: 'local'; revision: 'local/0.1';
-  originalEntryWire: string; rootPath: string; versionMode: 'content' | 'metadata'; limits: LocalLimits;
+  rootPath: string; versionMode: 'content' | 'metadata'; limits: LocalLimits;
   tables: readonly PreparedLocalCsvTable[];
   csvTransports: Readonly<Record<string, PreparedLocalCsvTable['transport']>>;
   queryAliases: readonly Readonly<{name: string; resource: string}>[];
@@ -66,7 +64,8 @@ export function bindLocalProjectFilePreparation({fail: refuse,canonical,cid,posi
     if (typeof assertCurrent !== 'function') fail('InvalidLocalFilesPreparation');
     const projectOriginal = installedProjectOriginalsForRuntime(project,moon);
     const ports = Object.freeze(Object.fromEntries((['clientProjectConnectionsCount',
-      'clientProjectConnectionsName','clientProjectConnectionsConnector','clientProjectConnectionsEntryOriginalJson',
+      'clientProjectConnectionsName','clientProjectConnectionsConnector',
+      'clientProjectConnectionsLocalFileEntry',
       'clientProgramRowSourceRestoreRelationDeclaration','clientProgramRowSourceDeclarationJson'] as const).map(name=>{
       const method=moon?.[name];if(typeof method!=='function')fail('LocalFilesRuntimeUnavailable');return[name,method];
     })) as Partial<OriginalCalls>);
@@ -74,6 +73,8 @@ export function bindLocalProjectFilePreparation({fail: refuse,canonical,cid,posi
       bundle: LocalProjectOriginal | undefined, view: PreparedLocalProject | undefined;
     const call = <Name extends keyof OriginalCalls>(name: Name,...args: Parameters<OriginalCalls[Name]>) =>
       Reflect.apply(ports[name] as (...args: Parameters<OriginalCalls[Name]>) => ReturnType<OriginalCalls[Name]>,moon,args);
+    const csvRuntime: LocalCsvProjectRuntime = {clientProjectConnectionsLocalFileEntry:
+      (...args) => call('clientProjectConnectionsLocalFileEntry', ...args)};
     const current = () => {
       if(retired)fail('LocalFilesPreparationRetired');
       assertCurrent();
@@ -94,21 +95,13 @@ export function bindLocalProjectFilePreparation({fail: refuse,canonical,cid,posi
       if(call('clientProjectConnectionsConnector',selected,index)!=='local')continue;
       selectedLimits??=ownLimits(limits);
       const connection=call('clientProjectConnectionsName',selected,index);
-      const wire=call('clientProjectConnectionsEntryOriginalJson',selected,index);
-      if(!text(connection,128)||typeof wire!=='string')fail('InvalidLocalFilesConnection');
-      const entry=JSON.parse(wire) as ConnectionEntry | null;
-      if(entry?.connector!=='local'||!text(entry.root,4096))fail('InvalidLocalFilesConnection');
-      if(entry.version!==undefined&&entry.version!=='content')fail('LocalFilesVersionUnavailable');
+      if(!text(connection,128))fail('InvalidLocalFilesConnection');
+      const entry=prepareLocalCsvProjectEntry(csvRuntime,selected,index,selectedLimits);
       const rootPath=resolve(dirname(original.path!),entry.root);
       if(!text(rootPath,4096))fail('InvalidLocalFilesConnection');
-      const versionMode=entry.version==='content'?'content':'metadata';
-      const tables: PreparedLocalCsvTable[]=[];
-      for(const [resource,table] of Object.entries(entry.tables??{})){
-        if(table?.format!=='csv'&&(table?.format!==undefined||typeof table?.path!=='string'||!table.path.endsWith('.csv')))continue;
-        if(!text(resource,128)||['files','contents'].includes(resource))fail('InvalidLocalCsvResource');
-        tables.push(prepareLocalCsvTable(resource,table!,selectedLimits));
-      }
-      const csvViews=tables.map(table=>projectLocalCsvRelationView(moon!,table));
+      const versionMode=entry.contentVersion?'content':'metadata';
+      const tables=entry.tables;
+      const csvViews=tables.map(table=>table.view);
       const declared=restoreDeclaration(call,connection,rootPath,versionMode,selectedLimits,canonical,cid,csvViews);
       const {views}=JSON.parse(declared.wire) as {views: readonly {source_ref: string; resource: string}[]};
       const csvTransports=Object.freeze(Object.fromEntries(views.flatMap(view=>{
@@ -116,7 +109,7 @@ export function bindLocalProjectFilePreparation({fail: refuse,canonical,cid,posi
         return table===undefined?[]:[[view.source_ref,table.transport] as const];
       })));
       sources.push(Object.freeze({connection,connectorId:connection,registration:'local',revision:'local/0.1',
-        originalEntryWire:wire,rootPath,versionMode,limits:selectedLimits,tables:Object.freeze(tables),csvTransports,
+        rootPath,versionMode,limits:selectedLimits,tables:Object.freeze(tables),csvTransports,
         queryAliases:Object.freeze([{name:connection,resource:'files'},
           {name:connection+'.files',resource:'files'},{name:connection+'.contents',resource:'contents'},
           ...tables.map(table=>({name:connection+'.'+table.resource,resource:table.resource}))]

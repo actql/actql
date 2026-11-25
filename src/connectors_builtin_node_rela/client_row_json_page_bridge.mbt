@@ -20,26 +20,6 @@ pub fn client_program_local_csv_page(
 }
 
 ///|
-/// Return the Common schema wire, identity and key facts as opaque DATA.
-#export_name("clientProgramLocalCsvRelationView")
-pub fn client_program_local_csv_relation_view(
-  resource : String,
-  column_names : Array[String],
-  integer_columns : Array[Bool],
-  keys : Array[String],
-) -> Result[(String, String, String), @client_row_source_host.RowHostIssue] {
-  match
-    @client_row_source_host.project_local_csv_relation_view(
-      resource, column_names, integer_columns, keys,
-    ) {
-    Ok({ schema_wire, schema_cid, facts_wire: Some(facts), .. }) =>
-      Ok((schema_wire, schema_cid, facts))
-    Ok(_) => Err(InvalidSpecification)
-    Err(issue) => Err(issue)
-  }
-}
-
-///|
 /// Pure original response-envelope DATA; no Source or physical receipt issue.
 // Pagination state below is the same provider-neutral Core DATA on every
 // target. The managed reader remains the only I/O and cleanup owner.

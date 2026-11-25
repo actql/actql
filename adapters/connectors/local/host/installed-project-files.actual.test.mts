@@ -36,24 +36,28 @@ let scratch: OwnedScratch,sequence=0;
 test.before(async()=>{scratch=await createOwnedScratch({parent:join(root,'_build'),
   prefix:'local-project-files-',label:'Local Project original files preparation'});});
 test.after(()=>scratch?.passed());
-async function fixture(wire: string){
+async function fixture(wire: string,runtime=moon){
   const directory=join(scratch.path,String(++sequence));await mkdir(join(directory,'configuration'),{recursive:true});
   await writeFile(join(directory,'actql.config.json'),'{"version":"actql-config/0.1","connectors":"configuration/connectors.json"}');
   await writeFile(join(directory,'configuration/connectors.json'),wire);
-  return{directory,project:await loadInstalledProjectConfiguration(moon,{directory})};
+  return{directory,project:await loadInstalledProjectConfiguration(runtime,{directory})};
 }
 const document=(entry: string)=>' {"version":"actql-connectors/0.1","connections":{"local":'+entry+'}}\n';
 
 test('actual Common Local preparation preserves original Project bytes and typed files/contents without filesystem discovery',async()=>{
   const entry='{ "connector" : "local", "root" : "../data-é", "version" : "content", "tables" : {} }';
-  const f=await fixture(document(entry));let opens=0;
-  const preparation=await prepareInstalledProjectLocalFiles(moon,f.project,{limits,assertCurrent(){},
+  const runtime=Object.freeze({...moon,clientProjectConnectionsEntryOriginalJson(){
+    assert.fail('Local selection must use the admitted Project connections');
+  }});
+  const f=await fixture(document(entry),runtime);let opens=0;
+  const preparation=await prepareInstalledProjectLocalFiles(runtime,f.project,{limits,assertCurrent(){},
     openFile:async(path: string,...args: [flags?: string, mode?: number])=>{assert.equal(path,join(f.directory,'configuration/connectors.json'));opens++;return open(path,...args);}});
   assert.equal(opens,1,'no business directory, child file, credential or Root was acquired');
-  const original=preparation!.originalsForRuntime(moon);assert.equal(original.sources.length,1);
-  assert.strictEqual(original.project,f.project!.originalsForRuntime(moon));
+  const original=preparation!.originalsForRuntime(runtime);assert.equal(original.sources.length,1);
+  assert.strictEqual(original.project,f.project!.originalsForRuntime(runtime));
+  assert.strictEqual(original.connections.project,original.project);
   assert.equal(original.connections.wire,document(entry));
-  const source=original.sources[0];assert.equal(source.originalEntryWire,entry);
+  const source=original.sources[0];
   assert.equal(source.rootPath,join(f.directory,'data-é'));assert.equal(source.versionMode,'content');
   assert(Object.isFrozen(original)&&Object.isFrozen(original.sources)&&Object.isFrozen(source.limits));
   const declared=JSON.parse(source.wire) as Declaration;assert.deepEqual(declared.views.map(x=>x.resource).sort(),['contents','files']);
@@ -65,8 +69,8 @@ test('actual Common Local preparation preserves original Project bytes and typed
   assert.deepEqual(contents!.body.fields.content,{type:'content_ref',nullable:false});
   assert.deepEqual(source.queryAliases,[{name:'local',resource:'files'},
     {name:'local.files',resource:'files'},{name:'local.contents',resource:'contents'}]);
-  preparation!.retire(moon);
-  assert.throws(()=>preparation!.originalsForRuntime(moon),{code:'LocalFilesPreparationRetired'});
+  preparation!.retire(runtime);
+  assert.throws(()=>preparation!.originalsForRuntime(runtime),{code:'LocalFilesPreparationRetired'});
 });
 
 test('absent and unrelated connections create no Local declaration or default limits',async()=>{
