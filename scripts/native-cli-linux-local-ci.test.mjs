@@ -237,12 +237,14 @@ test('Mock workflows require a fresh runner and the successful exact producer co
     assert(mock.run.includes(argument), argument);
   assert.equal(mock.env?.TMPDIR, undefined, 'Use the existing formal collector filesystem context');
   assert(!mock.run.includes('--diagnostic'), 'The required profile must enforce all thirty samples');
-  for (const event of ['pull_request', 'push', 'workflow_dispatch', 'schedule']) {
+  // Only the weekly schedule is the formal campaign; the six-hour main schedule stays functional.
+  for (const [event, schedule] of [['pull_request'], ['push'], ['workflow_dispatch'],
+    ['schedule', '17 0,6,12,18 * * *'], ['schedule', '23 3 * * 1']]) {
     const selected = step => Function('github', 'return (' +
-      step.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '') + ');')({event_name: event});
-    assert.equal(selected(functional), event !== 'schedule');
-    assert.equal(selected(sharedFile), event !== 'schedule');
-    assert.equal(selected(mock), event === 'schedule');
+      step.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '') + ');')({event_name: event, event: {schedule}});
+    assert.equal(selected(functional), schedule !== '23 3 * * 1');
+    assert.equal(selected(sharedFile), schedule !== '23 3 * * 1');
+    assert.equal(selected(mock), schedule === '23 3 * * 1');
   }
   assert.equal(mock['continue-on-error'], undefined);
   assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(mock));

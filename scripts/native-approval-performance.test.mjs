@@ -302,10 +302,12 @@ test('Native CI separates required functional workflows from scheduled and candi
   assert(formal && formal['continue-on-error'] === undefined);
   assert(formal.run.includes('--binding') && !formal.run.includes('--diagnostic'));
   assert.equal(formal.env?.TMPDIR, undefined);
-  for (const event of ['pull_request', 'push', 'workflow_dispatch', 'schedule']) {
-    const context = {github: {event_name: event}};
-    assert.equal(runInNewContext(functional.if, context), event !== 'schedule');
-    assert.equal(runInNewContext(formal.if, context), event === 'schedule');
+  // Only the weekly schedule is the formal campaign; the six-hour main schedule stays functional.
+  for (const [event, schedule] of [['pull_request'], ['push'], ['workflow_dispatch'],
+    ['schedule', '17 0,6,12,18 * * *'], ['schedule', '23 3 * * 1']]) {
+    const context = {github: {event_name: event, event: {schedule}}};
+    assert.equal(runInNewContext(functional.if, context), schedule !== '23 3 * * 1');
+    assert.equal(runInNewContext(formal.if, context), schedule === '23 3 * * 1');
   }
   const admission = job.steps.findIndex(step => step.run?.includes('inspect-native-approval-source'));
   assert(admission >= 0 && admission < job.steps.indexOf(functional) && admission < job.steps.indexOf(formal));
