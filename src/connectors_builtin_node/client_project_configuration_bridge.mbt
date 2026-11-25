@@ -98,6 +98,20 @@ pub fn client_project_connections_entry_original_json(
 }
 
 ///|
+#export_name("clientProjectConnectionsLocalFileEntry")
+pub fn client_project_connections_local_file_entry(
+  value : @publication_host.ClientProjectConnections,
+  index : Int,
+  max_path_bytes : Int,
+  max_depth : Int,
+) -> Result[String, String] {
+  value
+  .local_files(index, max_path_bytes, max_depth)
+  .map(result => result.json())
+  .map_err(@publication_host.client_project_local_files_issue_code)
+}
+
+///|
 /// Private same-runtime project DATA projection. These are not task, provider,
 /// installation, resource or execution authority constructors.
 #export_name("clientProjectConfigurationAdmit")

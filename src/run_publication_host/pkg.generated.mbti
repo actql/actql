@@ -1389,6 +1389,8 @@ pub fn client_project_catalog_admission_construction_inventory(String) -> @execu
 
 pub fn client_project_connections_admission_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
 
+pub fn client_project_local_files_issue_code(ClientProjectLocalFilesIssue) -> String
+
 pub fn client_project_model_task_selection_for(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
 
 pub fn client_project_model_task_selection_usage(ClientProjectModelTaskSelection) -> Int
@@ -4795,7 +4797,21 @@ pub(all) enum ClientProjectConfigurationIssue {
 type ClientProjectConnections
 pub fn ClientProjectConnections::at(Self, Int) -> (String, String, String)?
 pub fn ClientProjectConnections::count(Self) -> Int
+pub fn ClientProjectConnections::local_files(Self, Int, Int, Int) -> Result[ClientProjectLocalFiles, ClientProjectLocalFilesIssue]
 pub fn ClientProjectConnections::original_wire(Self) -> String
+
+pub(all) struct ClientProjectLocalFiles {
+  root : String
+  content_version : Bool
+  csv_tables : Array[@client_row_source_host.LocalCsvTable]
+}
+pub fn ClientProjectLocalFiles::json(Self) -> String
+
+pub(all) enum ClientProjectLocalFilesIssue {
+  InvalidLocalFilesConnection
+  LocalFilesVersionUnavailable
+  CsvTable(@client_row_source_host.LocalCsvTableIssue)
+} derive(Eq, @debug.Debug)
 
 type ClientProjectModelRegistry
 pub fn ClientProjectModelRegistry::original_wire(Self) -> String

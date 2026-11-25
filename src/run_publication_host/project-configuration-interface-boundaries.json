@@ -368,7 +368,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_project_configuration_bridge.mbt",
-      "sha256": "fbcef71f68652e0ccb689d1aa0a3ca8565e7de17c7bf332ab389cc8e9272737d",
+      "sha256": "1a6c0774efeedc84661873fee71820a9766af3fae1900e02561ae8cfbcfa601b",
       "exports": [],
       "operations": [
         {
@@ -454,6 +454,10 @@
         {
           "name": "client_project_connections_entry_original_json",
           "declaration": "client_project_connections_entry_original_json ( value : @ publication_host . ClientProjectConnections , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_connections_local_file_entry",
+          "declaration": "client_project_connections_local_file_entry ( value : @ publication_host . ClientProjectConnections , index : Int , max_path_bytes : Int , max_depth : Int , ) - > Result [ String , String ]"
         },
         {
           "name": "client_project_connections_name",
@@ -587,7 +591,8 @@
             "client_project_profile_mock_data_file",
             "client_project_profile_retire",
             "client_project_profile_select",
-            "client_project_profile_selected_name"
+            "client_project_profile_selected_name",
+            "client_project_connections_local_file_entry"
           ],
           "exports": [],
           "attributes": {
@@ -725,7 +730,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_project_configuration_bridge.mbt",
-      "sha256": "8d747760377920aa141a0b0748421f1fb77419ca0d99414f16932c27e066efba",
+      "sha256": "34d9c2dd400d1320211542a39a881102b595a182c99952b17e0a0a067fdc0953",
       "exports": [],
       "operations": [
         {
@@ -811,6 +816,10 @@
         {
           "name": "client_project_connections_entry_original_json",
           "declaration": "client_project_connections_entry_original_json ( value : @ publication_host . ClientProjectConnections , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_connections_local_file_entry",
+          "declaration": "client_project_connections_local_file_entry ( value : @ publication_host . ClientProjectConnections , index : Int , max_path_bytes : Int , max_depth : Int , ) - > Result [ String , String ]"
         },
         {
           "name": "client_project_connections_name",
@@ -944,7 +953,8 @@
             "client_project_profile_mock_data_file",
             "client_project_profile_retire",
             "client_project_profile_select",
-            "client_project_profile_selected_name"
+            "client_project_profile_selected_name",
+            "client_project_connections_local_file_entry"
           ],
           "exports": [],
           "attributes": {
@@ -1408,6 +1418,101 @@
               {
                 "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
                 "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_project_local_files.mbt",
+      "responsibilityFacet": "primary",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_project_local_files_issue_code",
+          "declaration": "client_project_local_files_issue_code ( issue : ClientProjectLocalFilesIssue , ) - > String"
+        },
+        {
+          "name": "ClientProjectConnections::local_files",
+          "declaration": "ClientProjectConnections : : local_files ( self : Self , index : Int , max_path_bytes : Int , max_depth : Int , ) - > Result [ ClientProjectLocalFiles , ClientProjectLocalFilesIssue ]"
+        },
+        {
+          "name": "ClientProjectLocalFiles::json",
+          "declaration": "ClientProjectLocalFiles : : json ( self : Self ) - > String"
+        }
+      ],
+      "sha256": "b087ebae732503d3ae99f18af0c906e98132d8ee83f6d7135ed4ca02a6953e2e",
+      "role": "common-semantics",
+      "owner": "Common Project Local declaration Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_project_local_files_issue_code",
+            "ClientProjectConnections::local_files",
+            "ClientProjectLocalFiles::json"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/client_project_local_files.mbt",
+                "anchor": "Exact Local connector entry selected"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_project_local_files.mbt",
+                "anchor": "pub fn ClientProjectConnections::local_files"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_project_local_files.mbt",
+                "anchor": "self.at(index)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "assertCurrent()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/client_project_local_files.mbt",
+                "anchor": "return Err(CsvTable(issue))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
+                "anchor": "options.signal?.throwIfAborted()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_project_local_files.mbt",
+                "anchor": "project_metadata_cursor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "## Node Local availability"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_project_local_files_wbtest.mbt",
+                "anchor": "Local Project selects the original CSV single and multiple table declarations"
               }
             ]
           }
