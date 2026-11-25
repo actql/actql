@@ -15,6 +15,7 @@ pub(all) enum LocalValuesResultExportIssue {
   Bridge(@execution.ManagedProducerBridgeIssue)
   Export(@publication_host.PublicationOutputExportIssue)
   Transformation(@publication_host.CapturedClientResultTransformationIssue)
+  Preparation(ClientClosedValuesPreparationIssue)
 }
 
 ///|
@@ -29,6 +30,7 @@ pub fn LocalValuesExecution::prepare_result_export(
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
   publication? : ClientProgramPublication? = None,
+  fund_additional_bridge? : Bool = false,
 ) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue] {
   if !self.available.val {
     return Err(MissingOutput)
@@ -46,13 +48,50 @@ pub fn LocalValuesExecution::prepare_result_export(
   guard self.publication_original_for_task(task) is Some((operations, managed)) else {
     return Err(MissingOutput)
   }
+  let copy_quote : (
+    ClientProgramPublication,
+    Ref[ClientClosedValuesPreparationIssue?],
+  )? = if fund_additional_bridge {
+    guard publication is Some(original) else {
+      return Err(Preparation(ForeignOriginal))
+    }
+    Some((original, Ref(None)))
+  } else {
+    None
+  }
+  // This bridge can overlap an earlier completed Result bridge. Charge its
+  // actual copied prefix to the existing publication borrower before decoding;
+  // only the decoder workspace is a serial peak.
+  let reserve_row_copy = match copy_quote {
+    None => None
+    Some((owner, failure)) =>
+      Some((retained, decoder) => {
+        match reserve_publication_constructor(owner, retained, decoder) {
+          Ok(_) => true
+          Err(issue) => {
+            failure.val = Some(issue)
+            false
+          }
+        }
+      })
+  }
   let (bridge, output) = match
     self.prepare_publication_bridge_for_original(
-      operations, managed, row_limits, bridge_max_entries, bridge_max_name_bytes,
+      operations,
+      managed,
+      row_limits,
+      bridge_max_entries,
+      bridge_max_name_bytes,
       limits,
+      reserve_row_copy~,
     ) {
     Ok(value) => value
-    Err(MissingOutput) => return Err(MissingOutput)
+    Err(MissingOutput) => {
+      if copy_quote is Some((_, failure)) && failure.val is Some(issue) {
+        return Err(Preparation(issue))
+      }
+      return Err(MissingOutput)
+    }
     Err(Bridge(issue)) => return Err(Bridge(issue))
   }
   let stream = match publication {

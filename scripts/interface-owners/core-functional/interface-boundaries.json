@@ -109407,7 +109407,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "5512992307a7aa3cc93760fa9cbbdba4f2a7ed51913f7a0dce5c6b9cc50e0670",
+      "sha256": "fcaca9feb7a03d88b07498fcfd5311d53aed1d154398409bafdcc7a1f5b86598",
       "exports": [],
       "operations": [
         {
@@ -117570,7 +117570,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "48cdc5596544dfe306733d6b364db9cb1b0fdc0b4e4263c396e5d0b526263bd6",
+      "sha256": "7c0f0ed975cca55a793c005dfc1e186abd22efc498e160f3e6c62169e0224194",
       "exports": [],
       "operations": [
         {
@@ -117591,11 +117591,11 @@
         },
         {
           "name": "LocalCommandBusinessPreparation::open_values_work",
-          "declaration": "LocalCommandBusinessPreparation : : open_values_work ( self : LocalCommandBusinessPreparation , run : LocalRunInstallation , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , request : @ run_host . ClientRequestIdentity , ) - > @ local_host . NativeClientValuesWork raise ClientStop"
+          "declaration": "LocalCommandBusinessPreparation : : open_values_work ( self : LocalCommandBusinessPreparation , run : LocalRunInstallation , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , request : @ run_host . ClientRequestIdentity , reference : @ local_host . NativeClientSubmissionReference , ) - > @ local_host . NativeClientValuesWork raise ClientStop"
         },
         {
           "name": "LocalCommandBusinessPreparation::prepare_file_work_entry",
-          "declaration": "LocalCommandBusinessPreparation : : prepare_file_work_entry ( self : Self , prepared : @ run_host . PreparedClientProgram , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , request : @ run_host . ClientRequestIdentity , ) - > @ local_host . NativeClientRelationFileWorkEntry raise ClientStop"
+          "declaration": "LocalCommandBusinessPreparation : : prepare_file_work_entry ( self : Self , prepared : @ run_host . PreparedClientProgram , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , request : @ run_host . ClientRequestIdentity , publisher : @ local_host . NativeLocalPublisherBinding , ) - > ( @ local_host . NativeClientRelationFileWorkEntry , Array [ String ] ) raise ClientStop"
         },
         {
           "name": "LocalCommandBusinessPreparation::publication_authoring",
@@ -117942,12 +117942,16 @@
     },
     {
       "module": "src/cmd/native_client/local_relation_file_original_start.mbt",
-      "sha256": "46d49458e553f8d9c0959b79a8efcc65d9c2ac335b0336175b86b26946bcdc82",
+      "sha256": "3e085ff3c1bb7190ff747a43c9f08bca4eb18823fc17924f48ab83dc8f934b8a",
       "exports": [],
       "operations": [
         {
           "name": "local_execute_original_publish_file_source",
           "declaration": "local_execute_original_publish_file_source ( selection : LocalCommandBusinessPreparation , settings : LocalHostSettings , run : LocalRunInstallation , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , reference : @ local_host . NativeClientSubmissionReference , attempt : String , store : @ local_store . Store , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_file_generation_capacity",
+          "declaration": "local_file_generation_capacity ( count : Int ) - > Int64 ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -117958,7 +117962,8 @@
         {
           "operations": [
             "<module>",
-            "local_execute_original_publish_file_source"
+            "local_execute_original_publish_file_source",
+            "local_file_generation_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -118124,7 +118129,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "84262445a5ab71540a483de35ef384f0da6a4206981e9d2daa94f580205a971c",
+      "sha256": "49279d2cfd4977e6c3aaac46f7ba6b655fcbd031fb857eb094ef93880db1bbeb",
       "exports": [],
       "operations": [
         {
@@ -118215,12 +118220,12 @@
     },
     {
       "module": "src/platform_native/client_host/relation_files_publication.mbt",
-      "sha256": "ad0c876c9ecf3e03c37b3fc822399d805100e8da93aa814f9f28b2c04bdc8109",
+      "sha256": "2105935c3c3a7b90e63dafe297bd90e00e087c3ac1cd4e66d8cd4bf82fe35c80",
       "exports": [],
       "operations": [
         {
           "name": "NativeClientRelationFileWork::managed_query_publication_invocation",
-          "declaration": "NativeClientRelationFileWork : : managed_query_publication_invocation ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileQuerySource ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
+          "declaration": "NativeClientRelationFileWork : : managed_query_publication_invocation ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileQuerySource ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , result_controls : Int64 , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -118301,7 +118306,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_file_entry.mbt",
-      "sha256": "16eee7069f7e02b69d57759af0f3e19bdd9aab37481cbfa0d530dec9a379ab7d",
+      "sha256": "67af748a8d745ea213535d5338829772fbd243f312578eb08b60759a7ed093d3",
       "exports": [],
       "operations": [
         {
@@ -118427,7 +118432,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_file_work.mbt",
-      "sha256": "3b1511f06a7e82d5e21a93b27cbc229b36e1c1d7d4307708ceb2f0cff9eb0d34",
+      "sha256": "f7bdb006fa8fe88666fbefcf1155fa0a6c3e219c805107a33a653822645c4fc9",
       "exports": [],
       "operations": [
         {
@@ -118714,7 +118719,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_publication.mbt",
-      "sha256": "8093534940f22173bc2eac8bfb69f2c5929f2b960fa667d3428ae04832a8e678",
+      "sha256": "a2651dc373d05c2e515cb06d84f710f808513b34011c8e6eeeaa5d11e3255b50",
       "exports": [],
       "operations": [
         {
@@ -118839,7 +118844,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_result_export.mbt",
-      "sha256": "b263a36481456b402b2e1e072428da83707fc017ce4dd4bb38aa1e9de5622d95",
+      "sha256": "2400fc3253a622e8f61e6601305ce5d4b9d9e66185e4a46376feeae893cfd1d7",
       "exports": [],
       "operations": [
         {
@@ -118847,8 +118852,12 @@
           "declaration": "NativeClientRelationFileWork : : close_export ( self : NativeClientRelationFileWork , ) - > Unit"
         },
         {
-          "name": "NativeClientRelationFileWork::prepare_result_export",
-          "declaration": "NativeClientRelationFileWork : : prepare_result_export ( self : NativeClientRelationFileWork , limits : @ host . PublicationOutputExportLimits , ) - > Result [ @ host . PublicationOutputExport , NativeClientSourceWorkIssue ]"
+          "name": "NativeClientRelationFileWork::prepare_result_exports",
+          "declaration": "NativeClientRelationFileWork : : prepare_result_exports ( self : NativeClientRelationFileWork , limits : @ host . PublicationOutputExportLimits , ) - > Result [ Array [ @ host . PublicationOutputExport ] , NativeClientSourceWorkIssue ]"
+        },
+        {
+          "name": "relation_file_result_publication_control_bytes",
+          "declaration": "relation_file_result_publication_control_bytes ( count : Int ) - > Int64 ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -118860,7 +118869,8 @@
           "operations": [
             "<module>",
             "NativeClientRelationFileWork::close_export",
-            "NativeClientRelationFileWork::prepare_result_export"
+            "NativeClientRelationFileWork::prepare_result_exports",
+            "relation_file_result_publication_control_bytes"
           ],
           "exports": [],
           "attributes": {
@@ -118930,7 +118940,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_work_capacity.mbt",
-      "sha256": "5627364a8cece10cd39fdf9ee2880488dfa54686f3e1cf9e90a476f83acd8c7c",
+      "sha256": "1400c3bc2a052dd685df0806466f7788a7ad968bfc8349ca736096f11b6376e7",
       "exports": [],
       "operations": [
         {
@@ -120217,7 +120227,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_publication.mbt",
-      "sha256": "638423c6bf8a0c5ddc47b0ff8a390a5917f9ccbe9db92a61a11d3df94a8073ec",
+      "sha256": "14d9e6fee30b973f505ede3d0e0d6a52cb97f342c6b97e93dc75dd0e5aa1c11f",
       "exports": [],
       "operations": [
         {
@@ -120226,7 +120236,7 @@
         },
         {
           "name": "NativeClientRelationFileWork::managed_whole_publication_invocation",
-          "declaration": "NativeClientRelationFileWork : : managed_whole_publication_invocation ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileWholeSource ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
+          "declaration": "NativeClientRelationFileWork : : managed_whole_publication_invocation ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileWholeSource ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , result_controls : Int64 , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
         }
       ],
       "responsibilityFacet": "primary",
