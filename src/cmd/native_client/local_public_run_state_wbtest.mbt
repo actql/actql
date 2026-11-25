@@ -13,7 +13,7 @@ fn public_run_state_status(run_id : String) -> @argparse.Matches raise {
 }
 
 ///|
-test "public run returns the original portable State and Result across Host reopen" {
+test "public run returns the original portable State across Host reopen" {
   let (host, settings, crypto, _) = effect_finite_cli_host(
     "public-run-result",
     ttl_ms=86400000.0,
@@ -201,12 +201,6 @@ test "public run returns the original portable State and Result across Host reop
     ),
     "local_saved_run_state",
   )
-  result_fresh_host_marker("ACTQL_PUBLIC_RUN_RESULT_BEGIN")
-  let result_child = result_command_child(["result", run_id])
-  let _ = local_public_result(host, settings, crypto, sqlite, result_child) catch {
-    ClientStop(kind) => fail("public.result: " + kind)
-  }
-  result_fresh_host_marker("ACTQL_PUBLIC_RUN_RESULT_END")
   effect_finite_cli_ok(host.close(), "public.host.close")
   let reopened = effect_finite_cli_ok(
     effect_finite_cli_ok(

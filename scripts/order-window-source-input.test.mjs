@@ -25,7 +25,7 @@ test('ORDER window controls distinguish alias, qualified input and pre-QUALIFY s
 
 test('ordinary packed acceptance includes ORDER windows; narrow selection retains pristine packages', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'orderWindowSuccesses'], ['refusals', 'orderWindowRefusals']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   }

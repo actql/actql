@@ -81,11 +81,14 @@ function files(directory) {
 // Include ALL production MoonBit code, package manifests and integration tests,
 // not just the selected source symbol. SHA pins evidence, not correctness.
 export function snapshot(root) {
+  const original = 'adapters/host-node/ordinary-node-resource-runtime.cts';
+  const compilerInputs = existsSync(join(root, original))
+    ? [original, 'tsconfig.base.json', 'tsconfig.tooling.json', 'package-lock.json'] : [];
   const paths = ['src', 'proofs/bounded-session'].flatMap(dir => files(join(root, dir)))
     .concat(['toolchain.json', 'moon.mod',
       'docs/reviews/2026-09-23-local-resource-production-routes.json',
       'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
-      'adapters/host-node/ordinary-node-resource-runtime.cjs',
+      'adapters/host-node/ordinary-node-resource-runtime.cjs', ...compilerInputs,
     ].map(path => join(root, path))).sort();
   const sources = Object.fromEntries(paths.map(path => [relative(root, path), hash(readFileSync(path))]));
   return { digest: hash(JSON.stringify(sources)), sources };

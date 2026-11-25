@@ -36,7 +36,7 @@ test('sqrt fixtures distinguish preparation refusal, demanded domain failure and
 
 test('sqrt corpus participates in normal packed execution and its narrow selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'sqrtSuccesses'], ['refusals', 'sqrtRefusals'],
     ['executionFailures', 'sqrtExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

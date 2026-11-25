@@ -31,10 +31,9 @@ const mutations = [
   {name: 'Owner binding accepts an earlier context', path: 'adapters/host-node/client-check.mjs',
     from: 'report.context_ref === context &&', to: 'true &&', targets: bindingCases('context')},
   {name: 'Owner binding accepts different original documents', path: 'adapters/host-node/client-check.mjs',
-    from: `report.inputs.length === documents.length && documents.every(expected =>
-      report.inputs.some(actual => actual.document_id === expected.document_id &&
-        actual.kind === expected.kind && actual.revision === expected.revision &&
-        actual.byte_length === expected.byte_length))`,
+    from: `report.inputs.length === documents.length && documents.every(expected => report.inputs.some(actual => actual.document_id === expected.document_id &&
+            actual.kind === expected.kind && actual.revision === expected.revision &&
+            actual.byte_length === expected.byte_length))`,
     to: 'true', targets: bindingCases('documents')},
   {name: 'Owner binding promotes template scope to bound input', path: 'adapters/host-node/client-check.mjs',
     from: 'report.scope.kind === scope &&', to: 'true &&', targets: bindingCases('scope')},
@@ -59,7 +58,7 @@ const mutations = [
     targets: cases('scoped reporting truncation cannot publish template verification',
       [{id: 'scoped-report-truncation', operator: 'strictEqual'}])},
   {name: 'denied Source aliases become visible', path: 'adapters/host-node/client-check.mjs',
-    from: "if (decision?.action !== 'dispatch') return [];",
+    from: "if (decision?.action !== 'dispatch')\n            return [];",
     to: "if (decision?.action !== 'dispatch') return aliases;",
     targets: cases('scoped protected Sources preserve equivalent public reasons, pointers and Requirements',
       [{id: 'scoped-source-verdict', operator: 'strictEqual'},

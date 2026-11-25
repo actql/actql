@@ -43,6 +43,7 @@ struct CheckedTraverse {
   maximum : Double
   hops : Array[TraversalHop]
   emit : PathOutput
+  endpoint_properties : TraversalEndpointProperties?
   guard_rows : Count?
   output : @carrier.Carrier
   usage : PredicateUsage
@@ -162,7 +163,7 @@ fn check_traversal_profile(
         } else {
           [
             "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-            "max_output_rows", "path_mode", "edge_where", "node_where",
+            "max_output_rows", "path_mode", "edge_where", "node_where", "endpoint_properties",
           ]
         },
       ),
@@ -331,13 +332,29 @@ fn check_traversal_profile(
         Some(count(at, params))
       }
     }
+    let endpoint_properties = match
+      @decode.lookup(root, "endpoint_properties") {
+      None => None
+      Some(at) => {
+        if !patterned || hops.length() != 1 || emit != TraversedPaths {
+          fail(at, InvalidBody)
+        }
+        Some(traversal_endpoint_properties(graph, at, hops[0], b))
+      }
+    }
     let output = match
-      check_path_contract(emit, source, input, {
-        ..b.limits,
-        max_work: b.work,
-        max_nodes: b.nodes,
-        max_text_bytes: b.text,
-      }) {
+      check_path_contract(
+        emit,
+        source,
+        input,
+        {
+          ..b.limits,
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_text_bytes: b.text,
+        },
+        endpoint_properties.map(set => set.properties).unwrap_or([]),
+      ) {
       Ok(o) => o
       Err(e) => raise Stop(e)
     }
@@ -353,6 +370,7 @@ fn check_traversal_profile(
       maximum,
       hops,
       emit,
+      endpoint_properties,
       guard_rows,
       output: output.output,
       path_mode,
@@ -413,6 +431,7 @@ pub fn shortest_traversal(c : CheckedShortest) -> CheckedTraverse {
       },
     ],
     emit: ShortestPaths,
+    endpoint_properties: None,
     guard_rows: c.guard_rows,
     output: c.output,
     usage: c.usage,

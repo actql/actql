@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
         assert(refusal == ACTQL_SQLITE_COMPONENT_BUSY || refusal == ACTQL_SQLITE_COMPONENT_INVALID);
     } else assert(actql_sqlite_component_bind(value.context, heap_bytes()) == 0);
     assert(strcmp(actql_sqlite_component_source_id(),
-        "2025-11-04 19:38:17 fb2c931ae597f8d00a37574ff67aeed3eced4e5547f9120744ae4bfa8e74527b") == 0);
+        "2026-03-13 10:38:09 737ae4a34738ffa0c3ff7f9bb18df914dd1cad163f28fd6b6e114a344fe6d618") == 0);
 
     if (!strcmp(name, "missing-current") || !strcmp(name, "one-binding") ||
         !strcmp(name, "concurrent-binding") || !strcmp(name, "null-heap")) {

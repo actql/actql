@@ -25,7 +25,7 @@ test('independent UTC grid retains half-open bounds, timestamp schema and whole 
 
 test('time-series public selection preserves normal registration, receipt hook and isolated copy',()=>{
   const corpus=readFileSync('scripts/fixtures/packed-public-query.mjs','utf8');
-  const driver=readFileSync('scripts/test-packed-public-query.mjs','utf8');
+  const driver=readFileSync('scripts/test-packed-public-query.mts','utf8');
   assert.ok(corpus.includes('timeSeriesPrimaryOnly ? {successes: timeSeriesPrimarySuccesses, refusals: timeSeriesPrimaryRefusals}'));
   assert.ok(corpus.includes('scopeInputs.successes.push(...timeSeriesPrimarySuccesses)'));
   assert.ok(corpus.includes('scopeInputs.refusals.push(...timeSeriesPrimaryRefusals)'));

@@ -19,6 +19,7 @@ fn resume_test_claim(
   installed? : Bool = true,
   resolution_mode? : String = "APPROVE",
   operations? : NativeClientJournalOperationAccess? = None,
+  expected_revision? : Int64? = None,
 ) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue] {
   let wire = @env.get_env_var(
     "ACTQL_TEST_CLIENT_" + resolution_mode + "_RESOLUTION_WIRE",
@@ -57,6 +58,7 @@ fn resume_test_claim(
       ("2026-10-10T00:03:00.000Z", at)
     },
     operations,
+    expected_revision~,
   )
 }
 
@@ -83,6 +85,77 @@ fn resume_test_approved(
     lease_expires_ms: 0L,
   })
   (journal, request, record)
+}
+
+///|
+test "Native pre-claim approval fences a competing exact-revision claim" {
+  let database = epoch_test_database("client-resume-first-claim")
+  let (journal, request, approved) = resume_test_approved(database)
+  let expected_revision = Some(approved.revision)
+  assert_true(native_pending_effect_approval(approved, resume_test_binding()))
+  assert_false(
+    native_pending_effect_approval(approved, {
+      ..resume_test_binding(),
+      environment_binding_cid: "sha256:" + "c".repeat(64),
+    }),
+  )
+  assert_true(
+    resume_test_claim(
+      journal,
+      request,
+      "denied",
+      1000L,
+      100L,
+      resume_test_binding(),
+      () => false,
+      expected_revision~,
+    )
+    is Err(AuthorizationDenied),
+  )
+  guard resume_test_claim(
+      journal,
+      request,
+      "winner",
+      1000L,
+      100L,
+      resume_test_binding(),
+      () => true,
+      expected_revision~,
+    )
+    is Ok(Claimed(first)) else {
+    fail("original pending approval was not claimed")
+  }
+  assert_eq(first.claim.generation, 1L)
+  database.close_checked().unwrap()
+  let reopened = epoch_test_database("client-resume-first-claim")
+  let reopened_journal = open_native_client_run_journal(reopened, 8).unwrap()
+  assert_true(
+    resume_test_claim(
+      reopened_journal,
+      request,
+      "stale",
+      1101L,
+      100L,
+      resume_test_binding(),
+      () => true,
+      expected_revision~,
+    )
+    is Err(Checkpoint(StaleRevision)),
+  )
+  guard reopened_journal.lookup(request, true) is Ok(Retained(actual)) else {
+    fail("original Run missing")
+  }
+  assert_eq(actual.revision, approved.revision + 1L)
+  assert_false(native_pending_effect_approval(actual, resume_test_binding()))
+  let checkpoint = actual.checkpoint.unwrap()
+  assert_eq(
+    checkpoint.verified_wire,
+    approved.checkpoint.unwrap().verified_wire,
+  )
+  assert_eq(checkpoint.resume_intent_id, Some(first.intent_id))
+  assert_true(checkpoint.effect_ledger.is_empty())
+  assert_eq(checkpoint.resume_intent.unwrap().claimant, "winner")
+  reopened.close_checked().unwrap()
 }
 
 ///|
@@ -175,6 +248,68 @@ test "Native original resume lease survives reopen and fences an expired generat
     @publication.Resuming,
   )
   reopened.close_checked().unwrap()
+}
+
+///|
+test "Native File settlement fences the old connection after another claimant takes the same Run" {
+  let name = "client-resume-settlement-competition"
+  let first_db = epoch_test_database(name)
+  let (first_journal, request, _) = resume_test_approved(first_db)
+  guard resume_test_claim(
+      first_journal,
+      request,
+      "host-first",
+      1000L,
+      100L,
+      resume_test_binding(),
+      () => true,
+    )
+    is Ok(Claimed(first)) else {
+    fail("original claim missing")
+  }
+  first_journal
+  .transaction(() => {
+    first_journal.require_current_file_effect_settlement_locked(first, 1099L)
+  })
+  .unwrap()
+  let second_db = epoch_test_database(name)
+  let second_journal = open_native_client_run_journal(second_db, 8).unwrap()
+  guard resume_test_claim(
+      second_journal,
+      request,
+      "host-second",
+      1100L,
+      100L,
+      resume_test_binding(),
+      () => true,
+    )
+    is Ok(Claimed(second)) &&
+    second_journal.lookup(request, true) is Ok(Retained(taken)) else {
+    fail("original Run takeover missing")
+  }
+  assert_eq(second.claim.generation, first.claim.generation + 1L)
+  assert_true(
+    first_journal.transaction(() => {
+      first_journal.require_current_file_effect_settlement_locked(first, 1100L)
+    })
+    is Err(Checkpoint(StaleRevision)),
+  )
+  second_journal
+  .transaction(() => {
+    second_journal.require_current_file_effect_settlement_locked(second, 1100L)
+  })
+  .unwrap()
+  guard second_journal.lookup(request, true) is Ok(Retained(after)) else {
+    fail("original Run missing after refused settlement")
+  }
+  assert_eq(after.revision, taken.revision)
+  assert_eq(after.checkpoint.unwrap().state.status, @publication.Resuming)
+  assert_eq(
+    after.checkpoint.unwrap().resume_intent,
+    taken.checkpoint.unwrap().resume_intent,
+  )
+  first_db.close_checked().unwrap()
+  second_db.close_checked().unwrap()
 }
 
 ///|
@@ -578,6 +713,66 @@ test "Native resume custody rejects missing inconsistent or noncanonical retaine
     ),
     None,
   )
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native Checkpoint row restores a completed intent only with its paired successful Run state" {
+  let database = epoch_test_database("client-resume-completed-pair")
+  let (_, _, approved) = resume_test_approved(database)
+  let checkpoint = approved.checkpoint.unwrap()
+  let names = checkpoint.declared_results
+  let updated_at = "2026-10-10T00:04:00.000Z"
+  let wire = @publication.issue_succeeded_run_state_wire(
+    checkpoint.state.run_id,
+    updated_at,
+    names,
+    names,
+    names.map(_ => "unknown"),
+    names.map(_ => "verification_pending"),
+    names.map(_ => updated_at),
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  let terminal = @checkpoint.admit_run_state_wire(
+    wire,
+    native_checkpoint_limits(),
+  ).unwrap()
+  let completed : @checkpoint.ResumeIntentView = {
+    state: @checkpoint.ResumeCompleted,
+    claimant: "host",
+    generation: 2L,
+    lease_expires_ms: 5000L,
+  }
+  let paired = {
+    ..checkpoint,
+    state: terminal,
+    updated_at,
+    resume_intent: Some(completed),
+  }
+  let restored = read_checkpoint_record(
+    checkpoint_record_body(paired).unwrap(),
+    approved.definition,
+  ).unwrap()
+  assert_eq(restored.resume_intent, Some(completed))
+  assert_eq(restored.state, terminal)
+  for
+    invalid in [
+      { ..paired, state: checkpoint.state, },
+      { ..paired, resume_intent: checkpoint.resume_intent, },
+      { ..paired, updated_at: checkpoint.updated_at, },
+      { ..paired, declared_results: ["foreign"], },
+      { ..paired, settlement_only: true, },
+    ] {
+    assert_true(
+      read_checkpoint_record(
+        checkpoint_record_body(invalid).unwrap(),
+        approved.definition,
+      )
+      is Err(InvalidMaterial),
+    )
+  }
   database.close_checked().unwrap()
 }
 

@@ -1,0 +1,364 @@
+// Two public terminal consumers of the SAME ordinary Mock Project installation.
+// DATA oracles and injected command ports are component-testable without Core.
+import assert from 'node:assert/strict';
+import {access, mkdir, readFile, realpath, writeFile} from 'node:fs/promises';
+import {dirname, resolve} from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {types as nodeTypes} from 'node:util';
+import {userInfo} from 'node:os';
+import {workflowWorkObservation} from './work-observation.fixture.mjs';
+import {assertInstalledFamilyCompleteContent} from './installed-family-content.fixture.mjs';
+import {observeRecordApprovalDescriptors} from '../../../scripts/fixtures/record-approval/scoped-fds.fixture.mjs';
+import {resolveInstalledCompletionModules} from '../../../scripts/fixtures/external-rest/timed-installed-context.fixture.mjs';
+
+type Variant = 'terminal-infer' | 'terminal-content';
+type Phase = 'capture' | 'recover';
+type AccountScenario = 'default' | 'explicit-operator-content';
+type Content = Parameters<typeof assertInstalledFamilyCompleteContent>[0];
+type Row = Readonly<Record<string, unknown>>;
+type IssueTag = 'issueTag' | 'nestedIssueTag' | 'leafIssueTag';
+type Diagnostic = {
+  event: string;
+  available?: boolean;
+  code?: string;
+  boundary?: string;
+  primary?: Partial<Record<'phase' | 'kind', string>>;
+  sites?: string;
+  capacity?: {phase: string; dimension: string} & Record<string, unknown>;
+} & Partial<Record<IssueTag, number>>;
+type WorkObservation = {
+  complete: boolean;
+  sourceAcquisitionStarts: number;
+  modelCallStarts: number;
+  effectReplacementReturns: number;
+};
+type TerminalObservation = {
+  phase: Phase;
+  variant: Variant;
+  pid: number;
+  status: 'running' | 'passed' | 'failed';
+  complete: boolean;
+  submits: number;
+  resultReads: number;
+  originalRefBeforeWait: boolean;
+  savedFirst: boolean;
+  lookupOriginal: boolean;
+  firstClose: {attempted: boolean; returned: boolean; calls: number};
+  qualification?: string;
+  originalDiagnostics?: Diagnostic[];
+  diagnosticOverflow?: boolean;
+  submissionRecordedBeforeStart?: boolean;
+  originalInputsAbsent?: boolean;
+  recoveryOrigin?: 'started' | 'complete-capture';
+  originalRowsCompared?: boolean;
+  normalCaptureComplete?: boolean;
+  capturedPid?: number;
+  workObservation?: WorkObservation;
+  aliveScopedFD?: {before: number; after: number; pid: number};
+  code?: unknown;
+  cleanupCode?: unknown;
+};
+interface TerminalRun {
+  ref: unknown;
+  wait(): Promise<{status: string}>;
+  status(): Promise<{status: string}>;
+  result(name: string): {all(): Promise<readonly Row[]>};
+}
+interface TerminalClient {
+  newSubmission(options: {nonce: string}): unknown;
+  startSource(source: string, options: {format: 'aql' | 'json'; submissionRef: unknown}): Promise<TerminalRun>;
+  lookupSubmission(ref: unknown): Promise<{kind: string; admission: {ref: unknown}}>;
+  attach(ref: unknown): Promise<TerminalRun>;
+  close(): Promise<void>;
+}
+type DiagnosticObserver = (event: string, detail: unknown) => void;
+type Connect = (options: {mode: 'local'; profile: 'mock'; installation: {
+  directory: string;
+  observation: unknown;
+  authorization: {observe: DiagnosticObserver; siteKey?: string; accountConfiguration?: string};
+}}) => Promise<TerminalClient>;
+
+const contentBytes = Buffer.from('{"id":1}\n{"id":2}\n');
+const inferRows = [
+  {id: '001Acme', risk: {input_key: {id: '001Acme'}, outcome: 'ok', value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
+  {id: '001Globex', risk: {input_key: {id: '001Globex'}, outcome: 'ok', value: {level: 'high', reason: 'support tickets about pricing'}}},
+];
+
+const ownDiagnosticData = (value: unknown, key: string): unknown => {
+  if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) return undefined;
+  const field = Object.getOwnPropertyDescriptor(value, key);
+  return field !== undefined && Object.hasOwn(field, 'value') ? field.value : undefined;
+};
+
+// Caller-owned projection of the existing optional callback. Never copy an
+// exception message, stack, input, reference, arbitrary member or secret.
+export function terminalMockFailureDiagnostic(event: string, detail: unknown): Diagnostic | undefined {
+  if (!['preparation_failed', 'content_preparation_rejected', 'dispatch_failed'].includes(event)) return undefined;
+  const record: Diagnostic = {event}, code = ownDiagnosticData(detail, 'code');
+  const available = ownDiagnosticData(detail, 'available');
+  if (typeof available === 'boolean') record.available = available;
+  if (typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,95}$/u.test(code)) record.code = code;
+  const boundary = ownDiagnosticData(detail, 'boundary');
+  if ((['task_compilation', 'request_admission'] as readonly unknown[]).includes(boundary)) record.boundary = boundary as string;
+  const primary = ownDiagnosticData(detail, 'primaryDiagnostic');
+  for (const key of ['phase', 'kind'] as const) {
+    const value = ownDiagnosticData(primary, key);
+    if (typeof value === 'string' && value.length <= 96 && /^[a-z_]+(?:\.[a-z_]+)*$/u.test(value)) {
+      (record.primary ??= {})[key] = value;
+    }
+  }
+  // Only the existing code-site projector's closed relative locations may
+  // cross this fixture. Its field is named message, but raw text never does.
+  if (ownDiagnosticData(primary, 'kind') === 'code_site') {
+    const sites = ownDiagnosticData(primary, 'message');
+    if (typeof sites === 'string' && sites.length > 0 && sites.length <= 2048) {
+      const lines = sites.split('\n');
+      if (lines.length <= 8 && lines.every(line =>
+        /^(?:(?:adapters|packages)\/[A-Za-z0-9_./-]+\.[cm]?js|_build\/js\/release\/build\/[A-Za-z0-9_./-]+\.js):[1-9][0-9]{0,8}:[1-9][0-9]{0,8}$/u.test(line) &&
+        !line.split('/').includes('..'))) record.sites = sites;
+    }
+  }
+  const capacity = ownDiagnosticData(detail, 'capacity');
+  if (capacity !== undefined) {
+    const phase = ownDiagnosticData(capacity, 'phase'), dimension = ownDiagnosticData(capacity, 'dimension');
+    const keys = ['requiredRetentionBytes', 'requiredExecutionBytes', 'availableRetentionBytes', 'availableExecutionBytes'];
+    const amounts = keys.map(key => ownDiagnosticData(capacity, key));
+    if (typeof phase === 'string' && /^[a-z_]{1,96}$/u.test(phase) &&
+        (['retention', 'execution'] as readonly unknown[]).includes(dimension) && amounts.every(value =>
+          typeof value === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(value) && BigInt(value) <= 9223372036854775807n)) {
+      record.capacity = {phase, dimension: dimension as string, ...Object.fromEntries(keys.map((key, index) => [key, amounts[index]]))};
+    }
+  }
+  let issue = event === 'preparation_failed' ? undefined : ownDiagnosticData(detail, 'cause');
+  for (const key of ['issueTag', 'nestedIssueTag', 'leafIssueTag'] as const) {
+    const supplied = ownDiagnosticData(detail, key);
+    const tag = supplied ?? (typeof issue === 'number' ? issue : ownDiagnosticData(issue, '$tag'));
+    if (Number.isSafeInteger(tag) && (tag as number) >= 0 && (tag as number) <= 65535) record[key] = tag as number;
+    issue = ownDiagnosticData(issue, '_0');
+  }
+  return record;
+}
+
+export function terminalMockScenario(variant: Variant) {
+  assert(['terminal-infer', 'terminal-content'].includes(variant));
+  if (variant === 'terminal-infer') return {path: 'terminal.aql', format: 'aql' as const, result: 'updates',
+    source: `SELECT a.id AS id, a.description AS notes, u.active_users, u.trend
+FROM salesforce.accounts AS a
+JOIN snowflake.usage_30d AS u ON a.id = u.account_id
+|> INFER \`model-task:churn-risk.v1\` INPUT (notes, active_users, trend) AS risk
+|> WHERE risk.outcome = 'ok' AND risk.value.level = 'high'
+|> SELECT id, risk
+|> RESULT updates;`, sourceStarts: 2, modelStarts: 2};
+  return {path: 'terminal.program.json', format: 'json' as const, result: 'file', sourceStarts: 0, modelStarts: 0,
+    source: JSON.stringify({version: 'actql/0.1', id: 'mock-terminal-content', stages: [{id: 'main', inputs: {},
+      steps: [{values: {schema: {id: {type: 'number', nullable: false}}, rows: [{id: 1}, {id: 2}]}, as: 'seed'},
+        {serialize: {format: 'jsonl', fields: ['id'], name: 'two.jsonl', preserve_order: true,
+          bounds: {max_rows: 2, max_bytes: 64}}, as: 'file'}],
+      results: {file: {from: 'file', fields: ['name', 'content', 'media_type', 'size_bytes', 'row_count']}}}],
+    results: {file: {from: {stage: 'main', result: 'file'}}}})};
+}
+
+export function checkTerminalMockRows(variant: Variant, rows: readonly Row[]) {
+  terminalMockScenario(variant);
+  if (variant === 'terminal-infer') {
+    assert.deepEqual([...rows].sort((a, b) => (a.id as string).localeCompare(b.id as string)), inferRows);
+    return;
+  }
+  assert.equal(rows.length, 1);
+  assert.deepEqual(Object.keys(rows[0]).sort(), ['content', 'media_type', 'name', 'row_count', 'size_bytes']);
+  const {content, ...metadata} = rows[0];
+  assert.deepEqual(metadata, {name: 'two.jsonl', media_type: 'application/x-ndjson', size_bytes: 18, row_count: 2});
+  // Independent literal bytes-derived metadata, NOT an actual Store byte read.
+  // No issuer/ref/grant is manufactured by this assertion.
+  assert.equal(contentBytes.length, 18);
+  assertInstalledFamilyCompleteContent(content as Content,
+    {bytes: contentBytes, mediaType: 'application/x-ndjson', issuerKind: 'content_derivation'});
+}
+
+export function checkTerminalMockSavedRows(variant: Variant, rows: readonly Row[], originalRows: readonly Row[]) {
+  checkTerminalMockRows(variant, rows);
+  assert.deepEqual(rows, originalRows, 'Saved preserves the complete original rows/envelope, not only Content bytes');
+}
+
+export function assertTerminalMockObservation(value: TerminalObservation, {variant, phase, pid, capturedPid, fromStarted = false}: {
+  variant: Variant; phase: Phase; pid: number; capturedPid?: number; fromStarted?: boolean;
+}) {
+  const selected = terminalMockScenario(variant);
+  assert.equal(value.variant, variant);assert.equal(value.phase, phase);
+  assert.equal(value.pid, pid);assert(Number.isSafeInteger(pid) && pid > 0);
+  assert.equal(value.status, 'passed');assert.equal(value.complete, true);
+  assert.deepEqual(value.firstClose, {attempted: true, returned: true, calls: 1});
+  assert.deepEqual(value.aliveScopedFD, {before: 0, after: 0, pid});
+  assert.equal(value.submits, phase === 'capture' ? 1 : 0);
+  assert.equal(value.resultReads, 1);assert.equal(value.lookupOriginal, true);
+  assert.equal(value.originalRefBeforeWait, phase === 'capture');
+  assert.equal(value.savedFirst, phase === 'recover');
+  assert.equal(value.workObservation!.complete, true);
+  assert.equal(value.workObservation!.sourceAcquisitionStarts, phase === 'capture' ? selected.sourceStarts : 0);
+  assert.equal(value.workObservation!.modelCallStarts, phase === 'capture' ? selected.modelStarts : 0);
+  assert.equal(value.workObservation!.effectReplacementReturns, 0);
+  if (phase === 'recover') {
+    assert(Number.isSafeInteger(capturedPid) && capturedPid! > 0);assert.notEqual(pid, capturedPid);
+    assert.equal(value.originalInputsAbsent, true);
+    if (fromStarted) {
+      assert.equal(variant, 'terminal-infer');
+      assert.equal(value.recoveryOrigin, 'started');
+      assert.equal(value.originalRowsCompared, false);
+      assert.equal(value.normalCaptureComplete, false);
+    } else assert.notEqual(value.recoveryOrigin, 'started', 'Started-only evidence cannot qualify the complete capture workflow');
+  } else assert.equal(phase, 'capture');
+}
+
+// Explicit operator-authored Account DATA for this pure Content scenario only.
+// The existing Common Account gate still evaluates every original tuple.
+// This neither extends the default Mock profile nor grants Source/Model/Effect.
+function terminalContentOperatorAuthorization() {
+  const principal = userInfo().username;
+  return {siteKey:'local-mock',accountConfiguration:JSON.stringify({
+    version:'actql-execution-account-config/0.1',account_id:'terminal-content-explicit-operator',
+    entries:[
+      {entry_id:'operator-request',outcome:'allow',principal:{any_of:[principal]},
+        connection:{any_of:['local-mock']},resource:{any_of:['installed-multi-acquired']},
+        operation:{any_of:['write']},exclusions:[]},
+      {entry_id:'operator-result-file',outcome:'allow',principal:{any_of:[principal]},
+        connection:{any_of:['local-mock']},resource:{any_of:['result/file']},
+        operation:{any_of:['read']},exclusions:[]},
+      {entry_id:'operator-run',outcome:'allow',principal:{any_of:[principal]},
+        connection:{any_of:['local-mock']},resource:{any_of:['run']},
+        operation:{any_of:['cancel','publish','read','resolve','submit']},exclusions:[]},
+    ],
+  })};
+}
+
+export async function runTerminalMockWorkflow({phase, variant, handoffPath, connect,
+  fromStarted = false, accountScenario = 'default', directory = process.cwd(), createWorkObservation = workflowWorkObservation,
+  observeDescriptors = observeRecordApprovalDescriptors}: {
+  phase: Phase; variant: Variant; handoffPath: string; connect: Connect;
+  fromStarted?: boolean; accountScenario?: AccountScenario; directory?: string;
+  createWorkObservation?: () => {connection: unknown; snapshot(): WorkObservation};
+  observeDescriptors?: typeof observeRecordApprovalDescriptors;
+}) {
+  assert(['capture', 'recover'].includes(phase));
+  assert(['default','explicit-operator-content'].includes(accountScenario));
+  if (accountScenario !== 'default') assert.equal(variant,'terminal-content');
+  assert.equal(typeof fromStarted, 'boolean');
+  if (fromStarted) {assert.equal(phase, 'recover');assert.equal(variant, 'terminal-infer');}
+  const selected = terminalMockScenario(variant), state = resolve(directory, '.actql');
+  const roots = [state, resolve(directory, 'mock')];
+  const report: TerminalObservation = {phase, variant, pid: process.pid, status: 'running', complete: false,
+    submits: 0, resultReads: 0, originalRefBeforeWait: false, savedFirst: false, lookupOriginal: false,
+    firstClose: {attempted: false, returned: false, calls: 0}};
+  const accountLabel = accountScenario === 'default' ? {} : {accountScenario};
+  Object.assign(report,accountLabel);
+  if (accountScenario !== 'default') report.qualification =
+    'Explicit operator Account Content lifecycle only; not default Mock/#3644 or TypeScript acceptance';
+  const recordPhase = fromStarted ? 'recover-from-started' : phase;
+  if (fromStarted) Object.assign(report, {recoveryOrigin: 'started', originalRowsCompared: false,
+    normalCaptureComplete: false, qualification: 'SAME started original Saved only; independent complete rows, not a successful capture handoff'});
+  const save = (path: string, value: unknown, exclusive = false) => writeFile(path, JSON.stringify(value) + '\n',
+    {mode: 0o600, ...(exclusive ? {flag: 'wx'} : {})});
+  let client: TerminalClient | undefined, failed = false, primary: unknown, closeFailed = false, closeFailure: unknown;
+  const work = createWorkObservation();
+  report.originalDiagnostics = [];
+  const observe: DiagnosticObserver = (event, detail) => {
+    const selected = terminalMockFailureDiagnostic(event, detail);
+    if (selected === undefined) return;
+    if (report.originalDiagnostics!.length === 2) {report.diagnosticOverflow = true;return;}
+    report.originalDiagnostics!.push(selected);
+  };
+  try {
+    await mkdir(state, {recursive: true});
+    const before = await observeDescriptors(roots);assert.equal(before.pid, process.pid);assert.equal(before.openPaths.length, 0);
+    client = await connect({mode: 'local', profile: 'mock',
+      installation: {directory: state, observation: work.connection, authorization: accountScenario === 'default'
+        ? {observe} : {...terminalContentOperatorAuthorization(),observe}}});
+    if (phase === 'capture') {
+      const submissionRef = client.newSubmission({nonce: variant});
+      await save(handoffPath + '.submission', {variant, submissionRef, pid: process.pid,...accountLabel}, true);
+      report.submissionRecordedBeforeStart = true;
+      report.submits++;
+      const run = await client.startSource(await readFile(resolve(directory, selected.path), 'utf8'),
+        {format: selected.format, submissionRef});
+      await save(handoffPath + '.started', {variant, ref: run.ref, submissionRef, pid: process.pid,...accountLabel}, true);
+      report.originalRefBeforeWait = true;
+      assert.equal((await run.wait()).status, 'succeeded');
+      const rows = await run.result(selected.result).all();report.resultReads++;
+      checkTerminalMockRows(variant, rows);
+      const lookup = await client.lookupSubmission(submissionRef);
+      assert.equal(lookup.kind, 'ready');assert.deepEqual(lookup.admission.ref, run.ref);report.lookupOriginal = true;
+      await save(handoffPath, {variant, ref: run.ref, submissionRef, rows, pid: process.pid,...accountLabel}, true);
+    } else {
+      const original = JSON.parse(await readFile(handoffPath + (fromStarted ? '.started' : ''), 'utf8')) as {
+        variant: Variant; accountScenario?: AccountScenario; ref: unknown; rows: readonly Row[];
+        submissionRef: unknown; pid: number;
+      };
+      assert.equal(original.variant, variant);
+      assert.equal(original.accountScenario ?? 'default',accountScenario);
+      await assert.rejects(access(resolve(directory, selected.path)), {code: 'ENOENT'});
+      await assert.rejects(access(resolve(directory, 'mock/churn-risk.v1.answers.yaml')), {code: 'ENOENT'});
+      report.originalInputsAbsent = true;
+      const run = await client.attach(original.ref);assert.deepEqual(run.ref, original.ref);
+      // No wait/status/lookup before this SAME original Saved Result.
+      const rows = await run.result(selected.result).all();report.resultReads++;report.savedFirst = true;
+      if (fromStarted) checkTerminalMockRows(variant, rows);
+      else {
+        checkTerminalMockSavedRows(variant, rows, original.rows);
+        report.recoveryOrigin = 'complete-capture';report.originalRowsCompared = true;
+      }
+      assert.equal((await run.status()).status, 'succeeded');
+      const lookup = await client.lookupSubmission(original.submissionRef);
+      assert.equal(lookup.kind, 'ready');assert.deepEqual(lookup.admission.ref, original.ref);report.lookupOriginal = true;
+      report.capturedPid = original.pid;
+    }
+  } catch (cause) {failed = true;primary = cause;}
+  if (failed) {
+    const code = ownDiagnosticData(primary, 'code');
+    try {await save(resolve(directory, `${recordPhase}.primary.json`), {
+      publicCode: typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,95}$/u.test(code) ? code : null,
+      thrownUndefined: primary === undefined, originalDiagnostics: report.originalDiagnostics,
+    }, true);} catch { /* The diagnostic cannot replace the original failure. */ }
+  }
+  if (client !== undefined) {report.firstClose.attempted = true;report.firstClose.calls++;}
+  // Persist pending BEFORE the first close. Exit never acknowledges cleanup.
+  try {await save(resolve(directory, `${recordPhase}.pending.json`), report);}
+  catch (cause) {if (!failed) {failed = true;primary = cause;}}
+  if (client !== undefined) {
+    try {await client.close();report.firstClose.returned = true;}
+    catch (cause) {closeFailed = true;closeFailure = cause;}
+  }
+  try {
+    report.workObservation = work.snapshot();
+    if (report.firstClose.returned) {
+      const after = await observeDescriptors(roots);
+      assert.equal(after.pid, process.pid);
+      report.aliveScopedFD = {before: 0, after: after.openPaths.length, pid: process.pid};
+    }
+    if (!failed && !closeFailed) {
+      report.status = 'passed';report.complete = true;
+      assertTerminalMockObservation(report, {variant, phase, pid: process.pid, capturedPid: report.capturedPid, fromStarted});
+    }
+  } catch (cause) {if (!failed) {failed = true;primary = cause;}}
+  if (failed || closeFailed) {report.status = 'failed';report.complete = false;}
+  report.code = (primary as {code?: unknown} | null | undefined)?.code;
+  report.cleanupCode = (closeFailure as {code?: unknown} | null | undefined)?.code;
+  try {await save(resolve(directory, `${recordPhase}.pending.json`), report);}
+  catch (cause) {
+    if (!failed && !closeFailed) {failed = true;primary = cause;report.status = 'failed';report.complete = false;}
+  }
+  if (failed) throw Object.assign(new Error('TerminalMockWorkflowFailed', {cause: primary}), {observation: report});
+  if (closeFailed) throw Object.assign(new Error('TerminalMockFirstCloseFailed', {cause: closeFailure}), {observation: report});
+  return report;
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  // The harness owns the one project alias to its verified normal consumer.
+  // Reuse the existing installed-only public resolver BEFORE any product runs.
+  const modules = await realpath(resolve('node_modules'));
+  const original = await resolveInstalledCompletionModules(dirname(modules), {observation: true});
+  // Preserve Node's existing URL coercion for the selected installed module.
+  const {connect} = await import(pathToFileURL(original.node) as unknown as string);
+  const [selectedPhase, variant, handoffPath, accountScenario = 'default'] = process.argv.slice(2);
+  const fromStarted = selectedPhase === 'recover-from-started', phase = fromStarted ? 'recover' : selectedPhase;
+  try {console.log(JSON.stringify(await runTerminalMockWorkflow({phase: phase as Phase, variant: variant as Variant, handoffPath, connect, fromStarted, accountScenario: accountScenario as AccountScenario})));}
+  catch (cause) {if ((cause as {observation?: unknown}).observation) console.log(JSON.stringify((cause as {observation?: unknown}).observation));throw cause;}
+}

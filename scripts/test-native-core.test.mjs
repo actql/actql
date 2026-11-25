@@ -1093,7 +1093,8 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
     'native-filesystem-observation-fixture.mjs',
     'native-runtime-reader-custody-fixture.mjs', 'native-project-configuration-fixture.mjs',
     'local-checks.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
-    'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
+    'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs',
+    'native-core-measured-tests.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
   }
   copyFileSync(new URL('../proofs/relation-pipeline/proof-parts.mjs', import.meta.url),

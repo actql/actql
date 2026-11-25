@@ -11,6 +11,7 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url));
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {boundedPrimarySql} from './client-request-journal-sql.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {installedSourceFor as selectInstalledSource} from './installed-source.mjs';
@@ -1483,22 +1484,20 @@ test('selected Journal metadata envelope derives durable/inspection policy and S
   assert.equal(limits.primaryExecutionLimits.maxParameterBytes,
     Math.min(limits.maxDatabaseBytes, limits.maxInspectionBytes));
   assert.equal(limits.maxRunDefinitionWireBytes, limits.primaryExecutionLimits.maxParameterBytes);
-  const source = readFileSync(new URL('./client-request-journal.mjs', import.meta.url), 'utf8');
-  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const owner = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'boundedPrimarySql');
-  const declaration = owner.body.body.flatMap(node => node.type === 'VariableDeclaration' ? node.declarations : [])
-    .find(node => node.id.name === 'operands');
-  assert.ok(declaration);
-  const fail = code => {throw Object.assign(new Error(code), {code});};
-  const operands = new Function('executionLimits', 'assertCurrent', 'cursors', 'fail',
-    'applyOriginal', 'byteLength', 'buffer', 'return ' +
-    source.slice(declaration.init.start, declaration.init.end))(
-      {maxParameters: 4, maxParameterBytes: 16},
-      () => {}, [], fail, Reflect.apply, Buffer.byteLength, Buffer);
-  operands(['12345678', '12345678']);
-  assert.throws(() => operands(['12345678', '123456789']), {code: 'ClientRequestJournalSqlUnavailable'});
-  operands(['猫'.repeat(5), 'x']);
-  assert.throws(() => operands(['猫'.repeat(5), 'xx']), {code: 'ClientRequestJournalSqlUnavailable'});
+  const database = new DatabaseSync(':memory:');
+  const sql = boundedPrimarySql(database,
+    {maxPreparedStatements: 1, maxSqlBytes: 64, maxTotalSqlBytes: 64},
+    {maxParameters: 4, maxParameterBytes: 16, maxResultRows: 1});
+  try {
+    const statement = sql.database.prepare('SELECT ? AS left_value, ? AS right_value');
+    assert.equal(statement.get('12345678', '12345678').right_value, '12345678');
+    assert.throws(() => statement.get('12345678', '123456789'), {code: 'ClientRequestJournalSqlUnavailable'});
+    assert.equal(statement.get('猫'.repeat(5), 'x').right_value, 'x');
+    assert.throws(() => statement.get('猫'.repeat(5), 'xx'), {code: 'ClientRequestJournalSqlUnavailable'});
+  } finally {
+    database.close();
+    sql.retireClosedNativeAliases();
+  }
 });
 
 

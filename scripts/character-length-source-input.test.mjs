@@ -23,7 +23,7 @@ test('character length expectations distinguish bytes code units and retained sc
 
 test('character length remains in normal packed acceptance and its focused route', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...characterLengthSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...characterLengthRefusals)'));
   assert.match(fixture, /const scopeOnly = [^;]*\bcharacterLengthOnly\b/u);

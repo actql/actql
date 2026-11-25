@@ -22,7 +22,7 @@ const make=compileFunction(`
   const {sourceManaged,moon,declaration}=input,index=0;
   const records=new Map(input.record ? [[input.record.prepared,input.record]] : []);
   const originalReads=new WeakMap();
-  const effectReads=new Set(),effectRuns=new WeakMap();
+  const effectReads=new Set(),keyedReads=new Set(),effectRuns=new WeakMap();
   const current=()=>sourceManaged.assertCurrent();
   const sameRun=prepared=>{current();const run=records.get(prepared);
     if(run===undefined)fail('NodeManagedRunAdmissionUnavailable');return run;};
@@ -44,9 +44,9 @@ test('same Source child and close are held before post-factory current refusal a
   const sourceManaged={assertCurrent(){if(!current)throw failure;},prepareRead(){current=false;return raw;}};
   const f=make({sourceManaged,declaration,record,moon:{
     clientProgramAcquisitionCount(){return 1;},
-    clientProgramInstalledManagedRunSourceRead(){core++;assert.fail('No stale Core use');}}},value=>value,fail);
+    clientProgramInstalledManagedRunSourceReadAt(){core++;assert.fail('No stale Core use');}}},value=>value,fail);
   assert.throws(()=>f.reader.prepareSourceRead({checkedOwner:prepared,effectful:false,
-    declaration,occurrence:{stage:0,input:0}}),error=>error===failure);
+    declaration,occurrence:{stage:0,input:0,task:0}}),error=>error===failure);
   assert.strictEqual(record.reads[0].raw,raw);assert.equal(core,0);
   raw.close=()=>assert.fail('Replacement close must not run');
   await f.closeSource(0);assert.equal(closes,1);assert.equal(record.reads[0].closed,true);
@@ -66,8 +66,10 @@ test('same Host Run is retained before post-factory current refusal and independ
 test('foreign Source occurrence still refuses before acquiring any child',()=>{
   let acquisitions=0;const declaration={},prepared={},record={prepared,original:{},value:{},effectful:false,reads:[]};
   const f=make({declaration,record,sourceManaged:{assertCurrent(){},prepareRead(){acquisitions++;}},moon:{clientProgramAcquisitionCount(){return 1;}}},value=>value,fail);
-  for(const facts of [{declaration:{},occurrence:{stage:0,input:0}},
-    {declaration,occurrence:{stage:1,input:0}},{declaration,occurrence:{stage:0,input:1}}]){
+  for(const facts of [{declaration:{},occurrence:{stage:0,input:0,task:0}},
+    {declaration,occurrence:{stage:-1,input:0,task:0}},
+    {declaration,occurrence:{stage:0,input:0,task:-1}},
+    {declaration,occurrence:{stage:0,input:0}}]){
     assert.throws(()=>f.reader.prepareSourceRead({checkedOwner:prepared,effectful:false,...facts}),
       {code:'InstalledSourcePreparationMismatch'});
   }
@@ -85,17 +87,18 @@ test('repeated Source slots hold distinct children and close only their original
     acquired.push(raw);return raw;
   }};
   const f=make({sourceManaged,declaration,record,moon:{clientProgramAcquisitionCount(){return 2;},
-    clientProgramInstalledManagedRunSourceRead(run,slot){assert.equal(run,record.value);return {slot};},
+    clientProgramInstalledManagedRunSourceReadAt(run,stage,input,task){
+      assert.equal(run,record.value);assert.equal(input,0);assert.equal(task,stage);return {slot:task};},
     clientProgramInstalledSourceReadRetire(value){retired.push(value.slot);}}},value=>value,fail);
   const prepare=stage=>f.reader.prepareSourceRead({checkedOwner:prepared,effectful:false,
-    declaration,occurrence:{stage,input:0}});
+    declaration,occurrence:{stage,input:0,task:stage}});
   assert.equal(prepare(1).slot,1);assert.equal(prepare(0).slot,0);
   assert.throws(()=>prepare(1),{code:'InstalledSourcePreparationMismatch'});
   assert.equal(acquired.length,2);
   await f.closeSource(1);assert.deepEqual(acquired.map(raw=>raw.closed),[0,0]);
   await f.closeSource(0);assert.deepEqual(acquired.map(raw=>raw.closed),[1,1]);
   await f.closeSource(0);assert.deepEqual(acquired.map(raw=>raw.closed),[1,1]);
-  assert.deepEqual(retired,[0,1]);
+  assert.deepEqual(retired,[1,0]);
 });
 
 // Execute the original Mock Run constructor. A retired Effect discriminator
@@ -117,7 +120,7 @@ test('foreign Mock Effect read context refuses before acquiring any Source child
     prepareRead() {acquisitions++; assert.fail('No legacy Effect Source child');}}, moon: {}},
     value => value, fail);
   assert.throws(() => f.reader.prepareSourceRead({checkedOwner: {}, effectful: true,
-    declaration: {}, occurrence: {stage: 0, input: 0}}), {code: 'NodeManagedRunAdmissionUnavailable'});
+    declaration: {}, occurrence: {stage: 0, input: 0, task: 0}}), {code: 'NodeManagedRunAdmissionUnavailable'});
   assert.equal(current, 1); assert.equal(acquisitions, 0);
 });
 
@@ -156,7 +159,7 @@ function effectReadRetirementFixture(count = 1, effectful = true) {
     if (severFailure) {const error = severFailure; severFailure = undefined; throw error;}
   }};
   const originalReads = new WeakMap(), effectRuns = new WeakMap([[prepared, new WeakRef(run)]]);
-  const effectReads = new Set(), records = new Map();
+  const effectReads = new Set(), keyedReads = new Set(), records = new Map();
   const sourceManaged = {assertCurrent() {}, prepareRead(p, selected, value) {
     assert.equal(p, prepared); assert.equal(selected, declaration); assert.equal(value, native);
     const raw = {close() {assert.equal(this, raw); events.push('physical'); return {pending: physicalPending};},
@@ -173,9 +176,9 @@ function effectReadRetirementFixture(count = 1, effectful = true) {
     ${select('FunctionDeclaration', 'closeSource')}
     return {${select('Property', 'prepareSourceRead')},
       ${select('Property', 'closeSourceRead')}, closeSource};`,
-    ['sourceManaged', 'moon', 'declaration', 'sameRun', 'originalReads', 'effectReads', 'effectRuns', 'records', 'checked', 'fail'])(
+    ['sourceManaged', 'moon', 'declaration', 'sameRun', 'originalReads', 'effectReads', 'keyedReads', 'effectRuns', 'records', 'checked', 'fail'])(
       sourceManaged, moon, declaration, p => {assert.equal(p, prepared); return run;},
-      originalReads, effectReads, effectRuns, records,
+      originalReads, effectReads, keyedReads, effectRuns, records,
       value => {if (value.$tag !== 1) throw value._0; return value._0;}, fail);
   const retire = compileFunction(`return ({${hostSource.slice(retirement.start, retirement.end)}}).retireManagedComputeRun;`,
     ['record', 'moon', 'checked', 'finishInstalledEffectModelScope', 'clientOperationError',
@@ -184,7 +187,7 @@ function effectReadRetirementFixture(count = 1, effectful = true) {
       code => Object.assign(new Error(code), {code}), () => () => {});
   const originalRead = {};
   reader.prepareSourceRead({checkedOwner: prepared, effectful, declaration,
-    occurrence: {stage: 0, input: 0}, managedRun: native, originalRead});
+    occurrence: {stage: 0, input: 0, task: 0}, managedRun: native, originalRead});
   const read = run.mockSourceReads[0];
   return {run, record, prepared, request, native, declaration, originalRead, read, raw: raws[0], raws,
     reader, retire: () => retire(prepared), events, effectReads, effectRuns, originalReads, pending,
@@ -258,7 +261,7 @@ test('Mock Source native retirement callback cannot reenter retirement or acquir
   f.onNative(() => {
     assert.throws(f.retire, {code: 'InstalledMockSourceCleanupPending'});
     assert.throws(() => f.reader.prepareSourceRead({checkedOwner: f.prepared, effectful: true,
-      declaration: f.declaration, occurrence: {stage: 0, input: 0}, managedRun: f.native, originalRead: {}}),
+      declaration: f.declaration, occurrence: {stage: 0, input: 0, task: 0}, managedRun: f.native, originalRead: {}}),
     {code: 'InstalledMockSourceCleanupPending'});
   });
   f.retire();
@@ -280,7 +283,7 @@ test('Mock Source retirement rejects a replaced Host original without cutting th
 test('Mock Source retirement keeps sibling document correspondence until every original child closes', async () => {
   const f = effectReadRetirementFixture(2), secondOriginal = {}, bytes = Buffer.from('same retained document');
   f.reader.prepareSourceRead({checkedOwner: f.prepared, effectful: true, declaration: f.declaration,
-    occurrence: {stage: 1, input: 0}, managedRun: f.native, originalRead: secondOriginal});
+    occurrence: {stage: 1, input: 0, task: 1}, managedRun: f.native, originalRead: secondOriginal});
   const second = f.run.mockSourceReads[1];
   assert.notEqual(second.raw, f.read.raw);
   f.read.observedBytes = bytes;
@@ -375,17 +378,33 @@ test('Host-backed Row Source capture capacity retains its checked acquisition an
   assert.equal(found.length, 1);
   const requirement = {}, acquisition = {}, capacity = {}, calls = [];
   const create = compileFunction('return ' + row.slice(found[0].start, found[0].end),
-    ['originalReader', 'prepareSourceRead', 'prepareOriginalAcquisition', 'moon',
-      'maxTransferBytes', 'limits', 'fail']);
-  const invoke = create(undefined, () => assert.fail('Capacity is not a read'), actual => {
+    ['originalReader', 'prepareSourceRead', 'prepareOriginalAcquisition', 'moon', 'readTransports',
+      'defaultReadTransport', 'readTransport', 'fail']);
+  const prepare = actual => {
     assert.strictEqual(actual, requirement); calls.push('original-acquisition'); return acquisition;
-  }, {clientProgramInstalledRowCaptureCapacity(actual) {
-    assert.strictEqual(actual, acquisition); calls.push('original-capacity'); return capacity;
-  }}, 1048576n, {maxPageBytes: 1048576}, fail);
-  assert.deepEqual(invoke(requirement), {capacity, transferBytes: 1048576n, executionBytes: 1048576n});
-  assert.deepEqual(calls, ['original-acquisition', 'original-capacity']);
+  };
+  const moon = {
+    clientProgramInstalledRowCaptureCapacity(actual) {
+      assert.strictEqual(actual, acquisition); calls.push('original-capacity'); return capacity;
+    },
+    clientProgramQueryRequirementSourceRef(actual) {
+      assert.strictEqual(actual, requirement); calls.push('original-ref'); return 'source:table';
+    },
+  };
+  const noRead = () => assert.fail('Capacity is not a read');
+  const regular = Object.freeze({transferBytes: 1048576n, executionBytes: 1048576n});
+  const csv = Object.freeze({transferBytes: 47n, executionBytes: 33n});
+  const registry = new Map([['source:table', csv]]);
+  const invoke = create(undefined, noRead, prepare, moon, undefined, regular,
+    () => assert.fail('An unconfigured transport has no registry lookup'), fail);
+  assert.deepEqual(invoke(requirement), {capacity, ...regular});
+  const selected = create(undefined, noRead, prepare, moon, registry, regular,
+    sourceRef => {assert.equal(sourceRef, 'source:table'); return registry.get(sourceRef);}, fail);
+  assert.deepEqual(selected(requirement), {capacity, ...csv});
+  assert.deepEqual(calls, ['original-acquisition', 'original-capacity',
+    'original-acquisition', 'original-capacity', 'original-ref']);
   assert.throws(() => create(undefined, undefined, () => assert.fail('No unsupported constructor'),
-    {}, 0n, {}, fail)(requirement), {code: 'InstalledSourceCapacityUnavailable'});
+    {}, undefined, regular, undefined, fail)(requirement), {code: 'InstalledSourceCapacityUnavailable'});
 });
 
 

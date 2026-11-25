@@ -345,6 +345,8 @@ pub fn capture_client_run_observation_originals(ClientCompiledRun, @run_publicat
 
 pub fn capture_client_static_effect_explanation_original(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int, computation_wire? : @ref.Ref[String?]?) -> Result[(ClientStaticEffectExplanationOriginal, String), ClientStaticExplanationSourceIssue]
 
+pub fn capture_client_static_pure_explanation_original(PreparedClientProgram, ClientRunCompilation, Int, Int, Int) -> Result[(ClientStaticPureExplanationOriginal, String), ClientStaticExplanationSourceIssue]
+
 pub fn capture_client_structural_explanation_original(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientStructuralExplanationOriginal, ClientExplanationFactsIssue]
 
 pub fn capture_client_structural_explanation_plan_original(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[(ClientStructuralExplanationOriginal, String), ClientExplanationFactsIssue]
@@ -1142,6 +1144,8 @@ pub fn[Store, E] client_local_adopted_account_outcome(ClientLocalAdoptedHostMate
 pub fn[Store, E] client_local_adopted_authority_scope_body(ClientLocalAdoptedHostMaterial[Store, E], Store, String, String) -> Result[Bytes, ClientLocalAdoptedCurrentIssue[E]]
 
 pub fn[Store, E] client_local_adopted_current_account(ClientLocalAdoptedHostMaterial[Store, E], Store) -> Result[@execution_authorization.AdmittedAccountConfiguration, ClientLocalAdoptedCurrentIssue[E]]
+
+pub fn[Store, E] client_local_adopted_result_read_resource(ClientLocalAdoptedHostMaterial[Store, E], Store, @execution_authorization.AccessTuple, Bool) -> Result[String?, ClientLocalAdoptedCurrentIssue[E]]
 
 pub fn client_local_authority_scope_body(@execution_authorization.AdmittedAccountConfiguration, String, String, String) -> Result[Bytes, ClientLocalAuthorityScopeIssue]
 
@@ -2283,6 +2287,8 @@ pub fn measure_client_static_effect_explanation_context(ClientStaticEffectExplan
 
 pub fn measure_client_static_effect_explanation_facts(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
 
+pub fn measure_client_static_pure_explanation_facts(ClientStaticPureExplanationOriginal, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
+
 pub fn measure_client_structural_explanation_facts(ClientStructuralExplanationOriginal, ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
 
 pub fn measure_installed_client_composed_infer_graph_construction(ClientInferOccurrence, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int, serialization? : ClientSerializationPlanGraph?, keyed_native_read? : (ClientKeyedAcquisition, @run_publication.PublicationContract)?) -> Result[ClientInferGraphConstruction, ClientInferPlanGraphIssue]
@@ -2935,6 +2941,8 @@ pub fn seal_client_requested_effect_stop_body(ClientRequestedEffectStop, String,
 
 pub fn seal_client_static_effect_explanation_facts(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientExplanationFactsIssue]
 
+pub fn seal_client_static_pure_explanation_facts(ClientStaticPureExplanationOriginal, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientExplanationFactsIssue]
+
 pub fn seal_client_structural_explanation_facts(ClientStructuralExplanationOriginal, ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientExplanationFactsIssue]
 
 pub fn select_client_direct_acquisition_occurrences(PreparedClientProgram, Int) -> Result[ClientDirectAcquisitionOccurrences, ClientDirectAcquisitionOccurrenceIssue]
@@ -3066,6 +3074,10 @@ pub fn with_client_source_free_result_policy(ClientCompiledRun, String, String, 
 pub fn with_prepared_client_values_row_limit(PreparedClientProgram, Int) -> PreparedClientProgram?
 
 pub fn write_client_static_effect_explanation_context(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, @encode_core.Writer, Int) -> Result[Unit, ClientStaticExplanationSourceIssue]
+
+pub fn write_client_static_effect_explanation_transfers(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, @encode_core.Writer, Int) -> Result[Unit, ClientStaticExplanationSourceIssue]
+
+pub fn write_client_static_pure_explanation_context(ClientStaticPureExplanationOriginal, @encode_core.Writer, Int) -> Result[Unit, ClientStaticExplanationSourceIssue]
 
 // Errors
 pub(all) suberror ClientExplanationNarrativeIssue {
@@ -4460,6 +4472,7 @@ pub(all) enum ClientLocalReadEvidenceValue {
   Quantity(Int)
   Texts(Array[String])
   AllowedReads(String)
+  AllowedReadResource(String)
 }
 
 pub(all) enum ClientLocalReadPreimageIssue {
@@ -5636,6 +5649,7 @@ type ClientStaticEffectExplanationOriginal
 
 pub(all) enum ClientStaticExplanationSourceIssue {
   Plan(ClientEffectfulStaticPlanIssue)
+  ComputationPlan(ClientInteractivePlanIssue)
   ForeignOriginal
   WorkLimit
   Encoding(@encode_core.EncodeFailure)
@@ -5662,6 +5676,8 @@ pub(all) struct ClientStaticPlanViewConstruction {
   map_sealed : (Int, Int, Int)
   view : (Int, Int, Int)
 } derive(Eq, @debug.Debug)
+
+type ClientStaticPureExplanationOriginal
 
 pub struct ClientStructuralExplanationOriginal {
   compiled : ClientCompiledRun

@@ -11,6 +11,7 @@ const catalog = readCatalog();
 const runtime = {profile: 'controlled-test-runtime', components: {node: '1'.repeat(64)}, unresolved: []};
 const base = new Map([
   ...sharedFiles.map(path => [path, path]),
+  ['scripts/ci-core-partitions.mjs', 'legacy CI partitions'],
   ...[pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]
     .map(({path}) => [path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')]),
   ['proofs/ci-evidence/actions.mjs', 'actions'], ['proofs/ci-evidence/inputs.mjs', 'inputs'],
@@ -34,6 +35,37 @@ test('unrelated source and provenance changes preserve a closed Session input id
   const old = inventory(), candidate = inventory(files, 'b'.repeat(40));
   assert.equal(compareInputs(old, candidate).eligible, true);
   assert.equal(old.key, candidate.key);
+});
+
+test('migrated tooling binds Git-authored TypeScript, its compiler inputs and no emitted aliases', () => {
+  const files = new Map(base);
+  const moved = ['scripts/test-execution', 'scripts/packed-query-evidence', 'scripts/ci-artifact-reader', 'scripts/ci-main-base'];
+  const extra = ['scripts/test-execution-reporter.mts', 'scripts/ci-core-partitions.mts',
+    'tsconfig.base.json', 'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts'];
+  for (const stem of moved) {
+    files.delete(stem + '.mjs');
+    files.set(stem + '.mts', stem + ' original typed source');
+  }
+  for (const path of extra) files.set(path, path + ' original');
+  files.delete('scripts/ci-core-partitions.mjs');
+  const typed = inventory(files);
+  const paths = new Set(typed.inputs.files.map(member => member.path));
+  assert.deepEqual(typed.unresolved, []);
+  assert(moved.every(stem => paths.has(stem + '.mts') && !paths.has(stem + '.mjs')));
+  assert(extra.every(path => paths.has(path)));
+  assert(!inventory().inputs.files.some(member => member.path === 'scripts/ci-core-partitions.mjs'));
+  assert.equal(compareInputs(inventory(), typed).eligible, false, 'A legacy key is unchanged, never equivalent to the migration');
+  for (const path of [...moved.map(stem => stem + '.mts'), ...extra, 'package-lock.json']) {
+    const changed = new Map(files); changed.set(path, 'independent mutation');
+    assert.equal(compareInputs(typed, inventory(changed)).eligible, false, path);
+  }
+  for (const path of ['tsconfig.tooling.json', 'scripts/test-execution-reporter.mts', 'scripts/ci-core-partitions.mts']) {
+    const missing = new Map(files); missing.delete(path);
+    assert(inventory(missing).unresolved.includes(`missing source input: ${path}`));
+  }
+  const ambiguous = new Map(files); ambiguous.set('scripts/ci-artifact-reader.mjs', 'tracked duplicate');
+  assert(inventory(ambiguous).unresolved.includes('ambiguous authored tooling input: scripts/ci-artifact-reader.mjs'));
+  assert.equal(compareInputs(typed, inventory(ambiguous)).eligible, false);
 });
 
 test('separate pipeline consumers and membership do not invalidate Session inputs', () => {
@@ -245,7 +277,7 @@ test('mutation input identity follows the physically staged package cohort and r
   }
 });
 
-test('the ordinary mutation CJS dependency is keyed by exact bytes, presence and mode', () => {
+test('the ordinary mutation Resource bridge keys the selected original and compiler inputs', () => {
   const selected = catalog.actions.find(value => value.id === 'mutations-js');
   const files = new Map(base);
   for (const path of mutationSnapshotExtras) if (!files.has(path)) files.set(path,'independent input');
@@ -261,6 +293,24 @@ test('the ordinary mutation CJS dependency is keyed by exact bytes, presence and
     assert.equal(compareInputs(original,inventory(changed,'b'.repeat(40),selected)).eligible,false);
   }
   assert.equal(compareInputs(original,inventory(files,'b'.repeat(40),selected,{[path]:'100755'})).eligible,false);
+
+  const authored = path.replace(/\.cjs$/u, '.cts');
+  const compiler = ['tsconfig.base.json', 'tsconfig.tooling.json', 'package-lock.json'];
+  const typed = new Map(files);
+  typed.delete(path);
+  for (const member of [authored, ...compiler]) typed.set(member, `original ${member}`);
+  const migrated = inventory(typed,'b'.repeat(40),selected);
+  assert.deepEqual(migrated.unresolved, []);
+  assert(!migrated.inputs.files.some(entry => entry.path === path));
+  for (const member of [authored, ...compiler])
+    assert(migrated.inputs.files.some(entry => entry.path === member && entry.digest === hash(typed.get(member))));
+  assert.equal(compareInputs(original, migrated).eligible, false);
+  for (const member of compiler) {
+    const missing = new Map(typed); missing.delete(member);
+    assert.equal(compareInputs(migrated, inventory(missing,'c'.repeat(40),selected)).eligible, false);
+  }
+  typed.set(path, 'ambiguous tracked runtime');
+  assert(inventory(typed,'c'.repeat(40),selected).unresolved.includes('ambiguous authored Node Resource bridge'));
 });
 
 test('mutation roots match the actual thirteen registered test suites', () => {

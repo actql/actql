@@ -352,9 +352,10 @@ fn native_mock_readme_static_explain(
   let occurrences = @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap()
   assert_eq(occurrences.length(), 1)
   let models = original
-    .prepare_effect_models(
+    .prepare_request_models(
       facility.parent,
       facility.input,
+      kind=@local_values.Effect,
       occurrences,
       environment,
       contracts,
@@ -527,9 +528,10 @@ fn native_mock_readme_request_payload(
             ).unwrap()
             try {
               let models = match
-                original.prepare_effect_models(
+                original.prepare_request_models(
                   facility.parent,
                   facility.input,
+                  kind=@local_values.Effect,
                   @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap(),
                   environment,
                   contracts,

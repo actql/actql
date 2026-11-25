@@ -2790,19 +2790,31 @@ compiler and scalar physical-port checks.
 ### Explicit SDK first-install selection
 
 Private ABI55 adds `actql_bootstrap_produce_sdk`. Its explicitly selected factory
-retains the seven original bootstrap bodies and adds `run_policy_profile` and
-`sdk_read`. The original producer's seven-field output is unchanged. A loan
+retains the seven bootstrap positions and adds `run_policy_profile` and
+`sdk_read`. The SDK factory issues the fresh Account with the exact Local
+Result-read role. The original producer's seven-field output is unchanged. A loan
 cannot switch producers after invocation; SDK and original transports have
 distinct nominal Python families. Installed component admission requires the
 matching ABI rather than falling back to an older module.
 
 The Common delivery metadata Owner issues the closed
 `actql-local-sdk-result-read-selection/0.1` body and its exact-byte SHA256 CID.
-It selects principal `local-cli`, connection `local`, Result `answer`, purpose
+It selects principal `local-cli`, connection `local`, purpose
 `python-local-read`, sink `sdk-rows`, existing `jsonl` serialization,
 `max_bytes=65536` and `max_uses=1`. It binds the original finite profile and data
 Policy CIDs. Sink selection introduces no new Result format. Metadata admission
 is not Account authorization, a grant, a delivery attempt or durable acceptance.
+
+A fresh SDK selection uses the closed `requested_original_result` mode with
+`authority: "original_result_read"`. The current Account must admit the Run
+read and the installer's exact `result` read tuple. The checked live inventory
+or original Saved commit must contain the requested name. An explicit denial
+or delegation for that name still refuses. Authorization evidence records
+the actual resource and binds the selected name separately. Current Worker
+provisioning issues the same schema with a marked finite selection for
+`answer` and independently requires the exact `result/answer` Account
+tuple. The retired top-level `result_names` body is refused without
+rewriting installed originals.
 
 The SDK factory persists nine source originals, with exactly eight selected
 files excluding Account. Each of the two extra originals is limited to 8192
@@ -3705,6 +3717,13 @@ same reader still supports reusing that census. An unsupported supplier or an
 effect requires a fresh census; original current, row and binding checks still
 run. Saved routing uses this only for the paired selector.
 
+Saved payload input preparation first validates the retained publication fence
+rows by exact key, revision and body. A later current check within that same
+export can reuse those observations with a positive proof from the original
+unchanged Store reader. Each check still observes the selected Submission and
+Run and checks current authority. An effect or an unavailable proof requires
+fresh fence reads, and a failed proof propagates its physical refusal.
+
 The evidence, first-delivery and terminal Saved proposals can reuse their
 initial census inside the original write-free inspection. The insert-only
 evidence producer can also reuse it while constructing the first projected
@@ -4027,12 +4046,12 @@ its original child-first acknowledgment path. A live or reentrant invocation
 cannot enter this cleanup path, and normal work never resumes from it.
 
 The sealed Reader-facts path runs the original payload binding first, then the
-physical snapshot validator. The original ABI signatures and standalone
-validations are unchanged. A closed standard Wasmtime reader can select a
-compatible private mode of `validate_payload_binding`. It first uses the exact
-zero-handle query with Result set to the minimum signed 32-bit value. The guest
-answers 1 for support. The original validation returns -2 for this query before
-reading any Store row. Only that query can select the standalone fallback.
+physical snapshot validator. An eligible closed standard Wasmtime reader uses
+the private paired mode of `validate_payload_binding` in the matching installed
+guest. It first uses the exact zero-handle query with Result set to the minimum
+signed 32-bit value. The guest must return 1. A refusal or unrecognized response
+stops the operation with the original capability code. Readers ineligible for
+the paired mode still use the standalone binding and snapshot validators.
 
 In this mode Result selects the two original 0–7 coordinates as
 `-1073741824 - (8 * result + binding)`. The last argument is the same sealed

@@ -1,3 +1,4 @@
+import {constructRequestDomain, createOrdinarySourceModelMaterials} from './ordinary-source-model-materials.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
@@ -8,7 +9,7 @@ import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs
 // Execute the existing manager method with explicit Core original/phase ports.
 // These cases do not supply physical Model/Content construction backing.
 const source = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
-const managerHelpers = source.slice(source.indexOf('  function constructRequestDomain('), source.indexOf('  const view = Object.freeze({'));
+const managerHelpers = source.slice(source.indexOf('  function constructEffectMaterials('), source.indexOf('  const view = Object.freeze({'));
 const start = source.indexOf('    async fundedPreparation(');
 const end = source.indexOf('    publicationPreparation(prepared) {', start);
 assert(start >= 0 && end > start);
@@ -57,11 +58,18 @@ function fixture({infers = [], serializations = [], acquisitions = 0, refusal,
   const state = {parent, snapshot, context: {runtime: moon}};
   const producer = {receipt: input, request, kind: 'program', body: snapshot, preparation: state};
   const originals = {installation: {sequenceContractOriginal: {moon, admission: {}}}};
+  const current = () => {};
+  const producerForRequest = actual => {assert.equal(actual, request); return producer;};
+  const checked = value => value;
+  const checkedRequest = (_moon, value) => value;
+  const {modelMaterials} = createOrdinarySourceModelMaterials({
+    current, producerForRequest, fail, checked, checkedRequestProgramPreparation: checkedRequest,
+    runtimeCore() {assert.fail('A newly funded Request cannot use the recovery runtime');},
+  });
   const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
-    'checkedRequestProgramPreparation', 'requestPreparationAvailable', 'reportCapacityRefusal', 'types',
-    `const closing=false,closed=false;const pendingRunRegistrations=new Set();${managerHelpers}return ({${method}});`)(() => {},
-    actual => {assert.equal(actual, request); return producer;}, fail, originals, value => value,
-    (_moon, value) => value, () => true, () => {}, types);
+    'checkedRequestProgramPreparation', 'requestPreparationAvailable', 'reportCapacityRefusal', 'types', 'constructRequestDomain', 'modelMaterials',
+    `const closing=false,closed=false;const pendingRunRegistrations=new Set();${managerHelpers}return ({${method}});`)(
+    current, producerForRequest, fail, originals, checked, checkedRequest, () => true, () => {}, types, constructRequestDomain, modelMaterials);
   return {state, calls, inventory, selected, prepared, moon, parent, input, request,
     read: () => read.fundedPreparation(request),
     compile: graph => read.prepareModelCompilation(prepared, request, graph),
@@ -232,14 +240,14 @@ function adoptionFixture(family, failure, {multiple = false} = {}) {
   const name = family === 'model' ? 'adoptModelPreparation' : 'adoptContentPreparation';
   const a = source.indexOf('    '+name+'('), b = source.indexOf('    adopt'+(family === 'model' ? 'Content' : 'Effect')+'Preparation(', a);
   assert(a >= 0 && b > a);
-  const object = Function('current', 'callbacks', 'originals', 'producerForRequest', 'runs', 'liveRuns', 'fail', 'types', 'checked',
+  const object = Function('current', 'callbacks', 'originals', 'producerForRequest', 'runs', 'liveRuns', 'fail', 'types', 'checked', 'constructRequestDomain',
     `const pendingRunRegistrations=new Set();${managerHelpers}return ({${source.slice(a,b).trim().replace(/,$/u,'')}});`)(() => {},
     {request(actualOriginals, actual) {assert.equal(actualOriginals, originals); assert.equal(actual, prepared); return request;},
       contentRequirements(actualOriginals, actual, selected) {
         assert.equal(actualOriginals, originals); assert.equal(actual, prepared); assert.equal(selected, plan);
         calls.push('requirements'); return requirements;
       }}, originals,
-    actual => {assert.equal(actual, request); return producer;}, runs, liveRuns, fail, types, result => result);
+    actual => {assert.equal(actual, request); return producer;}, runs, liveRuns, fail, types, result => result, constructRequestDomain);
   return {state, model, plan, scope, scopes, value, calls, original, requirements, producer, runs, liveRuns, prepared,
     adoptModel: actual => object[name](prepared, identity, plan, actual),
     adopt: () => family === 'model' ? object[name](prepared, identity, plan, model) : object[name](prepared, identity, plan)};
@@ -289,7 +297,7 @@ function requestManagerMethods(names, ports) {
   const visit = node => {
     if (!node || typeof node !== 'object') return;
     if (node.type === 'Property' && node.method && names.includes(node.key?.name)) selected.push(source.slice(node.start, node.end));
-    if (node.type === 'FunctionDeclaration' && ['constructRequestDomain', 'registerRequestRun'].includes(node.id?.name)) {
+    if (node.type === 'FunctionDeclaration' && node.id?.name === 'registerRequestRun') {
       helpers.push(source.slice(node.start, node.end));
     }
     for (const value of Object.values(node)) {
@@ -299,8 +307,8 @@ function requestManagerMethods(names, ports) {
   };
   visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
   assert.equal(selected.length, names.length);
-  return Function(...Object.keys(ports), `const pendingRunRegistrations = new Set();
-    ${helpers.join('\n')} return ({${selected.join(',\n')}});`)(...Object.values(ports));
+  return Function(...Object.keys(ports), 'constructRequestDomain', `const pendingRunRegistrations = new Set();
+    ${helpers.join('\n')} return ({${selected.join(',\n')}});`)(...Object.values(ports), constructRequestDomain);
 }
 
 function registrationFixture(family, {full = false} = {}) {

@@ -1,4 +1,20 @@
 ///|
+fn native_static_explanation_value(
+  report : Result[String, @local_values.ClientRequestStaticContextIssue],
+) -> String raise ClientStop {
+  match report {
+    Err(@local_values.Preparation(issue)) =>
+      local_stop_submitted_preparation(@local_host.RequestPreparation(issue))
+    Err(
+      @local_values.Encoding(_)
+      | @local_values.Presentation(ExplanationPresentationLimit)
+    ) => stop("LocalStaticExplanationLimit")
+    Err(_) => stop("LocalStaticExplanationUnavailable")
+    Ok(value) => value
+  }
+}
+
+///|
 // A static command uses the SAME existing Request facility as its compiler,
 // without admitting an intent/Run or constructing a module/provider/Engine.
 fn LocalCommandPreparationOriginal::prepare_static_request(
@@ -140,9 +156,6 @@ fn LocalCheckContext::project_request(
           local_stop_submitted_preparation(@local_host.Request(issue))
         Ok(value) => value
       }
-      if explanation_current is Some(_) && kind != @local_values.Effect {
-        stop("LocalStaticExplanationNotProjected")
-      }
       let view = if kind == @local_values.Effect {
         guard business.request_body is None else {
           stop("LocalBusinessOriginalUnavailable")
@@ -172,9 +185,10 @@ fn LocalCheckContext::project_request(
             stop("LocalOriginalModelUnavailable")
           }
           match
-            mock.prepare_effect_models(
+            mock.prepare_request_models(
               parent,
               producer,
+              kind~,
               occurrences,
               self.environment,
               contracts,
@@ -219,18 +233,7 @@ fn LocalCheckContext::project_request(
                 infers~,
               )
           }
-          match report {
-            Err(@local_values.Preparation(issue)) =>
-              local_stop_submitted_preparation(
-                @local_host.RequestPreparation(issue),
-              )
-            Err(
-              @local_values.Encoding(_)
-              | @local_values.Presentation(ExplanationPresentationLimit)
-            ) => stop("LocalStaticExplanationLimit")
-            Err(_) => stop("LocalStaticExplanationUnavailable")
-            Ok(value) => value
-          }
+          native_static_explanation_value(report)
         } else {
           match
             @local_values.request_prepared_static_plan_view(
@@ -254,6 +257,97 @@ fn LocalCheckContext::project_request(
         |> ignore
         business.request_body = None
         view
+      } else if explanation_current is Some(_) {
+        guard business.request_body is None else {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+        let body = match
+          @local_host.borrow_native_client_request_plan_input(parent, producer) {
+          Err(issue) => local_stop_submitted_preparation(issue)
+          Ok(value) => value
+        }
+        business.request_body = Some(body)
+        guard body is @local_host.Program(borrow) &&
+          @initial_resources.preparation_body_borrow_value(borrow)
+          is Some(prepared) else {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+        let occurrences = @run_host.prepared_client_composed_infer_occurrences(
+          prepared,
+        ).unwrap_or_else(() => stop("LocalOriginalModelUnavailable"))
+        let infers = if occurrences.is_empty() {
+          []
+        } else {
+          guard original.project is Some(project) &&
+            project.mock_declarations is Some(mock) &&
+            installed_contracts is Some(contracts) else {
+            stop("LocalOriginalModelUnavailable")
+          }
+          // Switch the inventory loan to the existing Model Plan loan on
+          // this same Request before graph construction.
+          @local_host.return_native_client_submitted_request_body(body).unwrap_or_else(() => {
+              stop("LocalRequestBodyReturnPending")
+            },
+          )
+          |> ignore
+          business.request_body = None
+          let selected_body = match
+            @local_host.borrow_native_client_model_plan_input(parent, producer) {
+            Err(issue) =>
+              local_stop_submitted_preparation(
+                @local_host.RequestPreparation(issue),
+              )
+            Ok(value) => value
+          }
+          business.request_body = Some(selected_body)
+          guard selected_body is @local_host.Program(model) &&
+            @initial_resources.preparation_body_borrow_value(model)
+            is Some(selected) &&
+            physical_equal(prepared, selected) else {
+            stop("LocalBusinessOriginalUnavailable")
+          }
+          match
+            mock.prepare_request_models(
+              parent,
+              producer,
+              kind~,
+              occurrences,
+              self.environment,
+              contracts,
+            ) {
+            Ok(value) => value.map(original => original.graph)
+            Err(issue) => {
+              original.retain_primary(CommandBusinessModelGraph(issue))
+              stop("LocalOriginalModelGraphUnavailable")
+            }
+          }
+        }
+        let policy = @local_values.client_local_preparation_initial_limits(
+          @local_values.client_local_resource_policy(),
+        ).unwrap_or_else(() => stop("LocalStaticExplanationUnavailable"))
+        let reply = native_static_explanation_value(
+          @local_values.request_prepared_static_pure_explanation_output(
+            parent,
+            producer,
+            native_request_manifests,
+            65536,
+            8192,
+            64,
+            policy.planning_work,
+            native_static_explanation_language(producer.arguments),
+            infers~,
+          ),
+        )
+        let retained = business.request_body.unwrap_or_else(() => {
+          stop("LocalBusinessOriginalUnavailable")
+        })
+        @local_host.return_native_client_submitted_request_body(retained).unwrap_or_else(() => {
+            stop("LocalRequestBodyReturnPending")
+          },
+        )
+        |> ignore
+        business.request_body = None
+        reply
       } else {
         match
           @local_values.request_prepared_static_plan_view(

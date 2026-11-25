@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
-      "sha256": "f3cd2b2cca9a68948158173424b751ab45d74a4c99b171564f6bafcd2208b0d4",
+      "sha256": "822db22c6c55403a379a7e20e56b258c0a90e6f1204eccc1ebffef9af031c718",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing HubSpot Source/Decode projection and Credential/Account/RowRun owners",
@@ -89,7 +89,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mts",
                 "anchor": "export async function observeHubSpotAccount"
               }
             ],
@@ -105,53 +105,53 @@
                 "anchor": "pub fn recheck_account_identity("
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "function acquireBinding("
               }
             ],
             "ownership": [
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "export function closeHttpsCredentialBinding("
               },
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mts",
                 "anchor": "Object.defineProperty(this, 'observation'"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "journal.authorize("
               },
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mts",
                 "anchor": "await context.callbacks.current();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mts",
                 "anchor": "export class HubSpotAccountObservationFailure"
               },
               {
-                "path": "adapters/site-node/sqlite-credential-journal.mjs",
-                "anchor": "finish(useCid, outcome)"
+                "path": "adapters/site-node/sqlite-credential-journal.mts",
+                "anchor": "finish(useCid: string, outcome: Outcome)"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "export function closeHttpsCredentialBinding("
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-account-read.mts",
                 "anchor": "const charge = await context.callbacks.chargeResponse(response.body);"
               },
               {
@@ -261,7 +261,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
-      "sha256": "414104e1e3faa75a73e94357f7d0d516df5fbf58b87e5b0cda135a6a042eaf38",
+      "sha256": "134dd567ae8b940a1fd807839f7657477cd2e60707ec524dff034fd0152a76df",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing HubSpot Source/Decode, Host current, Credential nominal use and original accounted RowRun owners",
@@ -403,7 +403,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mts",
                 "anchor": "export async function readHubSpotObjects"
               }
             ],
@@ -419,7 +419,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mts",
                 "anchor": "invocationBindingsMatch(next.scope, context.scope)"
               },
               {
@@ -427,53 +427,53 @@
                 "anchor": "pub fn recheck_property_catalog("
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "function acquireBinding("
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mts",
                 "anchor": "Object.defineProperty(this, 'observations'"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "export function closeHttpsCredentialBinding("
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mts",
                 "anchor": "currentBeforeSend: () => verify(operation)"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "journal.authorize("
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mts",
                 "anchor": "export class HubSpotObjectReadFailure"
               },
               {
-                "path": "adapters/site-node/sqlite-credential-journal.mjs",
-                "anchor": "finish(useCid, outcome)"
+                "path": "adapters/site-node/sqlite-credential-journal.mts",
+                "anchor": "finish(useCid: string, outcome: Outcome)"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "export function closeHttpsCredentialBinding("
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
+                "path": "adapters/connectors/hubspot/site/hubspot-object-read.mts",
                 "anchor": "const charge = await context.callbacks.chargeResponse(response.body);"
               },
               {
@@ -523,7 +523,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "e55e6fce66c589bedd8dcf4aa7df06f8ee74da66e33f9ae7295ec5a7790e0235",
+      "sha256": "494d3977b498250088e1298a5f9cc7218eff08c7d78e128fda4d6d8cac338dc3",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -1028,7 +1028,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/site/hubspot-target-read.mjs",
-      "sha256": "5d0cabaf9c41e875d7b7ad6dffd8e5f4789f65313045667976e1f023c7b55fb2",
+      "sha256": "4049d2f4a54c85bdc64ba892adcf5748b1bc5cee6ed3fd592f04f929a2cf1631",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing HubSpot Catalog/Decode, Host current, Credential nominal use and original accounted RowRun owners",
@@ -1205,7 +1205,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/site/hubspot-record-write.mjs",
-      "sha256": "5690ec42c8afd973d3344e21feb7b3e9092834d9b26ad3bbe7120a073cca235c",
+      "sha256": "cbee01a0a35bc9679114ad8c914325d193eff0c567f1e8be0f67d97d88823e51",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing HubSpot Catalog and Host Row Effect/Credential/Account owners",
@@ -1403,7 +1403,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-mappings.mjs",
-      "sha256": "9f90e8c6ab24bda39678f40e85a2bbd9723be9b5253e4f5b15e011db0f770dc1",
+      "sha256": "b6c4301101830416fb3ab46864803c70d773980c781239b029546b2ae24282d8",
       "exports": [
         "prepareInstalledHubSpotUpdateMappings"
       ],
@@ -1530,7 +1530,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-request.mjs",
-      "sha256": "4007e1c527b290bce0dd55bbefad9d69406cb51828f7c90dbdeefddc66003bef",
+      "sha256": "9467f758779225a5a46354140400517d79bb2c17cf3b0dae1337f1038aedaacd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
@@ -1803,7 +1803,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-observations.mjs",
-      "sha256": "77c9c68d4efc4d5a8c0c9f57b5bbe4f2c7fd1fd15d67717432acd1d38fe84d91",
+      "sha256": "e3b18d25112a9422d8ac83b487c4ad88bd247437c09eb8f46fcaad3b02011caf",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
@@ -2114,7 +2114,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "a170430d497dd64f968e5a8ea50c49002c7a901d6b69c718e289148d53f58675",
+      "sha256": "9fce21607a1e50351725ec066380e18297a9fcfdaea83c824f4e45b80b980816",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
@@ -2439,7 +2439,7 @@
                 "anchor": "test('HubSpot installed one-response decoder preserves two serial targets"
               },
               {
-                "path": "adapters/host-node/effect-control-native.test.mjs",
+                "path": "adapters/host-node/effect-control-native.test.mts",
                 "anchor": "test('same control forwards opaque native quote before Reflect and preserves the legacy no-quote call'"
               }
             ]
@@ -2449,7 +2449,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs",
-      "sha256": "ec60f1d7e4b426eb856658c6b511f17166eeb798e15e83c3abb1c161e16f1380",
+      "sha256": "2714b8f4f357f80da2053f0be7be9e63eeee0831a0bfb86c25bdfe2645eac736",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common managed Effect Plan and same-issuer HubSpot constructor quantities",
@@ -2735,7 +2735,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs",
-      "sha256": "8a97f6ab5f892060322f898330efb26c2a3718ff47cb8dfa8abd2f51f06dd1ee",
+      "sha256": "c96779cc5240ade8fbfb80bfab4690013f397e21c41003e73fe19d34080fe6a5",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Effect, Common initialization/Mapping/Checkpoint/current/dispatch and original Row Site owners",
@@ -3161,7 +3161,7 @@
                 "anchor": "test('wide HubSpot Effect keeps the admitted Source Catalog limit"
               },
               {
-                "path": "adapters/host-node/effect-control-native.test.mjs",
+                "path": "adapters/host-node/effect-control-native.test.mts",
                 "anchor": "test('same control forwards opaque native quote before Reflect and preserves the legacy no-quote call'"
               }
             ]
@@ -3195,7 +3195,7 @@
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing HubSpot typed protocol under the same generic Reader/RowRun and original Account/Credential owners",
-      "sha256": "999c7afe22ed43fb2396959e1844615c698e771945c324a589a8992ddfc40822",
+      "sha256": "7cf8c65d21b2c056d84c2c3511a48e04bc4a73324e3dd0089bd89473a652aecc",
       "exports": [
         "prepareHubSpotManagedSequence"
       ],

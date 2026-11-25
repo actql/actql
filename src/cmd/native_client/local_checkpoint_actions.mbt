@@ -87,6 +87,51 @@ fn local_checkpoint_answer_by_id(
 }
 
 ///|
+// The existing public ref commits only matched already-held publication
+// evidence. A ref supplies identity and never approves or dispatches a row.
+fn LocalCommandPreparationOriginal::reconcile_saved_file_by_ref(
+  self : Self,
+  capture : @local_host.NativeLocalJournalCapture,
+  configuration : LocalCommandConfiguration,
+  input_root : String,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  let reference = json_file(input_root, required(child, "ref-file"), 4096L)
+  guard wire_run_ref_shape(reference) &&
+    reference is Object(fields) &&
+    json_text(fields, "namespaceId") is Some(namespace_id) &&
+    json_text(fields, "authorityScopeCid") is Some(scope) &&
+    json_text(fields, "runDefinitionCid") is Some(definition) &&
+    configuration.settings.run_file is Some(run_file) else {
+    stop("LocalOriginalRunReferenceMismatch")
+  }
+  let run = configuration.run_installation(
+    run_file,
+    local_host_result(capture.selected_configuration_in_original_read(run_file)),
+  )
+  if run.namespace_id != namespace_id {
+    stop("LocalOriginalRunReferenceMismatch")
+  }
+  let settings = configuration.settings
+  let selected = local_host_result(
+    capture.lookup_effect_checkpoint_for_run_in_original_read(
+      settings.principal,
+      settings.connection,
+      scope,
+      definition,
+      @env.now().to_double(),
+    ),
+  )
+  self.restore_checkpoint_review(
+    capture,
+    configuration,
+    selected,
+    bind_project_writes=false,
+  )
+  self.resolve_checkpoint_review(capture, configuration, "reconcile")
+}
+
+///|
 // The actual cold command retains its original reader BEFORE restoration. It
 // opens only the already existing bound Store, never Program/Model inputs or
 // a replacement Run. Signing/admission remain separate from this read step.
@@ -287,7 +332,7 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
           })
         None => None
       },
-      publication_required=operation == "approve",
+      publication_required=operation == "approve" || operation == "reconcile",
     )
     if review.restored_material_issue() is Some(issue) {
       self.retain_primary(CommandBusinessEffectAcceptance(issue))
@@ -312,34 +357,45 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
         stop("LocalCheckpointOriginalUnavailable")
       }
     }
-    let record = if operation == "approve" {
-      match review.resolve_initial_resume_in_original_read("host.json") {
-        Ok((record, continuation)) => {
-          // This is the SAME acknowledged Resolution and retained Saved
-          // original. Keep the continuation on the existing command before
-          // any fallible subsequent claim, request projection or physical IO.
-          observation.effect_resume = Some(continuation)
-          record
-        }
+    if operation == "reconcile" {
+      match review.restore_effect_settlement_in_original_read("host.json") {
+        Ok(continuation) => observation.effect_resume = Some(continuation)
         Err(issue) => {
           self.retain_primary(CommandSavedResolution(issue))
-          stop("LocalCheckpointResolutionUnavailable")
+          stop("LocalPublicationNeedsReconciliation")
         }
       }
+      Ok(None)
     } else {
-      match review.resolve_initial_in_original_read(operation, "host.json") {
-        Ok(value) => value
-        Err(issue) => {
-          self.retain_primary(CommandSavedResolution(issue))
-          stop("LocalCheckpointResolutionUnavailable")
+      let record = if operation == "approve" {
+        match review.resolve_initial_resume_in_original_read("host.json") {
+          Ok((record, continuation)) => {
+            // This is the SAME acknowledged Resolution and retained Saved
+            // original. Keep the continuation on the existing command before
+            // any fallible subsequent claim, request projection or physical IO.
+            observation.effect_resume = Some(continuation)
+            record
+          }
+          Err(issue) => {
+            self.retain_primary(CommandSavedResolution(issue))
+            stop("LocalCheckpointResolutionUnavailable")
+          }
+        }
+      } else {
+        match review.resolve_initial_in_original_read(operation, "host.json") {
+          Ok(value) => value
+          Err(issue) => {
+            self.retain_primary(CommandSavedResolution(issue))
+            stop("LocalCheckpointResolutionUnavailable")
+          }
         }
       }
+      let state = @local_host.native_client_run_checkpoint_state(record).unwrap_or_else(() => {
+          stop("LocalCheckpointStateUnavailable")
+        },
+      )
+      Ok(Some(state.wire))
     }
-    let state = @local_host.native_client_run_checkpoint_state(record).unwrap_or_else(() => {
-        stop("LocalCheckpointStateUnavailable")
-      },
-    )
-    Ok(state.wire)
   } catch {
     ClientStop(message) => Err(message)
   }
@@ -350,7 +406,54 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
     self.retain_primary(CommandStoreOperation(issue))
   }
   match (answer, returned) {
-    (Ok(wire), Ok(_)) => {
+    (Ok(None), Ok(_)) => {
+      guard observation.effect_resume is Some(continuation) &&
+        observation.store is Some(store) &&
+        observation.selected_namespace == Some(installation.namespace_id) &&
+        observation.root_bridge is Some(bridge) &&
+        store.matches_original_operation(bridge) &&
+        capture.original_host() is Some(host) &&
+        self.business is Some(business) else {
+        stop("LocalPublicationNeedsReconciliation")
+      }
+      let materials = continuation
+        .application_original_in_original_read()
+        .unwrap_or_else(() => stop("LocalPublicationNeedsReconciliation"))
+        .run_materials()
+      let identity = materials.request.unwrap_or_else(() => {
+        stop("LocalPublicationNeedsReconciliation")
+      })
+      let publisher = match
+        host.bind_original_run_publisher(
+          observation.operation,
+          settings.principal,
+          settings.connection,
+          identity,
+          materials.run_definition,
+          run_file,
+          store,
+          journal_operation=observation.journal_operation,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          self.retain_primary(CommandSavedEffectPublication(Publisher(issue)))
+          stop("LocalPublicationNeedsReconciliation")
+        }
+      }
+      business.publication_publisher = Some(publisher)
+      match
+        continuation.settle_recovered_file_effect_in_original_read(
+          publisher,
+          local_utc_now(),
+        ) {
+        Ok(value) => value.wire()
+        Err(issue) => {
+          self.retain_primary(CommandSavedEffectPublication(issue))
+          stop("LocalPublicationNeedsReconciliation")
+        }
+      }
+    }
+    (Ok(Some(wire)), Ok(_)) => {
       if operation == "approve" &&
         self.business is Some(business) &&
         business.profile.kind == SavedEffectApply {

@@ -135,7 +135,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "shared cancellation panel keeps original references separate"
               }
             ]
@@ -278,7 +278,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "shared cancellation panel keeps original references separate"
               }
             ]
@@ -425,7 +425,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "Owner accepted and history found do not claim physical stop"
               }
             ]
@@ -497,7 +497,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               },
               {
@@ -507,7 +507,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -517,7 +517,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -527,7 +527,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -537,7 +537,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -547,7 +547,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -557,7 +557,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -567,7 +567,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
@@ -577,13 +577,13 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/cancellation.mjs",
+                "path": "packages/explorer-ui/cancellation.mts",
                 "anchor": "import {validCancellationRef, validOperationAttemptRef, validCancellationAttempt} from '@actql/client-wire';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "Owner accepted and history found do not claim physical stop"
               }
             ]
@@ -727,7 +727,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/checkpoint-panel.test.mjs",
+                "path": "packages/explorer-ui/checkpoint-panel.test.mts",
                 "anchor": "shared review shows original subject"
               }
             ]
@@ -1020,7 +1020,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               },
               {
@@ -1030,7 +1030,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1040,7 +1040,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1050,7 +1050,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1060,7 +1060,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1070,7 +1070,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1080,7 +1080,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1090,7 +1090,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1100,7 +1100,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/checkpoint-review.mjs",
+                "path": "packages/explorer-ui/checkpoint-review.mts",
                 "anchor": "import {ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1292,7 +1292,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               },
               {
@@ -1302,7 +1302,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1312,7 +1312,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1322,7 +1322,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1332,7 +1332,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1342,7 +1342,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1352,7 +1352,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1362,7 +1362,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1372,7 +1372,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1409,7 +1409,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               },
               {
@@ -1419,7 +1419,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1429,7 +1429,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1439,7 +1439,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1449,7 +1449,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1459,7 +1459,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1469,7 +1469,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1479,7 +1479,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1489,7 +1489,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1606,7 +1606,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               },
               {
@@ -1616,7 +1616,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1626,7 +1626,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1636,7 +1636,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1646,7 +1646,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1656,7 +1656,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1666,7 +1666,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1676,7 +1676,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1686,7 +1686,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1761,7 +1761,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               },
               {
@@ -1771,7 +1771,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1781,7 +1781,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1791,7 +1791,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1801,7 +1801,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1811,7 +1811,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1821,7 +1821,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1831,7 +1831,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1841,7 +1841,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -2561,7 +2561,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               },
               {
@@ -2571,7 +2571,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2581,7 +2581,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2591,7 +2591,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2601,7 +2601,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2611,7 +2611,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2621,7 +2621,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2631,7 +2631,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -2641,7 +2641,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/presentation-limits.mjs",
+                "path": "packages/explorer-ui/presentation-limits.mts",
                 "anchor": "export class ExplorerReadError extends Error {"
               }
             ],
@@ -3157,37 +3157,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "return freeze({plan, story, context:"
               }
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -3199,13 +3199,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const narrative = render(view, locale);"
               }
             ],
@@ -3680,7 +3680,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               },
               {
@@ -3690,7 +3690,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3700,7 +3700,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3710,7 +3710,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3720,7 +3720,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3730,7 +3730,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3740,7 +3740,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3750,7 +3750,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3760,7 +3760,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3978,37 +3978,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "return freeze({plan, story, context:"
               }
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -4020,13 +4020,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const narrative = render(view, locale);"
               }
             ],
@@ -4501,7 +4501,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               },
               {
@@ -4511,7 +4511,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4521,7 +4521,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4531,7 +4531,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4541,7 +4541,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4551,7 +4551,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4561,7 +4561,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4571,7 +4571,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -4581,7 +4581,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/run-observation.mjs",
+                "path": "packages/explorer-ui/run-observation.mts",
                 "anchor": "import {validRunRef, validWireRunViewShape, validOwnerObservations,"
               }
             ],
@@ -5675,31 +5675,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "return freeze({plan, story, context:"
               }
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -5711,13 +5711,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const narrative = render(view, locale);"
               }
             ],
@@ -5776,7 +5776,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               },
               {
@@ -5786,7 +5786,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -5796,7 +5796,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -5806,7 +5806,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -5816,7 +5816,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -5826,7 +5826,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -5836,7 +5836,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -5846,7 +5846,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -5856,7 +5856,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -6128,7 +6128,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/cancellation.test.mjs",
+                "path": "packages/explorer/cancellation.test.mts",
                 "anchor": "lost or malformed cancellation replies"
               }
             ]
@@ -6291,37 +6291,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "return freeze({plan, story, context:"
               }
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -6333,13 +6333,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const narrative = render(view, locale);"
               }
             ],
@@ -6535,7 +6535,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               },
               {
@@ -6545,7 +6545,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -6555,7 +6555,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -6565,7 +6565,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -6575,7 +6575,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -6585,7 +6585,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -6595,7 +6595,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -6605,7 +6605,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -6615,13 +6615,13 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/cancellation.test.mjs",
+                "path": "packages/explorer/cancellation.test.mts",
                 "anchor": "lost or malformed cancellation replies"
               }
             ]
@@ -6785,37 +6785,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "return freeze({plan, story, context:"
               }
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -6827,13 +6827,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const narrative = render(view, locale);"
               }
             ],
@@ -6914,7 +6914,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               },
               {
@@ -6924,7 +6924,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -6934,7 +6934,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -6944,7 +6944,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -6954,7 +6954,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -6964,7 +6964,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -6974,7 +6974,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -6984,7 +6984,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -6994,13 +6994,13 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/cancellation.test.mjs",
+                "path": "packages/explorer/cancellation.test.mts",
                 "anchor": "cancellation captures exact identities"
               }
             ]
@@ -7086,7 +7086,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               },
               {
@@ -7096,7 +7096,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7106,7 +7106,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7116,7 +7116,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7126,7 +7126,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7136,7 +7136,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7146,7 +7146,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7156,7 +7156,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7166,7 +7166,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -7228,7 +7228,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               },
               {
@@ -7238,7 +7238,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7248,7 +7248,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7258,7 +7258,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7268,7 +7268,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7278,7 +7278,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7288,7 +7288,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7298,7 +7298,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
@@ -7308,13 +7308,13 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/cli-input.mjs",
+                "path": "packages/explorer/cli-input.mts",
                 "anchor": "import {constants} from 'node:fs';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/launch-input.test.mjs",
+                "path": "packages/explorer/launch-input.test.mts",
                 "anchor": "test("
               }
             ]
@@ -7359,7 +7359,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               },
               {
@@ -7369,7 +7369,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7379,7 +7379,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7389,7 +7389,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7399,7 +7399,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7409,7 +7409,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7419,7 +7419,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7429,7 +7429,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -7439,13 +7439,13 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/launch-input.test.mjs",
+                "path": "packages/explorer/launch-input.test.mts",
                 "anchor": "test("
               }
             ]
@@ -7964,7 +7964,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -7974,7 +7974,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               }
             ],
@@ -7984,7 +7984,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               }
             ],
@@ -7994,7 +7994,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -8012,7 +8012,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -8030,7 +8030,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -8044,7 +8044,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -8058,7 +8058,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -8076,7 +8076,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               }
             ],
@@ -8086,19 +8086,19 @@
                 "anchor": "test("
               },
               {
-                "path": "packages/explorer/gateway-close.test.mjs",
+                "path": "packages/explorer/gateway-close.test.mts",
                 "anchor": "Closing presentation must not acknowledge an outstanding SDK call"
               },
               {
-                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "path": "packages/explorer/gateway-server-close.test.mts",
                 "anchor": "a refused server close retries only the same original listener"
               },
               {
-                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "path": "packages/explorer/gateway-server-close.test.mts",
                 "anchor": "a server close with an outstanding callback remains one pending attempt"
               },
               {
-                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "path": "packages/explorer/gateway-server-close.test.mts",
                 "anchor": "a known socket close failure still retains the original outstanding SDK read"
               },
               {
@@ -8159,7 +8159,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               },
               {
@@ -8169,7 +8169,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8179,7 +8179,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8189,7 +8189,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8199,7 +8199,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8209,7 +8209,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8219,7 +8219,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8229,7 +8229,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
@@ -8239,13 +8239,13 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/launch-input.mjs",
+                "path": "packages/explorer/launch-input.mts",
                 "anchor": "import {validRunRef} from '@actql/client-wire';"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/launch-input.test.mjs",
+                "path": "packages/explorer/launch-input.test.mts",
                 "anchor": "test("
               }
             ]
@@ -8462,7 +8462,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               },
               {
@@ -8472,7 +8472,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8482,7 +8482,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8492,7 +8492,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8502,7 +8502,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8512,7 +8512,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8522,7 +8522,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8532,7 +8532,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -8542,7 +8542,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],

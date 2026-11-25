@@ -67,7 +67,8 @@ import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-apply.mjs';
 import {settleSavedTableCommit} from './table-commit-outcome.mjs';
 import {expectedLogicalTableReceipt} from './fixtures/table-logical-receipt.mjs';
-import {loadCheckpointRuntime, openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
+import {openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
+import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
 import {issueAuthorizedEffectSetReceipt} from './effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
   exportPinnedEffectLocalResult,

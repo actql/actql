@@ -141,3 +141,78 @@ test "current node traversal has typed identity columns and minimum-depth obliga
     @graph_typing.traverse_pending(checked).contains(DeduplicateExactPaths),
   )
 }
+
+///|
+test "one-hop endpoint property binding preserves Graph name identity and metered declaration lookup" {
+  let graph = current_scope_graph()
+  let prefix = "{\"start\":{\"ids\":[" +
+    current_node_identity(2) +
+    "]},\"hops\":[{\"direction\":\"in\",\"edge_types\":[\"Edge\"]}],\"path_mode\":\"trail\",\"emit\":\"paths\",\"endpoint_properties\":"
+  let source = cursor(
+    prefix +
+    "{\"start\":[{\"property\":\"TITLE\",\"as\":\"s\"}],\"end\":[{\"property\":\"title\",\"as\":\"e\"}]}}",
+  )
+  let checked = @graph_typing.check_traverse(
+    source,
+    graph,
+    None,
+    None,
+    predicate_limits(),
+  ).unwrap()
+  assert_eq(
+    @graph_typing.traverse_endpoint_property_at(checked, 0),
+    Some((true, "TITLE", "s")),
+  )
+  assert_eq(
+    @graph_typing.traverse_endpoint_property_at(checked, 1),
+    Some((false, "title", "e")),
+  )
+  assert_eq(
+    @graph_typing.traverse_endpoint_property_position(checked, 0, 0),
+    Some(0),
+  )
+  assert_eq(
+    @graph_typing.traverse_endpoint_property_position(checked, 1, 0),
+    Some(0),
+  )
+  let usage = @graph_typing.traverse_usage(checked)
+  let exact = {
+    ..predicate_limits(),
+    max_work: usage.work,
+    max_nodes: usage.nodes,
+    max_text_bytes: usage.text_bytes,
+  }
+  assert_true(
+    @graph_typing.check_traverse(source, graph, None, None, exact) is Ok(_),
+  )
+  for
+    cap in [
+      { ..exact, max_work: usage.work - 1, },
+      { ..exact, max_nodes: usage.nodes - 1, },
+      { ..exact, max_text_bytes: usage.text_bytes - 1, },
+    ] {
+    assert_true(
+      @graph_typing.check_traverse(source, graph, None, None, cap) is Err(_),
+    )
+  }
+  for (property, name) in [("unknown", "value"), ("title", "start_id")] {
+    let invalid = cursor(
+      prefix +
+      "{\"start\":[{\"property\":\"" +
+      property +
+      "\",\"as\":\"" +
+      name +
+      "\"}]}}",
+    )
+    assert_true(
+      @graph_typing.check_traverse(
+        invalid,
+        graph,
+        None,
+        None,
+        predicate_limits(),
+      )
+      is Err(_),
+    )
+  }
+}

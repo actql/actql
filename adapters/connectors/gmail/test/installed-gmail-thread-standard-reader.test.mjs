@@ -114,7 +114,7 @@ test('generic Source service retains the original connector-selected complete re
 });
 
 test('actual RowRun child admission spends each original before current reentry and keeps separate get grant uses',async()=>{
-  const original=readFileSync(new URL('../../../host-node/installed-row-source.mjs',import.meta.url),'utf8');
+  const original=readFileSync(new URL('../../../host-node/installed-row-source-acquisition.mjs',import.meta.url),'utf8');
   let arrow;
   const visit=node=>{
     if(!node||typeof node!=='object')return;

@@ -1,4 +1,6 @@
+import {constructRequestDomain} from './ordinary-source-model-materials.mjs';
 import assert from 'node:assert/strict';
+import {createContentInferenceControls} from '../host-common/runtime-content-inference-control.mjs';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
@@ -6,6 +8,7 @@ import {types} from 'node:util';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
 import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
+import {sourceFreeModelPreparation, sourceFreeModelsPreparation} from './installed-infer-model-preparation.mjs';
 import {finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
 import {retainPreparedSubmissionFailure} from './client-program-preparation.mjs';
 
@@ -154,7 +157,7 @@ test('Local Model constructor failure keeps its issued Scope and original failur
 });
 
 const managerSource = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
-const managerHelpers = managerSource.slice(managerSource.indexOf('  function constructRequestDomain('), managerSource.indexOf('  const view = Object.freeze({'));
+const managerHelpers = managerSource.slice(managerSource.indexOf('  function constructEffectMaterials('), managerSource.indexOf('  const view = Object.freeze({'));
 const methodStart = managerSource.indexOf('    prepareModelRun(');
 const methodEnd = managerSource.indexOf('    adoptModelPreparation(', methodStart);
 assert(methodStart >= 0 && methodEnd > methodStart);
@@ -173,9 +176,9 @@ function managerFixture(refusal) {
       assert.equal(state.preparing, false); calls.push('adopt'); return adopted;
     },
   };
-  object = Function('current', 'producerForRequest', 'fail', 'view',
+  object = Function('current', 'producerForRequest', 'fail', 'view', 'constructRequestDomain',
     `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(methodStart, methodEnd).trim().replace(/,$/u, '')}});`)(
-    () => {}, r => {assert.equal(r, request); return producer;}, fail, view);
+    () => {}, r => {assert.equal(r, request); return producer;}, fail, view, constructRequestDomain);
   const construct = (p, i, c) => {
     assert.deepEqual([p, i, c], [parent, input, compilation]); assert.equal(state.preparing, true);
     calls.push('construct');
@@ -635,11 +638,11 @@ function requestGraphFixture({serialized = true, missingPort = false, replaceAft
   if (missingPort) delete moon.clientProgramPrepareRequestSerializedModelGraph;
   state.context = {runtime: moon};
   const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
-  object = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation', 'types',
+  object = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation', 'types', 'constructRequestDomain',
     `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(graphMethodStart, graphMethodEnd).trim().replace(/,$/u, '')}});`)(
     () => {if (replaceAfter && state.modelGraph !== undefined) state.contentGraph = {};},
     value => {assert.equal(value, request); return producer;}, fail, originals,
-    (actual, result, issue) => {assert.equal(actual, moon); assert.equal(issue, moon.clientProgramRequestProgramModuleIssueCode); return result.value;}, types);
+    (actual, result, issue) => {assert.equal(actual, moon); assert.equal(issue, moon.clientProgramRequestProgramModuleIssueCode); return result.value;}, types, constructRequestDomain);
   const constructSerialized = missingPort ? undefined : (...args) =>
     Reflect.apply(moon.clientProgramPrepareRequestSerializedModelGraph, moon, args);
   return {state, calls, graph, invoke: () => object.prepareModelGraph(prepared, request, occurrence, execution, component, constructSerialized, fileReadDeclarations),
@@ -969,14 +972,6 @@ test('a configured source-free Model cancelled before dispatch finishes its orig
   assert.deepEqual(f.calls.slice(-3), ['retire', 'aliases', 'sever']); finish();
 });
 
-const installedInferSource = readFileSync(new URL('./installed-infer-run.mjs', import.meta.url), 'utf8');
-const sourceFreePreparationNode = parse(installedInferSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
-  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'sourceFreeModelPreparation');
-assert(sourceFreePreparationNode);
-const sourceFreePreparation = Function('checked', 'retireNodeInferOriginalRead',
-  'return ' + installedInferSource.slice(sourceFreePreparationNode.start, sourceFreePreparationNode.end))(
-  value => value, retirementFor(() => true));
-
 function sourceFreePreparationFixture({readFailure, captured = false} = {}) {
   const prepared = {}, selected = {graph: {}}, plan = {compiled: {}, runDefinition: {}}, scope = {}, read = {};
   const calls = [], host = {}, publication = {};
@@ -986,16 +981,19 @@ function sourceFreePreparationFixture({readFailure, captured = false} = {}) {
   const moon = {clientProgramAcquisitionCount: p => {assert.equal(p, prepared); return captured ? 1 : 0;},
     clientProgramOpenInstalledManagedCaptureHost(...args) {
       assert.deepEqual(args, [managed.value, prepared, managed.request, [captureSource]]);
-      calls.push('original captured Host'); return host;
+      calls.push('original captured Host'); return {$tag: 1, _0: host};
     },
     clientProgramOpenInstalledManagedSourceFreeComposedInferHost(...args) {
       assert.deepEqual(args, [managed.value, prepared, managed.request, 'registry', 'values', 'fragment', 'ordered', ['provider']]);
-      calls.push('original Host'); return host;
+      calls.push('original Host'); return {$tag: 1, _0: host};
     }};
   const control = {
     prepareCheckedClientInferOriginalRead(...args) {
       assert.deepEqual(args, [plan.compiled, plan.runDefinition, selected.graph, scope, model.budget]);
       calls.push('original read'); if (readFailure) throw readFailure; return read;
+    },
+    stopCheckedClientInferOriginalReadPreparation(...args) {
+      assert.deepEqual(args, [plan.compiled, plan.runDefinition, selected.graph, scope, read]);
     },
     settleCheckedClientInferOriginalReadPreparation(...args) {
       assert.deepEqual(args, [plan.compiled, plan.runDefinition, selected.graph, read, true]);
@@ -1012,7 +1010,7 @@ function sourceFreePreparationFixture({readFailure, captured = false} = {}) {
   managed.model = model;
   const acquired = !captured ? undefined : {captured: capturedInput, ledger: sourceLedger, managedRun: managed.value};
   if (captured) model.sourceLedger = sourceLedger;
-  const make = () => sourceFreePreparation(moon, control, prepared, plan, selected, model, acquired);
+  const make = () => sourceFreeModelPreparation(moon, control, prepared, plan, selected, model, acquired);
   return {make, model, managed, selected, scope, read, host, publication, component, calls,
     acquired,
     finish: () => {finished = true;}};
@@ -1101,20 +1099,6 @@ test('configured source-free Host binds the retained module provider without con
 
 // Exercise the actual facade -> Host -> manager path. A facade carries no
 // native owner; only the existing runtime-core WeakMap can supply that original.
-const graphCoreSource = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
-const acquiredGraphStart = graphCoreSource.indexOf('  const prepareAcquiredSerializationGraph =');
-const acquiredGraphEnd = graphCoreSource.indexOf('  const snapshotTokens =', acquiredGraphStart);
-const graphCoreProperties = new Map();
-function findGraphCoreMethods(node) {
-  if (!node || typeof node !== 'object') return;
-  if (node.type === 'Property' && node.method && ['prepareCheckedClientRequestAcquiredSerializationGraph',
-    'prepareClientRequestSerializedInferGraph'].includes(node.key.name)) graphCoreProperties.set(node.key.name, node);
-  for (const value of Object.values(node)) {
-    if (Array.isArray(value)) value.forEach(findGraphCoreMethods);
-    else if (value && typeof value === 'object') findGraphCoreMethods(value);
-  }
-}
-findGraphCoreMethods(parse(graphCoreSource, {ecmaVersion: 'latest', sourceType: 'module'}));
 const requestGraphHostStart = hostSource.indexOf('    prepareManagedModelGraph(runtime,');
 const requestGraphHostEnd = hostSource.indexOf('    prepareManagedModelCompilation(', requestGraphHostStart);
 function originalFacadeGraphFixture() {
@@ -1139,10 +1123,12 @@ function originalFacadeGraphFixture() {
       return {value: modelGraph};
     },
   };
-  const properties = [...graphCoreProperties.values()].map(node => graphCoreSource.slice(node.start, node.end));
-  const control = Function('moon', 'compiledRunResult',
-    'const serializationPlanTokens=new WeakMap();' + graphCoreSource.slice(acquiredGraphStart, acquiredGraphEnd) +
-    'return {' + properties.join(',') + '};')(moon, result => result.value);
+  const control = createContentInferenceControls(moon, {
+    serializationPlanTokens: new WeakMap(), serializationGenerationTokens: new WeakMap(),
+    compiledRunResult: result => result.value,
+    compiledContent() {assert.fail('unexpected compiled Content lookup');},
+    token() {assert.fail('unexpected definition lookup');},
+  });
   const selected = control.prepareCheckedClientRequestAcquiredSerializationGraph(parent, input,
     admission, prepared, {task: 0, step: 2, maxRows: 1, maxBytes: 128}, true);
   assert.notStrictEqual(selected, rawContent);
@@ -1153,10 +1139,10 @@ function originalFacadeGraphFixture() {
   const record = {managedSourceProfile: {fileReadDeclarations}};
   const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
   const fail = code => {throw Object.assign(new Error(code), {code});};
-  const manager = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation', 'types',
+  const manager = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation', 'types', 'constructRequestDomain',
     `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(graphMethodStart, graphMethodEnd).trim().replace(/,$/u, '')}});`)(
     () => {}, value => {assert.strictEqual(value, request); return producer;}, fail, originals,
-    (runtime, result) => {assert.strictEqual(runtime, moon); return result.value;}, types);
+    (runtime, result) => {assert.strictEqual(runtime, moon); return result.value;}, types, constructRequestDomain);
   host = Function('moon', 'sourceManaged', 'computeManaged', 'originals', 'clientOperationError',
     'assertSourceManagedInstallationCurrent', 'assertManagedComputeInstallationCurrent',
     'originalSourceManagedHostRequest', 'runtimeCore', 'record',
@@ -1309,9 +1295,6 @@ test('Model adoption forwards only the same selected quantity limits before Scop
 });
 
 
-const sourceFreeGroupPreparationNode = parse(installedInferSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
-  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'sourceFreeModelsPreparation');
-assert(sourceFreeGroupPreparationNode);
 function sourceFreeGroupFixture({captured = false} = {}) {
   const prepared={}, plan={compiled:{},runDefinition:{}}, scopes=Object.freeze([{},{}]), reads=[{},{}], calls=[], publication={}, host={};
   const selected={components:Object.freeze([{graph:{},occurrence:{}},{graph:{},occurrence:{}}])};
@@ -1322,14 +1305,21 @@ function sourceFreeGroupFixture({captured = false} = {}) {
     clientProgramOpenInstalledManagedSourceFreeComposedInferHost(...args) {
       assert.deepEqual(args,[managed.value,prepared,managed.request,'registry','values','fragment','ordered',
         model.components.map(member=>member.component.provider)]);
-      calls.push('one original Host'); return host;
+      calls.push('one original Host'); return {$tag: 1, _0: host};
     },clientProgramOpenInstalledManagedCaptureHost(...args) {
       assert.deepEqual(args,[managed.value,prepared,managed.request,['source0','source1']]);
-      calls.push('one captured original Host'); return host;
+      calls.push('one captured original Host'); return {$tag: 1, _0: host};
     }};
   const control={prepareCheckedClientInferOriginalRead(compiled,definition,graph,scope,budget) {
     const index=selected.graph.indexOf(graph);assert(index>=0);assert.equal(compiled,plan.compiled);assert.equal(definition,plan.runDefinition);
     assert.equal(scope,scopes[index]);assert.equal(budget,model.components[index].budget);calls.push('read'+index);return reads[index];
+  },stopCheckedClientInferOriginalReadPreparation(compiled,definition,graph,scope,read) {
+    const index=selected.graph.indexOf(graph);assert(index>=0);
+    assert.deepEqual([compiled,definition,scope,read],[plan.compiled,plan.runDefinition,scopes[index],reads[index]]);
+  },settleCheckedClientInferOriginalReadPreparation(compiled,definition,graph,read,confirmed) {
+    const index=selected.graph.indexOf(graph);assert(index>=0);
+    assert.deepEqual([compiled,definition,read,confirmed],[plan.compiled,plan.runDefinition,reads[index],true]);
+    calls.push('retire'+index);
   },finishCheckedClientInferOriginalReadScope(compiled,definition,graph,scope,complete) {
     const index=selected.graph.indexOf(graph);assert(index>=0);assert.equal(scope,scopes[index]);assert.equal(complete,true);
     assert.equal(compiled,plan.compiled);assert.equal(definition,plan.runDefinition);calls.push('finish'+index);return finish;
@@ -1339,13 +1329,9 @@ function sourceFreeGroupFixture({captured = false} = {}) {
     control,...plan,group:model,managed,scope:scopes[index],read:undefined,
     budget:{readRetainedBytes:7n,readExecutionBytes:5n,modelRetainedBytes:100n,modelExecutionBytes:200n},
     publicationCapacity:()=>publication,component:Object.freeze({provider:{},bindOriginal(){}})})));
-  const construct=Function('checked','retireNodeInferOriginalRead','finishNodeInferOriginalReadScopes',
-    installedInferSource.slice(sourceFreePreparationNode.start,sourceFreePreparationNode.end)+';'+
-    installedInferSource.slice(sourceFreeGroupPreparationNode.start,sourceFreeGroupPreparationNode.end)+';return sourceFreeModelsPreparation;')(
-      value=>value,member=>{if(member.read===undefined)return;const index=model.components.indexOf(member);assert.equal(member.read,reads[index]);calls.push('retire'+index);},finishNodeInferOriginalReadScopes);
   const acquired = captured ? {managedRun: managed.value, ledger: {}} : undefined;
   if (captured) model.sourceLedger = acquired.ledger;
-  return {model,selected,plan,reads,calls,host,publication,make:()=>construct(moon,control,prepared,plan,selected,model,acquired, captured ? {} : undefined),
+  return {model,selected,plan,reads,calls,host,publication,make:()=>sourceFreeModelsPreparation(moon,control,prepared,plan,selected,model,acquired,captured ? {} : undefined),
     finish:()=>{finish=true;}};
 }
 

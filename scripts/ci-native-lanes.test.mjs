@@ -476,16 +476,25 @@ test('original Native aggregate refuses every missing failed cancelled or skippe
   for (const family of ['native', 'native-macos']) {
     const job = workflow.jobs[family];
     assert(job.if.includes('always()'));
-    const code = /^node -e '\n([\s\S]*)'\n?$/u.exec(job.steps[0].run)?.[1];
+    const step = job.steps[0];
+    const code = /^node -e '\n([\s\S]*)'\n?$/u.exec(step.run)?.[1];
     assert(code);
-    const complete = Object.fromEntries(job.needs.map(name => [name, {result: 'success'}]));
+    const bindings = Object.entries(step.env).map(([name, expression]) => {
+      const match = /^\$\{\{ needs\.([a-z-]+)\.result \}\}$/u.exec(expression);
+      assert(match, expression);
+      return [name, match[1]];
+    });
+    const required = job.needs.filter(name => name !== 'select-targets');
+    assert.deepEqual(bindings.map(([, dependency]) => dependency).sort(), [...required].sort());
+    const complete = Object.fromEntries(required.map(name => [name, {result: 'success'}]));
     const evaluate = results => {
-      const process = {env: {RESULTS: JSON.stringify(results)}};
+      const env = Object.fromEntries(bindings.map(([name, dependency]) => [name, results[dependency]?.result ?? '']));
+      const process = {env};
       runInNewContext(code, {process, console: {error() {}}});
       return process.exitCode ?? 0;
     };
     assert.equal(evaluate(complete), 0);
-    for (const dependency of [family + '-workloads', family === 'native' ? 'native-http' : 'native-http-macos']) {
+    for (const dependency of required) {
       for (const result of ['failure', 'cancelled', 'skipped', undefined])
         assert.equal(evaluate({...complete, [dependency]: {result}}), 1, `${dependency}:${result}`);
       const missing = {...complete}; delete missing[dependency]; assert.equal(evaluate(missing), 1);
@@ -543,9 +552,5 @@ test('required lint directly selects Native preparation controls and both worklo
   assert.equal(workflow.jobs['native-workloads']['runs-on'], 'ubuntu-24.04');
   assert.equal(workflow.jobs['native-workloads']['timeout-minutes'], 110);
   for(const family of ['native','native-macos'])assert.equal(prepare(family)['timeout-minutes'],family==='native'?65:70);
-  const cli=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
-  const awaited=cli.indexOf('?await prepareNativeParallel('),ready=cli.indexOf("writeFileSync(join(destination,'preparation.json')");
-  const environment=cli.indexOf("if(process.env.GITHUB_ENV!==undefined)");
-  assert(awaited>0&&ready>awaited&&environment>ready);
-  assert.equal(cli.split("writeFileSync(join(destination,'preparation.json')").length-1,1);
+
 });

@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {C, input, open, immediateIdentity} from './model-resume-state.fixture.mjs';
-import {MODEL_CURRENT_CUT_JOURNAL_LAYOUT} from './sqlite-checkpoint-journal.mjs';
+import {MODEL_CURRENT_CUT_JOURNAL_LAYOUT} from './sqlite-checkpoint-journal-storage.mjs';
 import {readFileSync} from 'node:fs';
 
 const freeze = value => {

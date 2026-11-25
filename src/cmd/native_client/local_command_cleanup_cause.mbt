@@ -139,6 +139,7 @@ fn command_preparation_cleanup_cause(
         Original(_) => "SavedPublicationOriginal"
         Journal(_) => "SavedPublicationJournal"
         Service(_) => "SavedPublicationService"
+        Observation(_) => "SavedPublicationObservation"
         Construction => "SavedPublicationConstruction"
         Publisher(_) => "SavedPublicationPublisher"
       }

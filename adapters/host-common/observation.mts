@@ -1,0 +1,907 @@
+// Optional observations are projections, never execution or cleanup authority.
+// Only small copied metadata enters this queue; user delivery runs on a later
+// event-loop turn and can overlap an active public operation.
+import {AsyncLocalStorage} from 'node:async_hooks';
+import {randomUUID, createHash} from 'node:crypto';
+import {types as nodeTypes} from 'node:util';
+import {ledgerLimitsFields, ledgerUsageFields} from './ledger-contract.generated.mjs';
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+import type {HostObservationConnection, ObservationContext, ObservationCorrelation, ObservationLimits,
+  ObservationMeasurement, ObservationOperation, ObservationRecord, ObservationSelection,
+  createHostObservationConnection as publicConnection} from '../../packages/local-node/observation.js';
+
+type ConnectionOptions = Parameters<typeof publicConnection>[0];
+type ObservationConnection = Pick<HostObservationConnection, 'configuration' | 'status'>;
+type ConnectionConfig = Readonly<{
+  deliver: ConnectionOptions['deliver']; currentContext: ConnectionOptions['currentContext'];
+  scope: string; revision: string; selected: Readonly<ObservationLimits>;
+  allowed: ReadonlySet<ObservationOperation>; correlation: boolean;
+  correlations: ReadonlySet<ObservationCorrelation>; measurements: ReadonlySet<ObservationMeasurement>;
+  attributeExclusions: ReadonlySet<string>; eventLevel: 'lifecycle' | 'diagnostic';
+}> & {status?: HostObservationConnection['status']};
+
+type RunReference = Readonly<{namespaceId: string; authorityScopeCid: string; runDefinitionCid: string}>;
+type RequestSelection = Readonly<{authorityScopeCid: string; requestId: string}>;
+type SelectedRequestBinding = Readonly<{requestId: string; ref: RunReference}>;
+type SelectedRowDetail = Readonly<{
+  ref?: RunReference; rowOwner: string; selection: 'run-definition' | 'request'; rowKind: string;
+  returnedRows: number; unrelatedRows?: number; coverage: string;
+  requestSelection?: RequestSelection; selectedRowRef?: RunReference; runSelectionCid?: string;
+}>;
+type SelectedRows = Omit<SelectedRowDetail, 'ref' | 'selection' | 'returnedRows' | 'unrelatedRows'> & {
+  ref?: RunReference; selection: SelectedRowDetail['selection'] | 'mixed-selected';
+  returnedRows: number; unrelatedRows?: number; unavailable?: boolean;
+};
+type IngressFacts = Readonly<{method?: string; response?: Readonly<{statusCode?: number}>}>;
+type ObservationFrame = {
+  owner: object; trace?: ObservationContext; records: number; http?: IngressFacts; children: number;
+  ingressSettled: boolean; finished: boolean;
+  ref?: RunReference; runIdentities?: Map<string, string>; retainedPromises?: WeakSet<object>;
+  selectedRows?: SelectedRows; selectedRowsClosed?: boolean; selectedRowsUnavailable?: boolean;
+  pendingRequestRows?: SelectedRowDetail[]; selectedRequestBinding?: SelectedRequestBinding;
+};
+
+type Attributes = Record<string, string | number | boolean>;
+type LogicalCustody = Readonly<{current(): boolean; release(): SynchronousRuntimeData}>;
+type PendingReturn = {record: ObservationRecord | undefined; custody?: LogicalCustody; deliverySettled?: boolean};
+type QueuedObservation = PendingReturn & {bytes: number};
+type PrimaryDiagnostic = Readonly<{code: string; phase: string; kind: string; task?: number; unit?: number; step?: number}>;
+type ObservationFacts = Readonly<{
+  ref?: RunReference; outcome?: string; checkVerdict?: string; task?: number; attempt?: number; slot?: number;
+  revision?: number; cleanupPending?: boolean; physicalStop?: string; attemptCid?: string; runId?: string;
+  primaryDiagnostic?: PrimaryDiagnostic;
+}>;
+type EmitOptions = Readonly<{
+  logicalBoundaryMarker?: symbol; logicalAttributes?: Attributes; logicalCustody?: LogicalCustody;
+  selectedRows?: object; resources?: object; segment?: string; durationMs?: number;
+  ingress?: boolean; ownerFactKey?: string;
+}>;
+
+type StorageBinding = Readonly<{ref: RunReference; scope: string; revision: string}>;
+export type ObservationStorage = Readonly<{
+  initialize(input: StorageBinding & Readonly<{requestId: string; context?: unknown; maxRuns?: number}>): SynchronousRuntimeData;
+  consume(input: StorageBinding & Readonly<{bytes: number; maxRecords: number; maxBytes: number;
+    ownerFactKey?: string}>): Readonly<{accepted: boolean; repeated?: boolean; context?: ObservationContext}> | undefined;
+  close?(): SynchronousRuntimeData;
+}>;
+type JournalPort = Readonly<{
+  observationStorage(): ObservationStorage | undefined; closeObservationStorage?(): SynchronousRuntimeData;
+}>;
+type ManagedUsageReader = () => SynchronousRuntimeData;
+type ObservationProjection = NonNullable<ReturnType<typeof installHostObservation>>;
+
+export const observationVersion = 'actql-observation/0.1';
+export const observationLimits = Object.freeze({
+  recordBytes: 4096, queueRecords: 256, queueBytes: 1048576,
+  requestRecords: 128, runRecords: 2048, runBytes: 1048576,
+  segmentRecords: 512, activeSegments: 64, shutdownMs: 1000,
+  journalRuns: 1024,
+});
+const connections = new WeakMap<ObservationConnection, ConnectionConfig>();
+const projections = new WeakSet<object>();
+const contexts = new AsyncLocalStorage<ObservationFrame | undefined>();
+const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
+const outcomes = new Set(['running', 'resuming', 'succeeded', 'failed', 'cancelled',
+  'waiting_checkpoint', 'needs_reconciliation', 'unknown', 'pending',
+  'confirmed', 'accepted', 'already_terminal', 'committed', 'rejected']);
+const operations = new Set<ObservationOperation>(['run', 'check', 'planning', 'source', 'compute',
+  'infer', 'effect', 'approval', 'checkpoint', 'recovery', 'publication', 'cleanup']);
+const measurements: ObservationMeasurement[] = ['duration', 'rows', 'bytes', 'requests', 'tokens', 'resources', 'cost'];
+const correlations: ObservationCorrelation[] = ['run', 'task', 'attempt', 'external_trace'];
+const attributeNames = ['actql.operation', 'actql.event', 'actql.observation.version',
+  'actql.outcome', 'actql.check.verdict', 'actql.task.ordinal', 'actql.attempt.ordinal',
+  'actql.model.slot.ordinal', 'actql.owner.revision', 'actql.cleanup.pending',
+  'actql.physical_stop', 'actql.run.definition_cid', 'actql.run.id',
+  'actql.model.attempt_cid', 'http.request.method', 'http.route',
+  'http.response.status_code', 'error.type', 'service.name', 'service.version',
+  'deployment.environment.name', 'actql.failure.phase', 'actql.failure.kind',
+  'actql.unit.ordinal', 'actql.step.ordinal', 'actql.logical_step.key',
+  'actql.logical_boundary.phase', 'actql.logical_boundary.reason'];
+const logicalBoundaryMarker = Symbol('installed logical observation shape');
+const mandatoryAttributes = ['actql.operation', 'actql.event', 'actql.observation.version'];
+// These are presentation-only public spellings. Field membership, primitive
+// width and private snapshot order belong to the actual Core declaration.
+const resourceUsageAttributeAliases = Object.freeze({
+  planning_work: 'planning', transferred_bytes: 'transferred',
+  uncertain_transfer_bytes: 'uncertain', reserved_transfer_bytes: 'reserved_transfer',
+  reserved_retention_bytes: 'reserved_retention', reserved_execution_bytes: 'reserved_execution',
+  peak_retention_bytes: 'peak_retention',
+});
+const resourceFields = Object.freeze([
+  ...ledgerLimitsFields.map(field => Object.freeze({...field,
+    attribute: `actql.resource.limit.${field.name}`})),
+  ...ledgerUsageFields.map(field => Object.freeze({...field,
+    attribute: `actql.resource.usage.${Object.hasOwn(resourceUsageAttributeAliases, field.name)
+      ? resourceUsageAttributeAliases[field.name as keyof typeof resourceUsageAttributeAliases] : field.name}`})),
+].map(field => Object.freeze({...field, maximum: (1n << BigInt(field.bits - 1)) - 1n})));
+if (new Set(resourceFields.map(field => field.attribute)).size !== resourceFields.length ||
+    Object.keys(resourceUsageAttributeAliases).some(name => !ledgerUsageFields.some(field => field.name === name))) {
+  throw new TypeError('InvalidManagedResourceObservationPresentation');
+}
+const managedResourceSnapshots = new WeakSet<object>();
+const selectedRowSnapshots = new WeakMap<object, string | undefined>();
+attributeNames.push('actql.resource.scope', ...resourceFields.map(field => field.attribute));
+attributeNames.push(...['owner', 'selection', 'kind', 'returned', 'unrelated', 'coverage']
+  .map(name => `actql.rows.${name}`));
+function bindSelectedRequestRows(detail: SelectedRowDetail, binding: SelectedRequestBinding | undefined) {
+  if (binding === undefined) return undefined;
+  const request = detail.requestSelection;
+  if (request !== undefined && request.authorityScopeCid === binding.ref.authorityScopeCid &&
+      request.requestId === binding.requestId) {
+    const selected = detail.selectedRowRef;
+    return {...detail, requestSelection: undefined, ref: binding.ref,
+      unrelatedRows: detail.returnedRows === 0 ? 0 : Number(
+        selected!.namespaceId !== binding.ref.namespaceId ||
+        selected!.authorityScopeCid !== binding.ref.authorityScopeCid ||
+        selected!.runDefinitionCid !== binding.ref.runDefinitionCid)};
+  }
+  // A failed uniqueness probe never reaches acceptance. Only actual absence
+  // can join the later accepted original; a partial present row stays unknown.
+  if (detail.runSelectionCid === binding.ref.runDefinitionCid && detail.returnedRows === 0) {
+    return {...detail, runSelectionCid: undefined, ref: binding.ref, unrelatedRows: 0};
+  }
+  return undefined;
+}
+function accumulateSelectedRows(context: ObservationFrame | undefined, detail: SelectedRowDetail, pendingLimit = 0): boolean {
+  if (context === undefined || context.selectedRowsClosed || detail === null ||
+      typeof detail !== 'object' || Array.isArray(detail)) return false;
+  const {ref, rowOwner, selection, rowKind, returnedRows, unrelatedRows, coverage} = detail;
+  if (rowOwner !== 'request-journal' || !['run-definition', 'request'].includes(selection) ||
+      rowKind !== 'run' || coverage !== 'selected-returned' ||
+      !Number.isSafeInteger(returnedRows) || returnedRows < 0 ||
+      unrelatedRows !== undefined && (!Number.isSafeInteger(unrelatedRows) ||
+        unrelatedRows < 0 || unrelatedRows > returnedRows)) return false;
+  if (pendingLimit > 0 && (detail.requestSelection !== undefined || detail.runSelectionCid !== undefined)) {
+    const request = detail.requestSelection, selected = detail.selectedRowRef;
+    if (returnedRows > 1 || request !== undefined && (selection !== 'request' ||
+        !cid(request.authorityScopeCid) || typeof request.requestId !== 'string' ||
+        request.requestId.length === 0 || request.requestId.length > 256 ||
+        returnedRows === 1 && (typeof selected?.namespaceId !== 'string' ||
+          !cid(selected!.authorityScopeCid) || !cid(selected!.runDefinitionCid))) ||
+        detail.runSelectionCid !== undefined && (selection !== 'run-definition' ||
+          !cid(detail.runSelectionCid))) return false;
+    const captured = {rowOwner, selection, rowKind, returnedRows, coverage,
+      ...(request === undefined ? {} : {requestSelection: {
+        authorityScopeCid: request.authorityScopeCid, requestId: request.requestId},
+      ...(returnedRows === 0 ? {} : {selectedRowRef: {namespaceId: selected!.namespaceId,
+        authorityScopeCid: selected!.authorityScopeCid, runDefinitionCid: selected!.runDefinitionCid}})}),
+      ...(detail.runSelectionCid === undefined ? {} : {runSelectionCid: detail.runSelectionCid})};
+    const bound = bindSelectedRequestRows(captured, context.selectedRequestBinding);
+    if (bound !== undefined) return accumulateSelectedRows(context, bound);
+    const pending = context.pendingRequestRows ??= [];
+    if (pending.length >= pendingLimit) {context.selectedRowsUnavailable = true; return false;}
+    pending.push(captured);
+    return true;
+  }
+  const previous = context.selectedRows;
+  if (previous === undefined) {
+    context.selectedRows = {ref, rowOwner, selection, rowKind, returnedRows, unrelatedRows, coverage};
+    return true;
+  }
+  const returned = previous.returnedRows + returnedRows;
+  const unrelated = previous.unrelatedRows === undefined || unrelatedRows === undefined
+    ? undefined : previous.unrelatedRows + unrelatedRows;
+  if (!Number.isSafeInteger(returned) || unrelated !== undefined && !Number.isSafeInteger(unrelated)) {
+    previous.unavailable = true; return false;
+  }
+  if (previous.ref === undefined || ref === undefined ||
+      previous.ref.namespaceId !== ref.namespaceId || previous.ref.authorityScopeCid !== ref.authorityScopeCid ||
+      previous.ref.runDefinitionCid !== ref.runDefinitionCid) previous.ref = undefined;
+  if (previous.selection !== selection) previous.selection = 'mixed-selected';
+  previous.returnedRows = returned; previous.unrelatedRows = unrelated;
+  return true;
+}
+function managedRunResources(values: unknown) {
+  if (!Array.isArray(values)) return undefined;
+  const length = Object.getOwnPropertyDescriptor(values, 'length');
+  if (length?.value !== resourceFields.length ||
+      Reflect.ownKeys(values).length !== resourceFields.length + 1) return undefined;
+  const snapshot: Record<string, string> = {'actql.resource.scope': 'managed-run-ledger'};
+  for (let index = 0; index < resourceFields.length; index++) {
+    const descriptor = Object.getOwnPropertyDescriptor(values, String(index));
+    if (!descriptor || !Object.hasOwn(descriptor, 'value')) return undefined;
+    const value = descriptor.value, field = resourceFields[index];
+    if (typeof value !== 'bigint' || value < 0n || value > field.maximum) return undefined;
+    snapshot[field.attribute] = value.toString();
+  }
+  // Exact copied decimal scalars from the same Core Ledger. The distinct
+  // producer capability fixes this declaration-order layout; no old same-size
+  // layout is guessed. This never supplies admission or a physical-stop ACK.
+  Object.freeze(snapshot);
+  managedResourceSnapshots.add(snapshot);
+  return snapshot;
+}
+
+function selection<T extends string>(value: ObservationSelection<T> | undefined, names: readonly T[], defaults: readonly T[]): readonly T[] {
+  if (value === undefined) return defaults;
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).some(key => !['include', 'exclude'].includes(key))) {
+    throw new TypeError('InvalidHostObservationSelection');
+  }
+  const include = value.include ?? defaults, exclude = value.exclude ?? [];
+  for (const items of [include, exclude]) {
+    if (!Array.isArray(items) || items.length > names.length ||
+        new Set(items).size !== items.length || items.some(item => !names.includes(item))) {
+      throw new TypeError('InvalidHostObservationSelection');
+    }
+  }
+  return include.filter(item => !exclude.includes(item));
+}
+const events = Object.freeze({
+  definition_admitted: ['run', 'definition_admitted'],
+  dispatch_reserved: ['run', 'dispatch_reserved'],
+  physical_start_reserved: ['run', 'physical_start_reserved'],
+  acquisition_started: ['source', 'attempt_started'],
+  acquisition_completed: ['source', 'attempt_completed'],
+  acquisition_cleanup_started: ['cleanup', 'cleanup_started'],
+  acquisition_cleanup_completed: ['cleanup', 'cleanup_completed'],
+  computed: ['publication', 'result_committed'],
+  dispatch_cleanup_completed: ['cleanup', 'cleanup_completed'],
+  dispatch_failed: ['run', 'dispatch_failed'],
+  infer_waiting_checkpoint: ['approval', 'waiting_checkpoint'],
+  infer_needs_reconciliation: ['infer', 'needs_reconciliation'],
+  resume_claimed: ['recovery', 'resume_claimed'],
+  recovery_failed: ['recovery', 'recovery_failed'],
+  resume_failed: ['recovery', 'resume_failed'],
+  model_resume_failed: ['recovery', 'model_resume_failed'],
+  model_call_entered: ['infer', 'attempt_started'],
+  model_call_observed: ['infer', 'attempt_observed'],
+  model_call_replayed: ['recovery', 'attempt_replayed'],
+  checkpoint_resolved: ['approval', 'checkpoint_resolved'],
+  effect_application_observed: ['effect', 'application_observed'],
+  effect_preflight_failed: ['effect', 'dispatch_failed'],
+  effect_write_observed: ['effect', 'write_observed'],
+});
+const recordEvents = new Set(['segment_started', 'segment_ended', 'check_completed',
+  'owner_observed', 'cancellation_requested', 'task_started', 'task_completed',
+  'transport_completed', 'acquisition_interval', 'resources_observed', 'selected_rows_observed',
+  'logical_boundary_observed', 'logical_boundary_unavailable',
+  ...Object.values(events).map(value => value[1])]);
+
+export function validObservationContext(value: unknown): value is ObservationContext {
+  return value !== null && typeof value === 'object' &&
+    typeof (value as Partial<ObservationContext>).traceId === 'string' && /^[a-f0-9]{32}$/u.test((value as ObservationContext).traceId) && !/^0+$/u.test((value as ObservationContext).traceId) &&
+    typeof (value as Partial<ObservationContext>).spanId === 'string' && /^[a-f0-9]{16}$/u.test((value as ObservationContext).spanId) && !/^0+$/u.test((value as ObservationContext).spanId) &&
+    Number.isInteger((value as Partial<ObservationContext>).traceFlags) &&
+    (value as ObservationContext).traceFlags >= 0 && (value as ObservationContext).traceFlags <= 255;
+}
+export function snapshotObservationContext(value: unknown): ObservationContext | undefined {
+  try {
+    if (value === null || typeof value !== 'object') return undefined;
+    const {traceId, spanId, traceFlags} = value as ObservationContext;
+    const copied = {traceId, spanId, traceFlags};
+    if (!validObservationContext(copied)) return undefined;
+    // Snapshot getters once. Neither baggage nor tracestate is durable input.
+    return Object.freeze({traceId, spanId, traceFlags: traceFlags & 1});
+  } catch { return undefined; }
+}
+export function observationTraceParent(headers: Readonly<{traceparent?: unknown}> | undefined) {
+  const value = headers?.traceparent;
+  if (typeof value !== 'string' || value.length !== 55) return undefined;
+  const match = /^00-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})$/u.exec(value);
+  return match && snapshotObservationContext({traceId: match[1], spanId: match[2],
+    traceFlags: Number.parseInt(match[3], 16)}) || undefined;
+}
+
+export function createHostObservationConnection(options: Partial<ConnectionOptions> = {}): ObservationConnection {
+  if (options === null || typeof options !== 'object' || Array.isArray(options) ||
+      Object.keys(options).some(key => !['deliver', 'currentContext', 'scope',
+        'revision', 'limits', 'include', 'exclude', 'correlation',
+        'measurements', 'attributes', 'events'].includes(key))) {
+    throw new TypeError('InvalidHostObservationConfiguration');
+  }
+  const {deliver, currentContext,
+  scope = 'local', revision = 'metadata/0.1', limits = {},
+    include = [...operations], exclude = [], correlation = true} = options;
+  if (typeof deliver !== 'function' || currentContext !== undefined &&
+      typeof currentContext !== 'function' ||
+      typeof scope !== 'string' || !/^[a-zA-Z0-9._-]{1,64}$/u.test(scope) ||
+      typeof revision !== 'string' || !/^[a-zA-Z0-9._/-]{1,64}$/u.test(revision) ||
+      !Array.isArray(include) ||
+      !Array.isArray(exclude) || include.length > operations.size ||
+      exclude.length > operations.size || new Set(include).size !== include.length ||
+      new Set(exclude).size !== exclude.length ||
+      [...include, ...exclude].some(x => !operations.has(x)) ||
+      limits === null || typeof limits !== 'object' || Array.isArray(limits) ||
+      Object.keys(limits).some(x => !Object.hasOwn(observationLimits, x))) {
+    throw new TypeError('InvalidHostObservationConfiguration');
+  }
+  const selectedCorrelation = correlation === true ? correlations : correlation === false ? [] :
+    selection(correlation, correlations, correlations);
+  const selectedMeasurements = selection(options.measurements, measurements,
+    measurements.filter(item => item !== 'cost'));
+  // No pricing source is admitted by this metadata-only profile.
+  if (selectedMeasurements.includes('cost')) throw new TypeError('UnsupportedObservationCostSource');
+  selection(options.attributes === undefined ? undefined :
+    {include: [], ...options.attributes}, attributeNames, []);
+  if (options.attributes !== undefined && (!options.attributes ||
+      typeof options.attributes !== 'object' || Array.isArray(options.attributes) ||
+      Object.keys(options.attributes).some(key => key !== 'exclude'))) {
+    throw new TypeError('InvalidHostObservationSelection');
+  }
+  const attributeExclusions = options.attributes?.exclude ?? [];
+  const eventLevel = options.events?.level ?? 'lifecycle';
+  if (options.events !== undefined && (!options.events ||
+      typeof options.events !== 'object' || Array.isArray(options.events) ||
+      Object.keys(options.events).some(key => key !== 'level')) ||
+      !['lifecycle', 'diagnostic'].includes(eventLevel)) {
+    throw new TypeError('InvalidHostObservationSelection');
+  }
+  const selected = Object.freeze({...observationLimits, ...limits});
+  for (const [key, value] of Object.entries(selected)) {
+    if (!Number.isSafeInteger(value) || value < 1 || value > observationLimits[key as keyof ObservationLimits]) {
+      throw new TypeError('InvalidHostObservationLimit');
+    }
+  }
+  const allowed = new Set(include.filter(x => !exclude.includes(x)));
+  const boundRevision = createHash('sha256').update(JSON.stringify({scope, revision,
+    limits: selected, operations: [...allowed].sort(), correlations: selectedCorrelation,
+    measurements: selectedMeasurements, attributeExclusions, eventLevel})).digest('hex');
+  const config: ConnectionConfig = {deliver, currentContext, scope, revision: boundRevision, selected,
+    allowed, correlation: selectedCorrelation.includes('external_trace'),
+    correlations: new Set(selectedCorrelation), measurements: new Set(selectedMeasurements),
+    attributeExclusions: new Set(attributeExclusions), eventLevel};
+  const token = Object.freeze({status: () => config.status?.(),
+    configuration: () => Object.freeze({scope, revision: boundRevision,
+      limits: selected, operations: Object.freeze([...allowed]),
+      correlation: selectedCorrelation.length !== 0,
+      correlations: Object.freeze([...selectedCorrelation]),
+      measurements: Object.freeze({selected: Object.freeze([...selectedMeasurements]),
+        available: Object.freeze(['duration', 'resources', 'rows'] as const)}),
+      attributes: Object.freeze({exclude: Object.freeze([...attributeExclusions])}),
+      events: Object.freeze({level: eventLevel})})});
+  connections.set(token, config);
+  return token;
+}
+
+export const isHostObservationProjection = (value: unknown): value is ObservationProjection => projections.has(value as object);
+
+// Copy only the common receipt/publication Owner's returned disposition. This
+// does not interpret transport errors or call an arbitrary completion hook.
+export function projectEffectApplication(projection: unknown, ref: RunReference, result: Readonly<{status: string}>) {
+  if (!projections.has(projection as object)) return;
+  try {
+    const outcome = ({published: 'committed', waiting: 'waiting_checkpoint',
+      needs_reconciliation: 'needs_reconciliation', failed: 'failed'} as Readonly<Record<string, string | undefined>>)[result.status];
+    if (outcome !== undefined) (projection as ObservationProjection).diagnostic('effect_application_observed', {ref, outcome});
+  } catch { /* Optional metadata cannot change receipt or cleanup custody. */ }
+}
+
+// Same failed Core preflight metadata only. No observation can create a
+// semantic outcome, repeat validation or settle the original cleanup owner.
+export function projectEffectPreflightFailure(projection: unknown, ref: RunReference, primaryDiagnostic?: PrimaryDiagnostic) {
+  if (!projections.has(projection as object) || primaryDiagnostic === undefined) return;
+  try {(projection as ObservationProjection).diagnostic('effect_preflight_failed', {ref, primaryDiagnostic});}
+  catch { /* Optional delivery cannot replace the original failure. */ }
+}
+
+// The installed Host supplies a captured original Core reader. Public callers
+// cannot acquire a Ledger or execution authority through this projection.
+export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage?: ManagedUsageReader) {
+  if (!projections.has(projection as object)) return undefined;
+  return (projection as ObservationProjection).captureManagedRun(ref, readUsage);
+}
+
+export function installHostObservation(connection: ObservationConnection | undefined, {journal, runId}: Readonly<{
+  journal?: JournalPort; runId?: (ref: RunReference) => string | undefined;
+}> = {}) {
+  if (connection === undefined) return undefined;
+  const config = connections.get(connection);
+  if (config === undefined) throw new TypeError('ForeignHostObservationConnection');
+  const previous = config.status?.();
+  if (previous && (!previous.closed || previous.cleanupPending ||
+      previous.active !== 0 || previous.activeSegments !== 0)) {
+    throw new TypeError('HostObservationConnectionInUse');
+  }
+  let storage: ObservationStorage | undefined, storageUnavailable = false, storageClosed = false;
+  try { if (config.allowed.size !== 0) storage = journal?.observationStorage(); }
+  catch { storageUnavailable = true; }
+  const closeStorage = () => {
+    if (storageClosed) return;
+    if (storage !== undefined) storage.close?.();
+    else if (config.allowed.size !== 0) journal?.closeObservationStorage?.();
+    storageClosed = true;
+  };
+  const queue: QueuedObservation[] = [], pending = new Set<PendingReturn>(), activeContexts = new Set<ObservationFrame>();
+  const contextOwner = {};
+  const runIdentityLimit = Symbol('RunIdentityLimit');
+  const observeRows = config.eventLevel === 'diagnostic' && config.allowed.has('run') &&
+    config.measurements.has('rows');
+  let queuedBytes = 0, closed = false, pumping = false, sequence = 0, activeSegments = 0;
+  let activeCallbacks = 0, callbackState: Readonly<{active: boolean}> = Object.freeze({active: false});
+  const enterApplicationCallback = () => {
+    activeCallbacks++;
+    callbackState = Object.freeze({active: true});
+    return () => {
+      activeCallbacks--;
+      callbackState = Object.freeze({active: activeCallbacks !== 0});
+    };
+  };
+  const counts = {dropped: 0, deliveryFailed: 0, budgetUnavailable: 0,
+    queueOverflow: 0, limited: 0, repeated: 0};
+  const diagnostics: Record<string, number> = Object.create(null);
+  const drop = (reason: string) => {
+    counts.dropped++;
+    if (Object.hasOwn(counts, reason)) counts[reason as keyof typeof counts]++;
+    diagnostics[reason] = (diagnostics[reason] ?? 0) + 1;
+  };
+  // The inner frame must unwind before the original loan can return. A
+  // delivery timeout/Host close never proves that an application settled.
+  const deliverQueued = async (item: QueuedObservation) => {
+    if (item.custody !== undefined && item.custody.current() !== true) {
+      drop('logicalBoundaryUnavailable'); return;
+    }
+    const leave = enterApplicationCallback();
+    try {await config.deliver(item.record!);} finally {leave();}
+  };
+  const releaseQueued = (item: PendingReturn) => {
+    item.record = undefined;
+    const custody = item.custody;
+    custody?.release();
+    item.custody = undefined;
+  };
+  const releaseDropped = (custody?: LogicalCustody) => {
+    if (custody === undefined) return;
+    // Reuse the same queue's pending-return responsibility, including a read
+    // declined before capture/enqueue. There is no retry of the read/delivery.
+    const item = {record: undefined, custody, deliverySettled: true};
+    try {releaseQueued(item);}
+    catch {drop('logicalBoundaryReturnPending'); pending.add(item);}
+  };
+  const pump = () => {
+    if (closed || pumping || queue.length === 0) return;
+    pumping = true;
+    setImmediate(() => {
+      pumping = false;
+      if (closed) return;
+      const item = queue.shift();
+      if (!item) return;
+      queuedBytes -= item.bytes;
+      // There is at most one delivery in flight. A nonterminating embedded
+      // callback keeps this slot; a timeout cannot prove physical settlement.
+      const leaveCallback = item.custody === undefined ? enterApplicationCallback() : undefined;
+      let promise;
+      try { promise = item.custody === undefined
+        ? Promise.resolve(config.deliver(item.record!)) : deliverQueued(item); }
+      catch { promise = Promise.reject(new Error('ObservationDeliveryFailed')); }
+      pending.add(item);
+      promise.catch(() => { drop('deliveryFailed'); }).finally(() => {
+        item.deliverySettled = true;
+        leaveCallback?.();
+        try {releaseQueued(item); pending.delete(item);}
+        catch {drop('logicalBoundaryReturnPending');}
+        pump();
+      });
+    });
+  };
+  const resolveRunIdentity = (context: ObservationFrame | undefined, ref: RunReference | null | undefined, terminal = false) => {
+    if (ref === undefined || ref === null || typeof ref.namespaceId !== 'string' ||
+        !cid(ref.authorityScopeCid) || !cid(ref.runDefinitionCid)) return undefined;
+    const original = context?.owner === contextOwner ? context : undefined;
+    if (original?.finished && !terminal) return undefined;
+    const key = JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);
+    if (original?.runIdentities?.has(key)) return original.runIdentities.get(key);
+    if ((original?.runIdentities?.size ?? 0) >=
+        Math.min(config.selected.requestRecords, config.selected.segmentRecords)) throw runIdentityLimit;
+    const id = runId?.(ref);
+    if (typeof id !== 'string' || id.length > 128) return undefined;
+    // Only an actual positive result from this installation's resolver is
+    // retained, under the complete immutable Run tuple and this operation.
+    // Missing/error observations and authority/current facts are not cached.
+    if (original) (original.runIdentities ??= new Map()).set(key, id);
+    return id;
+  };
+  const emit = (operation: ObservationOperation, event: string, facts: ObservationFacts = {}, options: EmitOptions = {}) => {
+    try {
+      if (closed || !config.allowed.has(operation)) return;
+      if (!recordEvents.has(event)) { drop('limited'); return; }
+      const logical = event === 'logical_boundary_observed' || event === 'logical_boundary_unavailable';
+      if (logical && (operation !== 'compute' || !config.correlations.has('task') ||
+          options.logicalBoundaryMarker !== logicalBoundaryMarker)) { drop('limited'); return; }
+      if (logical && Object.keys(options.logicalAttributes!).some(key => config.attributeExclusions.has(key))) {
+        drop('requiredAttributeExcluded'); return;
+      }
+      if (event === 'selected_rows_observed' && !selectedRowSnapshots.has(options.selectedRows as object)) {
+        drop('rowsUnavailable'); return;
+      }
+      if (mandatoryAttributes.some(key => config.attributeExclusions.has(key))) {
+        drop('requiredAttributeExcluded'); return;
+      }
+      const current = contexts.getStore();
+      const context = current?.owner === contextOwner ? current : undefined;
+      if (context && context.records >= Math.min(config.selected.requestRecords,
+        config.selected.segmentRecords)) {context.records++; drop('limited'); return;}
+      const ref = event === 'selected_rows_observed' ? facts.ref : facts.ref ?? context?.ref;
+      if (context && cid(facts.ref?.runDefinitionCid)) context.ref = facts.ref;
+      const attributes: Attributes = { 'actql.operation': operation,
+        'actql.event': event, 'actql.observation.version': observationVersion };
+      if (outcomes.has(facts.outcome!)) attributes['actql.outcome'] = facts.outcome!;
+      if (['verified', 'invalid', 'undetermined'].includes(facts.checkVerdict!)) {
+        attributes['actql.check.verdict'] = facts.checkVerdict!;
+      }
+      if (config.correlations.has('task') && Number.isSafeInteger(facts.task) && facts.task! >= 0) {
+        attributes['actql.task.ordinal'] = facts.task!;
+      }
+      if (event === 'dispatch_failed' && config.eventLevel === 'diagnostic' &&
+          facts.primaryDiagnostic !== undefined) {
+        const failure = facts.primaryDiagnostic;
+        attributes['error.type'] = failure.code;
+        attributes['actql.failure.phase'] = failure.phase;
+        attributes['actql.failure.kind'] = failure.kind;
+        if (config.correlations.has('task')) {
+          if (Number.isSafeInteger(failure.task) && failure.task! >= 0) attributes['actql.task.ordinal'] = failure.task!;
+          if (Number.isSafeInteger(failure.unit) && failure.unit! >= 0) attributes['actql.unit.ordinal'] = failure.unit!;
+          if (Number.isSafeInteger(failure.step) && failure.step! >= 0) attributes['actql.step.ordinal'] = failure.step!;
+        }
+      }
+      if (config.correlations.has('attempt')) {
+        if (Number.isSafeInteger(facts.attempt) && facts.attempt! >= 0) attributes['actql.attempt.ordinal'] = facts.attempt!;
+        if (Number.isSafeInteger(facts.slot) && facts.slot! >= 0) attributes['actql.model.slot.ordinal'] = facts.slot!;
+      }
+      if (Number.isSafeInteger(facts.revision) && facts.revision! >= 0) attributes['actql.owner.revision'] = facts.revision!;
+      if (typeof facts.cleanupPending === 'boolean') attributes['actql.cleanup.pending'] = facts.cleanupPending;
+      if (outcomes.has(facts.physicalStop!)) attributes['actql.physical_stop'] = facts.physicalStop!;
+      if (managedResourceSnapshots.has(options.resources as object)) Object.assign(attributes, options.resources);
+      if (selectedRowSnapshots.has(options.selectedRows as object)) Object.assign(attributes, options.selectedRows);
+      if (logical) Object.assign(attributes, options.logicalAttributes);
+      const record: Omit<ObservationRecord, 'link'> & {link?: ObservationContext} = {version: observationVersion, operation, event,
+        sequence: sequence++, observedAt: Date.now(),
+        monotonicAt: performance.now(), attributes,
+        ...(options.segment === undefined ? {} : {segment: options.segment}),
+        ...(!Number.isFinite(options.durationMs) || options.durationMs! < 0
+          ? {} : {durationMs: options.durationMs}),
+        ...(!config.correlation || context?.trace === undefined ? {} : {parent: context.trace}),
+      };
+      if (config.correlations.has('run') && cid(ref?.runDefinitionCid)) {
+        attributes['actql.run.definition_cid'] = ref!.runDefinitionCid;
+        const id = event === 'selected_rows_observed'
+          ? selectedRowSnapshots.get(options.selectedRows as object)
+          // Only the fixed logical supplier (guarded above by its private
+          // marker) carries this already accepted Run's original identity.
+          : logical && Object.hasOwn(facts, 'runId') ? facts.runId : resolveRunIdentity(context, ref);
+        if (typeof id === 'string' && id.length <= 128) attributes['actql.run.id'] = id;
+      }
+      if (config.correlations.has('attempt') && cid(facts.attemptCid)) attributes['actql.model.attempt_cid'] = facts.attemptCid;
+      if (options.ingress === true && context?.http !== undefined) {
+        const method = context.http.method;
+        if (['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].includes(method!)) {
+          attributes['http.request.method'] = method!;
+        } else attributes['http.request.method'] = '_OTHER';
+        attributes['http.route'] = '/actql/client/0.1/{operation}';
+        const code = context.http.response?.statusCode;
+        if (event === 'segment_ended' && Number.isInteger(code) && code! >= 100 && code! <= 599) {
+          attributes['http.response.status_code'] = code!;
+          if (code! >= 500) attributes['error.type'] = String(code);
+        }
+      }
+      for (const key of config.attributeExclusions) delete attributes[key];
+      // Reserve space for both restored correlation contexts before reading
+      // optional journal metadata. Neither contains arbitrary attribute data.
+      const bytes = Buffer.byteLength(JSON.stringify(record)) + 384;
+      if (bytes > config.selected.recordBytes) { drop('limited'); return; }
+      if (context && ++context.records > Math.min(config.selected.requestRecords,
+        config.selected.segmentRecords)) { drop('limited'); return; }
+      if (cid(ref?.runDefinitionCid)) {
+        if (storageUnavailable || storage === undefined) { drop('budgetUnavailable'); return; }
+        const budget = storage.consume({ref, scope: config.scope,
+          revision: config.revision, bytes, maxRecords: config.selected.runRecords,
+          maxBytes: config.selected.runBytes,
+          ownerFactKey: event === 'owner_observed' ? options.ownerFactKey : undefined} as Parameters<ObservationStorage['consume']>[0]);
+        if (budget === undefined) { drop('budgetUnavailable'); return; }
+        if (budget.repeated === true) { counts.repeated++; return; }
+        if (!budget.accepted) { drop('limited'); return; }
+        // A saved caller context is a link, not a resumed lifetime span.
+        if (config.correlation && budget.context !== undefined &&
+            (record.parent?.spanId !== budget.context.spanId ||
+             record.parent?.traceId !== budget.context.traceId)) record.link = budget.context;
+      }
+      if (queue.length >= config.selected.queueRecords ||
+          queuedBytes + bytes > config.selected.queueBytes) { drop('queueOverflow'); return; }
+      Object.freeze(attributes);
+      queue.push({record: Object.freeze(record), bytes, custody: options.logicalCustody});
+      queuedBytes += bytes;
+      if (pending.size === 0) pump();
+      return true;
+    } catch (cause) { drop(cause === runIdentityLimit ? 'limited' : 'budgetUnavailable'); }
+  };
+  const flushSelectedRows = (context: ObservationFrame | undefined) => {
+    if (context === undefined || context.selectedRowsClosed) return;
+    // A request with no matching successful acceptance remains unbound. Keep
+    // its real counts without borrowing an eventual or another operation's Run.
+    for (const pending of context.pendingRequestRows ?? []) accumulateSelectedRows(context, pending);
+    context.pendingRequestRows = context.selectedRequestBinding = undefined;
+    const rows = context.selectedRows;
+    if (context.selectedRowsUnavailable && rows !== undefined) rows.unavailable = true;
+    let id;
+    try {
+      if (rows !== undefined && !rows.unavailable && config.correlations.has('run')) {
+        // The original resolver may perform a selected Journal read. Count
+        // that real read before closing the aggregate; emission must not
+        // recursively ask the Journal for metadata about its own record.
+        id = resolveRunIdentity(context, rows.ref, true);
+      }
+    } catch (cause) {
+      context.selectedRowsClosed = true; context.selectedRows = undefined;
+      drop(cause === runIdentityLimit ? 'limited' : 'budgetUnavailable'); return;
+    }
+    context.selectedRowsClosed = true; context.selectedRows = undefined;
+    if (rows === undefined || rows.unavailable) return;
+    try {
+      // One bounded record for this existing ingress, not another durable
+      // observation transaction for each native get. Unknown classification
+      // and missing original correlation remain absent, not zero or a new Run.
+      const attributes = Object.freeze({'actql.rows.owner': rows.rowOwner,
+        'actql.rows.selection': rows.selection, 'actql.rows.kind': rows.rowKind,
+        'actql.rows.returned': rows.returnedRows,
+        ...(rows.unrelatedRows === undefined ? {} : {'actql.rows.unrelated': rows.unrelatedRows}),
+        'actql.rows.coverage': rows.coverage});
+      selectedRowSnapshots.set(attributes, id);
+      emit('run', 'selected_rows_observed', {ref: rows.ref}, {selectedRows: attributes});
+    } catch {drop('rowsUnavailable');}
+  };
+  const finishContext = (context: ObservationFrame) => {
+    if (context.finished || !context.ingressSettled || context.children !== 0) return;
+    context.finished = true;
+    contexts.run(context, () => flushSelectedRows(context));
+    context.runIdentities = undefined;
+    if (observeRows) activeContexts.delete(context);
+    activeSegments--;
+  };
+  const captureCurrentOperation = () => {
+    if (closed || !observeRows) return undefined;
+    const context = contexts.getStore();
+    if (context?.owner !== contextOwner || context.finished) return undefined;
+    if (context.children >= config.selected.requestRecords) {drop('limited'); return undefined;}
+    context.children++;
+    let original: ObservationFrame | undefined = context;
+    return Object.freeze({
+      run<Result>(work: () => Result) {return original === undefined ? work() : contexts.run(original, work);},
+      release() {
+        if (original === undefined) return;
+        const held = original; original = undefined;
+        held.children--;
+        finishContext(held);
+      },
+    });
+  };
+  const retainOperation = (promise: unknown) => {
+    if (closed || !observeRows) return;
+    const context = contexts.getStore();
+    if (context?.owner !== contextOwner || context.finished ||
+        promise === null || !['object', 'function'].includes(typeof promise)) return;
+    if (context.retainedPromises?.has(promise as object)) return;
+    const captured = captureCurrentOperation();
+    if (captured === undefined) return;
+    try {
+      // Use the original Promise's settlement, not a thenable/application
+      // callback or another Run/observation frame. Never await or replace it.
+      Promise.prototype.then.call(promise as Promise<unknown>, captured.release, captured.release);
+      (context.retainedPromises ??= new WeakSet()).add(promise as object);
+    } catch {captured.release(); drop('rowsUnavailable');}
+  };
+  const accepted = (result: Readonly<{ref?: RunReference; inserted?: boolean}> | undefined, requestId: string) => {
+    try {
+      if (config.allowed.size === 0 || result?.ref === undefined) return;
+      const current = contexts.getStore();
+      const context = current?.owner === contextOwner ? current : undefined;
+      if (context) context.ref = result.ref;
+      if (observeRows && context && !context.finished && typeof requestId === 'string' &&
+          typeof result.ref.namespaceId === 'string' && cid(result.ref.authorityScopeCid) &&
+          cid(result.ref.runDefinitionCid)) {
+        // This hook follows the actual Journal acceptance transaction. It is
+        // only original correspondence, never a permission or row read ACK.
+        context.selectedRequestBinding = {requestId, ref: Object.freeze({
+          namespaceId: result.ref.namespaceId, authorityScopeCid: result.ref.authorityScopeCid,
+          runDefinitionCid: result.ref.runDefinitionCid})};
+        const pending = [];
+        for (const detail of context.pendingRequestRows ?? []) {
+          const bound = bindSelectedRequestRows(detail, context.selectedRequestBinding);
+          if (bound === undefined) pending.push(detail);
+          else accumulateSelectedRows(context, bound);
+        }
+        context.pendingRequestRows = pending;
+      }
+      if (result.inserted && storage !== undefined) {
+        storage.initialize({ref: result.ref, requestId,
+          scope: config.scope, revision: config.revision,
+          maxRuns: config.selected.journalRuns,
+          context: config.correlation ? context?.trace : undefined});
+      }
+    } catch { drop('budgetUnavailable'); }
+  };
+  const run = async <Result,>(operation: string, trace: unknown, work: () => Result,
+    {http}: Readonly<{http?: IngressFacts}> = {}) => {
+    if (closed || config.allowed.size === 0) return work();
+    let parent = trace;
+    if (config.correlation && parent === undefined) {
+      if (config.currentContext !== undefined) {
+        const leaveCallback = enterApplicationCallback();
+        try { parent = config.currentContext(); } catch { /* Optional context. */ }
+        finally {leaveCallback();}
+      }
+    }
+    if (activeSegments >= config.selected.activeSegments) {
+      drop('limited'); return work();
+    }
+    activeSegments++;
+    const context: ObservationFrame = {owner: contextOwner, trace: config.correlation ? snapshotObservationContext(parent) : undefined,
+      records: 0, http, children: 0, ingressSettled: false, finished: false};
+    if (observeRows) activeContexts.add(context);
+    try { return await contexts.run(context, async () => {
+      const category = operation === 'check' || operation === 'prepareSubmit' ? 'check' : 'run';
+      const segment = randomUUID(), started = performance.now();
+      emit(category, 'segment_started', {}, {segment, ingress: true});
+      try {
+        const result = await work();
+        context.ingressSettled = true;
+        const selectedRef = context.selectedRows?.ref;
+        if (cid(selectedRef?.runDefinitionCid)) context.ref = selectedRef;
+        emit(category, 'segment_ended', {outcome: (http?.response?.statusCode as number) >= 400
+          ? 'failed' : 'succeeded'},
+          {segment, ingress: true, durationMs: performance.now() - started});
+        finishContext(context);
+        return result;
+      } catch (cause) {
+        context.ingressSettled = true;
+        const selectedRef = context.selectedRows?.ref;
+        if (cid(selectedRef?.runDefinitionCid)) context.ref = selectedRef;
+        emit(category, 'segment_ended', {outcome: 'failed'},
+          {segment, ingress: true, durationMs: performance.now() - started});
+        finishContext(context);
+        throw cause;
+      }
+    }); } finally {context.ingressSettled = true; finishContext(context);}
+  };
+  const projection = Object.freeze({run, accepted, emit, retainOperation, captureCurrentOperation,
+    canObserveLogicalBoundaries: () => !closed && config.allowed.has('compute') && config.correlations.has('task'),
+    logicalBoundaryUnavailable: () => {drop('logicalBoundaryUnavailable');},
+    returnLogicalBoundary: releaseDropped,
+    // The Boolean reports copied-shape admission only, never delivery,
+    // authorization, Resource return or physical cleanup acknowledgement.
+    logicalBoundary(detail: ObservationFacts, boundary: unknown, custody?: LogicalCustody) {
+      let transferred = false;
+      try {
+      if (closed || !config.allowed.has('compute') || !config.correlations.has('task')) return false;
+      if (boundary === null || typeof boundary !== 'object' || nodeTypes.isProxy(boundary) ||
+          ![Object.prototype, null].includes(Object.getPrototypeOf(boundary))) {drop('limited'); return false;}
+      // Fixed DATA fields only. No accessor, parser, recanonicalization or
+      // physical-task-to-logical-identity inference is performed here.
+      const own = (name: string) => {
+        const property = Object.getOwnPropertyDescriptor(boundary, name);
+        return property && Object.hasOwn(property, 'value') ? property.value : undefined;
+      };
+      let count = 0;
+      for (const name in boundary) if (Object.hasOwn(boundary, name) && ++count > 3) {drop('limited'); return false;}
+      const state = own('state');
+      let event, logicalAttributes;
+      if (state === 'projected' && count === 3 && typeof own('keyWire') === 'string' &&
+          ['before', 'settled', 'output_emitted'].includes(own('phase'))) {
+        const wire = own('keyWire');
+        // Admit the complete borrowed string before any record/string copy.
+        // Its original canonical meaning and same-Run/permission/backing checks
+        // belong to the Core/Host read supplier, never this shape marker.
+        if (wire.length === 0 || wire.length > config.selected.recordBytes ||
+            Buffer.byteLength(wire) > config.selected.recordBytes) {drop('limited'); return false;}
+        event = 'logical_boundary_observed';
+        logicalAttributes = {'actql.logical_step.key': wire, 'actql.logical_boundary.phase': own('phase')};
+      } else if (state === 'not_projected' && count === 2 && own('reason') === 'not_projected') {
+        event = 'logical_boundary_unavailable';
+        logicalAttributes = {'actql.logical_boundary.reason': 'not_projected'};
+      } else {drop('limited'); return false;}
+      transferred = emit('compute', event, detail,
+        {logicalBoundaryMarker, logicalAttributes, logicalCustody: custody}) === true;
+      // Historical callers use this as copied-shape admission only. The
+      // original funded supplier additionally transfers its one queue loan.
+      return true;
+      } finally {
+        if (!transferred) releaseDropped(custody);
+      }
+    },
+    // Identity changes only at actual application callback boundaries. This
+    // copied state is not authorization or an observation-delivery ACK.
+    applicationCallbackState: () => callbackState,
+    canMeasureResources: () => !closed && config.allowed.has('compute') && config.measurements.has('resources'),
+    captureManagedRun(ref: RunReference, readUsage?: ManagedUsageReader) {
+      if (closed || !config.allowed.has('compute') || !config.measurements.has('resources')) return undefined;
+      if (!cid(ref?.runDefinitionCid) || typeof readUsage !== 'function') {
+        drop('resourceUnavailable'); return undefined;
+      }
+      // A row response is consumed after ingress returns. Retain this same
+      // operation's bounded correlation, not a new frame or authorization.
+      const context = contexts.getStore();
+      const originalRef = Object.freeze({namespaceId: ref.namespaceId,
+        authorityScopeCid: ref.authorityScopeCid, runDefinitionCid: ref.runDefinitionCid});
+      let observed = false;
+      return () => {
+        if (observed || closed) return;
+        observed = true;
+        let resources;
+        try {resources = managedRunResources(readUsage());}
+        catch {drop('resourceUnavailable'); return;}
+        if (resources === undefined) {drop('resourceUnavailable'); return;}
+        contexts.run(context, () => emit('compute', 'resources_observed',
+          {ref: originalRef}, {resources}));
+      };
+    },
+    canMeasure: (operation: ObservationOperation) => !closed && config.allowed.has(operation) &&
+      config.measurements.has('duration'),
+    noteLoss: () => drop('budgetUnavailable'),
+    diagnostic(name: string, detail?: ObservationFacts & Partial<SelectedRowDetail>) {
+      if (name === 'selected_rows_observed') {
+        if (closed || config.eventLevel !== 'diagnostic' || !config.allowed.has('run') ||
+            !config.measurements.has('rows')) return;
+        let captured = false;
+        try {
+          const context = contexts.getStore();
+          if (context?.owner === contextOwner) captured = accumulateSelectedRows(context, detail as SelectedRowDetail,
+            Math.min(config.selected.requestRecords, config.selected.segmentRecords));
+        }
+        catch { /* Optional unreadable facts remain unavailable. */ }
+        if (!captured) drop('rowsUnavailable');
+        return;
+      }
+      const mapping = events[name as keyof typeof events];
+      // The same typed pre-Model or Model failure is selectable through the existing
+      // infer signal, without subscribing a work collector to Run lifecycle.
+      if (name === 'dispatch_failed' && config.eventLevel === 'diagnostic' && config.allowed.has('infer') &&
+          ['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact', 'original_infer_component']
+            .includes(detail?.primaryDiagnostic?.phase!)) {
+        emit('infer', 'dispatch_failed', {ref: detail!.ref, primaryDiagnostic: detail!.primaryDiagnostic});
+      }
+      if (mapping) emit(mapping[0] as ObservationOperation, mapping[1], {ref: detail?.ref,
+        task: detail?.task, attempt: detail?.attempt, slot: detail?.slot,
+        attemptCid: detail?.attemptCid, outcome: detail?.outcome,
+        ...(['dispatch_failed', 'effect_preflight_failed'].includes(name) ? {primaryDiagnostic: detail?.primaryDiagnostic} : {})});
+    },
+    status: () => Object.freeze({...counts, queued: queue.length,
+      queuedBytes, active: pending.size, activeSegments, closed,
+      cleanupPending: closed && (!storageClosed || pending.size !== 0),
+      loss: Object.freeze({...diagnostics})}),
+    async close() {
+      if (closed) {
+        for (const item of pending) if (item.deliverySettled) {
+          try {releaseQueued(item); pending.delete(item);}
+          catch {drop('logicalBoundaryReturnPending');}
+        }
+        try { closeStorage(); } catch {
+          drop('budgetUnavailable');
+          throw new Error('HostObservationCleanupPending');
+        }
+        return;
+      }
+      const deadline = Date.now() + config.selected.shutdownMs;
+      while ((pending.size !== 0 || queue.length !== 0) && Date.now() < deadline) {
+        for (const item of pending) if (item.deliverySettled) {
+          try {releaseQueued(item); pending.delete(item);}
+          catch {drop('logicalBoundaryReturnPending');}
+        }
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
+      closed = true;
+      for (const context of activeContexts) {
+        // Detach optional copied metadata, not the original work or its real
+        // cleanup duty. An unfinished observation is unavailable, not zero.
+        drop('rowsUnavailable');
+        context.finished = true; context.selectedRowsClosed = true;
+        context.selectedRows = context.pendingRequestRows = context.selectedRequestBinding =
+          context.trace = context.ref = context.http = undefined;
+        context.retainedPromises = undefined;
+        context.runIdentities = undefined;
+      }
+      activeContexts.clear(); if (observeRows) activeSegments = 0;
+      for (const item of queue) {
+        drop('shutdown'); item.deliverySettled = true;
+        try {releaseQueued(item);}
+        catch {drop('logicalBoundaryReturnPending'); pending.add(item);}
+      }
+      queue.length = 0; queuedBytes = 0;
+      try { closeStorage(); } catch {
+        drop('budgetUnavailable');
+        throw new Error('HostObservationCleanupPending');
+      }
+    },
+  });
+  projections.add(projection);
+  config.status = projection.status;
+  return projection;
+}

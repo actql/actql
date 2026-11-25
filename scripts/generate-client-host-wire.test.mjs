@@ -196,6 +196,10 @@ test('generated Client–Host guards and types match the machine contract',
     'utf8'));
     assert.equal(outputs.checkpointAnswers, await readFile(new URL(
       '../packages/sdk/internal/checkpoint-answer-contract.generated.mjs', import.meta.url), 'utf8'));
+    assert.equal(outputs.checkpointAnswerTypes, await readFile(new URL(
+      '../packages/sdk/internal/checkpoint-answer-contract.generated.d.mts', import.meta.url), 'utf8'));
+    assert.equal(outputs.checkpointConstructionTypes, await readFile(new URL(
+      '../packages/sdk/internal/checkpoint-answer-construction.generated.d.mts', import.meta.url), 'utf8'));
     assert.equal(outputs.runWait, await readFile(new URL(
       '../src/run_publication/run_wait.generated.mbt', import.meta.url), 'utf8'));
   });
@@ -206,6 +210,7 @@ test('SDK answer grammar projects existing Resolution and Evidence without chang
   changed.artifact_schemas.checkpoint_resolution.properties.decision.enum = ['rejected'];
   const result = buildClientHostWire(registry, changed);
   assert.notEqual(result.checkpointAnswers, original.checkpointAnswers);
+  assert.notEqual(result.checkpointAnswerTypes, original.checkpointAnswerTypes);
   for (const key of ['module', 'types', 'native', 'nativeTests', 'runWait']) {
     assert.equal(result[key], original[key], key);
   }
@@ -340,6 +345,25 @@ test('generated check validator rejects contradictory evidence and partial verif
       reasons: [{code: 'future_violation'}]})), true);
     assert.equal(valid(outcome({...report, verdict: 'undetermined',
       coverage: {limits: [{code: 'future_limit'}], unresolved: []}})), true);
+    const calendar = (requirement) => outcome({...report, verdict: 'undetermined',
+      requirements: [requirement],
+      coverage: {limits: [{code: 'checking_context_missing'}], unresolved: []},
+      runnable: {verdict: 'no', reasons: [{code: 'calendar_profile_required'}]}});
+    const required = {code: 'calendar_profile_required', facts: {
+      issue: 'selection_missing', supplier: 'checking_context_owner', stage: 'checking'}};
+    assert.equal(valid(calendar(required)), true);
+    assert.equal(valid(calendar({...required, facts: {...required.facts, issue: 'artifact_missing'}})), true);
+    for (const facts of [
+      {...required.facts, issue: 'unknown'},
+      {...required.facts, artifact: 'private'},
+      {...required.facts, capability: 'calendar'},
+      {...required.facts, authorization: 'allow'},
+      {...required.facts, supplier: 'caller'},
+      {...required.facts, stage: 'execution'},
+      {issue: 'selection_missing'},
+      undefined,
+    ]) assert.equal(valid(calendar({...required, facts})), false);
+    assert.equal(valid(outcome({...report, verdict: 'invalid', reasons: [required]})), false);
   });
 
 test('typed public facts are closed and locations bind declared input revisions', async () => {

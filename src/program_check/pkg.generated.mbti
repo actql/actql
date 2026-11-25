@@ -201,6 +201,8 @@ pub fn diagnostic_alternative_at(CheckDiagnostic, Int) -> (@stage_syntax.Format,
 
 pub fn diagnostic_alternative_count(CheckDiagnostic) -> Int
 
+pub fn diagnostic_calendar_requirement(CheckDiagnostic) -> InputRequestKind?
+
 pub fn diagnostic_category(CheckDiagnostic) -> DiagnosticCategory
 
 pub fn diagnostic_cause(CheckDiagnostic) -> LocalConstructionFailure

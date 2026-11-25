@@ -110,6 +110,7 @@ test('Native keeps both same-source inputs in one joint RC and measures only tha
   assert.deepEqual(new Set(installed.strategy.matrix.include.map(row => row.platform)), new Set(['linux-x64-gnu', 'darwin-arm64']));
   const formal = calls(installed, 'test-native-approval-performance.mjs'); assert(formal);
   assert.equal(formal.if, "matrix.platform == 'linux-x64-gnu'");
+  assert.equal(formal['timeout-minutes'], 30);
   assert(formal.run.includes('--normal "$RUNNER_TEMP/native-installed/release"'));
   assert(!/--diagnostic|--binding/u.test(formal.run));
   assert(formal.run.includes('env -u TMPDIR -u TMP -u TEMP'));
@@ -130,10 +131,62 @@ test('Native keeps both same-source inputs in one joint RC and measures only tha
   assert(installed.steps.indexOf(node24) > installed.steps.indexOf(calls(installed, 'test-native-cli-source-free-install.mjs')));
   assert(installed.steps.indexOf(node24) < installed.steps.indexOf(functional));
   assert.equal(functional['timeout-minutes'], 30);
+  assert.equal(installed['timeout-minutes'], '${{ matrix.minutes }}');
+  assert.equal(installed.strategy.matrix.include.find(row => row.platform === 'linux-x64-gnu').minutes, 60);
   assert.equal(installed.strategy.matrix.include.find(row => row.platform === 'darwin-arm64').minutes, 65);
   const evidence = action(installed, 'upload-artifact'); assert.equal(evidence.if, 'always()');
   assert(evidence.with.path.includes('/tmp/actql-native-mock-install-*/commands.json'));
   assert(evidence.with.path.includes('native-installed/release/*.json'));
+});
+
+test('both Native RC producers consume the verified Model role from the selected source', t => {
+  const job = jobs['native-production'];
+  const preparation = calls(job, 'prepare-native-resident-http-component.py');
+  const retention = job.steps.find(step => step.run?.includes('model-http/component/build.json'));
+  const shell = [
+    'sudo() { :; }',
+    'realpath() { printf "%s\\n" "$1"; }',
+    'test() { if [ "$*" = "-x /usr/bin/clang-19" ]; then return 0; fi; builtin test "$@"; }',
+    'python3() { if [ "$1" = -c ]; then printf "/tools/%s\\n" "$3"; else printf "%s\\n" "$@"; fi; }',
+    'node() { if [ "$1" = -p ]; then printf "linux/x64\\n"; else printf "%s\\n" "$@"; fi; }',
+  ].join('\n');
+  const scripted = (step, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', shell + '\n' + step.run], {
+    encoding: 'utf8', timeout: 5000, env: {...process.env, ...env},
+  });
+  const root = mkdtempSync(join(tmpdir(), 'actql-release-model-role-'));
+  t.after(() => rmSync(root, {recursive: true}));
+  const source = 'a'.repeat(40);
+  assert.equal(preparation.if, undefined);
+  assert.equal(preparation['continue-on-error'], undefined);
+  for (const [platform, target, script] of [
+    ['linux-x64-gnu', 'linux-x64', 'produce-native-cli-linux-local.mjs'],
+    ['darwin-arm64', 'darwin-arm64', 'produce-native-cli-darwin-local.mjs'],
+  ]) {
+    const producer = calls(job, script);
+    assert(job.steps.indexOf(preparation) < job.steps.indexOf(producer));
+    assert(job.steps.indexOf(producer) < job.steps.indexOf(retention));
+    const directory = join(root, 'native-release-' + platform);
+    mkdirSync(directory);
+    const env = {SELECTED_SOURCE: source, SELECTED_PLATFORM: platform, RUNNER_TEMP: root,
+      SELECTED_DARWIN_CLANG: '/clt/clang', SELECTED_DARWIN_SDK: '/clt/MacOSX.sdk'};
+    const prepared = scripted(preparation, env);
+    assert.equal(prepared.status, 0, prepared.stderr);
+    const args = prepared.stdout.trimEnd().split('\n');
+    assert.deepEqual(args.slice(0, 5),
+      ['scripts/prepare-native-resident-http-component.py', '--source', source, '--target', target]);
+    assert.equal(args.includes('--model-resolver'), true);
+    assert.equal(args[args.indexOf('--destination') + 1], join(directory, 'model-http'));
+    const produced = scripted(producer, env);
+    assert.equal(produced.status, 0, produced.stderr);
+    const produceArgs = produced.stdout.trimEnd().split('\n');
+    assert.equal(produceArgs[produceArgs.indexOf('--source') + 1], source);
+    assert.equal(produceArgs[produceArgs.indexOf('--model-http-preparation') + 1],
+      join(directory, 'model-http/preparation.json'));
+    assert.equal(produceArgs.includes('--remote-http-preparation'), false);
+  }
+  const refused = scripted(preparation, {SELECTED_SOURCE: source, SELECTED_PLATFORM: 'foreign', RUNNER_TEMP: root});
+  assert.equal(refused.status, 1);
+  assert.equal(refused.stdout, '');
 });
 
 test('Mac project companion uses the original artifact and refuses foreign manifest bindings', t => {

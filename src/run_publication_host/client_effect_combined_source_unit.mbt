@@ -128,7 +128,7 @@ pub fn client_effect_combined_source_unit_construction_geometry(
     max_bytes,
     max_nodes,
     max_depth,
-    allow_single_query=true,
+    allow_single_source=true,
   )
 }
 
@@ -258,9 +258,9 @@ fn prepare_client_effect_source_unit_body(
       relations.push(relation)
     }
   }
-  let scope = if contributions.length() == 1 &&
-    final_context is Some(_) &&
-    source.originals[contributions[0].slot] is QuerySourceOriginal(_) {
+  // A singleton in the final Run uses its one checked acquisition scope.
+  // A Whole source still supplies its own measured request material.
+  let scope = if contributions.length() == 1 && final_context is Some(_) {
     contributions[0].scope
   } else {
     if contributions.length() < 2 {
@@ -816,7 +816,7 @@ pub fn client_effect_source_unit_construction_geometry(
     max_bytes,
     max_nodes,
     max_depth,
-    allow_single_query=false,
+    allow_single_source=false,
   )
 }
 
@@ -828,7 +828,7 @@ fn measure_client_effect_source_unit(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-  allow_single_query~ : Bool,
+  allow_single_source~ : Bool,
 ) -> Result[
   Array[(String, @encode.EncodingConstructionGeometry)],
   ClientEffectAcquiredEvidenceIssue,
@@ -844,7 +844,6 @@ fn measure_client_effect_source_unit(
   let inputs = []
   let rows = []
   let observations = []
-  let mut contains_whole = false
   for slot, coordinate in source.occurrences.coordinates {
     if coordinate.0 != unit {
       continue
@@ -852,7 +851,6 @@ fn measure_client_effect_source_unit(
     match source.originals[slot] {
       QuerySourceOriginal(_) => () // SAME admitted Query document is borrowed.
       WholeSourceOriginal(acquisition) => {
-        contains_whole = true
         let geometry = match
           @acquisition.parameterized_request_canonical_geometry(
             @acquisition.source_acquisition_request(acquisition),
@@ -875,7 +873,7 @@ fn measure_client_effect_source_unit(
       @publication.run_evidence_value_identity(source.sources[slot]),
     )
   }
-  let singleton = allow_single_query && sources.length() == 1 && !contains_whole
+  let singleton = allow_single_source && sources.length() == 1
   if sources.length() < 2 && !singleton {
     return Err(Invocation(MissingCapturedInput))
   }

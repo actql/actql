@@ -73,7 +73,7 @@
   descriptors, stages, invocation multiplicity or owner lifetimes require an
   updated constructor inventory and caller ordering; an entry-only byte factor
   cannot cover foreign path/catalog/native-output inputs or new authority.
-- Verification: declared-project-catalog-construction.test.mjs exercises actual
+- Verification: declared-project-catalog-construction.test.mts exercises actual
   canonical/hash/output bounds, multi-view and repeated invocation sums, borrowed
   native outputs, empty-stage minima, malformed input geometry, exact Mapping
   payloads and refusal without parse/stringify/coercion. Installed-stage tests

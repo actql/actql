@@ -83,7 +83,7 @@ test('independent statistics retain NULL, duplicate occurrences and sample cardi
 
 test('ordinary packed corpus includes statistical aggregates and narrow acceptance excludes unrelated campaigns', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'statisticalAggregateSuccesses'],
     ['refusals', 'statisticalAggregateRefusals'], ['executionFailures', 'statisticalAggregateExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

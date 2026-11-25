@@ -267,6 +267,40 @@ pub fn input_requests_diagnostic(value : InputRequests) -> CheckDiagnostic {
 }
 
 ///|
+fn calendar_request_inventory(
+  cause : LocalConstructionFailure,
+) -> RequestInventory? {
+  match cause {
+    Source(SourceView(Program(MissingCalendarArtifact(selection))))
+    | Closure(Operations(Calendar(MissingArtifact(selection)))) =>
+      Some(CalendarArtifact(selection))
+    Source(SourceView(Program(MissingCalendarSelection(_, _))))
+    | Closure(Operations(Calendar(MissingProfile(_, _, _)))) =>
+      Some(CalendarSelection)
+    _ =>
+      if diagnostic_pipeline_cause(cause)
+        is Some({ kind: Calendar(MissingProfile), .. }) {
+        Some(CalendarSelection)
+      } else {
+        None
+      }
+  }
+}
+
+///|
+/// Only the existing Calendar selection or artifact obligation.
+pub fn diagnostic_calendar_requirement(
+  value : CheckDiagnostic,
+) -> InputRequestKind? {
+  match calendar_request_inventory(value.cause) {
+    Some(CalendarSelection) => Some(HostCalendarSelection)
+    Some(CalendarArtifact(selection)) =>
+      Some(CalendarProfileArtifact(selection))
+    _ => None
+  }
+}
+
+///|
 fn checking_outcome(
   program : @syntax.Program,
   environment : CheckEnvironment,
@@ -286,14 +320,8 @@ fn checking_outcome(
           TextRankArtifact(selection)
         Closure(Operations(Lexical(MissingProfile(_, _, _)))) =>
           TextRankSelection
-        Source(SourceView(Program(MissingCalendarArtifact(selection)))) =>
-          CalendarArtifact(selection)
-        Closure(Operations(Calendar(MissingArtifact(selection)))) =>
-          CalendarArtifact(selection)
         Closure(GroupStringLimits(MissingFiniteBound(source))) =>
           AggregateStringLimit(source)
-        Source(SourceView(Program(MissingCalendarSelection(_, _)))) =>
-          CalendarSelection
         Closure(UnresolvedOperation(site)) if environment.numeric is None => {
           guard site.requirement is @pipeline.RelationRequirement(pending) &&
             pending.kind is @relation.NumericAggregateObservation &&
@@ -318,6 +346,7 @@ fn checking_outcome(
           }
           NumericProfile(source)
         }
+        _ if calendar_request_inventory(error) is Some(calendar) => calendar
         _ => {
           guard search_request_parts(error) is Some((source, left, right)) else {
             return rejected(error, independent_supplied~)

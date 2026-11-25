@@ -265,6 +265,73 @@ test "installed UPDATE validates every sibling specification before selecting a 
 }
 
 ///|
+test "one guarded Relation issues distinct CREATE UPDATE and DELETE mappings" {
+  let declaration = relation_mapping_declaration()
+  let writes =
+    #|{"writes":[{"resource":"records","primary_identity":"id","create":{"fields":["choices","amount","label"],"permission":"fixture:create","approval":"required"},"update":{"fields":["choices","amount","label"],"permission":"fixture:update","approval":"required"},"delete":{"permission":"fixture:delete","approval":"required"}}]}
+  let create_sources = [
+    { target: "choices", field: "choices", null_behavior: "reject", },
+    { target: "amount", field: "amount", null_behavior: "write_null", },
+    { target: "label", field: "label", null_behavior: "write_null", },
+  ]
+  let created = prepare_row_file_create_mapping(
+    declaration, writes, "records", create_sources,
+  ).unwrap()
+  let updated = prepare_row_update_mapping(
+    declaration,
+    writes,
+    "records",
+    relation_mapping_sources(),
+  ).unwrap()
+  let deleted = prepare_row_delete_mapping_from_writes(
+    declaration, writes, "records",
+  ).unwrap()
+  assert_eq(
+    updated.body,
+    prepare_row_update_mapping(
+      declaration,
+      relation_update_write_wire(),
+      "records",
+      relation_mapping_sources(),
+    ).unwrap().body,
+  )
+  assert_eq(created.resource, updated.resource)
+  assert_eq(updated.resource, deleted.resource)
+  assert_true(created.mapping_cid != updated.mapping_cid)
+  assert_true(created.mapping_cid != deleted.mapping_cid)
+  assert_true(created.body.contains("\"fixture:create\""))
+  assert_true(!created.body.contains("\"fixture:update\""))
+  assert_true(!created.body.contains("\"fixture:delete\""))
+  assert_true(updated.mapping_cid != deleted.mapping_cid)
+  assert_true(deleted.body.contains("\"effect_kind\":\"delete\""))
+  assert_true(deleted.body.contains("\"fixture:delete\""))
+  assert_true(!deleted.body.contains("\"fixture:update\""))
+  let bad = writes.replace(old="\"fixture:delete\"", new="\"\"")
+  assert_true(
+    prepare_row_update_mapping(
+      declaration,
+      bad,
+      "records",
+      relation_mapping_sources(),
+    )
+    is Err(InvalidSpecification),
+  )
+  let bad_create = writes.replace(old="\"fixture:create\"", new="\"\"")
+  assert_true(
+    prepare_row_delete_mapping_from_writes(declaration, bad_create, "records")
+    is Err(InvalidSpecification),
+  )
+  assert_true(
+    prepare_row_delete_mapping_from_writes(
+      declaration,
+      relation_update_write_wire(),
+      "records",
+    )
+    is Err(NotWritable("records")),
+  )
+}
+
+///|
 test "existing CREATE mapping remains separate and unchanged by UPDATE continuation" {
   let declaration = github_declaration()
   let mapping = prepare_row_mapping(

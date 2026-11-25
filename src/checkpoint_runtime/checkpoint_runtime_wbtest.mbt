@@ -1431,6 +1431,14 @@ test "a resumed approval reports only evidence claims and its own lifetime" {
     limits(),
   ).unwrap()
   let approval = resumed_approval(verified.wire, limits()).unwrap()
+  assert_eq(
+    signed_resolution_from_verified(verified.wire, limits()),
+    Ok(resolution),
+  )
+  assert_true(
+    signed_resolution_from_verified("{}", limits())
+    is Err(ResolutionInvalidWire),
+  )
   assert_eq(approval.checkpoint_cid, checkpoint.checkpoint_cid)
   assert_eq(approval.resolution_cid, verified.resolution_cid)
   assert_eq(approval.verified_resolution_cid, verified.verified_resolution_cid)

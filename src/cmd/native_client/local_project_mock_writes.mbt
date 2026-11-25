@@ -100,8 +100,7 @@ fn local_project_mock_write_declarations(
       local_project_mock_file_text(write, "observe_permission") is Some(observe) &&
       local_project_mock_file_text(write, "approval") == Some("required") &&
       local_project_mock_write_names(body.get("aliases")) is Some(aliases) &&
-      !aliases.is_empty() &&
-      !originals.any(original => original.0 == resource) else {
+      !aliases.is_empty() else {
       return Err(InvalidSpecification)
     }
     let (names, selected) = if operation == "delete" {
@@ -152,27 +151,34 @@ fn local_project_mock_write_declarations(
       return Err(InvalidSpecification)
     }
     let specification : Json = if operation == "delete" {
-      {
-        "resource": Json::string(resource),
-        "primary_identity": Json::string(identity),
-        "delete": {
-          "permission": Json::string(permission),
-          "approval": "required",
-        },
-      }
+      { "permission": Json::string(permission), "approval": "required" }
     } else {
-      let fields : Map[String, Json] = {
-        "resource": Json::string(resource),
-        "primary_identity": Json::string(identity),
-      }
-      fields[operation] = {
+      {
         "fields": Json::array(names.map(Json::string)),
         "permission": Json::string(permission),
         "approval": "required",
       }
-      Json::object(fields)
     }
-    adapted.push(specification)
+    let facts : Json = match
+      adapted
+      .iter()
+      .find_first(candidate => {
+        local_project_mock_file_text(candidate, "resource") == Some(resource)
+      }) {
+      Some(value) => value
+      None => {
+        let value : Json = {
+          "resource": Json::string(resource),
+          "primary_identity": Json::string(identity),
+        }
+        adapted.push(value)
+        value
+      }
+    }
+    guard facts is Object(fields) && fields.get(operation) is None else {
+      return Err(InvalidSpecification)
+    }
+    fields[operation] = specification
     originals.push((resource, operation, names, selected, aliases, observe))
   }
   let wire = match

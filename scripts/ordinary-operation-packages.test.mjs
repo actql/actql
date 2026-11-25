@@ -191,10 +191,12 @@ test('all ordinary adapter jobs check out their real build and recheck original 
     const job = workflow.jobs[name], bind = job.steps.find(step => step.id === 'package-source');
     const download = job.steps.findIndex(step => step.uses?.startsWith('actions/download-artifact@'));
     const index = job.steps.indexOf(bind); assert(download < index);
+    const prepare = job.steps.findIndex(step => step.run?.includes('npm run build:typescript'));
+    assert(prepare >= 0 && prepare < download, 'Prepare the matching controller before artifact discovery');
     assert.equal(bind.env.PACKAGE_ADAPTER, adapter);
     assert.equal(bind.env.PACKAGE_EVENT_HEAD_SHA, '${{ github.event.pull_request.head.sha || github.sha }}');
     assert.match(bind.run, /git fetch --no-tags --depth=1 origin "\$source_sha"/u);
-    assert.match(bind.run, /git checkout --detach "\$source_sha"/u); assert(!bind.run.includes('--force'));
+    assert.match(bind.run, /bash scripts\/ci-checkout-artifact-source\.sh "\$source_sha"/u); assert(!bind.run.includes('--force'));
     assert.match(bind.run, /PACKAGE_BUILD_SOURCE_SHA=\$source_sha/u);
     for (const step of job.steps.slice(index + 1)) assert(!/\$GITHUB_SHA|environ\['GITHUB_SHA'\]/u.test(step.run ?? ''));
     const base = join(root, directory); await mkdir(join(base, 'packages'), {recursive: true});
@@ -763,12 +765,14 @@ test('Native-only workflow binds build source before collection and refuses chan
   const bind = job.steps.find(step => step.run?.includes(' inspect-native-approval-source'));
   const download = job.steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
   const collect = job.steps.find(step => step.run?.includes('scripts/test-native-approval-performance.mjs'));
+  const prepare = job.steps.findIndex(step => step.run?.includes('npm run build:typescript'));
+  assert(prepare >= 0 && prepare < job.steps.indexOf(inspect));
   assert(job.steps.indexOf(inspect) < job.steps.indexOf(download));
   assert(job.steps.indexOf(download) < job.steps.indexOf(bind));
   assert(job.steps.indexOf(bind) < job.steps.indexOf(collect));
   assert.equal(inspect.env.PACKAGE_EVENT_HEAD_SHA, bind.env.PACKAGE_EVENT_HEAD_SHA);
   assert.match(bind.run, /git fetch --no-tags --depth=1 origin "\$source_sha"/u);
-  assert.match(bind.run, /git checkout --detach "\$source_sha"/u);
+  assert.match(bind.run, /bash scripts\/ci-checkout-artifact-source\.sh "\$source_sha"/u);
   assert(!bind.run.includes('--force')); assert(!collect.run.includes('--source'));
   for (const event of ['workflow_dispatch', 'workflow_call']) {
     assert.equal(workflow.on[event].inputs['native-approval-source-sha'].default, '');
@@ -1666,7 +1670,13 @@ test('record-only trend lane reuses exact normal packages without dispatch, rebu
   assert.equal(job['timeout-minutes'], 15);
   const download = job.steps.find(step => step.uses === './.github/actions/download-client-packages');
   assert.equal(download.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
-  const commands = job.steps.map(step => step.run ?? '').join('\n');
+  const preparations = job.steps.filter(step => step.run === 'npm ci');
+  assert.equal(preparations.length, 1);
+  const [prepare] = preparations;
+  assert(job.steps.indexOf(prepare) < job.steps.findIndex(step => step.run?.includes('ordinary-operation-packages.mjs prepare')));
+  assert.equal(prepare.if, undefined);
+  assert.equal(prepare['continue-on-error'], undefined);
+  const commands = job.steps.filter(step => step !== prepare).map(step => step.run ?? '').join('\n');
   assert.match(commands, /ordinary-operation-packages.mjs prepare/u);
   assert.match(commands, /benchmark-node-operations.mjs/u);
   assert.match(commands, /benchmark-node-process-operations.mjs/u);

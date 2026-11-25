@@ -1,0 +1,289 @@
+// Trusted Host port backed by MoonBit FixedCompute accessors. This does not
+// accept Program SQL, discharge logical guards, or issue completed output.
+import { DuckDBTransportError, withComputeDatabase, validateLimits } from './session.mjs';
+import {boundedTransport} from './transport-bounds.mjs';
+import {createImportBatch} from './import-batch.mjs';
+import type {provisionComputeDatabase, ValidatedLimits} from './session.mjs';
+import type {PhysicalParameter} from './physical-values.mjs';
+
+type Limits = Parameters<typeof validateLimits>[0];
+type ImportLimits = Readonly<{maxRows: number; maxCells: number}>;
+type Session = Parameters<Parameters<typeof withComputeDatabase>[1]>[0];
+type Accounting = Parameters<typeof withComputeDatabase>[3];
+type Consume = Parameters<Session['command']>[2];
+type ParametersRow = readonly PhysicalParameter[];
+type AcceptInput = (parameters: ParametersRow) => unknown;
+type Fields = Awaited<ReturnType<Session['command']>>;
+type DirectInput = Readonly<{
+  path: string;
+  run(session: Session): Readonly<Record<string, unknown>> | Promise<Readonly<Record<string, unknown>>>;
+}>;
+type FixedPort = Readonly<{
+  importCount(): number;
+  rowCount(input: number): number;
+  columnCount(input: number): number;
+  logicalColumnCount?(input: number): number;
+  createSql(input: number): string;
+  insertSql(input: number): string;
+  insertBatch?(input: number, requested: number): Readonly<{rows: number; sql: string}>;
+  prepareDirectInput?(input: number): DirectInput | undefined;
+  consumeInput?(input: number, accept: AcceptInput): unknown;
+  parameter(input: number, row: number, column: number): PhysicalParameter;
+  querySql(): string;
+  queryParameters(): ParametersRow;
+}>;
+type ResidentPhase = 'inputVerificationMilliseconds' | 'viewPreparationMilliseconds'
+  | 'materializationMilliseconds' | 'receiveMilliseconds' | 'finalizationMilliseconds'
+  | 'temporaryCleanupMilliseconds';
+
+type ResidentInputEvidence = Readonly<{
+  valuesReused?: boolean;
+  demandColumnScan?: boolean;
+  demandReused?: boolean;
+  identityReused?: boolean;
+}>;
+type ResidentPort = Pick<FixedPort, 'queryParameters'> & (
+  | Pick<FixedPort, 'importCount' | 'consumeInput'>
+  | Readonly<{importCount?: undefined; consumeInput?: undefined}>
+) &
+  Readonly<{verifyResidentInput?(input: number, session: Session):
+    ResidentInputEvidence | false | undefined | Promise<ResidentInputEvidence | false | undefined>}>;
+type Resident = Readonly<{
+  viewSqls(): readonly string[];
+  createResultSql(): string;
+  readResultSql(): string;
+  cleanupSqls?(): readonly string[];
+}>;
+type Environment = Pick<Awaited<ReturnType<typeof provisionComputeDatabase>>, 'status' | 'run'>;
+type ImportPlan = Readonly<{
+  rows: number; columns: number; logicalColumns: number; batchRows: number; direct: DirectInput | undefined;
+}>;
+
+const attempted = new WeakSet<object>();
+const completed = new WeakMap<object, Readonly<{port: object; consume: Consume; session: object | undefined}>>();
+
+// The trusted bridge creates a fresh port/receiver for each attempt. Its
+// immutable completed input may be reused through another port and fresh budget.
+export async function runFixedCompute(port: FixedPort, limits: Limits, importLimits: ImportLimits, consume: Consume,
+  signal?: AbortSignal, accounting?: Accounting) {
+  limits = validateLimits(limits);
+  importLimits = Object.freeze({...importLimits});
+  if (attempted.has(port)) throw new DuckDBTransportError('AttemptAlreadyStarted');
+  attempted.add(port);
+  let ownedSession: Session | undefined;
+  const result = await executeFixedCompute(port, limits as ValidatedLimits, importLimits, consume, signal,
+    session => { ownedSession = session; }, accounting);
+  // Register only after all native commands, transaction settlement and cleanup.
+  // This anchors the actual closed session; it grants no source-read capability.
+  completed.set(result, { port, consume, session: ownedSession });
+  return result;
+}
+
+async function executeFixedCompute(port: FixedPort, limits: ValidatedLimits, importLimits: ImportLimits,
+  consume: Consume, signal: AbortSignal | undefined, retainSession: (session: Session) => void, accounting?: Accounting) {
+  const count = port.importCount();
+  for (const value of [count, importLimits.maxRows, importLimits.maxCells]) {
+    if (!Number.isSafeInteger(value) || value < 0) throw new DuckDBTransportError('InvalidImportLimits');
+  }
+  // Validate every port before creating a DB. Row limits are per input;
+  // imported cells accumulate even when two ports have identical contents.
+  if (count < 1 || count > 2) throw new DuckDBTransportError('ImportCount');
+  const imports: ImportPlan[] = [];
+  let importedRows = 0;
+  let importedCells = 0;
+  for (let input = 0; input < count; input++) {
+    const rows = port.rowCount(input);
+    const columns = port.columnCount(input);
+    const logicalColumns = port.logicalColumnCount?.(input) ?? columns;
+    if (!Number.isSafeInteger(rows) || rows < 0 ||
+        !Number.isSafeInteger(columns) || columns < 0 ||
+        !Number.isSafeInteger(logicalColumns) || logicalColumns < 0 ||
+        logicalColumns > columns) {
+      throw new DuckDBTransportError('InvalidImportLimits');
+    }
+    if (rows > importLimits.maxRows) throw new DuckDBTransportError('ImportRows');
+    if (columns === 0 || columns > limits.maxParameters || columns > limits.maxColumns) {
+      throw new DuckDBTransportError('ImportColumns');
+    }
+    if (logicalColumns === 0 ||
+        rows > Math.floor(
+          (importLimits.maxCells - importedCells) / logicalColumns,
+        )) {
+      throw new DuckDBTransportError('ImportCells');
+    }
+    if (rows > Number.MAX_SAFE_INTEGER - importedRows) throw new DuckDBTransportError('ImportRows');
+    importedRows += rows;
+    importedCells += rows * logicalColumns;
+    // Batch sizing is pure and precedes DB creation. Old trusted test ports can
+    // keep the single-row path; installed ports use the exact MoonBit compiler.
+    let batchRows = 1;
+    if (boundedTransport(limits) && typeof port.insertBatch === 'function' && rows > 1) {
+      const requested = Math.min(rows, limits.maxChunkRows, Math.floor(limits.maxParameters / columns));
+      const batch = port.insertBatch(input, requested);
+      if (!Number.isSafeInteger(batch.rows) || batch.rows < 1 || batch.rows > requested ||
+          typeof batch.sql !== 'string' || Buffer.byteLength(batch.sql, 'utf8') > limits.maxSqlBytes) {
+        throw new DuckDBTransportError('InvalidImportBatch');
+      }
+      batchRows = batch.rows;
+    }
+    const direct = port.prepareDirectInput?.(input);
+    if (direct !== undefined && (typeof direct.run !== 'function' || typeof direct.path !== 'string')) {
+      throw new DuckDBTransportError('InvalidDirectImport');
+    }
+    imports.push({ rows, columns, logicalColumns, batchRows, direct });
+  }
+  return withComputeDatabase(limits, async session => {
+    retainSession(session);
+    const discard = () => {};
+    const inputTimings: Readonly<Record<string, unknown>>[] = [];
+    for (let input = 0; input < imports.length; input++) {
+      const inputStarted = performance.now();
+      let insertMilliseconds = 0;
+      const { rows, columns, batchRows, direct } = imports[input];
+      if (direct) {
+        const work = await direct.run(session);
+        signal?.throwIfAborted();
+        inputTimings.push(Object.freeze({input, rows, milliseconds: performance.now() - inputStarted,
+          representation: 'verified-file-native-read', ...work}));
+        continue;
+      }
+      await session.command(port.createSql(input), [], discard);
+      const insert = port.insertSql(input);
+      const write = async (sql: string, parameters: ParametersRow) => {
+        const started = performance.now();
+        try { await session.insert(sql, parameters, discard); }
+        finally { insertMilliseconds += performance.now() - started; }
+      };
+      const batch = batchRows > 1 ? createImportBatch(columns, batchRows, limits as Parameters<typeof createImportBatch>[2],
+        count => port.insertBatch!(input, count), write, signal) : undefined;
+      const importRow = (parameters: ParametersRow) => batch ? batch.append(parameters) : write(insert, parameters);
+      let accepted = 0;
+      const streamed = await port.consumeInput?.(input, async parameters => {
+        signal?.throwIfAborted();
+        if (accepted >= rows || !Array.isArray(parameters) || parameters.length !== columns) {
+          throw new DuckDBTransportError('InvalidImportStream');
+        }
+        await importRow(parameters);
+        accepted++;
+      });
+      signal?.throwIfAborted();
+      if (streamed) {
+        if (accepted !== rows) throw new DuckDBTransportError('InvalidImportStream');
+        await batch?.finish();
+        inputTimings.push(Object.freeze({input, rows, milliseconds: performance.now() - inputStarted,
+          insertMilliseconds, batchRows}));
+        continue;
+      }
+      if (accepted !== 0) throw new DuckDBTransportError('InvalidImportStream');
+      for (let row = 0; row < rows; row++) {
+        if (signal?.aborted) throw new DuckDBTransportError('Cancelled');
+        // Only the current parameter row is materialized. No source connection
+        // crosses this fixed-input boundary.
+        const parameters = [];
+        for (let column = 0; column < columns; column++) parameters.push(port.parameter(input, row, column));
+        await importRow(parameters);
+      }
+      await batch?.finish();
+      inputTimings.push(Object.freeze({input, rows, milliseconds: performance.now() - inputStarted,
+        insertMilliseconds, batchRows}));
+    }
+    const outputStarted = performance.now();
+    const fields = await session.command(port.querySql(), port.queryParameters(), consume);
+    return Object.freeze({ fields, importedRows, importedCells,
+      diagnostics: Object.freeze({inputs: Object.freeze(inputTimings),
+        queryAndReceiveMilliseconds: performance.now() - outputStarted}) });
+  }, signal, accounting, imports.filter(input => input.direct).map(input => input.direct!.path));
+}
+
+// Transport provenance only. The MoonBit completion issuer must independently
+// check the exact fixed input, semantics, guards, output and retained evidence.
+export function matchesFixedCompute(result: unknown, port: unknown, consume: unknown) {
+  const owned = completed.get(result as object);
+  return owned !== undefined && owned.port === port && owned.consume === consume
+    && owned.session !== undefined;
+}
+
+export function releaseFixedCompute(result: object) {
+  completed.delete(result);
+}
+
+// Trusted resident bridge only. Every SQL fragment and the checked receiver
+// mapping come from the MoonBit adapter, not application callbacks. The
+// environment is borrowed: task settlement does not close the shared DB.
+// validate finishes receiving before committing the resident table. The common
+// MoonBit completion boundary still validates demand, guards and retention before
+// publishing success; a later failure leaves only owned cleanup responsibility.
+export async function runResidentFixedCompute(
+  environment: Environment, port: ResidentPort, resident: Resident, limits: Limits, consume: Consume,
+  validate: (fields: Fields) => unknown, signal?: AbortSignal, accounting?: Accounting,
+) {
+  if (attempted.has(port)) throw new DuckDBTransportError('AttemptAlreadyStarted');
+  attempted.add(port);
+  if (!environment.status().live) throw new DuckDBTransportError('SessionClosed');
+  const result = await environment.run(limits, async session => {
+    const discard = () => {};
+    // Sequential wall-clock intervals, not additive with session.command or
+    // receive-callback timings (which are nested within these intervals).
+    const workStarted = performance.now();
+    let boundary = workStarted;
+    const phases: Partial<Record<ResidentPhase, number>> = {};
+    const callbackStart = session.usage().receiveCallbackMilliseconds;
+    let directInputScans = 0;
+    let reusedInputIdentities = 0;
+    let reusedInputValues = 0;
+    let demandColumnScans = 0;
+    let reusedDemandMeasurements = 0;
+    const endPhase = (name: ResidentPhase) => {
+      const now = performance.now();
+      phases[name] = now - boundary;
+      boundary = now;
+    };
+    // An exact DB copy skips import. Established value evidence may discharge
+    // the same validation/measurement obligations without a second traversal;
+    // fresh consumer demand still uses the bounded common decoder.
+    if (port.consumeInput) {
+      for (let input = 0; input < port.importCount(); input++) {
+        signal?.throwIfAborted();
+        const verified = port.verifyResidentInput && await port.verifyResidentInput(input, session);
+        if (verified) {
+          if (verified.valuesReused === true) reusedInputValues++;
+          if (verified.demandColumnScan === true) demandColumnScans++;
+          if (verified.demandReused === true) reusedDemandMeasurements++;
+          if (verified.valuesReused !== true && verified.demandColumnScan !== true) {
+            directInputScans++;
+          }
+          if (verified.identityReused === true) reusedInputIdentities++;
+          continue;
+        }
+        await port.consumeInput(input, discard);
+      }
+    }
+    endPhase('inputVerificationMilliseconds');
+    const inputCallbackMilliseconds = session.usage().receiveCallbackMilliseconds - callbackStart;
+    for (const sql of resident.viewSqls()) await session.command(sql, [], discard);
+    endPhase('viewPreparationMilliseconds');
+    await session.command(resident.createResultSql(), port.queryParameters(), discard);
+    endPhase('materializationMilliseconds');
+    const outputCallbackStart = session.usage().receiveCallbackMilliseconds;
+    const fields = await session.command(resident.readResultSql(), [], consume);
+    endPhase('receiveMilliseconds');
+    const outputCallbackMilliseconds = session.usage().receiveCallbackMilliseconds -
+      outputCallbackStart;
+    // Includes empty-result metadata. Throwing here rolls back this task only.
+    await validate(fields);
+    endPhase('finalizationMilliseconds');
+    for (const sql of resident.cleanupSqls?.() ?? []) {
+      await session.command(sql, [], discard);
+    }
+    endPhase('temporaryCleanupMilliseconds');
+    return Object.freeze({ fields, importedRows: 0, importedCells: 0,
+      diagnostics: Object.freeze({...phases as Record<ResidentPhase, number>, inputCallbackMilliseconds,
+        outputCallbackMilliseconds, directInputScans, reusedInputIdentities,
+        reusedInputValues, demandColumnScans, reusedDemandMeasurements,
+        workMilliseconds: boundary - workStarted}) });
+  }, signal, accounting);
+  // Preserve completed Host-output provenance independently of future DB loss.
+  // Reusing the DB table still requires its separate live table-generation proof.
+  completed.set(result, { port, consume, session: environment });
+  return result;
+}

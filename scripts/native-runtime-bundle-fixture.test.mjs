@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {existsSync,lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import * as selectedEntries from './native-runtime-bundle-fixture.mjs';
 import {prepareNativeResidentPortableRuntime, verifyNativeResidentPortablePreparation} from './native-resident-portable-preparation.mjs';
@@ -15,6 +16,9 @@ import * as portablePreparation from './native-resident-portable-preparation.mjs
 import {installationFiles} from './moonbit-installation.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {parse} from 'acorn';
+import {nativePreparationOpenSSL} from './native-preparation-lanes.mjs';
+import {nativePreparationTimer, parseNativePreparationOptions, prepareNativeFixture}
+  from './prepare-native-runtime-bundle-fixture.mjs';
 
 function portablePreparationFixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-portable-preparation-')));
@@ -425,107 +429,184 @@ function fixture(t, platform, entry = 'native_runtime_bundle', preparation = fal
     receiptEntry(value){receiptEntry=value;}};
 }
 
-test('the explicit Resident cold-build budget leaves the other preparation windows unchanged',()=>{
-  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
-  const optionsStart=source.indexOf('const args=process.argv.slice(2)'),
-    optionsEnd=source.indexOf('const target=',optionsStart);
-  const prepareStart=source.indexOf('const entries={};'),
-    prepareEnd=source.indexOf('  return {entries,components,httpReceipt,portableReceipt};',prepareStart);
-  const timingStart=source.indexOf('function timedPreparation('),
-    timingEnd=source.indexOf('mkdirSync(destination',timingStart);
-  assert(optionsStart>=0 && optionsEnd>optionsStart && prepareStart>=0 && prepareEnd>prepareStart);
-  const options=args=>runInNewContext(source.slice(optionsStart,optionsEnd)+
-    '\n({selection,seconds,residentSeconds,httpJobs});',{
-      assert,process:{argv:['node','prepare','--destination','/owned/preparation',...args]},
+test('the explicit Resident cold-build budget leaves the other preparation windows unchanged', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-serial-native-preparation-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const alias = join(root, 'prepare-native.mjs'), rejectedDestination = join(root, 'invalid');
+  symlinkSync(fileURLToPath(new URL('./prepare-native-runtime-bundle-fixture.mjs', import.meta.url)), alias);
+  assert.throws(() => executeChild(process.execPath, [alias, '--destination', rejectedDestination, '--lanes', '3'],
+    {stdio: 'pipe', timeout: 5000}), error => error.status === 1 && error.stderr.includes('ERR_ASSERTION'));
+  assert.equal(existsSync(rejectedDestination), false);
+  const options = args => parseNativePreparationOptions(['--destination', root, '--entries', 'all', ...args]);
+  const original = options([]);
+  assert.equal(original.seconds, 900);
+  assert.equal(original.residentSeconds, 900);
+  const selected = options(['--seconds', '900', '--resident-seconds', '1200']);
+  assert.equal(selected.seconds, 900);
+  assert.equal(selected.residentSeconds, 1200);
+  for (const value of ['0', '-1', '1801', '1.5', 'NaN'])
+    assert.throws(() => options(['--resident-seconds', value]));
+  const parallelHttp = options(['--http-jobs', '2']);
+  assert.equal(original.httpJobs, 1);
+  assert.equal(parallelHttp.httpJobs, 2);
+  for (const value of ['0', '3', '-1', '1.5', 'NaN'])
+    assert.throws(() => options(['--http-jobs', value]));
+  for (const [index, selectedOptions] of [original, selected, parallelHttp].entries()) {
+    const calls = [], phases = [], timings = [];
+    const destination = join(root, 'preparation-' + index);
+    const repository = '/owned/source', moonHome = '/selected/moon';
+    const configuration = {...selectedOptions, repository, destination, moonHome,
+      source: 'a'.repeat(40), target: 'darwin-arm64', clang: '/selected/clang', sdk: '/selected/sdk'};
+    const githubEnv = join(root, 'env-' + index);
+    let clock = 0;
+    const timed = nativePreparationTimer(configuration, {
+      now: () => clock++, env: {},
+      record: (path, bytes, options) => timings.push({path, body: JSON.parse(bytes), options}),
+      report: line => phases.push(JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length))),
     });
-  const original=options(['--entries','all']);
-  assert.equal(original.seconds,900);assert.equal(original.residentSeconds,900);
-  const selected=options(['--entries','all','--seconds','900','--resident-seconds','1200']);
-  assert.equal(selected.seconds,900);assert.equal(selected.residentSeconds,1200);
-  for(const value of ['0','-1','1801','1.5','NaN'])
-    assert.throws(()=>options(['--resident-seconds',value]));
-  const parallel=options(['--entries','all','--http-jobs','2']);
-  assert.equal(original.httpJobs,1);assert.equal(parallel.httpJobs,2);
-  for(const value of ['0','3','-1','1.5','NaN'])assert.throws(()=>options(['--http-jobs',value]));
-  for(const selectedOptions of [original,selected,parallel]){
-    const calls=[],repository='/owned/source',destination='/owned/preparation',moonHome='/selected/moon';
-    const prepare=name=>(root,path,configuration)=>{
-      assert.equal(root,repository);assert.equal(configuration.preparation,name==='http'?undefined:null);
-      if(name!=='http')assert.equal(configuration.moonHome,moonHome);
+    const prepare = (name, receipt) => (sourceRoot, path, options) => {
+      assert.equal(sourceRoot, repository);
+      assert.equal(options.preparation, name === 'http' ? undefined : null);
+      if (name !== 'http') assert.equal(options.moonHome, moonHome);
       else {
-        assert.equal(configuration.tlsJobs,selectedOptions.httpJobs);
-        assert.equal(configuration.tlsArchive,join(destination,'components/openssl-original.tar.gz'));
+        assert.equal(options.tlsJobs, selectedOptions.httpJobs);
+        assert.equal(options.tlsArchive, join(destination, 'components/openssl-original.tar.gz'));
       }
-      calls.push({name,path,seconds:configuration.seconds});
+      mkdirSync(path);
+      const original = join(path, receipt);
+      writeFileSync(original, name + '\n');
+      calls.push({name, path, seconds: options.seconds});
+      return original;
     };
-    const phases=[],timings=[];let clock=0;
-    runInNewContext(source.slice(timingStart,timingEnd)+source.slice(prepareStart,prepareEnd),{
-      ...selectedOptions,repository,destination,moonHome,join,originalDescriptor:path=>path,
-      preparationPhase:0,source:'a'.repeat(40),target:'darwin-arm64',
-      writeFileSync:(path,bytes,options)=>timings.push({path,body:JSON.parse(bytes),options}),
-      performance:{now:()=>clock++},process:{env:{}},
-      console:{error:line=>phases.push(JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)))},
-      prepareNativeRuntimeBundle:prepare('bundle'),prepareNativeResidentSite:prepare('resident'),
-      prepareNativeRuntimeBundleLibraries:prepare('components'),
-      prepareNativeResidentHttpComponent:prepare('http'),
-      prepareNativeResidentPortableRuntime:(root,path)=>{
-        assert.equal(root,repository);
-        calls.push({name:'portable',path});
+    const checkSource = () => {
+      assert.equal(existsSync(join(destination, 'preparation.json')), false);
+      assert.equal(existsSync(githubEnv), false);
+      assert.equal(calls.at(-1).name, 'query');
+    };
+    await prepareNativeFixture(configuration, checkSource, {
+      env: {GITHUB_ENV: githubEnv}, timed,
+      bundle: prepare('bundle', 'build.json'), resident: prepare('resident', 'build.json'),
+      libraries: prepare('components', 'bundle-components.json'),
+      http: prepare('http', 'preparation.json'),
+      portable: (sourceRoot, path) => {
+        assert.equal(sourceRoot, repository);
+        calls.push({name: 'portable', path});
       },
+      query: (sourceRoot, path, options) => {
+        assert.equal(sourceRoot, repository);
+        assert.equal(options.moonHome, moonHome);
+        calls.push({name: 'query', path});
+        return join(path, 'query-software.json');
+      },
+      parallel: () => assert.fail('Serial preparation must not start parallel lanes'),
     });
-    assert.deepEqual(calls,[
-      {name:'bundle',path:join(destination,'native_runtime_bundle'),seconds:900},
-      {name:'resident',path:join(destination,'native_remote_resident_site'),seconds:selectedOptions.residentSeconds},
-      {name:'components',path:join(destination,'components'),seconds:900},
-      {name:'http',path:join(destination,'http'),seconds:900},
-      {name:'portable',path:join(destination,'portable-runtime.json')},
+    assert.deepEqual(calls, [
+      {name: 'bundle', path: join(destination, 'native_runtime_bundle'), seconds: 900},
+      {name: 'resident', path: join(destination, 'native_remote_resident_site'), seconds: selectedOptions.residentSeconds},
+      {name: 'components', path: join(destination, 'components'), seconds: 900},
+      {name: 'http', path: join(destination, 'http'), seconds: 900},
+      {name: 'portable', path: join(destination, 'portable-runtime.json')},
+      {name: 'query', path: destination},
     ]);
-    assert.equal(phases.length,5);
-    assert(phases.every(phase=>phase.succeeded && phase.milliseconds===1));
-    assert.deepEqual(timings.map(item=>item.path),[1,2,3,4,5]
-      .map(index=>join(destination,`phase-${index}.timing.json`)));
-    for(const [index,item] of timings.entries()){
-      assert.deepEqual(item.body,{source:'a'.repeat(40),target:'darwin-arm64',...phases[index]});
-      assert.equal(item.options.flag,'wx');assert.equal(item.options.mode,0o600);
+    assert.equal(phases.length, 6);
+    assert(phases.every(phase => phase.succeeded && phase.milliseconds === 1));
+    assert.deepEqual(timings.map(item => item.path), [1, 2, 3, 4, 5, 6]
+      .map(phase => join(destination, `phase-${phase}.timing.json`)));
+    for (const [phase, item] of timings.entries()) {
+      assert.deepEqual(item.body, {source: configuration.source, target: configuration.target, ...phases[phase]});
+      assert.equal(item.options.flag, 'wx');
+      assert.equal(item.options.mode, 0o600);
     }
+    const ready = JSON.parse(readFileSync(join(destination, 'preparation.json'), 'utf8'));
+    assert.equal(ready.source, configuration.source);
+    assert.equal(ready.moon_home, moonHome);
+    assert.deepEqual(Object.keys(ready.entries), ['native_runtime_bundle', 'native_remote_resident_site']);
+    assert.equal(ready.http.path, join(destination, 'http/preparation.json'));
+    assert.equal(ready.components.path, join(destination, 'components/bundle-components.json'));
+    assert.deepEqual(readFileSync(githubEnv, 'utf8').trimEnd().split('\n'), [
+      'ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION=' + destination,
+      'ACTQL_TEST_NATIVE_QUERY_PREPARATION=' + join(destination, 'query-software.json'),
+      'ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION=' + join(destination, 'portable-runtime.json'),
+      'ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT=' + join(destination, 'http/preparation.json'),
+    ]);
   }
-  const primary=new Error('original producer failure'),phases=[],timings=[];let clock=0;
-  const timed=runInNewContext(source.slice(timingStart,timingEnd)+'timedPreparation;',{
-    preparationPhase:0,source:'b'.repeat(40),target:'linux-x64',destination:'/owned/preparation',join,
-    writeFileSync:(path,bytes)=>timings.push({path,body:JSON.parse(bytes)}),
-    performance:{now:()=>clock++},process:{env:{}},
-    console:{error:line=>phases.push(JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)))},
+
+  const primary = new Error('original producer failure'), phases = [], timings = [];
+  const timed = nativePreparationTimer({source: 'b'.repeat(40), target: 'linux-x64', destination: root}, {
+    env: {}, now: () => 1,
+    record: (_path, bytes) => timings.push(JSON.parse(bytes)),
+    report: line => phases.push(JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length))),
   });
-  assert.throws(()=>timed('failed-producer',()=>{throw primary;}),error=>error===primary);
-  assert.equal(phases.length,1);assert.equal(phases[0].succeeded,false);
-  assert.equal(timings.length,1);assert.equal(timings[0].body.succeeded,false);
-  assert.equal(timings[0].body.source,'b'.repeat(40));
+  assert.throws(() => timed('failed-producer', () => {throw primary;}), error => error === primary);
+  assert.equal(phases.length, 1);
+  assert.equal(phases[0].succeeded, false);
+  assert.equal(timings.length, 1);
+  assert.equal(timings[0].succeeded, false);
+  assert.equal(timings[0].source, 'b'.repeat(40));
 });
 
-test('timing diagnostic I/O never replaces the original producer outcome',()=>{
-  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
-  const start=source.indexOf('function timedPreparation('),end=source.indexOf('mkdirSync(destination',start);
-  const primary=new Error('original producer failure'),messages=[];
-  const timed=runInNewContext(source.slice(start,end)+'timedPreparation;',{
-    preparationPhase:0,source:'c'.repeat(40),target:'linux-x64',destination:'/owned/preparation',join,
-    writeFileSync:()=>{throw Object.assign(new Error('diagnostic unavailable'),{code:'EACCES'});},
-    appendFileSync:()=>{throw new Error('summary unavailable');},
-    performance:{now:()=>1},process:{env:{GITHUB_STEP_SUMMARY:'/owned/summary'}},
-    console:{error:line=>messages.push(line)},
+test('parallel preparation publishes neither Ready nor environment before its result and source recheck', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-parallel-native-preparation-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  for (const failure of [undefined, new Error('original parallel refusal')]) {
+    const destination = join(root, failure ? 'refused' : 'ready');
+    const githubEnv = join(root, failure ? 'refused-env' : 'ready-env');
+    const ready = join(destination, 'preparation.json');
+    const {promise, resolve, reject} = Promise.withResolvers();
+    const configuration = {...parseNativePreparationOptions(['--destination', destination, '--entries', 'all',
+      '--lanes', '2']), repository: root, source: 'a'.repeat(40), target: 'darwin-arm64',
+      moonHome: '/selected/moon', clang: '/selected/clang', sdk: '/selected/sdk'};
+    let checks = 0;
+    const pending = prepareNativeFixture(configuration, () => {
+      assert.equal(existsSync(ready), false);
+      assert.equal(existsSync(githubEnv), false);
+      checks++;
+    }, {env: {GITHUB_ENV: githubEnv}, parallel: selected => {
+      assert.equal(selected.destination, destination);
+      assert.equal(selected.source, configuration.source);
+      return promise;
+    }, query: () => assert.fail('The parallel owner already prepared Query')});
+    assert.equal(existsSync(ready), false);
+    assert.equal(existsSync(githubEnv), false);
+    if (failure) {
+      reject(failure);
+      await assert.rejects(pending, error => error === failure);
+      assert.equal(checks, 0);
+      assert.equal(existsSync(ready), false);
+      assert.equal(existsSync(githubEnv), false);
+      continue;
+    }
+    const components = join(destination, 'components');
+    mkdirSync(components);
+    writeFileSync(join(components, 'bundle-components.json'), '{}');
+    resolve({entries: {}, components, queryReceipt: join(destination, 'query-software.json'),
+      portableReceipt: join(destination, 'portable-runtime.json')});
+    await pending;
+    assert.equal(checks, 1);
+    assert(existsSync(ready));
+    const env = readFileSync(githubEnv, 'utf8');
+    assert(env.includes('ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS=2\n'));
+    assert(env.includes('ACTQL_TEST_NATIVE_PORTABLE_PREPARATION_JOBS=1\n'));
+  }
+});
+
+test('timing diagnostic I/O never replaces the original producer outcome', () => {
+  const primary = new Error('original producer failure'), messages = [];
+  const timed = nativePreparationTimer({source: 'c'.repeat(40), target: 'linux-x64', destination: '/owned/preparation'}, {
+    record: () => {throw Object.assign(new Error('diagnostic unavailable'), {code: 'EACCES'});},
+    summarize: () => {throw new Error('summary unavailable');},
+    now: () => 1, env: {GITHUB_STEP_SUMMARY: '/owned/summary'},
+    report: line => messages.push(line),
   });
-  assert.throws(()=>timed('producer',()=>{throw primary;}),error=>error===primary);
-  const value={original:true};assert.equal(timed('producer',()=>value),value);
-  assert.equal(messages.filter(line=>line.includes('timing diagnostic unavailable')).length,2);
-  assert.equal(messages.filter(line=>line.includes('timing summary unavailable')).length,2);
+  assert.throws(() => timed('producer', () => {throw primary;}), error => error === primary);
+  const value = {original: true};
+  assert.equal(timed('producer', () => value), value);
+  assert.equal(messages.filter(line => line.includes('timing diagnostic unavailable')).length, 2);
+  assert.equal(messages.filter(line => line.includes('timing summary unavailable')).length, 2);
 });
 
 test('shared OpenSSL acquisition keeps target/profile boundaries and explicit original input',()=>{
-  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
-  const start=source.indexOf('const sharedOpenSSL='),end=source.indexOf('const httpReceipt=',start);
-  assert(start>=0 && end>start);
-  const select=(target,env)=>runInNewContext(source.slice(start,end)+'sharedOpenSSL;',{
-    target,process:{env},components:'/owned/components',join,
-  });
+  const select=(target,env)=>nativePreparationOpenSSL('/owned/components',target,env);
   assert.equal(select('darwin-arm64',{}),'/owned/components/openssl-original.tar.gz');
   assert.equal(select('linux-x64',{}),undefined);
   assert.equal(select('darwin-arm64',{ACTQL_TEST_NATIVE_CRYPTO_PROFILE:'homebrew26'}),undefined);
@@ -543,12 +624,7 @@ test('Resident HTTP receives the same retained bundle archive without a copied C
     const path=join(f.root,name);writeFileSync(path,'explicit Source-only input');return path;
   });
   const original=lstatSync(archive,{bigint:true});
-  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
-  const start=source.indexOf('const sharedOpenSSL='),end=source.indexOf('const httpReceipt=',start);
-  assert(start>=0 && end>start);
-  const selected=runInNewContext(source.slice(start,end)+'sharedOpenSSL;',{
-    target:'darwin-arm64',process:{env:{}},components,join,
-  });
+  const selected=nativePreparationOpenSSL(components,'darwin-arm64',{});
   const primary=new Error('original HTTP producer boundary'),destination=join(f.root,'http');
   let entries=0;
   const execute=(command,args)=>{

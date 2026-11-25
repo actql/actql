@@ -53,7 +53,7 @@ test('named-window independent oracles retain NULLs multiplicity frames and scop
 
 test('named WINDOW is registered in both ordinary and narrow public acceptance', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...namedWindowSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...namedWindowRefusals)'));
   assert.match(fixture, /const scopeOnly = [^;]*namedWindowOnly/u);

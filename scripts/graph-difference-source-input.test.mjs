@@ -50,7 +50,7 @@ test('ordinary packed corpus and narrow consumer retain the same authored Delta 
   assert.ok(consumer.includes('graphDifferenceOnly ? {successes: graphDifferenceSourceSuccesses, refusals: graphDifferenceSourceRefusals}'));
   assert.ok(consumer.includes('scopeInputs.successes.push(...graphDifferenceSourceSuccesses)'));
   assert.ok(consumer.includes('scopeInputs.refusals.push(...graphDifferenceSourceRefusals)'));
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_DIFFERENCE_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/graph-difference-source-input.mjs', 'graph-difference-source-input.mjs']"));
   assert.ok(driver.includes("'--graph-equality-only', '--graph-difference-only',"));

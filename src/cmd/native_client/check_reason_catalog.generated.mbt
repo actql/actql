@@ -166,6 +166,24 @@ fn local_check_reason_presentation(
           "Required bound inputs are missing.", "Supply the declared inputs and check again.",
         ),
       )
+    "calendar_profile_required" => {
+      if facts.get("issue") == Some(Json::string("selection_missing")) {
+        return Some(
+          (
+            "The checking context has no Calendar profile selected.", "Select a Calendar profile with its matching artifact for the named time zone, then check again. In Node Local, pass it as installation.calendarArtifact.",
+          ),
+        )
+      }
+      if facts.get("issue") == Some(Json::string("artifact_missing")) {
+        return Some(
+          (
+            "The checking context is missing the artifact for its selected Calendar profile.",
+            "Install the Calendar artifact matching the selected profile, then check again. In Node Local, pass it as installation.calendarArtifact.",
+          ),
+        )
+      }
+      None
+    }
     "carrier_mismatch" => {
       if facts.get("expected_carrier") == Some(Json::string("relation")) {
         return Some(

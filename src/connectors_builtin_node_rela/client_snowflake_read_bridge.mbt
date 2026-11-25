@@ -129,40 +129,54 @@ pub fn client_program_snowflake_generate_read_declaration(
 }
 
 ///|
-#export_name("clientProgramSnowflakePrepareRead")
-pub fn client_program_snowflake_prepare_read(
+#export_name("clientProgramSnowflakeAdoptManagedRead")
+pub fn client_program_snowflake_adopt_managed_read(
   description : @snowflake_description.TableDescription,
-  declaration : @client_row_source_host.RowDeclaration,
-  requirement : @planning.QueryRequirement,
-  query_contract : String,
-  evidence_contract : String,
+  borrow : @client_row_source_host.RowRunResponseBorrow,
+  limits : @snowflake_response.ResponseLimits,
   description_limits : @snowflake_description.DescriptionLimits,
-  declaration_limits : @client_row_source_host.RowDeclarationLimits,
-) -> Result[@snowflake_read.PreparedRead, @snowflake_read.ReadIssue] {
-  @snowflake_read.prepare_declared_read(
-    description, declaration, requirement, query_contract, evidence_contract, description_limits,
-    declaration_limits,
+  max_contract_pairs : Int,
+) -> Result[@snowflake_read.Read, @snowflake_read.ReadIssue] {
+  @snowflake_read.adopt_managed_read(
+    description, borrow, limits, description_limits, max_contract_pairs,
   )
 }
 
 ///|
-#export_name("clientProgramSnowflakeReadAcquisition")
-pub fn client_program_snowflake_read_acquisition(
-  read : @snowflake_read.PreparedRead,
-) -> @client_row_source_host.RowAcquisition {
-  @snowflake_read.prepared_read_acquisition(read)
+#export_name("clientProgramSnowflakeRetireManagedRead")
+pub fn client_program_snowflake_retire_managed_read(
+  read : @snowflake_read.Read,
+) -> Bool {
+  @snowflake_read.retire_managed_read(read)
 }
 
 ///|
-#export_name("clientProgramSnowflakeBorrowRead")
-pub fn client_program_snowflake_borrow_read(
-  prepared : @snowflake_read.PreparedRead,
-  run : @client_row_source_host.RowRun,
-  limits : @snowflake_response.ResponseLimits,
-  max_contract_pairs : Int,
-) -> Result[@snowflake_read.Read, @snowflake_read.ReadIssue] {
-  @snowflake_read.borrow_accounted_read(
-    prepared, run, limits, max_contract_pairs,
+#export_name("clientProgramSnowflakeAdoptManagedResponse")
+pub fn client_program_snowflake_adopt_managed_response(
+  read : @snowflake_read.StatementRead,
+  request : @snowflake_read.StatementRequest,
+  status : Int,
+  charge : @client_row_source_host.RowPageCharge,
+) -> Result[@snowflake_read.StatementResponse, @snowflake_read.StatementIssue] {
+  @snowflake_read.adopt_statement_response(read, request, status, charge)
+}
+
+///|
+#export_name("clientProgramSnowflakeManagedReadCapacity")
+pub fn client_program_snowflake_managed_read_capacity(
+  reader_limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  response : @snowflake_response.ResponseLimits,
+  description : @snowflake_description.DescriptionLimits,
+  request_bytes : Int,
+  contract_pairs : Int,
+) -> @execution.ExecutionCapacity? {
+  let capacity = @snowflake_description.managed_read_construction_capacity(
+    response, description, request_bytes, contract_pairs,
+  )
+  @client_local_host.installed_native_source_reader_capacity(
+    reader_limits, columns, secret_bytes, capacity,
   )
 }
 
@@ -213,17 +227,6 @@ pub fn client_program_snowflake_attempt_request(
 }
 
 ///|
-#export_name("clientProgramSnowflakeChargeResponse")
-pub fn client_program_snowflake_charge_response(
-  value : @snowflake_read.StatementRead,
-  request : @snowflake_read.StatementRequest,
-  status : Int,
-  body : Bytes,
-) -> Result[@snowflake_read.StatementResponse, @snowflake_read.StatementIssue] {
-  @snowflake_read.charge_statement_response(value, request, status, body)
-}
-
-///|
 #export_name("clientProgramSnowflakeAcceptResponse")
 pub fn client_program_snowflake_accept_response(
   value : @snowflake_read.StatementRead,
@@ -231,24 +234,6 @@ pub fn client_program_snowflake_accept_response(
   body : Bytes,
 ) -> Result[Unit, @snowflake_read.StatementIssue] {
   @snowflake_read.accept_charged_statement_response(value, response, body)
-}
-
-///|
-#export_name("clientProgramSnowflakeRejectResponse")
-pub fn client_program_snowflake_reject_response(
-  value : @snowflake_read.StatementRead,
-  response : @snowflake_read.StatementResponse,
-) -> Result[Unit, @snowflake_read.StatementIssue] {
-  @snowflake_read.reject_statement_response(value, response)
-}
-
-///|
-#export_name("clientProgramSnowflakeResponseUnknown")
-pub fn client_program_snowflake_response_unknown(
-  value : @snowflake_read.StatementRead,
-  request : @snowflake_read.StatementRequest,
-) -> Result[Unit, @snowflake_read.StatementIssue] {
-  @snowflake_read.mark_statement_response_unknown(value, request)
 }
 
 ///|
@@ -276,31 +261,6 @@ pub fn client_program_snowflake_read_usage(
   value : @snowflake_read.Read,
 ) -> (Int, Int64) {
   @snowflake_read.result_read_usage(value)
-}
-
-///|
-#export_name("clientProgramSnowflakeInterruptRead")
-pub fn client_program_snowflake_interrupt_read(
-  value : @snowflake_read.Read,
-) -> Unit {
-  @snowflake_read.interrupt_result_read(value)
-}
-
-///|
-#export_name("clientProgramSnowflakeRetireReadBorrow")
-pub fn client_program_snowflake_retire_read_borrow(
-  value : @snowflake_read.Read,
-) -> Result[Unit, @snowflake_read.ReadIssue] {
-  @snowflake_read.retire_borrowed_read(value)
-}
-
-///|
-#export_name("clientProgramSnowflakeBindReadTransport")
-pub fn client_program_snowflake_bind_read_transport(
-  value : @snowflake_read.Read,
-  observe_stop : () -> Bool,
-) -> Result[Unit, @snowflake_read.ReadIssue] {
-  @snowflake_read.bind_borrowed_read_transport(value, observe_stop)
 }
 
 ///|

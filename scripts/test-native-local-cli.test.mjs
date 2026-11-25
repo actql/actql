@@ -188,6 +188,54 @@ test('Native Local human preparation output does not claim Run acceptance', () =
   assert.doesNotMatch(result.stdout,/sha256:|ctx:|rev:|"outcome"|"id"/u);
 });
 
+function observedResultCommand(args) {
+  const original = runNative(args, project, {
+    ACTQL_NATIVE_TIMINGS: '1', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: '1',
+  });
+  assert.equal(original.status, 0, original.stderr);
+  const child = nativeLauncherEnvelope(original.stderr, 'required').native;
+  const [observation, ...others] = nativeMockAcceptanceObservations(child);
+  assert.equal(others.length, 0);
+  assert.equal(observation.events.length, 0);
+  const rows = child.trimEnd().split('\n');
+  const phases = new Map(rows.filter(line => line.startsWith('ACTQL_NATIVE_PHASE '))
+    .map(line => JSON.parse(line.slice('ACTQL_NATIVE_PHASE '.length)))
+    .map(phase => [phase.tag, phase]));
+  const close = phases.get(5);
+  assert.deepEqual([close.begins, close.ends, close.active, close.unmatched_end], [1, 1, 0, 0]);
+  const compiled = rows.filter(line => line.startsWith('ACTQL_NATIVE_COUNTER '))
+    .map(line => JSON.parse(line.slice('ACTQL_NATIVE_COUNTER '.length)))
+    .find(counter => counter.name === 'request_program_compile_calls');
+  return {stdout: original.stdout, pid: observation.pid,
+    submissions: phases.get(22).begins, compilation: compiled.count};
+}
+
+test('Native Local reads the sole original Values Result after closing and reopening', () => {
+  const run = observedResultCommand(['run', 'values.json', '--format', 'json', '--json']);
+  const state = JSON.parse(run.stdout);
+  assert.equal(state.status, 'succeeded');
+  assert.deepEqual(Object.keys(state.result_availability), ['answer']);
+  const pids = new Set([run.pid]);
+  for (let repeat = 0; repeat < 2; repeat++) {
+    const result = observedResultCommand(['result', state.run_id, '--format', 'jsonl']);
+    assert(!pids.has(result.pid), 'Result must use a fresh Native process');
+    pids.add(result.pid);
+    assert.deepEqual([result.submissions, result.compilation], [0, 0]);
+    assert.deepEqual(result.stdout.trimEnd().split('\n').map(line => JSON.parse(line)), [{id: 2}, {id: 1}]);
+  }
+});
+
+for (const [operation, query, id] of [
+  ['sql', 'SELECT 19 AS id', 19],
+  ['aql', 'SELECT 23 AS id |> SELECT id', 23],
+]) {
+  test(`Native Local delivers the original ${operation} quick Result through the installed command`, () => {
+    const result = observedResultCommand([operation, query, '--format', 'jsonl']);
+    assert.equal(result.compilation, 1);
+    assert.deepEqual(result.stdout.trimEnd().split('\n').map(line => JSON.parse(line)), [{id}]);
+  });
+}
+
 // These are the independently authored 101/1000-row controls used by the
 // compilation/explain whitebox case, now driven through the actual CLI Host.
 for (const count of [101,1000]) {

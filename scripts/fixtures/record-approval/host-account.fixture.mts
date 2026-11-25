@@ -1,0 +1,37 @@
+// Explicit local fixture policy DATA only. The existing Account, Host and Site
+// validate it and issue all actual decisions/grants. Reuse the returned SAME
+// wire for their configuration identity; equal provider rules in a different
+// complete configuration cannot authorize a Host Checkpoint's dispatch.
+import type {canonicalJson as originalCanonicalJson} from '../../../adapters/host-node/local-account-config.mjs';
+
+export function recordApprovalFixtureResultNames(resultNames: unknown): readonly string[] {
+  if (!Array.isArray(resultNames) || resultNames.length < 1 || resultNames.length > 16 ||
+      new Set(resultNames).size !== resultNames.length ||
+      !Array.from(resultNames).every(name => typeof name === 'string' && /^[A-Za-z_][A-Za-z0-9_]{0,127}$/u.test(name))) {
+    throw new TypeError('InvalidRecordApprovalAccountFixture');
+  }
+  return Object.freeze([...resultNames].sort());
+}
+
+export function recordApprovalHostAccountConfiguration(canonicalJson: typeof originalCanonicalJson, providerWire: string,
+  principal: string, realizationKey: string, resultNames: readonly string[] = ['main', 'updates']) {
+  if (typeof canonicalJson !== 'function' || typeof principal !== 'string' || !principal ||
+      typeof realizationKey !== 'string' || !realizationKey) {
+    throw new TypeError('InvalidRecordApprovalAccountFixture');
+  }
+  const names = recordApprovalFixtureResultNames(resultNames);
+  const provider = JSON.parse(providerWire) as {entries: readonly {entry_id: string}[]};
+  if (!Array.isArray(provider?.entries) || provider.entries.some(entry =>
+    ['host-submit', 'host-read'].includes(entry?.entry_id))) {
+    throw new TypeError('InvalidRecordApprovalAccountFixture');
+  }
+  const entries = [...provider.entries,
+    {entry_id: 'host-submit', outcome: 'allow', exclusions: [], principal: {any_of: [principal]},
+      connection: {any_of: ['actql-remote-host']}, resource: {any_of: [realizationKey]},
+      operation: {any_of: ['write']}},
+    {entry_id: 'host-read', outcome: 'allow', exclusions: [], principal: {any_of: [principal]},
+      connection: {any_of: ['actql-remote-host']}, resource: {any_of: [...names.map(name => `result/${name}`), 'run']},
+      operation: {any_of: ['read']}},
+  ].sort((a, b) => a.entry_id < b.entry_id ? -1 : a.entry_id > b.entry_id ? 1 : 0);
+  return canonicalJson({...provider, entries});
+}

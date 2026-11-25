@@ -18,6 +18,7 @@ priv enum KeyedDependencyMeasuredBodies {
 priv struct KeyedDependencySerialCursor {
   lookup : ClientKeyedLookupInput
   reservation : @resources.Reservation
+  phase : KeyedProtocolConstruction
   mut finished : Bool
   mut available_retained : Int64
   mut available_execution : Int64
@@ -27,6 +28,7 @@ priv struct KeyedDependencySerialCursor {
   mut extent_workspace_depth : Int
   mut batch_start : Int
   mut measured : KeyedDependencyMeasuredBodies?
+  mut serial_witness : KeyedDependencyWitnessChunk?
 }
 
 ///|
@@ -35,7 +37,81 @@ priv struct KeyedDependencySerialCursor {
 priv struct KeyedDependencySerialCompletion {
   lookup : ClientKeyedLookupInput
   reservation : @resources.Reservation
-  last : KeyedDependencyMeasuredBodies
+  phase : KeyedProtocolConstruction
+  bodies : Array[@publication.CapturedEffectDependencyBody]
+  body_count : Int
+  mut serial_range : KeyedDependencyMeasuredBodies?
+  mut serial_witness : KeyedDependencyWitnessChunk?
+}
+
+///|
+// Fixed-size chunks grow linearly without copying or replacing earlier refs.
+priv struct KeyedDependencyWitnessChunk {
+  members : FixedArray[@publication.CapturedEffectDependencyBody]
+  mut used : Int
+  previous : KeyedDependencyWitnessChunk?
+}
+
+///|
+let keyed_dependency_witness_slots : Int = 32
+
+///|
+fn KeyedDependencySerialCursor::fund_keyed_dependency_witness(
+  self : KeyedDependencySerialCursor,
+  count : Int,
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  let free = match self.serial_witness {
+    Some(chunk) => keyed_dependency_witness_slots - chunk.used
+    None => 0
+  }
+  if count <= free {
+    return Ok(())
+  }
+  let missing = (count - free).to_int64()
+  let slots = keyed_dependency_witness_slots.to_int64()
+  let chunks = (missing + slots - 1L) / slots
+  // The fixed array slots, chunk, predecessor option and transient head
+  // construction carriers coexist with all previously recorded chunks.
+  let cost = @execution.preparation_representation_cost({
+    record_headers: 6L,
+    reference_slots: slots + 8L,
+    scalar_words: 6L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  guard @execution.checked_preparation_add_product(0L, cost, chunks)
+    is Some(bytes) else {
+    return Err(Assembly("capacity_overflow"))
+  }
+  let lookup = self.lookup
+  keyed_lookup_body_grow(
+    lookup,
+    lookup.retained_bytes,
+    lookup.execution_bytes,
+    bytes,
+    None,
+  )
+}
+
+///|
+fn KeyedDependencySerialCursor::remember_original(
+  self : KeyedDependencySerialCursor,
+  body : @publication.CapturedEffectDependencyBody,
+) -> Unit {
+  let chunk = match self.serial_witness {
+    Some(last) if last.used < keyed_dependency_witness_slots => last
+    _ => {
+      let next : KeyedDependencyWitnessChunk = {
+        members: FixedArray::make(keyed_dependency_witness_slots, body),
+        used: 0,
+        previous: self.serial_witness,
+      }
+      self.serial_witness = Some(next)
+      next
+    }
+  }
+  chunk.members[chunk.used] = body
+  chunk.used += 1
 }
 
 ///|
@@ -77,7 +153,8 @@ fn KeyedDependencySerialCursor::validate(
       self.reservation,
     ) {
     Err(issue) => Err(issue)
-    Ok(_) if self.finished => Err(Assembly("retired_dependency_cursor"))
+    Ok(_) if self.finished || self.phase.finished =>
+      Err(Assembly("retired_dependency_cursor"))
     Ok(_) => Ok(())
   }
 }
@@ -93,7 +170,8 @@ fn KeyedDependencySerialCursor::retire(
 fn KeyedDependencySerialCursor::seal(
   self : KeyedDependencySerialCursor,
   lookup : ClientKeyedLookupInput,
-) -> Result[KeyedDependencySerialCompletion?, ClientKeyedRequestIssue] {
+  bodies : Array[@publication.CapturedEffectDependencyBody],
+) -> Result[KeyedProtocolDependencies, ClientKeyedRequestIssue] {
   match self.validate(lookup) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -103,9 +181,24 @@ fn KeyedDependencySerialCursor::seal(
   }
   self.retire()
   match self.measured {
-    Some(last) =>
-      Ok(Some({ lookup: self.lookup, reservation: self.reservation, last, }))
-    None => Ok(None)
+    Some(ReturnedKeyedDependencyRange(bodies=original, ..)) => {
+      if !physical_equal(original, bodies) {
+        return Err(Assembly("foreign_dependency_body_extent"))
+      }
+      let seal : KeyedDependencySerialCompletion = {
+        lookup: self.lookup,
+        reservation: self.reservation,
+        phase: self.phase,
+        bodies,
+        body_count: bodies.length(),
+        serial_range: self.measured,
+        serial_witness: self.serial_witness,
+      }
+      self.measured = None
+      self.serial_witness = None
+      Ok(Measured(seal))
+    }
+    None => Ok(Unmeasured(bodies))
   }
 }
 
@@ -152,6 +245,14 @@ fn KeyedDependencySerialCursor::record_body(
   }
   guard self.pending_retained >= 0L && first >= 0 && first <= end else {
     return Err(Assembly("unavailable_dependency_body"))
+  }
+  match self.fund_keyed_dependency_witness(end - first) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // Reentry during funding cannot turn changed indices into a valid extent.
+  if bodies.length() != end {
+    return Err(Assembly("foreign_dependency_body_extent"))
   }
   let mut bytes = 0L
   for index in first..<end {
@@ -210,6 +311,9 @@ fn KeyedDependencySerialCursor::record_body(
       is Some(total) else {
       return Err(Assembly("capacity_overflow"))
     }
+    for index in first..<end {
+      self.remember_original(bodies[index])
+    }
     self.measured = Some(
       ReturnedKeyedDependencyRange(
         bodies~,
@@ -232,8 +336,12 @@ fn KeyedDependencySerialCursor::record_body(
 ///|
 fn begin_keyed_dependency_serial_cursor(
   lookup : ClientKeyedLookupInput,
+  phase : KeyedProtocolConstruction,
 ) -> Result[KeyedDependencySerialCursor, ClientKeyedRequestIssue] {
-  if !keyed_dependency_cursor_reservation_live(lookup) {
+  if !physical_equal(phase.lookup, lookup) {
+    return Err(Assembly("foreign_dependency_cursor"))
+  }
+  if phase.finished || !keyed_dependency_cursor_reservation_live(lookup) {
     return Err(Assembly("retired_dependency_cursor"))
   }
   // One body and one range certificate, plus the old/new certificate overlap
@@ -243,9 +351,11 @@ fn begin_keyed_dependency_serial_cursor(
   // Include two cursor aliases and its latch, the sealed owner's three
   // references, and the overlapping reserve result, seal result and Some.
   guard @execution.preparation_representation_cost({
+      // The existing phase is borrowed by cursor and seal. Also prepay
+      // the adopted Array alias, witness head/range fields and count.
       record_headers: 47L,
-      reference_slots: 75L,
-      scalar_words: 75L,
+      reference_slots: 81L,
+      scalar_words: 76L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -265,6 +375,7 @@ fn begin_keyed_dependency_serial_cursor(
       Ok({
         lookup,
         reservation: lookup.reservation,
+        phase,
         finished: false,
         available_retained: 0L,
         available_execution: 0L,
@@ -274,6 +385,7 @@ fn begin_keyed_dependency_serial_cursor(
         extent_workspace_depth: -1,
         batch_start: -1,
         measured: None,
+        serial_witness: None,
       })
   }
 }

@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_update_mapping.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6819d96d4b5a08008f9108cd4a46e0bd44f7aa81a2f5aba83889e7c84413d4e5",
+      "sha256": "2d882fd864d59e3999d19ec4d4d3a6e12f39393dde396b82e91700d4a9ebb1b4",
       "role": "common-semantics",
       "owner": "Existing Common original Relation Mapping and installed SourceInitialization continuation owners",
       "exports": [],

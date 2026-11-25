@@ -306,7 +306,7 @@ test('component retirement joins an actual Effect constructor before retiring it
 // Exercise real inventory/service ownership with explicit Common semantic ports.
 // These fixtures verify staging and original custody, not Core admission laws.
 async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformedEntry = false, refuseEntry = false, refuseProjection = false, plainOnly = false} = {}) {
-  let latestQuote;
+  let latestQuote, fileProfileQuote;
   const exports = new Map(), restoreCalls = [];
   const f = await fixture(t, ({moon, state, events, nativeOriginals}) => {
     state.nativeQuotes = 0;state.nativeRestores = 0;state.nativeExports = 0;
@@ -387,12 +387,29 @@ async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformed
         nativeOriginals.set(declaration, JSON.stringify(declared));
         restoreCalls.push(latestQuote);state.nativeRestores++;return ok(declaration);
       },
+      clientProgramRowSourceFileReadProfileConstructionCapacity(declaration, physical, ...fields) {
+        assert(nativeOriginals.has(declaration));assert(nativeOriginals.has(physical));
+        assert.notEqual(declaration, physical);
+        assert.deepEqual(fields, ['id', 'name', 'version', 'media_type', 'content_utf8',
+          undefined, ['files'], ['keys'], 0]);
+        state.phase = 'file-profile';
+        fileProfileQuote = {declaration, physical, fields};
+        return Object.freeze({fixture: 'same-original-file-profile-quantity'});
+      },
+      clientProgramRowSourceBindFileReadProfile(declaration, resource, physical, physicalResource, ...fields) {
+        assert.equal(events.at(-1), 'reserve:file-profile');
+        assert.equal(declaration, fileProfileQuote.declaration);assert.equal(physical, fileProfileQuote.physical);
+        assert.equal(resource, 'contents');assert.equal(physicalResource, 'files');
+        assert.deepEqual(fields, fileProfileQuote.fields.slice(0, -1));
+        const bound = Object.freeze({fixture: 'file-profile-declaration', declaration, physical});
+        nativeOriginals.set(bound, nativeOriginals.get(declaration));
+        return ok(bound);
+      },
       clientProgramRowSourceDeclarationJson(declaration) {
         assert(nativeOriginals.has(declaration));
         assert.equal(exports.get(declaration) ?? 0, 0, 'each native restore has exactly one owned export');
         exports.set(declaration, 1);state.nativeExports++;return nativeOriginals.get(declaration);
       },
-      clientProgramRelationUpdateMapping: unused,
       clientProgramRowSourceUpdateMappingConstructionCapacity(declaration) {
         assert(nativeOriginals.has(declaration));
         return ok(Object.freeze({fixture: 'same-original-update-mapping-quantity'}));
@@ -458,6 +475,9 @@ test('component catalog stages actual connection members before constructors and
   assert.equal(records.effectMember, await f.begin(0, 'effect'));
   assert.equal(records.writes[0].mappingWire, records.effectPrepared.mappings[0].body);
   assert.notEqual(files.physical[0].declaration, files.declaration);
+  assert.equal(files.declaration.fixture, 'file-profile-declaration');
+  assert.equal(files.declaration.physical, files.physical[0].declaration);
+  assert.deepEqual(result.fileReadDeclarations, [files.declaration, records.declaration]);
   assert.equal(records.physical[0].declaration, records.declaration);
   assert.equal(f.state.nativeRestores, 4);assert.equal(f.state.nativeExports, 4);
   assert.equal(f.state.commonProjects, 2, 'one projection per actual original connection');

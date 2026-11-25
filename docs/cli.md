@@ -325,6 +325,12 @@ same Run without redoing finished work; `--wait` follows it. Rejecting ends
 the Run as `cancelled` with nothing sent (or `needs_reconciliation` if an
 earlier write's outcome is still unknown).
 
+For Native Local File Effects, repeating `approve` on the same Checkpoint
+can continue its recorded approval if the original intent still awaits its
+first claim. The Host checks the saved signed decision, current authority and
+dispatch custody before claiming it. A previously claimed intent or uncertain
+write requires the existing reconciliation path.
+
 **`cancel`** asks the Run to stop. It becomes `cancelled` once stopping is
 confirmed and no outcome is unknown; writes already applied stay applied.
 
@@ -333,6 +339,12 @@ with the external system, through the Connector and contract recorded in the
 Run — there is no flag to point it at another connection. It never resends
 the write. If the outcome is still unknown, the Run stays in
 `needs_reconciliation` and the attempt is recorded.
+
+For Native Local File Effects, `reconcile --ref-file <path>` settles the
+original Run when its committed publication and saved File responses can be
+confirmed. The existing saved approval and current Run authority must still
+match. Reconciliation leaves unresolved evidence in custody and never repeats
+the File write. `status` and `result` remain read-only.
 
 **`result`** reads a named Result of a finished Run — to stdout with
 `--format`, or to files with `--output` / `--deliver`. `--receipt` saves a
@@ -343,6 +355,14 @@ partial failure still uses an array with zero or one object. Each destination
 has its own outcome and receipt. Exporting the array does not certify aggregate
 success or roll back files, and retrying receipt export must not resend output.
 `run --receipt` remains a Run receipt.
+
+Fresh Native Local projects use the requested Result from that Run's committed
+manifest. The selected principal, connection, Data Policy, retention, delivery
+permission, and read limits still apply. An explicitly adopted `result_names`
+list limits selection to those names. Requested-original selections carry
+an explicit authority marker. Opening a selection without that marker
+refuses it without rewriting the retained configuration.
+
 Native Local file delivery creates each destination exclusively. Repeating the
 same Run, Result, format and destination inspects the existing attempt first:
 a completed output must still match its original file identity and bytes;

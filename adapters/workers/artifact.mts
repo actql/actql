@@ -1,0 +1,253 @@
+// Build-time evidence: resolved source graph and emitted imports, not merely
+// tree-shaken text. This does not sandbox malicious same-process plugins.
+import {builtinModules} from 'node:module';
+import {parse} from 'acorn';
+import {walk} from './moon-runtime.mjs';
+import type {Metafile} from 'esbuild';
+
+type ArtifactGraph = {
+  inputs: Readonly<Record<string, {imports: readonly Pick<Metafile['inputs'][string]['imports'][number], 'path' | 'kind' | 'external'>[]}>>;
+  outputs: Readonly<Record<string, {imports: readonly unknown[]}>>;
+};
+
+const builtins = new Set(builtinModules.flatMap(name => [name, name.replace(/^node:/, '')]));
+function forbidden(path: string) {
+  return path.startsWith('node:') || builtins.has(path) ||
+    /(?:^|\/)(?:host-node|duckdb-node|connectors-builtin)(?:\/|$)/.test(path) ||
+    /(?:^|\/)connectors\/duckdb\/node(?:\/|$)/.test(path) ||
+    /(?:^|\/)node_modules(?:\/|$)/.test(path) || /\.(?:node|dll|dylib|so)$/.test(path);
+}
+
+export function checkWorkersArtifact(metafile: ArtifactGraph, source: string, allowedModules: Iterable<string>) {
+  const allow = new Set(allowedModules);
+  for (const [path, module] of Object.entries(metafile.inputs)) {
+    if (forbidden(path) || !allow.has(path)) throw new Error(`WorkersModuleRejected: ${path}`);
+    for (const dependency of module.imports) {
+      if (dependency.external || forbidden(dependency.path) || !allow.has(dependency.path)) {
+        throw new Error(`WorkersDependencyRejected: ${path} -> ${dependency.path}`);
+      }
+      if (dependency.kind === 'dynamic-import' || dependency.kind === 'require-call') {
+        throw new Error(`WorkersDynamicDependency: ${path}`);
+      }
+    }
+  }
+  for (const output of Object.values(metafile.outputs)) {
+    if (output.imports.length) throw new Error('WorkersUnresolvedOutputImport');
+  }
+  walk(parse(source, {ecmaVersion:'latest', sourceType:'module'}), node => {
+    if (node.type === 'ImportDeclaration' || node.type === 'ImportExpression' ||
+        node.type === 'ExportAllDeclaration' ||
+        node.type === 'ExportNamedDeclaration' && node.source) {
+      throw new Error('WorkersArtifactImport');
+    }
+  });
+}
+
+// Portable controls extracted from the reviewed runtime Core. These exact
+// emitted modules retain its Core bindings and introduce no Node dependencies.
+const runtimeCoreModules = [
+  'adapters/host-common/content-capture-control.mjs',
+  'adapters/host-common/content-generation-control.mjs',
+  'adapters/host-common/effect-application-control.mjs',
+  'adapters/host-common/ledger-usage.mjs',
+  'adapters/host-common/output-export-control.mjs',
+  'adapters/host-common/publication-progress-control.mjs',
+  'adapters/host-common/remote-bundle-control.mjs',
+  'adapters/host-common/remote-credential-control.mjs',
+  'adapters/host-common/remote-site-control.mjs',
+  'adapters/host-common/remote-standard-source-control.mjs',
+  'adapters/host-common/remote-transfer-control.mjs',
+  'adapters/host-common/runtime-execution-control.mjs',
+  'adapters/host-common/runtime-content-inference-control.mjs',
+  'adapters/host-common/runtime-content-publication-control.mjs',
+  'adapters/host-common/runtime-captured-publication-control.mjs',
+  'adapters/host-common/runtime-effect-capture-control.mjs',
+  'adapters/host-common/runtime-effect-preparation-control.mjs',
+  'adapters/host-common/runtime-effect-unit-result-control.mjs',
+  'adapters/host-common/runtime-effect-artifact-control.mjs',
+  'adapters/host-common/runtime-effect-recovery-control.mjs',
+  'adapters/host-common/runtime-effect-preview-control.mjs',
+  'adapters/host-common/runtime-effect-publication-control.mjs',
+  'adapters/host-common/runtime-run-plan-control.mjs',
+  'adapters/host-common/runtime-infer-admission-control.mjs',
+  'adapters/host-common/runtime-infer-original-read-control.mjs',
+  'adapters/host-common/runtime-model-preparation-control.mjs',
+  'adapters/host-common/runtime-publication-contract-control.mjs',
+  'adapters/host-common/runtime-publication-validation-control.mjs',
+  'adapters/host-common/runtime-query-time-control.mjs',
+  'adapters/host-common/runtime-result-delivery-control.mjs',
+  'adapters/host-common/runtime-run-state-control.mjs',
+  'adapters/host-common/runtime-tuple.mjs',
+  'adapters/host-common/site-control.mjs',
+];
+
+// Each source is explicitly reviewed: generated fixture/bridge contain the same
+// product Core; generated composition selects only Local; Local's JS contribution
+// delegates reads without Node I/O despite its historical directory name. The
+// Store registry and row framing use only WeakMap/typed arrays/TextDecoder;
+// concrete files.mjs and delegated-file.mjs are NOT included in this allowance.
+// The execution-authorization gate imported by the common strategy has no
+// imports and uses only crypto.subtle, TextEncoder and timers; account
+// interpretation stays in the bundled MoonBit runtime.
+// The Effect receipt custody imported by run publication has no imports and
+// keeps only a WeakMap of issued receipt sets. The private publication
+// holding imported by completed-run publication has no imports and only calls
+// the Store it is given. Publication action names are a fixed, dependency-free
+// ABI translation table; they confer no publication authority.
+// Task observation has no imports; it retains an optional projection in a
+// WeakMap and freezes copied facts. It adds no task completion authority or I/O.
+// The Client wire index and its three closed generated schemas perform only
+// structural validation with pure JavaScript and TextEncoder. They import no
+// provider, transport, Node builtin or external package.
+// Installed Effect dependency originals retain only a private WeakMap of DATA
+// associations and invoke the supplied original current callback. This exact
+// import-free leaf creates no physical operation, permission, capacity or ACK.
+// No namespace-wide permission.
+// The Carrier snapshot transport is dependency-free: it uses typed arrays,
+// text codecs and timers, and calls the supplied Store lease. It imports no
+// filesystem or Node module; the resolved-dependency checks still apply.
+// Completed Local output custody imports only the already reviewed common
+// managed-failure progression. It retains the supplied cleanup owner without
+// filesystem access or starting another computation.
+// The canonical generated compiler binding has no imports or initialization
+// effects. Its Result/Option/tuple functions only project or construct local
+// ABI values; it adds no Owner, I/O or authority.
+// The generated strategy action table is also dependency-free. It translates
+// existing Owner codes to names and rejects unknown codes without taking action.
+// Runtime Core imports the original LocalSigning and installation-preparation
+// metadata views. They retain opaque values in WeakMaps and call only their
+// captured Common callbacks through the already reviewed Result binding. The
+// preparation field declaration is a generated, dependency-free closed vector.
+// None supplies a physical key, permission, claim, signing port or I/O. This is
+// an exact source-closure allowance, not permission for adjacent Host modules.
+// Publication capacity accounting has no imports. It validates byte bounds
+// and computes a frozen DATA extent with TextEncoder/Map; it opens no Store,
+// issues no Resource or permission, and performs no physical operation.
+// The canonical Ledger field vectors are an import-free frozen Core projection.
+// Reviewing this exact shared leaf admits no Node adapter, I/O or resource issuer.
+// Managed advance diagnostics import only the reviewed compiler binding to read
+// the actual boxed Option. Supplied checked/Core callbacks retain the original
+// failure and optionally project inert bounded diagnostic DATA.
+// This exact leaf adds no Node builtin, environment probe, I/O or authority.
+// Original dispatch failure observation is another exact pure DATA leaf of
+// runtime-core. It imports only the reviewed compiler binding, retains bounded
+// frozen facts by weak error identity, and has no Node/physical/current port.
+// The Node caller and its same-Request admission remain outside this allowance.
+export const conformanceModules = [
+  '_build/workers/modules/bridge.mjs',
+  '_build/workers/modules/fixture.mjs',
+  '_build/workers/modules/async_bridge.mjs',
+  'adapters/connectors-workers/strategy.generated.mjs',
+  'adapters/local-node/strategy-bundle.mjs',
+  'adapters/local-node/managed-advance-diagnostic.mjs',
+  'adapters/local-node/retained-input.mjs',
+  'adapters/local-node/retained-store.mjs',
+  'adapters/local-node/retained-output.mjs',
+  'adapters/local-node/carrier-snapshot.mjs',
+  'adapters/local-node/managed-output-custody.mjs',
+  'adapters/store-local/managed-memory-representations.mjs',
+  'adapters/store-local/representations.mjs',
+  'adapters/store-local/moonbit-row-frames.mjs',
+  'adapters/store-local/row-frames.mjs',
+  'adapters/reference-compute-node/async-probe.mjs',
+  'adapters/host-common/execution-sites.mjs',
+  'adapters/host-common/managed-site-transfer.mjs',
+  'adapters/host-common/strategy.mjs',
+  'adapters/host-common/task-observation.mjs',
+  'adapters/host-common/authorization-gate.mjs',
+  'adapters/host-common/managed-failure.mjs',
+  'adapters/host-common/durable-result-payload.mjs',
+  'adapters/host-common/completed-run-publication.mjs',
+  'adapters/host-common/private-publication-holding.mjs',
+  'adapters/host-common/run-publication.mjs',
+  'adapters/host-common/effect-receipt-custody.mjs',
+  'adapters/host-common/run-publication-preflight.mjs',
+  'adapters/host-common/publication-capacity.mjs',
+  'adapters/host-common/publication-action.mjs',
+  'adapters/host-common/runtime-core.mjs',
+  ...runtimeCoreModules,
+  'adapters/host-common/dispatch-failure-observation.mjs',
+  'adapters/host-common/installed-effect-dependency-original.mjs',
+  'adapters/host-common/ledger-contract.generated.mjs',
+  'adapters/host-common/local-signing-metadata.mjs',
+  'adapters/host-common/installation-preparation-metadata.mjs',
+  'adapters/host-common/installation-preparation-fields.generated.mjs',
+  'adapters/host-common/compiler-binding.generated.mjs',
+  'adapters/host-common/strategy-actions.mjs',
+  'packages/client-wire/index.mjs',
+  'packages/client-wire/client-host.generated.js',
+  'packages/client-wire/interactive-control.generated.js',
+  'packages/client-wire/publication.generated.js',
+  'adapters/host-common/runtime-result.mjs',
+  'adapters/host-common/result-output-limits.mjs',
+  'adapters/workers/host.mjs',
+  'adapters/workers/finite.mjs',
+  'adapters/host-common/local-js-host.mjs',
+  'adapters/host-common/scoped-strategy.mjs',
+  'adapters/workers/async-conformance.mjs',
+  'adapters/workers/phase-audit.mjs',
+  'adapters/workers/conformance.mjs',
+];
+
+export const hostModules = [
+  '_build/workers/modules/bridge.mjs',
+  'adapters/connectors-workers/strategy.generated.mjs',
+  'adapters/local-node/strategy-bundle.mjs',
+  'adapters/local-node/managed-advance-diagnostic.mjs',
+  'adapters/local-node/retained-input.mjs',
+  'adapters/local-node/retained-store.mjs',
+  'adapters/local-node/retained-output.mjs',
+  'adapters/local-node/carrier-snapshot.mjs',
+  'adapters/local-node/managed-output-custody.mjs',
+  'adapters/store-local/managed-memory-representations.mjs',
+  'adapters/store-local/representations.mjs',
+  'adapters/store-local/moonbit-row-frames.mjs',
+  'adapters/store-local/row-frames.mjs',
+  'adapters/host-common/execution-sites.mjs',
+  'adapters/host-common/managed-site-transfer.mjs',
+  'adapters/host-common/strategy.mjs',
+  'adapters/host-common/task-observation.mjs',
+  'adapters/host-common/authorization-gate.mjs',
+  'adapters/host-common/managed-failure.mjs',
+  'adapters/host-common/durable-result-payload.mjs',
+  'adapters/host-common/completed-run-publication.mjs',
+  'adapters/host-common/private-publication-holding.mjs',
+  'adapters/host-common/run-publication.mjs',
+  'adapters/host-common/effect-receipt-custody.mjs',
+  'adapters/host-common/run-publication-preflight.mjs',
+  'adapters/host-common/publication-capacity.mjs',
+  'adapters/host-common/publication-action.mjs',
+  'adapters/host-common/runtime-core.mjs',
+  ...runtimeCoreModules,
+  'adapters/host-common/dispatch-failure-observation.mjs',
+  'adapters/host-common/installed-effect-dependency-original.mjs',
+  'adapters/host-common/ledger-contract.generated.mjs',
+  'adapters/host-common/local-signing-metadata.mjs',
+  'adapters/host-common/installation-preparation-metadata.mjs',
+  'adapters/host-common/installation-preparation-fields.generated.mjs',
+  'adapters/host-common/compiler-binding.generated.mjs',
+  'adapters/host-common/strategy-actions.mjs',
+  'packages/client-wire/index.mjs',
+  'packages/client-wire/client-host.generated.js',
+  'packages/client-wire/interactive-control.generated.js',
+  'packages/client-wire/publication.generated.js',
+  'adapters/host-common/runtime-result.mjs',
+  'adapters/host-common/result-output-limits.mjs',
+  'adapters/workers/host.mjs',
+  'adapters/workers/finite.mjs',
+  'adapters/host-common/local-js-host.mjs',
+  'adapters/host-common/scoped-strategy.mjs',
+];
+
+// Same audited product closure with an independent source-free test Owner.
+export const finiteConformanceModules = [...conformanceModules,
+  'adapters/workers/finite-runtime-fixture.mjs'];
+
+// Public finite package entry: the same reviewed product closure, with no
+// fixture, reference Connector or test-only original Run issuer.
+export const finiteRuntimeModules = [...hostModules,
+  'adapters/workers/finite-runtime.mjs'];
+
+// The ordinary builder and source inventory share the authored entry. This
+// does not replace the reviewed module policy or emitted-artifact checks.
+export const finiteRuntimeEntry = 'adapters/workers/finite-runtime.mjs';

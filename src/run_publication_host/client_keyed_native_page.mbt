@@ -356,7 +356,7 @@ fn build_client_keyed_native_captured_page(
     2L,
     max_nodes,
     max_depth,
-    fn() {
+    fn(_) {
       guard @row_host.keyed_row_capture_matches_request(
           capture,
           request.request,
