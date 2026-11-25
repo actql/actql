@@ -49,7 +49,9 @@ type Manifest = {sourceSha: string; packages: PackageFact[]; source?: Source;
   originalManifestSha256?: string; optionalManifestSha256?: string};
 type RetainedSource = {revision: string; tarballs: Record<string, string>};
 type PackOptions = {repository: string; root: string; source: Source; retained?: string;
-  command: Command; normalLifecycle?: boolean; optionalProvider?: string};
+  command: (command: string, args: readonly string[], options: CommandOptions) =>
+    Pick<CommandResult, 'stdout'> | Promise<Pick<CommandResult, 'stdout'>>;
+  normalLifecycle?: boolean; optionalProvider?: string};
 type Prepared = Awaited<ReturnType<typeof prepareHealthPackages>>;
 type InstalledRow = Awaited<ReturnType<typeof installedModulesPayloadInventory>>[number];
 type PackagingMetadata = {name: string; version: string};

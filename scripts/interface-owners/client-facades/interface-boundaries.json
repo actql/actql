@@ -14865,7 +14865,7 @@
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               },
               {

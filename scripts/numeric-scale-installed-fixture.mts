@@ -8,7 +8,11 @@ import {join, relative, isAbsolute} from 'node:path';
 import {prepareHealthPackages} from './health-monitor-adapters.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
 
-export async function stageNumericScaleActor({repository, consumer}) {
+type ActorLocation = {repository: string; consumer: string};
+type Launcher = {consumer: string; actor: string};
+type ConsumerOptions = Pick<Parameters<typeof prepareHealthPackages>[0], 'repository' | 'command'> & {directory: string};
+
+export async function stageNumericScaleActor({repository, consumer}: ActorLocation) {
   repository = await realpath(repository); consumer = await realpath(consumer);
   const suffix = relative(repository, consumer);
   assert(suffix === '..' || suffix.startsWith('../') || isAbsolute(suffix),
@@ -22,7 +26,7 @@ export async function stageNumericScaleActor({repository, consumer}) {
   return actor;
 }
 
-export async function prepareNumericScaleConsumer({repository, directory, command}) {
+export async function prepareNumericScaleConsumer({repository, directory, command}: ConsumerOptions) {
   const retained = process.env.ACTQL_PACKED_CLIENT_PACKAGES;
   assert(typeof retained === 'string' && retained.length > 0,
     'NumericScaleRequiresMatchingNormalClientPackages');
@@ -33,7 +37,8 @@ export async function prepareNumericScaleConsumer({repository, directory, comman
   return {...prepared, actor: await stageNumericScaleActor({repository, consumer: prepared.consumer})};
 }
 
-export function runNumericScalePhase(prepared, phase, directory, referencePath, count) {
+export function runNumericScalePhase(prepared: Launcher, phase: string, directory: string,
+  referencePath: string, count: number) {
   const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
   const child = spawnSync(process.execPath, [prepared.actor, phase, directory, referencePath, String(count)],
     {cwd: prepared.consumer, env, encoding: 'utf8', timeout: 360000, maxBuffer: 8 * 1024 * 1024});
@@ -41,11 +46,11 @@ export function runNumericScalePhase(prepared, phase, directory, referencePath, 
   assert.equal(child.signal, null, child.stderr);
   assert.equal(child.status, 0, child.stderr);
   const lines = child.stdout.trim().split('\n');
-  const report = JSON.parse(lines.at(-1));
+  const report = JSON.parse(lines.at(-1)!) as {inputWireBytes?: number};
   const {inputWireBytes, ...completion} = report;
   assert.deepEqual(completion, {phase, rowsVerified: count, closeReturned: true, pid: child.pid});
   if (phase === 'produce-source') {
-    assert(Number.isSafeInteger(inputWireBytes) && inputWireBytes > 1048576);
+    assert(Number.isSafeInteger(inputWireBytes) && inputWireBytes! > 1048576);
     console.log(`Numeric JSON Source input: ${inputWireBytes} UTF8 bytes, ${count} rows`);
   } else assert.equal(inputWireBytes, undefined);
 }
