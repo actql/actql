@@ -499,35 +499,53 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
         )
       }
       let child = match
-        (match operation {
-          "create" =>
-            @row_file.prepare_native_relation_file_target_insert_io(
-              provider,
-              row.identity,
-              row.changes_wire,
-              staging,
-              prepare_response,
-              predecessor~,
-            )
-          "delete" =>
-            @row_file.prepare_native_relation_file_target_delete_io(
-              provider,
-              row.identity,
-              row.version,
-              staging,
-              prepare_response,
-              predecessor~,
-            )
-          "update" =>
-            @row_file.prepare_native_relation_file_target_update_io(
-              provider,
-              row._retained_installation.write.writable_fields,
-              row.identity,
-              (row.version, row.changes_wire, staging),
-              prepare_response,
-              predecessor~,
-            )
-          _ => stop("LocalOriginalEffectTargetUnavailable")
+        (if provider.has_ordered_key() {
+          let mutation = row
+            .ordered_file_mutation(staging)
+            .unwrap_or_else(() => stop("LocalOriginalEffectTargetUnavailable"))
+          @row_file.prepare_native_relation_file_ordered_target_io(
+            provider,
+            if mutation is @row_file.InsertTarget(_, _) {
+              []
+            } else {
+              row._retained_installation.write.writable_fields
+            },
+            row.identity,
+            mutation,
+            prepare_response,
+            predecessor~,
+          )
+        } else {
+          match operation {
+            "create" =>
+              @row_file.prepare_native_relation_file_target_insert_io(
+                provider,
+                row.identity,
+                row.changes_wire,
+                staging,
+                prepare_response,
+                predecessor~,
+              )
+            "delete" =>
+              @row_file.prepare_native_relation_file_target_delete_io(
+                provider,
+                row.identity,
+                row.version,
+                staging,
+                prepare_response,
+                predecessor~,
+              )
+            "update" =>
+              @row_file.prepare_native_relation_file_target_update_io(
+                provider,
+                row._retained_installation.write.writable_fields,
+                row.identity,
+                (row.version, row.changes_wire, staging),
+                prepare_response,
+                predecessor~,
+              )
+            _ => stop("LocalOriginalEffectTargetUnavailable")
+          }
         }) {
         Ok(value) => value
         Err(issue) => {
@@ -698,15 +716,24 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
 // before recording it; this template grants no outcome or published Result.
 fn saved_effect_file_outcome_wire(
   identity : String,
-  max_bytes : Int,
+  ordered_identity : @canonical.CanonicalValue?,
+  limits : @row_host.RowPageLimits,
 ) -> String? {
   try {
-    let writer = @encode.writer(max_bytes, 8, 3)
+    let writer = match ordered_identity {
+      None => @encode.writer(limits.max_bytes, 8, 3)
+      Some(@canonical.Array(_)) =>
+        @encode.writer(limits.max_bytes, limits.max_nodes, limits.max_depth)
+      _ => return None
+    }
     @encode.begin_object(writer)
     @encode.key(writer, "result")
     @encode.begin_object(writer)
     @encode.key(writer, "id")
-    @encode.string_value(writer, identity)
+    match ordered_identity {
+      None => @encode.string_value(writer, identity)
+      Some(value) => @canonical.emit_value(value, writer)
+    }
     @encode.end_object(writer)
     @encode.key(writer, "state")
     @encode.string_value(writer, "applied")

@@ -135,6 +135,7 @@ fn local_project_mock_check_writable_collections(
 ///|
 fn LocalProjectMockDeclarations::prepare_source_declarations(
   self : Self,
+  fund_ordered? : ((@execution.ExecutionCapacity) -> Bool)? = None,
 ) -> Result[Unit, LocalProjectMockModelIssue] {
   if self.closing || self.retired {
     return Err(ForeignOriginal)
@@ -241,6 +242,7 @@ fn LocalProjectMockDeclarations::prepare_source_declarations(
         declaration,
         files,
         self._retained_data_file,
+        fund_ordered~,
       ) {
       Ok(value) => value
       Err(issue) => {

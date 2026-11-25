@@ -95,9 +95,9 @@ fn file_capture_metadata_capacity(
       6L +
       11L +
       10L,
-      // Target IO's replacement-ACK and predecessor slots exist for read and
-      // write children alike; write-only carriers are in the update quote.
-      reference_slots: references + 14L + 2L,
+      // Target IO's replacement ACK, predecessor and ordered key metadata
+      // slots exist for read and write children alike.
+      reference_slots: references + 14L + 3L,
       scalar_words: 1L +
       8L +
       26L +
@@ -281,6 +281,7 @@ fn file_capture_provider_capacity(
   prepared_contract? : @rows.RelationDocumentPreparedContract? = None,
   response_bytes? : Int? = None,
   writable_fields? : Int = 0,
+  ordered_projection? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
   file_capture_provider_construction(
     selection,
@@ -289,6 +290,7 @@ fn file_capture_provider_capacity(
     prepared_contract~,
     response_bytes~,
     writable_fields~,
+    ordered_projection~,
   ).map(value => value.0)
 }
 
@@ -300,6 +302,7 @@ fn file_capture_provider_construction(
   prepared_contract? : @rows.RelationDocumentPreparedContract? = None,
   response_bytes? : Int? = None,
   writable_fields? : Int = 0,
+  ordered_projection? : Bool = false,
 ) -> (@execution.ExecutionCapacity, @execution.PreparationRepresentationUnits)? {
   let page = match
     file_capture_response_backing_page(limits.page, response_bytes) {
@@ -332,7 +335,23 @@ fn file_capture_provider_construction(
         is Some(projected) else {
         return None
       }
-      @execution.compose_preparation_representation([raw, projected])
+      if ordered_projection {
+        // The borrowed key stays with its prepared provider. Only the
+        // temporary ordered document wrapper overlaps the projected rows.
+        @execution.compose_preparation_representation([
+          raw,
+          projected,
+          {
+            record_headers: 1L,
+            reference_slots: 2L,
+            scalar_words: 0L,
+            owned_utf16_units: 0L,
+            owned_wire_bytes: 0L,
+          },
+        ])
+      } else {
+        @execution.compose_preparation_representation([raw, projected])
+      }
     }
   }
   guard document is Some(document) &&

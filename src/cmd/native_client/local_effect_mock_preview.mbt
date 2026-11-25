@@ -328,6 +328,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
       ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewUnavailable"))
       let deleting = descriptor.2 == "delete"
       let creating = descriptor.2 == "create"
+      let upserting = descriptor.2 == "upsert"
       guard descriptor.0 == index &&
         descriptor.6 is Some(result_name) &&
         installations
@@ -432,16 +433,29 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
           }
           guard native_mock_preview_json(request_wire) is Object(request) &&
             request.get("target") is Some(target_value) &&
-            request.get("before") is Some(before) &&
+            (!upserting || target_value is Array(_)) &&
             json_text(request, "binding") == Some(selected.binding) &&
-            json_text(request, "mapping") == Some(descriptor.5) &&
-            json_text(request, "version") is Some(version) else {
+            json_text(request, "mapping") == Some(descriptor.5) else {
             stop("LocalOriginalEffectPreviewTargetUnavailable")
           }
+          let (before, target_guard, fields) : (Json, Json, Int) = match
+            (request.get("before"), json_text(request, "version")) {
+            (Some(before), Some(version)) if !version.is_empty() =>
+              (
+                { "state": "present", "value": before },
+                { "state": "version", "version_cid": Json::string(version) },
+                5,
+              )
+            (None, None) if upserting &&
+              target_value is Array(_) &&
+              request.get("version") is None =>
+              ({ "state": "absent" }, { "state": "not_applicable" }, 3)
+            _ => stop("LocalOriginalEffectPreviewTargetUnavailable")
+          }
           let value = match request.get("value") {
-            None if deleting && request.length() == 5 => Json::null()
+            None if deleting && request.length() == fields => Json::null()
             Some(value) if !deleting &&
-              request.length() == 6 &&
+              request.length() == fields + 1 &&
               value is Object(_) => value
             _ => stop("LocalOriginalEffectPreviewTargetUnavailable")
           }
@@ -449,11 +463,8 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
           requests.push(Json::string(request_cid))
           changes.push({
             "target_row_identity": target_value,
-            "target_guard": {
-              "state": "version",
-              "version_cid": Json::string(version),
-            },
-            "before": { "state": "present", "value": before },
+            "target_guard": target_guard,
+            "before": before,
             "after": if deleting {
               { "state": "absent" }
             } else {
@@ -927,7 +938,7 @@ fn native_mock_effect_preview_dispatch_capacity(
   let mut largest = 1
   for index in 0..<members {
     guard @publication.effect_preview_member_kind(preview, index)
-      is Some("create" | "update" | "delete") &&
+      is Some("create" | "update" | "delete" | "upsert") &&
       @publication.effect_preview_row_count(preview, index) is Some(count) else {
       return Err(PreviewDispatch(InvalidRowKey))
     }

@@ -1,0 +1,45 @@
+{
+  "version": "actql-normalization-rule-catalog/0.1",
+  "profile": "actql-local-common-ordered-file-mutation-normalization/0.1",
+  "applicability": {
+    "proof": "same-original-CheckedProgram-complete-requirement-closure-and-ordered-static-mapped-file-mutation-owners",
+    "audit_work_limit": 10000,
+    "effect_kind": "ordered_file_update_delete_or_upsert",
+    "selector_classes": [
+      "match_tuple",
+      "key_tuple"
+    ],
+    "mapping_conversions": "none",
+    "change_sources": [
+      "update:field",
+      "update:scalar_literal",
+      "delete:none",
+      "upsert:field",
+      "upsert:scalar_literal"
+    ],
+    "computation": "existing-common-original-occurrence-normalization-audit; execution-requirements-retained",
+    "actual_completions": "zero-or-more-original-sole-view-completions; all-other-completions-refuse",
+    "source_selection": "actual-original-resolver-sole-view-completion-only; same-source-declaration-selected-view-and-complete-requirements; no-Source-authority",
+    "parameter_origins": [
+      "supplied",
+      "default"
+    ],
+    "scope": "fresh-normalization-only; no-operation-support-Model-Effect-approval-resource-or-current-grant",
+    "compatibility": "existing-catalogs-and-saved-original-recipe-bytes-unchanged",
+    "normalization_journal_limits": {
+      "max_depth": 8,
+      "max_nodes": 32,
+      "max_wire_bytes": 1024
+    },
+    "selector_binding": "same-original-ordered-Mapping-tuple-and-checked-result-field-types; scalar-members-refuse"
+  },
+  "rules": [
+    {
+      "id": "actql.source.sole-view-completion",
+      "path": "RFC9535-compatible $.stages[original_stage].inputs[JSON-quoted original input_name].view; actual original resolver declaration only",
+      "authored": "null marker for the absent view member; explicit null is not admitted",
+      "canonical": "exact existing resolver selected_name String; no second resolution, parsing or normalization",
+      "requires": "same original ResolvedInput with SoleView selection, absent declaration.view and actual ProgramSourceIdentity; all existing Source execution/current/permission requirements remain mandatory"
+    }
+  ]
+}

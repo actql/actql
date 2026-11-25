@@ -153,6 +153,9 @@ function nativeRelationTargetFiles(namespace, suffix,
   for (const [name, content] of [
     ['target-' + suffix + '.json', input],
     ['target-backing-' + suffix, 384 * 1024 ** 2],
+    ...(suffix === 'insert' ? [['target-ordered.json', Buffer.from(
+      ' {"keys":["site","serial"],"items":[{"site":"west","serial":9223372036854775806,"label":"keep"},{"site":"east","serial":9223372036854775807,"label":null}],"control":["untouched"]}\n',
+    )]] : []),
     ...(foreignCopy ? [['foreign-copy.json', Buffer.from(text.replace('"value":1', '"value":9'))]] : []),
   ]) {
     const fd = openSync(join(root, name), 'wx', 0o600);

@@ -30,6 +30,13 @@ struct RelationDocumentPreparedContract {
 }
 
 ///|
+/// Prepared ordered key metadata for the original declared relation.
+struct RelationDocumentPreparedKey {
+  original : RelationDocumentPreparedContract
+  positions : Array[Int]
+}
+
+///|
 /// Bounded cumulative observations, not a capacity quotation or retirement
 /// receipt. Construction must be funded before receiving the original bytes.
 pub(all) struct RelationDocumentUsage {
@@ -56,11 +63,27 @@ pub struct RelationTargetDocument {
   priv schema : @schema.Schema
   priv columns : Array[String]
   priv identity_index : Int
+  priv ordered_positions : Array[Int]?
   priv writable_fields : Array[String]
   priv row_array : @decode.Cursor
   priv rows : Array[Array[@admitted.CheckedValue]]
   priv limits : RowPageLimits
   priv usage : @decode.AdmissionUsage
+}
+
+///|
+/// The same physical file projection and its original ordered key layout.
+struct RelationOrderedTargetDocument {
+  document : RelationTargetDocument
+  positions : Array[Int]
+}
+
+///|
+/// A checked tuple tied to one original prepared layout. It retains typed
+/// DATA for comparison and canonical emission, without any read authority.
+struct RelationTargetKey {
+  positions : Array[Int]
+  checked : Array[@admitted.CheckedValue]
 }
 
 ///|
@@ -352,6 +375,82 @@ pub fn project_relation_target_document(
   writable_fields : Array[String],
   prepared_contract? : RelationDocumentPreparedContract? = None,
 ) -> Result[RelationTargetDocument, RowSourceIssue] {
+  project_relation_target_document_selected(
+    backing,
+    declaration,
+    resource,
+    items_path,
+    key_path,
+    primary_identity,
+    writable_fields,
+    prepared_contract,
+    None,
+  )
+}
+
+///|
+/// Select the original declared File projection. An ordered key borrows the
+/// layout already prepared under its installation owner.
+pub fn project_relation_target_document_from_catalog_key(
+  backing : RelationDocument,
+  declaration : RowDeclaration,
+  resource : String,
+  items_path : Array[String],
+  key_path : Array[String]?,
+  primary_identity : String?,
+  prepared_key : RelationDocumentPreparedKey?,
+  writable_fields : Array[String],
+) -> Result[RelationTargetDocument, RowSourceIssue] {
+  match (primary_identity, prepared_key) {
+    (Some(identity), None) =>
+      project_relation_target_document(
+        backing, declaration, resource, items_path, key_path, identity, writable_fields,
+      )
+    (None, Some(prepared)) =>
+      project_relation_target_document_with_key(
+        backing, declaration, resource, items_path, key_path, writable_fields, prepared,
+      ).map(relation_ordered_target_document)
+    _ => Err(InvalidInputSchema)
+  }
+}
+
+///|
+/// Project the same original relation under its prepared ordered key. The
+/// caller funds prepared metadata and the same document projection recipe.
+pub fn project_relation_target_document_with_key(
+  backing : RelationDocument,
+  declaration : RowDeclaration,
+  resource : String,
+  items_path : Array[String],
+  key_path : Array[String]?,
+  writable_fields : Array[String],
+  prepared : RelationDocumentPreparedKey,
+) -> Result[RelationOrderedTargetDocument, RowSourceIssue] {
+  project_relation_target_document_selected(
+    backing,
+    declaration,
+    resource,
+    items_path,
+    key_path,
+    prepared.original.primary_identity,
+    writable_fields,
+    Some(prepared.original),
+    Some(prepared.positions),
+  ).map(document => { document, positions: prepared.positions, })
+}
+
+///|
+fn project_relation_target_document_selected(
+  backing : RelationDocument,
+  declaration : RowDeclaration,
+  resource : String,
+  items_path : Array[String],
+  key_path : Array[String]?,
+  primary_identity : String,
+  writable_fields : Array[String],
+  prepared_contract : RelationDocumentPreparedContract?,
+  ordered_positions : Array[Int]?,
+) -> Result[RelationTargetDocument, RowSourceIssue] {
   if !relation_document_original(backing) {
     return Err(ForeignSource)
   }
@@ -384,7 +483,11 @@ pub fn project_relation_target_document(
           original.resource != resource ||
           original.primary_identity != primary_identity ||
           original.limits.max_bytes != limits.max_bytes ||
-          original.limits.max_nodes != limits.max_nodes ||
+          (if ordered_positions is Some(_) {
+            original.limits.max_nodes < limits.max_nodes
+          } else {
+            original.limits.max_nodes != limits.max_nodes
+          }) ||
           original.limits.max_depth != limits.max_depth {
           raise RelationDocumentStop(ForeignSource)
         }
@@ -425,7 +528,14 @@ pub fn project_relation_target_document(
     for name in writable_fields {
       relation_document_work(work, columns.length())
       relation_document_work(work, writable.length())
+      if ordered_positions is Some(positions) {
+        relation_document_work(work, positions.length())
+      }
       if name == primary_identity ||
+        (
+          ordered_positions is Some(positions) &&
+          positions.any(position => columns[position] == name)
+        ) ||
         !columns.contains(name) ||
         writable.contains(name) {
         raise RelationDocumentStop(InvalidInputSchema)
@@ -443,7 +553,9 @@ pub fn project_relation_target_document(
           raise RelationDocumentStop(InvalidPage)
         },
       )
-      if keys.length() != 1 || @decode.text(keys[0]) != Ok(primary_identity) {
+      if !relation_target_identity_matches_path(
+          identity_index, ordered_positions, columns, keys, work,
+        ) {
         raise RelationDocumentStop(InvalidInputSchema)
       }
     }
@@ -459,8 +571,7 @@ pub fn project_relation_target_document(
       max_depth: limits.max_depth,
       max_text_bytes: limits.max_bytes,
     }
-    let keys : Array[String] = []
-    let rows = []
+    let rows : Array[Array[@admitted.CheckedValue]] = []
     for index in 0..<row_count {
       let cursor = @decode.element_at(row_array, index).unwrap()
       let object = @decode.closed_object(cursor, columns).unwrap_or_else(() => {
@@ -480,17 +591,13 @@ pub fn project_relation_target_document(
         }
         row.push(value)
       }
-      guard row[identity_index].value is @admitted.Text(key) else {
-        raise RelationDocumentStop(InvalidInputSchema)
-      }
-      for previous in keys {
-        relation_document_work(work, previous.length())
-        relation_document_work(work, key.length())
-        if previous == key {
+      for previous in rows {
+        if relation_target_rows_share_identity(
+            identity_index, ordered_positions, previous, row, work,
+          ) {
           raise RelationDocumentStop(InvalidPage)
         }
       }
-      keys.push(key)
       rows.push(row)
     }
     let document : RelationTargetDocument = {
@@ -501,7 +608,12 @@ pub fn project_relation_target_document(
       bytes: original,
       schema,
       columns,
-      identity_index,
+      identity_index: if ordered_positions is None {
+        identity_index
+      } else {
+        -1
+      },
+      ordered_positions,
       writable_fields: writable,
       row_array,
       rows,
@@ -516,6 +628,84 @@ pub fn project_relation_target_document(
     Ok(document)
   } catch {
     RelationDocumentStop(issue) => Err(issue)
+  }
+}
+
+///|
+fn relation_target_identity_matches_path(
+  identity_index : Int,
+  ordered_positions : Array[Int]?,
+  columns : Array[String],
+  keys : Array[@decode.Cursor],
+  work : Ref[Int],
+) -> Bool raise RelationDocumentStop {
+  match ordered_positions {
+    None =>
+      keys.length() == 1 && @decode.text(keys[0]) == Ok(columns[identity_index])
+    Some(positions) => {
+      if keys.length() != positions.length() {
+        return false
+      }
+      for ordinal, position in positions {
+        relation_document_work(work, 1)
+        let expected = columns[position]
+        relation_document_work(work, expected.length())
+        if @decode.text(keys[ordinal]) != Ok(expected) {
+          return false
+        }
+      }
+      true
+    }
+  }
+}
+
+///|
+fn relation_target_key_cell_matches(
+  left : @admitted.CheckedValue,
+  right : @admitted.CheckedValue,
+  work : Ref[Int],
+) -> Bool raise RelationDocumentStop {
+  relation_document_work(work, 1)
+  if (left.value, right.value) is (@admitted.Text(a), @admitted.Text(b)) {
+    relation_document_work(work, a.length())
+    relation_document_work(work, b.length())
+  }
+  match @admitted.compare_key_values(left, right) {
+    Ok(order) => order == 0
+    Err(_) => raise RelationDocumentStop(InvalidInputSchema)
+  }
+}
+
+///|
+fn relation_target_rows_share_identity(
+  identity_index : Int,
+  ordered_positions : Array[Int]?,
+  left : Array[@admitted.CheckedValue],
+  right : Array[@admitted.CheckedValue],
+  work : Ref[Int],
+) -> Bool raise RelationDocumentStop {
+  match ordered_positions {
+    None => {
+      guard (left[identity_index].value, right[identity_index].value)
+        is (@admitted.Text(a), @admitted.Text(b)) else {
+        raise RelationDocumentStop(InvalidInputSchema)
+      }
+      relation_document_work(work, a.length())
+      relation_document_work(work, b.length())
+      a == b
+    }
+    Some(positions) => {
+      for position in positions {
+        if !relation_target_key_cell_matches(
+            left[position],
+            right[position],
+            work,
+          ) {
+          return false
+        }
+      }
+      true
+    }
   }
 }
 
@@ -587,15 +777,268 @@ pub fn observe_relation_target(
   if @scalar.admit_utf8_length(identity, document.limits.max_bytes) is Err(_) {
     return Err(InvalidPage)
   }
+  let position = document.identity_index
+  if position < 0 {
+    return Err(InvalidInputSchema)
+  }
   let index = document.rows
     .search_by(row => {
-      row[document.identity_index].value is @admitted.Text(value) &&
-      value == identity
+      row[position].value is @admitted.Text(value) && value == identity
     })
     .unwrap_or_else(() => -1)
   if index < 0 {
     return Err(InvalidPage)
   }
+  relation_target_observation(document, index)
+}
+
+///|
+/// Observe through the original catalog projection. The document selects
+/// scalar Text or canonical typed tuple, independently of the request wire.
+pub fn observe_relation_target_from_catalog_key(
+  document : RelationTargetDocument,
+  declaration : RowDeclaration,
+  identity : String,
+) -> Result[RelationTargetRow, RowSourceIssue] {
+  guard document.ordered_positions is Some(_) else {
+    return observe_relation_target(document, declaration, identity)
+  }
+  find_relation_target_from_catalog_key(document, declaration, identity).bind(row => {
+    match row {
+      Some(value) => Ok(value)
+      None => Err(InvalidPage)
+    }
+  })
+}
+
+///|
+/// A successful complete ordered search may prove absence. Malformed input,
+/// a foreign original or exhausted work cannot produce that proof.
+pub fn find_relation_target_from_catalog_key(
+  document : RelationTargetDocument,
+  declaration : RowDeclaration,
+  identity : String,
+) -> Result[RelationTargetRow?, RowSourceIssue] {
+  if !relation_target_original(document) ||
+    !physical_equal(declaration, document.declaration) {
+    return Err(ForeignSource)
+  }
+  guard document.ordered_positions is Some(positions) else {
+    return Err(InvalidInputSchema)
+  }
+  let original : RelationOrderedTargetDocument = { document, positions, }
+  admit_relation_target_key_wire(original, identity).bind(key => {
+    find_relation_target_with_key(original, declaration, key)
+  })
+}
+
+///|
+/// Compare the ordered typed wire tuple against the original retained rows.
+/// The cursor is borrowed from the caller's bounded typed-wire admission.
+pub fn observe_relation_target_with_key(
+  original : RelationOrderedTargetDocument,
+  declaration : RowDeclaration,
+  key : @decode.Cursor,
+) -> Result[RelationTargetRow, RowSourceIssue] {
+  if !physical_equal(declaration, original.document.declaration) {
+    return Err(ForeignSource)
+  }
+  let target = match admit_relation_target_key(original, key) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match find_relation_target_with_key(original, declaration, target) {
+    Ok(Some(row)) => Ok(row)
+    Ok(None) => Err(InvalidPage)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Admit the key under the exact prepared layout and original document work.
+/// The caller keeps the borrowed input and funds the temporary tuple.
+pub fn admit_relation_target_key(
+  original : RelationOrderedTargetDocument,
+  key : @decode.Cursor,
+) -> Result[RelationTargetKey, RowSourceIssue] {
+  let { document, positions, } = original
+  if !relation_target_original(document) {
+    return Err(ForeignSource)
+  }
+  if @decode.array_length(key) != Some(positions.length()) {
+    return Err(InvalidPage)
+  }
+  try {
+    let work = document.backing.work
+    let limits = document.limits
+    let values : @admitted.Limits = {
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      max_text_bytes: limits.max_bytes,
+    }
+    let mut key_bytes = limits.max_bytes
+    let checked = positions.mapi((index, position) => {
+      relation_document_work(work, limits.max_nodes)
+      let field = @schema.field_at(document.schema, position).unwrap()
+      let cursor = @decode.element_at(key, index).unwrap()
+      guard @decode.text(cursor) is Ok(text) else {
+        raise RelationDocumentStop(Value(document.columns[position]))
+      }
+      relation_document_work(work, text.length())
+      guard @scalar.admit_utf8_length(text, key_bytes) is Ok(bytes) else {
+        raise RelationDocumentStop(Value(document.columns[position]))
+      }
+      key_bytes -= bytes
+      @admitted.admit_wire(field.contract, cursor, values).unwrap_or_else(() => {
+        raise RelationDocumentStop(Value(document.columns[position]))
+      })
+    })
+    Ok({ positions, checked, })
+  } catch {
+    RelationDocumentStop(issue) => Err(issue)
+  }
+}
+
+///|
+/// Emit the checked tuple into the caller's bounded canonical writer.
+/// Field and type correspondence stays with the admitted layout.
+pub fn emit_relation_target_key(
+  key : RelationTargetKey,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_array(writer)
+  for component in key.checked {
+    @admitted.emit_checked_wire_value(component, writer)
+  }
+  @encode.end_array(writer)
+}
+
+///|
+/// Decode the exact canonical wire selected by the Effect. The returned key
+/// is bound to the original layout, and its comparison uses the shared work.
+pub fn admit_relation_target_key_wire(
+  original : RelationOrderedTargetDocument,
+  key_wire : String,
+) -> Result[RelationTargetKey, RowSourceIssue] {
+  let document = original.document
+  if !relation_target_original(document) {
+    return Err(ForeignSource)
+  }
+  let limits = document.limits
+  let width = original.positions.length()
+  if width >= limits.max_nodes ||
+    limits.max_depth < 2 ||
+    key_wire.is_empty() ||
+    key_wire.length() > limits.max_bytes {
+    return Err(InvalidPage)
+  }
+  try {
+    let work = document.backing.work
+    relation_document_work(work, key_wire.length())
+    let bytes = @scalar.admit_utf8_length(key_wire, limits.max_bytes).unwrap_or_else(() => {
+        raise RelationDocumentStop(InvalidPage)
+      },
+    )
+    relation_document_work(work, bytes)
+    let nodes = width + 1
+    let parsed = @source.parse_json(key_wire, {
+      max_input_bytes: bytes,
+      max_nodes: nodes,
+      max_depth: 2,
+    }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
+    let cursor = @decode.admit(parsed, {
+      max_nodes: nodes,
+      max_depth: 2,
+      max_string_bytes: bytes,
+      max_total_string_bytes: bytes,
+    }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
+    let checked = match admit_relation_target_key(original, cursor) {
+      Ok(key) => key
+      Err(issue) => raise RelationDocumentStop(issue)
+    }
+    let writer = @encode.writer(bytes, nodes, 2)
+    defer @encode.cancel_writer(writer)
+    emit_relation_target_key(checked, writer)
+    if @encode.finish(writer) != key_wire {
+      raise RelationDocumentStop(InvalidPage)
+    }
+    Ok(checked)
+  } catch {
+    RelationDocumentStop(issue) => Err(issue)
+    _ => Err(InvalidPage)
+  }
+}
+
+///|
+/// Prove absence only after completing the original bounded comparison.
+/// A foreign layout, retired document, exhausted work, or failed row
+/// observation remains an error and cannot be treated as a missing target.
+pub fn find_relation_target_with_key(
+  original : RelationOrderedTargetDocument,
+  declaration : RowDeclaration,
+  key : RelationTargetKey,
+) -> Result[RelationTargetRow?, RowSourceIssue] {
+  find_relation_target_index_with_key(original, declaration, key).bind(index => {
+    match index {
+      Some(index) =>
+        relation_target_observation(original.document, index).map(row => {
+          Some(row)
+        })
+      None => Ok(None)
+    }
+  })
+}
+
+///|
+fn find_relation_target_index_with_key(
+  original : RelationOrderedTargetDocument,
+  declaration : RowDeclaration,
+  key : RelationTargetKey,
+) -> Result[Int?, RowSourceIssue] {
+  let { document, positions, } = original
+  if !relation_target_original(document) ||
+    !physical_equal(declaration, document.declaration) ||
+    !physical_equal(positions, key.positions) {
+    return Err(ForeignSource)
+  }
+  try {
+    let work = document.backing.work
+    for index, row in document.rows {
+      let mut matches = true
+      for ordinal, position in positions {
+        if !relation_target_key_cell_matches(
+            row[position],
+            key.checked[ordinal],
+            work,
+          ) {
+          matches = false
+          break
+        }
+      }
+      if matches {
+        return Ok(Some(index))
+      }
+    }
+    Ok(None)
+  } catch {
+    RelationDocumentStop(issue) => Err(issue)
+  }
+}
+
+///|
+/// Borrow the same projected data for the existing replacement and retirement
+/// operations. A Text probe cannot use this ordered-key document.
+pub fn relation_ordered_target_document(
+  original : RelationOrderedTargetDocument,
+) -> RelationTargetDocument {
+  original.document
+}
+
+///|
+fn relation_target_observation(
+  document : RelationTargetDocument,
+  index : Int,
+) -> Result[RelationTargetRow, RowSourceIssue] {
   try {
     let limits = document.limits
     let writer = @encode.writer(
@@ -702,7 +1145,71 @@ pub fn prepare_relation_target_insert(
     Err(issue) => return Err(issue)
   }
   defer discard_relation_target_document_original(document) |> ignore
+  prepare_relation_target_insert_row(
+    document,
+    items_path.length(),
+    identity,
+    None,
+    mapped_wire,
+  )
+}
+
+///|
+/// Prepare the insert side of UPSERT from the locked original document.
+/// The checked tuple supplies all key columns. Projection and a complete
+/// typed search must both succeed before this constructor can append a row.
+pub fn prepare_relation_target_insert_with_key(
+  backing : RelationDocument,
+  prepared : RelationDocumentPreparedKey,
+  items_path : Array[String],
+  key_path : Array[String]?,
+  key_wire : String,
+  mapped_wire : String,
+) -> Result[Bytes, RowSourceIssue] {
+  let declaration = prepared.original.declaration
+  let ordered = match
+    project_relation_target_document_with_key(
+      backing,
+      declaration,
+      prepared.original.resource,
+      items_path,
+      key_path,
+      [],
+      prepared,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let document = ordered.document
+  defer discard_relation_target_document_original(document) |> ignore
+  let tuple = match admit_relation_target_key_wire(ordered, key_wire) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match find_relation_target_index_with_key(ordered, declaration, tuple) {
+    Ok(None) =>
+      prepare_relation_target_insert_row(
+        document,
+        items_path.length(),
+        "",
+        Some(tuple),
+        mapped_wire,
+      )
+    Ok(Some(_)) => Err(InvalidPage)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn prepare_relation_target_insert_row(
+  document : RelationTargetDocument,
+  path_depth : Int,
+  identity : String,
+  tuple : RelationTargetKey?,
+  mapped_wire : String,
+) -> Result[Bytes, RowSourceIssue] {
   try {
+    let backing = document.backing
     let limits = document.limits
     let work = backing.work
     let bytes = backing.bytes
@@ -710,14 +1217,16 @@ pub fn prepare_relation_target_insert(
     let separator = if row_count == 0 { 0 } else { 1 }
     let room = limits.max_bytes - bytes.length() - separator
     let nodes = limits.max_nodes - backing.usage.nodes
-    let depth = limits.max_depth - items_path.length() - 1
+    let depth = limits.max_depth - path_depth - 1
     if row_count >= limits.max_rows ||
       room < 1 ||
       nodes < 1 ||
       depth < 1 ||
       mapped_wire.length() > limits.max_bytes ||
-      identity.is_empty() ||
-      identity.length() > limits.max_bytes {
+      (
+        tuple is None &&
+        (identity.is_empty() || identity.length() > limits.max_bytes)
+      ) {
       raise RelationDocumentStop(InvalidPage)
     }
     relation_document_work(work, mapped_wire.length())
@@ -747,16 +1256,39 @@ pub fn prepare_relation_target_insert(
         raise RelationDocumentStop(InvalidPage)
       },
     )
-    if @decode.lookup(object, document.columns[document.identity_index])
-      is Some(_) {
-      // The installer supplies the storage key, never the mapped Effect.
-      raise RelationDocumentStop(ForeignSource)
+    match tuple {
+      None =>
+        if @decode.lookup(object, document.columns[document.identity_index])
+          is Some(_) {
+          raise RelationDocumentStop(ForeignSource)
+        }
+      Some(key) =>
+        for position in key.positions {
+          relation_document_work(work, wire_nodes)
+          if @decode.lookup(object, document.columns[position]) is Some(_) {
+            raise RelationDocumentStop(ForeignSource)
+          }
+        }
     }
     let writer = @encode.writer(room, nodes, depth)
     @encode.begin_object(writer)
     for index, name in document.columns {
       relation_document_work(work, wire_nodes)
       let contract = @schema.field_at(document.schema, index).unwrap().contract
+      if tuple is Some(key) {
+        relation_document_work(work, key.positions.length())
+        if key.positions.search(index) is Some(component) {
+          // An Int64 key stays exact through physical JSON number emission.
+          let value = key.checked[component].value
+          @encode.key(writer, name)
+          match value {
+            @admitted.Signed64(number) =>
+              @encode.decimal_number_value(writer, number.to_string())
+            _ => emit_relation_document_value(value, writer)
+          }
+          continue
+        }
+      }
       let checked = if index == document.identity_index {
         relation_document_work(work, identity.length())
         let key = @admitted.checked_text_value(identity, contract).unwrap_or_else(() => {
@@ -1227,8 +1759,10 @@ pub fn relation_target_row_identity(
   if !relation_target_original(document) {
     return None
   }
-  guard document.rows.get(index) is Some(row) &&
-    row[document.identity_index].value is @admitted.Text(identity) else {
+  let position = document.identity_index
+  guard position >= 0 &&
+    document.rows.get(index) is Some(row) &&
+    row[position].value is @admitted.Text(identity) else {
     return None
   }
   Some(identity)

@@ -92,10 +92,15 @@ fn local_project_mock_write_declarations(
       None | Some(String("update")) => "update"
       Some(String("delete")) => "delete"
       Some(String("create")) => "create"
+      Some(String("upsert")) => "upsert"
       _ => return Err(InvalidSpecification)
     }
     guard local_project_mock_file_text(write, "resource") is Some(resource) &&
-      local_project_mock_file_text(write, "primary_identity") is Some(identity) &&
+      body.get("primary_identity") is Some(identity) &&
+      (
+        identity is Object(_) ||
+        local_project_mock_file_text(write, "primary_identity") is Some(_)
+      ) &&
       local_project_mock_file_text(write, "permission") is Some(permission) &&
       local_project_mock_file_text(write, "observe_permission") is Some(observe) &&
       local_project_mock_file_text(write, "approval") == Some("required") &&
@@ -145,9 +150,8 @@ fn local_project_mock_write_declarations(
       .find_first(candidate => {
         local_project_mock_file_text(candidate, "resource") == Some(resource)
       })
-      is Some(physical) &&
-      local_project_mock_file_text(physical, "primary_identity") ==
-      Some(identity) else {
+      is Some(Object(physical)) &&
+      physical.get("primary_identity") == Some(identity) else {
       return Err(InvalidSpecification)
     }
     let specification : Json = if operation == "delete" {
@@ -169,7 +173,7 @@ fn local_project_mock_write_declarations(
       None => {
         let value : Json = {
           "resource": Json::string(resource),
-          "primary_identity": Json::string(identity),
+          "primary_identity": identity,
         }
         adapted.push(value)
         value
@@ -209,14 +213,20 @@ fn local_project_mock_write_declarations(
           "reject"
         },
       })
-      if operation == "create" {
-        @row_host.prepare_row_file_create_mapping(
-          declaration, wire, resource, sources,
-        )
-      } else {
-        @row_host.prepare_row_update_mapping(
-          declaration, wire, resource, sources,
-        )
+      match operation {
+        "create" =>
+          @row_host.prepare_row_file_create_mapping(
+            declaration, wire, resource, sources,
+          )
+        "update" =>
+          @row_host.prepare_row_update_mapping(
+            declaration, wire, resource, sources,
+          )
+        "upsert" =>
+          @row_host.prepare_row_file_upsert_mapping(
+            declaration, wire, resource, sources,
+          )
+        _ => Err(InvalidSpecification)
       }
     }
     let mapping = match admitted {
@@ -256,7 +266,8 @@ fn LocalProjectMockWriteInstallation::matches_file_operation(
   operation : String,
 ) -> Bool {
   match operation {
-    "create" | "update" | "delete" => self.write.operation == operation
+    "create" | "update" | "delete" | "upsert" =>
+      self.write.operation == operation
     _ => false
   }
 }
@@ -266,17 +277,20 @@ fn LocalProjectMockWriteInstallation::file_target_read_capacity(
   self : Self,
   provider : @row_file.NativeRelationFilePreparedProvider,
   response_bytes? : Int? = None,
+  ordered_wire_utf16? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
   if self.write.writable_fields.is_empty() {
     @row_file.native_relation_file_delete_target_read_io_capacity(
       provider,
       response_bytes~,
+      ordered_wire_utf16~,
     )
   } else {
     @row_file.native_relation_file_target_read_io_capacity(
       provider,
       self.write.writable_fields.length(),
       response_bytes~,
+      ordered_wire_utf16~,
     )
   }
 }

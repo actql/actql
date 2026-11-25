@@ -735,7 +735,6 @@ fn NativeRelationFileCapture::retire_keyed_content_construction(
   self.bytes = None
   self.charge = None
   self.response_provider = None
-  self.prepared_contract = None
   self.declaration = None
   self.selection = None
   match

@@ -4,11 +4,19 @@
     {
       "module": "src/client_row_source_host/relation_update_mapping.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2d882fd864d59e3999d19ec4d4d3a6e12f39393dde396b82e91700d4a9ebb1b4",
+      "sha256": "1794133c3f91c902f42a04d8943964fbd4621456ac6c184384e3033e8339a1e3",
       "role": "common-semantics",
       "owner": "Existing Common original Relation Mapping and installed SourceInitialization continuation owners",
       "exports": [],
       "operations": [
+        {
+          "name": "file_tuple_identity_body",
+          "declaration": "file_tuple_identity_body ( fields : Array [ String ] ) - > Json"
+        },
+        {
+          "name": "file_write_key",
+          "declaration": "file_write_key ( cursor : @ decode . Cursor , max_fields : Int , ) - > ( String , Array [ String ] ? ) ?"
+        },
         {
           "name": "prepare_row_delete_mapping_from_writes",
           "declaration": "prepare_row_delete_mapping_from_writes ( declaration : RowDeclaration , writes_json : String , resource : String , ) - > Result [ RowMapping , RowMappingIssue ]"
@@ -18,22 +26,34 @@
           "declaration": "prepare_row_file_create_mapping ( declaration : RowDeclaration , writes_json : String , resource : String , sources : Array [ RowMappingSource ] , ) - > Result [ RowMapping , RowMappingIssue ]"
         },
         {
+          "name": "prepare_row_file_upsert_mapping",
+          "declaration": "prepare_row_file_upsert_mapping ( declaration : RowDeclaration , writes_json : String , resource : String , sources : Array [ RowMappingSource ] , ) - > Result [ RowMapping , RowMappingIssue ]"
+        },
+        {
           "name": "prepare_row_guarded_mapping",
           "declaration": "prepare_row_guarded_mapping ( declaration : RowDeclaration , writes_json : String , resource : String , sources : Array [ RowMappingSource ] , expected : FileMappingKind , ) - > Result [ RowMapping , RowMappingIssue ]"
         },
         {
           "name": "prepare_row_update_mapping",
           "declaration": "prepare_row_update_mapping ( declaration : RowDeclaration , writes_json : String , resource : String , sources : Array [ RowMappingSource ] , ) - > Result [ RowMapping , RowMappingIssue ]"
+        },
+        {
+          "name": "relation_file_tuple_key_valid",
+          "declaration": "relation_file_tuple_key_valid ( schema : @ schema . Schema , fields : Array [ String ] , ) - > Bool"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "prepare_row_update_mapping",
+            "file_tuple_identity_body",
+            "file_write_key",
             "prepare_row_delete_mapping_from_writes",
+            "prepare_row_file_create_mapping",
+            "prepare_row_file_upsert_mapping",
             "prepare_row_guarded_mapping",
-            "prepare_row_file_create_mapping"
+            "prepare_row_update_mapping",
+            "relation_file_tuple_key_valid"
           ],
           "exports": [],
           "attributes": {
@@ -103,6 +123,14 @@
               {
                 "path": "src/client_row_source_host/relation_update_mapping_wbtest.mbt",
                 "anchor": "file CREATE mapping requires all storage fields"
+              },
+              {
+                "path": "src/client_row_source_host/relation_update_mapping_wbtest.mbt",
+                "anchor": "declared File Mapping admits only its ordered typed key and selected operation"
+              },
+              {
+                "path": "src/client_row_source_host/relation_update_mapping_wbtest.mbt",
+                "anchor": "one ordered File resource selects separate mappings for UPDATE DELETE and UPSERT"
               }
             ]
           }
@@ -193,6 +221,10 @@
               {
                 "path": "src/client_row_source_host/relation-update-mapping-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_row_source_host/update_mapping_construction_wbtest.mbt",
+                "anchor": "Ordered File Mapping quotes and funds each original operation"
               }
             ]
           }

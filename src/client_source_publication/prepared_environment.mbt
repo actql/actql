@@ -42,6 +42,19 @@ priv struct PublicationEnvironmentAdmission {
 }
 
 ///|
+fn publication_environment_admission(
+  environment : @program_check.CheckEnvironment,
+) -> PublicationEnvironmentAdmission {
+  {
+    environment,
+    read_catalog: publication_read_catalog,
+    catalog: None,
+    catalog_contents_bounded: false,
+    mappings: None,
+  }
+}
+
+///|
 fn publication_admission_catalog(
   admission : PublicationEnvironmentAdmission,
 ) -> @program_check.PreparedSourceCatalog raise PublicationStop {
@@ -127,10 +140,16 @@ fn publication_admission_mappings(
   if admission.mappings is Some(value) {
     return value
   }
+  let carriers = @check_environment.source_request_carriers(
+    @program_check.source_catalog_contracts(
+      publication_admission_catalog(admission),
+    ),
+  )
   let value = @check_environment.check_mapping_contract_shapes(
     @program_check.checking_environment_wire(admission.environment),
     { max_bytes: 1048576, max_nodes: 16384, max_depth: 32, max_members: 32768, },
     1000000,
+    carriers=Some(carriers),
   ).unwrap_or_else(() => raise PublicationStop(Publication))
   admission.mappings = Some(value)
   value
@@ -193,11 +212,8 @@ fn prepare_published_query_environment_with_readers(
   ],
 ) -> Result[PreparedPublishedQueryEnvironment, PublicationIssue] {
   let admission = {
-    environment,
+    ..publication_environment_admission(environment),
     read_catalog,
-    catalog: None,
-    catalog_contents_bounded: false,
-    mappings: None,
   }
   bind_published_query_parts_with_reader(
     environment,

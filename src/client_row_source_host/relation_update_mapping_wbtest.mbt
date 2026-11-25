@@ -361,3 +361,210 @@ test "existing CREATE mapping remains separate and unchanged by UPDATE continuat
     is Err(_),
   )
 }
+
+///|
+fn checked_ordered_file_mapping(
+  original : RowDeclaration,
+  mapping : RowMapping,
+) -> @environment.MappingContractShape raise {
+  let env = relation_mapping_environment(original, mapping)
+  let limits : @environment.Limits = {
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 32,
+    max_members: 100,
+  }
+  let registry = @environment.check_contract_registry(env, limits).unwrap()
+  let catalogue = @environment.check_catalog_contents(registry, limits).unwrap()
+  let references = @environment.check_catalog_references(catalogue, {
+    max_work: 100000,
+    max_references: 100,
+  }).unwrap()
+  let policies = @environment.check_source_data_policies(references, {
+    max_work: 100000,
+    max_policies: 10,
+  }).unwrap()
+  let contracts = @environment.check_protocol_value_contracts(policies, {
+    max_envelopes: 100,
+    contracts: { max_nodes: 10000, max_depth: 32, max_text_bytes: 100000, },
+  }).unwrap()
+  let views = @environment.check_source_view_shapes(contracts, {
+    max_views: 100,
+    max_work: 100000,
+  }).unwrap()
+  let modes = @environment.check_source_read_modes(views, 100000).unwrap()
+  let carriers = @environment.check_carrier_schemas(modes, {
+    max_schemas: 100,
+    max_work: 100000,
+    bodies: { max_nodes: 10000, max_bytes: 100000, max_depth: 32, },
+  }).unwrap()
+  let mappings = @environment.check_mapping_contract_shapes(
+    env,
+    limits,
+    100000,
+    carriers=Some(carriers),
+  ).unwrap()
+  @environment.mapping_shape_at(mappings, 0).unwrap()
+}
+
+///|
+test "declared File Mapping admits only its ordered typed key and selected operation" {
+  let original = ordered_file_target_fixture()
+  let tuple = "{\"kind\":\"tuple\",\"fields\":[\"site\",\"serial\"]}"
+  let wire =
+    #|{"writes":[{"resource":"records","primary_identity":@key,"@operation":{"fields":["label"],"permission":"fixture:write","approval":"required"}}]}
+  let wire = wire.replace(old="@key", new=tuple)
+  let sources = [
+    { target: "label", field: "incoming", null_behavior: "write_null", },
+  ]
+  let update_wire = wire.replace(old="@operation", new="update")
+  let update = prepare_row_update_mapping(
+    original, update_wire, "records", sources,
+  ).unwrap()
+  let delete = prepare_row_delete_mapping_from_writes(
+    original,
+    wire
+    .replace(old="@operation", new="delete")
+    .replace(old="\"fields\":[\"label\"],", new=""),
+    "records",
+  ).unwrap()
+  let upsert_wire = wire.replace(old="@operation", new="upsert")
+  let upsert = prepare_row_file_upsert_mapping(
+    original, upsert_wire, "records", sources,
+  ).unwrap()
+
+  assert_true(
+    update.mapping_cid != delete.mapping_cid &&
+    update.mapping_cid != upsert.mapping_cid &&
+    delete.mapping_cid != upsert.mapping_cid,
+  )
+  for
+    (mapping, operation, selector, written) in [
+      (update, "update", "match_tuple", ["label"]),
+      (delete, "delete", "match_tuple", []),
+      (upsert, "upsert", "key_tuple", ["label"]),
+    ] {
+    assert_eq(mapping.write_fields, written)
+    let shape = checked_ordered_file_mapping(original, mapping)
+    assert_eq(@environment.mapping_shape_primary_identity(shape), None)
+    assert_eq(@environment.mapping_shape_tuple_field_count(shape), 2)
+    assert_eq(@environment.mapping_shape_tuple_field_at(shape, 0), Some("site"))
+    assert_eq(
+      @environment.mapping_shape_tuple_field_at(shape, 1),
+      Some("serial"),
+    )
+    let permissions = @environment.select_mapping_permissions(
+      shape, operation, selector, written, 1000,
+    ).unwrap()
+    assert_eq(@environment.mapping_permission_names(permissions), [
+      "fixture:write",
+    ])
+    assert_true(
+      @environment.select_mapping_permissions(
+        shape, operation, "id", written, 1000,
+      )
+      is Err(_),
+    )
+    guard @json.parse(mapping.body) is Object(body) else {
+      fail("closed Mapping body")
+    }
+    // SHA256 of the independent canonical tuple identity preimage with the
+    // original typed records schema. Operation never changes the row scheme.
+    assert_eq(
+      body.get("resource_identity_cid"),
+      Some(
+        Json::string(
+          "sha256:77e17d6ab3407abb3238e51082a0e55da816e8cf0b170ac7d178b3ba4e5b95d5",
+        ),
+      ),
+    )
+  }
+  assert_true(upsert.body.contains("\"required_fields\":[\"label\"]"))
+  assert_true(
+    prepare_row_file_upsert_mapping(original, upsert_wire, "records", [
+      { ..sources[0], null_behavior: "omit", },
+    ])
+    is Err(InvalidNullBehavior("label")),
+  )
+  for
+    malformed in [
+      update_wire.replace(old="\"site\",\"serial\"", new="\"serial\",\"site\""),
+      update_wire.replace(old="\"site\",\"serial\"", new="\"site\",\"site\""),
+      update_wire.replace(old="\"site\",\"serial\"", new="\"site\""),
+      update_wire.replace(old="\"site\",\"serial\"", new="\"site\",\"label\""),
+      update_wire.replace(
+        old="\"fields\":[\"label\"]",
+        new="\"fields\":[\"serial\"]",
+      ),
+    ] {
+    assert_true(
+      prepare_row_update_mapping(original, malformed, "records", sources)
+      is Err(_),
+    )
+  }
+  assert_true(
+    prepare_row_file_create_mapping(
+      original,
+      wire.replace(old="@operation", new="create"),
+      "records",
+      sources,
+    )
+    is Err(InvalidSpecification),
+  )
+  assert_true(
+    prepare_row_file_upsert_mapping(
+      original,
+      upsert_wire.replace(old=tuple, new="\"site\""),
+      "records",
+      sources,
+    )
+    is Err(InvalidSpecification),
+  )
+}
+
+///|
+test "one ordered File resource selects separate mappings for UPDATE DELETE and UPSERT" {
+  let original = ordered_file_target_fixture()
+  let wire =
+    #|{"writes":[{"resource":"records","primary_identity":{"kind":"tuple","fields":["site","serial"]},"update":{"fields":["label"],"permission":"fixture:update","approval":"required"},"delete":{"permission":"fixture:delete","approval":"required"},"upsert":{"fields":["label"],"permission":"fixture:upsert","approval":"required"}}]}
+  let sources = [
+    { target: "label", field: "incoming", null_behavior: "write_null", },
+  ]
+  let update = prepare_row_update_mapping(original, wire, "records", sources).unwrap()
+  let delete = prepare_row_delete_mapping_from_writes(original, wire, "records").unwrap()
+  let upsert = prepare_row_file_upsert_mapping(
+    original, wire, "records", sources,
+  ).unwrap()
+  assert_true(
+    update.mapping_cid != delete.mapping_cid &&
+    update.mapping_cid != upsert.mapping_cid &&
+    delete.mapping_cid != upsert.mapping_cid,
+  )
+  for
+    (mapping, kind, selector, writes) in [
+      (update, "update", "match_tuple", ["label"]),
+      (delete, "delete", "match_tuple", []),
+      (upsert, "upsert", "key_tuple", ["label"]),
+    ] {
+    let shape = checked_ordered_file_mapping(original, mapping)
+    let permission = @environment.select_mapping_permissions(
+      shape, kind, selector, writes, 1000,
+    ).unwrap()
+    assert_eq(@environment.mapping_permission_names(permission), [
+      "fixture:" + kind,
+    ])
+    assert_eq(@environment.mapping_shape_tuple_field_at(shape, 0), Some("site"))
+    assert_eq(
+      @environment.mapping_shape_tuple_field_at(shape, 1),
+      Some("serial"),
+    )
+  }
+  let invalid = wire.replace(
+    old="\"upsert\":{\"fields\":[\"label\"]",
+    new="\"upsert\":{\"fields\":[\"serial\"]",
+  )
+  assert_true(
+    prepare_row_update_mapping(original, invalid, "records", sources)
+    is Err(InvalidSpecification),
+  )
+}

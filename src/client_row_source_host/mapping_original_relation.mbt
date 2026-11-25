@@ -58,6 +58,7 @@ fn mapping_original_relation(
   resource : String,
   primary_identity : String,
   limits : RowDeclarationLimits,
+  ordered_key? : Array[String]? = None,
 ) -> Result[(String, @contract.Contract), RowMappingIssue] {
   if limits.max_bytes <= 0 ||
     limits.max_nodes <= 0 ||
@@ -107,6 +108,20 @@ fn mapping_original_relation(
     "connector://" + declaration.connector_id + "/" + resource + "#records" else {
     return Err(InvalidSpecification)
   }
+  let key_facts_cid = match ordered_key {
+    Some(fields) => {
+      guard fields.length() >= 2 &&
+        fields.length() <= limits.max_fields &&
+        fields[0] == primary_identity &&
+        output.get("facts") is Some(Object(reference)) &&
+        reference.get("cid") is Some(String(cid)) else {
+        return Err(InvalidSpecification)
+      }
+      Some(cid)
+    }
+    None => None
+  }
+  let mut selected_key = false
   let mut remaining_bytes = limits.max_bytes - view_bytes
   let mut remaining_nodes = limits.max_nodes - view_nodes
   let mut selected_schema : @contract.Contract? = None
@@ -126,6 +141,16 @@ fn mapping_original_relation(
     let envelope = match @decode.open_object(cursor) {
       Ok(value) => value
       Err(_) => return Err(InvalidSpecification)
+    }
+    if key_facts_cid is Some(cid) &&
+      @decode.lookup(envelope, "cid").map(@decode.text) == Some(Ok(cid)) {
+      guard !selected_key &&
+        ordered_key is Some(fields) &&
+        mapping_original_identity(original, "cid", cid, limits) &&
+        relation_mapping_has_ordered_key(original, fields) else {
+        return Err(InvalidSpecification)
+      }
+      selected_key = true
     }
     guard @decode.lookup(envelope, "cid") is Some(identity) &&
       @decode.text(identity) == Ok(selected.carrier_schema_cid) else {
@@ -192,8 +217,40 @@ fn mapping_original_relation(
       return Err(InvalidSpecification)
     }
   }
-  guard selected_schema is Some(schema) else {
+  guard selected_schema is Some(schema) &&
+    (key_facts_cid is None || selected_key) else {
     return Err(InvalidSpecification)
   }
   Ok((resource_kind, schema))
+}
+
+///|
+fn relation_mapping_has_ordered_key(
+  envelope : Json,
+  fields : Array[String],
+) -> Bool {
+  guard envelope is Object(contract) &&
+    contract.get("kind") is Some(String("carrier_facts")) &&
+    contract.get("body") is Some(Object(body)) &&
+    body.get("relation_keys") is Some(Object(keys)) &&
+    keys.length() == 1 &&
+    keys.get("candidate_keys") is Some(Array(candidates)) else {
+    return false
+  }
+  for candidate in candidates {
+    guard candidate is Array(names) && names.length() == fields.length() else {
+      continue
+    }
+    let mut matches = true
+    for index, field in fields {
+      if !(names[index] is String(name) && name == field) {
+        matches = false
+        break
+      }
+    }
+    if matches {
+      return true
+    }
+  }
+  false
 }

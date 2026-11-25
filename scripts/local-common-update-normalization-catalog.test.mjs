@@ -82,3 +82,18 @@ test('mapped file mutation catalogue keeps the original sole-view rule and its o
   const issuer = readFileSync(new URL('../src/run_publication_host/client_effect_normalization.mbt', import.meta.url), 'utf8');
   assert(issuer.includes('"' + catalog + '"'));
 });
+
+test('ordered File mutation catalogue retains its own tuple profile identity', () => {
+  const read = name => JSON.parse(readFileSync(new URL('../spec/contracts/' + name, import.meta.url), 'utf8'));
+  const ordered = read('actql-local-common-ordered-file-mutation-normalization-catalog.json');
+  const scalar = read('actql-local-common-file-mutation-normalization-catalog.json');
+  assert.deepEqual(ordered.rules, scalar.rules);
+  assert.deepEqual(ordered.applicability.selector_classes, ['match_tuple', 'key_tuple']);
+  assert.equal(ordered.applicability.effect_kind, 'ordered_file_update_delete_or_upsert');
+  assert.equal(ordered.applicability.audit_work_limit, scalar.applicability.audit_work_limit);
+  assert.deepEqual(ordered.applicability.normalization_journal_limits, scalar.applicability.normalization_journal_limits);
+  const expected = 'sha256:c223b3b669fb28ecb9d3e4f38d88642c93293d37623f775cc41aac79f4ba194b';
+  assert.equal(machineCid(ordered), expected);
+  const issuer = readFileSync(new URL('../src/run_publication_host/client_effect_normalization.mbt', import.meta.url), 'utf8');
+  assert(issuer.includes('"' + expected + '"'));
+});

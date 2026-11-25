@@ -7,6 +7,7 @@ import {
   "actql/actql/check_environment",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/local",
+  "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
@@ -50,6 +51,10 @@ pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Byt
 pub fn admit_relation_document(Bytes, RowPageLimits, Int) -> Result[RelationDocument, RowSourceIssue]
 
 pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Array[String]?, String, Array[String], Bytes, RowPageLimits, Int) -> Result[RelationTargetDocument, RowSourceIssue]
+
+pub fn admit_relation_target_key(RelationOrderedTargetDocument, @decode_core.Cursor) -> Result[RelationTargetKey, RowSourceIssue]
+
+pub fn admit_relation_target_key_wire(RelationOrderedTargetDocument, String) -> Result[RelationTargetKey, RowSourceIssue]
 
 pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]
 
@@ -167,6 +172,8 @@ pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool
 
 pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool
 
+pub fn emit_relation_target_key(RelationTargetKey, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn encode_local_csv_page(Bytes, Array[String], Array[Bool], Array[String], Int, Int, Int, Int) -> Result[String, LocalCsvPageIssue]
 
 pub fn ensure_row_run_response_transfer_capacity(RowRunResponseBorrow, Int64) -> Result[Unit, RowHostIssue]
@@ -178,6 +185,10 @@ pub fn export_row_input_original_read(RowInputAcquisition, @execution_relation.S
 pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
 
 pub fn extend_row_run_page_charge(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]
+
+pub fn find_relation_target_from_catalog_key(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow?, RowSourceIssue]
+
+pub fn find_relation_target_with_key(RelationOrderedTargetDocument, RowDeclaration, RelationTargetKey) -> Result[RelationTargetRow?, RowSourceIssue]
 
 pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]
 
@@ -241,6 +252,10 @@ pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String
 
 pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]
 
+pub fn observe_relation_target_from_catalog_key(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]
+
+pub fn observe_relation_target_with_key(RelationOrderedTargetDocument, RowDeclaration, @decode_core.Cursor) -> Result[RelationTargetRow, RowSourceIssue]
+
 pub fn prepare_catalog_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]
 
 pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
@@ -261,11 +276,15 @@ pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, 
 
 pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPageLimits) -> Result[RelationDocumentPreparedContract, RowMappingIssue]
 
+pub fn prepare_relation_document_key_contract(RowDeclaration, String, Array[String], RowPageLimits) -> Result[RelationDocumentPreparedKey, RowMappingIssue]
+
 pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
 pub fn prepare_relation_target_delete(RelationTargetDocument, RelationTargetRow, String, Int) -> Result[Bytes, RowSourceIssue]
 
 pub fn prepare_relation_target_insert(RelationDocument, RelationDocumentPreparedContract, Array[String], Array[String]?, String, String) -> Result[Bytes, RowSourceIssue]
+
+pub fn prepare_relation_target_insert_with_key(RelationDocument, RelationDocumentPreparedKey, Array[String], Array[String]?, String, String) -> Result[Bytes, RowSourceIssue]
 
 pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]
 
@@ -276,6 +295,8 @@ pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String
 pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]
 
 pub fn prepare_row_file_create_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
+
+pub fn prepare_row_file_upsert_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
 
 pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]
 
@@ -295,6 +316,10 @@ pub fn project_relation_declaration_wire_input(String) -> Result[String, RowHost
 
 pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]
 
+pub fn project_relation_target_document_from_catalog_key(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String?, RelationDocumentPreparedKey?, Array[String]) -> Result[RelationTargetDocument, RowSourceIssue]
+
+pub fn project_relation_target_document_with_key(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, Array[String], RelationDocumentPreparedKey) -> Result[RelationOrderedTargetDocument, RowSourceIssue]
+
 pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]
 
 pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]
@@ -302,6 +327,12 @@ pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], I
 pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]
 
 pub fn relation_document_construction_inventory(RowPageLimits, Array[RelationDocumentProjectionConstruction]) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn relation_document_key_metadata_capacity(RowDeclaration, String, RowPageLimits, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn relation_document_key_metadata_construction_inventory(RowPageLimits, Int) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn relation_document_key_prepared_contract(RelationDocumentPreparedKey) -> RelationDocumentPreparedContract
 
 pub fn relation_document_mapping_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?
 
@@ -317,6 +348,8 @@ pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution
 
 pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?
 
+pub fn relation_ordered_target_document(RelationOrderedTargetDocument) -> RelationTargetDocument
+
 pub fn relation_public_projection_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn relation_restore_construction_inventory(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.PreparationRepresentationUnits?
@@ -324,6 +357,10 @@ pub fn relation_restore_construction_inventory(String, String, String, String, A
 pub fn relation_target_before(RelationTargetRow) -> String?
 
 pub fn relation_target_insert_workspace_inventory(RelationDocumentPreparedContract, Int, Int, Int) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn relation_target_key_wire_workspace_inventory(RelationDocumentPreparedKey, Int) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn relation_target_ordered_insert_workspace_inventory(RelationDocumentPreparedKey, Int, Int, Int) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn relation_target_row_count(RelationTargetDocument) -> Int?
 
@@ -621,6 +658,8 @@ pub struct RelationDocument {
 
 type RelationDocumentPreparedContract
 
+type RelationDocumentPreparedKey
+
 pub(all) struct RelationDocumentProjectionConstruction {
   original : @value_contract.Contract
   items_path_depth : Int
@@ -640,9 +679,13 @@ pub(all) struct RelationDocumentUsage {
   remaining_work : Int
 } derive(Eq, @debug.Debug)
 
+type RelationOrderedTargetDocument
+
 pub struct RelationTargetDocument {
   // private fields
 }
+
+type RelationTargetKey
 
 pub struct RelationTargetRow {
   // private fields

@@ -7,6 +7,7 @@ struct NativeRelationFilePreparedProvider {
   selection : NativeRelationFileSelection
   limits : NativeRelationFileLimits
   prepared_contract : @rows.RelationDocumentPreparedContract
+  ordered_key : @rows.RelationDocumentPreparedKey?
   capacity : @execution.ExecutionCapacity
   response_measured : Bool
 }
@@ -17,20 +18,57 @@ pub fn prepare_native_relation_file_provider(
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
   response_measured? : Bool = false,
+  ordered_fields? : Array[String]? = None,
 ) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue] {
   if !file_capture_selected_input_valid(selection, limits) {
     return Err(InvalidInput)
   }
-  let prepared_contract = match
-    @rows.prepare_relation_document_contract(
-      declaration,
-      selection.resource,
-      selection.primary_identity,
-      limits.page,
-    ) {
+  let ordered_key = match ordered_fields {
+    None => None
+    Some(fields) => {
+      guard fields.get(0) == Some(selection.primary_identity) else {
+        return Err(InvalidInput)
+      }
+      match
+        @rows.prepare_relation_document_key_contract(
+          declaration,
+          selection.resource,
+          fields,
+          limits.page,
+        ) {
+        Ok(key) => Some(key)
+        Err(issue) => return Err(Mapping(issue))
+      }
+    }
+  }
+  let prepared = match ordered_key {
+    Some(key) => Ok(@rows.relation_document_key_prepared_contract(key))
+    None =>
+      @rows.prepare_relation_document_contract(
+        declaration,
+        selection.resource,
+        selection.primary_identity,
+        limits.page,
+      )
+  }
+  let prepared_contract = match prepared {
     Ok(value) => value
     Err(issue) => return Err(Mapping(issue))
   }
+  prepare_native_relation_file_provider_original(
+    declaration, selection, limits, prepared_contract, response_measured, ordered_key,
+  )
+}
+
+///|
+fn prepare_native_relation_file_provider_original(
+  declaration : @rows.RowDeclaration,
+  selection : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+  prepared_contract : @rows.RelationDocumentPreparedContract,
+  response_measured : Bool,
+  ordered_key : @rows.RelationDocumentPreparedKey?,
+) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue] {
   let contract = @rows.relation_document_prepared_contract(prepared_contract)
   guard file_capture_provider_capacity(
       selection,
@@ -38,6 +76,7 @@ pub fn prepare_native_relation_file_provider(
       contract,
       prepared_contract=Some(prepared_contract),
       response_bytes=if response_measured { Some(1) } else { None },
+      ordered_projection=ordered_key is Some(_),
     )
     is Some(capacity) else {
     return Err(Capacity)
@@ -52,6 +91,7 @@ pub fn prepare_native_relation_file_provider(
     selection,
     limits,
     prepared_contract,
+    ordered_key,
     capacity,
     response_measured,
   })
@@ -64,6 +104,13 @@ pub fn NativeRelationFilePreparedProvider::capacity(
   self : Self,
 ) -> @execution.ExecutionCapacity {
   self.capacity
+}
+
+///|
+/// The retained declaration selected an ordered key. This is configuration
+/// data, not permission to inspect a row or dispatch a mutation.
+pub fn NativeRelationFilePreparedProvider::has_ordered_key(self : Self) -> Bool {
+  self.ordered_key is Some(_)
 }
 
 ///|

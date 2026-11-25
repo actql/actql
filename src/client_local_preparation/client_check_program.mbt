@@ -717,6 +717,7 @@ pub fn client_program_project_original_static_effect_check(
             target,
             @syntax.effect_header_contract_ref(header),
             1000000,
+            match_tuple=@decode.lookup(body, "match_tuple") is Some(_),
           ) {
           Ok(_) => true
           Err(WorkLimit) => {

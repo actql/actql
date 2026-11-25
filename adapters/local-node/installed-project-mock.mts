@@ -20,6 +20,7 @@ import type {createDeclaredFileInstallationInventory} from './declared-file-inst
 import type {selectInstalledProjectProfile} from '../host-node/installed-project-profile.mjs';
 
 type Catalog = Awaited<ReturnType<typeof loadDeclaredProjectCatalog>>;
+type CatalogInspection = Awaited<ReturnType<typeof inspectDeclaredProjectCatalog>>;
 type CatalogSource = Catalog['sources'][number];
 type Inventory = ReturnType<typeof createDeclaredFileInstallationInventory>;
 type Project = Parameters<typeof loadInstalledProjectConnections>[1];
@@ -27,20 +28,21 @@ type ProjectOriginal = ReturnType<typeof installedProjectOriginalsForRuntime>;
 type Connections = Awaited<ReturnType<typeof loadInstalledProjectConnections>>;
 type ConnectionOriginal = ReturnType<Connections['originalsForRuntime']>;
 type Profile = ReturnType<typeof selectInstalledProjectProfile>;
-type CatalogLoader = typeof loadDeclaredProjectCatalog;
+type CatalogLoader<View extends CatalogInspection = Catalog> =
+  (...args: Parameters<typeof loadDeclaredProjectCatalog>) => Promise<View>;
 type ProjectRuntime = Parameters<CatalogLoader>[0] & NonNullable<Parameters<typeof loadInstalledProjectConnections>[0]>;
 type PreparationOptions = Readonly<{assertCurrent?: () => unknown; openFile?: unknown; installationInventory?: Inventory}>;
 type Available = object & Readonly<{then?: never; file?: Readonly<{close(): unknown}>}>;
 type Phase = Parameters<typeof declaredProjectWritableRuntimeConstructionGeometry>[2];
-type Frame = Readonly<{
+type Frame<View extends CatalogInspection = Catalog> = Readonly<{
   physicalKind: 'declared-json-document'; project: ProjectOriginal; configuration: unknown; selection: unknown;
-  connections: ConnectionOriginal; dataFile: string; dataPath: string; catalog: Catalog;
-  sources: Catalog['sources']; writables: Catalog['writables'];
+  connections: ConnectionOriginal; dataFile: string; dataPath: string; catalog: View;
+  sources: View['sources']; writables: View['writables'];
 }>;
-type Preparation = Readonly<{
-  originalsForRuntime(runtime: unknown): Frame;
+type Preparation<View extends CatalogInspection = Catalog> = Readonly<{
+  originalsForRuntime(runtime: unknown): Frame<View>;
   constructWritableRuntime<Value extends Available>(runtime: unknown, phase: Phase,
-    source: CatalogSource | undefined, projectImplementation: () => Value): Promise<Value>;
+    source: View['sources'][number] | undefined, projectImplementation: () => Value): Promise<Value>;
   retire(runtime: unknown): void;
 }>;
 type Plan = Readonly<{compiled: unknown; runDefinition: unknown; queryTimePreparation?: unknown}>;
@@ -103,7 +105,8 @@ type ProducerMoon = EnvironmentArgs[1] & Parameters<typeof createFixtureFileSupp
   clientProgramResourceReferenceIssuer(admit: (kind: string, wire: string) => boolean, current: () => boolean): unknown;
   clientProgramRelationAdmitDocument(bytes: Uint8Array, maximum: number, nodes: number, depth: number, rows: number, work: number): unknown;
   clientProgramRelationProjectTargetDocument(document: unknown, declaration: unknown, resource: string,
-    items: readonly string[], key: readonly string[], primary: string, writable: readonly string[]): unknown;
+    items: readonly string[], key: readonly string[], identity: string | undefined,
+    preparedKey: unknown, writable: readonly string[]): unknown;
   clientProgramRowSourceFileReadProfileMatches?(declaration: unknown, ref: string, physical: unknown,
     resource: string, ...fields: ReadProfile): boolean;
   clientProgramInstalledManagedRunSourceReadAt(value: unknown, stage: number, input: number, task: number): object | undefined;
@@ -207,8 +210,10 @@ export async function inspectProjectMockDeclarations(moon: ProjectRuntime, proje
   return prepareProjectMockDeclarations(moon, project, profile, options, inspectDeclaredProjectCatalog);
 }
 
-async function prepareProjectMockDeclarations(moon: ProjectRuntime, project: Project | undefined, profile: Profile | undefined,
-  {assertCurrent, openFile, installationInventory}: PreparationOptions, loadCatalog: CatalogLoader): Promise<Preparation> {
+async function prepareProjectMockDeclarations<View extends CatalogInspection>(
+  moon: ProjectRuntime, project: Project | undefined, profile: Profile | undefined,
+  {assertCurrent, openFile, installationInventory}: PreparationOptions, loadCatalog: CatalogLoader<View>,
+): Promise<Preparation<View>> {
   let projectOriginal: ProjectOriginal | undefined = installedProjectOriginalsForRuntime(project, moon);
   if (typeof assertCurrent !== 'function' || typeof project!.directory !== 'string' ||
       !project!.directory || typeof profile?.originalsForRuntime !== 'function' ||
@@ -251,19 +256,19 @@ async function prepareProjectMockDeclarations(moon: ProjectRuntime, project: Pro
   if (!Number.isSafeInteger(count) || count < 0 || count > 128) {
     fail('InstalledMockConnectionCountUnavailable');
   }
-  let catalog: Catalog | undefined = await loadCatalog(moon, {directory: project!.directory as string,
+  let catalog: View | undefined = await loadCatalog(moon, {directory: project!.directory as string,
     catalogFile: locators.catalogFile, dataFile: locators.dataFile, connectionOriginal,
     connections: connectionOriginal.connections,
     assertCurrent: current, openFile, installationInventory});
-  let sources: Catalog['sources'] | undefined = catalog.sources;
-  let writables: Catalog['writables'] | undefined = catalog.writables;
+  let sources: View['sources'] | undefined = catalog.sources;
+  let writables: View['writables'] | undefined = catalog.writables;
   current();
-  let originals: Frame | undefined = Object.freeze({physicalKind: 'declared-json-document',
+  let originals: Frame<View> | undefined = Object.freeze({physicalKind: 'declared-json-document',
     project: projectOriginal!, selection: selection.selection,
     configuration: selection.configuration, connections: connectionOriginal,
     dataFile: locators.dataFile, dataPath: resolve(project!.directory as string, locators.dataFile),
     sources, writables, catalog});
-  let retired = false, view: Preparation;
+  let retired = false, view: Preparation<View>;
   function same(runtime: unknown, receiver: unknown) {
     if (runtime !== moon || receiver !== view) fail('ForeignInstalledMockPreparation');
   }
@@ -278,7 +283,7 @@ async function prepareProjectMockDeclarations(moon: ProjectRuntime, project: Pro
       return originals!;
     },
     async constructWritableRuntime<Value extends Available>(runtime: unknown, phase: Phase,
-      source: CatalogSource | undefined, projectImplementation: () => Value) {
+      source: View['sources'][number] | undefined, projectImplementation: () => Value) {
       same(runtime, this);
       if (retired || typeof projectImplementation !== 'function' || installationInventory === undefined) {
         fail('InstalledMockImplementationConstructionUnavailable');
@@ -739,7 +744,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         for (const source of bundle.sources) for (const model of source.physical) {
           projections.set(model, checked(moon.clientProgramRelationProjectTargetDocument(document,
             model.declaration, model.resource, model.itemsPath, model.keyPath,
-            model.primaryIdentity, model.writableFields)));
+            typeof model.primaryIdentity === 'string' ? model.primaryIdentity : undefined,
+            model.preparedKey, model.writableFields)));
         }
         sameRun(held.run.prepared);
         const selected = projections.get(physical);
@@ -750,22 +756,24 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         const physical = original.physical.find(value => value.resource === binding.data_resource);
         const contentView = declared.views.find(view => view.resource === binding.content_resource);
         const matches = moon.clientProgramRowSourceFileReadProfileMatches;
-        if (contentView === undefined || typeof matches !== 'function' ||
+        if (physical === undefined || typeof physical.primaryIdentity !== 'string' ||
+            contentView === undefined || typeof matches !== 'function' ||
             Reflect.apply(matches, moon, [declaration, contentView.source_ref,
-              physical!.declaration, physical!.resource, binding.identity_field,
+              physical.declaration, physical.resource, binding.identity_field,
               binding.name_field, binding.version_field, binding.media_type_field,
               binding.content_utf8_field, binding.path_field,
-              physical!.itemsPath, physical!.keyPath]) !== true) {
+              physical.itemsPath, physical.keyPath]) !== true) {
           fail('InstalledMockPhysicalBindingUnavailable');
         }
-        const supplier = createFixtureFileSupplier<RowRun>({moon, physical: physical!,
+        const supplier = createFixtureFileSupplier<RowRun>({moon,
+          physical: physical as Physical & Readonly<{primaryIdentity: string}>,
           fields: {identity: binding.identity_field, name: binding.name_field, version: binding.version_field,
             mediaType: binding.media_type_field, contentUtf8: binding.content_utf8_field,
             ...(binding.path_field === undefined ? {} : {path: binding.path_field})},
           limits: {maxBytes: 1048576, maxNodes: 4096, maxDepth: 32, maxRows: 100,
             maxWork: 16777216, maxPageBytes: 1048576, maxContentBytes: 1048576},
           assertCurrent: current, readOriginalBytes: readOriginal,
-          projectOriginalDocument: (bytes, options) => projectOriginal(physical!, bytes, options),
+          projectOriginalDocument: (bytes, options) => projectOriginal(physical, bytes, options),
           issueResource(identity) {
             current();
             const resource = Object.freeze({$actql_ref: 'resource', version: 'actql-resource-ref/0.1',

@@ -16,6 +16,8 @@ import {
 }
 
 // Values
+pub fn native_relation_file_caller_evaluation_maximum_inventory() -> @execution_relation.PreparationRepresentationUnits
+
 pub fn native_relation_file_caller_preparation_evaluation_inventory(NativeRelationFileSelection) -> @execution_relation.PreparationRepresentationUnits
 
 pub fn native_relation_file_caller_preparation_inventory(NativeRelationFileSelection, NativeRelationFileLimits, prepared_provider? : NativeRelationFilePreparedProvider?) -> @execution_relation.PreparationRepresentationUnits?
@@ -26,13 +28,15 @@ pub fn native_relation_file_content_construction_inventory(NativeRelationFilePre
 
 pub fn native_relation_file_delete_target_io_capacity(NativeRelationFilePreparedProvider) -> @execution_relation.ExecutionCapacity?
 
-pub fn native_relation_file_delete_target_read_io_capacity(NativeRelationFilePreparedProvider, response_bytes? : Int?) -> @execution_relation.ExecutionCapacity?
+pub fn native_relation_file_delete_target_read_io_capacity(NativeRelationFilePreparedProvider, response_bytes? : Int?, ordered_wire_utf16? : Int?) -> @execution_relation.ExecutionCapacity?
 
 pub fn native_relation_file_input_capture_limits(@client_row_source_host.RowDeclaration, @client_row_source_host.RowInputAcquisition, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[@physical_resources.LedgerLimits, NativeRelationFileIssue]
 
 pub fn native_relation_file_input_valid(NativeRelationFileSelection, NativeRelationFileLimits) -> Bool
 
 pub fn native_relation_file_listing_construction_inventory(NativeRelationFilePreparedProvider) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn native_relation_file_ordered_target_construction(NativeRelationFilePreparedProvider, Int, String, NativeRelationFileTargetMutation, Int?) -> (@execution_relation.ExecutionCapacity, Int64)?
 
 pub fn native_relation_file_provider_capacity(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[@execution_relation.ExecutionCapacity, NativeRelationFileIssue]
 
@@ -42,7 +46,9 @@ pub fn native_relation_file_target_insert_construction(NativeRelationFilePrepare
 
 pub fn native_relation_file_target_io_capacity(NativeRelationFilePreparedProvider, Int) -> @execution_relation.ExecutionCapacity?
 
-pub fn native_relation_file_target_read_io_capacity(NativeRelationFilePreparedProvider, Int, response_bytes? : Int?) -> @execution_relation.ExecutionCapacity?
+pub fn native_relation_file_target_read_io_capacity(NativeRelationFilePreparedProvider, Int, response_bytes? : Int?, ordered_wire_utf16? : Int?) -> @execution_relation.ExecutionCapacity?
+
+pub fn native_relation_file_target_update_construction(NativeRelationFilePreparedProvider, Int, Int, String) -> (@execution_relation.ExecutionCapacity, Int64)?
 
 pub fn prepare_native_managed_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledWholeSourceCapacity, @execution_relation.ExecutionCapacity, String, NativeRelationFileSelection, NativeRelationFileLimits, prepared_provider? : NativeRelationFilePreparedProvider?) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
@@ -66,13 +72,17 @@ pub fn prepare_native_relation_file_keyed_read_profile(@client_row_source_host.R
 
 pub fn prepare_native_relation_file_listing_provider(@client_row_source_host.RowDeclaration, String, NativeRelationFilePreparedProvider, NativeRelationFileListingFields, @value_admission.ReferenceIssuer, (String) -> Result[@value_admission.CheckedValue, NativeRelationFileIssue], now_ms? : (() -> Int64)?) -> Result[NativeRelationFileListingProvider, NativeRelationFileIssue]
 
-pub fn prepare_native_relation_file_provider(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits, response_measured? : Bool) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue]
+pub fn prepare_native_relation_file_ordered_target_io(NativeRelationFilePreparedProvider, Array[String], String, NativeRelationFileTargetMutation, (Int) -> Bool, predecessor? : NativeRelationFileReplacementAck?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
+
+pub fn prepare_native_relation_file_provider(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits, response_measured? : Bool, ordered_fields? : Array[String]?) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue]
 
 pub fn prepare_native_relation_file_target_delete_io(NativeRelationFilePreparedProvider, String, String, String, (Int) -> Bool, predecessor? : NativeRelationFileReplacementAck?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
 
 pub fn prepare_native_relation_file_target_insert_io(NativeRelationFilePreparedProvider, String, String, String, (Int) -> Bool, predecessor? : NativeRelationFileReplacementAck?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
 
 pub fn prepare_native_relation_file_target_io(NativeRelationFilePreparedProvider, Array[String], String, update? : (String, String, String)?, predecessor? : NativeRelationFileReplacementAck?, before_response? : ((Int) -> Bool)?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
+
+pub fn prepare_native_relation_file_target_update_io(NativeRelationFilePreparedProvider, Array[String], String, (String, String, String), (Int) -> Bool, predecessor? : NativeRelationFileReplacementAck?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
 
 pub fn project_native_relation_file_content_bytes(NativeRelationFilePreparedProvider, @client_row_source_host.RelationDocument, NativeRelationFileListingFields, String, String, String, Int) -> Result[(String, Bytes), NativeRelationFileIssue]
 
@@ -143,11 +153,13 @@ pub fn NativeRelationFileListingProvider::matches_original(Self, @client_row_sou
 
 type NativeRelationFilePreparedProvider
 pub fn NativeRelationFilePreparedProvider::capacity(Self) -> @execution_relation.ExecutionCapacity
+pub fn NativeRelationFilePreparedProvider::has_ordered_key(Self) -> Bool
 
 type NativeRelationFileReplacementAck
 pub fn NativeRelationFileReplacementAck::changes_wire(Self) -> String
 pub fn NativeRelationFileReplacementAck::expected_version(Self) -> String
 pub fn NativeRelationFileReplacementAck::generation(Self) -> @filesystem.NativeFileGeneration
+pub fn NativeRelationFileReplacementAck::has_ordered_key(Self) -> Bool
 pub fn NativeRelationFileReplacementAck::identity(Self) -> String
 pub fn NativeRelationFileReplacementAck::is_delete(Self) -> Bool
 pub fn NativeRelationFileReplacementAck::is_insert(Self) -> Bool
@@ -170,6 +182,16 @@ pub fn NativeRelationFileTargetIO::check_update(Self, String) -> Result[Unit, Na
 pub fn NativeRelationFileTargetIO::close(Self) -> Result[Bool, NativeRelationFileIssue]
 pub fn NativeRelationFileTargetIO::replacement_acknowledgment(Self) -> NativeRelationFileReplacementAck?
 pub fn NativeRelationFileTargetIO::snapshot(Self) -> (String, String)?
+pub fn NativeRelationFileTargetIO::target_absent(Self) -> Bool
+
+pub(all) enum NativeRelationFileTargetMutation {
+  ObserveTarget
+  ObserveDeleteTarget
+  ObserveOptionalTarget
+  UpdateTarget(String, String, String)
+  DeleteTarget(String, String)
+  InsertTarget(String, String)
+}
 
 // Type aliases
 

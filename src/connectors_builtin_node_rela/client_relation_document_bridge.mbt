@@ -29,21 +29,72 @@ pub fn client_program_relation_project_target_document(
   resource : String,
   items_path : Array[String],
   key_path : Array[String],
-  primary_identity : String,
+  primary_identity : String?,
+  prepared_key : @client_row_source_host.RelationDocumentPreparedKey?,
   writable_fields : Array[String],
 ) -> Result[
   @client_row_source_host.RelationTargetDocument,
   @client_row_source_host.RowSourceIssue,
 ] {
-  @client_row_source_host.project_relation_target_document(
+  @client_row_source_host.project_relation_target_document_from_catalog_key(
     original,
     declaration,
     resource,
     items_path,
     Some(key_path),
     primary_identity,
+    prepared_key,
     writable_fields,
   )
+}
+
+///|
+/// Quote metadata from the original declaration before building a key layout.
+#export_name("clientProgramRelationFileKeyMetadataCapacity")
+pub fn client_program_relation_file_key_metadata_capacity(
+  original : @execution.ExecutionCapacity,
+  declaration : @client_row_source_host.RowDeclaration,
+  resource : String,
+  width : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+) -> Result[@execution.ExecutionCapacity, @resources.PreparationCapacityIssue] {
+  guard @client_row_source_host.relation_document_key_metadata_capacity(
+      declaration,
+      resource,
+      { max_bytes, max_nodes, max_depth, max_rows, },
+      width,
+    )
+    is Some(key) &&
+    @execution.add_execution_capacity(original, key) is Some(composed) else {
+    return Err(@resources.InvalidExtent)
+  }
+  Ok(composed)
+}
+
+///|
+/// Return the opaque optional layout for the existing projection bridge.
+#export_name("clientProgramRelationPrepareFileKey")
+pub fn client_program_relation_prepare_file_key(
+  declaration : @client_row_source_host.RowDeclaration,
+  resource : String,
+  fields : Array[String],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+) -> Result[
+  @client_row_source_host.RelationDocumentPreparedKey?,
+  @client_row_source_host.RowMappingIssue,
+] {
+  @client_row_source_host.prepare_relation_document_key_contract(
+    declaration,
+    resource,
+    fields,
+    { max_bytes, max_nodes, max_depth, max_rows, },
+  ).map(key => Some(key))
 }
 
 ///|
@@ -112,9 +163,29 @@ pub fn client_program_relation_observe_target(
   @client_row_source_host.RelationTargetRow,
   @client_row_source_host.RowSourceIssue,
 ] {
-  @client_row_source_host.observe_relation_target(
+  @client_row_source_host.observe_relation_target_from_catalog_key(
     document, declaration, identity,
   )
+}
+
+///|
+#export_name("clientProgramRelationFindOrderedTarget")
+pub fn client_program_relation_find_ordered_target(
+  document : @client_row_source_host.RelationTargetDocument,
+  declaration : @client_row_source_host.RowDeclaration,
+  identity : String,
+) -> Result[
+  Array[@client_row_source_host.RelationTargetRow],
+  @client_row_source_host.RowSourceIssue,
+] {
+  @client_row_source_host.find_relation_target_from_catalog_key(
+    document, declaration, identity,
+  ).map(found => {
+    match found {
+      Some(row) => [row]
+      None => []
+    }
+  })
 }
 
 ///|
@@ -221,6 +292,27 @@ pub fn client_program_relation_prepare_target_insert(
 }
 
 ///|
+#export_name("clientProgramRelationPrepareOrderedTargetInsert")
+pub fn client_program_relation_prepare_ordered_target_insert(
+  original : @client_row_source_host.RelationDocument,
+  prepared : @client_row_source_host.RelationDocumentPreparedKey?,
+  items_path : Array[String],
+  key_path : Array[String],
+  identity : String,
+  mapped_wire : String,
+) -> Result[Bytes, @client_row_source_host.RowSourceIssue] {
+  guard prepared is Some(key) else { return Err(InvalidInputSchema) }
+  @client_row_source_host.prepare_relation_target_insert_with_key(
+    original,
+    key,
+    items_path,
+    Some(key_path),
+    identity,
+    mapped_wire,
+  )
+}
+
+///|
 #export_name("clientProgramRelationInsertWorkspaceCapacity")
 pub fn client_program_relation_insert_workspace_capacity(
   prepared : @client_row_source_host.RelationDocumentPreparedContract,
@@ -236,6 +328,48 @@ pub fn client_program_relation_insert_workspace_capacity(
     )
     is Some(inventory) &&
     @execution.preparation_representation_cost(inventory) is Some(bytes) &&
+    @execution.execution_capacity(0L, bytes) is Some(capacity) else {
+    return Err(InvalidPage)
+  }
+  Ok(capacity)
+}
+
+///|
+/// Quote the additional ordered probe and optional insertion while the
+/// original document and its ordinary projection are funded separately.
+#export_name("clientProgramRelationOrderedMutationWorkspaceCapacity")
+pub fn client_program_relation_ordered_mutation_workspace_capacity(
+  prepared : @client_row_source_host.RelationDocumentPreparedKey?,
+  items_path_depth : Int,
+  original_bytes : Int,
+  key_utf16 : Int,
+  mapped_utf16 : Int?,
+) -> Result[
+  @execution.ExecutionCapacity,
+  @client_row_source_host.RowSourceIssue,
+] {
+  guard prepared is Some(key) &&
+    @client_row_source_host.relation_target_key_wire_workspace_inventory(
+      key, key_utf16,
+    )
+    is Some(probe) else {
+    return Err(InvalidPage)
+  }
+  let units = match mapped_utf16 {
+    None => probe
+    Some(mapped_utf16) => {
+      guard @client_row_source_host.relation_target_ordered_insert_workspace_inventory(
+          key, items_path_depth, original_bytes, mapped_utf16,
+        )
+        is Some(insert) &&
+        @execution.compose_preparation_representation([probe, insert])
+        is Some(combined) else {
+        return Err(InvalidPage)
+      }
+      combined
+    }
+  }
+  guard @execution.preparation_representation_cost(units) is Some(bytes) &&
     @execution.execution_capacity(0L, bytes) is Some(capacity) else {
     return Err(InvalidPage)
   }

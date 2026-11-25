@@ -999,6 +999,95 @@ test "Native Mock Catalog prepares CREATE with the original nullable file schema
 }
 
 ///|
+test "Native Mock Catalog binds ordered write declarations to the physical key" {
+  let key =
+    #|{"kind":"tuple","fields":["site","serial"]}
+  let original =
+    #|{"views":[{"resource":"Account","resource_kind":"record","schema":{"site":{"type":"string","nullable":false},"serial":{"type":"int64","nullable":false},"label":{"type":"string","nullable":true}},"facts":{"relation_keys":{"candidate_keys":[["site","serial"]]}}}],"data":[{"resource":"Account","items_path":["accounts","rows"],"key_path":["accounts","key"],"primary_identity":@key}],"writes":[{"resource":"Account","operation":"update","primary_identity":@key,"writable_fields":["label"],"permission":"fixture:update","observe_permission":"fixture:observe-update","approval":"required","aliases":["accounts.Update"]},{"resource":"Account","operation":"delete","primary_identity":@key,"permission":"fixture:delete","observe_permission":"fixture:observe-delete","approval":"required","aliases":["accounts.Delete"]},{"resource":"Account","operation":"upsert","primary_identity":@key,"writable_fields":["label"],"write_null_fields":["label"],"permission":"fixture:upsert","observe_permission":"fixture:observe-upsert","approval":"required","aliases":["accounts.Upsert"]}]}
+  let original = original.replace(old="@key", new=key)
+  let entry = @json.parse(original)
+  let declaration = @row_host.restore_relation_row_declaration(
+    "salesforce",
+    "declared_file",
+    "declared_file/0.1",
+    local_project_mock_relation_input(entry).unwrap(),
+    None,
+  ).unwrap()
+  let writes = local_project_mock_write_declarations(entry, declaration).unwrap()
+  assert_eq(writes.map(write => write.operation), ["update", "delete", "upsert"])
+  for
+    (index, operation, selector) in [
+      (0, "update", "match_tuple"),
+      (1, "delete", "match_tuple"),
+      (2, "upsert", "key_tuple"),
+    ] {
+    let write = writes[index]
+    assert_eq(
+      write._retained_observe_permission,
+      "fixture:observe-" + operation,
+    )
+    assert_true(
+      write.mapping.body.contains("\"selector_class\":\"" + selector + "\""),
+    )
+    assert_true(
+      write.mapping.body.contains(
+        "\"permissions\":[\"fixture:" + operation + "\"]",
+      ),
+    )
+  }
+  assert_eq(writes[2].mapping.omittable, [])
+  assert_true(
+    writes[2].mapping.body.contains("\"null_behavior\":\"write_null\""),
+  )
+  let data_file = "/fixture/mock/data.json"
+  assert_true(
+    local_project_mock_row_bindings(entry, declaration, [], data_file)
+    is Err(InvalidSpecification),
+  )
+  let mut forecasts = 0
+  let fund = quote => {
+    forecasts += 1
+    @execution.execution_capacity_execution_bytes(quote) >
+    @execution.execution_capacity_retained_bytes(quote)
+  }
+  let rows = local_project_mock_row_bindings(
+    entry,
+    declaration,
+    [],
+    data_file,
+    fund_ordered=Some(fund),
+  ).unwrap()
+  assert_eq(forecasts, 1)
+  assert_eq(rows.length(), 1)
+  assert_eq(rows[0]._retained_selection.primary_identity, "site")
+  assert_true(
+    local_project_mock_row_bindings(
+      entry,
+      declaration,
+      [],
+      data_file,
+      fund_ordered=Some(_ => false),
+    )
+    is Err(InvalidSpecification),
+  )
+  let foreign = original.replace(
+    old="\"key_path\":[\"accounts\",\"key\"],\"primary_identity\":" + key,
+    new="\"key_path\":[\"accounts\",\"key\"],\"primary_identity\":\"site\"",
+  )
+  let reversed = original.replace(
+    old=key,
+    new="{\"kind\":\"tuple\",\"fields\":[\"serial\",\"site\"]}",
+  )
+  assert_true(foreign != original && reversed != original)
+  for invalid in [foreign, reversed] {
+    assert_true(
+      local_project_mock_write_declarations(@json.parse(invalid), declaration)
+      is Err(_),
+    )
+  }
+}
+
+///|
 test "Native Project Mock installs original typed answer Model once and retires its cycles" {
   let original = native_project_mock_model_fixture("deal-review")
   defer original.retire()

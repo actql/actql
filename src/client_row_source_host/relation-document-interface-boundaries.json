@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_target.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "9b6bd2736ccb10d71debc18b1efaa1b6bf5ead2f05a951cf36022dd599d88ced",
+      "sha256": "1214d0a41ee7c09d2e3164406dc1e228f1d1552c2253165066a8114cae2f4048",
       "role": "common-semantics",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -30,6 +30,14 @@
           "declaration": "admit_relation_target_document ( declaration : RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] ? , primary_identity : String , writable_fields : Array [ String ] , bytes : Bytes , limits : RowPageLimits , max_work : Int , ) - > Result [ RelationTargetDocument , RowSourceIssue ]"
         },
         {
+          "name": "admit_relation_target_key",
+          "declaration": "admit_relation_target_key ( original : RelationOrderedTargetDocument , key : @ decode . Cursor , ) - > Result [ RelationTargetKey , RowSourceIssue ]"
+        },
+        {
+          "name": "admit_relation_target_key_wire",
+          "declaration": "admit_relation_target_key_wire ( original : RelationOrderedTargetDocument , key_wire : String , ) - > Result [ RelationTargetKey , RowSourceIssue ]"
+        },
+        {
           "name": "discard_relation_document_original",
           "declaration": "discard_relation_document_original ( document : RelationDocument ) - > Bool"
         },
@@ -46,12 +54,36 @@
           "declaration": "emit_relation_document_value ( value : @ admitted . Value , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
         },
         {
+          "name": "emit_relation_target_key",
+          "declaration": "emit_relation_target_key ( key : RelationTargetKey , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
           "name": "emit_relation_target_row",
           "declaration": "emit_relation_target_row ( document : RelationTargetDocument , index : Int , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
         },
         {
+          "name": "find_relation_target_from_catalog_key",
+          "declaration": "find_relation_target_from_catalog_key ( document : RelationTargetDocument , declaration : RowDeclaration , identity : String , ) - > Result [ RelationTargetRow ? , RowSourceIssue ]"
+        },
+        {
+          "name": "find_relation_target_index_with_key",
+          "declaration": "find_relation_target_index_with_key ( original : RelationOrderedTargetDocument , declaration : RowDeclaration , key : RelationTargetKey , ) - > Result [ Int ? , RowSourceIssue ]"
+        },
+        {
+          "name": "find_relation_target_with_key",
+          "declaration": "find_relation_target_with_key ( original : RelationOrderedTargetDocument , declaration : RowDeclaration , key : RelationTargetKey , ) - > Result [ RelationTargetRow ? , RowSourceIssue ]"
+        },
+        {
           "name": "observe_relation_target",
           "declaration": "observe_relation_target ( document : RelationTargetDocument , declaration : RowDeclaration , identity : String , ) - > Result [ RelationTargetRow , RowSourceIssue ]"
+        },
+        {
+          "name": "observe_relation_target_from_catalog_key",
+          "declaration": "observe_relation_target_from_catalog_key ( document : RelationTargetDocument , declaration : RowDeclaration , identity : String , ) - > Result [ RelationTargetRow , RowSourceIssue ]"
+        },
+        {
+          "name": "observe_relation_target_with_key",
+          "declaration": "observe_relation_target_with_key ( original : RelationOrderedTargetDocument , declaration : RowDeclaration , key : @ decode . Cursor , ) - > Result [ RelationTargetRow , RowSourceIssue ]"
         },
         {
           "name": "prepare_relation_target_delete",
@@ -62,12 +94,32 @@
           "declaration": "prepare_relation_target_insert ( backing : RelationDocument , prepared : RelationDocumentPreparedContract , items_path : Array [ String ] , key_path : Array [ String ] ? , identity : String , mapped_wire : String , ) - > Result [ Bytes , RowSourceIssue ]"
         },
         {
+          "name": "prepare_relation_target_insert_row",
+          "declaration": "prepare_relation_target_insert_row ( document : RelationTargetDocument , path_depth : Int , identity : String , tuple : RelationTargetKey ? , mapped_wire : String , ) - > Result [ Bytes , RowSourceIssue ]"
+        },
+        {
+          "name": "prepare_relation_target_insert_with_key",
+          "declaration": "prepare_relation_target_insert_with_key ( backing : RelationDocument , prepared : RelationDocumentPreparedKey , items_path : Array [ String ] , key_path : Array [ String ] ? , key_wire : String , mapped_wire : String , ) - > Result [ Bytes , RowSourceIssue ]"
+        },
+        {
           "name": "prepare_relation_target_update",
           "declaration": "prepare_relation_target_update ( document : RelationTargetDocument , row : RelationTargetRow , expected_version : String , value_wire : String , max_work : Int , ) - > Result [ Bytes , RowSourceIssue ]"
         },
         {
           "name": "project_relation_target_document",
           "declaration": "project_relation_target_document ( backing : RelationDocument , declaration : RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] ? , primary_identity : String , writable_fields : Array [ String ] , prepared_contract ? : RelationDocumentPreparedContract ?"
+        },
+        {
+          "name": "project_relation_target_document_from_catalog_key",
+          "declaration": "project_relation_target_document_from_catalog_key ( backing : RelationDocument , declaration : RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] ? , primary_identity : String ? , prepared_key : RelationDocumentPreparedKey ? , writable_fields : Array [ String ] , ) - > Result [ RelationTargetDocument , RowSourceIssue ]"
+        },
+        {
+          "name": "project_relation_target_document_selected",
+          "declaration": "project_relation_target_document_selected ( backing : RelationDocument , declaration : RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] ? , primary_identity : String , writable_fields : Array [ String ] , prepared_contract : RelationDocumentPreparedContract ? , ordered_positions : Array [ Int ] ? , ) - > Result [ RelationTargetDocument , RowSourceIssue ]"
+        },
+        {
+          "name": "project_relation_target_document_with_key",
+          "declaration": "project_relation_target_document_with_key ( backing : RelationDocument , declaration : RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] ? , writable_fields : Array [ String ] , prepared : RelationDocumentPreparedKey , ) - > Result [ RelationOrderedTargetDocument , RowSourceIssue ]"
         },
         {
           "name": "relation_document_field",
@@ -98,8 +150,24 @@
           "declaration": "relation_document_work ( work : Ref [ Int ] , amount : Int , ) - > Unit raise RelationDocumentStop"
         },
         {
+          "name": "relation_ordered_target_document",
+          "declaration": "relation_ordered_target_document ( original : RelationOrderedTargetDocument , ) - > RelationTargetDocument"
+        },
+        {
           "name": "relation_target_before",
           "declaration": "relation_target_before ( row : RelationTargetRow ) - > String ?"
+        },
+        {
+          "name": "relation_target_identity_matches_path",
+          "declaration": "relation_target_identity_matches_path ( identity_index : Int , ordered_positions : Array [ Int ] ? , columns : Array [ String ] , keys : Array [ @ decode . Cursor ] , work : Ref [ Int ] , ) - > Bool raise RelationDocumentStop"
+        },
+        {
+          "name": "relation_target_key_cell_matches",
+          "declaration": "relation_target_key_cell_matches ( left : @ admitted . CheckedValue , right : @ admitted . CheckedValue , work : Ref [ Int ] , ) - > Bool raise RelationDocumentStop"
+        },
+        {
+          "name": "relation_target_observation",
+          "declaration": "relation_target_observation ( document : RelationTargetDocument , index : Int , ) - > Result [ RelationTargetRow , RowSourceIssue ]"
         },
         {
           "name": "relation_target_original",
@@ -116,6 +184,10 @@
         {
           "name": "relation_target_row_original",
           "declaration": "relation_target_row_original ( row : RelationTargetRow ) - > Bool"
+        },
+        {
+          "name": "relation_target_rows_share_identity",
+          "declaration": "relation_target_rows_share_identity ( identity_index : Int , ordered_positions : Array [ Int ] ? , left : Array [ @ admitted . CheckedValue ] , right : Array [ @ admitted . CheckedValue ] , work : Ref [ Int ] , ) - > Bool raise RelationDocumentStop"
         },
         {
           "name": "relation_target_separator",
@@ -170,7 +242,25 @@
             "relation_target_text",
             "relation_target_text_bytes",
             "relation_target_version",
-            "RelationTargetDocument::row_cursor"
+            "RelationTargetDocument::row_cursor",
+            "observe_relation_target_with_key",
+            "project_relation_target_document_selected",
+            "project_relation_target_document_with_key",
+            "relation_ordered_target_document",
+            "relation_target_identity_matches_path",
+            "relation_target_key_cell_matches",
+            "relation_target_observation",
+            "relation_target_rows_share_identity",
+            "admit_relation_target_key",
+            "emit_relation_target_key",
+            "find_relation_target_with_key",
+            "find_relation_target_index_with_key",
+            "prepare_relation_target_insert_row",
+            "prepare_relation_target_insert_with_key",
+            "admit_relation_target_key_wire",
+            "project_relation_target_document_from_catalog_key",
+            "observe_relation_target_from_catalog_key",
+            "find_relation_target_from_catalog_key"
           ],
           "exports": [],
           "attributes": {
@@ -252,6 +342,18 @@
               {
                 "path": "src/client_row_source_host/relation_document_target_wbtest.mbt",
                 "anchor": "relation target indexes the original at the existing page row limit"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_key_wbtest.mbt",
+                "anchor": "ordered file target matches the exact typed tuple and updates only its original row"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_key_wbtest.mbt",
+                "anchor": "ordered file insert requires complete absence and uses the exact tuple"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_key_wbtest.mbt",
+                "anchor": "test \"catalog-key File projection retains both adjacent Int64 row values\""
               }
             ]
           }
@@ -359,7 +461,7 @@
     {
       "module": "src/connectors_builtin_node/client_relation_document_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d6b4f81f71702c6aa6599f1aca6099de147d01bd5ed6688020a3b8246e27ec4a",
+      "sha256": "6d523ec02642188e1e76698e9761540500c984ac32a23f43982473c4f1b2e9e2",
       "role": "generated-binding",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -389,6 +491,14 @@
           "declaration": "client_program_relation_document_usage ( original : @ client_row_source_host . RelationDocument , ) - > Array [ Int64 ] ?"
         },
         {
+          "name": "client_program_relation_file_key_metadata_capacity",
+          "declaration": "client_program_relation_file_key_metadata_capacity ( original : @ execution . ExecutionCapacity , declaration : @ client_row_source_host . RowDeclaration , resource : String , width : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_relation_find_ordered_target",
+          "declaration": "client_program_relation_find_ordered_target ( document : @ client_row_source_host . RelationTargetDocument , declaration : @ client_row_source_host . RowDeclaration , identity : String , ) - > Result [ Array [ @ client_row_source_host . RelationTargetRow ] , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
           "name": "client_program_relation_insert_workspace_capacity",
           "declaration": "client_program_relation_insert_workspace_capacity ( prepared : @ client_row_source_host . RelationDocumentPreparedContract , items_path_depth : Int , original_bytes : Int , mapped_utf16 : Int , ) - > Result [ @ execution . ExecutionCapacity , @ client_row_source_host . RowSourceIssue , ]"
         },
@@ -397,8 +507,20 @@
           "declaration": "client_program_relation_observe_target ( document : @ client_row_source_host . RelationTargetDocument , declaration : @ client_row_source_host . RowDeclaration , identity : String , ) - > Result [ @ client_row_source_host . RelationTargetRow , @ client_row_source_host . RowSourceIssue , ]"
         },
         {
+          "name": "client_program_relation_ordered_mutation_workspace_capacity",
+          "declaration": "client_program_relation_ordered_mutation_workspace_capacity ( prepared : @ client_row_source_host . RelationDocumentPreparedKey ? , items_path_depth : Int , original_bytes : Int , key_utf16 : Int , mapped_utf16 : Int ? , ) - > Result [ @ execution . ExecutionCapacity , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_prepare_file_key",
+          "declaration": "client_program_relation_prepare_file_key ( declaration : @ client_row_source_host . RowDeclaration , resource : String , fields : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , ) - > Result [ @ client_row_source_host . RelationDocumentPreparedKey ? , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
           "name": "client_program_relation_prepare_insert_contract",
           "declaration": "client_program_relation_prepare_insert_contract ( declaration : @ client_row_source_host . RowDeclaration , resource : String , primary_identity : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , ) - > Result [ @ client_row_source_host . RelationDocumentPreparedContract , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_relation_prepare_ordered_target_insert",
+          "declaration": "client_program_relation_prepare_ordered_target_insert ( original : @ client_row_source_host . RelationDocument , prepared : @ client_row_source_host . RelationDocumentPreparedKey ? , items_path : Array [ String ] , key_path : Array [ String ] , identity : String , mapped_wire : String , ) - > Result [ Bytes , @ client_row_source_host . RowSourceIssue ]"
         },
         {
           "name": "client_program_relation_prepare_target_delete",
@@ -414,7 +536,7 @@
         },
         {
           "name": "client_program_relation_project_target_document",
-          "declaration": "client_program_relation_project_target_document ( original : @ client_row_source_host . RelationDocument , declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String , writable_fields : Array [ String ] , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
+          "declaration": "client_program_relation_project_target_document ( original : @ client_row_source_host . RelationDocument , declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String ? , prepared_key : @ client_row_source_host . RelationDocumentPreparedKey ? , writable_fields : Array [ String ] , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
         },
         {
           "name": "client_program_relation_target_before",
@@ -463,7 +585,12 @@
             "client_program_relation_target_row_identity",
             "client_program_relation_target_text",
             "client_program_relation_target_text_bytes",
-            "client_program_relation_target_version"
+            "client_program_relation_target_version",
+            "client_program_relation_file_key_metadata_capacity",
+            "client_program_relation_prepare_file_key",
+            "client_program_relation_find_ordered_target",
+            "client_program_relation_prepare_ordered_target_insert",
+            "client_program_relation_ordered_mutation_workspace_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -542,7 +669,7 @@
     {
       "module": "src/connectors_builtin_node_rela/client_relation_document_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fa71140978a66fab181a7f827a3939f76723bdaac5301b737ed29ed09cb609a2",
+      "sha256": "15bbcff12db5537875a4d42c832711e925b6767c33dd535f34fdfe0cd947b4f9",
       "role": "generated-binding",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -572,6 +699,14 @@
           "declaration": "client_program_relation_document_usage ( original : @ client_row_source_host . RelationDocument , ) - > Array [ Int64 ] ?"
         },
         {
+          "name": "client_program_relation_file_key_metadata_capacity",
+          "declaration": "client_program_relation_file_key_metadata_capacity ( original : @ execution . ExecutionCapacity , declaration : @ client_row_source_host . RowDeclaration , resource : String , width : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_relation_find_ordered_target",
+          "declaration": "client_program_relation_find_ordered_target ( document : @ client_row_source_host . RelationTargetDocument , declaration : @ client_row_source_host . RowDeclaration , identity : String , ) - > Result [ Array [ @ client_row_source_host . RelationTargetRow ] , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
           "name": "client_program_relation_insert_workspace_capacity",
           "declaration": "client_program_relation_insert_workspace_capacity ( prepared : @ client_row_source_host . RelationDocumentPreparedContract , items_path_depth : Int , original_bytes : Int , mapped_utf16 : Int , ) - > Result [ @ execution . ExecutionCapacity , @ client_row_source_host . RowSourceIssue , ]"
         },
@@ -580,8 +715,20 @@
           "declaration": "client_program_relation_observe_target ( document : @ client_row_source_host . RelationTargetDocument , declaration : @ client_row_source_host . RowDeclaration , identity : String , ) - > Result [ @ client_row_source_host . RelationTargetRow , @ client_row_source_host . RowSourceIssue , ]"
         },
         {
+          "name": "client_program_relation_ordered_mutation_workspace_capacity",
+          "declaration": "client_program_relation_ordered_mutation_workspace_capacity ( prepared : @ client_row_source_host . RelationDocumentPreparedKey ? , items_path_depth : Int , original_bytes : Int , key_utf16 : Int , mapped_utf16 : Int ? , ) - > Result [ @ execution . ExecutionCapacity , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_prepare_file_key",
+          "declaration": "client_program_relation_prepare_file_key ( declaration : @ client_row_source_host . RowDeclaration , resource : String , fields : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , ) - > Result [ @ client_row_source_host . RelationDocumentPreparedKey ? , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
           "name": "client_program_relation_prepare_insert_contract",
           "declaration": "client_program_relation_prepare_insert_contract ( declaration : @ client_row_source_host . RowDeclaration , resource : String , primary_identity : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , ) - > Result [ @ client_row_source_host . RelationDocumentPreparedContract , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_relation_prepare_ordered_target_insert",
+          "declaration": "client_program_relation_prepare_ordered_target_insert ( original : @ client_row_source_host . RelationDocument , prepared : @ client_row_source_host . RelationDocumentPreparedKey ? , items_path : Array [ String ] , key_path : Array [ String ] , identity : String , mapped_wire : String , ) - > Result [ Bytes , @ client_row_source_host . RowSourceIssue ]"
         },
         {
           "name": "client_program_relation_prepare_target_delete",
@@ -597,7 +744,7 @@
         },
         {
           "name": "client_program_relation_project_target_document",
-          "declaration": "client_program_relation_project_target_document ( original : @ client_row_source_host . RelationDocument , declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String , writable_fields : Array [ String ] , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
+          "declaration": "client_program_relation_project_target_document ( original : @ client_row_source_host . RelationDocument , declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String ? , prepared_key : @ client_row_source_host . RelationDocumentPreparedKey ? , writable_fields : Array [ String ] , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
         },
         {
           "name": "client_program_relation_target_before",
@@ -646,7 +793,12 @@
             "client_program_relation_target_row_identity",
             "client_program_relation_target_text",
             "client_program_relation_target_text_bytes",
-            "client_program_relation_target_version"
+            "client_program_relation_target_version",
+            "client_program_relation_file_key_metadata_capacity",
+            "client_program_relation_prepare_file_key",
+            "client_program_relation_find_ordered_target",
+            "client_program_relation_prepare_ordered_target_insert",
+            "client_program_relation_ordered_mutation_workspace_capacity"
           ],
           "exports": [],
           "attributes": {

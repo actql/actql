@@ -17,7 +17,11 @@
   non-null Text identity. Observation requires the same declaration and original
   document. The version is the canonical typed value digest of the complete row,
   not file-currentness evidence. A copied row, foreign document or stale expected
-  version cannot prepare a replacement. Compound keys are not implemented here.
+  version cannot prepare a replacement. Ordered-key projection instead
+  requires the original declared candidate key in column order and checks
+  uniqueness of the complete non-null Text and Int64 tuple.
+  The physical target selector admits the canonical tuple array, including
+  decimal strings for Int64, under the original document's work bound.
 - Ownership: the opaque original owns one byte copy and full structurally
   admitted cursor. All relation projections share those exact bytes and cursor
   backing while retaining their own declared schemas and selected typed rows.
@@ -59,6 +63,15 @@
   room after Common removes typed wrappers. Other file bytes are preserved,
   including other collections. The caller owns physical
   identity assignment, construction funding, approval and conditional replacement.
+- Ordered insertion prepares the insert side of UPSERT. The caller supplies
+  the original File document under the existing lock, its prepared ordered
+  key layout, the approved typed tuple and the mapped non-key values. Common
+  checks every key component and proves absence with a complete bounded
+  comparison in that same collection. Existing keys, key fields in mapped
+  values and an incomplete search refuse. The same appender writes checked
+  Int64 key components as exact physical JSON integer tokens and preserves
+  the other original bytes. The caller funds ordered projection, typed key
+  admission and row/output construction before entry.
 - Extension: physical values follow declared full nested contracts rather than
   inferred row shapes. Int64 accepts canonical decimal Text and exact JSON
   integer tokens, read from original byte spans without a Double conversion.
@@ -75,7 +88,9 @@
   versions, exact first/middle/last/only row removal and its work bound, unique
   identities, declared writable fields, bounds, nested JSON,
   full Int64 endpoints, explicit key metadata, shared original backing,
-  cumulative successful/failed projection budgets and externally replaced data. These focused Core checks do
+  cumulative successful/failed projection budgets and externally replaced data.
+  The ordered-key tests also cover exact tuple insertion, duplicate and key
+  override refusal, and exhaustion of the original document's shared work. These focused Core checks do
   not establish installed Host transport, funding, conditional writes, normal
   Source/Content/Effect composition or generated artifact acceptance.
 
@@ -150,3 +165,28 @@ identity, typed value and cumulative document-work limit remains checked.
 Mapping work is charged only on the branch which actually reconstructs it.
 The original caller funds metadata before construction and retains it through
 all borrowers; response admission and physical cleanup remain separate duties.
+
+### Ordered file target keys
+
+The prepared ordered key selects an exact candidate tuple from the original
+resource's carrier facts and binds each position to its checked row column.
+This file projection accepts non-null Text and Int64 key fields. A physical
+key-path declaration, when supplied, must contain those names in the same order.
+Every key field is excluded from the writable inventory. Duplicate rows are
+detected using the original typed values, including equivalent exact Int64
+storage strings and numbers.
+
+The row observation takes an ordered typed-wire tuple in the selected schema.
+Int64 wire components are decimal strings and physical integer tokens retain
+their exact value. The comparison consumes the original document work meter.
+Existing row version, replacement, and discard operations use the same checked
+file projection and observed row. The legacy single-Text probe accepts only its
+original profile. A Host still supplies the original target, current authority,
+funding and physical replacement.
+
+The lookup can also retain the admitted tuple and emit it into an enclosing
+canonical writer. Another live projection may use that tuple only with the
+same prepared layout instance. Reopening from durable bytes requires admitting
+the checked wire under the restored layout. A completed scan may report that the
+row is absent. Exhausted comparison work, a different original layout, a
+retired projection, and failed construction of a matching row remain errors.

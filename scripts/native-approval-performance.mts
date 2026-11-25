@@ -15,7 +15,8 @@ type HarnessPhase = 'release-verification' | 'source-platform-admission' | 'scra
   'registry-open' | 'installation' | 'installed-package-admission' | 'scenario' | 'shared-file-scenario' |
   'nullable-update-scenarios' | 'installed-integrity' | 'registry-close' | 'release-project-sequences' |
   'original-mock-regressions'
-  | 'mixed-file-mutation-scenarios' | 'same-resource-mutation-scenarios' | 'file-create-scenarios' | 'file-named-results';
+  | 'mixed-file-mutation-scenarios' | 'same-resource-mutation-scenarios' | 'file-create-scenarios' | 'file-named-results'
+  | 'ordered-file-mutation-scenarios';
 export type NativeMockHarnessRecord<Phase extends HarnessPhase = HarnessPhase> = {
   phase: Phase; template?: Template; state: 'running' | 'completed' | 'failed';
   wallNs?: number; observationIssue?: string;
@@ -65,6 +66,7 @@ export async function observeNativeMockHarnessPhase<Phase extends HarnessPhase, 
 ) {
   assert(['release-verification', 'source-platform-admission', 'scratch-creation',
     'registry-open', 'installation', 'installed-package-admission', 'scenario', 'shared-file-scenario', 'nullable-update-scenarios', 'mixed-file-mutation-scenarios', 'same-resource-mutation-scenarios', 'file-create-scenarios',
+    'ordered-file-mutation-scenarios',
     'installed-integrity', 'registry-close', 'release-project-sequences', 'original-mock-regressions', 'file-named-results'].includes(phase),
   'Unknown Mock harness phase');
   assert(phase === 'scenario' ? mockTemplates.includes(template!) : template === undefined,

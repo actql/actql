@@ -33,15 +33,23 @@ fn catalog_environment(
   contracts : Array[String],
   views? : Array[String] = [],
   commands? : Array[String] = [],
+  mappings? : Array[String] = [],
+  manifest? : String? = None,
 ) -> ContractRegistry {
   let prefix = "{\"command_contracts\":" +
     sorted_body_array(commands) +
     ",\"connector_capabilities\":[],\"connector_catalogs\":" +
     sorted_body_array(catalogs) +
+    (match manifest {
+      Some(body) => ",\"connector_manifest\":" + body
+      None => ""
+    }) +
     ",\"contract_registry\":" +
     sorted_body_array(contracts) +
     ","
-  let suffix = "\"host_policy_profile\":{},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":" +
+  let suffix = "\"host_policy_profile\":{},\"mapping_contracts\":" +
+    sorted_body_array(mappings) +
+    ",\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":" +
     sorted_body_array(views) +
     ",\"version\":\"actql-check-environment/0.1\"}"
   let cid = "sha256:" + @sha.hex(@utf8.encode(prefix + suffix))

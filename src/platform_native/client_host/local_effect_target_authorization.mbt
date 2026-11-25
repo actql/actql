@@ -150,7 +150,7 @@ pub fn NativeLocalEffectResumeOriginal::authorize_saved_file_effect_in_original_
     descriptor.2 == operation &&
     (match operation {
       "delete" => mapping.write_fields.is_empty()
-      "create" | "update" => !mapping.write_fields.is_empty()
+      "create" | "update" | "upsert" => !mapping.write_fields.is_empty()
       _ => false
     }) &&
     @publication.effect_preview_member_kind(preview, member_index) ==

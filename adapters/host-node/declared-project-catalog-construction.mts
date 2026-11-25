@@ -293,7 +293,7 @@ export function declaredProjectCatalogPhysicalOverridesConstructionGeometry(entr
  * the already-completed source prefix. The first argument also accepts an
  * already-funded frozen parsed entry, using its actual data-binding count. */
 export function declaredProjectCatalogFinalDescriptorsConstructionGeometry(
-  entryWire: unknown, declarationWire: string, mappingWires: unknown, sourceCount: number,
+  entryWire: unknown, declarationWire: string, mappingWires: unknown, sourceCount: number, preparedKeyCount: number,
 ) {
   const originalEntry = typeof entryWire === 'string' ? undefined : entryWire;
   const entry = originalEntry === undefined ? sourceJsonWireGeometry(entryWire as string)
@@ -318,7 +318,9 @@ export function declaredProjectCatalogFinalDescriptorsConstructionGeometry(
   }
   const members = originalEntry === undefined ? (entry.nodes < 128n ? entry.nodes : 128n)
     : BigInt(immutableList(ownData(originalEntry, 'data')).length);
-  const descriptors = members * (1n + 7n); // physical record and its fields
+  const keys = admittedCount(preparedKeyCount);
+  if (keys > members) invalidGeometry();
+  const descriptors = members * (1n + 7n) + keys; // physical records and their borrowed key slots
   const physicalArrays = 1n + members + members; // output slots + empty writable arrays
   const writes = 1n + mappingCount + entry.nodes; // spread writes, borrowed mapping wires
   const aliases = 1n + 3n * entry.nodes; // flatMap result + name/resource records
@@ -382,9 +384,19 @@ export function declaredProjectMockFootprintConstructionGeometry(
   if (!Number.isSafeInteger(maxRows) || maxRows < 1 ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes < 1) invalidGeometry();
   let pathItems = 0n, pathUnits = 0n;
+  const orderedIdentity = zero();
   for (const target of writables) {
-    const physical = target.physical;
-    let units = stringUnits(physical.primaryIdentity);
+    const physical = target.physical, identity = physical.primaryIdentity;
+    let units = typeof identity === 'string' ? stringUnits(identity) : 0n;
+    if (typeof identity !== 'string') {
+      if (ownData(identity, 'kind') !== 'tuple') invalidGeometry();
+      // The installed declaration borrows the same frozen identity. Measure
+      // its canonical object and ordered field vector inside one writer.
+      const canonical = actualCanonical(immutableJsonShape(identity));
+      orderedIdentity.nodes = maximum(orderedIdentity.nodes, canonical.nodes);
+      orderedIdentity.text = maximum(orderedIdentity.text, canonical.text);
+      orderedIdentity.wire = maximum(orderedIdentity.wire, 3n * canonical.outputUnits);
+    }
     const count = BigInt(physical.itemsPath.length + physical.keyPath.length);
     for (const part of physical.itemsPath) units += stringUnits(part);
     for (const part of physical.keyPath) units += stringUnits(part);
@@ -392,14 +404,14 @@ export function declaredProjectMockFootprintConstructionGeometry(
     if (units > pathUnits) pathUnits = units;
   }
   const rows = BigInt(maxRows);
-  const wireBytes = BigInt(maxRequestBytes) + 6n * pathUnits + 4n * pathItems + 128n;
+  const wireBytes = BigInt(maxRequestBytes) + 6n * pathUnits + 4n * pathItems + 128n + orderedIdentity.wire;
   // Four-field preimage/keys/pairs, two path vectors and their canonical
   // traversal/sort cohorts, scheme metadata, selectors and returned CID vector.
   // Six complete UTF16 writer/output cohorts conservatively overlap, plus all
   // 71-unit CIDs. Existing parent capture retains the completed Preview forest.
   return stage({nodes: 0n, text: 0n, wire: 0n},
-    {nodes: 128n + 24n * pathItems + 8n * rows,
-      text: 12n * wireBytes + 142n * rows + 4096n,
+    {nodes: 128n + 24n * pathItems + 8n * rows + orderedIdentity.nodes,
+      text: 12n * wireBytes + 142n * rows + 4096n + orderedIdentity.text,
       wire: wireBytes + 128n}, {pathItems, pathUnits, rows, wireBytes});
 }
 
@@ -419,17 +431,22 @@ export function declaredProjectWritableRuntimeConstructionGeometry(
   }
   if (phase === 'source') {
     const pluralFootprint = writables.length > 1;
-    let createTargets = 0n;
-    for (const write of selected!.writes) if (ownData(write, 'operation') === 'create') createTargets++;
+    let createTargets = 0n, orderedTargets = 0n;
+    for (const write of selected!.writes) {
+      if (ownData(write, 'operation') === 'create') createTargets++;
+      const primary = ownData(write, 'primary_identity');
+      if (primary !== null && typeof primary === 'object' && ownData(primary, 'kind') === 'tuple') orderedTargets++;
+    }
     const create = createTargets !== 0n;
+    const ordered = orderedTargets !== 0n;
     const operation = ownData(selected!.writes[0], 'permission');
     const read = ownData(selected!.writes[0], 'observe_permission');
-    const routed = create || selected!.writes.some(write => ownData(write, 'permission') !== operation ||
+    const routed = create || ordered || selected!.writes.some(write => ownData(write, 'permission') !== operation ||
       ownData(write, 'observe_permission') !== read);
     // The physical recipe owns capture/request names and its three target
     // read phase names. Their input names are borrowed; concatenated results
     // and the builder's preceding prefix coexist separately.
-    const footprintRecipe = pluralFootprint || create;
+    const footprintRecipe = pluralFootprint || create || ordered;
     const unitsFor = (operation: bigint, read: bigint) => 2n * operation + 3n * read + 80n +
       (footprintRecipe ? operation + 10n : 0n);
     let operationUnits = unitsFor(stringUnits(operation), stringUnits(read));
@@ -484,9 +501,13 @@ export function declaredProjectWritableRuntimeConstructionGeometry(
     const declarationUnits = create ? stringUnits(ownData(selected, 'wire')) : 0n;
     const createRetainedNodes = createTargets * (32n + 10n * declarationUnits);
     const createWorkspaceNodes = create ? 64n + 32n * declarationUnits + 4n * createTargets : 0n;
-    return stage({nodes: 768n + 2n * targets + codec + footprint + retainedRecipes + createRetainedNodes,
+    // An ordered route borrows its original key. Count the configuration,
+    // phased quote closures and the synchronous native-argument cohorts.
+    const orderedRetained = 24n * orderedTargets;
+    const orderedWorkspace = 40n * orderedTargets;
+    return stage({nodes: 768n + 2n * targets + codec + footprint + retainedRecipes + createRetainedNodes + orderedRetained,
       text: 2n * operationUnits + 4n * declarationUnits * createTargets, wire: 0n},
-      {nodes: recipeWorkspace + 2n * targets + tableWorkspace + createWorkspaceNodes,
+      {nodes: recipeWorkspace + 2n * targets + tableWorkspace + createWorkspaceNodes + orderedWorkspace,
         text: 4n * operationUnits + 2n * indexStrings + 32n * declarationUnits, wire: 6n * declarationUnits},
       {targets, descriptorCalls, descriptorProperties});
   }

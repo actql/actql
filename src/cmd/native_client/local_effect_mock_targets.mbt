@@ -174,6 +174,7 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
       policy.effects.max_work,
     ).unwrap_or_else(() => stop("LocalOriginalEffectTargetsUnavailable"))
     let deleting = descriptor.2 == "delete"
+    let upserting = descriptor.2 == "upsert"
     guard installations
       .iter()
       .find_first(value => {
@@ -235,13 +236,24 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
         let selector = @json.parse(proposal.0) catch {
           _ => stop("LocalOriginalEffectSelectorUnavailable")
         }
-        guard selector is String(identity) else {
+        let ordered = binding.provider.has_ordered_key()
+        if upserting && !ordered {
           stop("LocalOriginalEffectSelectorUnavailable")
+        }
+        let identity = match selector {
+          String(identity) if !ordered => identity
+          Array(_) if ordered => proposal.0
+          _ => stop("LocalOriginalEffectSelectorUnavailable")
         }
         let prepare_response = bytes => {
           let capacity = installation.file_target_read_capacity(
             binding.provider,
             response_bytes=Some(bytes),
+            ordered_wire_utf16=if ordered {
+              Some(identity.length())
+            } else {
+              None
+            },
           )
           guard capacity is Some(capacity) &&
             @local_values.prepare_installed_effect_operation_extent(
@@ -268,7 +280,21 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
           }
         }
         let child = match
-          (if deleting {
+          (if ordered {
+            @row_file.prepare_native_relation_file_ordered_target_io(
+              binding.provider,
+              installation.write.writable_fields,
+              identity,
+              if deleting {
+                ObserveDeleteTarget
+              } else if upserting {
+                ObserveOptionalTarget
+              } else {
+                ObserveTarget
+              },
+              prepare_response,
+            )
+          } else if deleting {
             @row_file.prepare_native_relation_file_delete_target_observation(
               binding.provider,
               identity,
@@ -315,14 +341,18 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
             Err(_) => stop("LocalOriginalEffectTargetUnavailable")
             Ok(value) => {
               if value {
-                held.observed = Some(
-                  held.child
-                  .unwrap()
-                  .snapshot()
-                  .unwrap_or_else(() => {
+                let child = held.child.unwrap()
+                // Empty fields are reserved for a completed optional
+                // observation that independently verified the original absence.
+                held.observed = if upserting && child.target_absent() {
+                  Some(("", ""))
+                } else {
+                  guard child.snapshot() is Some((before, version)) &&
+                    !version.is_empty() else {
                     stop("LocalOriginalEffectTargetUnavailable")
-                  }),
-                )
+                  }
+                  Some((before, version))
+                }
               }
               complete = value
             }
@@ -390,16 +420,18 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
             stop("LocalOriginalEffectChangesUnavailable")
           }
           let typed_changes = Json::object(value)
-          let changes_wire = local_project_mock_relation_wire(typed_changes).unwrap_or_else(() => {
-              stop("LocalOriginalEffectChangesUnavailable")
-            },
-          )
-          match child.check_update(changes_wire) {
-            Err(issue) => {
-              report(CommandBusinessSource(issue))
-              stop("LocalOriginalEffectChangesUnavailable")
+          if !upserting || !version.is_empty() {
+            let changes_wire = local_project_mock_relation_wire(typed_changes).unwrap_or_else(() => {
+                stop("LocalOriginalEffectChangesUnavailable")
+              },
+            )
+            match child.check_update(changes_wire) {
+              Err(issue) => {
+                report(CommandBusinessSource(issue))
+                stop("LocalOriginalEffectChangesUnavailable")
+              }
+              Ok(_) => ()
             }
-            Ok(_) => ()
           }
           typed_changes
         }
@@ -454,8 +486,13 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
         let target = @json.parse(proposal.0) catch {
           _ => stop("LocalOriginalEffectSelectorUnavailable")
         }
-        let before = @json.parse(before) catch {
-          _ => stop("LocalOriginalEffectTargetUnavailable")
+        let inserting = upserting && version.is_empty()
+        let before = if inserting {
+          Json::null()
+        } else {
+          @json.parse(before) catch {
+            _ => stop("LocalOriginalEffectTargetUnavailable")
+          }
         }
         // The original guard and before image reach Preview on this request.
         // The DELETE shape carries no requested field values.
@@ -467,6 +504,7 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
           before,
           version,
           deleting~,
+          inserting~,
         ).unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
         if @utf8.encode(wire).length() >
           policy.program.checking.compilation.artifacts.bytes {

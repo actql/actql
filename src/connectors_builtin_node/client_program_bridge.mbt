@@ -9418,8 +9418,8 @@ pub fn client_program_row_source_prepare_mapping(
 }
 
 ///|
-/// The same installed Mapping continuation for a declared full Relation UPDATE.
-/// Closed write facts carry no replacement schema or current authority.
+/// The same guarded Mapping continuation for an explicit UPDATE or File
+/// UPSERT. The member of the declared writes is named in the closed input.
 #export_name("clientProgramRowSourcePrepareUpdateMapping")
 pub fn client_program_row_source_prepare_update_mapping(
   declaration : @client_row_source_host.RowDeclaration,
@@ -9428,7 +9428,13 @@ pub fn client_program_row_source_prepare_update_mapping(
   sources_json : String,
 ) -> String {
   client_row_source_prepare_mapping(
-    declaration, writes_json, resource, sources_json, true, @client_row_source_host.prepare_row_update_mapping,
+    declaration,
+    writes_json,
+    resource,
+    sources_json,
+    true,
+    @client_row_source_host.prepare_row_update_mapping,
+    select_guarded_operation=true,
   )
 }
 
@@ -9475,6 +9481,7 @@ fn client_row_source_prepare_mapping(
     @client_row_source_host.RowMapping,
     @client_row_source_host.RowMappingIssue,
   ],
+  select_guarded_operation? : Bool = false,
 ) -> String {
   let refused = (name : String) => {
     ({ "issue": name.to_json() } : Json).stringify()
@@ -9493,7 +9500,25 @@ fn client_row_source_prepare_mapping(
   let parsed = @json.parse(sources_json) catch {
     _ => return refused("InvalidSpecification")
   }
-  guard parsed is Array(items) else { return refused("InvalidSpecification") }
+  let (sources_data, construct) = if select_guarded_operation {
+    guard parsed is Object(record) &&
+      record.length() == 2 &&
+      record.get("sources") is Some(sources) &&
+      record.get("operation") is Some(String(operation)) else {
+      return refused("InvalidSpecification")
+    }
+    let selected = match operation {
+      "update" => prepare
+      "file-upsert" => @client_row_source_host.prepare_row_file_upsert_mapping
+      _ => return refused("InvalidSpecification")
+    }
+    (sources, selected)
+  } else {
+    (parsed, prepare)
+  }
+  guard sources_data is Array(items) else {
+    return refused("InvalidSpecification")
+  }
   let sources = []
   for item in items {
     guard item is Object(entries) &&
@@ -9510,7 +9535,7 @@ fn client_row_source_prepare_mapping(
     )
   }
   client_row_mapping_result_json(
-    prepare(declaration, writes_json, resource, sources),
+    construct(declaration, writes_json, resource, sources),
   )
 }
 

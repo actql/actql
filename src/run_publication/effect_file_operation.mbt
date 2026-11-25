@@ -198,15 +198,20 @@ pub fn prepare_effect_file_operation(
       return Err(InvalidDispatch)
     }
   }
-  let (kind, version) = match
-    effect_preview_member_kind(preview, member_index) {
-    Some("update") if valid_contract_cid(target_version_cid) =>
-      ("update", Some(target_version_cid))
-    Some("delete") if valid_contract_cid(target_version_cid) =>
-      ("delete", Some(target_version_cid))
-    Some("create") if target_version_cid.is_empty() => ("create", None)
-    Some("update" | "delete" | "create") => return Err(InvalidDispatch)
-    _ => return Err(ForeignRow)
+  guard effect_preview_member_kind(preview, member_index)
+    is Some("update" | "delete" | "create" | "upsert" as member_kind) else {
+    return Err(ForeignRow)
+  }
+  let version = if target_version_cid.is_empty() {
+    None
+  } else if valid_contract_cid(target_version_cid) {
+    Some(target_version_cid)
+  } else {
+    return Err(InvalidDispatch)
+  }
+  if (member_kind == "create" && version is Some(_)) ||
+    ((member_kind == "update" || member_kind == "delete") && version is None) {
+    return Err(InvalidDispatch)
   }
   guard effect_preview_member_identity(preview, member_index)
     is Some(member_preview_cid) &&
@@ -223,6 +228,31 @@ pub fn prepare_effect_file_operation(
     effect_preview_row_guard_version_cid(preview, member_index, raw_row_index) ==
     version else {
     return Err(ForeignRow)
+  }
+  // The receipt describes the physical file operation. For UPSERT the
+  // admitted Preview row binds the branch, even on Saved readback.
+  let kind = if member_kind == "upsert" {
+    guard effect_preview_ordered_row_correlation_wire(
+        preview, member_index, row_index,
+      )
+      is Some(selector) &&
+      selector.has_prefix("[") else {
+      return Err(ForeignRow)
+    }
+    match
+      (
+        preview.row_transitions
+        .get(member_index)
+        .bind(rows => rows.get(raw_row_index)),
+        version,
+      ) {
+      (Some(state), None) if state == preview_row_absent_to_present => "create"
+      (Some(state), Some(_)) if state == preview_row_present_to_present =>
+        "update"
+      _ => return Err(ForeignRow)
+    }
+  } else {
+    member_kind
   }
   Ok({
     kind,
@@ -457,6 +487,19 @@ pub fn issue_effect_row_outcome_receipt_from_file(
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  // The logical UPSERT result comes from the original approved physical
+  // branch. The saved physical receipt cannot supply an action.
+  let outcome = if effect_preview_member_kind(preview, member_index) ==
+    Some("upsert") {
+    let action = if expected.kind == "create" { "created" } else { "updated" }
+    guard @json.object_with_string_field(outcome, "action", action)
+      is Some(value) else {
+      return Err(ForeignResponse)
+    }
+    value
+  } else {
+    outcome
   }
   seal_effect_local_row_outcome(
     operation.effect_preview_cid,

@@ -573,9 +573,23 @@ fn LocalCommandPreparationOriginal::prepare_project_input(
   }
   self.project = selected
   if selected is Some(project) && project.mock_declarations is Some(mock) {
-    match mock.prepare_source_declarations() {
+    let fund_ordered = quote => {
+      match
+        self.prepare_host_metadata(
+          @execution.execution_capacity_retained_bytes(quote),
+          @execution.execution_capacity_execution_bytes(quote),
+        ) {
+        Ok(_) => true
+        Err(issue) => {
+          self.retain_primary(issue)
+          false
+        }
+      }
+    }
+    match mock.prepare_source_declarations(fund_ordered=Some(fund_ordered)) {
       Ok(_) => ()
-      Err(issue) => return Err(CommandProjectMock(issue))
+      Err(issue) =>
+        return Err(self.primary.unwrap_or(CommandProjectMock(issue)))
     }
     if mock._retained_registry is Some(_) {
       match

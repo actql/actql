@@ -25,6 +25,7 @@ pub struct MappingContractShape {
   cid : String
   target_schema : @row.Schema
   primary_identity : String?
+  priv primary_tuple : Array[String]?
   writable_fields : Array[String]
   required_fields : Array[String]
 }
@@ -101,6 +102,19 @@ pub fn mapping_shape_target_schema(value : MappingContractShape) -> @row.Schema 
 ///|
 pub fn mapping_shape_primary_identity(value : MappingContractShape) -> String? {
   value.primary_identity
+}
+
+///|
+pub fn mapping_shape_tuple_field_count(value : MappingContractShape) -> Int {
+  value.primary_tuple.map(fields => fields.length()).unwrap_or(0)
+}
+
+///|
+pub fn mapping_shape_tuple_field_at(
+  value : MappingContractShape,
+  ordinal : Int,
+) -> String? {
+  value.primary_tuple.bind(fields => fields.get(ordinal))
 }
 
 ///|
@@ -248,6 +262,7 @@ pub fn check_mapping_contract_shapes(
   environment : WireEnvironment,
   limits : Limits,
   max_work : Int,
+  carriers? : CarrierSchemas? = None,
 ) -> Result[MappingContractShapes, MappingShapeIssue] {
   if limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
@@ -290,8 +305,9 @@ pub fn check_mapping_contract_shapes(
         Ok(value) => value
         Err(_) => raise MappingShapeStop(InvalidMapping(index))
       }
-      if mapping_shape_text(object, "schema", index) !=
-        "actql.mapping_contract/0.1" {
+      let version = mapping_shape_text(object, "schema", index)
+      if version != "actql.mapping_contract/0.1" &&
+        version != "actql.mapping_contract/0.2" {
         raise MappingShapeStop(InvalidMapping(index))
       }
       let mapping_ref = mapping_shape_text(object, "mapping_ref", index)
@@ -359,14 +375,25 @@ pub fn check_mapping_contract_shapes(
         Ok(value) => value
         Err(_) => raise MappingShapeStop(InvalidTargetSchema(index))
       }
-      let primary_identity = match @decode.field(object, "primary_identity") {
-        ExplicitNull => None
-        Present(value) =>
+      let (primary_identity, primary_tuple) = match
+        @decode.field(object, "primary_identity") {
+        Present(value) if version == "actql.mapping_contract/0.2" => {
+          let fields = mapping_tuple_fields(
+            value, schema, index, work, max_work,
+          )
+          mapping_tuple_published_key(
+            environment, carriers, entry, target_ref, schema, fields, index, limits,
+            work, max_work,
+          )
+          (None, Some(fields))
+        }
+        ExplicitNull if version == "actql.mapping_contract/0.1" => (None, None)
+        Present(value) if version == "actql.mapping_contract/0.1" =>
           match @decode.text(value) {
-            Ok(name) if !name.is_empty() => Some(name)
+            Ok(name) if !name.is_empty() => (Some(name), None)
             _ => raise MappingShapeStop(InvalidMapping(index))
           }
-        Missing => raise MappingShapeStop(InvalidMapping(index))
+        _ => raise MappingShapeStop(InvalidMapping(index))
       }
       if primary_identity is Some(primary_identity) {
         let primary = match @row.lookup_reference(schema, primary_identity) {
@@ -398,9 +425,8 @@ pub fn check_mapping_contract_shapes(
           raise MappingShapeStop(InvalidTargetSchema(index))
         }
       } else {
-        // Null is an explicit collection-only contract, never an unresolved
-        // primary. Validate every rule, including unused rules, before exposing
-        // this shape to registration, preparation, or recovery consumers.
+        // Validate every permission rule for tuple and collection identities,
+        // including unused rules, before exposing the checked Mapping.
         let rules = mapping_shape_required(object, "permission_rules", index)
         guard @decode.array_length(rules) is Some(rule_count) && rule_count > 0 else {
           raise MappingShapeStop(InvalidMapping(index))
@@ -412,10 +438,18 @@ pub fn check_mapping_contract_shapes(
           work.val += 1
           guard @decode.element_at(rules, rule_index) is Some(rule) &&
             @decode.open_object(rule) is Ok(entry) &&
-            @decode.lookup(entry, "effect_kind") is Some(kind) &&
-            @decode.text(kind) is Ok("create") &&
-            @decode.lookup(entry, "selector_class") is Some(selector) &&
-            @decode.text(selector) is Ok("none") else {
+            @decode.lookup(entry, "effect_kind") is Some(kind_node) &&
+            @decode.text(kind_node) is Ok(kind) &&
+            @decode.lookup(entry, "selector_class") is Some(selector_node) &&
+            @decode.text(selector_node) is Ok(selector) else {
+            raise MappingShapeStop(InvalidMapping(index))
+          }
+          let valid = if primary_tuple is Some(_) {
+            mapping_tuple_rule(kind, selector)
+          } else {
+            kind == "create" && selector == "none"
+          }
+          if !valid {
             raise MappingShapeStop(InvalidMapping(index))
           }
         }
@@ -429,6 +463,12 @@ pub fn check_mapping_contract_shapes(
       let writable_index : Map[String, Bool] = Map([])
       for name in writable {
         writable_index[name] = true
+      }
+      if primary_tuple is Some(fields) {
+        mapping_tuple_charge(work, max_work, fields.length())
+        if fields.any(name => writable_index.contains(name)) {
+          raise MappingShapeStop(InvalidMapping(index))
+        }
       }
       for name in required {
         if !writable_index.contains(name) {
@@ -449,6 +489,9 @@ pub fn check_mapping_contract_shapes(
       }
       let store_command = read_mapping_store_command(object, index)
       if store_command is Some(_) {
+        if primary_tuple is Some(_) {
+          raise MappingShapeStop(InvalidMapping(index))
+        }
         if max_work - work.val < 4 {
           raise MappingShapeStop(WorkLimit)
         }
@@ -471,6 +514,7 @@ pub fn check_mapping_contract_shapes(
         cid,
         target_schema: schema,
         primary_identity,
+        primary_tuple,
         writable_fields: writable,
         required_fields: required,
       })

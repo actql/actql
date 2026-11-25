@@ -41,14 +41,6 @@ fn published_store_targets_from_root(
       max_depth: 32,
       max_members: 32768,
     }
-    let mappings = match admission {
-      Some(admission) => publication_admission_mappings(admission)
-      None =>
-        @check_environment.check_mapping_contract_shapes(wire, limits, 1000000).unwrap_or_else(() => {
-            raise PublicationStop(Publication)
-          },
-        )
-    }
     let catalogs = match admission {
       Some(admission) => publication_admission_contents(admission)
       None => {
@@ -62,6 +54,11 @@ fn published_store_targets_from_root(
         )
       }
     }
+    let mappings = publication_admission_mappings(
+      admission.unwrap_or_else(() => {
+        publication_environment_admission(environment)
+      }),
+    )
     match
       @query_program.bind_store_target_publication(
         mappings, catalogs, aliases, 1000000,

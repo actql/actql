@@ -326,7 +326,6 @@ pub fn project_captured_effect_proposal_row(
             return Err(if current { Changes(issue) } else { NotReady })
           }
         }
-        let selected = @results.effect_plan_row_selector(row)
         let selector = try {
           if before_encode is Some(fund) {
             let (bytes, nodes, depth) = {
@@ -334,7 +333,7 @@ pub fn project_captured_effect_proposal_row(
                 max_bytes, max_nodes, max_depth,
               )
               defer @encode.cancel_writer(measured)
-              @identity.emit_value(selected, measured)
+              @results.emit_effect_plan_row_selector(row, measured)
               @encode.finish_measurement_usage(measured)
             }
             let funded = fund(bytes, nodes, depth, changes.length())
@@ -347,7 +346,10 @@ pub fn project_captured_effect_proposal_row(
               return Err(SelectorEncoding)
             }
           }
-          @identity.stringify_value(selected, max_bytes, max_nodes, max_depth)
+          let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+          defer @encode.cancel_writer(writer)
+          @results.emit_effect_plan_row_selector(row, writer)
+          @encode.finish(writer)
         } catch {
           _ => {
             value.phase = Closed
@@ -622,12 +624,12 @@ pub fn check_captured_effect_plan_row(
         return Err(Changes(issue))
       }
     }
-    let selector = @identity.stringify_value(
-      @results.effect_plan_row_selector(projected),
-      max_bytes,
-      max_nodes,
-      max_depth,
-    ) catch {
+    let selector = try {
+      let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+      defer @encode.cancel_writer(writer)
+      @results.emit_effect_plan_row_selector(projected, writer)
+      @encode.finish(writer)
+    } catch {
       _ => {
         value.live = false
         return Err(SelectorEncoding)

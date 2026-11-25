@@ -248,6 +248,7 @@ test "publication constructor shares Catalog indices only under proven target bo
   assert_true(
     physical_equal(first_mapping, publication_admission_mappings(admission)),
   )
+  assert_eq(reads.val, 1)
   let source_only : PublicationEnvironmentAdmission = {
     environment,
     read_catalog: publication_read_catalog,

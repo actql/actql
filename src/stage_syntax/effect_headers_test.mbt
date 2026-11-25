@@ -15,6 +15,64 @@ fn effect_header_error(program : Program) -> EffectHeaderIssueKind raise {
 }
 
 ///|
+test "tuple selector headers retain their Result and accept repeated Result fields" {
+  let pairs = "[{target_field: site, result_field: cell}, {target_field: serial, result_field: cell}]"
+  for operation in ["update", "delete", "upsert"] {
+    let selector = if operation == "upsert" {
+      "key_tuple"
+    } else {
+      "match_tuple"
+    }
+    let changes = if operation == "delete" {
+      ""
+    } else {
+      ", set: {state: {literal: ready}}"
+    }
+    let program = effect_program(
+      "    create: {" +
+      operation +
+      ": {target: crm, mapping: mapping:crm.records.v1, from: {result: rows}, " +
+      selector +
+      ": " +
+      pairs +
+      changes +
+      "}}",
+    )
+    let checked = collect_effect_headers(program, 1, 100).unwrap()
+    let header = effect_header_at(checked, 0).unwrap()
+    assert_eq(effect_header_source_result(header), Some("rows"))
+    assert_eq(effect_header_kind(header), operation)
+    assert_true(
+      collect_effect_headers(program, 1, effect_headers_work(checked) - 1)
+      is Err(_),
+    )
+  }
+}
+
+///|
+test "tuple selector headers refuse duplicate target fields, singleton, and mixed selectors" {
+  let pair = "{target_field: s, result_field: r}"
+  let prefix = "    create: {delete: {target: crm, mapping: mapping:crm.records.v1, from: {result: rows}, "
+  for
+    selector in [
+      "match_tuple: [" + pair + "]",
+      "match_tuple: [" + pair + ", {target_field: s, result_field: q}]",
+      "match_tuple: [" + pair + ", {target_field: n, result_field: q}], id: r",
+    ] {
+    assert_eq(
+      effect_header_error(effect_program(prefix + selector + "}}")),
+      InvalidBody,
+    )
+  }
+  let both = effect_program(
+    "    create: {upsert: {target: crm, mapping: mapping:crm.records.v1, from: {result: rows}, key: r, key_tuple: [" +
+    pair +
+    ", {target_field: n, result_field: q}], set: {state: {literal: ready}}}}",
+  )
+  assert_eq(effect_header_error(both), InvalidBody)
+}
+
+///|
 fn table_header_fixture(metadata : String) -> Program raise {
   effect_program(
     "    create: {store: {target: crm, mapping: mapping:crm.store.v1, from: {result: rows}, table_write: " +

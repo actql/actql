@@ -11,9 +11,11 @@ priv enum NativeRelationTargetIOPhase {
 }
 
 ///|
-priv enum NativeRelationFileTargetMutation {
+/// Checked-operation DATA supplied by the existing Host.
+pub(all) enum NativeRelationFileTargetMutation {
   ObserveTarget
   ObserveDeleteTarget
+  ObserveOptionalTarget
   UpdateTarget(String, String, String)
   DeleteTarget(String, String)
   InsertTarget(String, String)
@@ -38,6 +40,7 @@ struct NativeRelationFileTargetIO {
   writable : Array[String]
   identity : String
   mutation : NativeRelationFileTargetMutation
+  ordered_key : @rows.RelationDocumentPreparedKey?
   mut before_response : ((Int) -> Bool)?
   mut phase : NativeRelationTargetIOPhase
   mut advancing : Bool
@@ -96,6 +99,12 @@ pub fn NativeRelationFileReplacementAck::selection(
 ///|
 pub fn NativeRelationFileReplacementAck::identity(self : Self) -> String {
   self.identity
+}
+
+///|
+/// The physical child retains the prepared key of the exact file provider.
+pub fn NativeRelationFileReplacementAck::has_ordered_key(self : Self) -> Bool {
+  self.provider.has_ordered_key()
 }
 
 ///|
@@ -169,6 +178,7 @@ fn native_relation_file_target_io_capacity_original(
       @rows.relation_document_prepared_contract(provider.prepared_contract),
       prepared_contract=Some(provider.prepared_contract),
       writable_fields~,
+      ordered_projection=provider.has_ordered_key(),
     )
     is Some(document) &&
     @local.installed_file_effect_constructor_capacity(
@@ -232,7 +242,17 @@ fn native_relation_file_target_io_capacity_original(
     is Some(extra) else {
     return None
   }
-  @execution.add_execution_capacity(construction, extra)
+  let capacity = @execution.add_execution_capacity(construction, extra)
+  if provider.ordered_key is Some(key) {
+    guard capacity is Some(capacity) &&
+      ordered_target_key_capacity(key, limits.page.max_bytes)
+      is Some((tuple, _)) else {
+      return None
+    }
+    @execution.add_execution_capacity(capacity, tuple)
+  } else {
+    capacity
+  }
 }
 
 ///|
@@ -384,17 +404,25 @@ fn prepare_native_relation_file_target_io_original(
   predecessor? : NativeRelationFileReplacementAck? = None,
   before_response? : ((Int) -> Bool)? = None,
   staged_update? : Bool = false,
+  ordered_key? : @rows.RelationDocumentPreparedKey? = None,
 ) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
+  let matching_key = match (provider.ordered_key, ordered_key) {
+    (None, None) => true
+    (Some(expected), Some(selected)) => physical_equal(expected, selected)
+    _ => false
+  }
+  guard matching_key else { return Err(ForeignOriginal) }
   let fieldless = mutation is ObserveDeleteTarget ||
     mutation is DeleteTarget(_, _) ||
     mutation is InsertTarget(_, _)
   if !file_capture_text(identity, provider.limits.page.max_bytes) ||
     writable.is_empty() != fieldless ||
-    writable.length() > provider.limits.page.max_nodes {
+    writable.length() > provider.limits.page.max_nodes ||
+    (mutation is ObserveOptionalTarget && ordered_key is None) {
     return Err(InvalidInput)
   }
   match mutation {
-    ObserveTarget | ObserveDeleteTarget => ()
+    ObserveTarget | ObserveDeleteTarget | ObserveOptionalTarget => ()
     UpdateTarget(version, changes, staging) =>
       if !file_capture_text(changes, provider.limits.page.max_bytes) ||
         !native_relation_file_target_write_names(provider, version, staging) {
@@ -430,6 +458,7 @@ fn prepare_native_relation_file_target_io_original(
     writable: writable.copy(),
     identity,
     mutation,
+    ordered_key,
     before_response,
     phase: TargetPrepared,
     advancing: false,
@@ -626,8 +655,17 @@ fn NativeRelationFileTargetIO::project(
   // stay with this same child until its actual consumer and cleanup return.
   self.backing = Some(backing)
   if self.mutation is InsertTarget(mapped_wire, _) {
-    self.replacement = Some(
-      file_require(
+    let replacement = match self.ordered_key {
+      Some(key) =>
+        @rows.prepare_relation_target_insert_with_key(
+          backing,
+          key,
+          selected.items_path,
+          selected.key_path,
+          self.identity,
+          mapped_wire,
+        )
+      None =>
         @rows.prepare_relation_target_insert(
           backing,
           provider.prepared_contract,
@@ -635,33 +673,73 @@ fn NativeRelationFileTargetIO::project(
           selected.key_path,
           self.identity,
           mapped_wire,
-        ).map_err(issue => Document(issue)),
-      ),
+        )
+    }
+    self.replacement = Some(
+      file_require(replacement.map_err(issue => Document(issue))),
     )
     self.phase = TargetWriting
     return
   }
-  let projected = @rows.project_relation_target_document(
-    backing,
-    provider.declaration,
-    selected.resource,
-    selected.items_path,
-    selected.key_path,
-    selected.primary_identity,
-    self.writable,
-    prepared_contract=Some(provider.prepared_contract),
-  )
-  let document = match projected {
-    Ok(value) => value
-    Err(issue) => raise FileCaptureStop(Document(issue))
+  let row = match self.ordered_key {
+    Some(key) => {
+      let original = file_require(
+        @rows.project_relation_target_document_with_key(
+          backing,
+          provider.declaration,
+          selected.resource,
+          selected.items_path,
+          selected.key_path,
+          self.writable,
+          key,
+        ).map_err(issue => Document(issue)),
+      )
+      self.document = Some(@rows.relation_ordered_target_document(original))
+      let tuple = file_require(
+        @rows.admit_relation_target_key_wire(original, self.identity).map_err(issue => {
+          Document(issue)
+        }),
+      )
+      match
+        file_require(
+          @rows.find_relation_target_with_key(
+            original,
+            provider.declaration,
+            tuple,
+          ).map_err(issue => Document(issue)),
+        ) {
+        Some(row) => row
+        None if self.mutation is ObserveOptionalTarget => {
+          self.phase = TargetReady
+          return
+        }
+        None => raise FileCaptureStop(Document(InvalidPage))
+      }
+    }
+    None => {
+      let document = file_require(
+        @rows.project_relation_target_document(
+          backing,
+          provider.declaration,
+          selected.resource,
+          selected.items_path,
+          selected.key_path,
+          selected.primary_identity,
+          self.writable,
+          prepared_contract=Some(provider.prepared_contract),
+        ).map_err(issue => Document(issue)),
+      )
+      self.document = Some(document)
+      file_require(
+        @rows.observe_relation_target(
+          document,
+          provider.declaration,
+          self.identity,
+        ).map_err(issue => Document(issue)),
+      )
+    }
   }
-  self.document = Some(document)
-  let row = file_require(
-    @rows.observe_relation_target(document, provider.declaration, self.identity).map_err(issue => {
-        Document(issue)
-      },
-    ),
-  )
+  let document = self.document.unwrap()
   self.row = Some(row)
   guard @rows.relation_target_before(row) is Some(before) &&
     @rows.relation_target_version(row) is Some(version) else {
@@ -669,7 +747,8 @@ fn NativeRelationFileTargetIO::project(
   }
   self.observed_row = Some((before, version))
   match self.mutation {
-    ObserveTarget | ObserveDeleteTarget => self.phase = TargetReady
+    ObserveTarget | ObserveDeleteTarget | ObserveOptionalTarget =>
+      self.phase = TargetReady
     UpdateTarget(expected, changes, _) => {
       let output = file_require(
         @rows.prepare_relation_target_update(
@@ -711,7 +790,8 @@ fn NativeRelationFileTargetIO::write(self : Self) -> Unit raise FileCaptureStop 
     DeleteTarget(version, staging) => (version, "", staging, TargetDeleted)
     InsertTarget(mapped_wire, staging) =>
       ("", mapped_wire, staging, TargetInserted)
-    ObserveTarget | ObserveDeleteTarget => raise FileCaptureStop(Unavailable)
+    ObserveTarget | ObserveDeleteTarget | ObserveOptionalTarget =>
+      raise FileCaptureStop(Unavailable)
   }
   let root = self.root.unwrap()
   let output = self.replacement.unwrap()
@@ -815,6 +895,19 @@ pub fn NativeRelationFileTargetIO::snapshot(self : Self) -> (String, String)? {
 }
 
 ///|
+/// Original complete absence for UPSERT Preview. Unfinished, invalid or
+/// retired observations return false.
+pub fn NativeRelationFileTargetIO::target_absent(self : Self) -> Bool {
+  self.same() &&
+  self.phase is TargetReady &&
+  self.issue is None &&
+  self.mutation is ObserveOptionalTarget &&
+  self.observed_row is None &&
+  self.root is Some(root) &&
+  root.require_current_original_read() is Ok(_)
+}
+
+///|
 /// Preserve the same immutable physical ACK before retiring this child. The
 /// receiving Host must retain/back it before close; it cannot infer success
 /// from replacement_attempted, submitted bytes, current contents or cleanup.
@@ -838,7 +931,7 @@ pub fn NativeRelationFileTargetIO::check_update(
 ) -> Result[Unit, NativeRelationFileIssue] {
   guard self.same() &&
     self.phase is TargetReady &&
-    self.mutation is ObserveTarget &&
+    (self.mutation is ObserveTarget || self.mutation is ObserveOptionalTarget) &&
     self.issue is None &&
     self.root is Some(root) &&
     self.document is Some(document) &&
@@ -956,10 +1049,11 @@ pub fn native_relation_file_target_read_io_capacity(
   provider : NativeRelationFilePreparedProvider,
   writable_fields : Int,
   response_bytes? : Int? = None,
+  ordered_wire_utf16? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
   guard writable_fields > 0 else { return None }
   native_relation_file_target_read_io_capacity_original(
-    provider, writable_fields, response_bytes,
+    provider, writable_fields, response_bytes, ordered_wire_utf16,
   )
 }
 
@@ -968,9 +1062,10 @@ pub fn native_relation_file_target_read_io_capacity(
 pub fn native_relation_file_delete_target_read_io_capacity(
   provider : NativeRelationFilePreparedProvider,
   response_bytes? : Int? = None,
+  ordered_wire_utf16? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
   native_relation_file_target_read_io_capacity_original(
-    provider, 0, response_bytes,
+    provider, 0, response_bytes, ordered_wire_utf16,
   )
 }
 
@@ -979,8 +1074,10 @@ fn native_relation_file_target_read_io_capacity_original(
   provider : NativeRelationFilePreparedProvider,
   writable_fields : Int,
   response_bytes : Int?,
+  ordered_wire_utf16 : Int?,
 ) -> @execution.ExecutionCapacity? {
   let limits = provider.limits
+  let project_ordered = provider.has_ordered_key() && response_bytes != Some(0)
   let contract = @rows.relation_document_prepared_contract(
     provider.prepared_contract,
   )
@@ -992,6 +1089,7 @@ fn native_relation_file_target_read_io_capacity_original(
       prepared_contract=Some(provider.prepared_contract),
       response_bytes~,
       writable_fields~,
+      ordered_projection=project_ordered,
     )
     is Some(document) &&
     file_capture_metadata_capacity(
@@ -1031,7 +1129,22 @@ fn native_relation_file_target_read_io_capacity_original(
     @execution.execution_capacity(extra, extra) is Some(extra) else {
     return None
   }
-  @execution.add_execution_capacity(document, extra)
+  let ordinary = @execution.add_execution_capacity(document, extra)
+  if project_ordered && provider.ordered_key is Some(key) {
+    guard ordinary is Some(ordinary) &&
+      @rows.relation_target_key_wire_workspace_inventory(
+        key,
+        ordered_wire_utf16.unwrap_or(limits.page.max_bytes),
+      )
+      is Some(units) &&
+      @execution.preparation_representation_cost(units) is Some(bytes) &&
+      @execution.execution_capacity(bytes, bytes) is Some(tuple) else {
+      return None
+    }
+    @execution.add_execution_capacity(ordinary, tuple)
+  } else {
+    ordinary
+  }
 }
 
 ///|

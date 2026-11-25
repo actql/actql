@@ -417,13 +417,38 @@ fn header_value_map(
 }
 
 ///|
+fn header_tuple_selector(
+  source : @wire.Cursor,
+  budget : HeaderBudget,
+) -> Unit raise EffectHeaderStop {
+  guard @wire.array_length(source) is Some(count) && count >= 2 else {
+    header_fail(source, InvalidBody)
+  }
+  header_spend(budget, count, source)
+  let targets : Map[String, Bool] = Map([])
+  for index in 0..<count {
+    let component = @wire.element_at(source, index).unwrap()
+    let pair = header_object(component, ["target_field", "result_field"])
+    let target = header_text(header_required(pair, "target_field", component))
+    let result = header_text(header_required(pair, "result_field", component))
+    header_spend(budget, target.length(), component)
+    header_spend(budget, result.length(), component)
+    if targets.contains(target) {
+      header_fail(component, InvalidBody)
+    }
+    targets[target] = true
+  }
+}
+
+///|
 fn header_selector(
   body : @wire.ObjectView,
   stage : Stage,
   source : @wire.Cursor,
+  budget : HeaderBudget,
 ) -> String? raise EffectHeaderStop {
   let mut selector : String? = None
-  for key in ["id", "match", "ids", "external_id", "where"] {
+  for key in ["id", "match", "ids", "external_id", "where", "match_tuple"] {
     if @wire.lookup(body, key) is Some(_) {
       if selector is Some(_) {
         header_fail(source, InvalidBody)
@@ -443,6 +468,8 @@ fn header_selector(
       ignore(header_text(header_required(pair, "target_field", node)))
       ignore(header_text(header_required(pair, "result_field", node)))
     }
+    "match_tuple" =>
+      header_tuple_selector(@wire.lookup(body, "match_tuple").unwrap(), budget)
     "ids" => header_nonempty_array(@wire.lookup(body, "ids").unwrap())
     "external_id" => {
       let node = @wire.lookup(body, "external_id").unwrap()
@@ -453,7 +480,9 @@ fn header_selector(
     "where" => header_nonempty_array(@wire.lookup(body, "where").unwrap())
     _ => abort("closed selector inventory")
   }
-  let correlated = selected == "id" || selected == "match"
+  let correlated = selected == "id" ||
+    selected == "match" ||
+    selected == "match_tuple"
   let from = header_from(body, stage, correlated, source)
   if !correlated && from is Some(_) {
     header_fail(source, InvalidSourceResult)
@@ -499,16 +528,16 @@ fn header_member(
     "update" =>
       [
         "target", "mapping", "from", "id", "match", "ids", "external_id", "where",
-        "set", "max_items", "on_item_failure",
+        "match_tuple", "set", "max_items", "on_item_failure",
       ]
     "upsert" =>
       [
-        "target", "mapping", "from", "key", "set", "max_items", "on_item_failure",
+        "target", "mapping", "from", "key", "key_tuple", "set", "max_items", "on_item_failure",
       ]
     "delete" =>
       [
         "target", "mapping", "from", "id", "match", "ids", "external_id", "where",
-        "max_items", "on_item_failure",
+        "match_tuple", "max_items", "on_item_failure",
       ]
     "store" =>
       [
@@ -630,7 +659,7 @@ fn header_member(
       }
       value
     }
-    "update" | "delete" => header_selector(body, stage, source)
+    "update" | "delete" => header_selector(body, stage, source, budget)
     "store" => header_from(body, stage, true, source, allow_table_input=true)
     "upsert" | "command" => header_from(body, stage, true, source)
     _ => abort("closed effect kind")
@@ -660,7 +689,11 @@ fn header_member(
     None
   }
   if selected == "upsert" {
-    ignore(header_text(header_required(body, "key", source)))
+    match (@wire.lookup(body, "key"), @wire.lookup(body, "key_tuple")) {
+      (Some(key), None) => ignore(header_text(key))
+      (None, Some(tuple)) => header_tuple_selector(tuple, budget)
+      _ => header_fail(source, InvalidBody)
+    }
   }
   {
     stage_index,

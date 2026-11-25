@@ -135,9 +135,9 @@ fn emit_native_local_effect_file_request(
 }
 
 ///|
-/// CREATE uses the assigned storage key and the original mapped row.
-/// The canonical request has no before image or version field.
-pub fn native_local_effect_file_create_request_wire(
+/// A physical insertion uses the assigned CREATE key or the ordered key
+/// already bound to the approved UPSERT row. It has no old row version.
+pub fn native_local_effect_file_insert_request_wire(
   binding : String,
   mapping : String,
   identity : String,
@@ -145,11 +145,15 @@ pub fn native_local_effect_file_create_request_wire(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  ordered_target~ : @canonical.CanonicalValue?,
 ) -> Result[String, Unit] {
+  guard ordered_target is None || ordered_target is Some(@canonical.Array(_)) else {
+    return Err(())
+  }
   try {
     let writer = @encode.writer(max_bytes, max_nodes, max_depth)
-    emit_native_local_effect_file_create_request(
-      writer, binding, mapping, identity, value,
+    emit_native_local_effect_file_insert_request(
+      writer, binding, mapping, identity, value, ordered_target,
     )
     Ok(@encode.finish(writer))
   } catch {
@@ -158,12 +162,13 @@ pub fn native_local_effect_file_create_request_wire(
 }
 
 ///|
-fn emit_native_local_effect_file_create_request(
+fn emit_native_local_effect_file_insert_request(
   writer : @encode.Writer,
   binding : String,
   mapping : String,
   identity : String,
   value : @canonical.CanonicalValue,
+  ordered_target : @canonical.CanonicalValue?,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   @encode.key(writer, "binding")
@@ -171,7 +176,10 @@ fn emit_native_local_effect_file_create_request(
   @encode.key(writer, "mapping")
   @encode.string_value(writer, mapping)
   @encode.key(writer, "target")
-  @encode.string_value(writer, identity)
+  match ordered_target {
+    None => @encode.string_value(writer, identity)
+    Some(target) => @canonical.emit_value(target, writer)
+  }
   @encode.key(writer, "value")
   @canonical.emit_value(value, writer)
   @encode.end_object(writer)
@@ -219,7 +227,7 @@ pub fn native_local_effect_file_create_preview_row(
   ) catch {
     _ => return Err(())
   }
-  guard native_local_effect_file_create_request_wire(
+  guard native_local_effect_file_insert_request_wire(
       binding,
       mapping,
       key,
@@ -227,6 +235,7 @@ pub fn native_local_effect_file_create_preview_row(
       limits.max_wire_bytes,
       limits.max_nodes,
       limits.max_depth,
+      ordered_target=None,
     )
     is Ok(request) &&
     @sha.text_hex(request) is Ok(digest) else {
@@ -515,6 +524,7 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
   retained_request_units : Int64,
   retained_requests : Int,
   request_limits : @checkpoint.WireLimits,
+  ordered_key~ : Bool,
 ) -> Result[
   (String, String, String, String, String),
   NativeLocalInitialHostAttestationIssue,
@@ -546,9 +556,32 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     @canonical.object_field(row, "target_guard") is Some(target_guard) else {
     return Err(HostAttestationUnavailable)
   }
-  let guarded = if kind == "create" {
-    guard @canonical.object_field(before, "state")
-      is Some(@canonical.String("absent")) &&
+  guard (kind != "upsert" || ordered_key) && (kind != "create" || !ordered_key) else {
+    return Err(HostAttestationUnavailable)
+  }
+  let selected_identity = if kind == "create" {
+    ""
+  } else {
+    match target {
+      @canonical.String(identity) if !ordered_key => identity
+      @canonical.Array(_) if ordered_key => {
+        guard @publication.effect_preview_ordered_row_correlation_wire(
+            original.preview,
+            member_index,
+            row_ordinal,
+          )
+          is Some(wire) else {
+          return Err(HostAttestationUnavailable)
+        }
+        wire
+      }
+      _ => return Err(HostAttestationUnavailable)
+    }
+  }
+  let absent = @canonical.object_field(before, "state")
+    is Some(@canonical.String("absent"))
+  let guarded = if kind == "create" || (kind == "upsert" && absent) {
+    guard absent &&
       @canonical.object_field_count(before) == Some(1) &&
       @canonical.object_field(target_guard, "state")
       is Some(@canonical.String("not_applicable")) &&
@@ -557,8 +590,7 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     }
     None
   } else {
-    guard target is @canonical.String(identity) &&
-      @canonical.object_field(before, "state")
+    guard @canonical.object_field(before, "state")
       is Some(@canonical.String("present")) &&
       @canonical.object_field(before, "value") is Some(full_before) &&
       @canonical.object_field(target_guard, "state")
@@ -567,11 +599,18 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
       is Some(@canonical.String(version)) else {
       return Err(HostAttestationUnavailable)
     }
-    Some((identity, full_before, version))
+    Some((full_before, version))
+  }
+  if kind == "upsert" {
+    guard @canonical.object_field(row, "after") is Some(after) &&
+      @canonical.object_field(after, "state")
+      is Some(@canonical.String("present")) else {
+      return Err(HostAttestationUnavailable)
+    }
   }
   let original_value = @canonical.object_field(intended, "value")
   match kind {
-    "create" | "update" => {
+    "create" | "update" | "upsert" => {
       guard @canonical.object_field(intended, "state")
         is Some(@canonical.String("present")) &&
         original_value is Some(_) else {
@@ -660,7 +699,8 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     return Err(HostAttestationUnavailable)
   }
   let (identity, version) = match guarded {
-    Some((identity, _, version)) => (identity, version)
+    Some((_, version)) => (selected_identity, version)
+    None if kind == "upsert" => (selected_identity, "")
     None => {
       guard @publication.effect_file_create_storage_key_from_preview(
           original.preview,
@@ -677,6 +717,11 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
       (identity, "")
     }
   }
+  let ordered_target = if kind == "upsert" && absent {
+    Some(target)
+  } else {
+    None
+  }
   let (bytes, nodes, depth) = try {
     let measure = @encode.measuring_writer(
       limits.max_wire_bytes,
@@ -684,17 +729,18 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
       limits.max_depth,
     )
     match guarded {
-      Some((_, before, _)) =>
+      Some((before, _)) =>
         emit_native_local_effect_file_request(
           measure, binding, mapping, target, original_value, before, version,
         )
       None =>
-        emit_native_local_effect_file_create_request(
+        emit_native_local_effect_file_insert_request(
           measure,
           binding,
           mapping,
           identity,
           original_value.unwrap(),
+          ordered_target,
         )
     }
     @encode.finish_measurement_usage(measure)
@@ -756,7 +802,7 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
   }
   let request = match
     (match guarded {
-      Some((_, before, _)) =>
+      Some((before, _)) =>
         native_local_effect_file_request_wire(
           binding,
           mapping,
@@ -769,7 +815,7 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
           limits.max_depth,
         )
       None =>
-        native_local_effect_file_create_request_wire(
+        native_local_effect_file_insert_request_wire(
           binding,
           mapping,
           identity,
@@ -777,6 +823,7 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
           limits.max_wire_bytes,
           limits.max_nodes,
           limits.max_depth,
+          ordered_target~,
         )
     }) {
     Ok(value) => value

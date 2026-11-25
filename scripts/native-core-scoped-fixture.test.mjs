@@ -34,11 +34,13 @@ test('target I/O cases own exact original inputs and fresh backings without name
     const root = join(namespace, 'target-io'); roots.push(root);
     assert.deepEqual(environment, {ACTQL_TEST_NATIVE_TARGET_IO_ROOT: root});
     assert.equal(statSync(root).mode & 0o777, 0o700);
-    assert.deepEqual(readdirSync(root).sort(), ['target-' + suffix + '.json', 'target-backing-' + suffix].sort());
+    const ordered = suffix === 'insert' ? ['target-ordered.json'] : [];
+    assert.deepEqual(readdirSync(root).sort(),
+      ['target-' + suffix + '.json', 'target-backing-' + suffix, ...ordered].sort());
     const input = join(root, 'target-' + suffix + '.json');
     assert.equal(readFileSync(input, 'utf8'),
       ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\n');
-    for (const path of [input, join(root, 'target-backing-' + suffix)]) {
+    for (const path of [input, join(root, 'target-backing-' + suffix), ...ordered.map(name => join(root, name))]) {
       const stat = statSync(path);
       assert(stat.isFile()); assert.equal(stat.nlink, 1); assert.equal(stat.mode & 0o777, 0o600);
     }

@@ -14,6 +14,7 @@ pub(all) enum EffectPlanCheckedRowIssue {
   InvalidLimits
   WorkLimit
   FieldLimit
+  UnsupportedSelector
   ForeignLiterals
   IncompleteChanges
   MissingSourceField(String)
@@ -126,6 +127,11 @@ pub fn project_effect_plan_checked_row(
     values.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
+  // This original typed provider projector supplies one scalar selector.
+  // File tuples use the existing captured-row proposal and its bounded writer.
+  guard terminal.selector is ScalarEffectSelector(_, selector_field) else {
+    return Err(UnsupportedSelector)
+  }
   let budget : EffectPlanCheckedRowBudget = {
     work: max_work,
     nodes: values.max_nodes,
@@ -198,12 +204,7 @@ pub fn project_effect_plan_checked_row(
   }
   budget.work -= comparisons * longest_name
   let selector = match
-    effect_plan_checked_row_read(
-      terminal,
-      terminal.selector_field,
-      read,
-      budget,
-    ) {
+    effect_plan_checked_row_read(terminal, selector_field, read, budget) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

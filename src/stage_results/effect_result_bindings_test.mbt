@@ -4,6 +4,7 @@ fn effect_binding_inputs(
   reference_nullable? : Bool? = None,
   amount_nullable? : Bool = false,
   amount_type? : @contract.Contract? = None,
+  header_work? : Int = 32,
 ) -> (Checked, @syntax.EffectHeaders) {
   let fields = if reference_nullable is Some(_) {
     "[\"amount\",\"ref\"]"
@@ -19,7 +20,7 @@ fn effect_binding_inputs(
   )
   let checked = check(operations, limits()).unwrap()
   let program = @parameters.program(@parameters.operations_source(operations))
-  let headers = @syntax.collect_effect_headers(program, 8, 32).unwrap()
+  let headers = @syntax.collect_effect_headers(program, 8, header_work).unwrap()
   (checked, headers)
 }
 
@@ -178,6 +179,57 @@ test "Effect Result bindings cover match, upsert, and command inputs" {
     let issue = bind_effect_results(headers, checked, 8).unwrap_err()
     assert_eq(effect_result_binding_issue_kind(issue), MissingField)
     assert_eq(effect_result_binding_issue_field(issue), Some("missing"))
+  }
+}
+
+///|
+test "Effect tuple binding retains each target component and the same repeated Result field" {
+  for
+    (operation, selector, extra) in [
+      ("delete", "match_tuple", ""),
+      ("upsert", "key_tuple", ",\"set\":{\"value\":{\"literal\":1}}"),
+    ] {
+    let effects = "{\"effect\":{\"" +
+      operation +
+      "\":{\"target\":\"crm\",\"mapping\":\"mapping:crm.record.v1\",\"from\":{\"result\":\"r\"},\"" +
+      selector +
+      "\":[{\"target_field\":\"a\",\"result_field\":\"amount\"},{\"target_field\":\"b\",\"result_field\":\"amount\"}]" +
+      extra +
+      "}}}"
+    let (checked, headers) = effect_binding_inputs(effects, header_work=64)
+    let bindings = bind_effect_results(headers, checked, 12).unwrap()
+    let effect = effect_result_binding_at(bindings, 0).unwrap()
+    let first = effect_result_field_binding_at(effect, 0).unwrap()
+    let second = effect_result_field_binding_at(effect, 1).unwrap()
+    assert_eq(effect_result_field_binding_role(first), EffectTupleSelector("a"))
+    assert_eq(
+      effect_result_field_binding_role(second),
+      EffectTupleSelector("b"),
+    )
+    let result = effect_result_binding_result(effect).unwrap()
+    let original = @schema.lookup_reference(
+      @results.output_schema(result),
+      "amount",
+    ).unwrap()
+    for component in [first, second] {
+      let field = effect_result_field_binding_field(component)
+      assert_eq(@schema.field_reference_name(field), "amount")
+      assert_true(
+        physical_equal(
+          @schema.field_contract(field),
+          @schema.field_contract(original),
+        ),
+      )
+    }
+    let (bad, bad_headers) = effect_binding_inputs(
+      effects.replace(
+        old="\"result_field\":\"amount\"",
+        new="\"result_field\":\"other\"",
+      ),
+      header_work=64,
+    )
+    let issue = bind_effect_results(bad_headers, bad, 12).unwrap_err()
+    assert_eq(effect_result_binding_issue_field(issue), Some("other"))
   }
 }
 
