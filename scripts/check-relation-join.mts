@@ -3,12 +3,18 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const quote = s => '"' + [...s].map(c => {
-  const n = c.codePointAt(0);
+type Case = {id: string; body: unknown} & (
+  {issue: string; fields?: never; nullable?: never; key_count?: never} |
+  {issue?: never; fields: string[]; nullable: boolean[]; key_count: number}
+);
+type Corpus = {version: string; input_fields: unknown; cases: Case[]};
+
+const quote = (s: string) => '"' + [...s].map(c => {
+  const n = c.codePointAt(0)!;
   return n < 32 || n > 126 ? '\\u{' + n.toString(16) + '}' : c === '"' || c === '\\' ? '\\' + c : c;
 }).join('') + '"';
 const issues = new Set(['EmptyBody', 'InvalidBody', 'UnknownField', 'IncomparableKeys', 'InvalidProjection', 'InvalidName', 'InvalidGuard']);
-export function generate(c) {
+export function generate(c: Corpus) {
   assert.equal(c.version, 'actql-relation-join-corpus/0.1');
   assert.ok(c.input_fields && typeof c.input_fields === 'object');
   assert.ok(Array.isArray(c.cases) && c.cases.length);

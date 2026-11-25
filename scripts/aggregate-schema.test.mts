@@ -19,14 +19,14 @@ test('aggregate schema has closed argument and modifier matrices for all functio
     }
   }
   const s=groupSchema();
-  assert.equal(s.properties.by.minItems,undefined);
-  assert.equal(s.properties.by.uniqueItems,undefined);
-  assert.equal(s.properties.aggregates.minProperties,undefined);
+  assert.equal((s.properties.by as Record<string, unknown>).minItems,undefined);
+  assert.equal((s.properties.by as Record<string, unknown>).uniqueItems,undefined);
+  assert.equal((s.properties.aggregates as Record<string, unknown>).minProperties,undefined);
 });
 
 test('embedded group schemas and aggregate binding law cannot drift', () => {
-  const registry=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
-  const expressions=JSON.parse(readFileSync('spec/contracts/actql-expressions.json'));
+  const registry: Parameters<typeof checkAggregateSchemas>[0]=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
+  const expressions: Parameters<typeof checkAggregateSchemas>[1]=JSON.parse(readFileSync('spec/contracts/actql-expressions.json', 'utf8'));
   checkAggregateSchemas(registry,expressions);
   for(const p of [0,1]) {
     const mutated=structuredClone(registry);
