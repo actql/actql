@@ -120438,7 +120438,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::acquire_physical_read",
-          "declaration": "LocalCommandPreparationOriginal : : acquire_physical_read ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+          "declaration": "LocalCommandPreparationOriginal : : acquire_physical_read ( self : LocalCommandPreparationOriginal , remote_budget ? : @ initial_arena . InstalledArenaOriginalReadBudget ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::acquire_runtime",

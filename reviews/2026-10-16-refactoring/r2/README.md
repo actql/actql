@@ -22,7 +22,7 @@ Public opaque types and operation signatures remain
 contract assertions. Private function names, variable names, call order inferred
 from text, complete neutral import lists and positional-call regexes are gone.
 
-`query-boundary-behavior.test.mjs` calls production authorization, strategy and
+`scripts/query-boundary-behavior.test.mts` calls production authorization, strategy and
 SQLite functions. Controlled Host/Core peers and the existing Site protocol
 fixture test adapter sequencing; they are not a second checker or evidence of
 Common semantic execution. SQLite cases use a real in-memory database, including
@@ -39,9 +39,8 @@ them here.
 
 ## Source-qualified mutation experiments
 
-`mutation-controls.test.mjs` is an explicit review experiment, not an automatic
-architectural CI rule. Its patch locations are tied to the recorded product
-input hashes. This distinction prevents experimental patch anchors becoming
+The one-time `mutation-controls.test.mjs` experiment used patch locations tied
+to the recorded product input hashes. This distinction prevents experimental patch anchors becoming
 another permanent implementation-text gate. Ordinary structural/behavioral
 checks never inspect those private implementation strings.
 
@@ -59,26 +58,17 @@ The opaque-registration probe checks equal names cannot dispatch. The Common
 completion probe checks the first typed refusal: a later output guard still
 rejects the mutated case, so it is not evidence that the mutation published.
 
-## Reproduction
+## Current checks and historical recipe
 
-Use the repository's pinned Node and ordinary locked test dependencies:
+`check:spec-after-preflight` runs `scripts/query-dependency-boundary.test.mjs`,
+including the TypeScript behavioral tests and the graph cases. The lint and
+Host jobs run `sqlite-transaction.test.mjs` and `completion-custody.test.mjs`
+in their respective suites.
 
-```sh
-node reviews/2026-10-16-refactoring/r2/prepared-checks.mjs boundaries
-node reviews/2026-10-16-refactoring/r2/prepared-checks.mjs mutations
-node reviews/2026-10-16-refactoring/r2/prepared-checks.mjs graph
-```
-
-All use the existing non-Heavy guard, 60 seconds / TERM grace 5, and the existing
-nonzero focused wrapper with a 30-second child limit. No Moon, Native, packed
-producer, Provider or installed campaign is started. Preserve every attempt's
-original guard and focused receipts; later success does not replace earlier
-failure.
-
-`graph` selects the complete-closure counterexamples, the unchanged packaging
-projection/entry contract, the real common adapter closure and the existing
-Connector installation generator consumer. It does not rerun the earlier
-boundary/SQLite/Host or source-qualified mutation acceptance.
+The original three selections used the non-Heavy guard with a 60-second
+bound, five-second TERM grace and a 30-second focused child limit. The original
+experiments and their inputs remain in Git history. Every attempt retains its
+original result. [Original R2 recipe](https://github.com/actql/actql/blob/8ecd04d46a34bb6d8ca5e2e14eb7c0cfe5fc0946/reviews/2026-10-16-refactoring/r2/prepared-checks.mjs)
 
 ## Original assertion responsibilities
 
