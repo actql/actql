@@ -37,9 +37,9 @@ test "managed task issue projects memory refusal without replacing its original 
     cleanup_issue: None,
     operations: None,
     progress: None,
-    producers: [],
-    positions: [],
-    finished_inputs: [],
+    producer_handles: [],
+    input_port: 0,
+    input_row: 0,
     live: Ref(true),
     completed: None,
     finalization_invoked: false,
@@ -145,9 +145,9 @@ test "managed producer lookup distinguishes source-free task zero from the captu
       cleanup_issue: None,
       operations: None,
       progress: None,
-      producers: [],
-      positions: [],
-      finished_inputs: [],
+      producer_handles: [],
+      input_port: 0,
+      input_row: 0,
       live: Ref(true),
       completed: None,
       finalization_invoked: false,
@@ -157,11 +157,31 @@ test "managed producer lookup distinguishes source-free task zero from the captu
     records.push(record)
   }
   let before = @buffers.buffer_pool_usage(pool)
-  let source_free = stored_producer(value, 11, 0)
-  let captured = stored_producer(value, 12, 0)
-  let positive = stored_producer(value, 12, 1)
-  let foreign = stored_producer(value, 13, 0)
-  let negative = stored_producer(value, 11, -1)
+  let source_free = bind_managed_producer_handle(value, 11, 0)
+  let captured = bind_managed_producer_handle(value, 12, 0)
+  let positive = bind_managed_producer_handle(value, 12, 1)
+  assert_eq(source_free, 21)
+  assert_eq(captured, 0)
+  assert_eq(positive, 23)
+  assert_eq(bind_managed_producer_handle(value, 13, 0), -1)
+  assert_eq(bind_managed_producer_handle(value, 11, -1), -1)
+  assert_true(bound_managed_producer(value, 11, 23) is None)
+  assert_true(bound_managed_producer(value, 12, captured) is None)
+  assert_true(
+    bound_managed_producer(value, 11, source_free)
+    .map(record => physical_equal(record, records[0]))
+    .unwrap_or(false),
+  )
+  assert_true(
+    bound_managed_producer(value, 12, positive)
+    .map(record => physical_equal(record, records[2]))
+    .unwrap_or(false),
+  )
+  // A later registration cannot stand in for a missing bound original.
+  value.tasks.remove(source_free) |> ignore
+  value.tasks[25] = { ..records[0], live: Ref(true), }
+  assert_eq(bind_managed_producer_handle(value, 11, 0), 25)
+  assert_true(bound_managed_producer(value, 11, source_free) is None)
   assert_eq(@buffers.buffer_pool_usage(pool).allocated, before.allocated)
   assert_eq(@buffers.buffer_pool_usage(pool).capacity, before.capacity)
   assert_eq(@buffers.buffer_pool_usage(pool).closing, before.closing)
@@ -170,7 +190,7 @@ test "managed producer lookup distinguishes source-free task zero from the captu
       !record.invoked && record.live.val && record.completed is None
     }),
   )
-  for handle in [21, 22, 23, 24] {
+  for handle in [22, 23, 24, 25] {
     value.tasks.remove(handle) |> ignore
   }
   for handle in [11, 12] {
@@ -184,17 +204,6 @@ test "managed producer lookup distinguishes source-free task zero from the captu
   @resources.close_shared_capacity(capacity).unwrap()
   @resources.settle_shared_capacity(capacity).unwrap()
   instance.val = None
-  assert_true(
-    source_free
-    .map(record => physical_equal(record, records[0]))
-    .unwrap_or(false),
-  )
-  assert_true(
-    positive.map(record => physical_equal(record, records[2])).unwrap_or(false),
-  )
-  assert_true(captured is None)
-  assert_true(foreign is None)
-  assert_true(negative is None)
 }
 
 ///|
@@ -237,9 +246,9 @@ test "post-close task diagnostic keeps original causes and pending snapshot dist
     cleanup_issue: None,
     operations: None,
     progress: None,
-    producers: [],
-    positions: [],
-    finished_inputs: [],
+    producer_handles: [],
+    input_port: 0,
+    input_row: 0,
     live: Ref(true),
     completed: None,
     finalization_invoked: false,
@@ -254,8 +263,10 @@ test "post-close task diagnostic keeps original causes and pending snapshot dist
   }
   record.closing = true
   assert_eq(managed_task_progress(nonce, 4, 6), 3L)
-  value.tasks[5] = { ..record, task: 4, producers: [3], }
+  value.tasks[5] = { ..record, task: 4, producer_handles: [4], }
   assert_eq(managed_task_progress(nonce, 4, 6), 2L)
+  assert_eq(close_managed_task(nonce, 4), -9)
+  assert_true(record.live.val)
   value.tasks.remove(5) |> ignore
   for
     (cause, expected) in [

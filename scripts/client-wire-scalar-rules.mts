@@ -3,7 +3,8 @@
 // existing generators; this projection does not normalize received values.
 export function finiteWireNumberSource(target: unknown) {
   switch (target) {
-    case 'js': return `function finiteWireNumber(value) {\n  return Number.isFinite(value) && !Object.is(value, -0);\n}\n\n`;
+    case 'js':
+    case 'typescript': return `function finiteWireNumber(value${target === 'typescript' ? ': number' : ''}) {\n  return Number.isFinite(value) && !Object.is(value, -0);\n}\n\n`;
     case 'python': return `def _finite_number(value):
     try:
         return math.isfinite(value) and not (value == 0 and math.copysign(1, value) < 0)

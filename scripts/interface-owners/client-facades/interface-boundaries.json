@@ -7283,7 +7283,7 @@
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               },
               {
@@ -8502,7 +8502,7 @@
                 "anchor": "export async function checkpointAnswerMatches(answer: SignedCheckpointAnswer, summary: unknown, decision: string)"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const answerSchemas = {"
               }
             ],
@@ -8568,7 +8568,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "protocol.artifact_schemas.checkpoint_resolution"
               },
               {
@@ -12244,7 +12244,7 @@
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               },
               {
@@ -15617,7 +15617,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
-      "sha256": "bde1e8cd96db876b7fc26dde1d75d7320c549695c843fb4a8b26555c47c87d8b",
+      "sha256": "ad6c578deacc32cf56455492a41013f3d47608b55ee930b876eec18f1b4beb80",
       "exports": [
         "createCheckpointAnswerCodec",
         "hasCanonicalReviewContentPadding"
@@ -15662,7 +15662,7 @@
         {
           "name": "createCheckpointAnswerCodec/prepareAnswerCandidate",
           "parameters": [
-            "summary",
+            "inputSummary",
             "decision",
             "actor",
             "decidedAt",
@@ -16418,7 +16418,7 @@
                 "anchor": "export async function checkpointAnswerMatches(answer: SignedCheckpointAnswer, summary: unknown, decision: string)"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const answerSchemas = {"
               }
             ],
@@ -16484,7 +16484,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "protocol.artifact_schemas.checkpoint_resolution"
               },
               {
@@ -16512,7 +16512,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-construction.generated.d.mts",
-      "sha256": "23296fb40b4731560413ad15d685cebb48523e128cf8a3d12c9cad14abc85d3a",
+      "sha256": "23d607ffa262087813722a297d7630248f5f13b145f165ff05929e8e0aff1272",
       "exports": [
         "AnswerCandidate",
         "AnswerDecision",
@@ -16534,7 +16534,7 @@
           "name": "AnswerPrimitives/canonicalJson",
           "parameters": [
             "value: unknown",
-            "options?: {dataKeys?: boolean}"
+            "options?: {\n        dataKeys?: boolean;\n    }"
           ],
           "result": "string"
         },
@@ -16543,50 +16543,28 @@
           "parameters": [
             "primitives: AnswerPrimitives"
           ],
-          "result": "Readonly<{\n  prepareAnswerCandidate(summary: unknown, decision: unknown, actor: unknown,\n    decidedAt: unknown, limits: AnswerLimits): Promise<AnswerCandidate>;\n  answerCandidateApprovalPreimage(stage: AnswerCandidate): string | undefined;\n  prepareAnswerResolution(stage: AnswerCandidate,\n    approvalSignature?: unknown): Promise<AnswerResolution>;\n  answerResolutionPreimage(stage: AnswerResolution): string;\n  finishAnswerCandidate(stage: AnswerResolution,\n    resolutionSignature: unknown): Promise<WireResolveItem>;\n  reviewBytesMatchCid(raw: unknown, expected: unknown, limits: AnswerLimits): Promise<boolean>;\n  encodeSignerSignature(value: unknown): string;\n  validSignerIds(keyId: unknown, reviewerId: unknown): boolean;\n}>"
+          "result": "Readonly<{\n    prepareAnswerCandidate: (inputSummary: unknown, decision: unknown, actor: unknown, decidedAt: unknown, selectedLimits: AnswerLimits) => Promise<AnswerCandidate>;\n    answerCandidateApprovalPreimage: (stage: AnswerCandidate) => string | undefined;\n    prepareAnswerResolution: (stage: AnswerCandidate, approvalSignature?: unknown) => Promise<AnswerResolution>;\n    answerResolutionPreimage: (stage: AnswerResolution) => string;\n    finishAnswerCandidate: (stage: AnswerResolution, resolutionSignature: unknown) => Promise<WireResolveItem>;\n    reviewBytesMatchCid: (raw: unknown, expected: unknown, selectedLimits: AnswerLimits) => Promise<boolean>;\n    encodeSignerSignature: typeof encodeSignerSignature;\n    validSignerIds: typeof validSignerIds;\n}>"
         },
         {
-          "name": "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
+          "name": "createCheckpointAnswerCodec/<call>",
+          "parameters": [
+            "inputSummary: unknown",
+            "decision: unknown",
+            "actor: unknown",
+            "decidedAt: unknown",
+            "selectedLimits: AnswerLimits"
+          ],
+          "result": "Promise<AnswerCandidate>"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/<call>#2",
           "parameters": [
             "stage: AnswerCandidate"
           ],
           "result": "string | undefined"
         },
         {
-          "name": "createCheckpointAnswerCodec/answerResolutionPreimage",
-          "parameters": [
-            "stage: AnswerResolution"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "createCheckpointAnswerCodec/encodeSignerSignature",
-          "parameters": [
-            "value: unknown"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "createCheckpointAnswerCodec/finishAnswerCandidate",
-          "parameters": [
-            "stage: AnswerResolution",
-            "resolutionSignature: unknown"
-          ],
-          "result": "Promise<WireResolveItem>"
-        },
-        {
-          "name": "createCheckpointAnswerCodec/prepareAnswerCandidate",
-          "parameters": [
-            "summary: unknown",
-            "decision: unknown",
-            "actor: unknown",
-            "decidedAt: unknown",
-            "limits: AnswerLimits"
-          ],
-          "result": "Promise<AnswerCandidate>"
-        },
-        {
-          "name": "createCheckpointAnswerCodec/prepareAnswerResolution",
+          "name": "createCheckpointAnswerCodec/<call>#3",
           "parameters": [
             "stage: AnswerCandidate",
             "approvalSignature?: unknown"
@@ -16594,26 +16572,48 @@
           "result": "Promise<AnswerResolution>"
         },
         {
-          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid",
+          "name": "createCheckpointAnswerCodec/<call>#4",
+          "parameters": [
+            "stage: AnswerResolution"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/<call>#5",
+          "parameters": [
+            "stage: AnswerResolution",
+            "resolutionSignature: unknown"
+          ],
+          "result": "Promise<WireResolveItem>"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/<call>#6",
           "parameters": [
             "raw: unknown",
             "expected: unknown",
-            "limits: AnswerLimits"
+            "selectedLimits: AnswerLimits"
           ],
           "result": "Promise<boolean>"
         },
         {
-          "name": "createCheckpointAnswerCodec/validSignerIds",
+          "name": "encodeSignerSignature",
           "parameters": [
-            "keyId: unknown",
-            "reviewerId: unknown"
+            "value: unknown"
           ],
-          "result": "boolean"
+          "result": "string"
         },
         {
           "name": "hasCanonicalReviewContentPadding",
           "parameters": [
             "value: string"
+          ],
+          "result": "boolean"
+        },
+        {
+          "name": "validSignerIds",
+          "parameters": [
+            "keyId: unknown",
+            "reviewerId: unknown"
           ],
           "result": "boolean"
         }
@@ -16622,7 +16622,6 @@
         "@actql/client-wire"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "public-wire-codec",
       "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
@@ -16634,15 +16633,15 @@
             "AnswerPrimitives/bytesCid",
             "AnswerPrimitives/canonicalJson",
             "createCheckpointAnswerCodec",
-            "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
-            "createCheckpointAnswerCodec/answerResolutionPreimage",
-            "createCheckpointAnswerCodec/encodeSignerSignature",
-            "createCheckpointAnswerCodec/finishAnswerCandidate",
-            "createCheckpointAnswerCodec/prepareAnswerCandidate",
-            "createCheckpointAnswerCodec/prepareAnswerResolution",
-            "createCheckpointAnswerCodec/reviewBytesMatchCid",
-            "createCheckpointAnswerCodec/validSignerIds",
-            "hasCanonicalReviewContentPadding"
+            "hasCanonicalReviewContentPadding",
+            "createCheckpointAnswerCodec/<call>",
+            "createCheckpointAnswerCodec/<call>#2",
+            "createCheckpointAnswerCodec/<call>#3",
+            "createCheckpointAnswerCodec/<call>#4",
+            "createCheckpointAnswerCodec/<call>#5",
+            "createCheckpointAnswerCodec/<call>#6",
+            "encodeSignerSignature",
+            "validSignerIds"
           ],
           "exports": [
             "AnswerCandidate",

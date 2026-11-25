@@ -3660,6 +3660,202 @@ test "Native Values CREATE captures its Result dependencies and prepares its ori
     @publication.effect_preview_row_key(identity, 0, 0),
     Some(@effect.effect_dispatch_key_cid(dispatch_key)),
   )
+  // Production continues with the already selected retention originals and
+  // only then borrows this exact completed export for the public Result.
+  let original_policy = @run_host.client_local_product_bootstrap_originals(
+    "/operator/native-create-proposals", "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let profile = @run_host.client_local_run_policy_profile(
+    original_policy.common,
+  ).unwrap()
+  let retention_dependencies = @run_host.client_local_run_policy_retention_bodies(
+    profile,
+    original_policy.common.retention_dependencies,
+  ).unwrap()
+  let max_bytes = native_mock_effect_record_bytes(installation)
+  let report = issue => if primary.val is None { primary.val = Some(issue) }
+  let diagnose = (stage : String, message : String) => {
+    let reason = primary.val
+      .map(issue => {
+        match issue {
+          CapturedSource(cause) => @debug.to_string(cause)
+          PublicExport(Evidence(cause)) => @debug.to_string(cause)
+          PublicExport(Artifact(cause)) => @debug.to_string(cause)
+          PublicExport(Capture(cause)) => @debug.to_string(cause)
+          Managed(InsufficientCapacity) => "insufficient capacity"
+          Managed(Ledger(cause)) => @debug.to_string(cause)
+          Managed(Preparation(cause)) => @debug.to_string(cause)
+          _ =>
+            command_preparation_cleanup_cause(
+              CommandBusinessEffectProposals(issue),
+            )
+        }
+      })
+      .unwrap_or("no typed cause")
+    fail(stage + " / " + message + " / " + reason)
+  }
+  state.prepare_direct_mock_effect_dependencies(
+    run,
+    retention_dependencies,
+    installation.store_authority_cid,
+    max_bytes,
+    report,
+    values_installation=installation.source_free,
+  ) catch {
+    ClientStop(message) => diagnose("CREATE dependency inventory", message)
+  }
+  let inventory = preview._retained_dependency_inventory.unwrap()
+  let policy = @run_host.client_standard_effect_computation_limits().effects
+  assert_true(
+    @publication.captured_effect_dependency_sources_match(
+      preview._retained_local_sources,
+      inventory,
+      max_bytes,
+      policy.max_admission_nodes,
+      policy.max_admission_depth,
+    ),
+  )
+  assert_false(
+    @publication.captured_effect_dependency_sources_match(
+      [],
+      inventory,
+      max_bytes,
+      policy.max_admission_nodes,
+      policy.max_admission_depth,
+    ),
+  )
+  let original_wire = @publication.captured_effect_dependency_inventory_json(
+    inventory,
+  )
+  let admit = (wire : String) => {
+    @publication.admit_captured_effect_source_dependencies(
+      preview._retained_local_sources,
+      wire,
+      max_bytes,
+      policy.max_admission_nodes,
+      policy.max_admission_depth,
+    )
+  }
+  let from_wire = admit(original_wire).unwrap()
+  guard @json.parse(original_wire) is Array(entries) else {
+    fail("missing CREATE dependency entries")
+  }
+  let field = (entry : Json, name : String) => {
+    match entry {
+      Object(fields) => fields.get(name)
+      _ => None
+    }
+  }
+  let roots = entries.filter(entry => {
+    field(entry, "kind") == Some("result_artifact")
+  })
+  assert_eq(roots.length(), 1)
+  let render = (entries : Array[Json]) => {
+    let value = @canonical.from_json(
+      Json::array(entries),
+      policy.max_admission_nodes,
+      policy.max_admission_depth,
+      max_bytes,
+      data_keys=true,
+    )
+    let (wire, _, _, _) = @canonical.stringify_value_with_usage(
+      value,
+      max_bytes,
+      policy.max_admission_nodes,
+      policy.max_admission_depth,
+    )
+    wire
+  }
+  let without_root = entries.filter(entry => {
+    field(entry, "kind") != Some("result_artifact")
+  })
+  assert_false(without_root.is_empty())
+  assert_true(admit(render(without_root)) is Err(UnusedDependency))
+  // Keep the selected root's kind/CID and substitute a different actual body.
+  let foreign_body = field(without_root[0], "body").unwrap()
+  let foreign = entries.map(fn(entry) -> Json {
+    if field(entry, "kind") == Some("result_artifact") {
+      {
+        "kind": "result_artifact",
+        "cid": field(entry, "cid").unwrap(),
+        "body": foreign_body,
+      }
+    } else {
+      entry
+    }
+  })
+  assert_true(admit(render(foreign)) is Err(InvalidBody))
+  // Independently valid hashed policy with no edge from the captured Result.
+  let unrelated : Json = {
+    "kind": "lookup_execution_policy",
+    "cid": "sha256:7c8eee13821a6938f64d0ad03c95a034a138bf5b52b49271bbdca6232aa3df04",
+    "body": { "version": "actql-lookup-execution-policy/0.1" },
+  }
+  let excess = entries.copy()
+  excess.push(unrelated)
+  excess.sort_by((left, right) => {
+    match (field(left, "cid"), field(right, "cid")) {
+      (Some(String(left_cid)), Some(String(right_cid))) =>
+        left_cid.compare(right_cid)
+      _ => abort("missing CREATE dependency identity")
+    }
+  })
+  assert_true(admit(render(excess)) is Err(UnusedDependency))
+  let rootless = admit("[]").unwrap()
+  state.build_mock_effect_computation(
+    limit,
+    max_bytes,
+    report,
+    managed_run=Some(run),
+  ) catch {
+    ClientStop(message) =>
+      diagnose("CREATE public Result construction", message)
+  }
+  {
+    let computation = state.computation.unwrap()
+    let captured = computation._retained_captured.unwrap()
+    assert_true(
+      @publication.bind_prepared_captured_effect_run(captured, from_wire)
+      is Ok(_),
+    )
+    assert_true(
+      @publication.bind_prepared_captured_effect_run(captured, rootless)
+      is Err(InvalidBody),
+    )
+    let recovered = @publication.prepare_recovered_captured_effect_run(
+      captured,
+      max_bytes,
+      policy.max_admission_nodes,
+      policy.max_admission_depth,
+      _ => true,
+    ).unwrap()
+    assert_eq(
+      @publication.captured_effect_dependency_inventory_json(
+        @publication.prepared_captured_effect_run_inventory(recovered),
+      ),
+      original_wire,
+    )
+    assert_eq(computation.snapshots.length(), 1)
+    let payload = @publication.start_captured_result_snapshot_payload(
+      computation.snapshots[0],
+      4096,
+    ).unwrap()
+    let published = StringBuilder()
+    while payload.next().unwrap() is Some(chunk) {
+      published.write_string(chunk)
+    }
+    assert_eq(@json.parse(published.to_string()), [
+      { "group": "inserted", "value": null },
+    ])
+    for output in computation.outputs {
+      output.cancel()
+    }
+    for output in computation.managed_outputs {
+      output.close()
+    }
+    assert_true(@execution.completed_relation_export_receipt_live(receipt))
+  }
+  state.computation = None
   state.preview = None
   assert_true(proposals.close())
   state.proposals = None

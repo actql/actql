@@ -13895,7 +13895,7 @@
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -14135,7 +14135,7 @@
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -24863,7 +24863,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -25055,7 +25055,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -25362,7 +25362,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -25554,7 +25554,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -25746,7 +25746,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -25938,7 +25938,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -26130,7 +26130,7 @@
                 "anchor": "### Logical request and dispatch evidence"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],

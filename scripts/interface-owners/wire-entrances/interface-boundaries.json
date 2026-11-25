@@ -560,11 +560,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "buildClientHostWire"
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "packages/client-wire/client-host.generated.d.ts"
               },
               {
@@ -5708,7 +5708,7 @@
                 "anchor": "\"files\""
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -5794,7 +5794,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -12021,7 +12021,7 @@
                 "anchor": "\"files\""
               },
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -12109,7 +12109,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-client-host-wire.mjs",
+                "path": "scripts/generate-client-host-wire.mts",
                 "anchor": "const wait = requestRules.run_wait;"
               }
             ],
@@ -17562,7 +17562,7 @@
     },
     {
       "module": "scripts/checkpoint-answer-wire.mjs",
-      "sha256": "6951a55cb0abd8085ef8e00081ede93b8d0e84bf294d1a83d8af8b9aa787f5ed",
+      "sha256": "1af1e9d1bccc0236705639e01df6154bf1f40e76a471a9be11a902ca08f6e382",
       "exports": [
         "checkpointAnswerContract",
         "commonCheckpointProfileSource"
@@ -17923,30 +17923,69 @@
       ]
     },
     {
-      "module": "scripts/checkpoint-answer-wire-js.mjs",
-      "sha256": "c0871797415c77e2d515846460735fcaf689c4833c98791be2f77afe2b6ec00f",
+      "module": "scripts/checkpoint-answer-compiler.mjs",
+      "sha256": "93bb066cb1c24405fc6e8a2306771319c39070ab908cc464b50d22052dc6d29c",
       "exports": [
-        "checkpointAnswerJavaScriptSource",
-        "checkpointAnswerTypeScriptSource"
+        "compileCheckpointAnswer"
       ],
       "operations": [
         {
-          "name": "checkpointAnswerJavaScriptSource",
+          "name": "compileCheckpointAnswer",
           "parameters": [
             "contract"
           ],
           "async": false
         },
         {
-          "name": "checkpointAnswerTypeScriptSource",
+          "name": "compileCheckpointAnswer/bindings/bindings",
           "parameters": [
-            "contract"
+            "value"
           ],
+          "async": false
+        },
+        {
+          "name": "compileCheckpointAnswer/compileCheckpointAnswer",
+          "parameters": [
+            "path",
+            "target",
+            "onError",
+            "forceNew"
+          ],
+          "async": false
+        },
+        {
+          "name": "compileCheckpointAnswer/config/config",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "compileCheckpointAnswer/result/result",
+          "parameters": [
+            "name",
+            "contents"
+          ],
+          "async": false
+        },
+        {
+          "name": "diagnosticHost/diagnosticHost",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "diagnosticHost/diagnosticHost#2",
+          "parameters": [],
           "async": false
         }
       ],
       "imports": [
-        "./generate-client-publication-wire.mjs"
+        "./generate-client-publication-wire.mjs",
+        "node:fs",
+        "node:url",
+        "typescript"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -17958,12 +17997,16 @@
         {
           "operations": [
             "<module>",
-            "checkpointAnswerJavaScriptSource",
-            "checkpointAnswerTypeScriptSource"
+            "compileCheckpointAnswer",
+            "compileCheckpointAnswer/bindings/bindings",
+            "compileCheckpointAnswer/compileCheckpointAnswer",
+            "compileCheckpointAnswer/config/config",
+            "compileCheckpointAnswer/result/result",
+            "diagnosticHost/diagnosticHost",
+            "diagnosticHost/diagnosticHost#2"
           ],
           "exports": [
-            "checkpointAnswerJavaScriptSource",
-            "checkpointAnswerTypeScriptSource"
+            "compileCheckpointAnswer"
           ],
           "attributes": {
             "responsibility": [
@@ -18055,6 +18098,14 @@
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Review integrity DATA"
+              },
+              {
+                "path": "scripts/checkpoint-answer-compiler.mts",
+                "anchor": "const result = program.emit(entry,"
+              },
+              {
+                "path": "scripts/templates/checkpoint-answer-construction.mts",
+                "anchor": "export function createCheckpointAnswerCodec(primitives: AnswerPrimitives)"
               }
             ],
             "verification": [
@@ -18250,7 +18301,7 @@
     },
     {
       "module": "scripts/generate-client-host-wire.mjs",
-      "sha256": "8301c078ccc42a908fd7f82e3614a5f0431fa2e722193430db7e0c3a0299631f",
+      "sha256": "885d132dff49a9318d6baebbb03080da1b6927e39883d8fa8fa199faa2677ea1",
       "exports": [
         "buildClientHostWire",
         "nativeProgramSchema",
@@ -18442,7 +18493,7 @@
         }
       ],
       "imports": [
-        "./checkpoint-answer-wire-js.mjs",
+        "./checkpoint-answer-compiler.mjs",
         "./checkpoint-answer-wire.mjs",
         "./client-check-report-rules.mjs",
         "./generate-check-reason-catalog.mjs",
@@ -18792,7 +18843,7 @@
     },
     {
       "module": "scripts/generate-native-client-wire.mjs",
-      "sha256": "dbc149479855fe0c404cd25ec6fd42385c25792f19f3a23a7f884a1a41b8695d",
+      "sha256": "572bf5b90474ceca3a6477236f50c21bab3f69a6aa1467a4aff6155f8a4f6578",
       "exports": [
         "formatMoonBit",
         "jsRequestResponseRules",
