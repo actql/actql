@@ -448,10 +448,11 @@ def accept_installed_numeric_reductions(run, consumer: Path, destination: Path,
             raise ValueError('Invalid installed numeric reductions receipt')
         pid = observed.get('pid')
         if (observed.get('phase') != phase or observed.get('source') != source
-                or observed.get('module') != module or observed.get('cases') != ['pivot', 'sum', 'count']
+                or observed.get('module') != module
+                or observed.get('cases') != ['pivot', 'sum', 'count', 'parse-timestamp']
                 or observed.get('first_close') is not True
                 or type(pid) is not int or pid <= 0 or pid == previous_pid):
-            raise ValueError('Incomplete installed numeric reductions or original Saved')
+            raise ValueError('Incomplete installed Local profile cases or original Saved')
         previous_pid = pid
 
 

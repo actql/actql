@@ -56,46 +56,67 @@ test "prepared typed refusal remains the same original instead of negative count
     ).unwrap(),
     publication: None,
   }
-  let bytes = b"{\"input\":{\"format\":\"sql\",\"text\":\"SELECT (\"},\"kind\":\"aql\",\"parameters\":null}"
-  let slot = @buffers.reserve_output_buffer(pool, bytes.length(), 0L, () => true).unwrap()
-  @buffers.supply_buffer_output(pool, slot, bytes).unwrap()
-  let borrow = @buffers.borrow_buffer(pool, slot, () => true).unwrap()
-  let original : StoredPreparation = {
-    borrow,
-    slot,
-    environment: 1,
-    kind: 3,
-    restoration: None,
-    submitted: None,
-    started: false,
-    outcome: None,
-    source: None,
-    source_issue: None,
+  for
+    (sql, code, classification) in [
+      ("SELECT (", "ClientProgramInvalidInput", "invalid_input"),
+      (
+        "SELECT STRING_AGG('one', '|') AS labels", "ClientProgramAggregateOrderRequired",
+        "invalid_input",
+      ),
+      (
+        "WITH r AS (SELECT 1 AS k, 2 AS v UNION ALL SELECT 2, 3) SELECT ARRAY_AGG(v ORDER BY k) AS items FROM r",
+        "ClientProgramOrderUnresolved", "operation_failed",
+      ),
+    ] {
+    let bytes = @utf8.encode(
+      "{\"input\":{\"format\":\"sql\",\"text\":\"" +
+      sql +
+      "\"},\"kind\":\"aql\",\"parameters\":null}",
+    )
+    let slot = @buffers.reserve_output_buffer(pool, bytes.length(), 0L, () => {
+      true
+    }).unwrap()
+    @buffers.supply_buffer_output(pool, slot, bytes).unwrap()
+    let borrow = @buffers.borrow_buffer(pool, slot, () => true).unwrap()
+    let original : StoredPreparation = {
+      borrow,
+      slot,
+      environment: 1,
+      kind: 3,
+      restoration: None,
+      submitted: None,
+      started: false,
+      outcome: None,
+      source: None,
+      source_issue: None,
+    }
+    value.preparations[2] = original
+    assert_eq(prepared_outcome(5181L, 2), 0)
+    assert_eq(prepare_program(5181L, 2), 0)
+    assert_eq(prepared_outcome(5181L, 2), 2)
+    if classification == "invalid_input" {
+      assert_true(
+        original.outcome is Some(Err(@preparation.Frontend(QuerySyntax(_)))),
+      )
+    }
+    assert_eq(
+      preparation_failure_problem(original),
+      Some((code, classification)),
+    )
+    assert_eq(prepared_results(5181L, 2), -22)
+    assert_true(
+      value.preparations.get(2) is Some(actual) &&
+      physical_equal(actual, original),
+    )
+    assert_eq(close_preparation(5181L, 2), 0)
+    @buffers.close_buffer(pool, slot).unwrap()
   }
-  value.preparations[2] = original
-  let before = prepared_outcome(5181L, 2)
-  let prepared = prepare_program(5181L, 2)
-  let status = prepared_outcome(5181L, 2)
-  let original_issue = original.outcome
-    is Some(Err(@preparation.Frontend(QuerySyntax(_))))
-  let count = prepared_results(5181L, 2)
-  let same = value.preparations.get(2) is Some(actual) &&
-    physical_equal(actual, original)
   let foreign = prepared_outcome(5181L, 3)
-  let closed = close_preparation(5181L, 2)
   let environment_closed = close_environment(5181L, 1)
-  @buffers.close_buffer(pool, slot).unwrap()
   @buffers.close_buffer(pool, environment_slot).unwrap()
   @buffers.close_pool(pool).unwrap()
   @resources.close_shared_capacity(capacity).unwrap()
   instance.val = None
-  assert_eq(before, 0)
-  assert_eq(prepared, 0)
-  assert_eq(status, 2)
-  assert_true(original_issue)
-  assert_true(same)
-  assert_eq(count, -22)
   assert_eq(foreign, -2)
-  assert_eq(closed, 0)
   assert_eq(environment_closed, 0)
 }

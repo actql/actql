@@ -68,21 +68,7 @@ fn local_admitted_check_environment(
 ) -> @checked.CheckEnvironment? {
   // Count actual Environment admissions, not uses of the typed result.
   native_timing_count(21)
-  guard @run_host.admit_client_check_environment_wire(environment, evidence)
-    is Some(wire) &&
-    @decode.open_object(@compiler_environment.host_policy(wire)) is Ok(policy) else {
-    return None
-  }
-  // Native links the complete Common text-time evaluator. Select its checker
-  // profile only with a policy on this original wire. The normal checker
-  // still validates the policy, operands, pattern and per-expression bounds.
-  let text_time = @decode.lookup(policy, "text_time_evaluation") is Some(_)
-  @run_host.admit_client_check_environment_from_wire_with_numeric_profile_cid(
-    wire,
-    { text_time, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    @numeric.cid(@numeric.builtin_profile()),
-  )
+  @run_host.admit_local_relation_check_environment(environment, evidence)
 }
 
 ///|

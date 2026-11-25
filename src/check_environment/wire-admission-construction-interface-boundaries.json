@@ -302,7 +302,7 @@
     },
     {
       "module": "src/run_publication_host/client_environment.mbt",
-      "sha256": "d1c5c671cdc80bbfbfd39a91ea6f3305bb1677d06e9fcf6e1894215080ad894c",
+      "sha256": "b7ee06d648aba5f65c98abd47693cd9a94a503fdb8b22480f542db1fecce20cb",
       "operations": [
         {
           "name": "admit_client_check_environment",
@@ -319,6 +319,10 @@
         {
           "name": "admit_client_check_environment_wire",
           "declaration": "admit_client_check_environment_wire ( body : String , evidence_bundle_cid : String , ) - > @ environment . WireEnvironment ?"
+        },
+        {
+          "name": "admit_local_relation_check_environment",
+          "declaration": "admit_local_relation_check_environment ( body : String , evidence_bundle_cid : String , ) - > @ checked . CheckEnvironment ?"
         }
       ],
       "exports": [],
@@ -331,7 +335,8 @@
             "<module>",
             "admit_client_check_environment",
             "admit_client_check_environment_from_wire",
-            "admit_client_check_environment_wire"
+            "admit_client_check_environment_wire",
+            "admit_local_relation_check_environment"
           ],
           "exports": [],
           "attributes": {
@@ -393,6 +398,10 @@
               {
                 "path": "src/check_environment/wire-admission-construction-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_host_wasm/client_check_wbtest.mbt",
+                "anchor": "test \"Python Local Check selects text-time from the original installed policy\""
               }
             ]
           }

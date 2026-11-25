@@ -14512,7 +14512,7 @@
     {
       "module": "adapters/host-common/sqlite-format-inspection.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "32ac390d80f48d85389c96449bc933d5c809b16696e91209d89f73435c7fe3a0",
+      "sha256": "da47b2da51eda2dee628cf74ff39b57f2b0da802bc343057014869d300809891",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -14558,7 +14558,6 @@
             "schemaSqlSupport",
             "assertCurrent",
             "assertExclusiveSource",
-            "checkUserVersion",
             "temporaryDirectory"
           ],
           "async": false
@@ -15173,7 +15172,7 @@
     {
       "module": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3360004e2e08aaed5c6ec057ace8b0d512ba72005db4b1b4c2556794e12f4800",
+      "sha256": "5ac6c3b37c277db855cca725c3da583ae3b0e1fda6da1defb137d343abc12a21",
       "exports": [
         "inspectBoundedSqliteSchema",
         "snapshotSqliteSchemaReadLimits",
@@ -15187,8 +15186,7 @@
             "wal",
             "limits",
             "maxSourceBytes",
-            "schemaSqlSupport",
-            "checkUserVersion"
+            "schemaSqlSupport"
           ],
           "async": false
         },
@@ -15337,10 +15335,6 @@
               {
                 "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "if (payload.value > maxRecordBytes) unavailable();"
-              },
-              {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
-                "anchor": "checkUserVersion?.(be(page, 60) | 0);"
               }
             ],
             "cancellation": [
@@ -32128,10 +32122,6 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "if (version !== currentJournalVersion) fail('UnknownClientRequestJournalFormat');"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "fail('SqliteSchemaPreparationUnavailable');"
               }
             ],
@@ -34963,7 +34953,7 @@
     {
       "module": "adapters/host-node/client-request-journal-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2fb60da6f30d33e74f239bf2bcccf20916c50414c330c8f1736ec5ac1dcad4c9",
+      "sha256": "0e5f5190adf5c3e63dff6c67d1deeb1941a7caac52da2093ddc21c8a710edc0e",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -35422,13 +35412,6 @@
             "database",
             "ref",
             "maxRunDefinitionWireBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "requireCurrentJournalVersion",
-          "parameters": [
-            "version"
           ],
           "async": false
         },
@@ -36786,8 +36769,7 @@
         },
         {
           "operations": [
-            "inspectJournalNativeStorage",
-            "requireCurrentJournalVersion"
+            "inspectJournalNativeStorage"
           ],
           "exports": [
             "inspectJournalNativeStorage"
@@ -36832,10 +36814,6 @@
               }
             ],
             "failure": [
-              {
-                "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "if (version !== currentJournalVersion) fail('UnknownClientRequestJournalFormat');"
-              },
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "fail('SqliteSchemaPreparationUnavailable');"

@@ -158,22 +158,6 @@ fn input_cursor(
 }
 
 ///|
-// The source-free installation links the Common numeric reducer. Select the
-// same pinned profile as the other installed Local Hosts.
-fn admit_python_local_source_free_environment(
-  body : String,
-  cid : String,
-) -> @checked.CheckEnvironment? {
-  @host.admit_client_check_environment(
-    body,
-    cid,
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    numeric_profile_cid=Some(@numeric.cid(@numeric.builtin_profile())),
-  )
-}
-
-///|
 /// Private, trusted Host configuration; not caller-provided Check evidence.
 /// The environment Owner validates the original canonical wire and its CID.
 pub fn install_environment(nonce : Int64, input : Int) -> Int {
@@ -190,7 +174,7 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
     return -20
   }
   let body = @utf8.decode(wire) catch { _ => return -12 }
-  guard admit_python_local_source_free_environment(body, cid)
+  guard @host.admit_local_relation_check_environment(body, cid)
     is Some(environment) else {
     return -20
   }
@@ -221,6 +205,29 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
 }
 
 ///|
+fn admit_python_local_published_input(
+  body : String,
+  publication : String,
+) -> (@checked.CheckEnvironment, @preparation.LocalInputContext)? {
+  guard @host.admit_local_relation_check_environment(
+      body,
+      environment_body_cid(body),
+    )
+    is Some(environment) else {
+    return None
+  }
+  match
+    @preparation.bind_local_published_input_context(
+      environment,
+      publication,
+      None,
+    ) {
+    Ok(context) => Some((environment, context))
+    Err(_) => None
+  }
+}
+
+///|
 /// Trusted installed environment and publication share one pre-reserved input.
 /// The common publication interpreter binds aliases to admitted Catalog facts;
 /// no caller-defined file, schema or Source read permission is accepted here.
@@ -238,23 +245,9 @@ pub fn install_source_environment(nonce : Int64, input : Int) -> Int {
     required_text(object, "publication") is Some(publication) else {
     return -20
   }
-  guard @host.admit_client_check_environment(
-      body,
-      environment_body_cid(body),
-      { text_time: false, veca: false, },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    )
-    is Some(environment) else {
+  guard admit_python_local_published_input(body, publication)
+    is Some((environment, context)) else {
     return -20
-  }
-  let context = match
-    @preparation.bind_local_published_input_context(
-      environment,
-      publication,
-      None,
-    ) {
-    Ok(context) => context
-    Err(_) => return -20
   }
   let handle = value.next_handle
   let borrow = match
@@ -643,6 +636,8 @@ pub fn prepared_outcome(nonce : Int64, handle : Int) -> Int {
 fn preparation_failure_problem(record : StoredPreparation) -> (String, String)? {
   if record.source_issue is Some(issue) {
     return match issue {
+      Frontend(frontend) if @preparation.client_query_order_problem(frontend)
+        is Some(problem) => Some(problem)
       Syntax(_) | Frontend(QuerySyntax(_)) | Pure(Syntax(_)) =>
         Some(("ClientProgramInvalidInput", "invalid_input"))
       Pure(NeedsInputs(_)) =>
@@ -653,6 +648,10 @@ fn preparation_failure_problem(record : StoredPreparation) -> (String, String)? 
     }
   }
   match record.outcome {
+    Some(Err(@preparation.Frontend(frontend))) if @preparation.client_query_order_problem(
+        frontend,
+      )
+      is Some(problem) => Some(problem)
     Some(Err(@preparation.Frontend(QuerySyntax(_))))
     | Some(Err(@preparation.Preparation(Syntax(_)))) =>
       Some(("ClientProgramInvalidInput", "invalid_input"))

@@ -31,40 +31,14 @@ fn client_source_preparation_issue_code(
     | ArrayProfile(UnsupportedNestedArrayColumn(_, _, _)) =>
       "source_unsupported"
     ArrayProfile(_) => "source_invalid_input"
+    Frontend(issue) if @local_preparation.client_query_order_problem(issue)
+      is Some((code, _)) => code
     Frontend(issue) =>
       match issue {
         MissingQueryContext => "source_missing_input"
         Encoding => "source_encoding"
-        // A missing local aggregate order is the original parser's closed
-        // cause, never diagnostic-text inference or implicit ordering.
-        QuerySyntax({ issue: AggregateOrderRequired, .. }) =>
-          "ClientProgramAggregateOrderRequired"
         QueryLowering(issue) =>
           match issue {
-            // This is a general unresolved-order cause. It does not claim an
-            // ARRAY-specific origin or invent candidate-key evidence.
-            BindingPreparation(
-              LocalProgram(
-                Order(_, PipelineOrder({ kind: UnresolvedOrder, .. }))
-              )
-            )
-            | BindingPreparation(
-              SourceProgram(
-                Program(Order(_, PipelineOrder({ kind: UnresolvedOrder, .. })))
-              )
-            )
-            | BindingPreparationSource(
-              LocalProgram(
-                Order(_, PipelineOrder({ kind: UnresolvedOrder, .. }))
-              ),
-              _
-            )
-            | BindingPreparationSource(
-              SourceProgram(
-                Program(Order(_, PipelineOrder({ kind: UnresolvedOrder, .. })))
-              ),
-              _
-            ) => "ClientProgramOrderUnresolved"
             CommandTargetBinding(WorkLimit) => "source_limit"
             CommandTargetBinding(_) => "source_unresolved"
             UnknownRelation | UnresolvedRelation(_) => "source_unresolved"

@@ -19,7 +19,6 @@ type SnapshotOptions = Readonly<{
   code?: string; validateSource?: () => boolean; maxSourceBytes?: number; unavailableCode?: string;
   schemaReadLimits?: unknown; schemaSqlSupport?: unknown; assertCurrent?: () => SynchronousRuntimeData;
   assertExclusiveSource?: () => void;
-  checkUserVersion?: (version: number) => void;
   temporaryDirectory?: string;
 }>;
 type FileOriginal = {
@@ -111,14 +110,12 @@ export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>(
   schemaSqlSupport,
   assertCurrent,
   assertExclusiveSource,
-  checkUserVersion,
   temporaryDirectory,
 }: SnapshotOptions = {}): Result {
   if (!Number.isSafeInteger(maxSourceBytes) || maxSourceBytes < 1 ||
       typeof unavailableCode !== 'string' || unavailableCode.length === 0 ||
       assertCurrent !== undefined && typeof assertCurrent !== 'function' ||
       assertExclusiveSource !== undefined && typeof assertExclusiveSource !== 'function' ||
-      checkUserVersion !== undefined && typeof checkUserVersion !== 'function' ||
       temporaryDirectory !== undefined && (typeof temporaryDirectory !== 'string' ||
         temporaryDirectory.length === 0 || temporaryDirectory.length > 4096 ||
         !isAbsolute(temporaryDirectory) || temporaryDirectory.includes('\0'))) {
@@ -290,7 +287,7 @@ export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>(
         }
       }
       inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits as SqliteSchemaReadLimits,
-        maxSourceBytes, schemaSqlSupport as readonly string[] | undefined, checkUserVersion);
+        maxSourceBytes, schemaSqlSupport as readonly string[] | undefined);
       while (outputs.length !== 0) {
         closeFile(outputs.at(-1)!);
         outputs.pop();
