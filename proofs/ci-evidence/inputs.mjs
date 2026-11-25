@@ -15,11 +15,20 @@ export const hash = value => createHash('sha256').update(value).digest('hex');
 // boundary before a closed key may be issued; a digest update is not a review.
 export const pipelineInventoryBoundary = Object.freeze({
   path: 'proofs/relation-pipeline/inventory.mjs',
-  digest: '5c24d9e731cfc6859ff91d0a7da1d5a62c23cec0491ba3ff4860924ee9dbcf39',
+  authoredPath: 'proofs/relation-pipeline/inventory.mts',
+  authoredDigest: '00d44ae289d9920d2e5d810053f5bbcfb92d60f339608915ce374b4b2e3beb4c',
+  preTypedRunnerDigest: '78e51eef02e37de40f4188068a47e3e61c1f5ce399bbc6345e854e53073b3d35',
+  digest: 'e5b055d7c80869c1e24a66521a3eb9cbf48f5e0c3433f172fadcc142a152bd3f',
+  preTypedExecutorDigest: '3c9f611d8d88c6fa834cda5ca6deb4cbc797e572b17061e470c065afd9f647d5',
+  preTypedWorkspaceDigest: '2bc01a914e134411834d5324a54369838c6b359bbec0eafb495233de88f2203c',
+  preTypedExecutionDigest: '4c779e20477798896409e9d967b78557e81804fc625aa309db8e4faabc220b33',
+  preTypedPlanDigest: '5c24d9e731cfc6859ff91d0a7da1d5a62c23cec0491ba3ff4860924ee9dbcf39',
   legacyDigest: '5f4dabc338bb780b8cdd965946815eef7b0c0f3f4a03dc824c06e4783d9989ca',
   preResourceDigest: '6acea9bb8f3669853489b481e5f2dc3a986b196f9247be76c51bcb29031301d3',
   dependencies: Object.freeze([Object.freeze({
     path: 'proofs/relation-pipeline/proof-runner-extension.mjs',
+    authoredPath: 'proofs/relation-pipeline/proof-runner-extension.mts',
+    authoredDigest: 'c75ff6b2fc9453f8d2d2d2cca7574f36bbad8346b7abe88f6d9c969ace653334',
     digest: 'e510caa50fbdb48c1c0d179f74ab351f158de81e086620e801ecd8f2aa80b9bb',
   })]),
 });
@@ -40,9 +49,9 @@ export function mutationSnapshotPaths(tree) {
 const validSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/u.test(value);
 const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(value) &&
   !value.startsWith('/') && !value.split('/').some(part => ['', '.', '..'].includes(part));
+const pipelineBoundaries = [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies];
 export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidence/inputs.mjs',
-  pipelineInventoryBoundary.path,
-  ...pipelineInventoryBoundary.dependencies.map(entry => entry.path),
+  ...pipelineBoundaries.map(({path}) => path),
   'proofs/ci-evidence/costs.mjs',
   'proofs/ci-evidence/execution-recipes.mjs',
   'proofs/events-bridge/evidence.mjs',
@@ -72,12 +81,13 @@ export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidenc
 // the actual authored member. An old tree with only JavaScript keeps its
 // original path and key. Never bind a checkout's untracked emitted bytes.
 const migratedTooling = new Map([
+  ...pipelineBoundaries.map(({path, authoredPath}) => [path, authoredPath]),
   ['scripts/test-execution.mjs', 'scripts/test-execution.mts'],
   ['scripts/packed-query-evidence.mjs', 'scripts/packed-query-evidence.mts'],
   ['scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.mts'],
   ['scripts/ci-main-base.mjs', 'scripts/ci-main-base.mts'],
 ]);
-const typescriptPreparationInputs = Object.freeze([
+export const typescriptPreparationInputs = Object.freeze([
   'tsconfig.base.json', 'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts',
 ]);
 export function proofToolingInputs(tree, originalPaths) {
@@ -409,14 +419,40 @@ function buildActionInputs({tree, revision, action, runtime}) {
   // pipeline executions. Their directory is not read/evaluated by Session.
   // Bind every evaluated module in the reviewed inventory import graph. A
   // changed dependency cannot inherit the inventory's unchanged digest.
-  for (const {path, digest, legacyDigest, preResourceDigest} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]) {
-    const entry = tree.entries.get(path);
-    const actual = entry?.kind === 'blob' && entry.mode === '100644' ? hash(tree.read(path)) : null;
-    const historicalResource = !tree.entries.has(resourceOriginal);
+  const pipelineRoot = 'proofs/relation-pipeline/';
+  const hasTypedPlan = tree.entries.has(pipelineRoot + 'proof-parts.mts');
+  const hasTypedExecution = tree.entries.has(pipelineRoot + 'execution-names.mts') ||
+    tree.entries.has(pipelineRoot + 'execution-names.test.mts');
+  const hasTypedWorkspace = ['workspaces.mts', 'workspaces.test.mts', 'fixtures/execution-driver.mts']
+    .some(path => tree.entries.has(pipelineRoot + path));
+  const hasTypedExecutor = [
+    'execute.mts', 'execute.test.mts', 'execution-original.mts', 'executor-close.test.mts', 'fixture.mts', 'fixture.test.mts',
+  ].some(path => tree.entries.has(pipelineRoot + path));
+  const allTyped = pipelineBoundaries.every(({authoredPath}) => tree.entries.has(authoredPath));
+  for (const {path, digest, authoredPath, authoredDigest, legacyDigest, preResourceDigest, preTypedPlanDigest,
+    preTypedExecutionDigest, preTypedWorkspaceDigest, preTypedExecutorDigest, preTypedRunnerDigest} of pipelineBoundaries) {
+    const typed = authoredPath && tree.entries.has(authoredPath);
+    const selected = typed ? authoredPath : path;
+    const entry = tree.entries.get(selected);
+    const actual = entry?.kind === 'blob' && entry.mode === '100644' ? hash(tree.read(selected)) : null;
+    if (typed) {
+      const declaration = authoredPath.slice(0, -4) + '.d.mts';
+      const expected = preTypedRunnerDigest && !allTyped ? preTypedRunnerDigest : authoredDigest;
+      if (actual !== expected || tree.entries.has(declaration))
+        unresolved.add('unreviewed pipeline inventory import/effect boundary');
+      continue;
+    }
+    const preTypedPlan = !hasTypedPlan && !hasTypedExecution && !hasTypedWorkspace && !hasTypedExecutor;
+    const preTypedExecution = hasTypedPlan && !hasTypedExecution && !hasTypedWorkspace && !hasTypedExecutor;
+    const preTypedWorkspace = hasTypedPlan && hasTypedExecution && !hasTypedWorkspace && !hasTypedExecutor;
+    const preTypedExecutor = hasTypedPlan && hasTypedExecution && hasTypedWorkspace && !hasTypedExecutor;
+    const historicalResource = preTypedPlan && !tree.entries.has(resourceOriginal);
     const legacy = legacyDigest && historicalResource && !tree.entries.has('scripts/owned-scratch.mts');
     const preResource = preResourceDigest && historicalResource;
     if (actual !== digest && (!legacy || actual !== legacyDigest) &&
-        (!preResource || actual !== preResourceDigest))
+        (!preResource || actual !== preResourceDigest) && (!preTypedPlan || actual !== preTypedPlanDigest) &&
+        (!preTypedExecution || actual !== preTypedExecutionDigest) && (!preTypedWorkspace || actual !== preTypedWorkspaceDigest) &&
+        (!preTypedExecutor || actual !== preTypedExecutorDigest))
       unresolved.add('unreviewed pipeline inventory import/effect boundary');
   }
   function bridgeInputs() {

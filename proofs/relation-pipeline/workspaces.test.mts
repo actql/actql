@@ -4,11 +4,13 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { minimalRepository, runDriver, successful } from './fixtures/execution-driver.mjs';
 
+type WorkspaceEvidence = Record<'pristine' | 'mutable', { root: string; id: string }>;
+
 // Subprocesses exercise the actual owned-scratch exit hook. Generic scratch
 // lifecycle permutations remain in scripts/owned-scratch.test.mjs.
 test('both copied workspaces load the original ordinary Node CJS from the actual whitebox relative path', t => {
   const root = minimalRepository(t);
-  const result = runDriver(root, String.raw`
+  const result = runDriver<{ roles: string[]; bridge: string }>(root, String.raw`
 const {createRequire} = await import('node:module');
 const bridgePath = 'adapters/host-node/ordinary-node-resource-runtime.cjs';
 const source = snapshot(root);
@@ -27,7 +29,7 @@ for (const workspace of [workspaces.pristine,workspaces.mutable]) {
 report({roles:[workspaces.pristine.role,workspaces.mutable.role],bridge:source.sources[bridgePath]});
 workspaces.passed();
 `);
-  const report = successful(result);
+  const report = successful(result)!;
   assert.deepEqual(report.roles,['pristine','mutable']);
   assert.match(report.bridge,/^[a-f0-9]{64}$/u);
 });
@@ -48,7 +50,7 @@ workspaces.passed();
 
 test('materialization copies exact source bytes and executable mode without dirty outputs or shared builds', t => {
   const root = minimalRepository(t);
-  const result = runDriver(root, String.raw`
+  const result = runDriver<{ evidence: WorkspaceEvidence }>(root, String.raw`
 for (const path of ['_build/js/debug/test/query_integration/dirty.js', '.artifacts/old-result.json', 'node_modules/dirty/index.js']) {
   mkdirSync(dirname(join(root, path)), { recursive: true });
   writeFileSync(join(root, path), 'do not copy this');
@@ -80,7 +82,7 @@ writeFileSync(path, bytes);
 report({ evidence: workspaces.evidence, source: workspaces.source });
 workspaces.passed();
 `);
-  const report = successful(result);
+  const report = successful(result)!;
   assert.equal(existsSync(dirname(report.evidence.pristine.root)), false);
   assert.match(result.stdout, /relation-pipeline workspaces: removed/);
   assert.equal(readFileSync(join(root, '_build/js/debug/test/query_integration/dirty.js'), 'utf8'), 'do not copy this');
@@ -88,10 +90,10 @@ workspaces.passed();
   assert.equal(readFileSync(join(root, 'node_modules/dirty/index.js'), 'utf8'), 'do not copy this');
 });
 
-for (const role of ['pristine', 'mutable']) {
+for (const role of ['pristine', 'mutable'] as const) {
   test(`a changed ${role} source cannot confirm success and its evidence is retained`, t => {
     const root = minimalRepository(t);
-    const result = runDriver(root, String.raw`
+    const result = runDriver<WorkspaceEvidence>(root, String.raw`
 const workspaces = await mutationWorkspaces(root);
 report(workspaces.evidence);
 writeFileSync(join(workspaces.${role}.root, sourcePath), '// failed restoration\n');
@@ -109,7 +111,7 @@ workspaces.passed();
 
 test('compiler failure retains both isolated workspaces and the actual failed execution log', t => {
   const root = minimalRepository(t);
-  const result = runDriver(root, String.raw`
+  const result = runDriver<WorkspaceEvidence>(root, String.raw`
 const workspaces = await mutationWorkspaces(root);
 const executor = createExecutor(workspaces.mutable);
 configure({ mode: 'compile-failure' });
@@ -125,7 +127,7 @@ workspaces.passed();
   // Inputs, generated fixture and log survive beside the retained source trees.
   const directory = join(root, '.artifacts/relation-pipeline');
   const files = readdirSync(directory);
-  const log = files.find(path => path.endsWith('.log'));
+  const log = files.find(path => path.endsWith('.log'))!;
   assert.match(readFileSync(join(directory, log), 'utf8'), /simulated compiler failure/);
   assert(files.some(path => path.endsWith('.inputs.json')));
   assert(files.some(path => path.endsWith('.fixture.mbt')));

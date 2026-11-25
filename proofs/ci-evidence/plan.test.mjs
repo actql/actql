@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {policyPaths} from '../../scripts/ci-main-base.mjs';
 import {readCatalog, catalogPath} from './actions.mjs';
-import {actionInputs, sharedFiles, hash, pipelineInventoryBoundary} from './inputs.mjs';
+import {actionInputs, sharedFiles, hash, pipelineInventoryBoundary, typescriptPreparationInputs} from './inputs.mjs';
 import {sealReceipt, canonicalReceipt} from './receipts.mjs';
 import {comparisonPlan, selectOriginArtifact, compareFreshObservations, verifyComparison} from './plan.mjs';
 import {ArtifactUnavailable} from './transport.mjs';
@@ -20,7 +20,9 @@ const files = new Map([...sharedFiles.map(path => [path, path]), [catalogPath, e
   ['scripts/ci-core-partitions.mjs', 'legacy CI partitions'],
   ['src/bounded_execution/moon.pkg', ''], ['src/bounded_execution/session.mbt', 'production'],
   ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'].map(path => [`proofs/bounded-session/${path}`, path])]);
-for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies])
+for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]) files.delete(path);
+for (const path of [pipelineInventoryBoundary.authoredPath, ...typescriptPreparationInputs,
+  ...pipelineInventoryBoundary.dependencies.map(entry => entry.authoredPath)])
   files.set(path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
 const tree = (source = files) => ({entries: new Map([...source].map(([path]) => [path, {mode: '100644', kind: 'blob'}])),
   read: path => Buffer.from(source.get(path))});
