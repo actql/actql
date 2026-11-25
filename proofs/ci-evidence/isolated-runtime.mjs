@@ -8,7 +8,7 @@ import {release, cpus} from 'node:os';
 import {inventoryDistribution} from './runtime.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash,mutationSnapshotPaths} from './inputs.mjs';
-import {resourceOriginal,resourceRuntime,runtimeEmit} from '../relation-pipeline/inventory.mjs';
+import {pipelineTypeScriptEmits, resourceOriginal, resourceRuntime, runtimeEmit} from '../relation-pipeline/inventory.mjs';
 import {isolatedEnvironment, localIsolatedEnvironment, mutationSourcePaths, scratchDockerfile, localScratchDockerfile, isolatedCoreBuildMetadata, pipelinePristineSourcePaths, pipelineFixedJsSourcePaths} from './isolation.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
 import {isolatedRunArguments, checkImageDefinition} from './isolation.mjs';
@@ -160,9 +160,11 @@ export function snapshotFromGit(tree, profile = 'session') {
     : (profile === 'pipeline-pristine' ? pipelinePristineSourcePaths(tree) : pipelineFixedJsSourcePaths(tree))
       .filter(path => !path.startsWith('proofs/ci-evidence/'));
   tree.prefetch?.(paths);
-  const runtime = tree.entries.has(resourceOriginal) ? runtimeEmit(tree, resourceOriginal, resourceRuntime) : undefined;
-  if (runtime) paths.push(runtime.path);
-  const sources = Object.fromEntries(paths.sort().map(path => [path, hash(path === runtime?.path ? runtime.bytes : tree.read(path))]));
+  const derivedOutputs = profile === 'session' ? [] : pipelineTypeScriptEmits(tree);
+  if (tree.entries.has(resourceOriginal)) derivedOutputs.push(runtimeEmit(tree, resourceOriginal, resourceRuntime));
+  const emitted = new Map(derivedOutputs.map(entry => [entry.path, entry.bytes]));
+  const sources = Object.fromEntries([...paths, ...emitted.keys()].sort()
+    .map(path => [path, hash(emitted.get(path) ?? tree.read(path))]));
   return {digest: hash(JSON.stringify(sources)), sources};
 }
 
@@ -175,7 +177,7 @@ export function checkMutationCheckout({root, tree, profile = 'session'}) {
   for (const [path, digest] of Object.entries(expected.sources)) {
     const entry = tree.entries.get(path), file = join(root, path), state = lstatSync(file);
     assert(state.isFile() && !state.isSymbolicLink(), 'Nonregular mutation checkout input');
-    const mode = path === resourceRuntime && tree.entries.has(resourceOriginal) ? 0o644 : Number.parseInt(entry.mode.slice(-3), 8);
+    const mode = entry ? Number.parseInt(entry.mode.slice(-3), 8) : 0o644;
     assert.equal(state.mode & 0o777, mode, 'Mutation checkout mode differs from Git');
     assert.equal(hash(readFileSync(file)), digest, 'Mutation checkout bytes differ from Git');
   }

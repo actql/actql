@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { body, boundFixture, auditFixture, executionCommand } from './fixture.mjs';
+import type { ExecutionTarget } from './fixture.mjs';
+import type { ExecutionBoundary } from './execute.mjs';
 import { hash } from './inventory.mjs';
-function evidence(target = 'js') {
-  const boundary = { version: 'actql-pipeline-execution-boundary/0.1', workspace: 'isolated-fixture',
+function evidence(target: ExecutionTarget = 'js') {
+  const boundary: ExecutionBoundary = { version: 'actql-pipeline-execution-boundary/0.1', workspace: 'isolated-fixture',
     root: '/fixture', role: 'normal', sourceDigest: hash('actual source'), toolchainDigest: hash('tools'),
     environmentDigest: hash('environment'), fixtureDigest: hash(body), target, command: executionCommand(target) };
   const buildIdentity = hash(JSON.stringify(boundary));
@@ -13,7 +15,7 @@ function evidence(target = 'js') {
   const log = `ACTQL_PIPELINE_BUILD:${buildIdentity}\nTotal tests: 1, passed: 1, failed: 0\n`;
   return { run, fixture, log };
 }
-for (const target of ['js', 'wasm', 'native']) {
+for (const target of ['js', 'wasm', 'native'] as const) {
   test(`both audit consumers can require the actual bound ${target} fixture`, () => {
     const e = evidence(target);
     auditFixture(e.run, Buffer.from(e.fixture), e.log, target);
@@ -30,7 +32,7 @@ test('first-use target substitution, stale source, command and boundary identity
   for (const [key, value, expected] of [['target', 'native', /Compiled target boundary differs/],
     ['sourceDigest', hash('other source'), /Compiled source boundary differs/],
     ['command', executionCommand('native'), /Compiled command boundary differs/],
-    ['workspace', 'other-workspace', /Build boundary identity differs/]]) {
+    ['workspace', 'other-workspace', /Build boundary identity differs/]] as const) {
     assert.throws(() => auditFixture({ ...e.run, boundary: { ...e.run.boundary, [key]: value } }, e.fixture, e.log, 'js'), expected);
   }
   assert.throws(() => auditFixture({ ...e.run, fixtureDigest: hash(body) }, e.fixture, e.log, 'js'), /Compiled fixture digest differs/);
@@ -57,7 +59,7 @@ test('an explicit compiler job cap is bound into the diagnostic command and cann
   assert.throws(() => auditFixture(run, fixture, `ACTQL_PIPELINE_BUILD:${identity}\nTotal tests: 1, passed: 1, failed: 0\n`, 'js'),
     /Unreviewed execution command/);
   for (const jobs of [0, -1, 1.5, Infinity, NaN, '1', null]) {
-    assert.throws(() => executionCommand('js', jobs), /Invalid execution jobs/);
-    assert.throws(() => boundFixture(boundary, {jobs}), /Invalid execution jobs/);
+    assert.throws(() => executionCommand('js', jobs as number), /Invalid execution jobs/);
+    assert.throws(() => boundFixture(boundary, {jobs: jobs as number}), /Invalid execution jobs/);
   }
 });

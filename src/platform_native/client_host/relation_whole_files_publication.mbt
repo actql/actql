@@ -33,6 +33,7 @@ fn NativeClientRelationFileWork::managed_whole_publication_invocation(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  result_controls : Int64,
 ) -> Result[
   (
     Array[@publication.RunEvidenceValue],
@@ -72,6 +73,8 @@ fn NativeClientRelationFileWork::managed_whole_publication_invocation(
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(controls, result_controls, 1L)
     is Some(controls) &&
     @host.client_protocol_metadata_construction_bytes(
       max_wire_bytes,

@@ -348,7 +348,7 @@ fn LocalCommandPreparationOriginal::select_business_file_source(
     return None
   }
   let graph = @run_host.prepared_client_graph(prepared)
-  if @strategy.graph_result_count(graph) != 1 ||
+  if @strategy.graph_result_count(graph) <= 0 ||
     @strategy.graph_program_has_effects(graph) ||
     @run_host.prepared_client_uses_graph_carrier(prepared) {
     return None

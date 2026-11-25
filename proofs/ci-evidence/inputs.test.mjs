@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {readCatalog, compareCatalogs} from './actions.mjs';
-import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras, mutationPackages, mutationSourceInputs, pipelineInventoryBoundary, hash} from './inputs.mjs';
+import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras, mutationPackages, mutationSourceInputs, pipelineInventoryBoundary, typescriptPreparationInputs, hash} from './inputs.mjs';
 import {mutationContracts} from './mutation-inventory.mjs';
 import {reviewedPackageConfiguration, reviewedPackageConfigurations, packageConfigurationReview,
   packageConfigurationReviewFor, foreignLibraryConfigurationReview, currentPackageConfigurationReviewFor} from './package-configurations.mjs';
@@ -10,10 +10,12 @@ import {reviewedPackageConfiguration, reviewedPackageConfigurations, packageConf
 const catalog = readCatalog();
 const runtime = {profile: 'controlled-test-runtime', components: {node: '1'.repeat(64)}, unresolved: []};
 const base = new Map([
-  ...sharedFiles.map(path => [path, path]),
+  ...sharedFiles.filter(path => ![pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]
+    .some(entry => entry.path === path)).map(path => [path, path]),
   ['scripts/ci-core-partitions.mjs', 'legacy CI partitions'],
-  ...[pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]
-    .map(({path}) => [path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')]),
+  ...[pipelineInventoryBoundary.authoredPath, ...typescriptPreparationInputs,
+    ...pipelineInventoryBoundary.dependencies.map(entry => entry.authoredPath)]
+    .map(path => [path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')]),
   ['proofs/ci-evidence/actions.mjs', 'actions'], ['proofs/ci-evidence/inputs.mjs', 'inputs'],
   ['proofs/bounded-session/action-inputs.mjs', 'encoder'], ['toolchain.json', '{}'], ['moon.mod', 'module'],
   ['scripts/setup-moonbit.mjs', 'setup'], ['.github/actions/setup-toolchain/action.yml', 'setup'],
@@ -82,22 +84,28 @@ test('separate pipeline consumers and membership do not invalidate Session input
 
 test('remaining evaluated pipeline inventory bytes and new imports stay bound and open until reviewed', () => {
   const original = inventory();
+  const {path, authoredPath} = pipelineInventoryBoundary;
+  assert(original.inputs.files.some(file => file.path === authoredPath));
+  assert(!original.inputs.files.some(file => file.path === path));
   for (const change of [
-    files => files.set(pipelineInventoryBoundary.path, files.get(pipelineInventoryBoundary.path) + '\nimport "./new-reader.mjs";\n'),
-    files => files.set(pipelineInventoryBoundary.path, files.get(pipelineInventoryBoundary.path) + '\nreadFileSync("external-input");\n'),
-    files => files.delete(pipelineInventoryBoundary.path),
+    files => files.set(authoredPath, files.get(authoredPath) + '\nimport "./new-reader.mjs";\n'),
+    files => files.set(authoredPath, files.get(authoredPath) + '\nreadFileSync("external-input");\n'),
+    files => files.delete(authoredPath),
+    files => files.set('proofs/relation-pipeline/inventory.d.mts', 'unregistered tracked declaration'),
   ]) {
     const files = new Map(base); change(files);
     const observed = inventory(files);
     assert(observed.unresolved.includes('unreviewed pipeline inventory import/effect boundary'));
     assert.equal(compareInputs(original, observed).eligible, false);
   }
+  const ambiguous = new Map(base).set(path, 'competing tracked runtime');
+  assert(inventory(ambiguous).unresolved.includes(`ambiguous authored tooling input: ${path}`));
   assert.equal(compareInputs(original, inventory(base, 'b'.repeat(40), action,
-    {[pipelineInventoryBoundary.path]: '100755'})).eligible, false);
+    {[authoredPath]: '100755'})).eligible, false);
 });
 
 test('the reviewed transitive helper is bound; new imports, effects, missing bytes and modes remain open', () => {
-  const path = 'proofs/relation-pipeline/proof-runner-extension.mjs';
+  const [{path: runtimePath, authoredPath: path}] = pipelineInventoryBoundary.dependencies;
   const original = inventory();
   assert.deepEqual(original.unresolved, []);
   assert(original.inputs.files.some(entry => entry.path === path));
@@ -105,12 +113,16 @@ test('the reviewed transitive helper is bound; new imports, effects, missing byt
     files => files.set(path, files.get(path) + '\nimport "./unreviewed-extension.mjs";\n'),
     files => files.set(path, files.get(path) + '\nspawnSync("unreviewed-process");\n'),
     files => files.delete(path),
+    files => files.set(path.slice(0, -4) + '.d.mts', 'competing tracked declaration'),
   ]) {
     const files = new Map(base); change(files);
     const observed = inventory(files);
     assert(observed.unresolved.includes('unreviewed pipeline inventory import/effect boundary'));
     assert.equal(compareInputs(original, observed).eligible, false);
   }
+  const ambiguous = inventory(new Map(base).set(runtimePath, 'competing tracked runtime'));
+  assert(ambiguous.unresolved.includes(`ambiguous authored tooling input: ${runtimePath}`));
+  assert.equal(compareInputs(original, ambiguous).eligible, false);
   const changedMode = inventory(base, 'b'.repeat(40), action, {[path]: '100755'});
   assert(changedMode.unresolved.includes('unreviewed pipeline inventory import/effect boundary'));
   assert.equal(compareInputs(original, changedMode).eligible, false);

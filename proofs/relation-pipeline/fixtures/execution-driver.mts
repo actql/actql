@@ -3,6 +3,8 @@
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync,
   readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import type { SpawnSyncReturns } from 'node:child_process';
+import type { TestContext } from 'node:test';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -70,16 +72,18 @@ if (settings.replaceFixture) { renameSync(args[1], '.saved-owned-fixture'); writ
 if (settings.mode !== 'no-test-summary') console.log('Total tests: 1, passed: 1, failed: 0');
 `;
 
-function put(root, path, bytes) {
+type DriverResult<Report> = SpawnSyncReturns<string> & { reports: Report[] };
+
+function put(root: string, path: string, bytes: string | Buffer): void {
   mkdirSync(dirname(join(root, path)), { recursive: true });
   writeFileSync(join(root, path), bytes);
 }
 
-export function minimalRepository(t) {
+export function minimalRepository(t: TestContext): string {
   const root = mkdtempSync(join(tmpdir(), 'actql-pipeline-execution-'));
   t.after(() => {
     // A cleanup-failure test intentionally leaves its fixture directory read-only.
-    const unlock = directory => {
+    const unlock = (directory: string): void => {
       chmodSync(directory, 0o700);
       for (const entry of readdirSync(directory, { withFileTypes: true })) {
         if (entry.isDirectory()) unlock(join(directory, entry.name));
@@ -107,7 +111,7 @@ export function minimalRepository(t) {
   chmodSync(join(root, 'scripts/native-cxx-link-driver.sh'), 0o755);
   put(root, 'vendor/native/include/fixture.h', '// vendored native input\n');
   put(root, '.execution-control.json', '{}');
-  const pin = JSON.parse(readFileSync(join(root, 'toolchain.json'), 'utf8'));
+  const pin: { moonc: string } = JSON.parse(readFileSync(join(root, 'toolchain.json'), 'utf8'));
   const tools = {
     moon: fakeMoon,
     moonc: `console.log(${JSON.stringify(pin.moonc)});\n`,
@@ -125,8 +129,10 @@ export function minimalRepository(t) {
   return root;
 }
 
-export function runDriver(root, body, environment = {}) {
-  const url = name => JSON.stringify(pathToFileURL(join(root, 'proofs/relation-pipeline', name)).href);
+export function runDriver<Report = unknown>(
+  root: string, body: string, environment: NodeJS.ProcessEnv = {},
+): DriverResult<Report> {
+  const url = (name: string) => JSON.stringify(pathToFileURL(join(root, 'proofs/relation-pipeline', name)).href);
   const source = `
 import assert from 'node:assert/strict';
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync,
@@ -160,7 +166,7 @@ ${body}
   return { ...result, reports };
 }
 
-export function successful(result) {
+export function successful<Report>(result: DriverResult<Report>): Report | undefined {
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`Execution driver failed (${result.status})\n${result.stdout}\n${result.stderr}`);
   return result.reports.at(-1);

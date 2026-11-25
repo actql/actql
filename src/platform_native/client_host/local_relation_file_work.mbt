@@ -44,7 +44,7 @@ struct NativeClientRelationFileWork {
   execution : @local.LocalValuesExecution
   plan : NativeRelationFileExecutionPlan
   entry : NativeClientRelationFileWorkEntry
-  mut output_bridge : @local.LocalValuesResultExport?
+  mut output_bridges : Array[@local.LocalValuesResultExport]?
   capture_times : (String, String)?
   mut publication_original : (
     Array[@publication.RunEvidenceValue],
@@ -291,7 +291,7 @@ fn open_original_relation_file_work_selected(
     max_rounds <= 0 ||
     @host.prepared_client_acquisition_count(prepared) != 1 ||
     @strategy.graph_captured_prefix(@host.prepared_client_graph(prepared)) != 1 ||
-    @strategy.graph_result_count(@host.prepared_client_graph(prepared)) != 1 ||
+    @strategy.graph_result_count(@host.prepared_client_graph(prepared)) <= 0 ||
     @strategy.graph_program_has_effects(@host.prepared_client_graph(prepared)) ||
     @host.client_compiled_run_has_infers(compiled) {
     return Err(unstarted(Configuration))
@@ -670,7 +670,7 @@ fn open_original_relation_file_work_selected(
     execution: computed,
     plan,
     entry,
-    output_bridge: None,
+    output_bridges: None,
     capture_times,
     publication_original: None,
     publication: None,

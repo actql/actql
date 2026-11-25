@@ -103,7 +103,7 @@ test('known maintenance and focused changes select their required job union', ()
     assert.throws(() => verifyGate(envelope, needs, context));
   }
   for (const path of ['package.json', '.github/workflows/ci.yml', 'src/query_integration/moon.pkg',
-    'proofs/relation-pipeline/inventory.mjs', 'examples/infer-evaluation/new.test.mjs'])
+    'proofs/relation-pipeline/inventory.mts', 'examples/infer-evaluation/new.test.mjs'])
     assert.equal(inspect([...entries, change(path)]).profile, 'full', path);
   for (const bad of [
     {...entries[1], before: {mode: '000000', object: zero}},

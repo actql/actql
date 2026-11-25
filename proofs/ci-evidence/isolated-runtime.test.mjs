@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
-import {hash, gitTree, actionInputs, mutationSourceInputs, packageImports} from './inputs.mjs';
+import {hash, gitTree, actionInputs, mutationSourceInputs, packageImports, pipelineInventoryBoundary} from './inputs.mjs';
 import {readCatalog} from './actions.mjs';
 import {mutationIds} from './receipts.mjs';
 import {mutationContracts} from './mutation-inventory.mjs';
@@ -14,7 +14,7 @@ import {observeImageRoot, imageRuntime, checkIsolatedInputs, checkIsolatedResult
 import {staticElf} from './isolated-execution.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest, isolatedExperimentPaths} from './isolated-contract.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
-import {resourceOriginal, resourceRuntime, runtimeEmit} from '../relation-pipeline/inventory.mjs';
+import {resourceOriginal, resourceRuntime, runtimeEmit, pipelineTypeScriptEmits} from '../relation-pipeline/inventory.mjs';
 
 test('actual staged Session dependencies load and bind the ordinary CJS through restoration', t => {
   const repository = fileURLToPath(new URL('../../',import.meta.url));
@@ -41,11 +41,24 @@ test('actual staged Session dependencies load and bind the ordinary CJS through 
   assert.match(output,/^PASS actual staged Session declarations; no operations invoked/u);
   const action = readCatalog().actions.find(value => value.id === 'mutations-js');
   const inputs = actionInputs({tree,revision,action,runtime:{profile:'source-correspondence-only',unresolved:['runtime not executed']}});
-  for (const path of [resourceOriginal,'proofs/relation-pipeline/proof-runner-extension.mjs']) {
+  const inventoryBoundaries = [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies];
+  for (const path of [resourceOriginal, ...inventoryBoundaries.map(entry => entry.authoredPath)]) {
     assert(staged.files.some(entry => entry.path === 'source/'+path && entry.digest === hash(tree.read(path))));
     assert(inputs.inputs.files.some(entry => entry.path === path && entry.digest === hash(tree.read(path))));
   }
   assert(!inputs.inputs.files.some(entry => entry.path === resourceRuntime));
+  const inventoryOutputs = pipelineTypeScriptEmits(tree, 'inventory');
+  assert.deepEqual(inventoryOutputs.map(entry => entry.path),
+    inventoryBoundaries.flatMap(({path}) => [path, path.slice(0, -4) + '.d.mts']));
+  for (const {path, bytes, mode} of inventoryOutputs) {
+    assert(!inputs.inputs.files.some(entry => entry.path === path));
+    assert(!tree.entries.has(path));
+    assert.deepEqual(readFileSync(join(sourceRoot, path)), bytes);
+    assert.deepEqual(staged.files.find(entry => entry.path === 'source/' + path),
+      {path: 'source/' + path, mode, bytes: bytes.length, digest: hash(bytes)});
+  }
+  assert(!staged.files.some(entry => entry.path.startsWith('source/proofs/relation-pipeline/execute.') ||
+    entry.path.startsWith('source/proofs/relation-pipeline/proof-runner-extension.test.')));
   const derived = runtimeEmit(tree, resourceOriginal, resourceRuntime);
   const runtimeDigest = hash(derived.bytes);
   const stagedRuntime = staged.files.find(entry => entry.path === 'source/'+resourceRuntime);

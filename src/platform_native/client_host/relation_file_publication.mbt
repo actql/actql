@@ -189,14 +189,21 @@ fn NativeClientRelationFileWork::publication_invocation_original(
   if self.publication_original is Some(original) {
     return Ok(original)
   }
+  let count = @strategy.graph_result_count(
+    @strategy.captured_dag_graph(self.run),
+  )
+  guard relation_file_result_publication_control_bytes(count)
+    is Some(result_controls) else {
+    return Err(Configuration)
+  }
   if self.access.source is ManagedRelationFiles(owner, sources) {
     return self.managed_query_publication_invocation(
-      owner, sources, max_wire_bytes, max_nodes, max_depth,
+      owner, sources, max_wire_bytes, max_nodes, max_depth, result_controls,
     )
   }
   if self.access.source is ManagedWholeRelationFiles(owner, sources) {
     return self.managed_whole_publication_invocation(
-      owner, sources, max_wire_bytes, max_nodes, max_depth,
+      owner, sources, max_wire_bytes, max_nodes, max_depth, result_controls,
     )
   }
   guard self.access.source
@@ -232,6 +239,8 @@ fn NativeClientRelationFileWork::publication_invocation_original(
     })
     is Some(fixed_controls) &&
     @execution.checked_preparation_add_product(fixed_controls, vector_bytes, 1L)
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(controls, result_controls, 1L)
     is Some(controls) &&
     @host.client_protocol_metadata_construction_bytes(
       max_wire_bytes,
@@ -443,24 +452,22 @@ pub fn NativeClientRelationFileWork::prepare_local_publication(
     Err(issue) => return Err(Work(issue))
     Ok(value) => value
   }
-  guard results.length() == 1 &&
-    (match self.access.source {
+  guard (match self.access.source {
       WholeRelationFile(_, _, _, owner, _, _)
       | ManagedRelationFiles(owner, _)
       | ManagedWholeRelationFiles(owner, _) => Some(owner)
       _ => None
     })
     is Some(owner) &&
-    results[0].input_relation_cids == input_cid &&
-    results[0].effective_data_policy_cid == policy &&
-    results[0].scope_cid ==
-    @publication.publication_contract_identity(self.definition) &&
-    results[0].computation_contract_cid ==
-    @publication.publication_contract_identity(
-      @host.client_compiled_run_plan(self.compiled),
-    ) &&
-    intent.authority_scope_cid ==
-    @host.client_request_authority_scope_cid(self.start.request) else {
+    local_values_publication_context_matches(
+      self.compiled,
+      self.definition,
+      self.start.request,
+      policy,
+      Some(input_cid),
+      results,
+      intent,
+    ) else {
     return Err(SourceBindingMismatch)
   }
   if self.publication is None {
@@ -477,7 +484,7 @@ pub fn NativeClientRelationFileWork::prepare_local_publication(
     Err(issue) => return Err(Normalization(issue))
     Ok(value) => value
   }
-  let output = match self.prepare_result_export(limits) {
+  let outputs = match self.prepare_result_exports(limits) {
     Err(issue) => return Err(Work(issue))
     Ok(value) => value
   }
@@ -502,7 +509,7 @@ pub fn NativeClientRelationFileWork::prepare_local_publication(
       source_advances: [],
       authoring,
     },
-    [output],
+    outputs,
     results,
     intent,
     occurrence,

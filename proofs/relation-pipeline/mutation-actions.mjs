@@ -9,7 +9,7 @@ import {checkPlan} from '../ci-evidence/check.mjs';
 import {mutationNamesByPart, planDigest} from './proof-parts.mjs';
 import {inspectMutationPart, inspectArchivedMutationPart, mutationReportPath} from './mutation-parts.mjs';
 import {executionCommand, fixturePath} from './fixture.mjs';
-import {scratchOriginal, scratchRuntime, resourceOriginal, resourceRuntime, runtimeEmit, snapshotFilePaths} from './inventory.mjs';
+import {scratchOriginal, scratchRuntime, resourceOriginal, resourceRuntime, runtimeEmit, pipelineTypeScriptEmits, snapshotFilePaths} from './inventory.mjs';
 
 const parts = Object.keys(mutationNamesByPart);
 const targets = ['js', 'wasm', 'native'];
@@ -58,8 +58,10 @@ export function mutationSourceInputs({tree, source, root}) {
     .filter(file => file.startsWith(`${path}/`) && file !== fixturePath).sort()}));
   const paths = [...new Set([...members.flatMap(entry => entry.members), ...snapshotFiles])].sort();
   assert(!(tree.entries.has(resourceOriginal) && tree.entries.has(resourceRuntime)), 'Ambiguous authored Node Resource bridge');
-  const runtime = tree.entries.has(resourceOriginal) ? runtimeEmit(tree, resourceOriginal, resourceRuntime) : undefined;
-  const observed = runtime ? [...paths, runtime.path].sort() : paths;
+  const derivedOutputs = pipelineTypeScriptEmits(tree);
+  if (tree.entries.has(resourceOriginal)) derivedOutputs.push(runtimeEmit(tree, resourceOriginal, resourceRuntime));
+  const emitted = new Map(derivedOutputs.map(entry => [entry.path, entry]));
+  const observed = [...paths, ...emitted.keys()].sort();
   assert.deepEqual(Object.keys(source.sources).sort(), observed, 'Pipeline snapshot/input membership differs');
   assert.equal(source.digest, digest(source.sources), 'Pipeline snapshot digest differs');
   const tooling = proofToolingInputs(tree, checkerFiles);
@@ -70,14 +72,15 @@ export function mutationSourceInputs({tree, source, root}) {
     assert(entry?.kind === 'blob' && ['100644', '100755'].includes(entry.mode), `Missing/nonregular pipeline input: ${path}`);
   }
   tree.prefetch?.(selected);
-  const files = (runtime ? [...selected, runtime.path].sort() : selected).map(path => {
-    const derived = path === runtime?.path ? runtime : undefined;
+  const files = [...selected, ...emitted.keys()].sort().map(path => {
+    const derived = emitted.get(path);
     const bytes = derived ? derived.bytes : tree.read(path), entry = tree.entries.get(path), sha256 = hash(bytes);
     const mode = derived ? '100644' : entry.mode;
     if (Object.hasOwn(source.sources, path)) assert.equal(sha256, source.sources[path], `Pipeline source bytes differ: ${path}`);
     if (root) {
       const actual = join(root, path), stat = lstatSync(actual);
       assert(stat.isFile(), `Nonregular working pipeline input: ${path}`);
+      if (derived) assert.equal(stat.mode & 0o777, derived.mode, `Working pipeline input mode differs: ${path}`);
       assert.equal(stat.mode & 0o111 ? '100755' : '100644', mode, `Working pipeline input mode differs: ${path}`);
       assert.equal(hash(readFileSync(actual)), sha256, `Working pipeline input bytes differ: ${path}`);
     }

@@ -8,22 +8,28 @@ import {join, dirname, relative, isAbsolute} from 'node:path';
 import {createHash} from 'node:crypto';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash, mutationSnapshotPaths, mutationSourceInputs, pipelineInventoryBoundary} from './inputs.mjs';
-import {snapshotDirectories as pipelineDirectories, snapshotFilePaths, runtimeEmit,
-  scratchOriginal, scratchRuntime, resourceOriginal, resourceRuntime} from '../relation-pipeline/inventory.mjs';
+import {snapshotDirectories as pipelineDirectories, snapshotFilePaths, runtimeEmit, pipelineTypeScriptEmits,
+  scratchCompilerConfigs, scratchOriginal, scratchRuntime, resourceOriginal, resourceRuntime} from '../relation-pipeline/inventory.mjs';
 export {mutationSnapshotExtras} from './inputs.mjs';
 
 export const isolatedEnvironment = Object.freeze({HOME: '/tmp/home', TMPDIR: '/tmp',
   PATH: '/runtime/moonbit/bin:/runtime', MOON_HOME: '/runtime/moonbit',
   LANG: 'C', LC_ALL: 'C', TZ: 'UTC'});
+const inventoryBoundaries = [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies];
 export const isolatedSourceFiles = Object.freeze(['proofs/ci-evidence/isolated-mutations.mjs',
   'proofs/ci-evidence/isolation.mjs', 'proofs/ci-evidence/isolated-runtime.mjs',
   'proofs/ci-evidence/runtime.mjs', 'proofs/ci-evidence/inputs.mjs',
   'proofs/ci-evidence/package-configurations.mjs',
   'proofs/ci-evidence/isolated-contract.mjs',
   'proofs/ci-evidence/mutation-inventory.mjs', 'proofs/ci-evidence/mutation-observation.mjs',
-  pipelineInventoryBoundary.path,
-  ...pipelineInventoryBoundary.dependencies.map(({path}) => path)]);
+  ...inventoryBoundaries.map(({path}) => path)]);
 const child = isolatedSourceFiles[0];
+function selectedIsolatedSourceFiles(tree) {
+  const typed = new Map(inventoryBoundaries.filter(({authoredPath}) => tree.entries.has(authoredPath))
+    .map(({path, authoredPath}) => [path, authoredPath]));
+  if (typed.size === 0) return isolatedSourceFiles;
+  return [...isolatedSourceFiles.map(file => typed.get(file) ?? file), ...scratchCompilerConfigs, 'package-lock.json'];
+}
 export const pipelineChild = 'proofs/ci-evidence/isolated-pipeline-pristine.mjs';
 export const pipelineFixedJsChild = 'proofs/ci-evidence/isolated-pipeline-fixed-js.mjs';
 export function isolatedChild(profile = 'session') {
@@ -49,7 +55,7 @@ export function mutationSourcePaths(tree) {
   assert(!(tree.entries.has(resourceOriginal) && tree.entries.has(resourceRuntime)), 'Ambiguous authored Node Resource bridge');
   const paths = [...new Set(mutationSourceInputs(tree).paths.concat(
     [...tree.entries.keys()].filter(path => path.startsWith('proofs/bounded-session/')),
-    mutationSnapshotPaths(tree), isolatedSourceFiles))].sort();
+    mutationSnapshotPaths(tree), selectedIsolatedSourceFiles(tree)))].sort();
   assert(paths.includes('proofs/bounded-session/mutations.mjs'), 'Missing original mutation executor');
   for (const path of paths) {
     const entry = tree.entries.get(path);
@@ -72,7 +78,7 @@ function pipelineSourcePaths(tree, profile) {
   assert(!(tree.entries.has(scratchOriginal) && tree.entries.has(scratchRuntime)), 'Ambiguous authored pipeline scratch input');
   const paths = [...new Set([...tree.entries.keys()].filter(path =>
     pipelineDirectories.some(directory => path.startsWith(`${directory}/`)) && path !== generated)
-    .concat(snapshotFilePaths(path => tree.entries.has(path)), isolatedSourceFiles, isolatedChild(profile)))].sort();
+    .concat(snapshotFilePaths(path => tree.entries.has(path)), selectedIsolatedSourceFiles(tree), isolatedChild(profile)))].sort();
   assert(paths.includes('proofs/relation-pipeline/pristine-replay.mjs'), 'Missing registered pristine executor');
   for (const directory of pipelineDirectories)
     assert(paths.some(path => path.startsWith(`${directory}/`)), 'Missing pipeline snapshot root');
@@ -98,6 +104,7 @@ export function proofRuntimeEmits(tree, profile) {
   const entries = [];
   if (profile !== 'session' && tree.entries.has(scratchOriginal))
     entries.push(runtimeEmit(tree, scratchOriginal, scratchRuntime));
+  entries.push(...pipelineTypeScriptEmits(tree, profile === 'session' ? 'inventory' : 'pipeline'));
   if (tree.entries.has(resourceOriginal))
     entries.push(runtimeEmit(tree, resourceOriginal, resourceRuntime));
   return entries;

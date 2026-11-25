@@ -10,7 +10,7 @@ import {retainInstalledHostInitializationFailure} from '../../../host-node/insta
 import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {openLocalFileRoot,physicalReadChild} from '../site/root-filesystem.mjs';
 import {localFileStoreDeclaration} from './local-file-store-declaration.mjs';
-import {encodeLocalCsvPage} from './local-csv-table.mjs';
+import {encodeLocalCsvPage, type LocalCsvRuntime} from './local-csv-table.mjs';
 import {bindLocalProjectFilePreparation} from './local-project-file-preparation.mjs';
 import {defaultFileMediaType as mime} from '../../../host-common/file-media-type.mjs';
 
@@ -90,7 +90,7 @@ type CurrentMethod = (read: unknown) => unknown;
 type ManagedRunCheck = (run: unknown, prepared: unknown, request: unknown) => unknown;
 type FileAdmission = (declaration: unknown, requirement: unknown, queryContract: string, evidenceContract: string,
   listingPolicy?: unknown) => unknown;
-type Runtime = SourceOptions['moon'] & Parameters<typeof composeInstalledCheckEnvironment>[0] & Readonly<{
+type Runtime = SourceOptions['moon'] & Parameters<typeof composeInstalledCheckEnvironment>[0] & Partial<LocalCsvRuntime> & Readonly<{
   clientProgramLocalFileTimestamp(seconds: bigint, nanos: number): string | undefined;
   clientProgramInstalledEffectManagedRunCheck: ManagedRunCheck;
   clientProgramInstalledManagedRunCheck: ManagedRunCheck;
@@ -161,6 +161,8 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       typeof sourceManaged?.prepareRead!=='function'||
       typeof moon?.clientProgramLocalFileTimestamp!=='function') fail('LocalFilesManagedReadUnavailable');
   const originalBundle=preparation.originalsForRuntime(moon);
+  if (originalBundle.sources.some(source => source.tables.length !== 0) &&
+      typeof moon.clientProgramLocalCsvPage !== 'function') fail('LocalCsvRuntimeUnavailable');
   let bundle: Bundle=originalBundle;
   const sources: FileSource[]=[],reads=new WeakMap<object, RetainedRead>();
   // Weak lookup is provenance only. The shared Host owns ordinary Runs; this
@@ -621,7 +623,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
               const file=await read.reader.read(csv.path);
               checkRead();
               const charge=options.chargePage(file.bytes);
-              await options.consumePageWire(encodeLocalCsvPage(file.bytes,csv,entry.limits.maxPageBytes),{charge});
+              await options.consumePageWire(encodeLocalCsvPage(moon as Runtime & LocalCsvRuntime,file.bytes,csv,entry.limits.maxPageBytes),{charge});
               checkRead();
               if(shared)await closeSourceRead(read.value);
               return;
