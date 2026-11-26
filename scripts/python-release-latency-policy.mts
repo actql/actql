@@ -8,6 +8,10 @@ function object(value: unknown): Input {
 }
 
 export const pythonReleaseLatencyProfile = 'python-v0.0.3-public';
+export function pythonReleaseLatencyApplies(packageVersion: unknown) {
+  return packageVersion === '0.0.3';
+}
+
 type Limits = Readonly<{p95Ms: number; maxMs: number}>;
 
 const retainedOperation = Object.freeze({p95Ms: 500, maxMs: 1000});
@@ -51,6 +55,7 @@ export function bindPythonOrdinaryLatency(reportValue: unknown, sourceValue: unk
       }
     }
   }
+  if (!pythonReleaseLatencyApplies(manifest.package_version)) return;
   return {profile: pythonReleaseLatencyProfile, packageVersion: manifest.package_version, sourceSha: source.sourceSha,
     cohortSha256};
 }

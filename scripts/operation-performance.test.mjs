@@ -603,6 +603,23 @@ test('ordinary Python command applies the fixed phase limits only to the selecte
     const input = {sourceSha, cohortSha256: manifestSha256, environmentSha256: environment,
       historyProtocolSha256: protocol, executionPath: 'python-sdk', protocol: {adapter: 'python', operation},
       latencyProfile: 'python-v0.0.3-public', target: {p95Ms: 1e8, maxMs: 1e8}, latency: [measured]};
+    if (operation === 'warm-result') {
+      const previous = JSON.stringify({source_sha: sourceSha, package_version: '0.0.1'});
+      const previousSha = createHash('sha256').update(previous).digest('hex');
+      const previousInput = structuredClone(input);
+      previousInput.cohortSha256 = previousInput.latency[0].cohortSha256 = previousSha;
+      for (const row of previousInput.latency[0].samples) row.cohortSha256 = previousSha;
+      writeFileSync(join(directory, 'packages', 'cohort.json'), previous);
+      writeFileSync(join(directory, 'source.json'), JSON.stringify({adapter: 'python', sourceSha,
+        manifestSha256: previousSha, manifestFile: 'cohort.json'}));
+      const restored = JSON.parse(run(previousInput, true, operation).stdout);
+      assert.equal(restored.pythonLatency, undefined);
+      assert(restored.gates[operation].failures.includes('public E2E p95 exceeds 200ms'));
+      assert(restored.gates[operation].failures.includes('public E2E observed max exceeds 200ms'));
+      writeFileSync(join(directory, 'packages', 'cohort.json'), original);
+      writeFileSync(join(directory, 'source.json'), JSON.stringify({adapter: 'python', sourceSha,
+        manifestSha256, manifestFile: 'cohort.json'}));
+    }
     const atLimits = run(input, true, operation);
     assert.equal(atLimits.status, 1, atLimits.stderr); // Other suite-wide evidence remains missing.
     const report = JSON.parse(atLimits.stdout);

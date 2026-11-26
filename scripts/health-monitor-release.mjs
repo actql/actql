@@ -11,8 +11,8 @@ import {runNodeProcessBenchmark} from './benchmark-node-process-operations.mjs';
 import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {jsonDigest, digest} from './health-monitor-report.mjs';
-import {assessNativeOperations, assessPythonOrdinaryLatency} from './operation-performance.mjs';
-import {pythonReleaseLatencyProfile} from './python-release-latency-policy.mjs';
+import {assessLatency, assessNativeOperations, assessPythonOrdinaryLatency} from './operation-performance.mjs';
+import {pythonReleaseLatencyApplies, pythonReleaseLatencyProfile} from './python-release-latency-policy.mjs';
 
 // Observe the interpreter that the existing ordinary collector will execute,
 // rather than substituting the controller's optional --python interpreter.
@@ -281,6 +281,8 @@ export async function releaseMeasurements({options, prepared, repository, root, 
     {cwd: repository, name: `formal-${adapter}-${operation}`, timeout: 0});
     const raw = JSON.parse(await readFile(join(output, 'measurements.json')));
     const originalPythonCohort = await readFile(options.pythonManifest);
+    const originalManifest = JSON.parse(originalPythonCohort.toString('utf8'));
+    const releaseProfile = pythonReleaseLatencyApplies(originalManifest.package_version);
     assert.equal(raw.sourceSha, source.sha, 'Foreign Python collector source');
     assert.equal(raw.cohortSha256, digest(originalPythonCohort), 'Foreign Python collector cohort');
     assert.equal(raw.executionPath, 'python-sdk', 'Expected the ordinary Python SDK collector');
@@ -299,15 +301,17 @@ export async function releaseMeasurements({options, prepared, repository, root, 
     }
     raw.assessments = raw.latency.map(series => {
       assert.equal(series.operation, operation, 'Foreign Python Health series');
-      return assessPythonOrdinaryLatency(series, pythonControls?.comparison);
+      const assess = releaseProfile ? assessPythonOrdinaryLatency : assessLatency;
+      return assess(series, pythonControls?.comparison);
     });
     const assessmentPath = join(output, 'health-assessments.json');
     await writeFile(assessmentPath, JSON.stringify({sourceSha: source.sha, assessments: raw.assessments,
-      latencyProfile: pythonReleaseLatencyProfile, cohortSha256: raw.cohortSha256,
+      ...(releaseProfile ? {latencyProfile: pythonReleaseLatencyProfile} : {}), cohortSha256: raw.cohortSha256,
       ...(adapter === 'python' ? {pythonRuntime} : {}),
       controlsSha256: adapter === 'python' && options.pythonControls ? digest(await readFile(options.pythonControls)) : null}, null, 2), {flag: 'wx'});
     const verdict = formalCollectorVerdict(raw);
-    for (const series of raw.latency) await onPythonMetric({id: operation, target: adapter, kind: 'latency', required: true,
+    const emitMetric = releaseProfile ? onPythonMetric : onMetric;
+    for (const series of raw.latency) await emitMetric({id: operation, target: adapter, kind: 'latency', required: true,
       unit: 'ms', temperature: operation.startsWith('warm-') ? 'warm' : 'cold', requiredSamples: operation.startsWith('warm-') ? 100 : 30,
       fixtureSha256: series.fixtureSha256, samples: series.samples, evidence: join(output, 'measurements.json'),
       formalAssessments: assessmentPath, ...verdict});
