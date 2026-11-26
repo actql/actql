@@ -193,7 +193,7 @@ pub fn issue_restored_model_client_effect_imported_evidence(
       })
   }
   let invocation = match
-    issue_client_effect_local_invocation_body(
+    issue_client_local_unit_invocation(
       owner,
       unit,
       definition,

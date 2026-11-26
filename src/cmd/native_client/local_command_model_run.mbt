@@ -9,7 +9,15 @@ priv struct LocalCommandModelRun {
   scopes : Array[@run_host.ClientModelReadScope]
   reads : Array[@run_host.ClientModelReadPreparation?]
   completions : Array[@infer.OutputUse?]
-  mut whole_sources : @run_host.ClientInferComposedSources?
+  mut whole_inputs : LocalCommandWholeModelInputs?
+}
+
+///|
+// At most one task is prepared before its managed provider opens. Earlier
+// workers retain their own already bound Scope, alongside the File producer.
+priv struct LocalCommandWholeModelInputs {
+  sources : Array[@run_host.ClientInferComposedSources]
+  mut pending : (Int, @local_host.NativeWholeModelResultInputs)?
 }
 
 ///|
@@ -268,7 +276,7 @@ fn LocalCommandBusinessPreparation::prepare_model_run(
       scopes,
       reads: Array::make(count, None),
       completions: Array::make(count, None),
-      whole_sources: None,
+      whole_inputs: None,
     })
     business.model_work = Array(capacity=count)
     match

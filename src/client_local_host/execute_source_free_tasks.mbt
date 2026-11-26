@@ -83,6 +83,10 @@ pub fn execute_installed_whole_source_values_guarded(
     LocalValuesExecutionIssue,
   ])? = None,
   cleanup_ready? : (() -> Bool)? = None,
+  prepare_task? : ((Int, LocalWholeTaskPreparation) -> Result[
+    Unit,
+    LocalValuesExecutionIssue,
+  ])? = None,
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(setup),
@@ -114,6 +118,7 @@ pub fn execute_installed_whole_source_values_guarded(
     drive_task~,
     cleanup_ready~,
     whole_source=Some(plan),
+    prepare_whole_task=prepare_task,
   )
 }
 
@@ -381,6 +386,10 @@ fn execute_local_tasks_guarded(
   retained_effect? : @strategy.CapturedEffectRunDAG? = None,
   whole_source? : ClientInstalledManagedCapturePlan? = None,
   captured_source? : ClientInstalledManagedCapturePlan? = None,
+  prepare_whole_task? : ((Int, LocalWholeTaskPreparation) -> Result[
+    Unit,
+    LocalValuesExecutionIssue,
+  ])? = None,
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   if finalization_quantum <= 0 || max_finalization_rounds <= 0 {
     return Err(failed_local_values_execution(InvalidLimits))
@@ -484,9 +493,31 @@ fn execute_local_tasks_guarded(
     if @local_driver.local_dispatch_next_carrier_path(installed) {
       return reject(UnsupportedGraph)
     }
+    if supplied_whole && prepare_whole_task is Some(prepare) {
+      let original : LocalWholeTaskPreparation = {
+        run,
+        task: index,
+        tasks,
+        available,
+      }
+      match prepare(index, original) {
+        Ok(_) => ()
+        Err(issue) => return reject(issue)
+      }
+      if !current() || @strategy.next_captured_task(run) != Some(index) {
+        return reject(Fenced)
+      }
+    }
     let producers = @strategy.captured_next_managed_producers(run)
     let inputs : Array[@local_driver.LocalManagedAvailableOutput[Int]] = []
-    for producer in producers {
+    for input_index, producer in producers {
+      if supplied_whole &&
+        prepare_whole_task is Some(_) &&
+        producer >= 0 &&
+        @strategy.captured_next_task_has_prepared_input(run, input_index) {
+        inputs.push(@local_driver.local_managed_captured_relation_input())
+        continue
+      }
       if (continuation || supplied_whole) && producer == -1 {
         inputs.push(@local_driver.local_managed_supplied_relation_input())
         continue

@@ -302,7 +302,7 @@
     },
     {
       "module": "src/run_publication_host/client_environment.mbt",
-      "sha256": "b7ee06d648aba5f65c98abd47693cd9a94a503fdb8b22480f542db1fecce20cb",
+      "sha256": "ec1050e228db887d4275858623995cc6bff0476c3d450a7a9f00adbe5fcdfd3a",
       "operations": [
         {
           "name": "admit_client_check_environment",
@@ -323,6 +323,10 @@
         {
           "name": "admit_local_relation_check_environment",
           "declaration": "admit_local_relation_check_environment ( body : String , evidence_bundle_cid : String , ) - > @ checked . CheckEnvironment ?"
+        },
+        {
+          "name": "admit_local_relation_check_environment_from_wire",
+          "declaration": "admit_local_relation_check_environment_from_wire ( wire : @ environment . WireEnvironment , ) - > @ checked . CheckEnvironment ?"
         }
       ],
       "exports": [],
@@ -336,7 +340,8 @@
             "admit_client_check_environment",
             "admit_client_check_environment_from_wire",
             "admit_client_check_environment_wire",
-            "admit_local_relation_check_environment"
+            "admit_local_relation_check_environment",
+            "admit_local_relation_check_environment_from_wire"
           ],
           "exports": [],
           "attributes": {
@@ -402,6 +407,10 @@
               {
                 "path": "src/client_host_wasm/client_check_wbtest.mbt",
                 "anchor": "test \"Python Local Check selects text-time from the original installed policy\""
+              },
+              {
+                "path": "src/run_publication_host/client_environment_final_wire_wbtest.mbt",
+                "anchor": "test \"funded Local Model environment keeps the admitted wire and installed policy\""
               }
             ]
           }

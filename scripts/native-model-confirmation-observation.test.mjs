@@ -53,7 +53,8 @@ test('Native Model accounting refuses changed, duplicate, foreign and unconfirme
 const runDefinition = cid('original run');
 const storeAuthority = cid('original store');
 const rawByTask = new Map();
-const rawCustody = {definition: runDefinition, authority: storeAuthority, observed: [first, second].map(item => ({
+const rawCustody = {definition: runDefinition, authority: storeAuthority,
+  policy: {policyCid: cid('effective data policy')}, observed: [first, second].map(item => ({
   ...item, scope: cid(item.task + ' scope'), rawHolding: cid(item.attempt + ' entered holding'),
 }))};
 
@@ -91,6 +92,7 @@ test('Native Raw receipt refuses re-sealed substituted bytes, wrong profile and 
   for (const changed of [
     {content_cid: secondRaw.content_cid}, {response_profile_cid: secondRaw.response_profile_cid},
     {scope_cid: secondRaw.scope_cid}, {transport_eof: false}, {byte_count: original.byte_count + 1},
+    {effective_data_policy_cid: cid('other effective policy')}, {raw_capture_policy_cid: secondRaw.raw_capture_policy_cid},
   ]) {
     const split = splitNativeModelConfirmations(rawLine({...original, ...changed}) + rawLine(secondRaw), pid);
     assert.throws(() => requireNativeRawReceipts(split.raw, rawCustody, rawByTask), {code: 'ERR_ASSERTION'});

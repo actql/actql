@@ -50,12 +50,13 @@ fn NativeClientRelationFileWork::prepare_managed_whole_source_evidence(
   max_wire_bytes : Int,
   max_nodes : Int,
   result_controls : Int64,
-  model_source_binding~ : Bool,
+  model_source_bindings~ : Int,
 ) -> Result[NativeRelationFileWholeEvidence, NativeClientSourceWorkIssue] {
   guard self.source is Managed(physical, _) &&
     sources.length() > 0 &&
     physical.length() == sources.length() &&
     sources.length() <= 1073741822 &&
+    model_source_bindings >= 0 &&
     self.capture_times is Some((started, completed)) &&
     self.identity_scan is None &&
     managed_whole_relation_file_sources_match(
@@ -67,6 +68,8 @@ fn NativeClientRelationFileWork::prepare_managed_whole_source_evidence(
     return Err(Configuration)
   }
   let source_count = sources.length().to_int64()
+  let member_count = model_source_bindings.to_int64()
+  let model_source_binding = member_count > 0L
   // Base evidence retains two artifacts per Source. Model binding additionally
   // emits four order-only wires per Source and parses one fixed empty order.
   // Include all of them without depending on reclamation between validators.
@@ -82,12 +85,18 @@ fn NativeClientRelationFileWork::prepare_managed_whole_source_evidence(
     // coordinate/check arrays. Per check allow selector result frames and
     // stage/task projections; port/ancestry checks borrow the checked graph.
     guard @execution.checked_preparation_add_product(
+        0L, source_count, source_count,
+      )
+      is Some(port_pairs) &&
+      @execution.checked_preparation_add_product(
         1L,
-        source_count + 1L,
+        source_count + port_pairs + 1L,
         checks + tasks + 1L,
       )
       is Some(visits) &&
-      @execution.checked_preparation_add_product(0L, visits, 16L)
+      @execution.checked_preparation_add_product(0L, member_count, visits)
+      is Some(all_visits) &&
+      @execution.checked_preparation_add_product(0L, all_visits, 16L)
       is Some(headers) &&
       @execution.checked_preparation_add_product(0L, headers, 2L) is Some(slots) else {
       return Err(Configuration)
@@ -108,10 +117,20 @@ fn NativeClientRelationFileWork::prepare_managed_whole_source_evidence(
       owned_wire_bytes: 0L,
     }
   }
-  // Two original artifacts per Source plus observation/invocation/retention;
-  // the independently funded Work vectors and source/scan payloads stay live.
+  // Proofs and port vectors stay alongside the first validated observation.
+  // Only that first admission builds the canonical Source observation bodies.
+  let members = if model_source_binding {
+    guard @execution.preparation_array_representation(1L, member_count, true)
+      is Some(value) else {
+      return Err(Configuration)
+    }
+    value
+  } else {
+    binding
+  }
   guard @execution.compose_preparation_representation([
       binding,
+      members,
       {
         // Per Source, same-original Stage requests Some H1/R1/W1 plus
         // graph_stage_operation_task H8/R4/W10: unit get/map Some+closure,
@@ -314,31 +333,55 @@ fn NativeClientRelationFileWork::prepare_managed_whole_source_evidence(
 // binds them to the original Model occurrence and rejects equal foreign data.
 fn NativeClientRelationFileWork::admit_managed_whole_model_sources(
   self : Self,
-  origin : @host.ClientInferOccurrence,
+  graphs : Array[@host.ClientInferPlanGraph],
   captures : Array[@execution_query.CapturedInputSource],
   originals : Array[NativeRelationFileWholeSource],
   evidence : NativeRelationFileWholeEvidence,
-) -> Result[@host.ClientInferComposedSources, NativeClientSourceWorkIssue] {
-  guard self.whole_evidence is Some(original) &&
+) -> Result[
+  Array[@host.ClientInferComposedSources],
+  NativeClientSourceWorkIssue,
+] {
+  guard graphs.get(0) is Some(first) &&
+    self.whole_evidence is Some(original) &&
     physical_equal(original, evidence) &&
     self.execution is None else {
     return Err(FileWorkSourceBinding)
   }
-  @host.admit_client_infer_composed_whole_sources(
-    origin,
-    captures,
-    evidence.identities,
-    originals.map(value => {
-      @local.installed_whole_source_original(value.capacity)
-    }),
-    evidence.logicals,
-    evidence.evidences,
-    evidence.scope,
-    evidence.started,
-    evidence.completed,
+  let original = match
+    @host.admit_client_infer_composed_whole_sources(
+      first.occurrence,
+      captures,
+      evidence.identities,
+      originals.map(value => {
+        @local.installed_whole_source_original(value.capacity)
+      }),
+      evidence.logicals,
+      evidence.evidences,
+      evidence.scope,
+      evidence.started,
+      evidence.completed,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(FileWorkSourceBinding)
+  }
+  if !@host.client_infer_composed_whole_sources_match_run(original, self.run) {
+    return Err(FileWorkSourceBinding)
+  }
+  let bindings : Array[@host.ClientInferComposedSources] = Array(
+    capacity=graphs.length(),
   )
-  .map_err(_ => FileWorkSourceBinding)
-  .bind(binding => self.require_current().map(_ => binding))
+  bindings.push(original)
+  for index in 1..<graphs.length() {
+    match
+      @host.bind_client_infer_composed_whole_sibling(
+        original,
+        graphs[index].occurrence,
+      ) {
+      Ok(value) => bindings.push(value)
+      Err(_) => return Err(FileWorkSourceBinding)
+    }
+  }
+  self.require_current().map(_ => bindings)
 }
 
 ///|
@@ -473,7 +516,7 @@ fn NativeClientRelationFileWork::managed_whole_publication_invocation(
           max_wire_bytes,
           max_nodes,
           result_controls,
-          model_source_binding=false,
+          model_source_bindings=0,
         ) {
         Err(issue) => return Err(issue)
         Ok(value) => value

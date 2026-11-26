@@ -1240,6 +1240,8 @@ fn local_file_open_failure_message(
       "LocalOriginalSourceWorkUnavailable:reconciliation"
     AuthorizationDenied => "LocalOriginalSourceWorkUnavailable:authorization"
     FileWorkSourceBinding => "LocalOriginalSourceWorkUnavailable:source-binding"
+    WholeModelProducerExport(_) =>
+      "LocalOriginalSourceWorkUnavailable:producer-export"
     FileWorkControlQuote => "LocalOriginalSourceWorkUnavailable:control-quote"
     FileWorkEntry(_) => "LocalOriginalSourceWorkUnavailable:entry"
     FileWorkPreparedCapacity(_) =>

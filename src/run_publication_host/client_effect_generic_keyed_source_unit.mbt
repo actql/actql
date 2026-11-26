@@ -65,7 +65,7 @@ fn prepare_client_effect_generic_keyed_source_unit(
     Err(issue) => return Err(Relation(issue))
   }
   let invocation = match
-    issue_client_effect_local_invocation_body(
+    issue_client_local_unit_invocation(
       parent.prepared,
       unit,
       definition,

@@ -859,6 +859,8 @@ pub fn model_source_observation_fields(ModelSourceObservation) -> (String, Strin
 
 pub fn model_source_observation_interval(Array[ModelSourceObservation]) -> (String, String)?
 
+pub fn model_source_observation_matches_authority(ModelSourceObservation, String) -> Bool
+
 pub fn model_source_observation_matches_input(ModelSourceObservation, RunEvidenceValue) -> Bool
 
 pub fn model_source_observation_originals(ModelSourceObservation) -> (RunEvidenceValue, RunEvidenceValue, String, String)

@@ -85060,7 +85060,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "64a602c89dec1fa0312f4d376abc6344206d8165652f4a38e912808aa85a2ffa",
+      "sha256": "f6d3bc50d402c5253c9a3787b28ca9fca1d7707baaed8216619961ba26f04002",
       "exports": [],
       "operations": [
         {
@@ -85209,7 +85209,7 @@
         },
         {
           "name": "captured_source_input_original_matches",
-          "declaration": "captured_source_input_original_matches ( run : CapturedDAG , task : Int , input : Int , source : @ query . CapturedInputSource , ) - > Bool"
+          "declaration": "captured_source_input_original_matches ( run : CapturedDAG , task : Int , input : Int , source : @ query . CapturedInputSource , after_completion ? : Bool"
         },
         {
           "name": "captured_supplied_task_input",
@@ -89779,7 +89779,7 @@
     },
     {
       "module": "src/run_publication_host/client_pure_compilation_construction.mbt",
-      "sha256": "cffc845e397b05572b1160bf477d663011c90581e37519b2c8e5945b9da55d24",
+      "sha256": "05530d44ba9b5e39c490da1d95b26c61d8c9f659a881874d58efc279bbace97e",
       "exports": [],
       "operations": [
         {
@@ -89812,7 +89812,7 @@
         },
         {
           "name": "measure_prepared_client_compilation_construction_owned",
-          "declaration": "measure_prepared_client_compilation_construction_owned ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , components : Array [ ClientInferPlanGraph ] , ) - > Result [ ClientPureCompilationConstruction , ClientValuesExecutablePlanIssue ]"
+          "declaration": "measure_prepared_client_compilation_construction_owned ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , components : Array [ ClientInferPlanGraph ] , effect ? : PreparedClientEffectComputation ?"
         },
         {
           "name": "measure_prepared_client_model_compilation_construction",
@@ -94152,7 +94152,7 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "07640e6fa0c8271e158e6cfa0faf47fbbf56d23d65d33a9a3bafbcc3bbc5f746",
+      "sha256": "104560fea36dec4b7c59a34f2e14f26c6450defba2a6e5485d78c2e79342e8ff",
       "exports": [],
       "operations": [
         {
@@ -94170,6 +94170,10 @@
         {
           "name": "borrow_installed_managed_dispatch_preparation",
           "declaration": "borrow_installed_managed_dispatch_preparation ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] ? , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "completed_unit_result_export_capacity",
+          "declaration": "completed_unit_result_export_capacity ( borrow : @ strategy . CapturedAnyResultBorrow , rows : Int , limits : @ publication_host . PublicationOutputExportLimits , codec : Int64 , managed : @ execution . ManagedPublicationBridgeLimits ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "effect_unit_publication_body",
@@ -94255,6 +94259,7 @@
             "[T]measure_installed_effect_direct_publication",
             "borrow_installed_effect_dispatch_preparation",
             "borrow_installed_managed_dispatch_preparation",
+            "completed_unit_result_export_capacity",
             "effect_unit_publication_body",
             "effect_unit_publication_capacity",
             "effect_unit_sealed_geometry",
@@ -117660,7 +117665,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "065e6c49cf00cff6516601f9cba95cbfc9d0dc1bd3a34efcedcf6b25c8cdba23",
+      "sha256": "9fa22be19e7ff8f54a3166b9f246c993757e4c1384a9767cbf545f7f3c994d0a",
       "exports": [],
       "operations": [
         {
@@ -118219,7 +118224,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "b35b5ea43e43d9da112d23e69521c95bd558ee2ef39c63eea9f00de8ec21abfa",
+      "sha256": "0e11d602f30e29186ce4ac23736a89cffb14dacf37a5515d58f5dd543eed6d91",
       "exports": [],
       "operations": [
         {
@@ -119902,7 +119907,7 @@
     },
     {
       "module": "src/client_local_host/execute_source_free_tasks.mbt",
-      "sha256": "f2397b75f7f0580c7dc11e94eedccdf74cbc89297a1ca0b8e4161f2ed51ad6a3",
+      "sha256": "3d991738f781a212b200cd592c2bf41a4e6405911b8879d86031466fd85d1e93",
       "exports": [],
       "operations": [
         {
@@ -120246,7 +120251,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_whole_files_entry.mbt",
-      "sha256": "b395ca75482d96bfe03368ca33491968a754c49441dbdfe47278cbde89fcf45d",
+      "sha256": "62cc363a6ff1bc0fe09719409cb1f8bf1c27ae001a05ed2344321f388c6b093b",
       "exports": [],
       "operations": [
         {
@@ -120357,7 +120362,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_publication.mbt",
-      "sha256": "c403ddce2db77dd28a1bb68563ece3beac053f1c0425d455bd6080253ddcb3fa",
+      "sha256": "dc1cd63881069be350126467e339ffa0c09322ae6db68d72541f9abb44195f41",
       "exports": [],
       "operations": [
         {
@@ -120366,7 +120371,7 @@
         },
         {
           "name": "NativeClientRelationFileWork::admit_managed_whole_model_sources",
-          "declaration": "NativeClientRelationFileWork : : admit_managed_whole_model_sources ( self : Self , origin : @ host . ClientInferOccurrence , captures : Array [ @ execution_query . CapturedInputSource ] , originals : Array [ NativeRelationFileWholeSource ] , evidence : NativeRelationFileWholeEvidence , ) - > Result [ @ host . ClientInferComposedSources , NativeClientSourceWorkIssue ]"
+          "declaration": "NativeClientRelationFileWork : : admit_managed_whole_model_sources ( self : Self , graphs : Array [ @ host . ClientInferPlanGraph ] , captures : Array [ @ execution_query . CapturedInputSource ] , originals : Array [ NativeRelationFileWholeSource ] , evidence : NativeRelationFileWholeEvidence , ) - > Result [ Array [ @ host . ClientInferComposedSources ] , NativeClientSourceWorkIssue , ]"
         },
         {
           "name": "NativeClientRelationFileWork::bind_model_publication",
@@ -120378,7 +120383,7 @@
         },
         {
           "name": "NativeClientRelationFileWork::prepare_managed_whole_source_evidence",
-          "declaration": "NativeClientRelationFileWork : : prepare_managed_whole_source_evidence ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileWholeSource ] , max_wire_bytes : Int , max_nodes : Int , result_controls : Int64 , model_source_binding ~ : Bool , ) - > Result [ NativeRelationFileWholeEvidence , NativeClientSourceWorkIssue ]"
+          "declaration": "NativeClientRelationFileWork : : prepare_managed_whole_source_evidence ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileWholeSource ] , max_wire_bytes : Int , max_nodes : Int , result_controls : Int64 , model_source_bindings ~ : Int , ) - > Result [ NativeRelationFileWholeEvidence , NativeClientSourceWorkIssue ]"
         },
         {
           "name": "NativeClientRelationFileWork::retire_model_publication",
@@ -120472,16 +120477,16 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_work_capacity.mbt",
-      "sha256": "590674389e0a27442f6ff9ace8a20b610110ceb1251d73e97fdea5c7e2c59446",
+      "sha256": "cd25c4fbe1e77c22f0d6118190cd660f7e8b2274b3bb4029284399ffd7119011",
       "exports": [],
       "operations": [
         {
           "name": "native_relation_whole_files_entry_read_capacity",
-          "declaration": "native_relation_whole_files_entry_read_capacity ( sources : Array [ NativeRelationFileWholeSource ] , graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "native_relation_whole_files_entry_read_capacity ( sources : Array [ NativeRelationFileWholeSource ] , graph : @ strategy . CheckedDAG , model ? : Bool"
         },
         {
           "name": "native_relation_whole_files_work_control_capacity",
-          "declaration": "native_relation_whole_files_work_control_capacity ( sources : Array [ NativeRelationFileWholeSource ] , graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "native_relation_whole_files_work_control_capacity ( sources : Array [ NativeRelationFileWholeSource ] , graph : @ strategy . CheckedDAG , model ? : Bool"
         }
       ],
       "responsibilityFacet": "primary",

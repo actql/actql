@@ -33,7 +33,8 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     Unit,
     @local.LocalValuesExecutionIssue,
   ])? = None,
-  retain_model_sources? : ((@host.ClientInferComposedSources) -> Bool)? = None,
+  retain_model_sources? : ((Array[@host.ClientInferComposedSources]) -> Bool)? = None,
+  model_results? : NativeWholeModelResults? = None,
 ) -> Result[NativeClientRelationFileWork, NativeClientRelationFileWorkFailure] {
   guard entry.access is Some(access) &&
     entry.payload is Some((prepared, compiled, definition)) else {
@@ -106,17 +107,18 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
   let request = access.base.request
   // The callback drives only an admitted Model. The retained File Plan's
   // exact compilation, not the presence of a callback, authorizes this route.
-  let model_origin = match (drive_task, retain_model_sources) {
-    (None, None) if !@host.client_compiled_run_has_infers(compiled) => None
-    (Some(_), Some(_)) => {
+  let model_graphs = match (drive_task, retain_model_sources, model_results) {
+    (None, None, None) if !@host.client_compiled_run_has_infers(compiled) =>
+      None
+    (Some(_), Some(_), Some(_)) => {
       guard access.source is ManagedWholeRelationFiles(_, _) &&
         @local.installed_managed_run_compilation_original(managed, prepared)
         is Some(@host.Tasks(compilation)) &&
         @host.client_compiled_run_matches_tasks(compiled, prepared, compilation) &&
-        compilation.infers.get(0) is Some(first) else {
+        !compilation.infers.is_empty() else {
         return refuse(FileWorkSourceBinding)
       }
-      Some(first.occurrence)
+      Some(compilation.infers)
     }
     _ => return refuse(FileWorkSourceBinding)
   }
@@ -127,7 +129,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     !entry.arena.matches_business_scope(false) ||
     !managed_relation_file_originals_match(access.source, prepared, request) ||
     result_count <= 0 ||
-    (model_origin is Some(_) && result_count != 1) ||
+    (model_graphs is Some(_) && result_count != 1) ||
     @strategy.graph_program_has_effects(graph) {
     return refuse(Configuration)
   }
@@ -378,8 +380,13 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
   }
   // The Work already owns the original captures and DAG. All failures in
   // this pre-compute handoff retire that same Work in its actual scope.
-  if model_origin is Some(origin) &&
+  let mut prepare_task = None
+  let mut retire_producer = None
+  let mut model_failure_holder = None
+
+  if model_graphs is Some(graphs) &&
     retain_model_sources is Some(retain) &&
+    model_results is Some(configuration) &&
     access.source is ManagedWholeRelationFiles(_, originals) {
     guard relation_file_result_publication_control_bytes(result_count)
       is Some(result_controls) else {
@@ -399,24 +406,68 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
         65536,
         8192,
         result_controls,
-        model_source_binding=true,
+        model_source_bindings=graphs.length(),
       )
       .bind(evidence => {
         owner.whole_evidence = Some(evidence)
         owner.admit_managed_whole_model_sources(
-          origin, captured_inputs, originals, evidence,
+          graphs, captured_inputs, originals, evidence,
         )
       })
-    let issue = match admission {
-      Err(issue) => Some(issue)
-      Ok(value) =>
-        if retain(value) {
-          None
-        } else {
-          Some(FileWorkSourceBinding)
+    let model_failure = Ref(None)
+    model_failure_holder = Some(model_failure)
+    let start_model = admission.bind(sources => {
+      if !retain(sources) {
+        return Err(FileWorkSourceBinding)
+      }
+      let mut imports = 0L
+      let mut result_count = 0
+      for plan in graphs {
+        imports += @host.client_infer_occurrence_result_import_count(
+          plan.occurrence,
+        ).to_int64()
+        if @host.client_infer_occurrence_result_import_at(plan.occurrence, 0)
+          is Some((unit, _)) &&
+          @checked.unit_publication_count(@strategy.graph_program(graph), unit)
+          is Some(count) {
+          result_count = Int::max(result_count, count)
         }
-    }
-    if issue is Some(issue) {
+      }
+      if imports > 0L {
+        guard sources.length() == graphs.length() &&
+          result_count > 0 &&
+          native_whole_result_controls(
+            @strategy.graph_task_count(@strategy.captured_dag_graph(run)),
+            originals.length(),
+            result_count,
+            imports,
+          )
+          is Some(controls) &&
+          owner.whole_model_producer_funding(managed, model_failure, controls)
+          is Some(funding) else {
+          return Err(model_failure.val.unwrap_or(FileWorkControlQuote))
+        }
+        let cached = Ref(None)
+        prepare_task = Some((task, selection) => {
+          match
+            owner.stage_whole_model_results(
+              managed, task, selection, graphs, sources, configuration, cached, quantum,
+              max_rounds, entries, funding,
+            ) {
+            Err(issue) => {
+              if model_failure.val is None {
+                model_failure.val = Some(issue)
+              }
+              Err(@local.Fenced)
+            }
+            Ok(_) => Ok(())
+          }
+        })
+        retire_producer = Some(() => retire_native_whole_model_producer(cached))
+      }
+      Ok(())
+    })
+    if start_model is Err(issue) {
       return Err(
         relation_file_work_failure(
           issue,
@@ -429,7 +480,11 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
   }
   let cleanup_ready = if drive_task is Some(_) {
     let original_access = access.base
-    Some(() => original_access.cleanup_entered())
+    let retire = retire_producer
+    Some(() => {
+      original_access.cleanup_entered() &&
+      retire.map(close => close()).unwrap_or(true)
+    })
   } else {
     None
   }
@@ -460,6 +515,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
           () => access.require_start_current(start) is Ok(_),
           drive_task~,
           cleanup_ready~,
+          prepare_task~,
         )
       _ => return refuse(Configuration)
     }) {
@@ -469,8 +525,12 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
           match access.base.primary {
             Some(issue) => OriginalOperation(issue)
             None =>
-              LocalExecution(
-                @local.local_values_execution_failure_issue(failure),
+              model_failure_holder
+              .bind(value => value.val)
+              .unwrap_or(
+                LocalExecution(
+                  @local.local_values_execution_failure_issue(failure),
+                ),
               )
           },
           access=Some(access.base),

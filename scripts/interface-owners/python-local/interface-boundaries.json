@@ -87312,7 +87312,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "7b0374f407261c5516da8a873c00883d08192b74c5d1b7ada6748a4c62e6a788",
+      "sha256": "47ae344e3e2e210f4c2a422f5cab94e78424e01773e834bd4d764eaf2a92b020",
       "exports": [],
       "operations": [
         {

@@ -59,7 +59,34 @@ function fileGeneration(path) {
   return {device: String(info.dev), inode: String(info.ino), size: info.size, mtime: info.mtimeNs, ctime: info.ctimeNs};
 }
 
-export async function inspectNativeModelCustody({journalPath, storePath, runId, attempts, tasks, authority, namespace, provider}) {
+function inspectRetainedPolicy(wire, expectedWire, expectedResponseViews) {
+  assert(typeof wire === 'string' && Buffer.byteLength(wire) <= 65_536,
+    'Missing or out-of-bounds original Run policy packet');
+  const packet = JSON.parse(wire);
+  assert.deepEqual(Object.keys(packet), ['bodies', 'root_policy_cid']);
+  assert(Array.isArray(packet.bodies) && packet.bodies.length <= 64);
+  const policyCid = cid(expectedWire);
+  assert.equal(packet.root_policy_cid, policyCid);
+  assert.deepEqual(packet.bodies[0], {body: expectedWire, cid: policyCid, kind: 'data_policy'});
+  const expected = JSON.parse(expectedWire);
+  assert.deepEqual([...expectedResponseViews.keys()].sort(), expected.source_response_policy_cids);
+  for (const [responseCid, viewCid] of expectedResponseViews) {
+    const responses = packet.bodies.filter(row => row.cid === responseCid);
+    assert.equal(responses.length, 1);
+    const [response] = responses;
+    assert.equal(response.kind, 'data_policy');
+    assert.equal(cid(response.body), responseCid);
+    const source = JSON.parse(response.body);
+    assert.equal(source.version, 'actql-source-response-policy/0.1');
+    assert.equal(source.source_view_contract_cid, viewCid);
+    assert(expected.source_data_policy_cids.includes(source.source_data_policy_cid));
+  }
+  return {policyCid, packetCid: cid(wire)};
+}
+
+export async function inspectNativeModelCustody({
+  journalPath, storePath, runId, attempts, tasks, authority, namespace, provider, expectedPolicyWire, expectedResponseViews,
+}) {
   requireCid(runId);
   requireCid(authority);
   assert.equal(attempts.length, 2);
@@ -78,6 +105,7 @@ export async function inspectNativeModelCustody({journalPath, storePath, runId, 
     assert.equal(definition.run_id, runId);
     requireCid(definition.run_definition_cid);
     assert.deepEqual(JSON.parse(run.publication_binding), binding);
+    const policy = inspectRetainedPolicy(run.publication_policy_originals, expectedPolicyWire, expectedResponseViews);
     const entries = readRecords(journal, 'client_model_call_originals', 2, journalRecordBytes);
     const settlements = readRecords(journal, 'client_model_call_settlements', 2, journalRecordBytes);
     const store = new DatabaseSync(storePath, {readOnly: true});
@@ -155,7 +183,7 @@ export async function inspectNativeModelCustody({journalPath, storePath, runId, 
       assert.equal(cells.size, 0, 'Unexpected Model holdings in the fresh project');
       assert.deepEqual(fileGeneration(journalPath), originalJournal);
       assert.deepEqual(fileGeneration(storePath), originalStore);
-      return {runId, definition: definition.run_definition_cid, authority, observed};
+      return {runId, definition: definition.run_definition_cid, authority, policy, observed};
     } finally { store.close(); }
   } finally { journal.close(); }
 }

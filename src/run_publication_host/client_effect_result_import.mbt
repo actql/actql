@@ -300,7 +300,7 @@ fn issue_imported_client_effect_local_invocation_body(
     cids.push(observation.cid)
   }
   cids.sort_by(@canonical_value.compare_utf16)
-  issue_client_effect_local_invocation_body(
+  issue_client_local_unit_invocation(
     owner,
     unit,
     definition,
@@ -367,6 +367,12 @@ fn issue_scope_model_result_import_observations(
   }
   let observations : Array[ClientScopeResultImportObservation] = []
   for original in scope.result_inputs {
+    guard original.original is Effect(_, _) else {
+      return Err(ForeignResultImport)
+    }
+    let (artifact_cid, manifest_cid) = client_infer_result_artifact_original_cids(
+      original,
+    )
     // The original opaque Scope just checked its complete kernel-bound input
     // inventory. These immutable body fields need no second current callback.
     if before_body is Some(back) {
@@ -381,8 +387,8 @@ fn issue_scope_model_result_import_observations(
           consumer,
           original.interface.input_name,
           original.interface.cid,
-          original.manifest.cid,
-          client_effect_local_result_artifact_cid(original.artifact),
+          manifest_cid,
+          artifact_cid,
           Some(consumer),
         )
         @encode.finish_construction_measurement(measure)
@@ -407,8 +413,8 @@ fn issue_scope_model_result_import_observations(
       consumer,
       original.interface.input_name,
       original.interface.cid,
-      original.manifest.cid,
-      client_effect_local_result_artifact_cid(original.artifact),
+      manifest_cid,
+      artifact_cid,
       None,
     ) catch {
       _ => return Err(Encoding)
@@ -423,8 +429,8 @@ fn issue_scope_model_result_import_observations(
       consumer,
       original.interface.input_name,
       original.interface.cid,
-      original.manifest.cid,
-      client_effect_local_result_artifact_cid(original.artifact),
+      manifest_cid,
+      artifact_cid,
       Some(cid),
     ) catch {
       _ => return Err(Encoding)

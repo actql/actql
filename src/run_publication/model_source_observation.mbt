@@ -42,6 +42,17 @@ pub fn model_source_observation_fields(
 }
 
 ///|
+/// Recheck the admitted original Source authority without parsing or emitting
+/// the observation again. The caller still owns current authorization.
+pub fn model_source_observation_matches_authority(
+  value : ModelSourceObservation,
+  authority_scope_cid : String,
+) -> Bool {
+  contract_string_from_value(value.source.value, "authority_scope_cid") ==
+  Some(authority_scope_cid)
+}
+
+///|
 pub fn model_source_observation_matches_input(
   value : ModelSourceObservation,
   input : RunEvidenceValue,

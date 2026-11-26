@@ -490,7 +490,7 @@ test "project declaration paths use the selected project directory rather than p
 
 ///|
 test "nonempty selected declarations cannot fall back to the packaged empty environment" {
-  for directory in ["connector", "model", "provider", "default-provider"] {
+  for directory in ["connector", "model", "provider"] {
     let project = project_bindings_fixture(
       directory, "{\"version\":\"actql-config/0.1\",\"connectors\":\"connectors.json\",\"model_tasks\":\"model-tasks.json\"}",
     )
@@ -506,6 +506,25 @@ test "nonempty selected declarations cannot fall back to the packaged empty envi
     assert_eq(required(matches, "mode"), "remote")
     assert_eq(optional(matches, "state-dir"), None)
   }
+}
+
+///|
+test "an undeclared default Model provider refuses before changing project route" {
+  let project = project_bindings_fixture(
+    "default-provider", "{\"version\":\"actql-config/0.1\",\"connectors\":\"connectors.json\",\"model_tasks\":\"model-tasks.json\"}",
+  )
+  let matches = command().parse(argv=["check", "never-read.aql"])
+  let rejected = try {
+    let selected = local_project_read_execution_bindings(Some(project), "check")
+      .unwrap()
+    local_project_apply_selection(matches, selected)
+    false
+  } catch {
+    ClientStop(reason) => reason == "InvalidProjectBindings"
+  }
+  assert_true(rejected)
+  assert_eq(required(matches, "mode"), "remote")
+  assert_eq(optional(matches, "state-dir"), None)
 }
 
 ///|

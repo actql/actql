@@ -478,7 +478,7 @@ fn measure_prepared_client_compilation_construction_owned(
         }
         let projection = match
           measure_client_task_result_input_projection(
-            graph, edge, index, source_node, source_port,
+            graph, index, source_node, source_port,
           ) {
           Ok(value) => value
           Err(issue) => return Err(TaskGraph(issue))
@@ -495,7 +495,7 @@ fn measure_prepared_client_compilation_construction_owned(
             )
             (
               client_compilation_result_input_node_id(index),
-              match client_task_result_input_port(graph, edge) {
+              match @strategy_view.graph_result_input_port(graph, index) {
                 Ok(Some(port)) => client_task_result_input_output(port)
                 _ => return Err(TaskGraph(InvalidEdge))
               },

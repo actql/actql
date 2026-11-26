@@ -29,7 +29,7 @@ const seal = body => ({...body, self_cid: cid(body)});
 const json = async path => JSON.parse(await readFile(path, 'utf8'));
 const write = (path, body, flag = 'wx') => writeFile(path, canonicalText(body), {mode: 0o600, flag});
 
-async function configureModelTask({project, endpoint, certPath, assets, runtimeSha256, selection}) {
+async function configureModelTask({project, endpoint, certPath, dataPolicy, runtimeSha256, selection}) {
   const {prefix, taskId, model, token} = selection;
   const file = suffix => `${prefix}-${suffix}.json`;
   const keyFile = `${prefix}.key`;
@@ -93,7 +93,7 @@ async function configureModelTask({project, endpoint, certPath, assets, runtimeS
     [file('retention')]: retention[0].wire,
     [file('metadata')]: retention[1].wire,
     [file('clock')]: retention[2].wire,
-    [file('data')]: assets['result-policy'],
+    [file('data')]: dataPolicy,
   };
   for (const [name, body] of Object.entries(originalWires))
     await writeFile(join(project, name), body, {mode: 0o600, flag: 'wx'});
@@ -113,7 +113,7 @@ async function configureModelTask({project, endpoint, certPath, assets, runtimeS
   }};
 }
 
-async function configureModelProject({project, endpoint, certPath, assets, runtimeSha256, selections, joined}) {
+async function configureModelProject({project, endpoint, certPath, assets, runtimeSha256, selections, joined, omitUsageRead = false}) {
   const environmentPath = join(project, 'environment.json');
   const environment = await json(environmentPath);
   assert.deepEqual(environment.model_task_contracts, []);
@@ -125,9 +125,10 @@ async function configureModelProject({project, endpoint, certPath, assets, runti
   environment.evidence_bundle_cid = cid(environment);
   await write(environmentPath, environment, 'w');
 
+  const dataPolicy = joined ? canonicalText(joined.modelRawDataPolicy) : assets['result-policy'];
   const configured = [];
   for (const selection of selections) {
-    configured.push(await configureModelTask({project, endpoint, certPath, assets, runtimeSha256, selection}));
+    configured.push(await configureModelTask({project, endpoint, certPath, dataPolicy, runtimeSha256, selection}));
   }
   const configPath = join(project, 'operator.json');
   const config = await json(configPath);
@@ -154,8 +155,10 @@ async function configureModelProject({project, endpoint, certPath, assets, runti
     }}});
     local.source_file = 'source-installation.json';
     local.installation_files.push(local.source_file);
-    account.entries.unshift(...joined.resources.map(resource => allow(`bounded-file-${resource}`, joined.connection,
-      `connector://${joined.connection}/${resource}#records`, ['read'])));
+    const readable = omitUsageRead ? joined.resources.filter(resource => resource !== 'usage') : joined.resources;
+    if (omitUsageRead) assert.deepEqual(readable, ['accounts']);
+    account.entries.unshift(...readable.map(resource => allow(`bounded-file-${resource}`, joined.connection,
+      resource, ['read'])));
   }
   await write(configPath, config, 'w');
   await write(accountPath, account, 'w');
@@ -227,11 +230,22 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       const n = calls.length + 1;
       const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
       const selected = selections.find(({model}) => model === body.model);
-      const messages = JSON.stringify(body.messages);
-      const markers = joined ? joined.inputMarkers : [`original input ${n}`];
+      let notesMatch;
+      if (joined) {
+        assert(Array.isArray(body.messages), 'JOIN request did not contain the admitted Chat messages');
+        assert.deepEqual(body.messages.map(message => message?.role), ['system', 'user']);
+        const [{content: system}, {content: user}] = body.messages;
+        assert.equal(typeof system, 'string');
+        assert.equal(typeof user, 'string');
+        assert.deepEqual(JSON.parse(user), joined.expectedInput);
+        notesMatch = true;
+      } else {
+        const messages = JSON.stringify(body.messages);
+        notesMatch = typeof messages === 'string' && messages.includes(`original input ${n}`);
+      }
       const call = {method: request.method, path: request.url,
         authorized: selected !== undefined && request.headers.authorization === 'Bearer ' + selected.token,
-        model: body.model, notesMatch: typeof messages === 'string' && markers.every(marker => messages.includes(marker))};
+        model: body.model, notesMatch};
       calls.push(call);
       assert.deepEqual(call, {method: 'POST', path: completionPath, authorized: true, model: selected?.model,
         notesMatch: true});
@@ -272,13 +286,13 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
     const originals = await configureModelProject({project, endpoint, certPath, assets, runtimeSha256, selections, joined});
     const tasks = originals.map(({task}) => task);
     const custodyOptions = joined ? await joinedCustodyOptions(project, tasks) : null;
-    async function cli(phase, args) {
+    async function cli(phase, args, {cwd = project, config = configuration} = {}) {
       const record = {phase, args, physicalRequests: calls.length};
       records.push(record);
       try {
-        const projectSelection = phase === 'adopt' ? [] : ['--config', 'actql.config.json'];
-        const result = await captureNativeMockCommand(binary, [...configuration, ...projectSelection, ...args], {
-          cwd: project, env: joined && phase === 'run-1' ?
+        const projectSelection = args[0] === 'adopt' ? [] : ['--config', 'actql.config.json'];
+        const result = await captureNativeMockCommand(binary, [...config, ...projectSelection, ...args], {
+          cwd, env: joined && phase === 'run-1' ?
             {...environment, ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: 'model-confirmations'} : environment,
           stderrPath: join(root, `${phase}.stderr`),
           timeout: 90_000, maxBuffer: 65_536,
@@ -310,6 +324,42 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       assert.equal(calls.length, n);
       assert.deepEqual(connections, {tcp: n, tls: n});
     };
+    const protectedChecks = [];
+    async function requireProtectedCheck(phase, file, selection) {
+      const observed = await cli(phase, ['check', file, '--format', 'json', '--json'], selection);
+      const check = JSON.parse(observed.stdout);
+      assert.equal(check.outcome, 'completed');
+      assert.equal(check.report.verdict, 'undetermined');
+      assert.deepEqual(check.report.coverage, {
+        limits: [], unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}],
+      });
+      assert.deepEqual(check.report.runnable, {reasons: [{code: 'unresolved_protected'}], verdict: 'no'});
+      assert.deepEqual(check.report.reasons, []);
+      assert.deepEqual(observed.events, []);
+      requireSends(0);
+      protectedChecks.push({phase, pid: observed.pid, firstClose: observed.firstClose,
+        verdict: check.report.verdict, coverage: check.report.coverage, runnable: check.report.runnable});
+    }
+    if (joined) {
+      const omittedView = structuredClone(joined.program);
+      delete omittedView.stages[0].inputs.usage.view;
+      const omittedFile = 'joined-omitted-view.json';
+      await write(join(project, omittedFile), omittedView);
+      await requireProtectedCheck('check-omitted-view', omittedFile);
+      await unlink(join(project, omittedFile));
+
+      // Adoption precedes Check on this independently scoped refused Account.
+      const deniedProject = join(root, 'denied-file-read-project');
+      const {configuration: deniedConfig} = await prepareProject(deniedProject);
+      const deniedSelection = {cwd: deniedProject, config: deniedConfig};
+      await configureModelProject({project: deniedProject, endpoint, certPath, assets,
+        runtimeSha256, selections, joined, omitUsageRead: true});
+      assert.equal(JSON.parse((await cli('adopt-denied-file-read',
+        ['adopt', '--initialize-signing', '--json'], deniedSelection)).stdout).kind, 'local_host_adopted');
+      requireSends(0);
+      await write(join(deniedProject, 'joined.json'), joined.program);
+      await requireProtectedCheck('check-denied-file-read', 'joined.json', deniedSelection);
+    }
     const programs = joined ? [{file: 'joined.json', program: joined.program, rows: joined.expectedRows,
       sends: expectedSends}] : [1, 2, 3].map(n => ({
       file: `infer-${n}.json`, program: program(selections[0].taskId, n),
@@ -336,6 +386,7 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       requireSends(sends);
       const observeCustody = custodyOptions ? () => inspectNativeModelCustody({
         ...custodyOptions, runId: state.run_id, attempts,
+        expectedPolicyWire: canonicalText(joined.modelRawDataPolicy), expectedResponseViews: joined.modelRawResponseViews,
       }) : null;
       const custody = observeCustody ? await observeCustody() : null;
       const accounting = custody ? requireNativeModelAccounting(started.accounting, custody,
@@ -362,7 +413,8 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
     assert.equal(new Set(runs.map(run => run.runId)).size, programs.length);
     assert.equal(new Set(runs.flatMap(run => run.attempts ?? [run.call])).size, expectedSends);
     assert.equal(new Set(phases.map(phase => phase.pid)).size, phases.length);
-    return {image: modelImage, fixture: 'controlled-loopback-tls', phases, runs, calls, connections};
+    return {image: modelImage, fixture: 'controlled-loopback-tls', phases, runs, calls, connections,
+      ...(joined ? {protectedChecks} : {})};
   } finally {
     for (const socket of sockets) socket.destroy();
     if (server.listening) await new Promise(resolve => server.close(resolve));

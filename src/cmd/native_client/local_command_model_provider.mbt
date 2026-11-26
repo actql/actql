@@ -90,12 +90,30 @@ fn LocalCommandModelRun::open_model_component(
   suffix : @execution.GeneratedSequence?,
   inputs : Array[@local_compute.ManagedProviderInput],
 ) -> Result[@infer.Execution, @local_host.NativeClientMockModelIssue] {
+  let sources = self.whole_inputs.bind(values => values.sources.get(index))
+  let graph = self.graphs[index]
+  let (task, _, _) = @run_host.client_infer_occurrence_coordinates(
+    graph.occurrence,
+  )
+  let count = @run_host.client_infer_occurrence_result_import_count(
+    graph.occurrence,
+  )
+  let bindings = if sources is Some(_) && count > 0 {
+    guard self.whole_inputs is Some(original) &&
+      original.pending is Some((selected, bindings)) &&
+      selected == task &&
+      bindings.length() == count else {
+      return Err(ForeignOriginal)
+    }
+    Some((original, bindings))
+  } else {
+    None
+  }
   guard self.reads[index] is None &&
-    (self.requirements is Some(_) || self.whole_sources is Some(_)) else {
+    (self.requirements is Some(_) || sources is Some(_)) else {
     return Err(ForeignOriginal)
   }
   let scope = self.scopes[index]
-  let graph = self.graphs[index]
   let retained = limits.mapping.logical.max_live_value_bytes
   let execution = limits.identity.wire.max_bytes.to_int64()
   let read = match
@@ -128,7 +146,7 @@ fn LocalCommandModelRun::open_model_component(
       execution,
       retained,
       execution,
-      sources=self.whole_sources,
+      sources~,
       input_body_read=Some(read),
       inputs~,
       compiled_prefix=true,
@@ -136,4 +154,29 @@ fn LocalCommandModelRun::open_model_component(
     )
   })
   .bind(_ => work.borrow_opened_original_model())
+  .bind(active => {
+    if bindings is Some((original, bindings)) {
+      for index, (slot, artifact, manifest) in bindings {
+        if slot != index {
+          return Err(ForeignOriginal)
+        }
+        match
+          @infer.bind_whole_result_artifact_input(
+            active, slot, artifact, manifest,
+          ) {
+          Err(issue) => return Err(Model(issue))
+          Ok(_) => ()
+        }
+      }
+      guard self.whole_inputs is Some(current) &&
+        physical_equal(current, original) &&
+        current.pending is Some((selected, retained)) &&
+        selected == task &&
+        physical_equal(retained, bindings) else {
+        return Err(ForeignOriginal)
+      }
+      current.pending = None
+    }
+    Ok(active)
+  })
 }

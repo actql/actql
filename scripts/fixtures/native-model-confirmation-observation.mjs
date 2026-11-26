@@ -40,6 +40,7 @@ function parseRaw(original) {
   return {
     identity: original.self_cid, attempt: original.attempt_cid, slot: original.slot_cid,
     scope: original.scope_cid, definition: original.run_definition_cid, authority: original.store_authority_cid,
+    effectivePolicy: original.effective_data_policy_cid, capturePolicy: original.raw_capture_policy_cid,
     profile: original.response_profile_cid, content: original.content_cid, bytes: original.byte_count,
     status: original.http_status, eof: original.transport_eof,
   };
@@ -94,6 +95,7 @@ export function requireNativeRawReceipts(observed, custody, selectedByTask) {
   assert.equal(observed.length, custody.observed.length);
   const byAttempt = new Map(observed.map(row => [row.attempt, row]));
   assert.equal(byAttempt.size, observed.length, 'Repeated Native Raw receipt');
+  assert.equal(new Set(observed.map(row => row.capturePolicy)).size, observed.length, 'Repeated Native Raw capture policy');
   return custody.observed.map(({attempt, task, slot, scope, rawHolding}) => {
     const row = byAttempt.get(attempt);
     assert(row, 'Missing Native Raw receipt for the original attempt');
@@ -101,6 +103,7 @@ export function requireNativeRawReceipts(observed, custody, selectedByTask) {
     assert.equal(row.scope, scope);
     assert.equal(row.definition, custody.definition);
     assert.equal(row.authority, custody.authority);
+    assert.equal(row.effectivePolicy, custody.policy.policyCid);
     const response = {profile: row.profile, content: row.content, bytes: row.bytes, status: row.status, eof: row.eof};
     assert.deepEqual(response, selectedByTask.get(task));
     return {attempt, task, evidenceCid: row.identity, holding: rawHolding, ...response};

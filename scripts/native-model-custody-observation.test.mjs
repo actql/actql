@@ -23,6 +23,18 @@ async function writeControlledRecords(t) {
   const provider = 'models/http';
   const attempts = ['first', 'second'].map(name => knownCid(name + ' attempt'));
   const tasks = ['first', 'second'].map(name => knownCid(name + ' task'));
+  const policyBodies = ['accounts', 'usage'].map(name => {
+    const source = {classification: 'internal', minimum_classification: null,
+      source_data_policy_cid: knownCid(name + ' declared policy'), source_ref: 'connector://files/native-fixture/' + name + '#records',
+      source_view_contract_cid: knownCid(name + ' view'), version: 'actql-source-response-policy/0.1'};
+    return {body: JSON.stringify(source), source};
+  });
+  const expectedResponseViews = new Map(policyBodies.map(({body, source}) =>
+    [knownCid(body), source.source_view_contract_cid]));
+  const expectedPolicyWire = JSON.stringify({classification: 'unknown',
+    source_data_policy_cids: policyBodies.map(({source}) => source.source_data_policy_cid).sort(),
+    source_response_policy_cids: [...expectedResponseViews.keys()].sort(),
+    unknown_provenance: true, version: 'actql-effective-data-policy/0.1'});
   const records = [];
   const store = new DatabaseSync(storePath);
   let rawKey;
@@ -82,11 +94,17 @@ async function writeControlledRecords(t) {
     journal.exec(recordTable);
     records.push(['client_runs', knownCid('journal run'), Buffer.from(JSON.stringify({
       publication_binding: storeBinding, run_definition: JSON.stringify({run_id: runId, run_definition_cid: definition}),
+      publication_policy_originals: JSON.stringify({
+        bodies: [expectedPolicyWire, ...policyBodies.map(({body}) => body)]
+          .map(body => ({body, cid: knownCid(body), kind: 'data_policy'})),
+        root_policy_cid: knownCid(expectedPolicyWire),
+      }),
     }))]);
     const putRecord = journal.prepare('INSERT INTO actql_records VALUES (?, ?, 0, ?)');
     for (const record of records) putRecord.run(...record);
   } finally { journal.close(); }
-  return {query: {journalPath, storePath, runId, attempts, tasks, authority, namespace, provider}, rawKey};
+  return {query: {journalPath, storePath, runId, attempts, tasks, authority, namespace, provider,
+    expectedPolicyWire, expectedResponseViews}, rawKey};
 }
 
 test('Model custody joins both original attempts to their admitted tasks and retained Store cells', async t => {
@@ -96,6 +114,11 @@ test('Model custody joins both original attempts to their admitted tasks and ret
   assert(before.observed.every(item => item.evidence.length === 7));
   assert.equal(new Set(before.observed.map(item => item.rawHolding)).size, 2);
   assert.deepEqual(await inspectNativeModelCustody(query), before);
+  assert.equal(before.policy.policyCid, knownCid(query.expectedPolicyWire));
+  await assert.rejects(inspectNativeModelCustody({...query, expectedPolicyWire: query.expectedPolicyWire + ' '}),
+    {code: 'ERR_ASSERTION'});
+  const swapped = new Map([...query.expectedResponseViews].map(([key], i, views) => [key, views[1 - i][1]]));
+  await assert.rejects(inspectNativeModelCustody({...query, expectedResponseViews: swapped}), {code: 'ERR_ASSERTION'});
   const foreign = knownCid('foreign');
   await assert.rejects(inspectNativeModelCustody({...query, runId: foreign}), {code: 'ERR_ASSERTION'});
   await assert.rejects(inspectNativeModelCustody({...query, attempts: [query.attempts[0], foreign]}),
