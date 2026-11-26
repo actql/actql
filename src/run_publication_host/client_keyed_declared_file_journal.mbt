@@ -709,6 +709,7 @@ fn prepare_declared_file_lookup_dependencies(
   // Per-member controls, spare slots, text and parser/workspace follow below.
   with_keyed_dependency_collection(
     lookup,
+    NativeDependencyCollection,
     max_nodes,
     max_depth,
     fn(phase) {
@@ -787,26 +788,6 @@ fn prepare_declared_file_lookup_dependencies(
         Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
       }
       cursor.seal(lookup, bodies)
-    },
-    bodies => {
-      guard !lookup.closed &&
-        lookup.left.lookup_issue is None &&
-        lookup.native_completion is Some(same) &&
-        physical_equal(same, completed) &&
-        state.dependency_bodies is None else {
-        return Err(Assembly("retired_declared_file_dependency_entry"))
-      }
-      state.dependency_bodies = Some(bodies)
-      Ok(())
-    },
-    () => {
-      guard lookup.native_sources is Some(original) &&
-        physical_equal(original, state) &&
-        lookup.native_completion is Some(same) &&
-        physical_equal(same, completed) else {
-        return Err(Assembly("retired_declared_file_dependency_entry"))
-      }
-      Ok(state.dependency_bodies)
     },
   )
 }

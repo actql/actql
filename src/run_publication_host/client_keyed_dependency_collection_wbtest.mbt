@@ -5,11 +5,23 @@ priv enum DependencyCollectionCase {
   SameBodyCopy
   ReplaceBeforeAdopt
   ReplaceAfterAdopt
+  PairCopyWithOriginal
   ForeignLookup
   ForeignPhase
   SettlementRefused
   OneShort
   CleanupPending
+}
+
+///|
+fn keyed_dependency_collection_native_owner(
+  lookup : ClientKeyedLookupInput,
+) -> ClientKeyedNativeSourceState raise {
+  guard lookup.left.composed is Some(left) &&
+    left.origin is SourceEffectOrigin(parent) else {
+    fail("original checked Source and Request")
+  }
+  keyed_lookup_source_metadata_state(lookup, parent.request).unwrap()
 }
 
 ///|
@@ -24,11 +36,7 @@ fn exercise_keyed_dependency_collection(
     (lookup, () => true)
   }
   defer assert_true(close_foreign())
-  guard lookup.left.composed is Some(left) &&
-    left.origin is SourceEffectOrigin(parent) else {
-    fail("original checked Source and Request")
-  }
-  let owner = keyed_lookup_source_metadata_state(lookup, parent.request).unwrap()
+  let owner = keyed_dependency_collection_native_owner(lookup)
   let authority = if case is ForeignLookup { foreign } else { lookup }
   let other_phase = if case is ForeignLookup || case is ForeignPhase {
     Some(grow_keyed_lookup_protocol_metadata(authority, 1, 16L).unwrap())
@@ -41,98 +49,121 @@ fn exercise_keyed_dependency_collection(
   let blocker = Ref(None)
   let peak = Ref((0L, 0L))
   let builds = Ref(0)
-  let adoptions = Ref(0)
-  let reads = Ref(0)
-  let same_owner = Ref(true)
-  let original_before_replacement = Ref(false)
   let depth = 8
   let nodes = if case is SettlementRefused { 1 } else { 32 }
-  let result = with_keyed_dependency_collection(
-    lookup,
-    nodes,
-    depth,
-    phase => {
-      builds.val += 1
-      let issued_phase = other_phase.unwrap_or(phase)
-      let cursor = begin_keyed_dependency_serial_cursor(authority, issued_phase).unwrap()
-      let body = measured_test_body(authority, cursor, "{\"x\":\"é\"}", 2)
-      let bodies = [body]
-      cursor.record_body(authority, bodies, 32).unwrap()
-      if case is SettlementRefused {
-        // The valid same body can occur in the unmeasured suffix. The
-        // final extent walk still uses its independent one-node limit.
-        bodies.push(body)
-      }
-      original.val = Some(bodies)
-      let completion = cursor.seal(authority, bodies).unwrap()
-      if case is ReplaceBeforeAdopt {
-        let occupied = bodies.copy()
-        replacement.val = Some(occupied)
-        owner.dependency_bodies = Some(occupied)
-      }
-      peak.val = (lookup.retained_bytes, lookup.execution_bytes)
-      Ok(completion)
-    },
-    bodies => {
-      adoptions.val += 1
-      let installed = match case {
-        OtherArray => []
-        SameBodyCopy => bodies.copy()
-        _ => bodies
-      }
-      owner.dependency_bodies = Some(installed)
-      if case is OtherArray || case is SameBodyCopy {
-        replacement.val = Some(installed)
-      }
-      if case is Original || case is OneShort {
-        // The existing settlement walk's depth, fixed frames and measured
-        // witness controls. Keep all other execution headroom in a real
-        // Reservation so the second arm leaves exactly one byte less.
-        let frames = 4L * (depth.to_int64() + 1L) + 4L + 37L
-        let scratch = (12L + frames) * 16L +
-          (24L + 4L * frames + 16L + 4L * frames) * 8L
-        let usage = @resources.ledger_usage(lookup.ledger)
-        let limits = @resources.ledger_limits(lookup.ledger)
-        blocker.val = Some(
-          @resources.reserve_capacity(
-            lookup.ledger,
-            limits.retained_bytes -
-            usage.held_bytes -
-            usage.reserved_retention_bytes -
-            scratch,
-            limits.execution_bytes -
-            usage.reserved_execution_bytes -
-            scratch +
-            (if case is OneShort { 1L } else { 0L }),
-          ).unwrap(),
-        )
-      }
-      if case is CleanupPending {
-        @resources.mark_cleanup_pending(lookup.ledger, lookup.reservation).unwrap()
-      }
-      Ok(())
-    },
-    () => {
-      reads.val += 1
-      let actual = lookup.native_sources.unwrap()
-      same_owner.val = same_owner.val && physical_equal(owner, actual)
-      if reads.val == 2 && case is ReplaceAfterAdopt {
-        original_before_replacement.val = physical_equal(
-          actual.dependency_bodies.unwrap(),
-          original.val.unwrap(),
-        )
-        let substituted = original.val.unwrap().copy()
-        replacement.val = Some(substituted)
-        actual.dependency_bodies = Some(substituted)
-      }
-      Ok(actual.dependency_bodies)
-    },
-  )
-  assert_eq(builds.val, 1)
-  assert_true(same_owner.val)
-  if case is ReplaceAfterAdopt {
-    assert_true(original_before_replacement.val)
+  let build = fn(
+    phase : KeyedProtocolConstruction,
+  ) -> Result[KeyedDependencySerialCompletion, ClientKeyedRequestIssue] {
+    builds.val += 1
+    let issued_phase = other_phase.unwrap_or(phase)
+    let cursor = begin_keyed_dependency_serial_cursor(authority, issued_phase).unwrap()
+    let body = measured_test_body(authority, cursor, "{\"x\":\"é\"}", 2)
+    let bodies = [body]
+    cursor.record_body(authority, bodies, 32).unwrap()
+    if case is SettlementRefused {
+      // The valid same body can occur in the unmeasured suffix. The
+      // final extent walk still uses its independent one-node limit.
+      bodies.push(body)
+    }
+    original.val = Some(bodies)
+    let completion = cursor.seal(authority, bodies).unwrap()
+    if case is ReplaceBeforeAdopt {
+      let occupied = bodies.copy()
+      replacement.val = Some(occupied)
+      owner.dependency_bodies = Some(occupied)
+    }
+    if case is Original || case is OneShort {
+      // Keep all other execution headroom in a real Reservation.
+      let frames = 4L * (depth.to_int64() + 1L) + 4L + 37L
+      let scratch = (12L + frames) * 16L +
+        (24L + 4L * frames + 16L + 4L * frames) * 8L
+      let usage = @resources.ledger_usage(lookup.ledger)
+      let limits = @resources.ledger_limits(lookup.ledger)
+      blocker.val = Some(
+        @resources.reserve_capacity(
+          lookup.ledger,
+          limits.retained_bytes -
+          usage.held_bytes -
+          usage.reserved_retention_bytes -
+          scratch,
+          limits.execution_bytes -
+          usage.reserved_execution_bytes -
+          scratch +
+          (if case is OneShort { 1L } else { 0L }),
+        ).unwrap(),
+      )
+    }
+    peak.val = (lookup.retained_bytes, lookup.execution_bytes)
+    Ok(completion)
   }
+  let result = match case {
+    OtherArray
+    | SameBodyCopy
+    | ReplaceAfterAdopt
+    | PairCopyWithOriginal
+    | CleanupPending => {
+      // The actual setter and finalizer have no caller-supplied observer.
+      // Cut between them using their real selected slot and reservation.
+      let phase = grow_keyed_lookup_protocol_metadata(lookup, 1, 80L).unwrap()
+      lookup.growing = true
+      defer {
+        lookup.growing = false
+        phase.finished = true
+      }
+      let slot = select_keyed_dependency_slot(
+        lookup,
+        NativeDependencyCollection,
+      ).unwrap()
+      let completion = build(phase).unwrap()
+      validate_completed_keyed_dependencies(lookup, phase, completion).unwrap()
+      let original_bodies = original.val.unwrap()
+      match case {
+        OtherArray | SameBodyCopy => {
+          let substitute = if case is OtherArray {
+            []
+          } else {
+            original_bodies.copy()
+          }
+          replacement.val = Some(substitute)
+          adopt_keyed_dependency_slot(lookup, slot, substitute).unwrap()
+        }
+        _ => {
+          adopt_keyed_dependency_slot(lookup, slot, original_bodies).unwrap()
+          assert_true(
+            physical_equal(owner.dependency_bodies.unwrap(), original_bodies),
+          )
+          if case is CleanupPending {
+            @resources.mark_cleanup_pending(lookup.ledger, lookup.reservation).unwrap()
+          } else {
+            let substitute = original_bodies.copy()
+            owner.dependency_bodies = Some(substitute)
+            replacement.val = Some(substitute)
+            if case is PairCopyWithOriginal {
+              // The independent read used by the old API could still
+              // hand back this exact expected Array while lying about its slot.
+              let detached_observer = () => original.val
+              assert_true(
+                physical_equal(detached_observer().unwrap(), original_bodies),
+              )
+            }
+          }
+        }
+      }
+      settle_keyed_dependency_slot(
+        lookup, phase, slot, completion, nodes, depth,
+      )
+    }
+    _ =>
+      with_keyed_dependency_collection(
+        lookup,
+        NativeDependencyCollection,
+        nodes,
+        depth,
+        build,
+      )
+  }
+  assert_eq(builds.val, 1)
+  assert_true(physical_equal(lookup.native_sources.unwrap(), owner))
   assert_true(
     !lookup.growing && @resources.reservation_open(lookup.reservation),
   )
@@ -146,7 +177,6 @@ fn exercise_keyed_dependency_collection(
   match case {
     Original => {
       result.unwrap()
-      assert_eq((adoptions.val, reads.val), (1, 2))
       assert_true(
         physical_equal(owner.dependency_bodies.unwrap(), original.val.unwrap()),
       )
@@ -160,30 +190,19 @@ fn exercise_keyed_dependency_collection(
     }
     ForeignLookup | ForeignPhase => {
       assert_true(result is Err(Assembly("foreign_dependency_cursor")))
-      assert_eq((adoptions.val, reads.val), (0, 0))
       assert_true(owner.dependency_bodies is None)
     }
-    ReplaceBeforeAdopt => {
+    ReplaceBeforeAdopt =>
       assert_true(result is Err(Assembly("occupied_dependency_array_slot")))
-      assert_eq((adoptions.val, reads.val), (0, 1))
-    }
-    OtherArray | SameBodyCopy | ReplaceAfterAdopt => {
+    OtherArray | SameBodyCopy | ReplaceAfterAdopt | PairCopyWithOriginal =>
       assert_true(result is Err(Assembly("foreign_adopted_dependency_array")))
-      assert_eq((adoptions.val, reads.val), (1, 2))
-    }
-    SettlementRefused => {
+    SettlementRefused =>
       // The completed body is valid. Add a genuine returned unmeasured
       // body below a one-node final extent allowance before this check.
       assert_true(result is Err(Identity(@publication.Contract(Encoding))))
-      assert_eq((adoptions.val, reads.val), (1, 2))
-    }
-    OneShort => {
-      assert_true(result is Err(Physical(@resources.ExecutionLimit)))
-      assert_eq((adoptions.val, reads.val), (1, 2))
-    }
+    OneShort => assert_true(result is Err(Physical(@resources.ExecutionLimit)))
     CleanupPending => {
       assert_true(result is Err(Assembly("retired_dependency_cursor")))
-      assert_eq((adoptions.val, reads.val), (1, 2))
       assert_true(@resources.reservation_pending(lookup.reservation))
     }
   }
@@ -198,7 +217,9 @@ fn exercise_keyed_dependency_collection(
     )
     if replacement.val is Some(array) {
       assert_true(physical_equal(owner.dependency_bodies.unwrap(), array))
-    } else if adoptions.val == 1 {
+    } else if case is SettlementRefused ||
+      case is OneShort ||
+      case is CleanupPending {
       assert_true(
         physical_equal(owner.dependency_bodies.unwrap(), original.val.unwrap()),
       )
@@ -238,6 +259,11 @@ test "keyed dependency collection refuses a replacement immediately before adopt
 ///|
 test "keyed dependency collection refuses a replacement after adoption" {
   exercise_keyed_dependency_collection(ReplaceAfterAdopt)
+}
+
+///|
+test "keyed dependency collection refuses a stored copy paired with an original Array observation" {
+  exercise_keyed_dependency_collection(PairCopyWithOriginal)
 }
 
 ///|

@@ -136,31 +136,160 @@ fn validate_completed_keyed_dependencies(
 }
 
 ///|
+// Both operations use the same slot of the actual original owner. This
+// temporary selection holds neither a new reservation nor publication rights.
+priv enum KeyedDependencyCollectionKind {
+  NativeDependencyCollection
+  GenericDependencyCollection
+}
+
+///|
+priv enum KeyedDependencyCollectionSlot {
+  NativeDependencySlot(
+    ClientKeyedNativeSourceState,
+    ClientKeyedNativeCompletion?
+  )
+  GenericDependencySlot(
+    ClientEffectKeyedOriginal,
+    ClientEffectKeyedGenericState,
+    ClientEffectKeyedGenericCompletion
+  )
+}
+
+///|
+fn select_keyed_dependency_slot(
+  lookup : ClientKeyedLookupInput,
+  kind : KeyedDependencyCollectionKind,
+) -> Result[KeyedDependencyCollectionSlot, ClientKeyedRequestIssue] {
+  match kind {
+    NativeDependencyCollection => {
+      guard lookup.native_sources is Some(state) else {
+        return Err(Assembly("retired_declared_file_dependency_entry"))
+      }
+      Ok(NativeDependencySlot(state, lookup.native_completion))
+    }
+    GenericDependencyCollection => {
+      guard lookup.left.composed is Some(original) &&
+        original.origin is SourceEffectOrigin(parent) &&
+        parent.generic is Some(state) &&
+        physical_equal(state.lookup, lookup) &&
+        state.completed is Some(completed) else {
+        return Err(Assembly("retired_generic_dependency_entry"))
+      }
+      Ok(GenericDependencySlot(parent, state, completed))
+    }
+  }
+}
+
+///|
+fn read_keyed_dependency_slot(
+  lookup : ClientKeyedLookupInput,
+  slot : KeyedDependencyCollectionSlot,
+) -> Result[
+  Array[@publication.CapturedEffectDependencyBody]?,
+  ClientKeyedRequestIssue,
+] {
+  match slot {
+    NativeDependencySlot(state, completed) => {
+      let current = match (lookup.native_completion, completed) {
+        (Some(actual), Some(original)) => physical_equal(actual, original)
+        (None, None) => true
+        _ => false
+      }
+      guard current &&
+        lookup.native_sources is Some(actual) &&
+        physical_equal(actual, state) else {
+        return Err(Assembly("retired_declared_file_dependency_entry"))
+      }
+      Ok(state.dependency_bodies)
+    }
+    GenericDependencySlot(parent, state, completed) => {
+      guard lookup.left.composed is Some(original) &&
+        original.origin is SourceEffectOrigin(current_parent) &&
+        physical_equal(current_parent, parent) &&
+        parent.generic is Some(actual) &&
+        physical_equal(actual, state) &&
+        physical_equal(actual.lookup, lookup) &&
+        actual.completed is Some(current) &&
+        physical_equal(current, completed) else {
+        return Err(Assembly("retired_generic_dependency_entry"))
+      }
+      Ok(state.bodies)
+    }
+  }
+}
+
+///|
+fn adopt_keyed_dependency_slot(
+  lookup : ClientKeyedLookupInput,
+  slot : KeyedDependencyCollectionSlot,
+  bodies : Array[@publication.CapturedEffectDependencyBody],
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  match read_keyed_dependency_slot(lookup, slot) {
+    Err(issue) => return Err(issue)
+    Ok(Some(_)) => return Err(Assembly("occupied_dependency_array_slot"))
+    Ok(None) => ()
+  }
+  match slot {
+    NativeDependencySlot(state, _) => state.dependency_bodies = Some(bodies)
+    GenericDependencySlot(_, state, _) => state.bodies = Some(bodies)
+  }
+  Ok(())
+}
+
+///|
+fn settle_keyed_dependency_slot(
+  lookup : ClientKeyedLookupInput,
+  phase : KeyedProtocolConstruction,
+  slot : KeyedDependencyCollectionSlot,
+  completion : KeyedDependencySerialCompletion,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  let adopted = match read_keyed_dependency_slot(lookup, slot) {
+    Err(issue) => return Err(issue)
+    Ok(Some(value)) if physical_equal(value, completion.bodies) => value
+    Ok(_) => return Err(Assembly("foreign_adopted_dependency_array"))
+  }
+  match validate_completed_keyed_dependencies(lookup, phase, completion) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let dependencies = if completion.serial_range is Some(_) {
+    Measured(completion)
+  } else {
+    Unmeasured(adopted)
+  }
+  lookup.growing = false
+  finish_keyed_lookup_protocol_metadata(
+    lookup,
+    phase,
+    max_nodes,
+    max_depth,
+    [],
+    dependencies~,
+  )
+}
+
+///|
 // Keep the construction fence across adoption and the read back from the
 // actual Owner slot. A refused adoption, observation or measurement leaves
 // the charges and any installed Array on the original cleanup owner.
 fn with_keyed_dependency_collection(
   lookup : ClientKeyedLookupInput,
+  kind : KeyedDependencyCollectionKind,
   max_nodes : Int,
   max_depth : Int,
   build : (KeyedProtocolConstruction) -> Result[
     KeyedDependencySerialCompletion,
     ClientKeyedRequestIssue,
   ],
-  adopt : (Array[@publication.CapturedEffectDependencyBody]) -> Result[
-    Unit,
-    ClientKeyedRequestIssue,
-  ],
-  observe : () -> Result[
-    Array[@publication.CapturedEffectDependencyBody]?,
-    ClientKeyedRequestIssue,
-  ],
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   if !keyed_dependency_cursor_reservation_live(lookup) {
     return Err(Assembly("retired_dependency_cursor"))
   }
-  // The single completion and the post-adoption Result and slot borrow
-  // coexist with the original collector controls until settlement.
+  // The original slot selection (up to H1/R3), its Result, the completion
+  // and the read-back Result are temporary within the same funded frame.
   let controls = @execution.preparation_representation_cost({
     record_headers: 4L,
     reference_slots: 8L,
@@ -193,6 +322,10 @@ fn with_keyed_dependency_collection(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  let slot = match select_keyed_dependency_slot(lookup, kind) {
+    Err(issue) => return Err(issue)
+    Ok(slot) => slot
+  }
   let completion = match build(phase) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -201,37 +334,12 @@ fn with_keyed_dependency_collection(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match observe() {
-    Err(issue) => return Err(issue)
-    Ok(Some(_)) => return Err(Assembly("occupied_dependency_array_slot"))
-    Ok(None) => ()
-  }
-  match adopt(completion.bodies) {
+  match adopt_keyed_dependency_slot(lookup, slot, completion.bodies) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  let adopted = match observe() {
-    Err(issue) => return Err(issue)
-    Ok(Some(value)) if physical_equal(value, completion.bodies) => value
-    Ok(_) => return Err(Assembly("foreign_adopted_dependency_array"))
-  }
-  match validate_completed_keyed_dependencies(lookup, phase, completion) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  let dependencies = if completion.serial_range is Some(_) {
-    Measured(completion)
-  } else {
-    Unmeasured(adopted)
-  }
-  lookup.growing = false
-  finish_keyed_lookup_protocol_metadata(
-    lookup,
-    phase,
-    max_nodes,
-    max_depth,
-    [],
-    dependencies~,
+  settle_keyed_dependency_slot(
+    lookup, phase, slot, completion, max_nodes, max_depth,
   )
 }
 

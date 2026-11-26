@@ -567,6 +567,9 @@ fn prepare_client_effect_keyed_generic_dependencies(
     !lookup.closed &&
     lookup.holding is None &&
     lookup.left.lookup_issue is None &&
+    parent.generic is Some(original) &&
+    physical_equal(original, state) &&
+    physical_equal(original.lookup, lookup) &&
     state.bodies is None &&
     state.completed is Some(same) &&
     physical_equal(same, completed) else {
@@ -577,6 +580,7 @@ fn prepare_client_effect_keyed_generic_dependencies(
   // retained baseline merely because the collector used them first.
   with_keyed_dependency_collection(
     lookup,
+    GenericDependencyCollection,
     max_nodes,
     max_depth,
     fn(phase) {
@@ -688,27 +692,6 @@ fn prepare_client_effect_keyed_generic_dependencies(
         Some(cursor) => cursor.seal(lookup, bodies)
         None => complete_unmeasured_keyed_dependencies(lookup, phase, bodies)
       }
-    },
-    bodies => {
-      guard !lookup.closed &&
-        lookup.left.lookup_issue is None &&
-        state.completed is Some(same) &&
-        physical_equal(same, completed) &&
-        state.bodies is None else {
-        return Err(Assembly("retired_generic_dependency_entry"))
-      }
-      state.bodies = Some(bodies)
-      Ok(())
-    },
-    () => {
-      guard parent.generic is Some(original) &&
-        physical_equal(original, state) &&
-        physical_equal(original.lookup, lookup) &&
-        state.completed is Some(same) &&
-        physical_equal(same, completed) else {
-        return Err(Assembly("retired_generic_dependency_entry"))
-      }
-      Ok(state.bodies)
     },
   )
 }
