@@ -8,10 +8,10 @@ import {codexHookResponse} from './codex-local-checks-hook.mjs';
 import {claudeHookResponse} from './claude-local-checks-hook.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const event = command => ({hook_event_name: 'PreToolUse', tool_name: 'Bash',
+const event = (command: string) => ({hook_event_name: 'PreToolUse', tool_name: 'Bash',
   cwd: root, tool_input: {command}});
 // Run every shared input case against both explicitly named protocol adapters.
-const hookResponse = payload => {
+const hookResponse = (payload: unknown) => {
   const codex = codexHookResponse(payload);
   assert.deepEqual(claudeHookResponse(payload), codex);
   return codex;
@@ -20,7 +20,7 @@ const hookResponse = payload => {
 test('PreToolUse blocks simple full Moon commands with supported deny JSON only', () => {
   for (const command of ['moon test', 'moon test --target js --deny-warn',
     'moon test --filter selected', 'moon build --target native --release']) {
-    const response = hookResponse(event(command));
+    const response = hookResponse(event(command))!;
     assert.deepEqual(Object.keys(response), ['hookSpecificOutput']);
     assert.deepEqual(Object.keys(response.hookSpecificOutput),
       ['hookEventName', 'permissionDecision', 'permissionDecisionReason']);
@@ -49,7 +49,7 @@ test('focused checks, reporting and unrelated commands make no hook decision', (
 });
 
 test('known-heavy job denies while preserving the selected target in guidance', () => {
-  const result = hookResponse(event('node scripts/local-checks.mjs run core --target wasm'));
+  const result = hookResponse(event('node scripts/local-checks.mjs run core --target wasm'))!;
   assert.match(result.hookSpecificOutput.permissionDecisionReason,
     /run core --allow-heavy --target wasm/u);
   assert.equal(classifyCommand('node scripts/local-checks.mjs run new-job').recognized, false);
@@ -60,7 +60,7 @@ test('CI-only pipeline job hooks deny execution with no heavy override route but
     for (const options of ['', ' --allow-heavy', ' --allow-heavy --timeout-seconds 30']) {
       const command = `node scripts/local-checks.mjs run ${name}${options}`;
       assert.equal(classifyCommand(command).classification, 'ci-only');
-      const result = hookResponse(event(command)).hookSpecificOutput;
+      const result = hookResponse(event(command))!.hookSpecificOutput;
       assert.equal(result.permissionDecision, 'deny');
       assert.match(result.permissionDecisionReason, /CI only/u);
       assert.match(result.permissionDecisionReason, /--allow-heavy cannot enable this job locally/u);
@@ -75,7 +75,7 @@ test('CI-only pipeline job hooks deny execution with no heavy override route but
 });
 
 test('unknown Moon options direct users to supported policy rather than a rejected override', () => {
-  const reason = hookResponse(event('moon test --future-option path')).
+  const reason = hookResponse(event('moon test --future-option path'))!.
     hookSpecificOutput.permissionDecisionReason;
   assert.match(reason, /unclassified arguments/u);
   assert.match(reason, /checkout root/u);
@@ -94,7 +94,7 @@ test('an explicit override belongs only to recognized wrapper options before --'
   }
   for (const command of ['moon test --allow-heavy',
     'node scripts/local-checks.mjs test moon -- --allow-heavy']) {
-    assert.equal(hookResponse(event(command)).hookSpecificOutput.permissionDecision, 'deny');
+    assert.equal(hookResponse(event(command))!.hookSpecificOutput.permissionDecision, 'deny');
   }
 });
 
@@ -133,13 +133,13 @@ test('personal hook is scoped to this checkout and only PreToolUse/Bash', () => 
     {...event('moon test'), cwd: root.replace(/\/$/u, '') + '-other'},
     {...event('moon test'), cwd: '/'}, {...event('moon test'), cwd: 'relative'},
     {...event('moon test'), cwd: undefined}]) assert.equal(hookResponse(payload), null);
-  assert.equal(hookResponse({...event('moon test'), cwd: root + 'src'}).
+  assert.equal(hookResponse({...event('moon test'), cwd: root + 'src'})!.
     hookSpecificOutput.permissionDecision, 'deny');
 });
 
 for (const client of ['codex', 'claude']) test(`${client} stdin adapter emits deny JSON or no decision without executing commands`, () => {
   const script = fileURLToPath(new URL(`./${client}-local-checks-hook.mjs`, import.meta.url));
-  const run = input => spawnSync(process.execPath, [script],
+  const run = (input: string) => spawnSync(process.execPath, [script],
     {input, encoding: 'utf8', timeout: 5000});
   const blocked = run(JSON.stringify(event('moon test')));
   assert.equal(blocked.status, 0);

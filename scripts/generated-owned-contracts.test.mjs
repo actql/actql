@@ -44,7 +44,7 @@ test('historical tests and documents cannot authorize generated production contr
 });
 
 test('reviewed local verification protocol cannot authorize a generated runtime token', () => {
-  const path = 'scripts/local-checks-guard.mjs';
+  const path = 'scripts/local-checks-guard.mts';
   const localSource = occurrences(readFileSync(new URL('../' + path, import.meta.url), 'utf8'), path);
   const localInventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
   assert.equal(localSource.length, 1);

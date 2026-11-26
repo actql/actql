@@ -8,16 +8,40 @@
 //   node scripts/local-checks.mjs changed [--base origin/main]
 //   node scripts/local-checks.mjs run <job> [--target js|wasm|native] [--dry-run]
 import {execFileSync} from 'node:child_process';
-import {existsSync, readFileSync} from 'node:fs';
-import {dirname, join, relative} from 'node:path';
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parse} from 'yaml';
 import {checkBudget, durationSeconds, runLocalCheck} from './local-checks-guard.mjs';
-import {ciOnlyPipelineJobs, classifyJob, classifyMoon} from './local-checks-policy.mjs';
+import {ciOnlyPipelineJobs, classifyJob, classifyMoon,
+  type LocalCheckPolicy} from './local-checks-policy.mjs';
+
+type WorkflowStep = {
+  id?: string;
+  name?: string;
+  run?: string;
+  env?: Record<string, string>;
+  timeoutMinutes?: number;
+};
+export type WorkflowJob = {
+  steps?: WorkflowStep[];
+  strategy?: {matrix?: {include?: {mutation: string; script: string}[]}};
+  'timeout-minutes'?: string | number;
+};
+type ExecutionOptions = {
+  '--allow-heavy'?: true;
+  '--dry-run'?: true;
+  '--target'?: string;
+  '--timeout-seconds'?: string;
+  '--kill-grace-seconds'?: string;
+};
+type Classification = Pick<LocalCheckPolicy, 'classification' | 'heavy'> &
+  Partial<Pick<LocalCheckPolicy, 'reason' | 'alternatives'>>;
+type LocalSteps = Parameters<typeof runLocalCheck>[0]['steps'];
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const workflow = parse(readFileSync(join(root, '.github/workflows/ci.yml'),
-  'utf8'));
+  'utf8')) as {jobs: Record<string, WorkflowJob>};
 // Jobs whose environment a developer machine does not provide.
 const ciOnly = new Map([
   ['native-macos', 'runs on macOS arm64 runners'],
@@ -29,30 +53,30 @@ const ciOnly = new Map([
   ['core-js', 'uses the hosted JS matrix; select the complete local core entrance'],
   ['core-common', 'uses the hosted Core matrix; select the complete local core entrance'],
   ['core-darwin', 'uses the hosted Darwin matrix; select the complete local core entrance'],
-  ...Object.entries(ciOnlyPipelineJobs),
+  ...Object.entries(ciOnlyPipelineJobs) as [string, string][],
 ]);
 const jobs = Object.entries(workflow.jobs)
-  .filter(([, job]) => Array.isArray(job.steps));
+  .filter(([, job]) => Array.isArray(job.steps)) as [string, WorkflowJob & {steps: WorkflowStep[]}][];
 
-function fail(message) {
+function fail(message: string): never {
   console.error(message);
   process.exit(2);
 }
 
-function option(name, fallback) {
+function option(name: string, fallback: string) {
   const index = process.argv.indexOf(name);
   return index < 0 ? fallback : process.argv[index + 1];
 }
 
 // Steps that only prepare a runner: installs and records of versions. A
 // developer's checkout keeps its own installed toolchain and dependencies.
-const preparation = step => /^(npm ci|moon version|node scripts\/setup-moonbit)/u
-  .test(step.run.trim()) || /^(Install|Record) /u.test(step.name ?? '');
+const preparation = (step: WorkflowStep) => /^(npm ci|moon version|node scripts\/setup-moonbit)/u
+  .test(step.run!.trim()) || /^(Install|Record) /u.test(step.name ?? '');
 
 // The commands of one job with its CI expressions resolved for this
 // checkout. Runner preparation (`uses:` and install steps) is left to the
 // developer's own installed toolchain. CI-only inspection keeps expressions raw.
-function commands(name, target, raw = false) {
+function commands(name: string, target: string, raw = false) {
   const job = workflow.jobs[name === 'core' && !raw && workflow.jobs['core-common'] ? 'core-common'
     : name === 'native' && !raw && workflow.jobs['native-workloads'] ? 'native-workloads' : name];
   if (job === undefined || !Array.isArray(job.steps)) {
@@ -73,13 +97,14 @@ function commands(name, target, raw = false) {
     // preparation followed by all four original serial mutation commands.
     steps = steps.flatMap(step => step.run === 'node scripts/${{ matrix.script }}'
       ? rows.map(row => ({...step,
-        name: step.name.replace('${{ matrix.mutation }}', row.mutation),
-        run: step.run.replace('${{ matrix.script }}', row.script)})) : [step]);
+        name: step.name!.replace('${{ matrix.mutation }}', row.mutation),
+        run: step.run!.replace('${{ matrix.script }}', row.script)})) : [step]);
   }
   if (name === 'native' && !raw && workflow.jobs['native-workloads']) {
-    const plan = JSON.parse(readFileSync(join(root, 'scripts/ci-native-background-groups.json'), 'utf8')).native;
+    const plan = (JSON.parse(readFileSync(join(root, 'scripts/ci-native-background-groups.json'), 'utf8')) as
+      {native: {steps: WorkflowStep[]}[]}).native;
     const prepare = steps.findIndex(step => step.id === 'native-preparation');
-    const http = workflow.jobs['native-http']?.steps.find(step => step.id === 'native-http');
+    const http = workflow.jobs['native-http']?.steps!.find(step => step.id === 'native-http');
     const retained = steps.find(step => step.name === 'Verify registered Native retained product path');
     if (prepare < 0 || !http) fail('Incomplete local Native composition; retain all original consumers');
     const environment = {
@@ -90,7 +115,7 @@ function commands(name, target, raw = false) {
     // case serially in this same process tree, with one original preparation.
     steps = [...steps.slice(0, prepare + 1), http,
       ...steps.slice(prepare + 1).filter(step => step !== retained &&
-        !['native-background-start', 'native-background'].includes(step.id)),
+        !(['native-background-start', 'native-background'] as readonly (string | undefined)[]).includes(step.id)),
       ...plan.flatMap(group => group.steps.map(step => ({...step, 'timeout-minutes': step.timeoutMinutes}))),
       ...(retained ? [retained] : [])];
     steps = steps.map(step => ({...step, env: {...environment, ...step.env}}));
@@ -98,13 +123,13 @@ function commands(name, target, raw = false) {
   if (name === 'session-evidence' && !raw && workflow.jobs['session-controls']) {
     // Preserve the original complete local route without a second setup or
     // collector. Hosted jobs run controls independently on another runner.
-    const controls = workflow.jobs['session-controls'].steps.filter(step =>
+    const controls = workflow.jobs['session-controls'].steps!.filter(step =>
       typeof step.run === 'string' && !preparation(step));
     const index = steps.findIndex(step => step.run === 'node proofs/ci-evidence/collect.mjs init');
     if (index < 0 || controls.length !== 1) fail('Incomplete local Session controls composition');
     steps = [...steps.slice(0, index), ...controls, ...steps.slice(index)];
   }
-  const resolve = text => raw ? String(text) : String(text)
+  const resolve = (text: string) => raw ? String(text) : String(text)
     .replaceAll('${{ matrix.target }}', target)
     // Hosted portable shards do not narrow the existing full local command.
     .replaceAll('${{ matrix.query-part }}', name === 'client-packed' ? 'portable' : '${{ matrix.query-part }}')
@@ -115,7 +140,7 @@ function commands(name, target, raw = false) {
     .replaceAll('${{ github.workspace }}', root.replace(/\/$/u, ''))
     .replaceAll('${{ runner.temp }}', scratch)
     .replaceAll('${{ github.sha }}', 'local');
-  const environment = ([key, value]) => {
+  const environment = ([key, value]: [string, string]): [string, string] => {
     if (!raw && name === 'core' && key === 'CI_PLAN') {
       if (value !== '${{ needs.select-targets.outputs.plan }}') {
         fail('Unsupported Core selection expression; local CI must retain complete coverage');
@@ -154,7 +179,7 @@ function commands(name, target, raw = false) {
     }
     return [key, resolve(value)];
   };
-  return steps.filter(step => typeof step.run === 'string' &&
+  return steps.filter((step): step is WorkflowStep & {run: string} => typeof step.run === 'string' &&
     !preparation(step)).map(step => ({
     name: step.name ?? step.run.split('\n')[0],
     run: resolve(step.run),
@@ -163,8 +188,8 @@ function commands(name, target, raw = false) {
   }));
 }
 
-function executionOptions(args) {
-  const result = {};
+function executionOptions(args: readonly string[]) {
+  const result: Record<string, string | true> = {};
   for (let index = 0; index < args.length; index++) {
     const name = args[index];
     if (name === '--allow-heavy' || name === '--dry-run') {
@@ -175,15 +200,15 @@ function executionOptions(args) {
       result[name] = args[++index];
     } else fail(`Unknown local execution option: ${name}`);
   }
-  return result;
+  return result as ExecutionOptions;
 }
 
-function requireHeavy(classification, options) {
+function requireHeavy(classification: Classification, options: ExecutionOptions) {
   if (classification.classification === 'unknown') {
     fail(`${classification.reason}\nThis invocation is unclassified; use a supported focused selection or update the small classification explicitly.`);
   }
   if (classification.heavy && !options['--allow-heavy']) {
-    fail(`${classification.reason}\n${classification.alternatives.join('\n')}\n` +
+    fail(`${classification.reason}\n${classification.alternatives!.join('\n')}\n` +
       'For a deliberate local run, supply --allow-heavy. It is friction, not human approval.');
   }
 }
@@ -191,7 +216,7 @@ function requireHeavy(classification, options) {
 // Resolve only the workflow's literal two-branch Native matrix budget. This
 // is not an Actions expression evaluator; unfamiliar expressions require an
 // explicit local budget, just like missing/non-numeric workflow values.
-function workflowMinutes(name, target) {
+function workflowMinutes(name: string, target: string | null | undefined) {
   const value = workflow.jobs[name === 'core' && workflow.jobs['core-common'] ? 'core-common'
     : name === 'native' && workflow.jobs['native-workloads'] ? 'native-workloads' : name]?.['timeout-minutes'];
   if (typeof value === 'number') return value;
@@ -204,8 +229,8 @@ function workflowMinutes(name, target) {
 
 // A missing target uses Moon's ordinary non-Native default. Ambiguous or
 // unsupported target selections cannot infer one matrix row's time budget.
-function selectedMoonTarget(args) {
-  let target = null;
+function selectedMoonTarget(args: readonly string[]) {
+  let target: string | null = null;
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
     if (arg === '--') break;
@@ -218,14 +243,15 @@ function selectedMoonTarget(args) {
   return target;
 }
 
-async function execute(steps, classification, options, defaultMinutes) {
+async function execute(steps: LocalSteps, classification: Classification,
+  options: ExecutionOptions, defaultMinutes: number | undefined) {
   const timeoutSeconds = checkBudget(options['--timeout-seconds'], defaultMinutes);
   const graceSeconds = options['--kill-grace-seconds'] === undefined ? 5 :
     durationSeconds(options['--kill-grace-seconds'], 'kill-grace-seconds');
   return runLocalCheck({root, steps, heavy: classification.heavy, timeoutSeconds, graceSeconds});
 }
 
-async function runJob(name, args) {
+async function runJob(name: string, args: readonly string[]) {
   const classification = classifyJob(name);
   // Keep the existing CI-only routes closed. Pipeline wrappers additionally
   // support inspection of the literal CI commands, without fake CI context.
@@ -254,13 +280,13 @@ async function runJob(name, args) {
   })), classification, options, workflowMinutes(name, target));
 }
 
-async function runSelected(command, kind, args) {
+async function runSelected(command: string, kind: string, args: readonly string[]) {
   const delimiter = args.indexOf('--');
   if (delimiter < 0) fail('Selected commands require -- before test/build arguments');
   const options = executionOptions(args.slice(0, delimiter));
   if (options['--target'] !== undefined || options['--dry-run']) fail('Pass target after --; dry-run is only for jobs');
   const selected = args.slice(delimiter + 1);
-  let classification = kind === 'moon' ? classifyMoon(command, selected) :
+  let classification: Classification = kind === 'moon' ? classifyMoon(command, selected) :
     {heavy: false, classification: 'focused'};
   if (kind === 'cargo') {
     const {cargoTestArguments} = await import('./test-execution.mjs');
@@ -283,106 +309,6 @@ async function runSelected(command, kind, args) {
 
 // CI jobs that cover a changed path. The narrow checks come first; the jobs
 // are advisory references, not a requirement to run full jobs locally.
-const areas = [
-  [/^proofs\/relation-pipeline\//u, Object.keys(ciOnlyPipelineJobs)],
-  [/^scripts\/packed-client-packages/u, ['client-packages', 'client-distribution', 'client-packed', 'client-packed-composition']],
-  [/^scripts\/(build-runtime-packages|test-runtime-package-build|build-local-node|build-run-host-core|build-remote-(coordinator|transfer)-package)|^packages\/(run-host-core|coordinator-core|transfer-core)\//u, ['host']],
-  [/^\.github\/|^scripts\/local-checks(?:[-.])/u, ['lint']],
-  [/^src\//u, ['lint', 'core']],
-  [/^(spec|docs)\/|\.md$/u, ['spec']],
-  [/^adapters\/connectors\/salesforce\//u, ['client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce']],
-  [/^adapters\/connectors\/duckdb\/node\//u, ['duckdb-node']],
-  [/^adapters\/workers\/|workers/u, ['workers']],
-  [/^packages\/(sdk|client-wire|node|local-node)\/|^scripts\/test-(packed(?!-resident-materials)|node-client|native-client)/u,
-    ['client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce']],
-  [/^adapters\/host-node\/(client|embedded-local|remote|captured|installed)/u,
-    ['client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce', 'host']],
-  [/^adapters\/(host-common|host-node|store-local|site-node|local-node)\//u,
-    ['host']],
-  [/^(src\/cmd|src\/platform_native)\/|^scripts\/test-native|^scripts\/test-packed-resident-materials/u, ['native']],
-  [/^benchmarks\//u, ['host', 'native']],
-  [/^scripts\/.*(connector|duckdb-environment)/u, ['connector-addition']],
-];
-
-// One known admission-fixture edge, not a general reverse-dependency map.
-// Keep these direct inputs and the output aligned with infer-host-fixtures.mjs;
-// the registry path is the current actql-aoa.json pipeline_registry_file.
-const inferAdmissionPaths = new Set([
-  'scripts/infer-host-fixtures.mjs',
-  'scripts/check-canonical-json.mjs',
-  'spec/contracts/actql-aoa.json',
-  'spec/dependencies/aoa-pipeline-registry.json',
-  'spec/local-check-environment.json',
-  'src/stage_results/infer_program_test.mbt',
-  'src/run_publication_host/client_infer_prefix_wbtest.mbt',
-  'src/client_infer_host/fixture.generated_wbtest.mbt',
-]);
-
-function changed() {
-  const base = option('--base', 'origin/main');
-  const git = (...args) => execFileSync('git', args,
-    {cwd: root, encoding: 'utf8'}).split('\n');
-  const files = [...git('diff', '--name-only', `${base}...HEAD`),
-    ...git('diff', '--name-only', 'HEAD'),
-    ...git('ls-files', '--others', '--exclude-standard')].filter(Boolean);
-  const unique = [...new Set(files)];
-  if (unique.length === 0) {
-    console.log(`No changes since ${base}.`);
-    return;
-  }
-  const narrow = new Set(['git diff --check']);
-  const packages = new Set();
-  const related = new Set();
-  for (const file of unique) {
-    if (/\.(mbt|mbti)$|(^|\/)moon\.pkg$/u.test(file) && file.startsWith('src/')) {
-      packages.add(dirname(file));
-    }
-    if (/\.test\.mjs$/u.test(file) && existsSync(join(root, file))) {
-      narrow.add(`node scripts/local-checks.mjs test node -- ${file}`);
-    } else if (/\.mjs$/u.test(file) && existsSync(join(root, file))) {
-      narrow.add(`node --check ${file}`);
-      const test = file.replace(/\.mjs$/u, '.test.mjs');
-      if (existsSync(join(root, test))) narrow.add(`node scripts/local-checks.mjs test node -- ${test}`);
-    }
-    for (const [pattern, names] of areas) {
-      if (pattern.test(file)) names.forEach(name => related.add(name));
-    }
-  }
-  const inferAdmissionChanged = unique.some(file => inferAdmissionPaths.has(file));
-  if (inferAdmissionChanged) {
-    narrow.add('node scripts/infer-host-fixtures.mjs');
-    narrow.add('node scripts/local-checks.mjs test moon -- --target js -p client_infer_host');
-  }
-  if (packages.size > 0) {
-    narrow.add('moon fmt --check');
-    for (const directory of [...packages].sort()) {
-      narrow.add(`moon check --target js ${directory}`);
-      narrow.add(`node scripts/local-checks.mjs test moon -- --target js -p ${relative('src', directory)}`);
-    }
-  }
-  console.log(`Changed since ${base}: ${unique.length} files\n`);
-  console.log('Candidate narrow checks (inspect affected callers and validators too):');
-  for (const command of narrow) console.log(`  ${command}`);
-  if (inferAdmissionChanged) {
-    console.log('\nKnown INFER admission dependency (advisory, incomplete):');
-    console.log('  The existing read-only freshness check requires the pinned MOON_HOME.');
-    console.log('  Inspect the generated admission fixture and affected caller tests; no checks were executed.');
-  }
-  console.log('\nRelated CI jobs (advisory inspection; not required local execution):');
-  for (const name of [...related].sort()) {
-    const note = ciOnly.has(name) ? `  # CI only: ${ciOnly.get(name)}`
-      : name === 'core' ? '  # select matching-target diagnostics for native-only or FFI changes'
-        : '';
-    const classification = classifyJob(name);
-    const deliberate = classification.classification === 'ci-only' ? ' --dry-run'
-      : classification.heavy ? ' --allow-heavy' : '';
-    console.log(`  node scripts/local-checks.mjs run ${name}${deliberate}${note}`);
-  }
-  console.log('\nThese path-based candidates are not complete reverse-dependent coverage.');
-  console.log('Follow .agents/skills/actql-local-verification/SKILL.md; broad suites are not local defaults.');
-  console.log('After an authorized push, read exact-SHA CI; report executed and unverified coverage separately.');
-}
-
 const [command, argument] = process.argv.slice(2);
 if (command === 'list') {
   for (const [name, job] of jobs) {
@@ -390,18 +316,19 @@ if (command === 'list') {
     console.log(`${name}${note}`);
     for (const step of job.steps.filter(item => item.run !== undefined &&
       !preparation(item))) {
-      console.log(`  - ${step.name ?? step.run.split('\n')[0]}`);
+      console.log(`  - ${step.name ?? step.run!.split('\n')[0]}`);
     }
   }
 } else if ((command === 'test' && ['node', 'moon', 'cargo'].includes(argument)) ||
     (command === 'build' && argument === 'moon')) {
   try { process.exitCode = await runSelected(command, argument, process.argv.slice(4)); }
-  catch (error) { fail(error.message); }
+  catch (error) { fail((error as Error).message); }
 } else if (command === 'changed') {
-  changed();
+  const {reportChangedLocalChecks} = await import('./local-checks-changed.mjs');
+  await reportChangedLocalChecks(root, option('--base', 'origin/main'), ciOnly, Object.keys(ciOnlyPipelineJobs), classifyJob);
 } else if (command === 'run' && argument) {
   try { process.exitCode = await runJob(argument, process.argv.slice(4)); }
-  catch (error) { fail(error.message); }
+  catch (error) { fail((error as Error).message); }
 } else {
   fail('Usage: local-checks.mjs test node|moon|cargo [--allow-heavy] [--timeout-seconds N] -- <test arguments> | ' +
     'build moon [--allow-heavy] [--timeout-seconds N] -- <build arguments> | list | changed [--base <ref>] | ' +

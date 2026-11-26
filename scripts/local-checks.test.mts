@@ -4,16 +4,20 @@ import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSyn
   readdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import test from 'node:test';
+import test, {type TestContext} from 'node:test';
 import {partJobs} from '../proofs/relation-pipeline/proof-parts.mjs';
+import type {WorkflowJob} from './local-checks.mjs';
 
 const pipelineJobs = [...Object.values(partJobs), 'pipeline-validation', 'pipeline-evidence'];
 
-function fixture(t) {
+type Fixture = ReturnType<typeof fixture>;
+type WorkflowFixture = {jobs: Record<string, WorkflowJob>};
+
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'actql-local-checks-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   for (const directory of ['scripts', 'proofs/relation-pipeline', '.github/workflows', 'bin', 'home']) mkdirSync(join(root, directory), {recursive: true});
-  for (const name of ['local-checks.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
+  for (const name of ['local-checks.mjs', 'local-checks-changed.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
     'local-checks-policy.mjs', 'test-execution.mjs', 'test-execution-reporter.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(root, 'scripts', name));
   }
@@ -33,9 +37,9 @@ function fixture(t) {
   writeFileSync(moon, `#!${process.execPath}\nconst fs=require('fs');
     fs.appendFileSync('moon-args',JSON.stringify(process.argv.slice(2))+'\\n');
     console.log('Total tests: 1, passed: 1, failed: 0.');\n`); chmodSync(moon, 0o755);
-  const env = {...process.env, HOME: join(root, 'home'), PATH: join(root, 'bin') + ':' + process.env.PATH};
+  const env: NodeJS.ProcessEnv = {...process.env, HOME: join(root, 'home'), PATH: join(root, 'bin') + ':' + process.env.PATH};
   delete env.NODE_TEST_CONTEXT;
-  const run = (args, extraEnv = {}) => spawnSync(process.execPath, ['scripts/local-checks.mjs', ...args],
+  const run = (args: readonly string[], extraEnv: NodeJS.ProcessEnv = {}) => spawnSync(process.execPath, ['scripts/local-checks.mjs', ...args],
     {cwd: root, env: {...env, ...extraEnv}, encoding: 'utf8', timeout: 10_000});
   return {root, run};
 }
@@ -91,19 +95,20 @@ test('Cargo uses the original bounded process and rejects zero execution or a fa
     'test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s';
   const empty = 'running 0 tests\n' +
     'test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s';
-  for (const [text, code, accepted] of [[passing, 0, true], [empty, 0, false], [passing, 7, false]]) {
+  for (const [text, code, accepted] of [[passing, 0, true], [empty, 0, false], [passing, 7, false]] as const) {
     const result = f.run(['test', 'cargo', '--allow-heavy', '--timeout-seconds', '5', '--', ...selected],
       {ACTQL_TEST_CARGO_OUTPUT: text, ACTQL_TEST_CARGO_STATUS: String(code)});
     assert.equal(result.signal, null); assert.equal(result.status === 0, accepted, result.stderr);
     assert.match(result.stderr, /Local check evidence:/u);
   }
-  const calls = readFileSync(join(f.root, 'cargo-args'), 'utf8').trim().split('\n').map(JSON.parse);
+  const calls = readFileSync(join(f.root, 'cargo-args'), 'utf8').trim().split('\n')
+    .map(JSON.parse as (line: string) => unknown);
   assert(calls.every(args => JSON.stringify(args) === JSON.stringify(['test', ...selected])));
 });
 
 test('required packed README job is classified and its exact command remains inspectable without execution', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
-  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  const workflow: WorkflowFixture = JSON.parse(readFileSync(path, 'utf8'));
   const command = 'node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"';
   workflow.jobs['client-readme-packed'] = {steps: [{name: 'original packed README consumer', run: command}],
     'timeout-minutes': 15};
@@ -117,9 +122,9 @@ test('required packed README job is classified and its exact command remains ins
   assert.equal(existsSync(join(f.root, '_build')), false);
 });
 
-function coreBudget(fixture, value) {
+function coreBudget(fixture: Fixture, value: NonNullable<WorkflowJob['timeout-minutes']>) {
   const path = join(fixture.root, '.github/workflows/ci.yml');
-  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  const workflow: WorkflowFixture = JSON.parse(readFileSync(path, 'utf8'));
   workflow.jobs.core['timeout-minutes'] = value;
   writeFileSync(path, JSON.stringify(workflow));
 }
@@ -128,7 +133,7 @@ const nativeMatrixBudget = "${{ matrix.target == 'native' && 75 || 30 }}";
 
 test('local Core uses original unpartitioned commands and budget after hosted matrix separation', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
-  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  const workflow: WorkflowFixture = JSON.parse(readFileSync(path, 'utf8'));
   workflow.jobs['core-common'] = workflow.jobs.core;
   workflow.jobs.core = {steps: [{run: 'exit 91'}], 'timeout-minutes': 5};
   writeFileSync(path, JSON.stringify(workflow));
@@ -140,7 +145,7 @@ test('local Core uses original unpartitioned commands and budget after hosted ma
 
 test('the extracted hosted JS row remains CI-only instead of selecting a partial local Core', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
-  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  const workflow: WorkflowFixture = JSON.parse(readFileSync(path, 'utf8'));
   workflow.jobs['core-js'] = workflow.jobs.core;
   writeFileSync(path, JSON.stringify(workflow));
   const result = f.run(['run', 'core-js', '--allow-heavy']);
@@ -152,7 +157,7 @@ test('the extracted hosted JS row remains CI-only instead of selecting a partial
 
 test('local Core adapter runs complete unpartitioned coverage for the hosted Native partition expression', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
-  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  const workflow: WorkflowFixture = JSON.parse(readFileSync(path, 'utf8'));
   workflow.jobs.core.steps = [{name: 'original full selection',
     env: {TARGET: '${{ matrix.target }}', ACTQL_TEST_NATIVE_CORE_PARTITION:
       "${{ matrix.target == 'native' && matrix.partition || '' }}"},
@@ -167,7 +172,7 @@ test('local Core adapter runs complete unpartitioned coverage for the hosted Nat
 
 test('local Core adapter keeps full coverage without inventing or inheriting a hosted Moon plan', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
-  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  const workflow: WorkflowFixture = JSON.parse(readFileSync(path, 'utf8'));
   workflow.jobs.core.steps = [{name:'original full local selection',
     env:{CI_PLAN:'${{ needs.select-targets.outputs.plan }}'},
     run:'if [ "${{ needs.select-targets.outputs.moon_test_selection }}" = true ]; then exit 99; fi\n' +
@@ -180,7 +185,7 @@ test('local Core adapter keeps full coverage without inventing or inheriting a h
   }
   assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'native:\njs:\nwasm:\n');
   for (const value of ['${{ needs.other.outputs.plan }}', '{"selection":{"moonTests":{}}}']) {
-    workflow.jobs.core.steps[0].env.CI_PLAN = value;
+    workflow.jobs.core.steps[0].env!.CI_PLAN = value;
     writeFileSync(path, JSON.stringify(workflow));
     const refused = f.run(['run', 'core', '--target', 'js', '--allow-heavy']);
     assert.equal(refused.status, 2);
@@ -191,7 +196,7 @@ test('local Core adapter keeps full coverage without inventing or inheriting a h
 
 test('local Core adapter excludes inherited inline and file plans on every backend', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
-  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  const workflow: WorkflowFixture = JSON.parse(readFileSync(path, 'utf8'));
   workflow.jobs.core.steps = [{name: 'original full local file selection',
     env: {CI_PLAN_PATH: '${{ runner.temp }}/actql-ci-plan.json'},
     run: 'if [ -n "$CI_PLAN_PATH" ]; then exit 99; fi\n' +
@@ -203,7 +208,7 @@ test('local Core adapter excludes inherited inline and file plans on every backe
     assert.equal(result.status, 0, result.stderr);
   }
   assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'native::\njs::\nwasm::\n');
-  workflow.jobs.core.steps[0].env.CI_PLAN_PATH = '${{ needs.other.outputs.path }}';
+  workflow.jobs.core.steps[0].env!.CI_PLAN_PATH = '${{ needs.other.outputs.path }}';
   writeFileSync(path, JSON.stringify(workflow));
   const refused = f.run(['run', 'core', '--target', 'js', '--allow-heavy']);
   assert.equal(refused.status, 2);
@@ -212,7 +217,7 @@ test('local Core adapter excludes inherited inline and file plans on every backe
 
 test('local Core adapter refuses a literal half or unfamiliar partition instead of narrowing coverage', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
-  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  const workflow: WorkflowFixture = JSON.parse(readFileSync(path, 'utf8'));
   for (const value of ['1/2', '2/2', '${{ matrix.partition }}/2']) {
     workflow.jobs.core.steps = [{name: 'must not run half',
       env: {ACTQL_TEST_NATIVE_CORE_PARTITION: value}, run: 'printf bad >> calls'}];
@@ -226,7 +231,7 @@ test('local Core adapter refuses a literal half or unfamiliar partition instead 
 test('Core job matrix budgets preserve Native and portable workflow rows', t => {
   const f = fixture(t);
   coreBudget(f, nativeMatrixBudget);
-  for (const [target, seconds] of [['native', 4500], ['js', 1800], ['wasm', 1800]]) {
+  for (const [target, seconds] of [['native', 4500], ['js', 1800], ['wasm', 1800]] as const) {
     const result = f.run(['run', 'core', '--allow-heavy', '--target', target]);
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stderr, new RegExp(`budget: ${seconds}s`, 'u'));
@@ -238,7 +243,7 @@ test('focused Moon matrix budgets preserve the exact target and test/build argum
   const f = fixture(t);
   coreBudget(f, nativeMatrixBudget);
   const expected = [];
-  for (const [flag, target, seconds] of [['--target', 'native', 4500], ['--target=js', 'js', 1800]]) {
+  for (const [flag, target, seconds] of [['--target', 'native', 4500], ['--target=js', 'js', 1800]] as const) {
     const args = [flag, ...(flag === '--target' ? [target] : []), '-p', 'query_integration'];
     const result = f.run(['test', 'moon', '--', ...args]);
     assert.equal(result.status, 0, result.stderr);
@@ -249,7 +254,8 @@ test('focused Moon matrix budgets preserve the exact target and test/build argum
   assert.equal(build.status, 0, build.stderr);
   assert.match(build.stderr, /budget: 4500s/u);
   expected.push(['build', '--target=native', 'src/query_integration']);
-  assert.deepEqual(readFileSync(join(f.root, 'moon-args'), 'utf8').trim().split('\n').map(JSON.parse), expected);
+  assert.deepEqual(readFileSync(join(f.root, 'moon-args'), 'utf8').trim().split('\n')
+    .map(JSON.parse as (line: string) => unknown), expected);
 });
 
 test('unknown workflow expressions require an explicit budget and are never evaluated', t => {
@@ -367,7 +373,8 @@ test('focused and full Moon routes retain exact test/build arguments', t => {
     assert.equal(full.status, 0, full.stderr);
     assert.match(full.stderr, /budget: 7s/u);
   }
-  assert.deepEqual(readFileSync(join(f.root, 'moon-args'), 'utf8').trim().split('\n').map(JSON.parse), [
+  assert.deepEqual(readFileSync(join(f.root, 'moon-args'), 'utf8').trim().split('\n')
+    .map(JSON.parse as (line: string) => unknown), [
     ['test', '--target', 'js', '-p', 'query_integration'], ['test', '--target', 'js'], ['build', '--target', 'js'],
   ]);
 });
@@ -415,19 +422,48 @@ const inferAdmissionPaths = [
 const inferFreshness = '  node scripts/infer-host-fixtures.mjs';
 const inferCallers = '  node scripts/local-checks.mjs test moon -- --target js -p client_infer_host';
 
-function changedPaths(f, paths) {
+function changedPaths(f: Fixture, paths: readonly string[]) {
   const git = join(f.root, 'bin/git');
   writeFileSync(git, `#!${process.execPath}\nconsole.log(${JSON.stringify(paths.join('\n'))});\n`);
   chmodSync(git, 0o755);
   return f.run(['changed']);
 }
 
-function unchangedFixture(f) {
+function unchangedFixture(f: Fixture) {
   for (const path of ['calls', 'moon-args', '_build', '.artifacts']) {
     assert.equal(existsSync(join(f.root, path)), false, path);
   }
   assert.deepEqual(readdirSync(join(f.root, 'home')), []);
 }
+
+test('changed TypeScript paths suggest only configured Node emits without building or running them', t => {
+  const f = fixture(t);
+  mkdirSync(join(f.root, 'packages/node'), {recursive: true});
+  writeFileSync(join(f.root, 'tsconfig.tooling.json'), JSON.stringify({
+    compilerOptions: {module: 'NodeNext', declaration: true},
+    include: ['scripts/*.mts', 'packages/node/*.cts'],
+    exclude: ['**/*.d.mts', '**/*.typecheck.mts'],
+  }));
+  const paths = ['scripts/selected.mts', 'scripts/selected.test.mts', 'packages/node/selected.test.cts',
+    'scripts/declared.d.mts', 'scripts/external.typecheck.mts'];
+  for (const path of paths) writeFileSync(join(f.root, path), 'export {};\n');
+  const result = changedPaths(f, paths.filter(path => path !== 'scripts/selected.test.mts'));
+  assert.equal(result.status, 0, result.stderr);
+  const lines = result.stdout.split('\n');
+  const emit = lines.indexOf('  npm run build:typescript');
+  assert(emit >= 0);
+  for (const line of ['  node --check scripts/selected.mjs',
+    '  node scripts/local-checks.mjs test node -- scripts/selected.test.mjs',
+    '  node scripts/local-checks.mjs test node -- packages/node/selected.test.cjs']) {
+    assert(lines.indexOf(line) > emit, line);
+  }
+  assert.match(result.stdout, /no in-place Node emit for: scripts\/external\.typecheck\.mts/u);
+  assert.doesNotMatch(result.stdout, /declared\.d\.mjs|external\.typecheck\.mjs/u);
+  for (const path of ['scripts/selected.mjs', 'scripts/selected.test.mjs', 'packages/node/selected.test.cjs']) {
+    assert.equal(existsSync(join(f.root, path)), false, path);
+  }
+  unchangedFixture(f);
+});
 
 test('known INFER hint paths retain the current generator and registry owners', () => {
   const source = readFileSync(new URL('infer-host-fixtures.mjs', import.meta.url), 'utf8');
@@ -459,7 +495,7 @@ for (const path of inferAdmissionPaths) {
 
 test('multiple repeated INFER owner changes keep one deterministic pair of hints', t => {
   const f = fixture(t);
-  const selected = output => output.split('\n')
+  const selected = (output: string) => output.split('\n')
     .filter(line => line === inferFreshness || line === inferCallers);
   const forward = changedPaths(f, [...inferAdmissionPaths, ...inferAdmissionPaths]);
   const reverse = changedPaths(f, [...inferAdmissionPaths].reverse());
@@ -481,13 +517,13 @@ test('unrelated and similarly named changes do not claim an INFER dependency', t
 
 test('local Core keeps the original serial scoped profile despite hosted parallel scheduling and inherited jobs', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
-  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  const workflow: WorkflowFixture = JSON.parse(readFileSync(path, 'utf8'));
   workflow.jobs.core.steps = [{name: 'original local scoped configuration',
     env: {ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS:
       "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}"},
     run: 'node -e "require(\'node:assert/strict\').equal(process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS,\'1\')"; printf "%s\\n" "$ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS" >> calls'}];
-  for (const value of [workflow.jobs.core.steps[0].env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS, '1']) {
-    workflow.jobs.core.steps[0].env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS = value;
+  for (const value of [workflow.jobs.core.steps[0].env!.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS, '1']) {
+    workflow.jobs.core.steps[0].env!.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS = value;
     writeFileSync(path, JSON.stringify(workflow));
     for (const target of ['native', 'js', 'wasm']) {
       const result = f.run(['run', 'core', '--target', target, '--allow-heavy'],
@@ -497,7 +533,7 @@ test('local Core keeps the original serial scoped profile despite hosted paralle
   }
   assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), '1\n'.repeat(6));
   for (const value of ['2', '${{ matrix.scoped_jobs }}', '']) {
-    workflow.jobs.core.steps[0].env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS = value;
+    workflow.jobs.core.steps[0].env!.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS = value;
     writeFileSync(path, JSON.stringify(workflow));
     const result = f.run(['run', 'core', '--target', 'native', '--allow-heavy']);
     assert.equal(result.status, 2); assert.match(result.stderr, /serial scoped profile/u);
