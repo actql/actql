@@ -6,7 +6,8 @@ import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {test} from 'node:test';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
-import {installedInterfaceCorrespondence, assertInstalledDependencyClosure, assertRemoteBrowserDependencyBoundary} from './installed-interface-correspondence.mjs';
+import {installedInterfaceCorrespondence, assertInstalledDependencyClosure, assertRemoteBrowserDependencyBoundary,
+  installedOriginalInputs} from './installed-interface-correspondence.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {typescriptInterface} from './typescript-interface-inventory.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
@@ -168,6 +169,10 @@ test('installed TypeScript bytes must derive from the tracked original, even wit
   const stale = 'export function read(original) { return original.trim(); }\n';
   put(repository, runtime, stale);
   put(directory, 'entry.mjs', stale);
+  const originalInput = installedOriginalInputs(repository, options.source, [runtime, 'owner.md']);
+  assert.deepEqual(originalInput(runtime), {author: 'outside/owner.mts', bytes: Buffer.from(exact)});
+  assert.deepEqual(originalInput('owner.md'), {author: 'owner.md', bytes: readFileSync(join(repository, 'owner.md'))});
+  assert.throws(() => originalInput('outside/owner.mts'), /Unselected installed original input/u);
   options.checkedSource = await checkInterfaceOwners(repository);
   assert.throws(() => installedInterfaceCorrespondence(options), /Changed checked original source interface/u);
 });

@@ -13,7 +13,8 @@ import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
-import {installedInterfaceCorrespondence, assertInstalledDependencyClosure, installedDeclarationEmits} from './installed-interface-correspondence.mjs';
+import {installedInterfaceCorrespondence, assertInstalledDependencyClosure, installedDeclarationEmits,
+  installedOriginalInputs} from './installed-interface-correspondence.mjs';
 import {typescriptInterfaceInputs} from './typescript-interface-inventory.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
@@ -95,13 +96,20 @@ export async function releaseInterfaceCheck({repository, directory}: {repository
             const expected = await inventory(join(expectedRoot, authoringToolkitPath), toolkitPrefix);
             assert.deepEqual(expected.map(file => file.path).sort(), sourceFiles.map(path => toolkitPrefix + path).sort());
             assert.deepEqual(toolkitMembers, expected, 'Original connector authoring toolkit differs from the ordinary copy recipe');
-            for (const member of toolkitMembers) localArtifacts.push({
-              module: member.path, sha256: member.sha256, sourceSha: before.revision,
-              target: 'node-connector-authoring-copy',
-              verification: {manifestSha256, originalSha256: item.originalSha256,
-                build: 'scripts/build-connector-authoring.mjs', sourceFiles: [member.path.slice(toolkitPrefix.length)],
-                qualification: 'ordinary authored-copy identity for the selected toolkit'},
-            });
+            const originalInput = installedOriginalInputs(repository, before.revision, sourceFiles);
+            for (const member of toolkitMembers) {
+              const path = member.path.slice(toolkitPrefix.length);
+              const {author, bytes} = originalInput(path);
+              assert.equal(member.sha256, hash(bytes), `Changed original connector authoring input: ${path}`);
+              localArtifacts.push({
+                module: member.path, sha256: member.sha256, sourceSha: before.revision,
+                target: 'node-connector-authoring-copy',
+                verification: {manifestSha256, originalSha256: item.originalSha256,
+                  build: 'scripts/build-connector-authoring.mjs', sourceFiles: [author],
+                  ...(author === path ? {} : {compiler: {configuration: 'tsconfig.tooling.json', emitted: path}}),
+                  qualification: 'ordinary authored-copy identity for the selected toolkit'},
+              });
+            }
           }
           // The normal builder has checked these bytes and their original
           // descriptor. Reuse the existing finite native input references;
