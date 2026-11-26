@@ -41,6 +41,21 @@ function rowJson(row) {
   return JSON.parse(Buffer.from(row.body).toString('utf8'));
 }
 
+function inspectRetainedResultContracts(database, contracts) {
+  const original = database.prepare(`
+    SELECT revision, CASE WHEN typeof(body) = 'blob' AND length(body) = ? THEN body END AS body
+    FROM actql_records WHERE namespace = 'publication_contract' AND record_key = ?
+  `);
+  return contracts.map(({identity, wire}) => {
+    requireCid(identity);
+    const record = original.get(Buffer.byteLength(wire), identity);
+    assert(record?.body instanceof Uint8Array, 'Missing original Result publication contract');
+    assert.equal(record.revision, 0);
+    assert(Buffer.from(record.body).equals(Buffer.from(wire, 'utf8')), 'Changed original Result publication bytes');
+    return {identity, bodyCid: cid(record.body)};
+  });
+}
+
 function assertEncryptedEnvelope(row) {
   assert.equal(row.revision, 0);
   const envelope = rowJson(row);
@@ -86,6 +101,7 @@ function inspectRetainedPolicy(wire, expectedWire, expectedResponseViews) {
 
 export async function inspectNativeModelCustody({
   journalPath, storePath, runId, attempts, tasks, authority, namespace, provider, expectedPolicyWire, expectedResponseViews,
+  publicationContracts,
 }) {
   requireCid(runId);
   requireCid(authority);
@@ -110,6 +126,7 @@ export async function inspectNativeModelCustody({
     const settlements = readRecords(journal, 'client_model_call_settlements', 2, journalRecordBytes);
     const store = new DatabaseSync(storePath, {readOnly: true});
     try {
+      const originalResultContracts = inspectRetainedResultContracts(store, publicationContracts);
       const cells = readRecords(store, 'model_evidence_custody', attempts.length * (settledRoles.length + 1),
         evidenceEnvelopeBytes);
       const claimedTasks = new Set();
@@ -183,7 +200,7 @@ export async function inspectNativeModelCustody({
       assert.equal(cells.size, 0, 'Unexpected Model holdings in the fresh project');
       assert.deepEqual(fileGeneration(journalPath), originalJournal);
       assert.deepEqual(fileGeneration(storePath), originalStore);
-      return {runId, definition: definition.run_definition_cid, authority, policy, observed};
+      return {runId, definition: definition.run_definition_cid, authority, policy, observed, originalResultContracts};
     } finally { store.close(); }
   } finally { journal.close(); }
 }

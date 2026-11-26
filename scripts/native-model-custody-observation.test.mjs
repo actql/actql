@@ -35,6 +35,9 @@ async function writeControlledRecords(t) {
     source_data_policy_cids: policyBodies.map(({source}) => source.source_data_policy_cid).sort(),
     source_response_policy_cids: [...expectedResponseViews.keys()].sort(),
     unknown_provenance: true, version: 'actql-effective-data-policy/0.1'});
+  const publicationContracts = ['run receipt', 'result manifest', 'result artifact'].map(role => ({
+    identity: knownCid(role), wire: JSON.stringify({fixture: role}),
+  }));
   const records = [];
   const store = new DatabaseSync(storePath);
   let rawKey;
@@ -43,6 +46,8 @@ async function writeControlledRecords(t) {
     store.exec(recordTable);
     const {dev, ino} = await stat(storePath, {bigint: true});
     storeBinding = JSON.stringify([namespace, authority, String(dev), String(ino)]);
+    const putResult = store.prepare("INSERT INTO actql_records VALUES ('publication_contract', ?, 0, ?)");
+    for (const {identity, wire} of publicationContracts) putResult.run(identity, Buffer.from(wire));
     const putCell = store.prepare("INSERT INTO actql_records VALUES ('model_evidence_custody', ?, 0, ?)");
     for (const [i, attempt] of attempts.entries()) {
       const slot = knownCid('slot ' + i), scope = knownCid('invocation scope ' + i);
@@ -104,7 +109,7 @@ async function writeControlledRecords(t) {
     for (const record of records) putRecord.run(...record);
   } finally { journal.close(); }
   return {query: {journalPath, storePath, runId, attempts, tasks, authority, namespace, provider,
-    expectedPolicyWire, expectedResponseViews}, rawKey};
+    expectedPolicyWire, expectedResponseViews, publicationContracts}, rawKey};
 }
 
 test('Model custody joins both original attempts to their admitted tasks and retained Store cells', async t => {
@@ -115,6 +120,8 @@ test('Model custody joins both original attempts to their admitted tasks and ret
   assert.equal(new Set(before.observed.map(item => item.rawHolding)).size, 2);
   assert.deepEqual(await inspectNativeModelCustody(query), before);
   assert.equal(before.policy.policyCid, knownCid(query.expectedPolicyWire));
+  assert.deepEqual(before.originalResultContracts, query.publicationContracts.map(({identity, wire}) =>
+    ({identity, bodyCid: knownCid(wire)})));
   await assert.rejects(inspectNativeModelCustody({...query, expectedPolicyWire: query.expectedPolicyWire + ' '}),
     {code: 'ERR_ASSERTION'});
   const swapped = new Map([...query.expectedResponseViews].map(([key], i, views) => [key, views[1 - i][1]]));
@@ -147,4 +154,22 @@ test('Model custody detects changed Raw bytes and refuses foreign holdings', asy
       .run(knownCid('wrong raw holding'), rawKey).changes, 1);
   } finally { moved.close(); }
   await assert.rejects(inspectNativeModelCustody(query), {message: 'Missing or repeated original Model Store holding'});
+});
+
+test('Model custody rejects a foreign publication CID, body, or generation', async t => {
+  const {query} = await writeControlledRecords(t);
+  const [original, ...other] = query.publicationContracts;
+  await assert.rejects(inspectNativeModelCustody({...query, publicationContracts:
+    [{...original, identity: knownCid('other run receipt')}, ...other]}),
+  {message: 'Missing original Result publication contract'});
+  await assert.rejects(inspectNativeModelCustody({...query, publicationContracts:
+    [{...original, wire: original.wire.replace('receipt', 'Receipt')}, ...other]}),
+  {code: 'ERR_ASSERTION'});
+
+  const store = new DatabaseSync(query.storePath);
+  try {
+    assert.equal(store.prepare("UPDATE actql_records SET revision=1 WHERE namespace='publication_contract' AND record_key=?")
+      .run(original.identity).changes, 1);
+  } finally { store.close(); }
+  await assert.rejects(inspectNativeModelCustody(query), {code: 'ERR_ASSERTION'});
 });

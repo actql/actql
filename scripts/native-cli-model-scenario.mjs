@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
 import {once} from 'node:events';
-import {mkdir, readFile, unlink, writeFile} from 'node:fs/promises';
+import {constants} from 'node:fs';
+import {lstat, mkdir, open, readFile, unlink, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {canonicalText} from './check-canonical-json.mjs';
-import {nativeJoinedModelRun, requireModelAttempts} from './fixtures/native-joined-model-run.mjs';
+import {nativeJoinedModelRun, requireModelAttempts, requireNativeJoinedDelivery} from './fixtures/native-joined-model-run.mjs';
 import {inspectNativeModelCustody} from './fixtures/native-model-custody-observation.mjs';
 import {requireNativeModelAccounting, requireNativeRawReceipts, splitNativeModelConfirmations}
   from './fixtures/native-model-confirmation-observation.mjs';
@@ -126,6 +127,17 @@ async function configureModelProject({project, endpoint, certPath, assets, runti
   await write(environmentPath, environment, 'w');
 
   const dataPolicy = joined ? canonicalText(joined.modelRawDataPolicy) : assets['result-policy'];
+  if (joined) {
+    const expectedFinalPolicyCid = cid(joined.finalResultPolicy);
+    for (const file of ['read.json', 'file-read.json']) {
+      const path = join(project, file);
+      const original = await json(path);
+      const read = original.native.result_read;
+      assert.deepEqual(read.data_policy_cids, [cid(JSON.parse(assets['result-policy']))]);
+      read.data_policy_cids = [expectedFinalPolicyCid];
+      await write(path, original, 'w');
+    }
+  }
   const configured = [];
   for (const selection of selections) {
     configured.push(await configureModelTask({project, endpoint, certPath, dataPolicy, runtimeSha256, selection}));
@@ -182,6 +194,23 @@ function program(contract, n) {
       {infer: {contract, key: 'id', input: {notes: {field: 'notes'}, active_users: {field: 'active_users'},
         trend: {field: 'trend'}}}, as: 'inferred'}], results: {rows: {from: 'inferred', fields: ['id', 'outcome', 'value']}}}],
   results: {answer: {from: {stage: 'model', result: 'rows'}}}};
+}
+
+async function readJoinedOutput(path) {
+  const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const original = await file.stat({bigint: true});
+    assert(original.isFile() && original.size > 0n && original.size <= 65_536n);
+    const bytes = Buffer.alloc(Number(original.size));
+    const {bytesRead} = await file.read(bytes, 0, bytes.length, 0);
+    assert.equal(bytesRead, bytes.length);
+    const current = await lstat(path, {bigint: true});
+    assert.deepEqual([current.dev, current.ino, current.size, current.mtimeNs, current.ctimeNs],
+      [original.dev, original.ino, original.size, original.mtimeNs, original.ctimeNs]);
+    return bytes;
+  } finally {
+    await file.close();
+  }
 }
 
 async function joinedCustodyOptions(project, tasks) {
@@ -309,11 +338,27 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       const groups = nativeMockAcceptanceObservations(timing);
       assert.equal(groups.length, 1);
       assert.equal(groups[0].pid, record.pid);
-      const close = record.stderr.split('\n').filter(line => line.startsWith('ACTQL_NATIVE_PHASE '))
-        .map(line => JSON.parse(line.slice('ACTQL_NATIVE_PHASE '.length))).find(phase => phase.name === 'close');
+      const phaseRows = record.stderr.split('\n').filter(line => line.startsWith('ACTQL_NATIVE_PHASE '))
+        .map(line => JSON.parse(line.slice('ACTQL_NATIVE_PHASE '.length)));
+      const [close, ...duplicateClose] = phaseRows.filter(row => row.name === 'close');
+      assert.deepEqual(duplicateClose, []);
       assert.deepEqual([close?.begins, close?.ends, close?.active, close?.unmatched_end], [1, 1, 0, 0]);
       const observed = {phase, pid: record.pid, firstClose: true, events: groups[0].events,
         physicalRequests: calls.length, connections: {...connections}};
+      if (joined && phase === 'saved-1') {
+        const runPhases = ['preparation', 'execution', 'save'];
+        for (const name of runPhases) {
+          const rows = phaseRows.filter(row => row.name === name);
+          assert.equal(rows.length, 1);
+          const [row] = rows;
+          assert.deepEqual([row.begins, row.ends, row.active, row.unmatched_end], [0, 0, 0, 0]);
+        }
+        const counters = timing.split('\n').filter(line => line.startsWith('ACTQL_NATIVE_COUNTER '))
+          .map(line => JSON.parse(line.slice('ACTQL_NATIVE_COUNTER '.length)))
+          .filter(row => [66, 67, 68, 69].includes(row.tag)).sort((left, right) => left.tag - right.tag);
+        assert.deepEqual(counters.map(({tag, count}) => [tag, count]), [[66, 0], [67, 0], [68, 0], [69, 0]]);
+        observed.runWork = {phases: runPhases, counters};
+      }
       phases.push(observed);
       return {stdout: record.stdout, ...observed, accounting, raw};
     }
@@ -377,22 +422,42 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       assert.equal(check.report.runnable.verdict, 'yes');
       assert.deepEqual(checked.events, []);
       requireSends(sends);
-      const started = await cli(`run-${n}`, ['run', file, '--format', 'json', '--json']);
-      const state = JSON.parse(started.stdout);
+      const deliveryPath = join(root, 'joined-answer.jsonl');
+      const runReceiptPath = join(root, 'joined-run-receipt.json');
+      const presentation = joined ? ['--deliver', `answer=jsonl:${deliveryPath}`, '--receipt', runReceiptPath] : [];
+      const started = await cli(`run-${n}`, ['run', file, '--format', 'json', ...presentation, '--json']);
+      const report = JSON.parse(started.stdout);
+      const state = joined ? report.run : report;
       assert.equal(state.status, 'succeeded');
       assert.match(state.run_id, /^sha256:[0-9a-f]{64}$/u);
       const attempts = requireModelAttempts(started.events, scenario.sends);
       sends += scenario.sends;
       requireSends(sends);
+      let runReceipt, delivered, publicationContracts;
+      if (joined) {
+        delivered = await readJoinedOutput(deliveryPath);
+        const runReceiptWire = new TextDecoder('utf-8', {fatal: true}).decode(await readJoinedOutput(runReceiptPath));
+        runReceipt = JSON.parse(runReceiptWire);
+        assert.equal(canonicalText(runReceipt), runReceiptWire, 'Run receipt export changed the original canonical bytes');
+        const {result_manifest: manifest} = runReceipt;
+        const artifact = manifest.results.answer;
+        publicationContracts = [
+          {identity: runReceipt.receipt_identity_cid, wire: runReceiptWire},
+          {identity: manifest.result_manifest_cid, wire: canonicalText(manifest)},
+          {identity: artifact.result_artifact_cid, wire: canonicalText(artifact)},
+        ];
+      }
       const observeCustody = custodyOptions ? () => inspectNativeModelCustody({
-        ...custodyOptions, runId: state.run_id, attempts,
-        expectedPolicyWire: canonicalText(joined.modelRawDataPolicy), expectedResponseViews: joined.modelRawResponseViews,
+        ...custodyOptions, runId: state.run_id, attempts, publicationContracts,
+        expectedPolicyWire: canonicalText(joined.finalResultPolicy), expectedResponseViews: joined.modelRawResponseViews,
       }) : null;
       const custody = observeCustody ? await observeCustody() : null;
       const accounting = custody ? requireNativeModelAccounting(started.accounting, custody,
         new Map(tasks.map((task, index) => [task, joinedUsage[index]]))) : null;
       const raw = custody ? requireNativeRawReceipts(started.raw, custody,
         new Map(originals.map(({task, profile}, index) => [task, {profile, ...fixtures.get(selections[index].model)}]))) : null;
+      const delivery = joined ? requireNativeJoinedDelivery({report, runReceipt, payload: delivered,
+        path: deliveryPath, rows: scenario.rows, policyCid: cid(joined.finalResultPolicy), custody}) : null;
       if (joined) {
         const dataPath = join(project, 'source-data.json');
         assert.equal(await readFile(dataPath, 'utf8'), canonicalText(joined.payload));
@@ -406,9 +471,13 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       assert.deepEqual(rows, scenario.rows);
       assert.deepEqual(saved.events, []);
       requireSends(sends);
-      if (observeCustody) assert.deepEqual(await observeCustody(), custody,
-        'Cold Saved changed the retained Model entries, settlements or encrypted Store holdings');
-      runs.push({runId: state.run_id, ...(joined ? {attempts, custody, accounting, raw} : {call: attempts[0]}), rows, coldPid: saved.pid});
+      if (joined) {
+        assert.deepEqual(Buffer.from(saved.stdout, 'utf8'), delivered, 'Cold Saved returned different physical JSONL');
+        assert.deepEqual(await readJoinedOutput(deliveryPath), delivered, 'Cold Saved changed the delivered file');
+        assert.deepEqual(await observeCustody(), custody, 'Cold Saved changed the original publication or Model custody');
+      }
+      runs.push({runId: state.run_id, ...(joined ? {attempts, custody, accounting, raw, delivery} : {call: attempts[0]}), rows,
+        coldPid: saved.pid});
     }
     assert.equal(new Set(runs.map(run => run.runId)).size, programs.length);
     assert.equal(new Set(runs.flatMap(run => run.attempts ?? [run.call])).size, expectedSends);
