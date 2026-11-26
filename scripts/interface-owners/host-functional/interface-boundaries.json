@@ -1787,7 +1787,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4ee939592974a0295e808265fdc5f7358e8f91234e1b3c3fb57914b93dcf3a3c",
+      "sha256": "d82c99592e3941ce5f5fd381592b33b92b3834cd8efc98c5f0aa41e64091029b",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2856,6 +2856,10 @@
               {
                 "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
                 "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "if (owner?.releaseComplete === true) return false;"
               }
             ],
             "synchronization": [
@@ -3076,6 +3080,10 @@
               {
                 "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
                 "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
+              },
+              {
+                "path": "adapters/host-node/table-durable-capture.test.mjs",
+                "anchor": "assert.equal(await suspendCompletedEffectfulComputation(suspension), false);"
               }
             ]
           }
