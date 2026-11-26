@@ -1,4 +1,4 @@
-# Standalone read-only Explorer
+# Standalone Explorer
 
 Install the separate package with `npm install @actql/explorer`. It includes
 its built React SPA, Hono Gateway and standard Node runtime dependency closure.
@@ -79,6 +79,17 @@ awaited close contract. Close never cancels a Run or releases retained Results;
 retry a failed close on the same viewer. Browser disconnect only discards its
 presentation session. Closing the terminal viewer closes its server and lease.
 
+Use `--allow-run-start` with the installed launcher, or `allowRunStart: true`
+with an embedded Gateway, to show **Run** for a checked draft. The connected
+SDK submits the draft through the Host's ordinary admission and policy.
+After an edit, check the draft again before starting.
+
+If the response is lost, expand **Start outcome unknown** and use **Look up
+start**. The viewer checks the original submission, including after reconnect.
+The panel contains the original reference. A successful lookup opens the
+same Run without submitting the draft again. Its Story and status are
+separate authorized reads.
+
 The low-level `startExplorerGateway` export is also available for embedding an
 already-connected Client with a caller-admitted asset Map; it opens no Host.
 
@@ -153,11 +164,9 @@ defines the HTTP server/Fetch seam; it does not supply the application security
 or Host authorization contract. React/Query remain outside this transport and
 will be peers of the shared UI package, rather than a second bundled runtime.
 
-Controls, Samples, Result payloads, Timeline/physical observations, source-map
-origins and the Cloud route adapter remain outside this finite distribution.
-No full E1, Full Explorer, Cloud, Native or live Provider acceptance follows
-from the read-only installed profile. The optional Explorer cohort is separate
-from the initial four-package Node release; formal publication needs its own GO.
+Full Result payloads, write review, Timeline, source maps and the Cloud route
+adapter remain outside this distribution. The optional Explorer cohort is
+separate from the initial four-package Node release.
 
 ## Current observations
 
@@ -167,8 +176,10 @@ unknown/unavailable quantities and Result availability. This remains metadata:
 no sample/payload, checkpoint resolution, control mutation or business work is
 started. A cancellation acknowledgement does not become physical cleanup proof.
 
-Following is opt-in for the exact last-read Run and refreshes read-only evidence
-once per second until a terminal state, refusal, reference change or disconnect.
+Explorer follows a readable, active Run by default and shows the time of its
+latest authorized observation. It refreshes the original Run once per second
+until it finishes or the view changes, disconnects, or loses permission. After
+a stop is acknowledged, Explorer follows the Run until the Host confirms physical stop.
 It never calls execution wait/start/resume/reconcile. Every refresh uses the
 current SDK/Host permission and the same finite Gateway session; no long-lived
 Allow or durable bootstrap URL is retained. Independent observations remain
@@ -182,20 +193,30 @@ same authenticated loopback session. This flag enables a presentation route;
 it does not authorize the caller. The Host independently checks its current
 cancellation permission and original Run/control revision.
 
-Read the exact existing Run, prepare and save its cancellation reference, then
-explicitly request cancellation. The reference fixes the observed control
-revision, cancellation ID and invocation attempt. This view sends that request
-once. A lost or malformed reply stays Unknown: use **Look up original
-cancellation**, or load the saved JSON in a later viewer for lookup only. No new
-ID, revision, request or Run is generated as a recovery action. Closing or
-reconnecting the viewer does not resend the operation. Stale-scope replies and
-protected observations are discarded; the Client's original lookup reference
-is retained so its uncertainty is not silently forgotten.
+Open the original Run, select **Stop**, and confirm the request. Explorer sends
+one invocation for the observed control revision. If the reply is uncertain,
+open **Terminal ▾ → Look up original stop** to read its original record. You
+can save the cancellation reference and load it in a later viewer for lookup.
 
-Cancellation acceptance is not physical stop, cleanup, Result release or a
-successful Run. The existing Run inspector observes those facts independently.
-Pause, step, resume and Sample payloads remain unavailable. This connection does
-not create a new controller, Host, scheduler, grant or durable operation store.
+The Run bar shows **Stopping…** until an authorized observation confirms physical
+stop. The Run inspector records cleanup and Result availability independently.
+Use **Terminal ▾** to copy a launcher or status command, or save the original
+Run reference as `run.json`.
+
+## Original Relation Samples and Debug Resume
+
+The installed viewer can read retained Relation Samples by their original
+Run, Step and port. The Host checks current Sample and Run access. At a checked
+Next Step, the viewer requests the inputs using that observed pause revision.
+An embedded viewer can enable the same read with `allowSamples: true`.
+
+Use `--allow-debug-resume` with the installed launcher or
+`allowDebugResume: true` with an embedded Gateway. Open the original Run,
+read its Plan and inspect its status. **Step** and **Continue** appear only
+for a current supported pause advertised by the Host. Each action uses the
+same Run and observed control revision. If the reply is lost, use **Look up
+original control**. An accepted receipt records the command's acceptance.
+Read current status for physical progress.
 
 ## Checkpoint review reads
 

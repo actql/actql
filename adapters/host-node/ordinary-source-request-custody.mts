@@ -120,7 +120,7 @@ export function createOrdinarySourceRequestCustody<Original extends OriginalCont
     assertOriginal();
     return invocation;
   }
-  function prepareOriginalExplanation(state: State, producer: Producer, contracts: Contracts, journal: OriginalJournal | undefined, staticPlan?: Limits) {
+  function prepareOriginalExplanation(state: State, producer: Producer, contracts: Contracts, journal: OriginalJournal | undefined, staticPlan?: Limits, debugEntryInstalled = false) {
     const moon = state.context.runtime;
     // Old/unsupported installed profiles keep the existing Plan path. This
     // is selected facility support, not a public switch or capacity grant.
@@ -149,7 +149,7 @@ export function createOrdinarySourceRequestCustody<Original extends OriginalCont
     }
     const limits = staticPlan ?? localContractLimits;
     const original = checked(Reflect.apply(prepare, moon, [state.parent, producer.receipt,
-      limits.maxWireBytes, limits.maxNodes, limits.maxDepth]));
+      limits.maxWireBytes, limits.maxNodes, limits.maxDepth, debugEntryInstalled]));
     if (original === undefined) return;
     // All additional retained wrappers follow the actual working admission.
     // The same per-producer holding owns failure before a Plan/ticket returns.

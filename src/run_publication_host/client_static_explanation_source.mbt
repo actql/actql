@@ -299,7 +299,9 @@ fn write_client_static_explanation_context(
         if !physical_equal(subject.owner, identity) {
           return Err(ForeignOriginal)
         }
-        write_static_explanation_source(writer, steps, subject, remaining)
+        write_static_explanation_source(
+          writer, checked, steps, subject, remaining,
+        )
       }
     }
     if infers is Some(graphs) {
@@ -312,6 +314,8 @@ fn write_client_static_explanation_context(
       write_static_explanation_effect(writer, original, remaining)
     }
     @encode.end_array(writer)
+    @encode.key(writer, "stage_result_links")
+    write_static_explanation_transfers(checked, steps, writer, remaining)
     explanation_text(writer, "version", "actql-explanation-context/0.1")
     @encode.end_object(writer)
     Ok(())
@@ -329,6 +333,7 @@ fn write_client_static_explanation_context(
 ///|
 fn write_static_explanation_source(
   writer : @encode.Writer,
+  checked : @checked.CheckedProgram,
   steps : @canonical.FrozenArray[@canonical.CanonicalValue],
   subject : @checked.SourceExecutionSubject,
   remaining : Ref[Int],
@@ -343,6 +348,21 @@ fn write_static_explanation_source(
   if !physical_equal(input, source) || declaration.stage_index != subject.stage {
     raise StaticExplanationForeignSubject
   }
+  // The request ordinal is local to the acquisition inventory. The
+  // checked stage also contains imports and supplied inputs.
+  spend_static_explanation_work(
+    remaining,
+    count=declaration.input_name.length() + 2,
+  )
+  guard @checked.unit_pipeline(checked, subject.stage) is Some(pipeline) &&
+    @pipeline.lookup(pipeline, declaration.input_name)
+    is Some(@pipeline.Input(input_port)) &&
+    @checked.unit_input_completeness(checked, subject.stage, input_port)
+    is Some(original) &&
+    original.binding is @checked.Source(response) &&
+    physical_equal(@checked.source_execution_subject(response), subject) else {
+    raise StaticExplanationForeignSubject
+  }
   let contract = @acquisition.selected_contract(source)
   let catalog = @environment.reference_catalog(
     @environment.source_request_reference(contract),
@@ -354,7 +374,7 @@ fn write_static_explanation_source(
     writer,
     steps,
     subject.stage,
-    subject.input,
+    input_port,
     remaining,
   )
   explanation_text(writer, "kind", "source")
@@ -387,7 +407,7 @@ fn write_static_explanation_source(
   @encode.key(writer, "stage_input")
   @encode.begin_object(writer)
   @encode.key(writer, "input_port_ordinal")
-  @encode.number_value(writer, subject.input.to_double())
+  @encode.number_value(writer, input_port.to_double())
   explanation_text(writer, "kind", "stage_input")
   @encode.key(writer, "stage_ordinal")
   @encode.number_value(writer, subject.stage.to_double())

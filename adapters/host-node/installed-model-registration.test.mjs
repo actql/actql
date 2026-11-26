@@ -427,7 +427,7 @@ test('actual Effect preparation passes original recipe startup controls while it
   const run={model:{compiled,graph},publicationControl:control,modelRunDefinition:definition,
     modelScope:scope,value:parent,modelDemand:demand,runtime,
     modelSelection:{originalReadInstallation:physical}};
-  const preparation=installedEffectModelPreparation(run,()=>({}),()=>{});
+  const preparation=installedEffectModelPreparation(run,()=>({}),()=>{},()=>{});
   assert.deepEqual([physical.modelRetainedBytes,physical.modelExecutionBytes],[190n,45n]);
   assert.deepEqual([preparation.modelRetainedBytes,preparation.modelExecutionBytes],[100n,5n]);
   assert.equal(preparation.metadataInstallation,physical);

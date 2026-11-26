@@ -7,10 +7,13 @@ type LaunchFormat = Extract<ExplorerLaunchInput, {kind: 'program'}>['format'];
 
 const invalid = () => {throw new Error('ExplorerInvalidArguments');};
 export function explorerArguments(args: readonly string[]) {
-  let local = false, allowCancellation = false, stateDir: string | undefined, program: string | undefined, run: string | undefined, format: string | undefined;
+  let local = false, allowCancellation = false, allowRunStart = false, allowDebugResume = false;
+  let stateDir: string | undefined, program: string | undefined, run: string | undefined, format: string | undefined;
   for (let i = 0; i < args.length; i++) {
     const flag = args[i], value = args[i + 1];
     if (flag === '--local' && !local) local = true;
+    else if (flag === '--allow-run-start' && !allowRunStart) allowRunStart = true;
+    else if (flag === '--allow-debug-resume' && !allowDebugResume) allowDebugResume = true;
     else if (flag === '--allow-cancel' && !allowCancellation) allowCancellation = true;
     else if (['--state-dir', '--program', '--run', '--format'].includes(flag) &&
         typeof value === 'string' && value.length > 0 && !value.startsWith('--')) {
@@ -25,7 +28,8 @@ export function explorerArguments(args: readonly string[]) {
   if (!local) throw new Error('ExplorerExplicitHostRequired');
   if (program !== undefined && run !== undefined ||
       format !== undefined && (program === undefined || !['sql', 'aql', 'aql-text', 'program'].includes(format))) invalid();
-  return Object.freeze({...(allowCancellation ? {allowCancellation:true} : {}), local: stateDir === undefined ? {} : {stateDir},
+  return Object.freeze({...(allowRunStart ? {allowRunStart: true} : {}),
+    ...(allowDebugResume ? {allowDebugResume: true} : {}), ...(allowCancellation ? {allowCancellation:true} : {}), local: stateDir === undefined ? {} : {stateDir},
     ...(program === undefined ? {} : {program, format: (format ?? 'sql') as LaunchFormat}),
     ...(run === undefined ? {} : {run})});
 }

@@ -61,7 +61,9 @@ struct Reservation {
   mut execution : Int64
   mut open : Bool
   mut attempt_reserved : Bool
-  mut attempt_started : Bool
+  // Zero is unstarted. Once debited, the original attempt keeps its
+  // positive ordinal even if earlier reserved slots start later.
+  mut attempt_sequence : Int
   mut cleanup_pending : Bool
   mut quantities : QuantityAmounts?
   mut uncertain_quantities : QuantityAmounts?
@@ -307,7 +309,7 @@ fn reserve_attempt_current(
     execution: execution_bytes,
     open: true,
     attempt_reserved: true,
-    attempt_started: false,
+    attempt_sequence: 0,
     cleanup_pending: false,
     quantities,
     uncertain_quantities: None,
@@ -384,19 +386,22 @@ fn consume_reserved_attempt_current(
   if !reservation.open {
     return Err(ClosedReservation)
   }
-  if reservation.attempt_started {
+  if reservation.attempt_sequence > 0 {
     return Ok(())
   }
   if !reservation.attempt_reserved {
     return Err(InvalidCharge)
   }
+  // An outstanding attempt already fits the Ledger's attempt limit.
+  // This is the debit order, not the independently issued reservation serial.
+  let sequence = ledger.usage.attempts + 1
   ledger.usage = {
     ..ledger.usage,
-    attempts: ledger.usage.attempts + 1,
+    attempts: sequence,
     reserved_attempts: ledger.usage.reserved_attempts - 1,
   }
   reservation.attempt_reserved = false
-  reservation.attempt_started = true
+  reservation.attempt_sequence = sequence
   Ok(())
 }
 
@@ -521,7 +526,7 @@ pub fn settle_entered_transfer(
     (observed is Some(bytes) && (bytes < 0L || bytes > ceiling)) {
     return Err(InvalidCharge)
   }
-  if !reservation.attempt_started || reservation.transfer == 0L {
+  if reservation.attempt_sequence == 0 || reservation.transfer == 0L {
     return Ok(false)
   }
   if reservation.transfer != ceiling {
@@ -854,6 +859,22 @@ pub fn release_allocation(
 ///|
 pub fn reservation_serial(reservation : Reservation) -> Int {
   reservation.serial
+}
+
+///|
+/// The positive first debit ordinal for this exact settled output, or zero.
+/// The caller already owns the output's successful commit boundary. This
+/// scalar read neither consumes an attempt nor establishes Run provenance.
+pub fn completed_output_attempt_sequence(
+  ledger : Ledger,
+  reservation : Reservation,
+) -> Int {
+  if physical_equal(ledger, reservation.owner) &&
+    reservation.completed_output is Some(_) {
+    reservation.attempt_sequence
+  } else {
+    0
+  }
 }
 
 ///|

@@ -11,18 +11,19 @@ pub(all) enum ClientRequestStaticContextIssue {
 ///|
 // The deepest Context branch is root/items/Effect set/members/member/
 // declaration/contract. Its simultaneous object keys are bounded by the
-// complete records: root(4), set(3), member(2), declaration(8), contract(4).
+// complete records: root(5), set(3), member(2), declaration(8), contract(4).
 // Siblings reuse the frames. Ordinary measuring output still uses key Maps.
 let static_context_measurement_bytes : Int64 = {
-  let writer = @encode.measuring_writer_construction_extent(21, 7).unwrap()
+  let writer = @encode.measuring_writer_construction_extent(22, 7).unwrap()
   @execution.preparation_representation_cost({
     // Geometry sink and its counters, the nine-word result, and live original
     // source/step/port and output/Effect lookup frames. Include the bound
     // measurement call, remaining-work Ref, typed Options and Result carriers.
-    // Loops borrow each checked item in order; no traversal vector is built.
-    record_headers: writer.record_headers + 28L,
-    reference_slots: writer.reference_slots + 56L,
-    scalar_words: writer.scalar_words + 44L,
+    // Include the import, predecessor and exact output lookup frames.
+    // Loops borrow each checked item in order.
+    record_headers: writer.record_headers + 40L,
+    reference_slots: writer.reference_slots + 84L,
+    scalar_words: writer.scalar_words + 60L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -822,15 +823,22 @@ fn[I, P] render_working_static_explanation(
   language : @publication_host.ClientExplanationLanguage,
 ) -> Result[String, ClientRequestStaticContextIssue] {
   guard @identity.object_field(view, "facts") is Some(facts) &&
-    @identity.object_field(view, "context") is Some(context) else {
+    @identity.object_field(view, "context") is Some(context) &&
+    @identity.object_field(facts, "steps") is Some(@identity.Array(steps)) &&
+    @identity.object_field(context, "items") is Some(@identity.Array(items)) &&
+    @identity.object_field(view, "plan") is Some(plan) &&
+    @publication_host.explanation_narrative_map(plan) is Some(map) else {
     return Err(Presentation(InvalidExplanation))
   }
   // Bound the separate Context/step buffers, predicate cache/active/depth
-  // vectors and recursive frames from the admitted tree. Each append debits
+  // vectors, join port/source indices and recursive frames from the admitted
+  // tree. Each append debits
   // the character budget before copying. Include the builder and final text
   // for the complete CLI reply while the original wires and decoded view live.
+  let originals = @identity.array_count(steps).to_int64() +
+    @identity.array_count(items).to_int64()
   guard result_read_data_cost(
-      4L * nodes.to_int64() + 4L * depth.to_int64() + 128L,
+      12L * nodes.to_int64() + 4L * depth.to_int64() + 20L * originals + 192L,
       8L * bytes.to_int64(),
       2L * bytes.to_int64(),
     )
@@ -843,7 +851,11 @@ fn[I, P] render_working_static_explanation(
   }
   guard current() else { return Err(Preparation(ForeignOriginal)) }
   let narrative = @publication_host.render_client_explanation_narrative(
-    facts, context, language, bytes,
+    facts,
+    Some(context),
+    language,
+    bytes,
+    logical_map=Some(map),
   ) catch {
     issue => return Err(Presentation(issue))
   }
@@ -851,7 +863,9 @@ fn[I, P] render_working_static_explanation(
     English => "Logical dependencies"
     Japanese => "論理的な依存関係"
   }
-  let mut extent = static_explanation_utf8_bytes(heading)
+  let mut extent = static_explanation_utf8_bytes(heading) +
+    static_explanation_utf8_bytes(narrative.summary) +
+    1
   for line in narrative.context {
     extent += static_explanation_utf8_bytes(line) + 1
   }
@@ -862,6 +876,8 @@ fn[I, P] render_working_static_explanation(
     return Err(Encoding(@encode.OutputLimit))
   }
   let report = StringBuilder(size_hint=extent)
+  report.write_string(narrative.summary)
+  report.write_char('\n')
   for line in narrative.context {
     report.write_string(line)
     report.write_char('\n')

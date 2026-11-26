@@ -2849,6 +2849,7 @@ pub fn client_program_prepare_request_original_explanation(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  debug_entry_installed : Bool,
 ) -> Result[
   @client_local_host.ClientRequestOriginalExplanation[
     ClientLocalPreparationInputOriginal,
@@ -2856,7 +2857,12 @@ pub fn client_program_prepare_request_original_explanation(
   @client_local_host.ClientOriginalExplanationCaptureIssue,
 ] {
   @client_local_host.prepare_request_original_explanation(
-    parent, input, max_bytes, max_nodes, max_depth,
+    parent,
+    input,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    debug_entry_installed~,
   )
 }
 
@@ -2878,6 +2884,7 @@ pub fn client_program_read_request_checked_static_plan(
   max_nodes : Int,
   max_depth : Int,
   infers : Array[@publication_host.ClientInferPlanGraph],
+  inspect_installed : Bool,
 ) -> Result[String, ClientRequestStaticPlanBridgeIssue] {
   let manifests = match client_generated_compilation_manifests() {
     Ok(value) => value
@@ -2891,6 +2898,7 @@ pub fn client_program_read_request_checked_static_plan(
     max_nodes,
     max_depth,
     infers~,
+    inspect_installed~,
   ).map_err(issue => Preparation(issue))
 }
 
@@ -2928,6 +2936,7 @@ pub fn client_program_read_request_checked_static_effect_explanation(
   max_depth : Int,
   max_work : Int,
   infers : Array[@publication_host.ClientInferPlanGraph],
+  debug_entry_installed : Bool,
 ) -> Result[
   @client_local_host.ClientRequestStaticEffectExplanation,
   ClientRequestStaticExplanationBridgeIssue,
@@ -2937,7 +2946,15 @@ pub fn client_program_read_request_checked_static_effect_explanation(
     Err(issue) => return Err(Manifests(issue))
   }
   @client_local_host.request_prepared_static_explanation(
-    parent, input, manifests, max_bytes, max_nodes, max_depth, max_work, infers,
+    parent,
+    input,
+    manifests,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_work,
+    infers,
+    debug_entry_installed~,
   ).map_err(issue => Projection(issue))
 }
 
@@ -3017,12 +3034,12 @@ pub fn client_program_discard_effect_run_explanation(
     ClientLocalPreparationInputOriginal,
   ],
   definition : @publication.PublicationContract,
-  decline : Bool,
+  reclaim : Bool,
 ) -> Result[Unit, @client_local_host.ClientRequestStaticContextIssue] {
   @client_local_host.discard_original_effect_run_explanation(
     original,
     definition,
-    decline~,
+    reclaim~,
   )
 }
 
@@ -3032,8 +3049,12 @@ pub fn client_program_request_original_static_plan_wire(
   original : @client_local_host.ClientRequestOriginalExplanation[
     ClientLocalPreparationInputOriginal,
   ],
+  inspect_installed : Bool,
 ) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue] {
-  @client_local_host.request_original_static_plan_wire(original)
+  @client_local_host.request_original_static_plan_wire(
+    original,
+    inspect_installed~,
+  )
 }
 
 ///|
@@ -3278,6 +3299,162 @@ pub fn client_program_request_explanation_read_issue_code(
   issue : @client_local_host.ClientRequestExplanationReadIssue,
 ) -> String {
   @client_local_host.request_explanation_read_issue_code(issue)
+}
+
+///|
+#export_name("clientProgramCheckRelationSampleProfile")
+pub fn client_program_check_relation_sample_profile(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  observation : @client_local_host.ClientLogicalObservation,
+  original_reference_wire : String,
+  records : @client_local_host.InstalledRelationSampleProfileEvidence,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (
+    @client_local_host.ClientCheckedRelationSampleProfile,
+    String,
+    String,
+    @publication_host.PreparedClientProgram,
+    @publication_host.ClientCompiledRun,
+    String,
+  ),
+  @client_local_host.InstalledRelationSampleProfileIssue,
+] {
+  @client_local_host.check_installed_relation_sample_profile_journal_reference(
+    owner, request, definition, observation, original_reference_wire, records, max_bytes,
+    max_nodes, max_depth,
+  ).map(profile => {
+    let (admission, resolved, prepared, compiled, map) = @client_local_host.installed_relation_sample_profile_start_original(
+      profile,
+    )
+    (profile, admission, resolved, prepared, compiled, map)
+  })
+}
+
+///|
+#export_name("clientProgramRelationSampleAdoptionMatchesProfile")
+pub fn client_program_relation_sample_adoption_matches_profile(
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  logical_map_cid : String,
+  output_port_id : String,
+  max_items : String,
+  max_bytes : String,
+  max_artifacts : String,
+  ttl_seconds : String,
+  required : Bool,
+) -> Bool {
+  @client_local_host.installed_relation_sample_adoption_matches_profile(
+    profile, logical_map_cid, output_port_id, max_items, max_bytes, max_artifacts,
+    ttl_seconds, required,
+  )
+}
+
+///|
+#export_name("clientProgramIssueRelationSampleProfile")
+pub fn client_program_issue_relation_sample_profile(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  observation : @client_local_host.ClientLogicalObservation,
+  original_reference_wire : String,
+  installed_profile_wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (
+    @client_local_host.ClientCheckedRelationSampleProfile,
+    String,
+    String,
+    @publication_host.PreparedClientProgram,
+    @publication_host.ClientCompiledRun,
+    String,
+  ),
+  @client_local_host.InstalledRelationSampleProfileIssue,
+] {
+  @client_local_host.issue_installed_relation_sample_profile_journal_reference(
+    owner, request, definition, observation, original_reference_wire, installed_profile_wire,
+    max_bytes, max_nodes, max_depth,
+  ).map(profile => {
+    let (admission, resolved, prepared, compiled, map) = @client_local_host.installed_relation_sample_profile_start_original(
+      profile,
+    )
+    (profile, admission, resolved, prepared, compiled, map)
+  })
+}
+
+///|
+#export_name("clientProgramWithRelationSampleJournal")
+pub fn client_program_with_relation_sample_journal(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  prefix : @client_local_host.InstalledRelationSamplePrefix,
+  require_current : () -> Bool,
+  consume : (String, String, String, String, String, () -> Bool, Int) -> Bool,
+) -> Result[Unit, @client_local_host.InstalledRelationSampleAdoptionIssue] {
+  @client_local_host.with_installed_relation_sample_journal(
+    owner,
+    profile,
+    prefix,
+    require_current,
+    (input, current, bytes) => {
+      consume(
+        @publication.run_evidence_value_json(input.source_generation),
+        @publication.run_evidence_value_json(input.capture),
+        @publication.run_evidence_value_json(input.emission),
+        @publication.run_evidence_value_json(input.reference),
+        @encode.document_text(input.relation),
+        current,
+        bytes,
+      )
+    },
+  )
+}
+
+///|
+#export_name("clientProgramReserveRelationSampleStart")
+pub fn client_program_reserve_relation_sample_start(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  journal_bytes : Int,
+  debug_entry : Bool,
+  previous_journal_bytes : Int,
+) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue] {
+  @client_local_host.reserve_installed_relation_sample_start(
+    owner,
+    prepared,
+    request,
+    compiled,
+    definition,
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    journal_bytes~,
+    debug_entry~,
+    previous_journal_bytes~,
+  )
+}
+
+///|
+#export_name("clientProgramAcknowledgeRelationSampleStart")
+pub fn client_program_acknowledge_relation_sample_start(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  captured : @strategy.CapturedDAG,
+  revision : Int,
+) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue] {
+  @client_local_host.acknowledge_installed_relation_sample_start(
+    owner, prepared, request, compiled, definition, captured, revision,
+  )
 }
 
 ///|

@@ -230,6 +230,8 @@ pub fn[P, E] complete_prepared_run_operation_response_projection(PreparedRunAdmi
 
 pub fn complete_shared_capacity_growth_after_acquisition(SharedCapacityGrowth) -> Result[Unit, LedgerIssue]
 
+pub fn completed_output_attempt_sequence(Ledger, Reservation) -> Int
+
 pub fn configure_quantities(Ledger, QuantityAmounts) -> Result[Unit, LedgerIssue]
 
 pub fn consume_execution_delegation_attempt(Ledger, ExecutionDelegation) -> Result[Unit, LedgerIssue]
@@ -351,6 +353,8 @@ pub fn mark_preparation_io_transfer_uncertain(PreparationIo) -> Result[Unit, Pre
 pub fn mark_quantities_uncertain(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
 pub fn mark_transfer_uncertain(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
+pub fn[I, P, V] measure_working_preparation_scratch(PreparationCapacity[I, P], I, Int64, () -> V) -> Result[(V, PreparationScratch[I, P]), PreparationCapacityIssue]
 
 pub fn model_io_access_within_limits(ModelIoAccess, Int, Int) -> Bool
 
@@ -655,6 +659,8 @@ pub fn[P] return_preparation_body_borrow(PreparationBodyBorrow[P]) -> Result[Boo
 pub fn[I, P] return_preparation_capacity_borrow(PreparationCapacityBorrow[I, P]) -> Result[Bool, PreparationCapacityIssue]
 
 pub fn return_preparation_phase_work_continuation64(PreparationPhaseWorkContinuation64) -> Result[Unit, PreparationWorkIssue]
+
+pub fn[I, P] return_preparation_scratch(PreparationCapacity[I, P], I, PreparationScratch[I, P]) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn return_shared_capacity(SharedBorrow) -> Result[Unit, LedgerIssue]
 
@@ -1181,6 +1187,8 @@ type PreparationPhaseWork64
 type PreparationPhaseWorkContinuation64
 
 type PreparationRetirement
+
+type PreparationScratch[I, P]
 
 pub(all) struct PreparationWorkConstructionInventory {
   record_headers : Int64

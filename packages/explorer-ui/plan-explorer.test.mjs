@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {PlanExplorer} from './dist/plan-explorer.js';
+import {OriginalPlanMetadata, PlanExplorer} from './dist/plan-explorer.js';
 import {flowPresentation} from './flow-model.mjs';
 
 // Independently authored presentation fixture. It does not prove Host admission
@@ -66,6 +66,7 @@ test('real React render escapes source text and labels unavailable controls with
   assert(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
   assert(!html.includes('<script>')); assert(html.includes('e\u0301\r\n'));
   assert(html.includes('Original logical occurrences')); assert(html.includes(cid('1')));
+  assert.match(html, /Data dependencies · layout does not indicate execution order\./u);
   assert(html.includes('Controls, Samples and physical observations are unavailable'));
   assert(!html.includes('Pause')); assert(!html.includes('Approve')); assert(!html.includes('Run ID'));
 });
@@ -88,4 +89,19 @@ test('Effectful React view labels declarations and unknown observations without 
   assert.ok(!html.includes('>Approve<'));
   assert.ok(!html.includes('>Run<'));
   assert.ok(!html.includes('>Pause<'));
+});
+
+
+test('workspace metadata keeps original identities and leaves live capabilities to the selected Run', () => {
+  const model = fixture();
+  const html = renderToStaticMarkup(createElement(OriginalPlanMetadata, {model, workspace: true, locale: 'ja'}));
+  assert.match(html, /コンパイル済みプラン/u);
+  assert.match(html, /論理マップ/u);
+  assert(html.includes(model.compiledPlanCid));
+  assert(html.includes(model.logicalMapCid));
+  assert.doesNotMatch(html, /Controls, Samples|Sealed Preview: unavailable/u);
+  const graph = renderToStaticMarkup(createElement(PlanExplorer, {model, scopeKey: 'workspace-ja',
+    workspace: {locale: 'ja', select() {}, label() {return {};}}}));
+  assert.match(graph, /データの流れを表示します。実行順序は示しません。/u);
+  assert.doesNotMatch(graph, /Data flow, not execution order|Data dependencies/u);
 });

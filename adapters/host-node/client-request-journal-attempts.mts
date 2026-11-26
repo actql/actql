@@ -112,8 +112,9 @@ export function createJournalAttempts(transaction: ReturnType<typeof createSqlit
     throw error;
   };
   const transact = <Result extends SynchronousRuntimeData>(operation: string, unknownCode: string,
-    known: (error: unknown) => boolean, action: () => Result): Result => {
-    try { return transaction.run(action); }
+    known: (error: unknown) => boolean, action: () => Result,
+    {readOnly = false}: Readonly<{readOnly?: boolean}> = {}): Result => {
+    try { return readOnly ? transaction.read(action) : transaction.run(action); }
     catch (error) {
       const transactionFailure = ([
         'ClientRequestJournalCommitOutcomeUnknown',

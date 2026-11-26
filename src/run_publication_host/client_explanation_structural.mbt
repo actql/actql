@@ -109,6 +109,16 @@ fn explanation_predicate_supported(
           if children != 0 {
             return Err(MalformedCheckedExpression)
           }
+        } else if tag == "property" {
+          if children != 1 {
+            return Err(MalformedCheckedExpression)
+          }
+          guard @expression.child_at(expression, index, 0) is Some(receiver) &&
+            @expression.node_form(expression, receiver)
+            is Some(Expression(base, _)) &&
+            (base == "field" || base == "join_field" || base == "property") else {
+            return Ok(false)
+          }
         } else if !explanation_predicate_operator(tag) {
           return Ok(false)
         }
@@ -188,6 +198,17 @@ fn explanation_predicate(
       if tag == "field" {
         explanation_text(w, "scope", "fields")
       }
+    } else if tag == "property" {
+      guard @decode.view(body) is ObjectValue(property) &&
+        @decode.lookup(property, "name") is Some(selector) &&
+        @decode.text(selector) is Ok(name) &&
+        @expression.child_at(expression, index, 0) is Some(receiver) else {
+        raise @encode.InvalidStructure
+      }
+      explanation_text(w, "form", "property")
+      explanation_text(w, "name", name)
+      @encode.key(w, "receiver")
+      @encode.number_value(w, receiver.to_double())
     } else if tag == "join_field" {
       explanation_text(w, "form", "field")
       explanation_join_field(w, body)

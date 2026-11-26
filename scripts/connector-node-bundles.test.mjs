@@ -72,6 +72,8 @@ test('Node installation touches only the configured module subset', async () => 
     strategyHostManagedFailureAction: () => 5,
     strategyHostModules: value => { assert.equal(value, setup); return ['local']; },
     strategyModule_local_Registration: value => { assert.equal(value, setup); return registration; },
+    strategyModule_local_ManagedStartSample: undefined,
+    strategyModule_local_ReturnPendingSample: undefined,
     strategyHostRegistrationSelectionKey: value => {
       assert.equal(value, registration);
       return 'local-test';
@@ -93,6 +95,7 @@ test('Node installation touches only the configured module subset', async () => 
   const entries = await installStrategyContributions(moon, setup, value => value, {duckdb: options});
   assert.equal(entries.length, 1);
   assert.equal(entries[0].registration, registration);
+  assert.equal(entries[0].relationSample, false);
   await entries[0].run(task);
   assert.equal(executions, 1);
   assert.equal(taskReads, 1);

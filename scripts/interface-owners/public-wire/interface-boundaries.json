@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "0cc804d412d383ab95718963834f3ebca494cea67a1d6ed0dd11913f95c4bda7",
+      "sha256": "e2590e0f444f6881d3d81462f7252420f126156e6efd25655670c2673d3ecb81",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -1248,7 +1248,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
@@ -1841,7 +1841,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "86e8998fd21c0e33dbaf203a10b13086761ae37c5fb94c9e338fef9ba9acb6e2",
+      "sha256": "88cad7ce9418fdedf63d015d9e0b5919aff4be0a13fb6cb298f477ddd2a0b9cd",
       "exports": [
         "interactiveControlErrors",
         "interactiveControlRegistryCid",
@@ -2607,11 +2607,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "structuralValidatorSource({extended: true})"
               }
             ],
@@ -2705,19 +2705,19 @@
                 "anchor": "\"requirement_id\": \"actql.protocol.run/run-observation.state-revision\""
               },
               {
-                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "path": "scripts/interactive-run-control-contract.test.mts",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
               },
               {
-                "path": "scripts/effectful-static-plan-contract.test.mjs",
+                "path": "scripts/effectful-static-plan-contract.test.mts",
                 "anchor": "test('Explanation Context admits structural declarations and refuses leaked or invented data', () => {"
               },
               {
-                "path": "scripts/effectful-static-plan-contract.test.mjs",
+                "path": "scripts/effectful-static-plan-contract.test.mts",
                 "anchor": "test('versioned static Explanation composes the existing closed schema families', () => {"
               },
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explainContext reads one original projection"
               }
             ]
@@ -2738,7 +2738,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "interactiveControlRegistryCid"
               }
             ],

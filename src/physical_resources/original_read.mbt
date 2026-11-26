@@ -119,7 +119,8 @@ fn original_reservation_snapshot(
     execution: reservation.execution,
     open: reservation.open,
     attempt_reserved: reservation.attempt_reserved,
-    attempt_started: reservation.attempt_started,
+    // Keep the original snapshot's established Boolean wire field.
+    attempt_started: reservation.attempt_sequence > 0,
     cleanup_pending: reservation.cleanup_pending,
     quantities: reservation.quantities,
     uncertain_quantities: reservation.uncertain_quantities,
@@ -386,7 +387,7 @@ fn original_capacity_growth_matches(
     before.uncertain_quantities is None &&
     before.completed_output is None &&
     !token.attempt_reserved &&
-    !token.attempt_started &&
+    token.attempt_sequence == 0 &&
     token.observed_quantities == before.observed_quantities &&
     token.completed_output is None &&
     original_capacity_token_covers(

@@ -27,7 +27,10 @@ pub struct ClientRequestEffectRunExplanationFacets {
 ///|
 struct ClientRequestEffectRunExplanation[I] {
   mut original : ClientRequestEffectRunExplanationData[I]?
-  mut working_base : (Int64, Int64)?
+  mut scratch : (
+    @resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan],
+    @resources.PreparationScratch[I, ClientInstalledEffectManagedPlan],
+  )?
 }
 
 ///|
@@ -167,7 +170,7 @@ pub fn[I] capture_request_effect_run_explanation(
             context,
           }),
         }),
-        working_base: None,
+        scratch: None,
       })
     },
   )
@@ -194,26 +197,57 @@ pub fn[I] try_capture_request_effect_run_explanation(
     physical_equal(held, input) else {
     return Err(Preparation(ForeignOriginal))
   }
-  let (base_r, base_e) = match
-    @resources.preparation_capacity_working_extents(capacity, input) {
+  let phase = owner.phase
+  guard (
+      phase == EffectCompiled ||
+      (phase == EffectPlanReserved && owner.effect_plan is None)
+    ) &&
+    owner.compiled_effect is Some(prepared) else {
+    return Err(Preparation(WrongPhase))
+  }
+  guard @publication_host.client_effect_explanation_compilation_for_run(
+      prepared, allowed, definition,
+    )
+    is Some(_) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  if journal_bytes < 1 || max_nodes < 1 || max_depth < 1 || max_work < 1 {
+    return Err(Preparation(Policy))
+  }
+  // Bound the measurement receipt, the two owner extents, its returned
+  // pair and the retained owner/scratch carriers before construction.
+  guard @execution.preparation_representation_cost(
+      static_plan_quote_units(10L, 20L, 10L),
+    )
+    is Some(control_bytes) else {
+    return Err(Preparation(Policy))
+  }
+  let (captured, scratch) = match
+    @resources.measure_working_preparation_scratch(
+      capacity,
+      input,
+      control_bytes,
+      () => {
+        capture_request_effect_run_explanation(
+          owner,
+          input,
+          allowed,
+          definition,
+          journal_bytes,
+          max_nodes,
+          max_depth,
+          max_work,
+          journal_bytes~,
+        )
+      },
+    ) {
+    Err(Resource(RetentionLimit | ExecutionLimit)) => return Ok(None)
     Err(issue) => return Err(Preparation(Capacity(issue)))
     Ok(value) => value
   }
-  let phase = owner.phase
-  match
-    capture_request_effect_run_explanation(
-      owner,
-      input,
-      allowed,
-      definition,
-      journal_bytes,
-      max_nodes,
-      max_depth,
-      max_work,
-      journal_bytes~,
-    ) {
+  match captured {
     Ok(original) => {
-      original.working_base = Some((base_r, base_e))
+      original.scratch = Some((capacity, scratch))
       Ok(Some(original))
     }
     Err(Preparation(Capacity(Resource(RetentionLimit | ExecutionLimit))))
@@ -238,9 +272,7 @@ pub fn[I] try_capture_request_effect_run_explanation(
       return preparation_module_call(
         () => {
           match
-            @resources.reconcile_current_working_preparation_phase(
-              capacity, input, base_r, base_e,
-            ) {
+            @resources.return_preparation_scratch(capacity, input, scratch) {
             Err(issue) => Err(Preparation(Capacity(issue)))
             Ok(_) =>
               if owner.phase == Selecting &&
@@ -303,13 +335,13 @@ pub fn[I] original_effect_run_explanation_facets(
 }
 
 ///|
-/// Drop the original facet aliases after the Journal has dropped its copies,
-/// before returning the parent capacity. This does not acknowledge a commit
-/// or return any capacity itself.
+/// Drop the original facet aliases after the Journal has dropped its copies.
+/// Only a live decline or acknowledged admission returns the measured scratch.
+/// Ordinary retirement keeps the charge under the original capacity owner.
 pub fn[I] discard_original_effect_run_explanation(
   original : ClientRequestEffectRunExplanation[I],
   definition : @publication.PublicationContract,
-  decline? : Bool = false,
+  reclaim? : Bool = false,
 ) -> Result[Unit, ClientRequestStaticContextIssue] {
   guard original.original is Some(selected) else {
     return Err(Preparation(WrongPhase))
@@ -321,25 +353,25 @@ pub fn[I] discard_original_effect_run_explanation(
     return Err(Preparation(WrongPhase))
   }
   selected.facets = None
-  if decline {
+  if reclaim {
     // The JS caller has already unwound its sizing frame and cleared its
     // aliases. Keep the exact cleanup token when current refuses repayment.
     let owner = selected.owner
     let phase = owner.phase
-    guard (phase == EffectCompiled || phase == EffectPlanReserved) &&
-      owner.effect_capacity is Some(capacity) &&
-      original.working_base is Some((r, e)) else {
+    guard original.scratch is Some((capacity, scratch)) else {
       return Err(Preparation(WrongPhase))
+    }
+    if phase != Selected {
+      guard (phase == EffectCompiled || phase == EffectPlanReserved) &&
+        owner.effect_capacity is Some(working) &&
+        physical_equal(working, capacity) else {
+        return Err(Preparation(WrongPhase))
+      }
     }
     owner.phase = Selecting
     let reconciled = preparation_module_call(
       () => {
-        @resources.reconcile_current_working_preparation_phase(
-          capacity,
-          selected.input,
-          r,
-          e,
-        )
+        @resources.return_preparation_scratch(capacity, selected.input, scratch)
       },
       () => if owner.phase == Selecting { owner.phase = phase },
     )
@@ -348,7 +380,7 @@ pub fn[I] discard_original_effect_run_explanation(
       Ok(_) => ()
     }
   }
-  original.working_base = None
+  original.scratch = None
   original.original = None
   Ok(())
 }

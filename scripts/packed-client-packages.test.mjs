@@ -208,7 +208,7 @@ test('installed Explorer oracle accepts the complete read-only browser capabilit
   const ui = join(packages, 'explorer-ui');
   await mkdir(ui);
   for (const name of ['package.json', 'read-model.mjs', 'checkpoint-review.mjs',
-    'cancellation.mjs', 'presentation-limits.mjs']) {
+    'cancellation.mjs', 'presentation-limits.mjs', 'i18n.mjs']) {
     await copyFile(new URL(`../packages/explorer-ui/${name}`, import.meta.url), join(ui, name));
   }
   const browser = join(root, 'browser-source.mjs');

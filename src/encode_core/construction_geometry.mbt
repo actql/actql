@@ -131,6 +131,23 @@ pub fn work_writer(
 }
 
 ///|
+/// Hash the same canonical bytes while charging the caller's synchronous
+/// work view before input traversal, UTF-8 hashing and finalization.
+pub fn work_hashing_writer(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  work : (Int) -> Bool,
+) -> Writer raise EncodeFailure {
+  create_writer(
+    max_bytes,
+    max_nodes,
+    max_depth,
+    WorkHashOutput(@sha256.hasher(), work),
+  )
+}
+
+///|
 /// Debit the actual next typed-graph/iterator step or borrowed String span.
 /// Existing sinks have no work callback and retain their original behavior.
 /// This is neither a node-count credit nor permission to emit an owned body.
@@ -141,6 +158,7 @@ pub fn construction_work_step(
   match writer.output {
     WorkGeometryOutput(_, work, _)
     | WorkTextOutput(_, work)
+    | WorkHashOutput(_, work)
     | WorkCompareOutput(_, work) => {
       active(writer)
       if units < 0 || !work(units) {

@@ -2034,6 +2034,9 @@ const schemas = {
       "policy_revision_cid": {
         "type": "string",
         "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "debug_entry": {
+        "const": true
       }
     }
   },
@@ -2538,6 +2541,9 @@ const schemas = {
           "policy_revision_cid": {
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "debug_entry": {
+            "const": true
           }
         }
       }
@@ -12161,6 +12167,9 @@ const schemas = {
           "policy_revision_cid": {
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "debug_entry": {
+            "const": true
           }
         }
       }
@@ -12706,6 +12715,9 @@ const schemas = {
               "policy_revision_cid": {
                 "type": "string",
                 "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "debug_entry": {
+                "const": true
               }
             }
           }
@@ -13257,6 +13269,9 @@ const schemas = {
                   "policy_revision_cid": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "debug_entry": {
+                    "const": true
                   }
                 }
               }
@@ -13918,6 +13933,65 @@ const schemas = {
         "additionalProperties": false,
         "required": [
           "form",
+          "name",
+          "receiver",
+          "type"
+        ],
+        "properties": {
+          "form": {
+            "const": "property"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receiver": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "type": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "projection",
+              "kind",
+              "nullable"
+            ],
+            "properties": {
+              "projection": {
+                "const": "shape_and_nullability"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "timestamp",
+                  "date",
+                  "json",
+                  "decimal",
+                  "array",
+                  "object",
+                  "vector",
+                  "resource_ref",
+                  "content_ref",
+                  "int64"
+                ]
+              },
+              "nullable": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "form",
           "operator",
           "children",
           "type"
@@ -14137,6 +14211,65 @@ const schemas = {
                     "name": {
                       "type": "string",
                       "minLength": 1
+                    },
+                    "type": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "projection",
+                        "kind",
+                        "nullable"
+                      ],
+                      "properties": {
+                        "projection": {
+                          "const": "shape_and_nullability"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "timestamp",
+                            "date",
+                            "json",
+                            "decimal",
+                            "array",
+                            "object",
+                            "vector",
+                            "resource_ref",
+                            "content_ref",
+                            "int64"
+                          ]
+                        },
+                        "nullable": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "form",
+                    "name",
+                    "receiver",
+                    "type"
+                  ],
+                  "properties": {
+                    "form": {
+                      "const": "property"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "receiver": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
                     },
                     "type": {
                       "type": "object",
@@ -14529,6 +14662,65 @@ const schemas = {
                             "name": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "type": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "projection",
+                                "kind",
+                                "nullable"
+                              ],
+                              "properties": {
+                                "projection": {
+                                  "const": "shape_and_nullability"
+                                },
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "string",
+                                    "number",
+                                    "boolean",
+                                    "timestamp",
+                                    "date",
+                                    "json",
+                                    "decimal",
+                                    "array",
+                                    "object",
+                                    "vector",
+                                    "resource_ref",
+                                    "content_ref",
+                                    "int64"
+                                  ]
+                                },
+                                "nullable": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "form",
+                            "name",
+                            "receiver",
+                            "type"
+                          ],
+                          "properties": {
+                            "form": {
+                              "const": "property"
+                            },
+                            "name": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "receiver": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 2147483647
                             },
                             "type": {
                               "type": "object",
@@ -15268,6 +15460,65 @@ const schemas = {
                               "additionalProperties": false,
                               "required": [
                                 "form",
+                                "name",
+                                "receiver",
+                                "type"
+                              ],
+                              "properties": {
+                                "form": {
+                                  "const": "property"
+                                },
+                                "name": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "receiver": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 2147483647
+                                },
+                                "type": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "projection",
+                                    "kind",
+                                    "nullable"
+                                  ],
+                                  "properties": {
+                                    "projection": {
+                                      "const": "shape_and_nullability"
+                                    },
+                                    "kind": {
+                                      "type": "string",
+                                      "enum": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "timestamp",
+                                        "date",
+                                        "json",
+                                        "decimal",
+                                        "array",
+                                        "object",
+                                        "vector",
+                                        "resource_ref",
+                                        "content_ref",
+                                        "int64"
+                                      ]
+                                    },
+                                    "nullable": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "form",
                                 "operator",
                                 "children",
                                 "type"
@@ -15963,6 +16214,65 @@ const schemas = {
                                       "name": {
                                         "type": "string",
                                         "minLength": 1
+                                      },
+                                      "type": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "projection",
+                                          "kind",
+                                          "nullable"
+                                        ],
+                                        "properties": {
+                                          "projection": {
+                                            "const": "shape_and_nullability"
+                                          },
+                                          "kind": {
+                                            "type": "string",
+                                            "enum": [
+                                              "string",
+                                              "number",
+                                              "boolean",
+                                              "timestamp",
+                                              "date",
+                                              "json",
+                                              "decimal",
+                                              "array",
+                                              "object",
+                                              "vector",
+                                              "resource_ref",
+                                              "content_ref",
+                                              "int64"
+                                            ]
+                                          },
+                                          "nullable": {
+                                            "type": "boolean"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "form",
+                                      "name",
+                                      "receiver",
+                                      "type"
+                                    ],
+                                    "properties": {
+                                      "form": {
+                                        "const": "property"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "receiver": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 2147483647
                                       },
                                       "type": {
                                         "type": "object",
@@ -16761,6 +17071,65 @@ const schemas = {
                                                   "name": {
                                                     "type": "string",
                                                     "minLength": 1
+                                                  },
+                                                  "type": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "projection",
+                                                      "kind",
+                                                      "nullable"
+                                                    ],
+                                                    "properties": {
+                                                      "projection": {
+                                                        "const": "shape_and_nullability"
+                                                      },
+                                                      "kind": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "string",
+                                                          "number",
+                                                          "boolean",
+                                                          "timestamp",
+                                                          "date",
+                                                          "json",
+                                                          "decimal",
+                                                          "array",
+                                                          "object",
+                                                          "vector",
+                                                          "resource_ref",
+                                                          "content_ref",
+                                                          "int64"
+                                                        ]
+                                                      },
+                                                      "nullable": {
+                                                        "type": "boolean"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "form",
+                                                  "name",
+                                                  "receiver",
+                                                  "type"
+                                                ],
+                                                "properties": {
+                                                  "form": {
+                                                    "const": "property"
+                                                  },
+                                                  "name": {
+                                                    "type": "string",
+                                                    "minLength": 1
+                                                  },
+                                                  "receiver": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 2147483647
                                                   },
                                                   "type": {
                                                     "type": "object",
@@ -17990,6 +18359,60 @@ const schemas = {
           ]
         },
         "minItems": 0
+      },
+      "stage_result_links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "producer",
+            "consumer",
+            "result_projection"
+          ],
+          "properties": {
+            "producer": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "step_id",
+                "port_id"
+              ],
+              "properties": {
+                "step_id": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "port_id": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "consumer": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "step_id",
+                "port_id"
+              ],
+              "properties": {
+                "step_id": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "port_id": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "result_projection": {
+              "type": "boolean"
+            }
+          }
+        },
+        "minItems": 0
       }
     }
   },
@@ -18511,6 +18934,9 @@ const schemas = {
                   "policy_revision_cid": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "debug_entry": {
+                    "const": true
                   }
                 }
               }
@@ -19060,6 +19486,9 @@ const schemas = {
                           "policy_revision_cid": {
                             "type": "string",
                             "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "debug_entry": {
+                            "const": true
                           }
                         }
                       }
@@ -19927,6 +20356,65 @@ const schemas = {
                                           "name": {
                                             "type": "string",
                                             "minLength": 1
+                                          },
+                                          "type": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "projection",
+                                              "kind",
+                                              "nullable"
+                                            ],
+                                            "properties": {
+                                              "projection": {
+                                                "const": "shape_and_nullability"
+                                              },
+                                              "kind": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "string",
+                                                  "number",
+                                                  "boolean",
+                                                  "timestamp",
+                                                  "date",
+                                                  "json",
+                                                  "decimal",
+                                                  "array",
+                                                  "object",
+                                                  "vector",
+                                                  "resource_ref",
+                                                  "content_ref",
+                                                  "int64"
+                                                ]
+                                              },
+                                              "nullable": {
+                                                "type": "boolean"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "form",
+                                          "name",
+                                          "receiver",
+                                          "type"
+                                        ],
+                                        "properties": {
+                                          "form": {
+                                            "const": "property"
+                                          },
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "receiver": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 2147483647
                                           },
                                           "type": {
                                             "type": "object",
@@ -21130,6 +21618,60 @@ const schemas = {
               ]
             },
             "minItems": 0
+          },
+          "stage_result_links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "producer",
+                "consumer",
+                "result_projection"
+              ],
+              "properties": {
+                "producer": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "step_id",
+                    "port_id"
+                  ],
+                  "properties": {
+                    "step_id": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "port_id": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "consumer": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "step_id",
+                    "port_id"
+                  ],
+                  "properties": {
+                    "step_id": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "port_id": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "result_projection": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "minItems": 0
           }
         }
       }
@@ -21701,6 +22243,9 @@ const schemas = {
                           "policy_revision_cid": {
                             "type": "string",
                             "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "debug_entry": {
+                            "const": true
                           }
                         }
                       }
@@ -22185,6 +22730,65 @@ const schemas = {
                                                       "name": {
                                                         "type": "string",
                                                         "minLength": 1
+                                                      },
+                                                      "type": {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "required": [
+                                                          "projection",
+                                                          "kind",
+                                                          "nullable"
+                                                        ],
+                                                        "properties": {
+                                                          "projection": {
+                                                            "const": "shape_and_nullability"
+                                                          },
+                                                          "kind": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "string",
+                                                              "number",
+                                                              "boolean",
+                                                              "timestamp",
+                                                              "date",
+                                                              "json",
+                                                              "decimal",
+                                                              "array",
+                                                              "object",
+                                                              "vector",
+                                                              "resource_ref",
+                                                              "content_ref",
+                                                              "int64"
+                                                            ]
+                                                          },
+                                                          "nullable": {
+                                                            "type": "boolean"
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "form",
+                                                      "name",
+                                                      "receiver",
+                                                      "type"
+                                                    ],
+                                                    "properties": {
+                                                      "form": {
+                                                        "const": "property"
+                                                      },
+                                                      "name": {
+                                                        "type": "string",
+                                                        "minLength": 1
+                                                      },
+                                                      "receiver": {
+                                                        "type": "integer",
+                                                        "minimum": 0,
+                                                        "maximum": 2147483647
                                                       },
                                                       "type": {
                                                         "type": "object",
@@ -23388,6 +23992,60 @@ const schemas = {
                           ]
                         },
                         "minItems": 0
+                      },
+                      "stage_result_links": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "producer",
+                            "consumer",
+                            "result_projection"
+                          ],
+                          "properties": {
+                            "producer": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "step_id",
+                                "port_id"
+                              ],
+                              "properties": {
+                                "step_id": {
+                                  "type": "string",
+                                  "pattern": "^sha256:[0-9a-f]{64}$"
+                                },
+                                "port_id": {
+                                  "type": "string",
+                                  "pattern": "^sha256:[0-9a-f]{64}$"
+                                }
+                              }
+                            },
+                            "consumer": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "step_id",
+                                "port_id"
+                              ],
+                              "properties": {
+                                "step_id": {
+                                  "type": "string",
+                                  "pattern": "^sha256:[0-9a-f]{64}$"
+                                },
+                                "port_id": {
+                                  "type": "string",
+                                  "pattern": "^sha256:[0-9a-f]{64}$"
+                                }
+                              }
+                            },
+                            "result_projection": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "minItems": 0
                       }
                     }
                   }
@@ -23474,7 +24132,7 @@ function valid(value, schema) {
   return true;
 }
 
-export const interactiveControlRegistryCid = "sha256:4b0f4825e684647bf9ea10628523c7b0b2eed07610010389001792303e4bee46";
+export const interactiveControlRegistryCid = "sha256:d83bc96bcf370b40f166ca6d32587aae383f5f822da52648d3ae7aa9a9603f32";
 export const interactiveControlErrors = Object.freeze(["RunControlCapabilityRequired","RunStateVersionUnsupported","RunNotPaused","CheckpointPending","ControlRevisionConflict","ControlOperationConflict","ControlRevisionExhausted","BreakpointUnresolved","BreakpointAmbiguous","BreakpointPlanMismatch","BreakpointUnsupported","BoundaryUnsupported","InitialPauseUnsupported","InspectionRetentionUnsupported","SampleCaptureRequiredFailed","GuardExceeded","GuardUnavailable","InvalidCostAmount","ExecutionProfileConflict","CLIOptionConflict","InteractiveTTYRequired"]);
 export const validWireControlQuantityShape = value => valid(value, schemas.control_quantity);
 export const validWireControlMoneyShape = value => valid(value, schemas.control_money);

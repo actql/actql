@@ -932,30 +932,32 @@ test('normal distribution executes all original Explanation consumers once after
   }
 });
 
-test('Explorer Common presentation runs once after client runtime preparation', () => {
-  const file = 'packages/explorer/test/static-explanation.actual.test.mjs';
-  const original = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
-    .scripts['check:distribution-client'].split(' && ');
-  const callers = jobs['client-distribution-callers'].steps;
-  const prepare = callers.find(step => step.id === 'distribution-preparation');
-  const consumers = Object.entries(jobs).flatMap(([name, job]) => (job.steps ?? [])
-    .filter(step => step.run?.split(/\s+/u).includes(file)).map(step => ({name, step})));
-  assert.deepEqual(consumers.map(consumer => consumer.name), ['client-distribution-callers']);
-  const [{step}] = consumers;
-  assert.equal(step.run.split(/\s+/u).filter(argument => argument === file).length, 1);
-  assert(prepare && callers.indexOf(prepare) < callers.indexOf(step));
-  assert.equal(step.if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
-  assert.equal(step['continue-on-error'], undefined);
-  assert.deepEqual(step.env, prepare.env);
-  const local = original.flatMap((command, index) =>
-    command.split(/\s+/u).filter(argument => argument === file).map(() => index));
-  assert.equal(local.length, 1);
-  const prepareIndex = original.indexOf(prepare.run);
-  assert(prepareIndex >= 0 && local[0] > prepareIndex);
-  const runner = ['node', 'scripts/local-checks.mjs', 'test', 'node', '--'];
-  assert.deepEqual(original[local[0]].split(/\s+/u).slice(0, runner.length), runner);
-  assert.deepEqual(step.run.split(/\s+/u).slice(0, runner.length), runner);
-});
+for (const file of ['packages/explorer/test/static-explanation.actual.test.mjs',
+  'packages/explorer-ui/test/read-model.actual.test.mjs']) {
+  test(`Explorer Common presentation runs once after client runtime preparation: ${file}`, () => {
+    const original = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+      .scripts['check:distribution-client'].split(' && ');
+    const callers = jobs['client-distribution-callers'].steps;
+    const prepare = callers.find(step => step.id === 'distribution-preparation');
+    const consumers = Object.entries(jobs).flatMap(([name, job]) => (job.steps ?? [])
+      .filter(step => step.run?.split(/\s+/u).includes(file)).map(step => ({name, step})));
+    assert.deepEqual(consumers.map(consumer => consumer.name), ['client-distribution-callers']);
+    const [{step}] = consumers;
+    assert.equal(step.run.split(/\s+/u).filter(argument => argument === file).length, 1);
+    assert(prepare && callers.indexOf(prepare) < callers.indexOf(step));
+    assert.equal(step.if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+    assert.equal(step['continue-on-error'], undefined);
+    assert.deepEqual(step.env, prepare.env);
+    const local = original.flatMap((command, index) =>
+      command.split(/\s+/u).filter(argument => argument === file).map(() => index));
+    assert.equal(local.length, 1);
+    const prepareIndex = original.indexOf(prepare.run);
+    assert(prepareIndex >= 0 && local[0] > prepareIndex);
+    const runner = ['node', 'scripts/local-checks.mjs', 'test', 'node', '--'];
+    assert.deepEqual(original[local[0]].split(/\s+/u).slice(0, runner.length), runner);
+    assert.deepEqual(step.run.split(/\s+/u).slice(0, runner.length), runner);
+  });
+}
 
 test('source-response custody has one same-environment normal Client owner', () => {
   const file = 'adapters/host-common/source-response-custody.test.mjs';

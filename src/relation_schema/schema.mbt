@@ -195,10 +195,11 @@ pub fn lookup_reference(schema : Schema, spelling : String) -> Field? {
       hi = mid
     }
   }
-  match field_at(schema, lo) {
-    Some(f) => if reference_name(f.name) == spelling { Some(f) } else { None }
-    None => None
+  guard field_reference_name_at(schema, lo) is Some(candidate) &&
+    candidate == spelling else {
+    return None
   }
+  field_at(schema, lo)
 }
 
 ///|
