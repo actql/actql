@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {copyFileSync, lstatSync, mkdirSync, readFileSync, readdirSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 import {createHash} from 'node:crypto';
+import type {BinaryLike} from 'node:crypto';
 
 // Repository-local includes of the SQLite and Host bootstrap stubs, including
 // the platform arms of the allocator source that bootstrap includes directly.
@@ -30,9 +31,10 @@ const originalPaths = Object.freeze([
   'src/connectors_builtin_node/local_carrier_bridge.mbt',
   'src/connectors_builtin_node/authorization_bridge.mbt',
 ]);
-const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+type OriginalInput = Readonly<{path: string; mode: number; digest: string}>;
+const digest = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
 
-export function copyConnectorAdditionHostSource(root, destination) {
+export function copyConnectorAdditionHostSource(root: string, destination: string) {
   const nodePackage = 'src/connectors_builtin_node';
   // Preserve the owning package's complete production source unit. Only the
   // assembly-owned bridge is regenerated here; other generated DATA is input.
@@ -56,7 +58,7 @@ export function copyConnectorAdditionHostSource(root, destination) {
   return Object.freeze(inputs);
 }
 
-export function assertConnectorAdditionHostSource(root, inputs) {
+export function assertConnectorAdditionHostSource(root: string, inputs: readonly OriginalInput[]) {
   for (const {path,mode,digest:expected} of inputs) {
     const source = join(root,path), state = lstatSync(source);
     assert(state.isFile() && !state.isSymbolicLink(),'Nonregular retained common Host source');
