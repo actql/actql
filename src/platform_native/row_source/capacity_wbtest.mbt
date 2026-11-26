@@ -53,6 +53,33 @@ test "Native transport quote rejects each invalid layout fact and overflow" {
     file_capture_transport_capacity(selected, limits, layout).unwrap(),
     2L,
   )
+  let before_receive = file_capture_transport_capacity(
+    selected,
+    limits,
+    layout,
+    measured_transport_bytes=Some(0),
+  ).unwrap()
+  let observed_receive = file_capture_transport_capacity(
+    selected,
+    limits,
+    layout,
+    measured_transport_bytes=Some(421),
+  ).unwrap()
+  assert_eq(observed_receive - before_receive, 842L)
+  assert_eq(
+    file_capture_transport_capacity(selected, limits, layout).unwrap() -
+    observed_receive,
+    2L * (8192L - 421L),
+  )
+  assert_eq(
+    file_capture_transport_capacity(
+      selected,
+      limits,
+      layout,
+      measured_transport_bytes=Some(8193),
+    ),
+    None,
+  )
   // Same independently declared logical fixture, with no physical owner or
   // source read. Use the selected diagnostic directory when one was provided;
   // /tmp is otherwise only finite quote DATA, never a fallback read authority.

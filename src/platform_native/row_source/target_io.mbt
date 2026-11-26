@@ -1103,6 +1103,10 @@ fn native_relation_file_target_read_io_capacity_original(
       response_bytes~,
       writable_fields~,
       ordered_projection=project_ordered,
+      // The staged Target opens its Reader and allocates both file-sized
+      // representations only after the original size callback admits them.
+      // Chunk, Root/Reader and diagnostics retain the same fixed quote.
+      measured_transport_bytes=response_bytes,
     )
     is Some(document) &&
     file_capture_metadata_capacity(

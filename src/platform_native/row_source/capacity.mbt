@@ -190,7 +190,12 @@ fn file_capture_transport_capacity(
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
   layout : @files.NativeFilesystemReadLayout,
+  measured_transport_bytes? : Int? = None,
 ) -> Int64? {
+  let receive_bytes = measured_transport_bytes.unwrap_or(limits.page.max_bytes)
+  if receive_bytes < 0 || receive_bytes > limits.page.max_bytes {
+    return None
+  }
   guard layout.root_payload_bytes > 0L &&
     layout.reader_payload_bytes > 0L &&
     layout.observation_payload_bytes > 0L &&
@@ -251,7 +256,7 @@ fn file_capture_transport_capacity(
     // the Reader's C chunk coexists with the returned MoonBit chunk Bytes.
     @execution.checked_preparation_add_product(
       total,
-      limits.page.max_bytes.to_int64(),
+      receive_bytes.to_int64(),
       2L,
     )
     is Some(total) &&
@@ -282,6 +287,7 @@ fn file_capture_provider_capacity(
   response_bytes? : Int? = None,
   writable_fields? : Int = 0,
   ordered_projection? : Bool = false,
+  measured_transport_bytes? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
   file_capture_provider_construction(
     selection,
@@ -291,6 +297,7 @@ fn file_capture_provider_capacity(
     response_bytes~,
     writable_fields~,
     ordered_projection~,
+    measured_transport_bytes~,
   ).map(value => value.0)
 }
 
@@ -303,6 +310,7 @@ fn file_capture_provider_construction(
   response_bytes? : Int? = None,
   writable_fields? : Int = 0,
   ordered_projection? : Bool = false,
+  measured_transport_bytes? : Int? = None,
 ) -> (@execution.ExecutionCapacity, @execution.PreparationRepresentationUnits)? {
   let page = match
     file_capture_response_backing_page(limits.page, response_bytes) {
@@ -357,7 +365,12 @@ fn file_capture_provider_construction(
   guard document is Some(document) &&
     @execution.preparation_representation_cost(document) is Some(document_bytes) &&
     @files.native_filesystem_read_layout() is Some(layout) &&
-    file_capture_transport_capacity(selection, limits, layout)
+    file_capture_transport_capacity(
+      selection,
+      limits,
+      layout,
+      measured_transport_bytes~,
+    )
     is Some(transport) &&
     @execution.checked_preparation_add_product(document_bytes, transport, 1L)
     is Some(total) else {
