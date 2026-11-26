@@ -584,7 +584,8 @@ test('Native Release rejects foreign identity and keeps incomplete and slow asse
 
 test('Release Native statistics retain the original 100-sample minimum without promoting Quick', async () => {
   const text = await readFile(new URL('./health-monitor.mjs', import.meta.url), 'utf8');
-  const start = text.indexOf('const onMetric = async metric => {'), end = text.indexOf('  const command =', start);
+  const start = text.indexOf('const pythonReleaseMetrics = new Set();');
+  const end = text.indexOf('  const command =', start);
   assert.ok(start >= 0 && end > start);
   for (const [mode, count, requiredSamples, expectedP95] of [['release', 50, 100, null], ['quick', 10, 10, null], ['release', 100, 100, 10]]) {
     const report = {metrics: []};
@@ -689,7 +690,8 @@ test('Release methodology identity binds actual cold and Native Python collector
     'scripts/package-release.mjs', 'scripts/package-inventory.mts', 'scripts/installed-connector-bin.mts',
     'scripts/connector-authoring-toolkit.mts', 'scripts/operation-performance.mjs', 'scripts/operation-performance-sample-summary.mts', 'scripts/ordinary-operation-packages.mjs'];
   const releaseOnly = ['scripts/benchmark-node-process-operations.mjs', 'scripts/benchmark-ordinary-processes.py',
-    'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs'];
+    'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs',
+    'scripts/python-release-latency-policy.mts'];
   const files = [...quickFiles, ...releaseOnly];
   for (const file of files) {
     await mkdir(join(root, file, '..'), {recursive: true}); await writeFile(join(root, file), 'authored source-tool DATA\n');
