@@ -163,18 +163,22 @@ fn NativeClientRunJournal::accept_submitted_run_with_operations(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let plan = match
-    capture_native_run_plan_original(
-      prepared,
-      compiled,
-      definition,
-      before_construction=run_metadata_construction(
-        self.database,
-        operations.map(value => value.reads),
-      ),
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let plan = if native_terminal_content_omits_static_plan(prepared, compiled) {
+    None
+  } else {
+    match
+      capture_native_run_plan_original(
+        prepared,
+        compiled,
+        definition,
+        before_construction=run_metadata_construction(
+          self.database,
+          operations.map(value => value.reads),
+        ),
+      ) {
+      Ok(value) => Some(value)
+      Err(issue) => return Err(issue)
+    }
   }
   self.accept_original_submitted_run(
     authority,
@@ -185,7 +189,7 @@ fn NativeClientRunJournal::accept_submitted_run_with_operations(
     authority_scope_cid,
     current_authorization,
     run_observation_originals=Some(observation),
-    run_plan_original=Some(plan),
+    run_plan_original=plan,
     operations~,
   )
 }

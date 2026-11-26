@@ -325,3 +325,137 @@ fn client_serialization_output_limits(
     },
   })
 }
+
+///|
+/// The existing finite terminal Content profile. The same Request narrows
+/// these ceilings to its checked component and quotes each workspace.
+fn client_terminal_serialization_workspace_limits() -> ClientSerializationWorkspaceLimits {
+  {
+    generation_bytes: 10000000,
+    generation_nodes: 100000,
+    generation_depth: 64,
+    generation_frames: 256,
+    identity_slots: 4000800,
+    reference_bytes: 16384,
+    reference_nodes: 256,
+    reference_depth: 32,
+    contract_bytes: 1000000,
+    contract_nodes: 100000,
+    contract_depth: 64,
+    export_limits: {
+      max_result_fields: 10,
+      max_result_mapping_work: 1000,
+      max_result_order_work: 10000,
+      max_result_workspace_entries: 100,
+      max_rows: 10000,
+      values: {
+        max_nodes: 1000000,
+        max_text_bytes: 10000000,
+        max_depth: 64,
+        max_work: 1000000,
+      },
+      payload_wire: {
+        max_bytes: 10000000,
+        max_nodes: 1000000,
+        max_depth: 64,
+        max_columns: 100,
+        max_order_work: 1000000,
+      },
+      logical_wire: {
+        max_bytes: 10000000,
+        max_nodes: 1000003,
+        max_depth: 66,
+        max_columns: 100,
+        max_order_work: 1000000,
+      },
+      schema: {
+        max_fields: 100,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 64,
+      },
+      max_batch_bytes: 65536,
+    },
+  }
+}
+
+///|
+/// SERIALIZE produces one checked row with at most these five fields. Its
+/// canonical ContentRef is a bounded object, even when the source Relation
+/// contains one Number column. Reuse the installed byte, text, work and depth
+/// limits; include the complete reference and outer row/Relation wrappers.
+fn client_terminal_content_result_workspace(
+  workspace : ClientSerializationWorkspaceLimits,
+  result_count : Int,
+) -> (
+  @publication_host.PublicationOutputExportLimits,
+  @execution.ExecutionCapacity,
+)? {
+  let original = workspace.export_limits
+  guard result_count > 0 &&
+    workspace.reference_nodes >= 0 &&
+    workspace.reference_nodes <= 2147483647 - 32 else {
+    return None
+  }
+  let nodes = workspace.reference_nodes + 32
+  let limits = {
+    ..original,
+    max_result_fields: Int::min(original.max_result_fields, 5),
+    max_rows: 1,
+    values: {
+      ..original.values,
+      max_nodes: Int::min(original.values.max_nodes, nodes),
+    },
+    payload_wire: {
+      ..original.payload_wire,
+      max_columns: Int::min(original.payload_wire.max_columns, 5),
+      max_nodes: Int::min(original.payload_wire.max_nodes, nodes),
+    },
+    logical_wire: {
+      ..original.logical_wire,
+      max_columns: Int::min(original.logical_wire.max_columns, 5),
+      max_nodes: Int::min(original.logical_wire.max_nodes, nodes),
+    },
+  }
+  guard @local.local_export_retention_capacity({
+      max_rows: limits.max_rows,
+      values: limits.values,
+      wire: limits.payload_wire,
+      max_batch_bytes: limits.max_batch_bytes,
+    })
+    is Some(payload) &&
+    @local.local_export_retention_capacity({
+      max_rows: limits.max_rows,
+      values: limits.values,
+      wire: limits.logical_wire,
+      max_batch_bytes: limits.max_batch_bytes,
+    })
+    is Some(logical) &&
+    @execution.execution_capacity_inventory(
+      [],
+      [
+        { unit: QuotedBytes, count: payload, copies: result_count, },
+        { unit: QuotedBytes, count: logical, copies: result_count, },
+        {
+          unit: CursorRootSlots,
+          count: limits.max_result_workspace_entries.to_int64(),
+          copies: result_count,
+        },
+        {
+          unit: ValueNodeSlots,
+          count: limits.schema.max_nodes.to_int64(),
+          copies: result_count,
+        },
+        {
+          unit: CanonicalWireBytes,
+          count: limits.schema.max_bytes.to_int64(),
+          copies: result_count,
+        },
+      ],
+      @execution.RetainedAlongsideExecution,
+    )
+    is Some(capacity) else {
+    return None
+  }
+  Some((limits, capacity))
+}

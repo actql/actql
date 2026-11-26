@@ -6303,9 +6303,11 @@ pub(all) enum PublicationOutputPayloadIssue {
 }
 
 type PublicationOutputReplay
+pub fn PublicationOutputReplay::advance(Self, Int) -> (@execution_relation.CompletedOutputExportAdvance?, Int, PublicationOutputExportIssue?)
 pub fn PublicationOutputReplay::cancel(Self) -> Unit
 pub fn PublicationOutputReplay::finish(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputReplay::next(Self) -> Result[String?, PublicationOutputExportIssue]
+pub fn PublicationOutputReplay::rows_complete(Self) -> Result[Bool, PublicationOutputExportIssue]
 
 type PublicationOutputSnapshotPreparation
 pub fn PublicationOutputSnapshotPreparation::advance(Self, Int) -> Result[(Bool, Int), PublicationOutputExportIssue]

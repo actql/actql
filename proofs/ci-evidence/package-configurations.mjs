@@ -157,7 +157,9 @@ export const currentPackageConfigurations = Object.freeze({
   'src/platform_native/http_client/moon.pkg': Object.freeze({digest: '67cf437063d4a099acc9d33736d48fb3cfbff4cd4efa3235dc0239121ee6455e', rule: 'literal-native-options-with-bound-source-membership', revision: '14050e0d50b79a01dc07e52024b8ada85ab14203'}),
   // One further Native-only Store preparation selector; imports/options unchanged.
   // See docs/reviews/2026-11-24-session-native-effectful-publication-selector-review.json.
-  'src/platform_native/publication_store/moon.pkg': Object.freeze({digest: '59da613d0a27cb9c8b4c016b2df11a2c50058626e0d5286bfa1b93b7ae5bb310', rule: 'literal-native-options-with-bound-source-membership', revision: 'f13e742e7e04ea47c5593d5ad70e7c510356809a'}),
+  // Exact white-box inputs for shared generated Content and Native-only custody.
+  // See docs/reviews/2026-11-25-session-generated-content-test-import-review.json.
+  'src/platform_native/publication_store/moon.pkg': Object.freeze({digest: '17dacd486d2805531f33f08c17a65e34d224b508031b323375a5c19c9268a99f', rule: 'literal-native-options-with-bound-source-membership', revision: 'db07e2ae81067b7b43a796865406c3a191c03c70'}),
   'src/platform_native/remote_client/moon.pkg': Object.freeze({digest: '2d564b643659ca806c35da2414f432b52292fa8c79a94cffc0706191ae156832', rule: 'literal-native-options-with-bound-source-membership', revision: 'deea413fba8b255cf5be7300d94eccd883b5b5eb'}),
   'src/platform_native/remote_journal/moon.pkg': Object.freeze({digest: '89432a0cc007a76c3af8f2311c98f1838e13e74976bb7d28240a9704830aa60b', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/remote_standard_host/moon.pkg': Object.freeze({digest: '01ae0816929d7ae3037f46906d63f999bca640fa20d12433e478c41475229886', rule: 'literal-target-selectors-with-bound-source-membership', revision: '14050e0d50b79a01dc07e52024b8ada85ab14203'}),

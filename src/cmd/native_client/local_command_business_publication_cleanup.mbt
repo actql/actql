@@ -8,7 +8,14 @@ fn LocalCommandBusinessOriginal::close_publication_children(
   if self.publication_retired {
     return Ok(())
   }
-  if self.publication_attempted && self.publication_result is None {
+  if self.publication_attempted &&
+    (
+      self.publication_result is None ||
+      (
+        self.terminal_content_selected &&
+        !(self.publication_result is Some(result) && result.committed)
+      )
+    ) {
     // No reply proves that a durable commit did not happen. Keep the exact
     // occurrence, pending payloads, Store, Work and parent for reconciliation.
     return Err(CommandBusinessPublication)
@@ -55,6 +62,21 @@ fn LocalCommandBusinessOriginal::close_publication_children(
         Ok(_) => ()
         Err(issue) => return Err(CommandBusinessStore(issue))
       }
+    }
+  }
+  // A lost or unconfirmed publication never reaches this point. Discard
+  // only this original private generation after known pre-publication
+  // failure; a confirmed Result keeps its original physical holding.
+  if self.terminal_content_custody is Some(child) {
+    let cleanup = if self.publication_result is Some(result) && result.committed {
+      child.retry_cleanup()
+    } else {
+      child.abandon_unpublished_generated()
+    }
+    match cleanup {
+      Ok(true) => self.terminal_content_custody = None
+      Ok(false) => return Err(CommandBusinessPublication)
+      Err(issue) => return Err(CommandBusinessStore(issue))
     }
   }
   // Only managed aliases retire here. Their actual Store/DB, Compute and

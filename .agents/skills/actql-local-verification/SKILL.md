@@ -95,9 +95,8 @@ Run `git diff --check` and check formatting for changed MoonBit files. Keep
 incremental builds and avoid concurrent gates or edits in a running gate's
 worktree. Report commands, actual test counts and unverified coverage separately.
 A local or selected PR check does not replace a full integration checkpoint.
-Public-repository PRs run applicable hosted checks; main pushes run full runtime
-integration except for exact reviewed prose-only modifications, which retain
-the required document/source checks. Local checks and coordinator review
+Public-repository PRs run applicable hosted checks. Main integration runs every
+six hours and can be started manually. Local checks and coordinator review
 establish only executed coverage. Draft preparation is not merge or release
 verification.
 

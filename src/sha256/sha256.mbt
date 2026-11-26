@@ -144,18 +144,18 @@ fn admit_length(h : Hasher, length : UInt64) -> Unit raise HashFailure {
 /// Adds bytes without copying the complete input. Length overflow closes the state.
 pub fn update(h : Hasher, input : Bytes) -> Unit raise HashFailure {
   admit_length(h, input.length().to_uint64())
-  absorb(h, input)
+  absorb(h, input, input.length())
 }
 
 ///|
-fn absorb(h : Hasher, input : Bytes) -> Unit {
+fn absorb(h : Hasher, input : Bytes, end : Int) -> Unit {
   let mut offset = 0
   // Complete a buffered partial block before reading full blocks directly.
-  while h.used != 0 && offset < input.length() {
+  while h.used != 0 && offset < end {
     append(h, input[offset])
     offset += 1
   }
-  while input.length() - offset >= 64 {
+  while end - offset >= 64 {
     for index = 0; index < 16; index = index + 1 {
       let start = offset + index * 4
       h.words[index] = (input[start].to_uint() << 24) |
@@ -166,7 +166,7 @@ fn absorb(h : Hasher, input : Bytes) -> Unit {
     compress_words(h)
     offset += 64
   }
-  while offset < input.length() {
+  while offset < end {
     append(h, input[offset])
     offset += 1
   }
@@ -292,15 +292,28 @@ pub fn finish_hex(h : Hasher) -> String raise HashFailure {
 ///|
 /// One-shot hashing uses the same fixed-size block state without copying input.
 pub fn digest(input : Bytes) -> Bytes {
+  digest_prefix(input, input.length())
+}
+
+///|
+fn digest_prefix(input : Bytes, length : Int) -> Bytes {
   let h = hasher()
-  h.length = input.length().to_uint64()
-  absorb(h, input)
+  h.length = length.to_uint64()
+  absorb(h, input, length)
   finish_bytes(h)
 }
 
 ///|
 pub fn hex(input : Bytes) -> String {
   hex_bytes(digest(input))
+}
+
+///|
+/// Hash only the initialized prefix of a bounded backing, without slicing or
+/// copying that backing. Invalid extents cannot produce a digest.
+pub fn hex_prefix(input : Bytes, length : Int) -> String? {
+  guard length >= 0 && length <= input.length() else { return None }
+  Some(hex_bytes(digest_prefix(input, length)))
 }
 
 ///|

@@ -131,11 +131,12 @@ historical product failure's cause.
 
 ## Change-scoped PR verification
 
-Main runtime integration retains all runtime families. Ready PRs and main pushes that
-only modify the exact reviewed prose files use the `documentation` profile:
+Main runs retain all runtime families. Ready PRs that only modify the exact
+reviewed prose files use the `documentation` profile. The profile retains
 owned-version, metadata, document-validation, link, example and current-revision
-checks remain, with no Moon toolchain, Core, Native, wheel or normal-package
-build. The existing required preflight, lint, spec and final check still execute.
+checks. The existing required preflight, lint, spec and final check still execute.
+The profile omits Moon toolchain setup and the Core, Native, wheel and normal
+package builds.
 Root npm dependencies are still installed; this is not a zero-cost workflow.
 The exact Git endpoints must identify existing regular-file modifications.
 README/Quickstart, normative specs, generated references, unclassified files and

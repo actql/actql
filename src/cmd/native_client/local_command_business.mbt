@@ -57,6 +57,8 @@ priv struct LocalCommandBusinessOriginal {
   ]?
   mut request_body : @local_host.NativeClientSubmittedRequestBody?
   mut request_run : @local_values.ClientInstalledManagedRun?
+  mut terminal_content_selected : Bool
+  mut terminal_content_custody : @local_store.CapturedContentCustody?
   mut file_entry : @local_host.NativeClientRelationFileWorkEntry?
   mut file_work : @local_host.NativeClientRelationFileWork?
   mut file_failure : @local_host.NativeClientRelationFileWorkFailure?
