@@ -515,8 +515,7 @@ test "an undeclared default Model provider refuses before changing project route
   )
   let matches = command().parse(argv=["check", "never-read.aql"])
   let rejected = try {
-    let selected = local_project_read_execution_bindings(Some(project), "check")
-      .unwrap()
+    let selected = local_project_read_execution_bindings(Some(project), "check").unwrap()
     local_project_apply_selection(matches, selected)
     false
   } catch {

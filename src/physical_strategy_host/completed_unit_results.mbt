@@ -93,7 +93,8 @@ pub fn pin_captured_completed_unit_results(
   if run.stopped {
     return Err(Stopped)
   }
-  let remaining = match require_captured_local_unit_completion(run, unit, max_work) {
+  let remaining = match
+    require_captured_local_unit_completion(run, unit, max_work) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -114,7 +115,8 @@ pub fn pin_captured_completed_unit_results(
     return Err(PreviewWorkLimit)
   }
   let ports = []
-  match append_checked_local_unit_result_ports(graph, unit, publications, ports) {
+  match
+    append_checked_local_unit_result_ports(graph, unit, publications, ports) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -137,11 +139,16 @@ pub fn captured_completed_unit_results_match(
   run : CapturedDAG,
   unit : Int,
 ) -> Bool {
-  value.pins.live && !run.stopped && physical_equal(value.run, run) && value.unit == unit
+  value.pins.live &&
+  !run.stopped &&
+  physical_equal(value.run, run) &&
+  value.unit == unit
 }
 
 ///|
-pub fn captured_completed_unit_result_count(value : CapturedCompletedUnitResults) -> Int {
+pub fn captured_completed_unit_result_count(
+  value : CapturedCompletedUnitResults,
+) -> Int {
   if captured_completed_unit_results_match(value, value.run, value.unit) {
     value.pins.borrows.length()
   } else {
@@ -158,7 +165,8 @@ pub fn captured_completed_unit_result_at(
     return None
   }
   let borrow = captured_any_result_output_set_borrow_at(value.pins, index)
-  guard borrow is Some(original) && captured_any_result_borrow_available(original) &&
+  guard borrow is Some(original) &&
+    captured_any_result_borrow_available(original) &&
     captured_completed_unit_results_match(value, value.run, value.unit) else {
     return None
   }
@@ -166,6 +174,8 @@ pub fn captured_completed_unit_result_at(
 }
 
 ///|
-pub fn release_captured_completed_unit_results(value : CapturedCompletedUnitResults) -> Bool {
+pub fn release_captured_completed_unit_results(
+  value : CapturedCompletedUnitResults,
+) -> Bool {
   release_captured_any_result_output_set(value.pins)
 }

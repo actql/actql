@@ -33,11 +33,7 @@ pub fn graph_result_input_port(
     }
     None => data_edge_input(edge)
   }
-  guard @checked.unit_input_completeness(
-      graph_program(graph),
-      unit,
-      index,
-    )
+  guard @checked.unit_input_completeness(graph_program(graph), unit, index)
     is Some(completeness) else {
     return Err(foreign)
   }
@@ -56,8 +52,7 @@ pub fn graph_result_input_port(
     site.requirement is @context.Result(import_name, _, imported) &&
     import_name == name &&
     physical_equal(@results.input_producer(imported), producer) &&
-    graph_task_owner(graph, data_edge_producer(edge))
-    is Some(source) &&
+    graph_task_owner(graph, data_edge_producer(edge)) is Some(source) &&
     physical_equal(
       @pipeline.producer_pipeline(producer),
       @lower.pipeline(@lower.bound_preparation(source)),
