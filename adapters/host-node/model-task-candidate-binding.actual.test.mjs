@@ -170,7 +170,7 @@ test('the original Host verifies SDK software and closes the options before supp
   }
 });
 
-async function fixture(t, {twoTasks = false} = {}) {
+async function fixture(t, {twoTasks = false, taskCeiling} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-task-candidates-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   await writeFile(join(directory, 'actql.config.json'),
@@ -192,7 +192,8 @@ async function fixture(t, {twoTasks = false} = {}) {
   bindings.configuration = original({...JSON.parse(bindings.configuration.wire), model_defaults: {
     default_model: 'selected', models: [{model: 'selected',
       data_handling: {...JSON.parse(policy.wire), cid: policy.cid},
-      generation_config: {temperature: 0, top_p: 1, max_output_tokens: 100}}]}});
+      generation_config: {temperature: 0, top_p: 1, max_output_tokens: 100},
+      ...(taskCeiling === undefined ? {} : {max_task_output_tokens: taskCeiling})}]}});
   let current = true, registrations = 0, invokes = 0;
   const check = () => { if (!current) throw Object.assign(new Error('OriginalLost'), {code: 'OriginalLost'}); };
   const defaults = prepareInstalledModelProviderDefaults(moon, providerId, bindings, {assertCurrent: check});
@@ -239,6 +240,37 @@ test('normal configuration adopts actual Common Task DATA without caller-created
   assert.strictEqual(provider.resolveTaskDefaults(undefined, undefined, readerLimits).value, task.defaults.value);
   assert.equal(callbacks, 1); assert.equal(invokes, 0);
   assert.throws(() => context.prepareTasks([]), {code: 'InstalledModelConfigurationClosed'});
+});
+
+test('normal configuration bounds the actual Project Task against its selected Model ceiling', async t => {
+  for (const [ceiling, admitted] of [[200, true], [199, false]]) {
+    const resource = await boundConstructionActualFixture(t);
+    const f = await fixture(t, {taskCeiling: ceiling});
+    assert.strictEqual(resource.moon, moon);
+    let prepared = 0, invokes = 0;
+    const connect = installConfiguredModelProviders({moon, project: f.project,
+      installationServices: resource.services,
+      taskLimits: limits, assertCurrent: f.check, assertHostRuntime: f.check, assertNewHostRuntime: f.check,
+      async register(_, context) {
+        const selected = await context.prepareTasks([{providerId, bindingOriginals: f.bindings}]);
+        prepared++;
+        return [{providerId, bindingOriginals: selected.bindingOriginalsFor(providerId),
+          validatePrompt: () => true, invoke() {invokes++; assert.fail('No model invocation');}}];
+      }});
+    if (admitted) {
+      const configured = await connect;
+      const [task] = configured.projectTasks.originalsForRuntime(moon);
+      assert.equal(JSON.parse(task.taskWire).generation_config.max_output_tokens, 200);
+      assert.equal(configured.providers.size, 1);
+    } else {
+      await assert.rejects(connect, {code: 'MoonBitHostFailure'});
+    }
+    assert.equal(prepared, admitted ? 1 : 0);
+    assert.equal(invokes, 0);
+    await resource.close();
+    assert.equal(resource.pending(), false);
+    assert.equal(resource.retire(), true);
+  }
 });
 
 test('normal configuration cannot install after losing currentness across actual Task reads', async t => {

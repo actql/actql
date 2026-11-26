@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync} from 'node:crypto';
 import {createRequire, registerHooks} from 'node:module';
 import {realpathSync} from 'node:fs';
-import {access, readFile, writeFile} from 'node:fs/promises';
+import {access, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {isAbsolute, relative, resolve} from 'node:path';
@@ -19,12 +19,14 @@ const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
   'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header', 'registered-anthropic',
-  'registered-google', 'registered-mixed', 'registered-mistral', 'registered-openai-responses', 'registered-external', 'registered-external-double', 'registered-length', 'registered-refusal',
+  'registered-google', 'registered-mixed', 'registered-mistral', 'registered-openai-responses',
+  'registered-openai-responses-over-limit', 'registered-external', 'registered-external-double', 'registered-length', 'registered-refusal',
   'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist', 'registered-capabilities', 'changed-route'].includes(phase));
 const changedRoute = phase === 'changed-route';
 const fresh = phase !== 'cold' && !changedRoute;
 const missingKey = phase === 'missing-key';
 const credentialMismatch = phase.startsWith('registered-credential-');
+const responsesOverLimit = phase === 'registered-openai-responses-over-limit';
 const modules = resolve(realpathSync(process.cwd()), 'node_modules');
 assert.equal(realpathSync(modules), modules, 'The fresh node_modules must not redirect to another installation');
 const publicModules = new Map(['@actql/node', '@actql/sdk', '@actql/provider-ai-sdk', '@actql/local-node/observation']
@@ -50,6 +52,7 @@ const {workflowWorkObservation} = await import('./work-observation.fixture.mjs')
 const alternative = {'registered-anthropic': 'anthropic', 'registered-google': 'google',
   'registered-mixed': 'mixed', 'registered-mistral': 'mistral', 'registered-external': 'external', 'registered-external-double': 'external',
   'registered-openai-responses': 'responses',
+  'registered-openai-responses-over-limit': 'responses',
   'registered-google-recitation': 'google', 'registered-google-blocklist': 'google'}[phase];
 const safetyFinish = {'registered-openai-filter': 'content_filter', 'registered-google-recitation': 'RECITATION',
   'registered-google-blocklist': 'BLOCKLIST'}[phase];
@@ -252,7 +255,8 @@ if (fresh) {
     default_provider: 'models/http'}));
   for (const [path, task] of [
     ['first.json', {task: 'model-task:first', instructions: 'Return the exact boolean.',
-      input: {text: 'string'}, output: {answer: 'boolean'}, limits: {max_items: 2, max_output_tokens: 100}}],
+      input: {text: 'string'}, output: {answer: 'boolean'}, limits: {
+        max_items: 2, max_output_tokens: responsesOverLimit ? 101 : 100}}],
     ['second.json', {task: 'model-task:second', instructions: 'Return the exact label.',
       ...(mixed ? {model: {provider: routes[1].providerId, name: routes[1].selector}}
         : capabilities ? {model: {provider: selectedRoute.providerId, name: deniedAlias}} : {}),
@@ -550,21 +554,50 @@ const openOptions = {stateDir: '.state', installation: {
   registerModelProviders, authorization, observation: work.connection,
   ...(registered ? {modelSdkRegistrations} : {}),
   ...(inferEvidence === undefined ? {} : {inferEvidence, resultDataPolicy: policy})}};
-if (credentialMismatch) {
+const checkpointPath = '.state/checkpoints/journal/checkpoint-journal.sqlite3';
+async function startupModelJournalCounts() {
+  const counts = {modelScopes: 0, modelAttempts: 0};
+  try { await access(checkpointPath); }
+  catch (error) {
+    if (error?.code === 'ENOENT') return counts;
+    throw error;
+  }
+  const journal = new DatabaseSync(checkpointPath, {readOnly: true});
+  try {
+    const tableExists = journal.prepare("SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = ?");
+    if (tableExists.get('resume_model_scopes')) {
+      counts.modelScopes = journal.prepare('SELECT count(*) AS n FROM resume_model_scopes').get().n;
+    }
+    if (tableExists.get('resume_model_attempts')) {
+      counts.modelAttempts = journal.prepare('SELECT count(*) AS n FROM resume_model_attempts').get().n;
+    }
+    return counts;
+  } finally {journal.close();}
+}
+if (credentialMismatch || responsesOverLimit) {
   const env = process.env, connect = tls.connect;
-  let credentialReads = 0, tlsAttempts = 0;
+  let credentialReads = 0, tlsAttempts = 0, peerConnections = 0;
+  const rejected = responsesOverLimit ? 'MoonBitHostFailure' : 'RegisteredSdkCredentialMismatch';
+  if (responsesOverLimit) await mkdir('.state', {mode: 0o700});
+  server.on('connection', () => {peerConnections++;});
   process.env = new Proxy(env, {get(target, name, receiver) {
     if (name === 'OPENAI_API_KEY' || name === 'ACTQL_TEST_UNAPPROVED_MODEL_KEY') credentialReads++;
     return Reflect.get(target, name, receiver);
   }});
   tls.connect = () => {
     tlsAttempts++;
-    throw Error('CredentialMismatchReachedTls');
+    throw Error('ExpectedPreparationRefusalReachedTls');
   };
   try {
-    await assert.rejects(open(openOptions), {code: 'RegisteredSdkCredentialMismatch'});
+    const opening = await open(openOptions).then(client => ({client}), error => ({error}));
+    if ('client' in opening) {
+      await opening.client.close();
+      assert.fail('Expected Host preparation to reject before returning a client');
+    }
+    assert.equal(opening.error?.code, rejected);
     assert.equal(credentialReads, 0);
     assert.equal(tlsAttempts, 0);
+    assert.equal(peerConnections, 0);
     assert.equal(calls, 0);
   } finally {
     process.env = env;
@@ -572,7 +605,17 @@ if (credentialMismatch) {
     server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
   }
-  console.log(JSON.stringify({phase, rejected: 'RegisteredSdkCredentialMismatch', credentialReads, tlsAttempts, calls}));
+  if (responsesOverLimit) {
+    const journal = await startupModelJournalCounts();
+    assert.deepEqual(journal, {modelScopes: 0, modelAttempts: 0});
+    const aliveScopedFD0 = observeOwnScopedStateFds([resolve('.state')]).scopedStateFd0;
+    const modelStarts = work.snapshot().modelCallStarts;
+    assert.equal(aliveScopedFD0, true);
+    assert.equal(modelStarts, 0);
+    assert.equal(usageCaptures, 0);
+    console.log(JSON.stringify({phase, rejected, credentialReads, tlsAttempts, peerConnections, calls,
+      modelStarts, ...journal, aliveScopedFD0, usageCaptures}));
+  } else console.log(JSON.stringify({phase, rejected, credentialReads, tlsAttempts, calls}));
   process.exit(0);
 }
 let client, primary, failed = false;
@@ -602,7 +645,7 @@ function readCapabilityJournal(ref, refused) {
     assert.deepEqual([member.task, member.stage, member.step], [0, 0, 2]);
     assert.match(member.taskCid, /^sha256:[0-9a-f]{64}$/u);
     assert.match(member.providerBindingCid, /^sha256:[0-9a-f]{64}$/u);
-    const checkpoints = new DatabaseSync('.state/checkpoints/journal/checkpoint-journal.sqlite3', {readOnly: true});
+    const checkpoints = new DatabaseSync(checkpointPath, {readOnly: true});
     try {
       const scopes = checkpoints.prepare(
         `SELECT scope_cid, inventory_json FROM resume_model_scopes WHERE run_id = ?`

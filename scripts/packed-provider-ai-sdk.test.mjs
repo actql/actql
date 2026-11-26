@@ -355,6 +355,20 @@ test('Project acceptance requires the original environment credential path and n
   }
 });
 
+test('a registered Responses Task over its Host ceiling must refuse before any Model work', () => {
+  const phase = 'registered-openai-responses-over-limit';
+  const observation = {phase, rejected: 'MoonBitHostFailure', credentialReads: 0,
+    tlsAttempts: 0, peerConnections: 0, calls: 0, modelStarts: 0, modelScopes: 0, modelAttempts: 0,
+    aliveScopedFD0: true, usageCaptures: 0};
+  const verify = value => checkPackedProviderObservation({caseId: phase, phase, pid: 70001, observation: value});
+  assert.doesNotThrow(() => verify(observation));
+  for (const [key, value] of Object.entries({rejected: 'OtherRefusal', credentialReads: 1,
+    tlsAttempts: 1, peerConnections: 1, calls: 1, modelStarts: 1, modelScopes: 1, modelAttempts: 1,
+    aliveScopedFD0: false, usageCaptures: 1})) {
+    assert.throws(() => verify({...observation, [key]: value}));
+  }
+});
+
 test('registered terminal failures require original Saved in a distinct zero-egress process', () => {
   const shared = {firstCloseReturned: true, aliveScopedFD0: true, registeredSdk: true,
     projectCredential: true, maxCalls: 1, originalRunDefinitionCid: 'sha256:' + 'd'.repeat(64)};

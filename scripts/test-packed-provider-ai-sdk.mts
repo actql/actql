@@ -34,6 +34,7 @@ type Report = {
 };
 
 const registeredResponsesCase = 'registered-openai-responses';
+const registeredResponsesLimitCase = 'registered-openai-responses-over-limit';
 const registeredProviderCases = Object.freeze([
   'registered-project', 'registered-anthropic', 'registered-google', 'registered-mixed', 'registered-mistral',
   registeredResponsesCase,
@@ -65,6 +66,13 @@ export const registeredProviderAcceptanceCases = Object.freeze([
 export function checkPackedProviderObservation({caseId, phase, pid, originalPid, observation: value}: ObservationInput) {
   assert.equal(value.phase, phase);
   assert(Number.isSafeInteger(pid) && pid > 0);
+  if (caseId === registeredResponsesLimitCase) {
+    assert.equal(phase, registeredResponsesLimitCase);
+    assert.deepEqual(value, {phase, rejected: 'MoonBitHostFailure', credentialReads: 0,
+      tlsAttempts: 0, peerConnections: 0, calls: 0, modelStarts: 0, modelScopes: 0, modelAttempts: 0,
+      aliveScopedFD0: true, usageCaptures: 0});
+    return;
+  }
   if (caseId.startsWith('registered-credential-')) {
     assert.deepEqual(value, {phase, rejected: 'RegisteredSdkCredentialMismatch',
       credentialReads: 0, tlsAttempts: 0, calls: 0});
@@ -258,6 +266,7 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : [...available,
     ...[...registeredProviderCases, ...externalCases].map(id => [id, 'cold']),
+    [registeredResponsesLimitCase],
     [registeredCapabilityCase, 'cold', 'changed-route'],
     ...Object.keys(registeredTerminalFailures).map(id => [id, 'cold']),
     ...registeredRefusalCases.map(id => [id])].filter(([id]) => cases.includes(id));
@@ -427,7 +436,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const cases = selection === '--registered-only' ? registeredProviderAcceptanceCases
     : selection === '--registered-safety-only' ? registeredSafetyAcceptanceCases
     : selection === '--registered-external-only' ? externalCases
-    : selection === '--registered-responses-only' ? [registeredResponsesCase]
+    : selection === '--registered-responses-only' ? [registeredResponsesCase, registeredResponsesLimitCase]
     : selection === '--registered-capabilities-only' ? [registeredCapabilityCase] : undefined;
   process.exitCode = await runLocalCheck({root: fileURLToPath(new URL('../', import.meta.url)),
     heavy: false, timeoutSeconds: 300, graceSeconds: 5,
