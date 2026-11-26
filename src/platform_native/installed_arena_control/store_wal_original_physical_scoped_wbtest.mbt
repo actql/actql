@@ -618,6 +618,8 @@ fn store_failed_open_original_work(
     unentered_close_refused
   } else if probe == 6 {
     store_result_return_work(library, original, receiver, path)
+  } else if probe == 8 {
+    store_writer_return_work(library, original, receiver, path)
   } else if probe == 5 {
     let authority = "sha256:" + "1".repeat(64)
     let store = @store.open_original_local_store_with_custody(
@@ -746,6 +748,76 @@ test "Store original association metadata neither reenters nor revives its scope
 ///|
 test "Store return-only reconciliation precedes retained Reader cleanup without SQL replay" {
   store_wal_physical_case(false, open_probe=5)
+}
+
+///|
+fn store_writer_return_work(
+  library : @sqlite.Library,
+  original : @sqlite.NativeStoreOperationOriginal,
+  receiver : StoreWalReceiver,
+  path : String,
+) -> Bool raise {
+  let authority = "sha256:" + "1".repeat(64)
+  let store = @store.open_original_local_store_with_custody(
+    library,
+    original,
+    path,
+    authority,
+    128L,
+    4L,
+    4096L,
+    diagnostic_ceiling=Some(256),
+  ).unwrap()
+  let request = @payload.prepare_publication_payload_request(
+    authority,
+    "sha256:" + "2".repeat(64),
+    "sha256:" + "3".repeat(64),
+    "sha256:" + "4".repeat(64),
+    "sha256:" + "5".repeat(64),
+    "sha256:" + "6".repeat(64),
+    "sha256:" + "7".repeat(64),
+    "sha256:" + "8".repeat(64),
+    16L,
+    1L,
+  ).unwrap()
+  receiver.fail_normal_return = true
+  assert_true(
+    store.begin_payload(request) is Err(@store.OperationRouting(None, _)),
+  )
+  assert_eq(original.primary_code(), 33)
+  let normal_before = receiver.normal_entries
+  let sql_before = receiver.sql_entries
+  assert_true(original.close_checked() is Err(_))
+  assert_true(library.close_checked() is Err(_))
+  assert_true(store.begin_payload(request) is Err(@store.CleanupPending))
+  receiver.fail_cleanup_return = true
+  assert_true(
+    store.reconcile_original_return() is Err(@store.OperationRouting(None, _)),
+  )
+  assert_eq(original.cleanup_code(), 44)
+  assert_true(store.begin_payload(request) is Err(@store.CleanupPending))
+  assert_true(store.reconcile_original_return().unwrap())
+  assert_false(store.reconcile_original_return().unwrap())
+  assert_eq(receiver.normal_entries, normal_before)
+  assert_eq(receiver.sql_entries, sql_before)
+  assert_eq(store_wal_library_children(library), 1)
+  // The failed call cannot hand the caller a writer to cancel. The same
+  // Store must stop that writer and reclaim the exact row before parent close.
+  let closed = store.close()
+  assert_true(
+    closed is Ok(true),
+    msg="retained writer prevented original Store close",
+  )
+  assert_false(store.close().unwrap())
+  original.close_checked().unwrap()
+  original.primary_code() == 33 &&
+  original.cleanup_code() == 44 &&
+  receiver.normal_entries == normal_before
+}
+
+///|
+test "unreturned original payload writer remains reachable from Store close" {
+  store_wal_physical_case(false, open_probe=8)
 }
 
 ///|
