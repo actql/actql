@@ -120,7 +120,8 @@ fn local_effect_mapping_rule_mismatch(
   issue : @run_host.ClientEffectComputationIssue,
 ) -> Bool {
   guard issue is Static(MappingRules(rule)) else { return false }
-  @stage_results.effect_mapping_rule_issue_kind(rule) is Permission(NoMatchingRule)
+  @stage_results.effect_mapping_rule_issue_kind(rule)
+  is Permission(NoMatchingRule)
 }
 
 ///|
@@ -174,8 +175,8 @@ fn[T] local_stop_submitted_preparation(
     Request(QuerySyntax(Frontend(issue))) =>
       local_frontend_diagnostic_kind(issue)
     Request(Preparation(ProgramCheck(EffectCompilation(original)))) if local_effect_mapping_rule_mismatch(
-      original,
-    ) => EffectMappingRuleMismatch
+        original,
+      ) => EffectMappingRuleMismatch
     Request(_) => PreparationFailedRequest
     RequestPreparation(_) => PreparationFailedRequestPreparation
     RequestBranchUnavailable => UnsupportedPreparation
@@ -265,8 +266,7 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
       )
     EffectMappingRuleMismatch =>
       (
-        "ACTQL_E_EFFECT_MAPPING_RULE_MISMATCH",
-        "No Mapping permission rule matches the Effect operation, selector and exact write field set. For Mock UPDATE, match SET to update_fields (default: writable_fields).",
+        "ACTQL_E_EFFECT_MAPPING_RULE_MISMATCH", "No Mapping permission rule matches the Effect operation, selector and exact write field set. For Mock UPDATE, match SET to update_fields (default: writable_fields).",
       )
     PreparationFailed =>
       (
