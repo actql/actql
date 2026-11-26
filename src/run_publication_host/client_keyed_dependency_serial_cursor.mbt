@@ -171,7 +171,7 @@ fn KeyedDependencySerialCursor::seal(
   self : KeyedDependencySerialCursor,
   lookup : ClientKeyedLookupInput,
   bodies : Array[@publication.CapturedEffectDependencyBody],
-) -> Result[KeyedProtocolDependencies, ClientKeyedRequestIssue] {
+) -> Result[KeyedDependencySerialCompletion, ClientKeyedRequestIssue] {
   match self.validate(lookup) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -180,26 +180,54 @@ fn KeyedDependencySerialCursor::seal(
     return Err(Assembly("live_dependency_cursor"))
   }
   self.retire()
-  match self.measured {
-    Some(ReturnedKeyedDependencyRange(bodies=original, ..)) => {
-      if !physical_equal(original, bodies) {
-        return Err(Assembly("foreign_dependency_body_extent"))
-      }
-      let seal : KeyedDependencySerialCompletion = {
-        lookup: self.lookup,
-        reservation: self.reservation,
-        phase: self.phase,
-        bodies,
-        body_count: bodies.length(),
-        serial_range: self.measured,
-        serial_witness: self.serial_witness,
-      }
-      self.measured = None
-      self.serial_witness = None
-      Ok(Measured(seal))
-    }
-    None => Ok(Unmeasured(bodies))
+  if self.measured is Some(ReturnedKeyedDependencyRange(bodies=original, ..)) &&
+    !physical_equal(original, bodies) {
+    return Err(Assembly("foreign_dependency_body_extent"))
   }
+  let seal = close_keyed_dependency_collection(
+    lookup,
+    self.phase,
+    bodies,
+    self.measured,
+    self.serial_witness,
+  )
+  self.measured = None
+  self.serial_witness = None
+  Ok(seal)
+}
+
+///|
+fn close_keyed_dependency_collection(
+  lookup : ClientKeyedLookupInput,
+  phase : KeyedProtocolConstruction,
+  bodies : Array[@publication.CapturedEffectDependencyBody],
+  range : KeyedDependencyMeasuredBodies?,
+  witness : KeyedDependencyWitnessChunk?,
+) -> KeyedDependencySerialCompletion {
+  {
+    lookup,
+    reservation: lookup.reservation,
+    phase,
+    bodies,
+    body_count: bodies.length(),
+    serial_range: range,
+    serial_witness: witness,
+  }
+}
+
+///|
+fn complete_unmeasured_keyed_dependencies(
+  lookup : ClientKeyedLookupInput,
+  phase : KeyedProtocolConstruction,
+  bodies : Array[@publication.CapturedEffectDependencyBody],
+) -> Result[KeyedDependencySerialCompletion, ClientKeyedRequestIssue] {
+  if !physical_equal(phase.lookup, lookup) {
+    return Err(Assembly("foreign_dependency_cursor"))
+  }
+  if phase.finished || !keyed_dependency_cursor_reservation_live(lookup) {
+    return Err(Assembly("retired_dependency_cursor"))
+  }
+  Ok(close_keyed_dependency_collection(lookup, phase, bodies, None, None))
 }
 
 ///|

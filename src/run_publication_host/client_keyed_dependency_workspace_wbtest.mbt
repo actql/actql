@@ -256,14 +256,14 @@ test "measured dependency extent binds the adopted collector Array before settle
     let peak_e = lookup.execution_bytes
     let done = match cursor.seal(lookup, adopted) {
       Err(issue) => Err(issue)
-      Ok(dependencies) =>
+      Ok(completion) =>
         finish_keyed_lookup_protocol_metadata(
           lookup,
           phase,
           32,
           8,
           [],
-          dependencies~,
+          dependencies=Measured(completion),
         )
     }
     if foreign {
@@ -363,7 +363,7 @@ test "policy batch keeps both construction quotes and settles disjoint adopted r
     32,
     8,
     [],
-    dependencies=cursor.seal(lookup, bodies).unwrap(),
+    dependencies=Measured(cursor.seal(lookup, bodies).unwrap()),
   ).unwrap()
   // Two measured bodies and the unmeasured gap, independently priced.
   // The outer Array is H3/R6/W3, including its adopted alias.
@@ -432,7 +432,7 @@ test "a foreign cursor and its completed proof cannot use another live lookup" {
       32,
       8,
       [],
-      dependencies=proof,
+      dependencies=Measured(proof),
     )
     is Err(Assembly("foreign_dependency_cursor")),
   )
@@ -540,7 +540,7 @@ fn measured_test_body(
       is Ok(_)
     }),
     () => true,
-    wire_extent=Some((wire.length(), nodes)),
+    wire_extent=Some((@utf8.encode(wire).length(), nodes)),
   ).unwrap().0
 }
 
@@ -557,7 +557,7 @@ test "measured proof refuses replacements moves and appends after seal on the sa
     let second = measured_test_body(lookup, cursor, "{\"x\":{}}", 2)
     bodies.push(second)
     cursor.record_body(lookup, bodies, 32).unwrap()
-    let dependencies = cursor.seal(lookup, bodies).unwrap()
+    let dependencies = Measured(cursor.seal(lookup, bodies).unwrap())
     match mutation {
       "equal-wire" => {
         let replacement = @publication.admit_captured_effect_dependency_body(
@@ -624,7 +624,7 @@ test "measured proof belongs to one exact construction even on the same live loo
   let body = measured_test_body(lookup, cursor, "{}", 1)
   let bodies = [body]
   cursor.record_body(lookup, bodies, 32).unwrap()
-  let dependencies = cursor.seal(lookup, bodies).unwrap()
+  let dependencies = Measured(cursor.seal(lookup, bodies).unwrap())
   let newer = grow_keyed_lookup_protocol_metadata(lookup, 1, 0L).unwrap()
   let before = @resources.ledger_usage(lookup.ledger)
   assert_true(
@@ -651,7 +651,7 @@ test "completed dependency proof cannot settle the same construction twice" {
   let body = measured_test_body(lookup, cursor, "{}", 1)
   let bodies = [body]
   cursor.record_body(lookup, bodies, 32).unwrap()
-  let dependencies = cursor.seal(lookup, bodies).unwrap()
+  let dependencies = Measured(cursor.seal(lookup, bodies).unwrap())
   finish_keyed_lookup_protocol_metadata(lookup, phase, 32, 8, [], dependencies~).unwrap()
   let before = @resources.ledger_usage(lookup.ledger)
   assert_true(
@@ -716,7 +716,7 @@ test "witness backing is prepaid once per fixed chunk and refuses one byte short
       }
       assert_eq(cursor.serial_witness.unwrap().used, 1)
       assert_eq(cursor.serial_witness.unwrap().previous.unwrap().used, 32)
-      let dependencies = cursor.seal(lookup, bodies).unwrap()
+      let dependencies = Measured(cursor.seal(lookup, bodies).unwrap())
       assert_true(cursor.serial_witness is None)
       finish_keyed_lookup_protocol_metadata(
         lookup,
