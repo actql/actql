@@ -69,8 +69,8 @@ pub fn[I] borrow_request_content_plan_input(
 }
 
 ///|
-/// Compile the existing source-free terminal serialization purpose on this
-/// Request. The same checked component, contracts, artifact and work receipt
+/// Compile source-free or original Whole-source terminal serialization on
+/// this Request. The same checked component, contracts, artifact and work receipt
 /// survive a declined grow. The caller retains its Content construction borrow
 /// and funds the complete component/output frame before this constructor.
 pub fn[I] prepare_request_serialization_compilation(
@@ -156,7 +156,13 @@ fn[I] prepare_request_serialization_compilation_owned(
   }
   match keyed {
     None => {
-      guard @publication_host.prepared_client_acquisition_count(prepared) == 0 &&
+      guard (
+          @publication_host.prepared_client_acquisition_count(prepared) <= 1 ||
+          @publication_host.client_serialization_plan_direct_occurrences(
+            component, prepared,
+          )
+          is Some(_)
+        ) &&
         @publication_host.prepared_client_composed_infer_occurrences(prepared)
         is Some(infers) &&
         infers.is_empty() &&
@@ -373,6 +379,7 @@ pub fn[I] prepare_request_serialization_plan(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   workspace : @execution.ExecutionCapacity?,
+  whole_plan? : ClientInstalledManagedCapturePlan? = None,
 ) -> Result[
   ClientInstalledManagedSerializationPreparation,
   ClientInstalledManagedRunIssue,
@@ -389,6 +396,7 @@ pub fn[I] prepare_request_serialization_plan(
     None,
     None,
     None,
+    whole_plan~,
   )
 }
 
@@ -441,6 +449,7 @@ fn[I] prepare_request_serialization_plan_owned(
   model : @publication_host.ClientInferPlanGraph?,
   query_time : @publication_host.ClientQueryTimePreparation?,
   terminal_output : ClientSerializationOutputDemand?,
+  whole_plan? : ClientInstalledManagedCapturePlan? = None,
 ) -> Result[
   ClientInstalledManagedSerializationPreparation,
   ClientInstalledManagedRunIssue,
@@ -474,6 +483,20 @@ fn[I] prepare_request_serialization_plan_owned(
       (contracts, component)
     }
     _ => return Err(ForeignOriginal)
+  }
+  let source_holdings = match whole_plan {
+    None => 0
+    Some(plan) => {
+      guard physical_equal(plan.prepared, prepared) &&
+        physical_equal(plan.request, request) &&
+        plan.serialization is Some(original) &&
+        physical_equal(original, component) else {
+        return Err(ForeignOriginal)
+      }
+      let count = plan.whole_sources.length() + plan.captures.length()
+      guard count == 1 || count == 2 else { return Err(ForeignOriginal) }
+      count
+    }
   }
   // The selected record owns eleven original references; its LedgerLimits
   // owns six scalar words. Terminal selection also pays for its optional
@@ -524,6 +547,36 @@ fn[I] prepare_request_serialization_plan_owned(
         bytes
       }
     }
+    let bytes = if source_holdings == 0 {
+      bytes
+    } else {
+      // Each original captured Source owns one live holding. Grow the same
+      // unbound preparation census while allocation is still closed; later
+      // evidence authenticates the exact tokens registered in this census.
+      guard @resources.preparation_inventory_initial_control_slots(
+          request_preparation_borrow_limit, source_holdings, 0,
+        )
+        is Some((headers, references, words)) else {
+        return Err(InsufficientCapacity)
+      }
+      let (original_headers, original_references, original_words) = request_preparation_inventory_slots
+      let growth = @resources.preparation_inventory_growth_entry_construction()
+      guard @execution.preparation_representation_cost({
+          record_headers: headers - original_headers + growth.record_headers,
+          reference_slots: references -
+          original_references +
+          growth.reference_slots,
+          scalar_words: words - original_words + growth.scalar_words,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        })
+        is Some(census) &&
+        @execution.checked_preparation_add_product(bytes, census, 1L)
+        is Some(total) else {
+        return Err(InsufficientCapacity)
+      }
+      total
+    }
     let (r, e) = match
       @resources.preparation_capacity_working_extents(capacity, input) {
       Err(issue) => return Err(Preparation(issue))
@@ -537,9 +590,13 @@ fn[I] prepare_request_serialization_plan_owned(
   }
   let (r, e) = owner.program_domain_quote.unwrap()
   owner.phase = Selecting
-  let grown = @resources.reserve_working_preparation_phase(
-    capacity, input, r, e,
-  )
+  let grown = if source_holdings == 0 {
+    @resources.reserve_working_preparation_phase(capacity, input, r, e)
+  } else {
+    @resources.grow_preparation_capacity_inventory(
+      capacity, input, r, e, request_preparation_borrow_limit, source_holdings, 0,
+    )
+  }
   if grown is Err(issue) {
     if owner.phase == Selecting {
       owner.phase = previous
@@ -602,6 +659,7 @@ fn[I] prepare_request_serialization_plan_owned(
       terminal_output,
       model~,
       query_time~,
+      whole_plan~,
     ) {
     Err(issue) => {
       // A foreign tuple is refused before prefix construction. Once the
@@ -683,7 +741,8 @@ pub fn[I] prepare_request_terminal_serialization_plan(
 }
 
 ///|
-/// Complete only the source-free preparation selected by this SAME Request.
+/// Complete the serialization selected by this SAME Request. When present,
+/// its Whole Source inventory stays on the same preparation through adoption.
 /// Keyed Content keeps its own typed entry, with neither purpose cast to Pure.
 pub fn[I] complete_request_serialization_preparation(
   owner : ClientRequestPreparation[I],
@@ -701,6 +760,19 @@ pub fn[I] complete_request_serialization_preparation(
     owner.program_content_request is Some(request) &&
     physical_equal(request, selected.request) &&
     !owner.program_body_attempted else {
+    return Err(ForeignOriginal)
+  }
+  if selected.whole_plan is Some(captured) {
+    guard physical_equal(captured.prepared, prepared) &&
+      physical_equal(captured.request, request) &&
+      (match owner.program_captured {
+        None => true
+        Some(original) => physical_equal(original, captured)
+      }) else {
+      return Err(ForeignOriginal)
+    }
+    owner.program_captured = Some(captured)
+  } else if owner.program_captured is Some(_) {
     return Err(ForeignOriginal)
   }
   let (r, e) = match
@@ -751,14 +823,28 @@ pub fn[I] begin_request_content_managed_run(
         selected.limits,
       )
     SerializationContent(selected) =>
-      begin_preparation_owned_installed_serialization_run_original(
-        owner.initial,
-        input,
-        capacity,
-        prepared,
-        request,
-        selected,
-      )
+      match (selected.whole_plan, owner.program_captured) {
+        (None, None) =>
+          begin_preparation_owned_installed_serialization_run_original(
+            owner.initial,
+            input,
+            capacity,
+            prepared,
+            request,
+            selected,
+          )
+        (Some(plan), Some(captured)) if physical_equal(plan, captured) =>
+          adopt_preparation_owned_whole_serialization(
+            owner.initial,
+            input,
+            capacity,
+            prepared,
+            request,
+            selected,
+            plan,
+          )
+        _ => Err(ForeignOriginal)
+      }
     NoContent => Err(ForeignOriginal)
   }
   match result {

@@ -77,13 +77,13 @@ test "shared acquired CTE joined rows keep full parents and original Ledger thro
   let pricing = @local.prepare_local_compute_module(
     pricing_registry,
     @connector.capability_registration_at(pricing_registry, 0).unwrap(),
-    plan.configuration.capacity_plan.sequences,
-    plan.configuration.capacity_plan.execution,
-    plan.configuration.capacity_plan.measurement,
+    plan.configuration.unwrap().capacity_plan.sequences,
+    plan.configuration.unwrap().capacity_plan.execution,
+    plan.configuration.unwrap().capacity_plan.measurement,
     100000,
-    plan.configuration.capacity_plan.sequences.length(),
+    plan.configuration.unwrap().capacity_plan.sequences.length(),
   ).unwrap()
-  for slot, sequence in plan.configuration.capacity_plan.sequences {
+  for slot, sequence in plan.configuration.unwrap().capacity_plan.sequences {
     println(
       "joined-source-pricing " +
       @debug.to_string(
@@ -96,7 +96,7 @@ test "shared acquired CTE joined rows keep full parents and original Ledger thro
           @local.local_module_metered_output_start_capacity(
             pricing, slot, sequence,
           ).map(value => (value.retained_bytes, value.execution_bytes)),
-          plan.configuration.capacity_plan.execution.rows.output_values,
+          plan.configuration.unwrap().capacity_plan.execution.rows.output_values,
         ),
       ),
     )
@@ -145,7 +145,7 @@ test "shared acquired CTE joined rows keep full parents and original Ledger thro
   @row_source_host.check_row_input_compute_binding(capture, dag, 0).unwrap()
   let host = bind_client_local_configuration(
     dag,
-    plan.configuration,
+    plan.configuration.unwrap(),
     1L,
     1L,
     1L,

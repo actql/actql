@@ -42,7 +42,7 @@ type CompletionLimits = Readonly<{
 }>;
 type CompletionEvidence = Readonly<{input: unknown; derivation: unknown; generation: unknown}>;
 type CapturedSource = Readonly<{
-  capture?: Readonly<{source(): unknown}>;
+  capture?: Readonly<{source(): unknown; originalRowCapture?(): unknown; originalWholeInput?(): unknown}>;
   inputKind?: string; identity?: unknown; logicalInput?: unknown; wholeCapacity?: unknown; requirement?: unknown;
 }>;
 type CaptureObservation = Readonly<{
@@ -68,6 +68,12 @@ type CommonContentPreparationBindings = Readonly<{
   clientProgramAdmitSerializationWholeCapturedInput(owner: unknown, graph: unknown, source: unknown,
     identity: unknown, capacity: unknown, logical: unknown, sourceWire: string,
     authorityScopeCid: string, startedAt: string, completedAt: string): unknown;
+  clientProgramAdmitManagedSerializationQueryCapturedInput?(run: unknown, owner: unknown, selected: unknown,
+    graph: unknown, capture: unknown, identity: unknown, logical: unknown,
+    sourceWire: string, authorityScopeCid: string, startedAt: string, completedAt: string): unknown;
+  clientProgramAdmitManagedSerializationWholeCapturedInputs(run: unknown, owner: unknown, selected: unknown,
+    graph: unknown, captures: readonly unknown[], identities: readonly unknown[], logical: readonly unknown[],
+    sourceWires: readonly string[], authorityScopeCid: string, startedAt: string, completedAt: string): unknown;
   clientProgramCheckCompiledRunDefinition(compiled: unknown, definition: unknown): boolean;
   clientProgramCompiledRunAdmission(value: unknown): unknown;
   clientProgramCompiledRunAuthorization(value: unknown): unknown;
@@ -220,6 +226,14 @@ export function createContentPublicationControls(
       const body = moon.clientProgramSerializationPolicyBody(value);
       return body === undefined ? undefined : Object.freeze({kind: runtimeField(body, 0) as string, cid: runtimeField(body, 1) as string, wire: runtimeField(body, 2) as string});
     },
+    withCheckedClientSerializationGraph<T>(compiled: unknown, graph: unknown, use: (original: unknown) => T) {
+      const selected = serializationPlanTokens.get(graph as object);
+      if (selected === undefined ||
+          moon.clientProgramCompiledRunSerializationGraph(compiledContent(compiled)) !== selected) {
+        throw new TypeError('Foreign Content compilation graph');
+      }
+      return use(selected);
+    },
     bindCheckedClientSerializationCapture(checkedProgram: unknown, graph: unknown,
       captured: CapturedSource, observation: CaptureObservation) {
       const selection = serializationPlanTokens.get(graph as object);
@@ -243,6 +257,34 @@ export function createContentPublicationControls(
         observation.authorityScopeCid, observation.captureStartedAt, observation.captureCompletedAt,
         observation.keyedObservation?.observation),
       'RunHostContentCaptureRejected');
+    },
+    bindCheckedClientSerializationManagedCaptures(run: unknown, checkedProgram: unknown, selected: unknown, graph: unknown,
+      sources: readonly Readonly<{captured: CapturedSource; sourceEvidenceWire: string}>[],
+      authorityScopeCid: string, startedAt: string, completedAt: string) {
+      const component = serializationPlanTokens.get(graph as object);
+      if (component === undefined || sources.length < 1 || sources.length > 2 ||
+          sources.some(({captured}) => captured.identity === undefined || captured.logicalInput === undefined ||
+            typeof (captured.inputKind === 'whole-input' ? captured.capture?.originalWholeInput
+              : captured.capture?.originalRowCapture) !== 'function')) {
+        throw new TypeError('Invalid Content Source captures');
+      }
+      if (sources.length === 1 && sources[0].captured.inputKind !== 'whole-input' && sources[0].captured.requirement !== undefined) {
+        const bind = moon.clientProgramAdmitManagedSerializationQueryCapturedInput;
+        if (typeof bind !== 'function') throw new TypeError('Unavailable Query Content Source capture');
+        const {captured, sourceEvidenceWire} = sources[0];
+        return compiledRunResult(Reflect.apply(bind, moon, [run, checkedProgram, selected, component,
+          captured.capture!.originalRowCapture!(), captured.identity, captured.logicalInput, sourceEvidenceWire,
+          authorityScopeCid, startedAt, completedAt]), 'RunHostContentCaptureRejected');
+      }
+      const bind = moon.clientProgramAdmitManagedSerializationWholeCapturedInputs;
+      if (typeof bind !== 'function' || sources.some(({captured}) => captured.inputKind !== 'whole-input')) {
+        throw new TypeError('Invalid Whole Content Source captures');
+      }
+      const captures = sources.map(({captured}) => captured.capture!.originalWholeInput!());
+      return compiledRunResult(Reflect.apply(bind, moon, [run, checkedProgram, selected, component, captures,
+        sources.map(({captured}) => captured.identity), sources.map(({captured}) => captured.logicalInput),
+        sources.map(({sourceEvidenceWire}) => sourceEvidenceWire), authorityScopeCid, startedAt, completedAt]),
+        'RunHostContentCaptureRejected');
     },
     bindCheckedClientSerializationInputIdentity(compiled: unknown, input: unknown, receipt: unknown,
       limits: Limits, captured: unknown) {

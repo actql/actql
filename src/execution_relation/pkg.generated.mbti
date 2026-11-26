@@ -1650,6 +1650,8 @@ pub fn supplied_relation_read_same_binding(SuppliedRelationRead, SuppliedRelatio
 
 pub fn supplied_relation_read_schema(SuppliedRelationRead) -> @relation_schema.Schema
 
+pub fn supplied_relation_read_value_usage(SuppliedRelationRead) -> ValueUsage?
+
 pub fn supplied_source_input_capture_capacity(CapturedRows) -> ExecutionCapacity?
 
 pub fn take_admitted_output_preparation_rows(AdmittedOutputPreparation) -> AdmittedOutputRows?

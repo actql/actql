@@ -4794,7 +4794,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "57a70773a1dc5c78bb7d7dcb259997cbb29b5e360491122c0b8bab90ae9f09e5",
+      "sha256": "45a0e7e0992ac822c9a899eb9b9a0b9d821561b6a0b589eb34efb0c59de2bd69",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -11334,11 +11334,11 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested});"
+                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested,"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested});"
+                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -11352,7 +11352,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "throw clientOperationError('InstalledContentRunPreparationUnsupported');"
+                "anchor": "const error = clientOperationError('InstalledContentRunPreparationUnsupported');"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -16281,7 +16281,12 @@
             "openPreparedInstalledHost/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted",
-            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun"
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#2",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#3",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#4"
           ],
           "exports": [],
           "attributes": {
@@ -30460,6 +30465,41 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan",
+          "parameters": [
+            "component"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
           "parameters": [
             "method"
@@ -31504,7 +31544,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ec41d40718cb517ff89276318638c684b6f64d96dd2193f06b528087cc6c327e"
+      "sha256": "ae49f768d6e3386ebbf582b9bbd4a883797e245e537888b49dbdf9339bbef3d1"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

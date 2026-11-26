@@ -79,7 +79,7 @@ test "set expression complete task chain keeps original Source and duplicate res
   @row_source_host.check_row_input_compute_binding(capture, dag, 0).unwrap()
   let host = bind_client_local_configuration(
     dag,
-    plan.configuration,
+    plan.configuration.unwrap(),
     1L,
     1L,
     1L,

@@ -755,6 +755,8 @@ pub fn installed_managed_publication_limits(ClientInstalledManagedRun, @run_publ
 
 pub fn installed_managed_publication_source_kind(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[String, ClientInstalledManagedRunIssue]
 
+pub fn installed_managed_query_serialization_capture_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, ClientInstalledManagedSerializationPreparation, @client_row_source_host.RowSourceCapture) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
+
 pub fn installed_managed_run_accounting(ClientInstalledManagedRun) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
 
 pub fn installed_managed_run_compilation_original(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> @run_publication_host.ClientRunCompilation?
@@ -768,6 +770,8 @@ pub fn installed_managed_run_requirements(@run_publication_host.PreparedClientPr
 pub fn installed_managed_source_input_kind(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[String, ClientInstalledManagedRunIssue]
 
 pub fn installed_managed_source_occurrence(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Int) -> Result[(Int, Int, Int), ClientInstalledManagedRunIssue]
+
+pub fn installed_managed_whole_serialization_capture_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, ClientInstalledManagedSerializationPreparation, Array[@client_row_source_host.RowSourceCapture]) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
 pub fn installed_managed_whole_source_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledWholeSourceCapacity, Int64, Int64) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
@@ -989,7 +993,7 @@ pub fn[I] prepare_host_initialization_account_read(ClientHostInitializationPrepa
 
 pub fn[I, P] prepare_installed_account_read(@physical_resources.PreparationCapacity[I, P], I) -> Result[@physical_resources.PreparationAccountRead, @physical_resources.PreparationCapacityIssue]
 
-pub fn prepare_installed_catalog_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisition, ClientInstalledSequenceContracts, @client_row_source_host.RowInputLimits) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue]
+pub fn prepare_installed_catalog_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisition, ClientInstalledSequenceContracts, @client_row_source_host.RowInputLimits, serialization? : @run_publication_host.ClientSerializationPlanGraph?) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_capture_extent(String, @execution_relation.ExecutionCapacity, @execution_relation.ExecutionCapacity) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]
 
@@ -1059,9 +1063,13 @@ pub fn prepare_installed_managed_capture_plan(@run_publication_host.PreparedClie
 
 pub fn prepare_installed_managed_keyed_content(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowKeyedLimits, Array[Int64], Array[Int64], Int, Int, ClientInstalledSequenceContracts, String, String?, String?, Int, Int, Int64, Int64) -> Result[ClientInstalledManagedKeyedPreparation, ClientInstalledManagedRunIssue]
 
+pub fn prepare_installed_managed_query_serialization_source_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientSerializationPlanGraph, ClientInstalledCaptureCapacity, Int64, Int64, ClientInstalledSequenceContracts) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue]
+
 pub fn prepare_installed_managed_run_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_managed_source_free_with_contracts(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider], source_free_max_work? : Int?, query_time? : (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity)?, compilation_limits? : @run_publication_host.ClientPureCompilationLimits?) -> Result[ClientInstalledManagedSourceFreePreparation, ClientInstalledManagedRunIssue]
+
+pub fn prepare_installed_managed_whole_serialization_sources_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientSerializationPlanGraph, Array[ClientInstalledWholeSourceCapacity], Array[Int64], Array[Int64], ClientInstalledSequenceContracts) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_managed_whole_source_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledWholeSourceCapacity, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider], runtime_admission? : Bool) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue]
 
@@ -1081,7 +1089,7 @@ pub fn prepare_installed_original_composed_keyed_host_input_left(ClientInstalled
 
 pub fn prepare_installed_sequence_contracts(String, String, String?, String?) -> Result[ClientInstalledSequenceContracts, ClientInstalledManagedRunIssue]
 
-pub fn prepare_installed_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowDeclaration, ClientInstalledSequenceContracts, @client_row_source_host.RowInputLimits, @execution_relation.ExecutionCapacity?) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue]
+pub fn prepare_installed_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowDeclaration, ClientInstalledSequenceContracts, @client_row_source_host.RowInputLimits, @execution_relation.ExecutionCapacity?, serialization? : @run_publication_host.ClientSerializationPlanGraph?) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue]
 
 pub fn prepare_keyed_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowKeyedCapacity, Array[Int64], Array[Int64], Int, Int, ClientInstalledSequenceContracts, String, String?, String?, serialization? : (Int, Int, Int64, Int64)?, infer? : (Int, Int, Int64, Int64)?, captured_content? : Bool) -> @physical_resources.Ledger?
 
@@ -1257,7 +1265,7 @@ pub fn[I] prepare_request_serialization_graph(ClientRequestPreparation[I], I, In
 
 pub fn[I] prepare_request_serialization_output_limits(ClientRequestPreparation[I], I, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationPlanGraph, Int, () -> ClientSerializationWorkspaceLimits?, terminal? : Bool) -> Result[ClientSerializationOutputDemand, ClientRequestPreparationIssue]
 
-pub fn[I] prepare_request_serialization_plan(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.ExecutionCapacity?) -> Result[ClientInstalledManagedSerializationPreparation, ClientInstalledManagedRunIssue]
+pub fn[I] prepare_request_serialization_plan(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.ExecutionCapacity?, whole_plan? : ClientInstalledManagedCapturePlan?) -> Result[ClientInstalledManagedSerializationPreparation, ClientInstalledManagedRunIssue]
 
 pub fn[I] prepare_request_source_input(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, String) -> Result[Unit, ClientRequestPreparationIssue]
 
@@ -1682,6 +1690,8 @@ pub fn start_installed_managed_keyed_serialization_prefix(ClientInstalledManaged
 pub fn start_installed_managed_serialization_prefix(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, ClientInstalledManagedSerializationPreparation) -> Result[ClientSerializationPrefix, ClientInstalledManagedRunIssue]
 
 pub fn start_installed_managed_terminal_serialization(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[(ClientInstalledManagedSerializationPreparation, ClientSerializationPrefix, ClientSerializationOutputDemand), ClientInstalledManagedRunIssue]
+
+pub fn start_installed_managed_whole_serialization_prefix(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, ClientInstalledManagedSerializationPreparation, Array[@client_row_source_host.RowSourceCapture]) -> Result[ClientSerializationPrefix, ClientInstalledManagedRunIssue]
 
 pub fn start_installed_original_composed_keyed_host_prefix(ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowCapturedInput], @physical_strategy_host.CapturedEffectRunDAG, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue]
 

@@ -159,7 +159,7 @@ test "Result before LIMIT retains both original outputs through the actual task 
   @row_source_host.check_row_input_compute_binding(capture, dag, 0).unwrap()
   let host = bind_client_local_configuration(
     dag,
-    plan.configuration,
+    plan.configuration.unwrap(),
     1L,
     1L,
     1L,

@@ -428,7 +428,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5363e8a431a4344e848be64a1b2b6686e4ae0f598890b4ebc540fa455284a1bf",
+      "sha256": "3ab6d5572e4856cf1e923de0e2a42d13046ba9fee70e703dea0137b54d19c774",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -625,6 +625,13 @@
           "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/limits/limits",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/bindManagedSerializationReadRun",
+          "parameters": [
+            "hostRun"
           ],
           "async": false
         },
@@ -931,7 +938,8 @@
             "installPreparedProjectLocalFiles/adapter/adapter/table/table",
             "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant/init:issueReadGrant",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/csv/csv",
-            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5"
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
+            "installPreparedProjectLocalFiles/bindManagedSerializationReadRun"
           ],
           "exports": [
             "LOCAL_FILES_DEFAULT_LIMITS",

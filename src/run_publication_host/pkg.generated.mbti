@@ -133,6 +133,8 @@ pub fn admit_client_serialization_captured_input(PreparedClientProgram, ClientSe
 
 pub fn admit_client_serialization_whole_captured_input(PreparedClientProgram, ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @sourceview_resolution.SourceAcquisition, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
+pub fn admit_client_serialization_whole_captured_inputs(PreparedClientProgram, ClientSerializationPlanGraph, @physical_resources.Ledger, Array[ClientSerializationWholeCapture], String, Int) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
+
 pub fn admit_client_source_free_project_bindings(String?, String?) -> Result[ClientSourceFreeProjectBindings, ClientProjectBindingsIssue]
 
 pub fn admit_client_submission_epoch_token(String) -> Result[ClientSubmissionEpochToken, ClientSubmissionEpochTokenIssue]
@@ -1620,6 +1622,8 @@ pub fn client_serialization_generation_source_observations_for(ClientSerializati
 pub fn client_serialization_input_artifact(ClientSerializationInputEvidence) -> @run_publication.RunEvidenceValue
 
 pub fn client_serialization_input_rows(ClientSerializationInput) -> Int
+
+pub fn client_serialization_plan_direct_occurrences(ClientSerializationPlanGraph, PreparedClientProgram) -> ClientDirectAcquisitionOccurrences?
 
 pub fn client_serialization_plan_graph_coordinates(ClientSerializationPlanGraph) -> (Int, Int)
 
@@ -5506,6 +5510,7 @@ pub struct ClientSerializationCapturedInput {
   observation : @run_publication.ModelSourceObservation
   keyed : ClientKeyedLookupObservation?
   named_sources : Array[(String, @run_publication.ModelSourceObservation)]
+  // private fields
 }
 
 pub(all) enum ClientSerializationEffectPlanIssue {
@@ -5610,6 +5615,15 @@ pub(all) enum ClientSerializationPreparationIssue {
   MissingTask
   OutsideTask
   Barrier(@lowering_relation.SerializationPreparationIssue)
+}
+
+pub(all) struct ClientSerializationWholeCapture {
+  capture : @client_row_source_host.RowSourceCapture
+  identity : @execution_query.CapturedSourceRelationIdentity
+  logical : @run_publication.RunEvidenceValue
+  source_evidence : @run_publication.RunEvidenceValue
+  started_at : String
+  completed_at : String
 }
 
 pub(all) enum ClientSourceAcquisitionIssue {

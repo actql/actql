@@ -19139,7 +19139,8 @@
             "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
             "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
             "contentGenerationControl/init:startRequestAcquiredPrefix/init:startRequestAcquiredPrefix",
-            "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix"
+            "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
+            "contentGenerationControl/init:startRequestWholePrefix/init:startRequestWholePrefix"
           ],
           "exports": [],
           "attributes": {
@@ -19912,7 +19913,8 @@
             "compiled",
             "definition",
             "limits",
-            "workspace"
+            "workspace",
+            "sourcePlan"
           ],
           "async": false
         },
@@ -20064,6 +20066,16 @@
           "async": false
         },
         {
+          "name": "contentGenerationControl/init:startRequestWholePrefix/init:startRequestWholePrefix",
+          "parameters": [
+            "run",
+            "program",
+            "selected",
+            "captures"
+          ],
+          "async": false
+        },
+        {
           "name": "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity",
           "parameters": [
             "generation",
@@ -20111,7 +20123,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "9d34ad0e806a34e1478b9bf64c5312f7abdd329e62d65e6bdeec5beac8a36d80"
+      "sha256": "416e22cbdc5f494d49591cde9eca5332a9d9cd12416d31f87b55623863372d74"
     },
     {
       "module": "adapters/host-common/publication-progress-control.mjs",
@@ -35377,7 +35389,8 @@
             "compiled",
             "definition",
             "limits",
-            "workspace"
+            "workspace",
+            "sourcePlan"
           ],
           "async": false
         },
@@ -35400,7 +35413,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "1b9e1d27985f1572a26aa5f7ef41eb40d49dd724db5dea7acb8e220992ec223f"
+      "sha256": "adffbb7116072f3392bf24fe7bf2fc520d916b022945131825d167775d2c658e"
     },
     {
       "module": "adapters/host-common/runtime-infer-original-read-control.mjs",
@@ -38678,7 +38691,15 @@
             "createContentPublicationControls/init:completeCheckedClientContentStep/init:completeCheckedClientContentStep",
             "createContentPublicationControls/init:completeCheckedClientSerializationGeneration/init:completeCheckedClientSerializationGeneration",
             "createContentPublicationControls/init:inferSerializationGraph/init:inferSerializationGraph",
-            "createContentPublicationControls/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration"
+            "createContentPublicationControls/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/captures/captures",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#2",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#3",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#4",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#5",
+            "createContentPublicationControls/init:withCheckedClientSerializationGraph/init:withCheckedClientSerializationGraph"
           ],
           "exports": [
             "createContentPublicationControls"
@@ -39225,6 +39246,62 @@
           "async": false
         },
         {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures",
+          "parameters": [
+            "run",
+            "checkedProgram",
+            "selected",
+            "graph",
+            "sources",
+            "authorityScopeCid",
+            "startedAt",
+            "completedAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/captures/captures",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#2",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#4",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#5",
+          "parameters": [
+            "sourceEvidenceWire"
+          ],
+          "async": false
+        },
+        {
           "name": "createContentPublicationControls/init:capturedContentGenerationCount/init:capturedContentGenerationCount",
           "parameters": [
             "captured"
@@ -39463,6 +39540,15 @@
             "content"
           ],
           "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:withCheckedClientSerializationGraph/init:withCheckedClientSerializationGraph",
+          "parameters": [
+            "compiled",
+            "graph",
+            "use"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -39472,7 +39558,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "b2d252c16769e1810d7f2462dc9732282c921f88649fe249eb1e30fa3a33da80"
+      "sha256": "7a204553a571d41eb0832a8c12bff5ddb7d572011c691213a660899431896597"
     },
     {
       "module": "adapters/host-common/runtime-publication-contract-control.mjs",
@@ -48571,7 +48657,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "57a70773a1dc5c78bb7d7dcb259997cbb29b5e360491122c0b8bab90ae9f09e5",
+      "sha256": "45a0e7e0992ac822c9a899eb9b9a0b9d821561b6a0b589eb34efb0c59de2bd69",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -58366,11 +58452,11 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested});"
+                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested,"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested});"
+                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -58384,7 +58470,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "throw clientOperationError('InstalledContentRunPreparationUnsupported');"
+                "anchor": "const error = clientOperationError('InstalledContentRunPreparationUnsupported');"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -66355,7 +66441,12 @@
             "openPreparedInstalledHost/preparation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation/init:prepareManagedContentCompilation",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted",
-            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun"
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#2",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#3",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#4"
           ],
           "exports": [],
           "attributes": {
@@ -75945,6 +76036,41 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan",
+          "parameters": [
+            "component"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/adopted/adopted/sourcePlan/sourcePlan/sourcePlan#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
           "parameters": [
             "method"
@@ -76989,7 +77115,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ec41d40718cb517ff89276318638c684b6f64d96dd2193f06b528087cc6c327e"
+      "sha256": "ae49f768d6e3386ebbf582b9bbd4a883797e245e537888b49dbdf9339bbef3d1"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -111939,7 +112065,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e15c9c68c07ab87dcaef9955158ab7d91775508fcbbfff180cdb69ea51f06971",
+      "sha256": "2460dd7f984a902a5705e49a1110b9e456d4f6b885ae60dbe54d5fc4061b4ef8",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -112136,7 +112262,8 @@
           "parameters": [
             "preparedProgram",
             "sourceSelection",
-            "installedContracts"
+            "installedContracts",
+            "serialization"
           ],
           "async": false
         },
