@@ -45,6 +45,7 @@ test('every packed campaign has exactly one matrix owner and one same-run packag
     'Test packed single INFER capture and replay',
     'Test packed named INFER evaluation with traces off and unsampled',
     'Test packed acquired INFER capture and replay',
+    'Test the registered external SDK adapter through the same ordinary Client packages',
     'Test raw public SQL and Pipe through packed Local and HTTP',
     'Test committed Result descriptions through packed Local and HTTP',
     'Test the complete packed Native Graph campaign',
