@@ -1238,7 +1238,7 @@ write permissions, or `pull_request_target` execution are introduced.
 ### Draft preparation and Ready verification
 
 Drafts run preparation (`select-targets`, `preflight`, `lint`, `spec`, and the
-aggregate `check`). Draft `lint` installs the pinned MoonBit toolchain and runs
+aggregate `draft-preparation`). Draft `lint` installs the pinned MoonBit toolchain and runs
 its Node-only checks, so a failure there is found before Ready starts the full
 run; checks that need Python, the DuckDB transport or the Explorer build stay
 Ready-only. An exact registered
@@ -1248,10 +1248,12 @@ fixtures, or their CI/toolchain inputs also run the genuine macOS wheel lane
 automatically, including in Draft. Unrelated Draft changes do not start that
 lane; this targeted exception is not complete Draft product coverage. The
 source-bound selection drives both scheduling and required-job checks. These
-checks are not full product verification: the aggregate
-intentionally fails with “awaiting ready_for_review”. Marking Ready triggers
-the normal applicable coverage; subsequent non-Draft pushes rerun it. Returning
-to Draft cancels the superseded PR run through the existing concurrency group.
+checks are not full product verification. A successful Draft run reports
+`draft-preparation`; it does not publish a result under the required `check`
+name. Failed, cancelled or missing selected Draft checks still fail preparation.
+Marking Ready triggers the normal applicable coverage and publishes `check`;
+subsequent non-Draft pushes rerun it. Returning to Draft cancels the superseded
+PR run through the existing concurrency group.
 
 General product changes select full coverage. Reviewed maintenance, portable,
 and focused-test selections remain explicit, bounded exceptions. Missing or
