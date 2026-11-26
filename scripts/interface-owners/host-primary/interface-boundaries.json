@@ -38951,7 +38951,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "95b85917025ec302b0f33703a6c45f688e94aaed849cbdf8240d00b263f5def1",
+      "sha256": "fea5e02ae972542b5e56ca815d841e61b3138f9886a59b608947899443da9ae5",
       "exports": [
         "installConfiguredModelProviders"
       ],

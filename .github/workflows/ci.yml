@@ -2467,6 +2467,26 @@ jobs:
         with:
           directory: ${{ steps.packed-acquired-infer.outputs.evidence-directory }}
           name: packed-acquired-infer-${{ github.sha }}
+      - name: Test the registered external SDK adapter through the same ordinary Client packages
+        if: ${{ matrix.group == 'infer' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        id: packed-registered-external-provider
+        timeout-minutes: 6
+        run: |
+          test "${ACTQL_PACKED_CLIENT_PACKAGES:-}" = "$RUNNER_TEMP/actql-client-packages"
+          node scripts/test-packed-provider-ai-sdk.mjs "$RUNNER_TEMP/packed-registered-external-provider" --registered-external-only
+      - name: Retain the registered external provider cases and original usage
+        if: ${{ always() && matrix.group == 'infer' && steps.client-inputs.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: packed-registered-external-provider-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/packed-registered-external-provider/summary.json
+            ${{ runner.temp }}/packed-registered-external-provider/cases/*/packages/*packages.json
+            ${{ runner.temp }}/packed-registered-external-provider/raw/*/*
+            ${{ runner.temp }}/packed-registered-external-provider/cases/registered-external/consumer/usage-original.json
+            ${{ runner.temp }}/packed-registered-external-provider/cases/registered-external/consumer/usage-receipt.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Test raw public SQL and Pipe through packed Local and HTTP
         if: ${{ (matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3') && !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-query

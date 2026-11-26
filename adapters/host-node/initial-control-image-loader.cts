@@ -14,7 +14,9 @@ type CapturedImage = {
   sha256: string;
   path: string;
   format: ImageFormat | undefined;
+  group: ImageGroup;
 };
+type ImageGroup = Readonly<{root: string; dependencies: ReadonlyMap<string, string>}>;
 type ExportProperty = {
   name: PropertyKey;
   data: boolean;
@@ -74,11 +76,13 @@ const nativeMapEach = Map.prototype.forEach;
 const isArray = Array.isArray as (value: unknown) => value is unknown[],
   safeInteger = Number.isSafeInteger as (value: unknown) => value is number;
 const nativeStartsWith = String.prototype.startsWith, nativeEndsWith = String.prototype.endsWith;
-const nativeCharCodeAt = String.prototype.charCodeAt, nativeSlice = String.prototype.slice;
+const nativeCharCodeAt = String.prototype.charCodeAt, nativeSlice = String.prototype.slice,
+  nativeIndexOf = String.prototype.indexOf;
 const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get as ((this: NodeModule) => boolean) | undefined;
 const registerHooks = NodeModule.registerHooks, register = NodeModule.register;
 const stockLoad = NodeModule._load, stockCache = NodeModule._cache;
 const syncBuiltinESMExports = NodeModule.syncBuiltinESMExports;
+const createRequire = NodeModule.createRequire;
 const fail: (code: string, image?: string) => never = (code, image) => {
   const error = new NativeError(code) as InitialControlImageError; error.code = code;
   // Only an already-held package-relative image key, never an absolute path
@@ -98,6 +102,17 @@ const ends = (value: string, suffix: string) => nativeApply(nativeEndsWith, valu
 const concrete = (value: unknown): value is string => typeof value === 'string' && value.length !== 0 &&
   !starts(value, '/') && !value.split('/').some(part => part === '' || part === '.' || part === '..') &&
   !value.includes('\\');
+
+function dependencyName(specifier: string) {
+  if (starts(specifier, '.') || starts(specifier, '/') || starts(specifier, '#') ||
+      nativeApply(nativeIndexOf, specifier, [':']) !== -1) return undefined;
+  let end = nativeApply(nativeIndexOf, specifier, ['/']);
+  if (starts(specifier, '@')) {
+    if (end < 0) return undefined;
+    end = nativeApply(nativeIndexOf, specifier, ['/', end + 1]);
+  }
+  return end < 0 ? specifier : nativeApply(nativeSlice, specifier, [0, end]);
+}
 
 function installInitialControlImageLoader(groups: unknown) {
   // Observe Node's captured real preload getter, not a caller field or argv
@@ -124,15 +139,27 @@ function installOrdinaryInitialControlImageLoader(groups: unknown, requiredModul
 function installImageLoader(groups: unknown, ordinary: boolean, requiredModules?: readonly string[]) {
   if (!isArray(groups) || groups.length === 0) fail('InvalidInitialControlLoaderImage');
   const images = new NativeMap<string, CapturedImage>(), prefixes: string[] = [];
+  const packageGroups = new NativeMap<string, ImageGroup>();
   const initialCache = new NativeMap<string, unknown>(), delivered = new NativeMap<string, true>(),
     selectedModules = new NativeMap<string, unknown>();
   const loadedModules: LoadedModule[] = [];
-  const requireSelected = NodeModule.createRequire(__filename);
   let invalidated = false, loadedCaptured = false;
   for (let index = 0; index < groups.length; index++) {
     const group = groups[index], root = realpathSync(own(group, 'root') as string);
-    const originals = own(group, 'images');
-    if (!isArray(originals) || originals.length === 0) fail('InvalidInitialControlLoaderImage');
+    const originals = own(group, 'images'), edges = own(group, 'dependencies');
+    if (!isArray(originals) || originals.length === 0 || !isArray(edges) ||
+        nativeApply(nativeMapHas, packageGroups, [root])) fail('InvalidInitialControlLoaderImage');
+    const dependencies = new NativeMap<string, string>();
+    for (let item = 0; item < edges.length; item++) {
+      const edge = edges[item], name = own(edge, 'name'), target = own(edge, 'root');
+      if (typeof name !== 'string' || name.length === 0 || dependencyName(name) !== name ||
+          typeof target !== 'string' || nativeApply(nativeMapHas, dependencies, [name])) {
+        fail('InvalidInitialControlLoaderImage');
+      }
+      nativeApply(nativeMapSet, dependencies, [name, target]);
+    }
+    const packageGroup = freeze({root, dependencies});
+    nativeApply(nativeMapSet, packageGroups, [root, packageGroup]);
     const prefix = pathToFileURL(root + '/').href;
     prefixes[prefixes.length] = prefix;
     const manifests = new NativeMap<string, unknown>(), records: CapturedImage[] = [];
@@ -143,7 +170,7 @@ function installImageLoader(groups: unknown, ordinary: boolean, requiredModules?
           typeof sha256 !== 'string' || sha256.length !== 64) fail('InvalidInitialControlLoaderImage');
       const url = pathToFileURL(join(root, path)).href;
       if (!starts(url, prefix) || nativeApply(nativeMapHas, images, [url])) fail('InvalidInitialControlLoaderImage');
-      const value: CapturedImage = {url, source, bytes, sha256, path, format: undefined};
+      const value: CapturedImage = {url, source, bytes, sha256, path, format: undefined, group: packageGroup};
       records[records.length] = value;
       // Manifests here are the same captured immutable Sources as code. The
       // format decision cannot change by replacing a pathname after capture.
@@ -178,6 +205,11 @@ function installImageLoader(groups: unknown, ordinary: boolean, requiredModules?
       }
     }
   }
+  nativeApply(nativeMapEach, packageGroups, [(group: ImageGroup) => {
+    nativeApply(nativeMapEach, group.dependencies, [(target: string) => {
+      if (!nativeApply(nativeMapHas, packageGroups, [target])) fail('InvalidInitialControlLoaderImage');
+    }]);
+  }]);
   if (requiredModules !== undefined) {
     for (const filename of requiredModules) {
       const image = nativeApply(nativeMapGet, images, [pathToFileURL(filename).href]) as CapturedImage | undefined;
@@ -341,7 +373,8 @@ function installImageLoader(groups: unknown, ordinary: boolean, requiredModules?
   }
   function resolve(specifier: Parameters<ResolveHook>[0], context: Parameters<ResolveHook>[1],
     nextResolve: Parameters<ResolveHook>[2]): ReturnType<ResolveHook> {
-    if (covered(context.parentURL)) assertCurrent();
+    const coveredParent = covered(context.parentURL);
+    if (coveredParent) assertCurrent();
     let captured: ReturnType<ResolveHook> | undefined;
     if (typeof specifier === 'string' && (starts(specifier, 'file:') ||
         starts(specifier, './') || starts(specifier, '../') || starts(specifier, '/'))) {
@@ -360,6 +393,13 @@ function installImageLoader(groups: unknown, ordinary: boolean, requiredModules?
       assertCurrent();
       const original = nativeApply(nativeMapGet, images, [result.url]) as CapturedImage | undefined;
       if (original === undefined) fail('UncapturedInitialControlImage');
+      if (coveredParent) {
+        const parent = nativeApply(nativeMapGet, images, [context.parentURL]) as CapturedImage | undefined;
+        if (parent === undefined || parent.group !== original.group &&
+            nativeApply(nativeMapGet, parent.group.dependencies, [dependencyName(specifier)]) !== original.group.root) {
+          fail('UncapturedInitialControlDependency');
+        }
+      }
       if (loadedCaptured && (original.format === 'commonjs' || original.format === 'json')) {
         const filename = fileURLToPath(original.url);
         let initialized = false;
@@ -382,7 +422,7 @@ function installImageLoader(groups: unknown, ordinary: boolean, requiredModules?
           fail('InitialControlImageLoaderChanged');
         }
       }
-    } else if (covered(context.parentURL) && !starts(result.url, 'node:')) {
+    } else if (coveredParent && !starts(result.url, 'node:')) {
       fail('UncapturedInitialControlDependency');
     }
     return result;
@@ -419,7 +459,9 @@ function installImageLoader(groups: unknown, ordinary: boolean, requiredModules?
     // without running our load hook. A preexisting cache slot, even with a
     // genuine module namespace as its exports, cannot supply this handoff.
     if (descriptor(stockCache, filename) !== undefined) fail('InitialControlPackageImageChanged');
-    const namespace: unknown = requireSelected(filename);
+    // The exact selected file is the synthetic require origin. Its imports
+    // must still follow that captured group's dependency edges.
+    const namespace: unknown = createRequire(filename)(filename);
     const entry = descriptor(stockCache, filename)?.value;
     if (!nativeApply(nativeMapHas, delivered, [url]) || entry === undefined ||
         descriptor(entry, 'filename')?.value !== filename || descriptor(entry, 'loaded')?.value !== true) {

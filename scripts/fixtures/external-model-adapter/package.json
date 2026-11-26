@@ -1,0 +1,12 @@
+{
+  "name": "@actql-acceptance/external-openai-adapter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./index.mjs",
+  "files": ["index.mjs", "second-fetch.mjs", "npm-shrinkwrap.json"],
+  "dependencies": {
+    "@ai-sdk/openai": "4.0.91",
+    "zod": "4.6.5"
+  }
+}
