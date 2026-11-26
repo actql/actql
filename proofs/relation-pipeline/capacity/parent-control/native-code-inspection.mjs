@@ -46,8 +46,8 @@ function symbolProjection(selection,emit) {
 // Whole nm output scales with unrelated debug labels. Consume that stream to
 // a successful EOF, retaining the SAME relevant identities and the next real
 // function above each relevant address. Validate the order of every real
-// function, including discarded ones. The old 32MiB retained-output bound and
-// 30s command deadline remain; one input line and stderr have the same bound.
+// function, including discarded ones. Each attempt has the same 32MiB
+// retained-output, input-line and stderr bounds and the same 30s deadline.
 export function readNativeSymbols(tool,args,selection={}, {timeout=timeoutMs}={}) {
   assert(Number.isSafeInteger(timeout)&&timeout>0&&timeout<=timeoutMs,'Invalid code inspection deadline');
   assert(typeof tool==='string'&&Array.isArray(args)&&args.every(value=>typeof value==='string'),
@@ -56,9 +56,13 @@ export function readNativeSymbols(tool,args,selection={}, {timeout=timeoutMs}={}
     [...selection.names??[],...selection.suffixes??[]].every(value=>typeof value==='string'&&value.length>0),
     'Invalid Native symbol selection');
   const configuration={tool,args,names:selection.names??[],suffixes:selection.suffixes??[],timeout};
-  const result=spawnSync(process.execPath,[fileURLToPath(import.meta.url),'--symbol-stream',JSON.stringify(configuration)],
-    {encoding:'utf8',timeout:timeout+1000,maxBuffer:maxOutputBytes});
-  if(result.error||result.status!==0) {
+  const command = [fileURLToPath(import.meta.url), '--symbol-stream', JSON.stringify(configuration)];
+  let firstFailure;
+  for (;;) {
+    const result = spawnSync(process.execPath, command, {
+      encoding: 'utf8', timeout: timeout + 1000, maxBuffer: maxOutputBytes,
+    });
+    if (!result.error && result.status === 0) return result.stdout;
     let worker;
     // Only our closed metadata packet can be included in a failure. Never
     // forward arbitrary tool stderr, symbol names or partially inspected code.
@@ -70,9 +74,18 @@ export function readNativeSymbols(tool,args,selection={}, {timeout=timeoutMs}={}
         (value.signal===null||/^SIG[A-Z0-9]+$/.test(value.signal))&&
         [value.stdoutBytes,value.stderrBytes].every(n=>Number.isSafeInteger(n)&&n>=0))worker=value;
     } catch {}
-    throw inspectionFailure(tool,result,worker);
+    const failure = inspectionFailure(tool, result, worker);
+    // The worker reports this timeout after its tool's close event. Allow one
+    // fresh scan when the first attempt produced no bytes on either stream.
+    if (!firstFailure && !result.error && result.status === 1 &&
+        worker?.code === 'ERR_NATIVE_INSPECTION_TIMEOUT' && worker.status === null &&
+        worker.signal === 'SIGKILL' && worker.stdoutBytes === 0 && worker.stderrBytes === 0) {
+      firstFailure = failure;
+      continue;
+    }
+    if (firstFailure) failure.cause = firstFailure;
+    throw failure;
   }
-  return result.stdout;
 }
 async function streamSymbols({tool,args,names,suffixes,timeout}) {
   let child,code,stdoutBytes=0,stderrBytes=0,retained=0,chunks=[],lineBytes=0,ended=false;
