@@ -142,7 +142,7 @@ test('Effect Model binds its JS compiled holder through the existing control bef
   };
   prepareInstalledEffectManagedPlanRun(f.options);
   const run = readInstalledEffectManagedPlanRun(f.options);
-  const view = installedEffectModelPreparation(run, () => ({}), () => {});
+  const view = installedEffectModelPreparation(run, () => ({}), () => {}, () => {});
   view.retain(); assert.strictEqual(view.prepareRead().read, nativeRead);
   assert.throws(() => view.prepareRead(), {code: 'ForeignInstalledEffectModelScope'});
   assert.equal(view.retire(), true); assert.equal(view.retire(), true);
@@ -475,7 +475,7 @@ test('physical Model Content Effect keeps its original Node layout and trusted S
   };
   prepareInstalledEffectManagedPlanRun(f.options);
   const run = readInstalledEffectManagedPlanRun(f.options);
-  const original = installedEffectModelPreparation(run, () => ({}), () => {});
+  const original = installedEffectModelPreparation(run, () => ({}), () => {}, () => {});
   original.assertRuntimeCurrent(); original.retain();
   const prepared = original.prepareRead();
   assert.strictEqual(prepared.read, read); assert.strictEqual(prepared.nodeInstallation, layout);
@@ -564,7 +564,7 @@ function coldEffectReadFixture({failure} = {}) {
   };
   prepareInstalledEffectManagedPlanRun(f.options);
   const run = readInstalledEffectManagedPlanRun(f.options);
-  const view = installedEffectModelPreparation(run, () => ({}), () => {if (!current) throw new Error('OriginalCurrentLost');});
+  const view = installedEffectModelPreparation(run, () => ({}), () => {if (!current) throw new Error('OriginalCurrentLost');}, () => {});
   view.retain();
   return {f, run, view, read, savedScope, reads: () => reads, revoke() { current = false; }};
 }
@@ -662,7 +662,7 @@ test('plural Effect retains every original provider and Scope before Plan use an
   const run = readInstalledEffectManagedPlanRun(f.options);
   assert.equal(run.modelScope, undefined); same(run.modelScopes, scopes);
   assert.deepEqual(calls.slice(0, 6), [['demand', 0], ['provider', 0], ['demand', 1], ['provider', 1], ['compose'], ['plan']]);
-  const view = installedEffectModelPreparation(run, () => ({}), f.options.assertCurrent);
+  const view = installedEffectModelPreparation(run, () => ({}), f.options.assertCurrent, f.options.assertCurrent);
   assert.equal(view.components.length, 2); view.retain();
   for (let index = 0; index < 2; index++) {
     assert.strictEqual(view.components[index].selection, f.options.modelSelection.components[index]);
@@ -682,17 +682,48 @@ test('plural Effect retains every original provider and Scope before Plan use an
 test('plural Effect refuses foreign member Scope or lost current before a read and never substitutes its first member', () => {
   const one = pluralEffectModelFixture(); prepareInstalledEffectManagedPlanRun(one.f.options);
   const run = readInstalledEffectManagedPlanRun(one.f.options);
-  const view = installedEffectModelPreparation(run, () => ({}), one.f.options.assertCurrent);
+  const view = installedEffectModelPreparation(run, () => ({}), one.f.options.assertCurrent, one.f.options.assertCurrent);
   view.retain(); run.modelMembers[1].modelScope = {};
   assert.throws(() => view.components[0].prepareRead(), {code: 'ForeignInstalledEffectModelScope'});
   assert.equal(one.calls.some(call => call[0] === 'read'), false);
   const two = pluralEffectModelFixture(); prepareInstalledEffectManagedPlanRun(two.f.options);
   const currentRun = readInstalledEffectManagedPlanRun(two.f.options);
-  const currentView = installedEffectModelPreparation(currentRun, () => ({}), two.f.options.assertCurrent);
+  const currentView = installedEffectModelPreparation(currentRun, () => ({}), two.f.options.assertCurrent, two.f.options.assertCurrent);
   currentView.retain(); two.revoke();
-  assert.throws(() => installedEffectModelPreparation(currentRun, () => ({}), two.f.options.assertCurrent), /OriginalCurrentLost/u);
+  assert.throws(() => installedEffectModelPreparation(currentRun, () => ({}), two.f.options.assertCurrent, two.f.options.assertCurrent), /OriginalCurrentLost/u);
   assert.throws(() => currentView.components[1].prepareRead(), /OriginalCurrentLost/u);
   assert.equal(two.calls.some(call => call[0] === 'read'), false);
+});
+
+test('sealed Effect ingress still retires each retained original Model Read exactly once', () => {
+  const {f, calls, graph, scopes, revoke} = pluralEffectModelFixture();
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run = readInstalledEffectManagedPlanRun(f.options);
+  let retained = true;
+  const assertRetained = () => {if (!retained) throw new Error('OriginalRetentionLost');};
+  const view = installedEffectModelPreparation(run, () => ({}), f.options.assertCurrent, assertRetained);
+  const returns = [];
+  f.options.publicationControl.settleCheckedClientInferOriginalReadPreparation = (compiled, definition, g, read, closed) => {
+    const index = returns.length;
+    same([compiled, definition, g, read.index, closed],
+      [f.options.model.compiled, f.options.facts.runDefinition, graph[index], index, true]);
+    returns.push(index);
+  };
+  view.retain();
+  view.components.forEach(component => component.prepareRead());
+  revoke();
+  assert.throws(() => view.components[0].prepareRead(), /OriginalCurrentLost/u);
+  retained = false;
+  assert.throws(() => view.retire(), /OriginalRetentionLost/u);
+  retained = true;
+  run.modelMembers[1].modelScope = {};
+  assert.throws(() => view.retire(), {code: 'ForeignInstalledEffectModelScope'});
+  assert.deepEqual(returns, []);
+  run.modelMembers[1].modelScope = scopes[1];
+  assert.equal(view.retire(), true);
+  assert.equal(view.retire(), true);
+  assert.deepEqual(returns, [0, 1]);
+  assert.deepEqual(calls.filter(call => call[0] === 'read'), [['read', 0], ['read', 1]]);
 });
 
 test('plural Effect keeps a failed second original read including thrown undefined without a replacement', () => {
@@ -702,7 +733,7 @@ test('plural Effect keeps a failed second original read including thrown undefin
   };
   prepareInstalledEffectManagedPlanRun(f.options);
   const run = readInstalledEffectManagedPlanRun(f.options);
-  const view = installedEffectModelPreparation(run, () => ({}), f.options.assertCurrent); view.retain();
+  const view = installedEffectModelPreparation(run, () => ({}), f.options.assertCurrent, f.options.assertCurrent); view.retain();
   for (let i = 0; i < 2; i++) {
     let failed = false;
     try {view.components[1].prepareRead();} catch (cause) {failed = true; assert.strictEqual(cause, undefined);}
@@ -757,7 +788,7 @@ test('129 selected Model definitions require same current admitted Run rather th
   };
   prepareInstalledEffectManagedPlanRun(f.options);
   const run=readInstalledEffectManagedPlanRun(f.options);
-  const original=installedEffectModelPreparation(run,()=>({}),f.options.assertCurrent);
+  const original=installedEffectModelPreparation(run,()=>({}),f.options.assertCurrent,f.options.assertCurrent);
   assert.equal(original.components.length,129);
   assert.equal(fundedEffectModelGroupCount(original),129);
   assert.equal(fundedEffectModelGroupCount({...original}),undefined);
@@ -772,11 +803,11 @@ test('129 group cannot outlive its original numerical scope or hide Core capacit
   const one=pluralEffectModelFixture({count:129}), f=one.f, failure=new Error('OriginalCapacityRefused');
   f.runtime.clientProgramInstalledEffectFundedModelSelectionCount=()=>{throw failure;};
   prepareInstalledEffectManagedPlanRun(f.options);
-  const run=readInstalledEffectManagedPlanRun(f.options), original=installedEffectModelPreparation(run,()=>({}),f.options.assertCurrent);
+  const run=readInstalledEffectManagedPlanRun(f.options), original=installedEffectModelPreparation(run,()=>({}),f.options.assertCurrent,f.options.assertCurrent);
   assert.throws(()=>fundedEffectModelGroupCount(original),error=>error===failure);
   run.modelScopeFinished=true;
   assert.equal(fundedEffectModelGroupCount(original),undefined);
   const legacy=pluralEffectModelFixture({count:129}); prepareInstalledEffectManagedPlanRun(legacy.f.options);
   const legacyRun=readInstalledEffectManagedPlanRun(legacy.f.options);
-  assert.equal(fundedEffectModelGroupCount(installedEffectModelPreparation(legacyRun,()=>({}),legacy.f.options.assertCurrent)),undefined);
+  assert.equal(fundedEffectModelGroupCount(installedEffectModelPreparation(legacyRun,()=>({}),legacy.f.options.assertCurrent,legacy.f.options.assertCurrent)),undefined);
 });

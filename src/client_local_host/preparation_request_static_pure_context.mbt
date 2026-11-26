@@ -1,4 +1,141 @@
 ///|
+// Use the original checked Program and each original lowered Stage owner.
+// Normal's fused task geometry says nothing about the Debug split. This
+// short-lived probe uses the same remapper and entry guard as real admission.
+fn[I] static_debug_entry_probe(
+  capacity : @resources.PreparationCapacity[
+    I,
+    @publication_host.PreparedClientProgram,
+  ],
+  input : I,
+  prepared : @publication_host.PreparedClientProgram,
+  max_tasks : Int,
+  work : Int,
+) -> Result[(Bool, Int), @resources.PreparationCapacityIssue] {
+  if work < 8 || max_tasks < 1 {
+    return Ok((false, 0))
+  }
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let checked = @strategy.graph_program(graph)
+  let base = match
+    @resources.preparation_capacity_working_extents(capacity, input) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let controls = @publication_host.client_debug_graph_quotation_control_bytes()
+  guard @execution.checked_preparation_add_product(base.0, controls, 1L)
+    is Some(r) &&
+    @execution.checked_preparation_add_product(base.1, controls, 1L) is Some(e) else {
+    return Ok((false, 0))
+  }
+  if @resources.reserve_working_preparation_phase(capacity, input, r, e)
+    is Err(_) {
+    return Ok((false, 0))
+  }
+  let eligible = {
+    let observed = Ref(0L)
+    match
+      @publication_host.measure_client_debug_graph_construction(
+        checked, max_tasks, work, observed,
+      ) {
+      Err(_) => false
+      Ok((bytes, remaining)) => {
+        // One forward owner lookup and the final entry check have separate
+        // finite work. The remapper gets only the remaining allowance.
+        let stages = @checked.unit_count(checked)
+        // Measurement already proves the expanded task count fits
+        // the node ceiling. Compute a conservative split from the actual
+        // observed work (which includes at least one visit per step).
+        let boundary_work = 7L * observed.val + stages.to_int64()
+        // The borrowed pointer vector coexists with both remapped Graphs.
+        // Its Array backing and the fixed entry-observation frames are
+        // additional to the compiler's graph construction quote.
+        let frame = @execution.preparation_representation_cost({
+          record_headers: 12L,
+          reference_slots: 16L + 2L * stages.to_int64(),
+          scalar_words: 16L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        }).unwrap()
+        if boundary_work >= remaining.to_int64() {
+          false
+        } else if @execution.checked_preparation_add_product(bytes, frame, 1L)
+          is Some(scratch) &&
+          @execution.checked_preparation_add_product(r, scratch, 1L)
+          is Some(peak_r) &&
+          @execution.checked_preparation_add_product(e, scratch, 1L)
+          is Some(peak_e) &&
+          @resources.reserve_working_preparation_phase(
+            capacity, input, peak_r, peak_e,
+          )
+          is Ok(_) {
+          probe_static_debug_graph(
+            graph,
+            checked,
+            stages,
+            max_tasks,
+            remaining - boundary_work.to_int(),
+            boundary_work - stages.to_int64(),
+          )
+        } else {
+          false
+        }
+      }
+    }
+  }
+  // All Graph containers and the owner vector have gone out of scope. Keep
+  // original compiler/Plan backing and the bounded work spent on this read.
+  match
+    @resources.reconcile_current_working_preparation_phase(
+      capacity,
+      input,
+      base.0,
+      base.1,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(_) => Ok((eligible, work))
+  }
+}
+
+///|
+fn probe_static_debug_graph(
+  graph : @strategy.CheckedDAG,
+  checked : @checked.CheckedProgram,
+  stages : Int,
+  max_tasks : Int,
+  work : Int,
+  boundary_work : Int64,
+) -> Bool {
+  let owners = []
+  for stage in 0..<stages {
+    guard @strategy.graph_stage_operation_task(graph, stage, 0) is Some(task) &&
+      @strategy.graph_task_owner(graph, task) is Some(owner) else {
+      return false
+    }
+    owners.push(owner)
+  }
+  match
+    @strategy.prepare_checked_debug_dag(
+      checked,
+      owners,
+      max_tasks,
+      work,
+      source_free_root=true,
+    ) {
+    Err(_) => false
+    Ok(debug) => {
+      let extent = 1L +
+        6L * @strategy.graph_task_count(debug).to_int64() +
+        @strategy.graph_data_count(debug).to_int64() +
+        @strategy.graph_control_count(debug).to_int64()
+      extent <= boundary_work &&
+      @strategy.graph_source_free_inputs_complete(debug) &&
+      @strategy.checked_task_control_entry_boundary_issue(debug) is None
+    }
+  }
+}
+
+///|
 fn[I, T] with_request_static_pure_explanation(
   owner : ClientRequestPreparation[I],
   input : I,
@@ -72,6 +209,7 @@ fn[I] prepare_static_pure_explanation_facets(
   max_work : Int,
   infers : Array[@publication_host.ClientInferPlanGraph],
   reserve_js_delivery : Bool,
+  debug_entry_installed? : Bool = false,
 ) -> Result[
   ClientRequestStaticEffectExplanation,
   ClientRequestStaticContextIssue,
@@ -180,9 +318,25 @@ fn[I] prepare_static_pure_explanation_facets(
         Ok(value) => @publication_host.Tasks(value)
       }
     }
+    let (debug_entry, probe_work) = if debug_entry_installed &&
+      infers.is_empty() &&
+      max_work > 1 {
+      match
+        static_debug_entry_probe(capacity, input, prepared, nodes, max_work / 4) {
+        Err(issue) => return Err(Preparation(Capacity(issue)))
+        Ok(value) => value
+      }
+    } else {
+      (false, 0)
+    }
     let (original, plan) = match
       @publication_host.capture_client_static_pure_explanation_original(
-        prepared, compiled, bytes, nodes, depth,
+        prepared,
+        compiled,
+        bytes,
+        nodes,
+        depth,
+        debug_entry~,
       ) {
       Err(issue) => return Err(Context(issue))
       Ok(value) => value
@@ -195,7 +349,7 @@ fn[I] prepare_static_pure_explanation_facets(
       plan,
       current,
       bounded,
-      max_work,
+      max_work - probe_work,
       limits.0,
       reserve_js_delivery,
     )
@@ -214,6 +368,7 @@ pub fn[I] request_prepared_static_explanation(
   max_depth : Int,
   max_work : Int,
   infers : Array[@publication_host.ClientInferPlanGraph],
+  debug_entry_installed? : Bool = false,
 ) -> Result[
   ClientRequestStaticEffectExplanation,
   ClientRequestStaticContextIssue,
@@ -238,6 +393,7 @@ pub fn[I] request_prepared_static_explanation(
       max_work,
       infers,
       true,
+      debug_entry_installed~,
     )
   }
 }

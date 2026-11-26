@@ -66,6 +66,10 @@ test "static map reads original input-only Stage without a fabricated operation"
   assert_true(
     @canonical.object_field(output, "role") is Some(@canonical.String("output")),
   )
+  assert_true(
+    @canonical.object_field(output, "port_ordinal")
+    is Some(@canonical.Number(0.0)),
+  )
   assert_eq(
     @canonical.stringify_value(
       @canonical.object_field(input, "carrier_contract_cid").unwrap(),
@@ -264,11 +268,24 @@ test "static map retains checked chain occurrences rather than physical task coo
       ),
       ["\"values\"", "\"filter\"", "\"select\""][i],
     )
-    if i > 0 {
-      guard @canonical.object_field(step, "ports")
-        is Some(@canonical.Array(ports)) else {
-        fail("missing input port")
+    guard @canonical.object_field(step, "ports")
+      is Some(@canonical.Array(ports)) else {
+      fail("missing checked ports")
+    }
+    let mut outputs = 0
+    for position in 0..<@canonical.array_count(ports) {
+      let port = @canonical.array_at(ports, position).unwrap()
+      if @canonical.object_field(port, "role")
+        is Some(@canonical.String("output")) {
+        outputs += 1
+        assert_true(
+          @canonical.object_field(port, "port_ordinal")
+          is Some(@canonical.Number(0.0)),
+        )
       }
+    }
+    assert_eq(outputs, 1)
+    if i > 0 {
       let source = @canonical.object_field(
         @canonical.array_at(ports, 0).unwrap(),
         "source",

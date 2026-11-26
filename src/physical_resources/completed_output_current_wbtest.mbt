@@ -65,6 +65,11 @@ test "completed notification current callback cannot replace the first scratch n
   assert_eq(reservation.completed_output, Some((None, 0L, 5L)))
   assert_eq(reservation.execution, 5L)
   assert_true(reservation_pending(reservation))
+  assert_eq(completed_output_attempt_sequence(ledger, reservation), 1)
+  assert_eq(
+    completed_output_attempt_sequence(completed_current_ledger(), reservation),
+    0,
+  )
   assert_eq(ledger_usage(ledger).attempts, 1)
   settle_reservation(ledger, reservation).unwrap()
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
@@ -85,4 +90,35 @@ test "completed notification current callback preserves identical closed complet
   assert_false(reservation.open)
   assert_eq(ledger_usage(ledger).live_reservations, 0)
   assert_eq(ledger_usage(ledger).reserved_attempts, 0)
+  assert_eq(completed_output_attempt_sequence(ledger, reservation), 0)
+}
+
+///|
+test "completed attempts preserve first-use order across reversed reservation order and retries" {
+  let ledger = completed_current_ledger()
+  let first_reserved = reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+  let first_used = reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+  assert_eq(
+    (reservation_serial(first_reserved), reservation_serial(first_used)),
+    (0, 1),
+  )
+  assert_eq(
+    consume_reserved_attempt(completed_current_ledger(), first_used),
+    Err(ForeignOwner),
+  )
+  consume_reserved_attempt(ledger, first_used).unwrap()
+  consume_reserved_attempt(ledger, first_reserved).unwrap()
+  consume_reserved_attempt(ledger, first_used).unwrap()
+  assert_eq(ledger_usage(ledger).attempts, 2)
+  assert_eq(completed_output_attempt_sequence(ledger, first_used), 0)
+  settle_completed_output_reservation(ledger, first_used, None, 0L, 0L).unwrap()
+  settle_completed_output_reservation(ledger, first_reserved, None, 0L, 0L).unwrap()
+  assert_eq(completed_output_attempt_sequence(ledger, first_used), 1)
+  assert_eq(completed_output_attempt_sequence(ledger, first_reserved), 2)
+  assert_eq(
+    consume_reserved_attempt(ledger, first_used),
+    Err(ClosedReservation),
+  )
+  assert_eq(completed_output_attempt_sequence(ledger, first_used), 1)
+  assert_eq(ledger_usage(ledger).live_reservations, 0)
 }

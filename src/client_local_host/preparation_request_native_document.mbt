@@ -450,6 +450,7 @@ pub fn[I] request_prepared_static_plan_view(
   max_nodes : Int,
   max_depth : Int,
   infers? : Array[@publication_host.ClientInferPlanGraph] = [],
+  inspect_installed? : Bool = false,
 ) -> Result[String, ClientRequestTerminalIssue] {
   if max_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     return Err(Preparation(Policy))
@@ -548,7 +549,7 @@ pub fn[I] request_prepared_static_plan_view(
             bytes,
             nodes,
             depth,
-            inspect_installed=false,
+            inspect_installed~,
           ).map_err(_ => Preparation(Policy))
         }
         Effect => {

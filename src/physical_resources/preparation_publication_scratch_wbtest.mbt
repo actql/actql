@@ -160,3 +160,89 @@ test "publication scratch cannot refund after its selected borrower is consumed 
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
 }
+
+///|
+test "one measured scratch return preserves later Plan backing and refuses foreign or duplicate use" {
+  for stopping in [true, false] {
+    let ledger = create_ledger({
+      planning_work: 10,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 100L,
+      retained_bytes: 100L,
+      execution_bytes: 100L,
+    }).unwrap()
+    let input = [1]
+    let body = [2]
+    let owner : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity(
+      ledger,
+      input,
+      20L,
+      20L,
+      max_borrowers=2,
+    ).unwrap()
+    let nested_refused = Ref(false)
+    let (output, ticket) = measure_working_preparation_scratch(
+      owner,
+      input,
+      3L,
+      () => {
+        nested_refused.val = measure_working_preparation_scratch(
+            owner,
+            input,
+            3L,
+            () => (),
+          )
+          is Err(WorkActive)
+        reserve_working_preparation_phase(owner, input, 31L, 34L).unwrap()
+        true
+      },
+    ).unwrap()
+    assert_true(output)
+    assert_true(nested_refused.val)
+    let foreign : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity(
+      ledger,
+      input,
+      5L,
+      5L,
+      max_borrowers=2,
+    ).unwrap()
+    assert_true(
+      return_preparation_scratch(foreign, input, ticket) is Err(ForeignOriginal),
+    )
+    assert_true(
+      return_preparation_scratch(owner, [1], ticket) is Err(ForeignOriginal),
+    )
+    assert_true(
+      abort_preparation_capacity_after_cleanup(foreign, input).unwrap(),
+    )
+    reserve_working_preparation_phase(owner, input, 46L, 53L).unwrap()
+    complete_preparation_capacity(owner, input, body, 46L, 53L).unwrap()
+    transfer_preparation_capacity_to_run(owner, input, body, ledger).unwrap()
+    let holder = borrow_preparation_body(owner).unwrap()
+    let token = owner.reservation.reservation
+    if stopping {
+      ledger.imported_child = Some(publication_scratch_origin(ledger, _ => 1))
+      assert_true(
+        return_preparation_scratch(owner, input, ticket)
+        is Err(Resource(ClosedReservation)),
+      )
+      assert_eq(ledger_usage(ledger).reserved_retention_bytes, 46L)
+      assert_eq(ledger_usage(ledger).reserved_execution_bytes, 53L)
+    } else {
+      assert_eq(return_preparation_scratch(owner, input, ticket), Ok(()))
+      assert_true(physical_equal(token, owner.reservation.reservation))
+      assert_eq(ledger_usage(ledger).reserved_retention_bytes, 35L)
+      assert_eq(ledger_usage(ledger).reserved_execution_bytes, 39L)
+      reserve_preparation_publication_phase(holder, body, 58L, 63L).unwrap()
+      assert_true(
+        return_preparation_scratch(owner, input, ticket) is Err(BorrowReturned),
+      )
+      assert_eq(ledger_usage(ledger).reserved_retention_bytes, 58L)
+      assert_eq(ledger_usage(ledger).reserved_execution_bytes, 63L)
+    }
+    assert_false(retire_preparation_capacity(owner).unwrap())
+    assert_true(return_preparation_body_borrow(holder).unwrap())
+    assert_eq(ledger_usage(ledger).live_reservations, 0)
+  }
+}

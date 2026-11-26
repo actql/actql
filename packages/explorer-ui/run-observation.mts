@@ -81,6 +81,7 @@ export function runObservationModel(view:WireRunView, owners:WireOwnerObservatio
     run: {id: state.run_id, status: state.status, updatedAt: state.updated_at,
       controlRevision: state.control_revision,
       terminal: ['succeeded', 'failed', 'cancelled'].includes(state.status),
+      ...(state.expires_at === undefined ? {} : {expiresAt: state.expires_at}),
       ...(state.stop_reason === undefined ? {} : {stopReason: state.stop_reason}),
       ...(state.boundary === undefined ? {} : {boundary: {...state.boundary}}),
       ...(state.cleanup_pending === undefined ? {} : {cleanupPending: state.cleanup_pending}),
@@ -93,6 +94,7 @@ export function runObservationModel(view:WireRunView, owners:WireOwnerObservatio
     },
     // Null means no binding was observed, not permission to fill it from a
     // separately read Plan or a newly compiled Program.
+    ...(view.available_operations.includes('resume') ? {resumeAvailable: true as const} : {}),
     planBinding: {compiledPlanCid: view.compiled_plan_cid, logicalMapCid: view.logical_map_cid},
     components: view.components.map(item => ({...item})),
     quantities: view.quantities.map(quantity), resultAvailability, histories,
@@ -101,6 +103,31 @@ export function runObservationModel(view:WireRunView, owners:WireOwnerObservatio
     logicalProgress: unavailable(), elapsed: unavailable(), tokens: unavailable(),
     cost: unavailable(), preview: unavailable(),
   });
+}
+
+// Join only the reported boundary to the independently authorized original
+// Plan. The number identifies its presentation position, never an operation.
+export function observedPlanStep(...[observation, ref, plan]: Parameters<typeof Public.observedPlanStep>) {
+  const boundary = observation?.run.boundary;
+  if (!plan || !ref || !observation || !boundary?.step_id || !sameRef(observation.runRef, ref) ||
+      observation.planBinding.compiledPlanCid !== plan.compiledPlanCid ||
+      observation.planBinding.logicalMapCid !== plan.logicalMapCid) return undefined;
+  const index = plan.nodes.findIndex(node => node.id === boundary.step_id);
+  if (index < 0) return undefined;
+  return {stepId: boundary.step_id, position: boundary.position, number: index + 1};
+}
+
+export function storyNextPause(observation: Model | undefined, ref: RunReference | undefined,
+  plan: Parameters<typeof Public.storyNextPause>[2], now: number): Public.StoryNextPause | undefined {
+  const step = observedPlanStep(observation, ref, plan);
+  const run = observation?.run, boundary = run?.boundary;
+  if (!step || run?.status !== 'paused' || run.expiryPending || boundary?.kind !== 'logical_step' ||
+      step.position !== 'before' || run.expiresAt === undefined ||
+      !Number.isInteger(run.controlRevision) || run.controlRevision < 1 ||
+      run.controlRevision > 2147483647) return undefined;
+  const expires = Date.parse(run.expiresAt);
+  if (!(expires > now)) return undefined;
+  return {stepId: step.stepId, revision: run.controlRevision, expires, boundaryCid: boundary.consumed_boundary_cid};
 }
 
 // Manual refresh and polling both retain this exact Run reference. No start,

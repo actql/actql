@@ -20804,6 +20804,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/interactive-debug-entry-capability",
+      "statement_sha256": "e42acc0522ca77a027c33d4dafe8ecf37de0d75fee2e94094257a40a3018fe51",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/original-resource.closed-binding",
       "statement_sha256": "818b1990806032ce27be596ecffadc1d9acea0317dea758a64b1875ae816f946",
       "status": "pending",

@@ -851,7 +851,7 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
   discard_original_effect_run_explanation(
     journal_scope,
     definition,
-    decline=true,
+    reclaim=true,
   ).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input).unwrap(),

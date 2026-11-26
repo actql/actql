@@ -534,6 +534,85 @@ test "presence output stream retains exact bytes and reloads through the existin
     completed_presence_cell(reloaded, 1, 1) is Ok(Present(@admitted.Null)),
   )
   assert_true(completed_presence_cell(reloaded, 2, 1) is Ok(Absent))
+  let sample_limits : RelationSchemaIdentityLimits = {
+    max_fields: 2,
+    max_bytes: 512,
+    max_nodes: 64,
+    max_depth: 8,
+  }
+  let measured = measure_completed_relation_sample_schema(
+    reloaded,
+    sample_limits,
+    _ => true,
+  ).unwrap()
+  assert_eq(measured.max_fields, 2)
+  assert_true(measured.max_bytes < sample_limits.max_bytes)
+  assert_true(
+    measure_completed_relation_sample_schema(
+      reloaded,
+      { ..sample_limits, max_bytes: measured.max_bytes - 1, },
+      _ => true,
+    )
+    is Err(Schema(Encoding(@encode.OutputLimit))),
+  )
+  // The independent prefix fixtures hash the explicit schema and three typed
+  // rows, including a present value, present NULL and a conditional omission.
+  for
+    sample in [
+      (
+        3, 1141, "sha256:c7d585bd4d8b8dcc34234c5f1c303c809146daec67d1db187f1a25ddffc0a81e",
+      ),
+      (
+        2, 989, "sha256:7921526c04468a425f6a01d42496fdc75dfe71b20b63aa1af2c3c570db521b1a",
+      ),
+    ] {
+    let (rows, bytes, expected) = sample
+    let (document, items, total) = encode_completed_relation_sample_prefix(
+      reloaded,
+      rows,
+      measured,
+      bytes,
+      128,
+      12,
+      _ => true,
+    ).unwrap()
+    assert_eq(
+      (items, total, @encode.document_bytes(document)),
+      (rows, 3, bytes),
+    )
+    let value = @publication.parse_interactive_run_control_shape(
+      "sample_relation",
+      @encode.document_text(document),
+      bytes,
+      128,
+      12,
+    ).unwrap()
+    assert_eq(@identity.cid_value(value, bytes, 128, 12), expected)
+    assert_true(
+      encode_completed_relation_sample_prefix(
+        reloaded,
+        rows,
+        sample_limits,
+        bytes - 1,
+        128,
+        12,
+        _ => true,
+      )
+      is Err(Encoding(@encode.OutputLimit)),
+    )
+  }
+  assert_true(
+    encode_completed_relation_sample_prefix(
+      restrict_completed_output(reloaded, () => false),
+      3,
+      sample_limits,
+      1141,
+      128,
+      12,
+      _ => true,
+    )
+    is Err(Unavailable),
+  )
   assert_eq(
     row_wire_cid(identify_completed_rows(source, row_wire_limits()).unwrap()),
     row_wire_cid(identify_completed_rows(reloaded, row_wire_limits()).unwrap()),

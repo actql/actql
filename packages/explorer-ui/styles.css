@@ -42,6 +42,9 @@
 .actql-explorer-input-group { position: absolute; z-index: 2; top: 12px; left: 16px;
   color: #485b59; font-size: 12px; font-weight: 600; pointer-events: none; }
 .actql-explorer-node strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.actql-explorer-node[data-effect-declaration=true] strong { white-space: normal; max-height: 2.5em; line-height: 1.25; }
+.actql-explorer-declared-fields, .actql-explorer-declaration-note { display: block; color: #485b59; font-size: 12px; line-height: 1.35; }
+.actql-explorer-declared-fields { overflow: hidden; max-height: 2.7em; }
 .actql-explorer-node[data-selected=true] { outline: 2px solid #3468bd; }
 .actql-explorer-table { width: 100%; border-collapse: collapse; }
 .actql-explorer-table caption { text-align: left; padding: 8px 24px; }

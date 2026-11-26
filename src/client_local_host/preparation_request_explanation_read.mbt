@@ -391,15 +391,7 @@ fn[I] reserve_explanation_binding(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
-  let (controls, _, _) = @publication.interactive_logical_map_binding_scanner_controls()
-  guard @execution.preparation_representation_cost({
-      record_headers: controls.record_headers,
-      reference_slots: controls.reference_slots,
-      scalar_words: controls.scalar_words,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    })
-    is Some(entry) else {
+  guard explanation_logical_map_scanner_bytes() is Some(entry) else {
     return Err(Policy)
   }
   match grow_explanation_binding(owner, input, entry) {
@@ -412,7 +404,31 @@ fn[I] reserve_explanation_binding(
       map, plan, max_bytes, max_nodes, max_depth,
     )
     is Some(binding) &&
-    @execution.preparation_representation_cost({
+    explanation_logical_map_binding_bytes(binding) is Some(cost) else {
+    return Err(Policy)
+  }
+  grow_explanation_binding(owner, input, cost)
+}
+
+///|
+fn explanation_logical_map_scanner_bytes() -> Int64? {
+  let (controls, _, _) = @publication.interactive_logical_map_binding_scanner_controls()
+  @execution.preparation_representation_cost({
+    record_headers: controls.record_headers,
+    reference_slots: controls.reference_slots,
+    scalar_words: controls.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+// The same immutable logical map/Plan validation constructs the same key
+// codecs whether reached from a historical Explanation or a live profile.
+fn explanation_logical_map_binding_bytes(
+  binding : @publication.InteractiveLogicalMapBindingConstruction,
+) -> Int64? {
+  guard @execution.preparation_representation_cost({
       record_headers: binding.owner.record_headers,
       reference_slots: binding.owner.reference_slots,
       scalar_words: binding.owner.scalar_words,
@@ -420,7 +436,7 @@ fn[I] reserve_explanation_binding(
       owned_wire_bytes: 0L,
     })
     is Some(own) else {
-    return Err(Policy)
+    return None
   }
   let step = if binding.steps == 0 {
     0L
@@ -432,7 +448,7 @@ fn[I] reserve_explanation_binding(
         binding.step_key.2,
       )
       is Some(value) else {
-      return Err(Policy)
+      return None
     }
     value
   }
@@ -446,7 +462,7 @@ fn[I] reserve_explanation_binding(
         binding.port_complete.2,
       )
       is Some(value) else {
-      return Err(Policy)
+      return None
     }
     value
   }
@@ -465,9 +481,9 @@ fn[I] reserve_explanation_binding(
     @execution.checked_preparation_add_product(own, step, 1L) is Some(cost) &&
     @execution.checked_preparation_add_product(cost, port, 1L) is Some(cost) &&
     @execution.checked_preparation_add_product(cost, body, 1L) is Some(cost) else {
-    return Err(Policy)
+    return None
   }
-  grow_explanation_binding(owner, input, cost)
+  Some(cost)
 }
 
 ///|

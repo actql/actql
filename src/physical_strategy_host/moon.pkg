@@ -31,3 +31,11 @@ import {
   "actql/actql/numeric_reduction" @numeric,
   "actql/actql/execution_authorization" @authorization,
 }
+
+import {
+  "moonbitlang/core/debug",
+} for "wbtest"
+
+options(
+  targets: { "task_completion_current_js_wbtest.mbt": [ "js" ] },
+)

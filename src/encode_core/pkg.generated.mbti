@@ -143,6 +143,8 @@ pub fn work_construction_census_writer(Int, Int, Int, (Int) -> Bool) -> Writer r
 
 pub fn work_construction_measuring_writer(Int, Int, Int, (Int) -> Bool) -> Writer raise EncodeFailure
 
+pub fn work_hashing_writer(Int, Int, Int, (Int) -> Bool) -> Writer raise EncodeFailure
+
 pub fn work_writer(Int, Int, Int, (Int) -> Bool) -> Writer raise EncodeFailure
 
 pub fn writer(Int, Int, Int) -> Writer raise EncodeFailure

@@ -5,6 +5,7 @@ import {isHostObservationProjection} from '../host-common/observation.mjs';
 
 import type {WireRunRef} from '../../packages/client-wire/index.js';
 import type {loadExecutionAuthorizationRuntime} from './authorization.mjs';
+import type {HostInstallation} from './in-process-client.mjs';
 
 type AuthorizationRuntime = Awaited<ReturnType<typeof loadExecutionAuthorizationRuntime>>;
 type Account = ReturnType<typeof observeInstalledAccount>;
@@ -28,7 +29,7 @@ type ReadFacts = Readonly<{
   manifest?: Readonly<{identity?: string}>;
 }>;
 type Operation = Pick<ReadFacts, 'principalId' | 'indexKey' | 'resultName' | 'purpose'> | null | undefined;
-type Scope = Readonly<{connection: string; resource: string; operation: 'read'}>;
+type Scope = Readonly<{connection: string; resource: string; operation: 'read' | 'pause' | 'resume' | 'capture' | 'write'}>;
 type Observation = typeof isHostObservationProjection extends (input: unknown) => input is infer Projection ? Projection : never;
 type CallbackState = ReturnType<Observation['applicationCallbackState']> | undefined;
 type Memo = Readonly<{
@@ -41,8 +42,36 @@ type Memo = Readonly<{
 type Authorize = {
   (facts: ReadFacts, operation: Operation, resource: string | undefined, interactive: true, reobserve: true): boolean | undefined;
   (facts: ReadFacts, operation: Operation, resource: string | undefined, interactive: false): boolean | undefined;
+  (facts: ReadFacts, operation: undefined, resource: string, interactive: false, reobserve: false,
+    accessOperation: Scope['operation']): boolean | undefined;
   (facts: ReadFacts, operation: Operation, resource: string | undefined): boolean | Promise<boolean>;
 };
+
+type ConnectionInput = Parameters<HostInstallation['authorizeConnection']>[0];
+type ConnectionAuthorization = Readonly<{
+  checkpointOperation: ReadonlySet<string>;
+  checkpointConnection(value: ConnectionInput): boolean;
+  hostConnection(value: ConnectionInput): boolean;
+  authorizeLocalRun(facts: ReadFacts): boolean | Promise<boolean>;
+  namespaceId: string;
+  authorityScopeCid: string;
+}>;
+const runReadOperations = new Set(['status', 'wait', 'attach', 'run-plan',
+  'owner-observations', 'lookup-request', 'lookup-submission']);
+
+export function createLocalReadConnectionAuthorization({checkpointOperation, checkpointConnection,
+  hostConnection, authorizeLocalRun, namespaceId, authorityScopeCid}: ConnectionAuthorization) {
+  return async (value: ConnectionInput) => {
+    if (checkpointOperation.has(value.operation)) return checkpointConnection(value);
+    const connected = hostConnection(value) || value.operation === 'connect' && checkpointConnection(value);
+    if (!connected || !runReadOperations.has(value.operation)) return connected;
+    // The public entry checks the original Account before any Journal read.
+    // Internal observation loops consume that decision. Named Result access
+    // keeps its own permission, and Inspect checks at its funded read.
+    return authorizeLocalRun({principalId: value.principalId,
+      indexKey: value.ref ?? {namespaceId, authorityScopeCid}, purpose: 'inspect'});
+  };
+}
 
 export function createLocalResultAuthorization({moon, authorization,
   principalId, namespaceId, authorityScopeCid, observation}: Options) {
@@ -66,11 +95,12 @@ export function createLocalReadAuthorizations({moon, authorization,
   // The existing owned public request is the lifetime of this memo. No
   // outcome survives into another operation, even for identical wire/tuples.
   const operations = new WeakMap<NonNullable<Operation>, Memo>();
-  const authorize = ((facts: ReadFacts, operation: Operation, resource: string | undefined, interactive: boolean = true, reobserve: boolean = false) => {
+  const authorize = ((facts: ReadFacts, operation: Operation, resource: string | undefined,
+    interactive: boolean = true, reobserve: boolean = false, accessOperation: Scope['operation'] = 'read') => {
     if (facts.principalId !== principalId || facts.indexKey?.namespaceId !== namespaceId ||
         facts.indexKey?.authorityScopeCid !== authorityScopeCid ||
         resource === undefined) return false;
-    const scope: Scope = {connection, resource, operation: 'read'};
+    const scope: Scope = {connection, resource, operation: accessOperation};
     // Immediate metadata never consumes or installs an async read's allowed
     // memo. Observe current Account/Common at EACH actual boundary instead.
     const sameOperation = interactive && operation !== null && typeof operation === 'object' &&
@@ -155,10 +185,26 @@ export function createLocalReadAuthorizations({moon, authorization,
     runCurrent(facts: ReadFacts, operation?: Operation) {return authorize(facts, operation, 'run', true, true);},
     // Internal installed metadata consumer, never a public permission field.
     runImmediate(facts: ReadFacts, operation?: Operation) {return authorize(facts, operation, 'run', false);},
+    resumeImmediate(facts: ReadFacts) {
+      return authorize(facts, undefined, 'run', false, false, 'resume');
+    },
+    sampleReadImmediate(facts: ReadFacts) {
+      return authorize(facts, undefined, 'sample', false, false, 'read');
+    },
+    sampleCaptureImmediate(facts: ReadFacts) {
+      return authorize(facts, undefined, 'sample', false, false, 'capture');
+    },
     // Static metadata has the installed scope and no Run reference. Check the
     // current Account at every boundary, including immediately before egress.
     staticPlanImmediate({principalId: actual}: Pick<ReadFacts, 'principalId'>) {
       return authorize({principalId: actual, indexKey: staticPlanScope}, undefined, 'run', false);
+    },
+    // A new Debug Run requires the original Account's explicit entry Pause.
+    // This check creates no Run or delegated activation.
+    debugEntryImmediate({principalId: actual}: Pick<ReadFacts, 'principalId'>, realization?: string) {
+      const facts = {principalId: actual, indexKey: staticPlanScope};
+      return authorize(facts, undefined, 'run', false, false, 'pause') === true &&
+        (realization === undefined || authorize(facts, undefined, realization, false, false, 'write') === true);
     },
   });
 }
