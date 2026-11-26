@@ -2591,7 +2591,13 @@
       "out_degree_exception": "evidence consumer only; no incoming normative dependency from evaluated documents",
       "spec_id": "actql.conformance",
       "evidence": "spec/requirements/conformance.json",
-      "machine_contracts": [],
+      "machine_contracts": [
+        {
+          "path": "src/lowering_relation/registry-preimages.json",
+          "pointer": "/optional_profiles/content",
+          "cid": "sha256:96729f2717f6e17fd9a28eafcb7c6d8dc60d394217c761b7a4260868a630ee33"
+        }
+      ],
       "normative_imports": [
         {
           "owner": "actql.language",

@@ -77,6 +77,51 @@ test('current registry and historical preimages keep distinct identities', () =>
   assert.equal(cid(fixtures.target), contract.target_module_contract_cid);
 });
 
+test('the optional Content contract binds serialize and seven registered evidence roles', () => {
+  const content = fixtures.optional_profiles.content;
+  assert.equal(content.id, 'actql-content/0.1');
+  assert.equal(content.required, false);
+  assert.equal(Object.hasOwn(content, 'status'), false);
+  assert.deepEqual(content.required_operations, ['serialize']);
+  assert.equal(Object.hasOwn(fixtures.target, 'content'), false);
+  const path = 'src/lowering_relation/registry-preimages.json';
+  const pointer = '/optional_profiles/content';
+  const family = JSON.parse(read('spec/spec-family.json'));
+  const owner = family.documents.find(entry => entry.spec_id === 'actql.conformance');
+  const registered = owner.machine_contracts.find(entry => entry.path === path && entry.pointer === pointer);
+  assert.equal(registered.cid, 'sha256:96729f2717f6e17fd9a28eafcb7c6d8dc60d394217c761b7a4260868a630ee33');
+  assert.equal(cid(content), registered.cid);
+
+  const profiles = 'spec/contracts/actql-production-profile-schemas.json';
+  const protocol = 'spec/contracts/actql-protocol-schemas.json';
+  const expected = {
+    content_availability_evidence: [protocol, 'schemas'],
+    content_barrier: [profiles, 'schemas'],
+    content_evidence: [profiles, 'schemas'],
+    content_generation: [protocol, 'artifact_schemas'],
+    content_input_artifact: [protocol, 'artifact_schemas'],
+    content_ref: [protocol, 'schemas'],
+    content_source: [profiles, 'schemas'],
+  };
+  assert.deepEqual(Object.keys(content.evidence_contracts).sort(), Object.keys(expected));
+  for (const [name, [file, collection]] of Object.entries(expected)) {
+    const registry = JSON.parse(read(file));
+    const schema = registry[collection][name];
+    const pins = collection === 'schemas' ? registry.schema_cids : registry.artifact_schema_cids;
+    assert.deepEqual(content.evidence_contracts[name], {
+      path: file, pointer: `/${collection}/${name}`, cid: cid(schema),
+    });
+    assert.equal(cid(schema), pins[name]);
+  }
+
+  const foreign = structuredClone(content);
+  foreign.evidence_contracts.content_ref = foreign.evidence_contracts.content_availability_evidence;
+  const missing = structuredClone(content);
+  delete missing.evidence_contracts.content_input_artifact;
+  const weakened = {...content, required_semantics: content.required_semantics.slice(1)};
+  for (const mutation of [foreign, missing, weakened]) assert.notEqual(cid(mutation), registered.cid);
+});
+
 test('preparation handlers use pinned relation signatures', () => {
   const source = read('src/lowering_relation/prepare.mbt');
   for (const [variant, name, arity] of [
