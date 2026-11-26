@@ -1,9 +1,12 @@
 {
   "compilerOptions": {"target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler",
     "strict": true, "noEmit": true, "skipLibCheck": false, "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "isolatedModules": true, "erasableSyntaxOnly": true,
+    "noImplicitOverride": true, "noImplicitReturns": true, "noFallthroughCasesInSwitch": true,
+    "types": ["react", "react-dom"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "ES2024.String"],
     "baseUrl": "../..", "paths": {
       "elkjs/lib/elk-api.js": ["packages/explorer-ui/elk-layout-module.d.ts"]}},
-  "files": ["elk-layout-module.d.ts", "plan-explorer.tsx", "read-model.d.ts", "read-model.typecheck.mts", "plan-explorer.d.ts",
+  "files": ["elk-layout-module.d.ts", "plan-explorer.tsx", "flow-layout-worker.mts", "read-model.d.ts", "read-model.typecheck.mts", "plan-explorer.d.ts",
     "run-inspector.tsx", "run-observation.d.ts", "run-observation.typecheck.mts", "checkpoint-review.d.ts", "checkpoint-review.typecheck.mts"]
 }

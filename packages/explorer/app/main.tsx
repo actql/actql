@@ -433,6 +433,7 @@ function storyProjections(story: ExplanationStoryModel, sources: StoryContext,
     if (inputs.length === 1 && outputs.length === 1 && inputs[0].carrier === 'relation' &&
         outputs[0].carrier === 'relation') return {step, columns: meaning.fields.map(field => field.output),
       input: inputs[0], output: outputs[0]};
+    return undefined;
   };
   for (const [index, {origin}] of sources.entries()) {
     if (!imported || origin.kind !== 'source' || origin.link_state !== 'linked' ||
@@ -1155,6 +1156,7 @@ function App() {
       }
       throw error;
     }
+    return undefined;
   }, [connected, sampleEnabled, selectedRef, source, invalidate]);
   const sample = sampleEnabled && selectedRef ? readSample : undefined;
   const scopeKey = JSON.stringify([epoch.current, selectedRef, map?.compiledPlanCid, map?.logicalMapCid, story?.factsCid]);
