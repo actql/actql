@@ -18,7 +18,6 @@ import {createRetainedGraphAuthorization} from '../../scripts/fixtures/retained-
 import {inspect} from 'node:util';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import {readInstalledModelExecution} from './installed-model.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {composeInstalledCheckEnvironment} from
@@ -7119,8 +7118,10 @@ test('checked INFER barrier compiles within the original Effect Run', async () =
   assert.deepEqual(moon.clientProgramInferOccurrenceCoordinates(occurrence),
     {_0: 0, _1: 0, _2: 3});
   assert.equal(moon.clientProgramInferOccurrenceModelTaskCid(occurrence), taskCid);
-  const {execution} = readInstalledModelExecution(moon, prepared, installation,
-    occurrence);
+  const originalExecution = installation.executionContracts[0];
+  assert.equal(originalExecution.modelTaskCid, taskCid);
+  const execution = checked(moon.clientProgramReadComposedInferModelExecution(
+    occurrence, originalExecution.bodyWire, originalExecution.cid));
   const graph = checked(moon.clientProgramInstalledComposedInferPlanGraph(
     occurrence, execution));
   // This is the saved pre-fix failure: the default compiler has no Model node.

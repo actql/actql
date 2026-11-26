@@ -62686,12 +62686,12 @@
                 "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host handoff keeps final flags/checking and avoids reparsing its unchanged composer input'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller funds a new wrapper on the same actual wire and retains nominal publication'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host Task handoff preserves binding failure before parsing its new document'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller refuses copied foreign or current-lost originals before new construction'"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -62763,7 +62763,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }
@@ -63544,7 +63544,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -64030,7 +64030,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }
@@ -69976,12 +69976,12 @@
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs"
               },
               {
-                "anchor": "test('actual Host handoff keeps final flags/checking and avoids reparsing its unchanged composer input'",
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs"
+                "anchor": "test('final Source checker caller funds a new wrapper on the same actual wire and retains nominal publication'",
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs"
               },
               {
-                "anchor": "test('actual Host Task handoff preserves binding failure before parsing its new document'",
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs"
+                "anchor": "test('final Source checker caller refuses copied foreign or current-lost originals before new construction'",
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs"
               },
               {
                 "anchor": "### Original Model input before its component factory",
@@ -77115,7 +77115,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ae49f768d6e3386ebbf582b9bbd4a883797e245e537888b49dbdf9339bbef3d1"
+      "sha256": "b9e15c9c85121755b3a5d9e9e43effa73b43ce2c8ac6892ef7c9e53ad188ee73"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -90845,7 +90845,7 @@
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "87ed1db7fdfa2c6fa72374b329b48cd8f907fe2de7d5b2a9672ec38954b19107",
+      "sha256": "686ca476c2ea1892124205929254692662c19c44ca3f4e9f98fe596df6c6ac97",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -90853,7 +90853,6 @@
         "admitInstalledModelProviderBinding",
         "assertInstalledModelDefaultsAdoption",
         "assertInstalledModelDefaultsPreparation",
-        "consumeInstalledModelExecutionAbsence",
         "consumeInstalledModelPreparationRefusal",
         "installModelProviders",
         "installedModelEnvironment",
@@ -90909,16 +90908,6 @@
           "async": false
         },
         {
-          "name": "consumeInstalledModelExecutionAbsence",
-          "parameters": [
-            "error",
-            "prepared",
-            "installation",
-            "occurrence"
-          ],
-          "async": false
-        },
-        {
           "name": "consumeInstalledModelPreparationRefusal",
           "parameters": [
             "error",
@@ -90928,6 +90917,11 @@
             "beforeRead",
             "execution"
           ],
+          "async": false
+        },
+        {
+          "name": "fundModelMaterials/fundModelMaterials",
+          "parameters": [],
           "async": false
         },
         {
@@ -91109,21 +91103,14 @@
           "async": false
         },
         {
-          "name": "readInstalledModelDependencies/funded/funded",
+          "name": "readInstalledModelDependencies/readInstalledModelDependencies",
           "parameters": [
             "index"
           ],
           "async": false
         },
         {
-          "name": "readInstalledModelDependencies/funded/funded/funded",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInstalledModelDependencies/readInstalledModelDependencies",
+          "name": "readInstalledModelDependencies/readInstalledModelDependencies/readInstalledModelDependencies",
           "parameters": [
             "entry"
           ],
@@ -91137,21 +91124,7 @@
           "async": false
         },
         {
-          "name": "readInstalledModelDependenciesLegacy/bodies/bodies",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy#2",
+          "name": "readInstalledModelDependencies/readInstalledModelDependencies#3",
           "parameters": [
             "entry"
           ],
@@ -91176,15 +91149,8 @@
           "async": false
         },
         {
-          "name": "readInstalledModelExecution/funded/funded",
+          "name": "readInstalledModelExecution/readInstalledModelExecution",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "readInstalledModelExecutionLegacy/entry/entry",
-          "parameters": [
-            "item"
-          ],
           "async": false
         },
         {
@@ -91239,10 +91205,6 @@
         {
           "operations": [
             "admitInstalledModelProvider",
-            "readInstalledModelDependenciesLegacy/bodies/bodies",
-            "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy",
-            "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy#2",
-            "readInstalledModelExecutionLegacy/entry/entry",
             "installModelProviders/current/current",
             "installModelProviders/guarded/guarded/guarded",
             "installModelProviders/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
@@ -92000,8 +91962,8 @@
             "readInstalledModelDependencies/bodies/bodies",
             "readInstalledModelDependencies/readInstalledModelDependencies",
             "readInstalledModelDependencies/readInstalledModelDependencies#2",
-            "readInstalledModelDependencies/funded/funded",
-            "readInstalledModelDependencies/funded/funded/funded"
+            "readInstalledModelDependencies/readInstalledModelDependencies/readInstalledModelDependencies",
+            "readInstalledModelDependencies/readInstalledModelDependencies#3"
           ],
           "exports": [
             "readInstalledModelDependencies"
@@ -92117,13 +92079,12 @@
           "operations": [
             "readInstalledModelExecution",
             "readInstalledModelExecution/entry/entry",
-            "consumeInstalledModelExecutionAbsence",
             "consumeInstalledModelPreparationRefusal",
-            "readInstalledModelExecution/funded/funded"
+            "fundModelMaterials/fundModelMaterials",
+            "readInstalledModelExecution/readInstalledModelExecution"
           ],
           "exports": [
             "readInstalledModelExecution",
-            "consumeInstalledModelExecutionAbsence",
             "consumeInstalledModelPreparationRefusal"
           ],
           "attributes": {

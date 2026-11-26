@@ -11,7 +11,7 @@ import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-manage
 import {restoreInferTaskRunAdmission} from './local-values-plan.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
-import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import {openFundedClientPreparation, fundedModelMaterialFixture} from './funded-client-preparation.fixture.mjs';
 import {identity, configuration, program} from '../../scripts/fixtures/first-m1-common-materials.mjs';
 
 const runtimeUrl = process.env.ACTQL_INFER_ORIGINAL_RUNTIME === undefined
@@ -38,7 +38,8 @@ async function original(t, parameters = null) {
 
 function compileOriginal(prepare, prepared, environment, installation) {
   const inputs = prepare.originalInputs(prepared);
-  const {execution} = readInstalledModelExecution(moon, prepared, installation);
+  const {execution} = readInstalledModelExecution(moon, prepared, installation, undefined,
+    fundedModelMaterialFixture(moon, prepared));
   const graph = checked(moon.clientProgramInstalledInferPlanGraph(prepared, 2, execution));
   const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer', {
     executionContextCid: cid('a'), hostPolicyCid: cid('b'), expiresAt: '2099-01-01T00:00:00.000Z',

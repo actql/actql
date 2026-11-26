@@ -4165,15 +4165,15 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
       ? moon.clientProgramSelectedInferStep(preparedProgram)
       : runtimeField(moon.clientProgramInferOccurrenceCoordinates(occurrence), 2);
     if (selectedStep !== undefined) {
-      const requestModelMaterials: Parameters<typeof readInstalledModelExecution>[4] = preparation !== undefined
-        ? (count, wireAt, containers) => preparation.prepareManagedModelMaterials(
-          moon, preparedProgram, count, wireAt, containers) : undefined;
+      if (preparation === undefined) throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      const requestModelMaterials: Parameters<typeof readInstalledModelExecution>[4] = (count, wireAt, containers) =>
+        preparation.prepareManagedModelMaterials(moon, preparedProgram, count, wireAt, containers);
       let execution;
       try {
         if (restoredInfer !== undefined) execution = restoredInfer.execution;
         else if (originalInfer === undefined) {
           ({execution} = readInstalledModelExecution(moon, preparedProgram,
-            modelInstallation, occurrence, requestModelMaterials)!);
+            modelInstallation!, occurrence, requestModelMaterials)!);
         } else execution = runtimeField(originalInfer, 2);
       } catch (cause) {
         const absent = consumeInstalledModelPreparationRefusal(cause,

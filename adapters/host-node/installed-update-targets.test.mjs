@@ -19,7 +19,7 @@ import {createInstalledRowEffect, retainInstalledRowEffectAdapter,
   installedRowEffectOwnerBinding, installedRowEffectUpdateObservation,
   validateInstalledUpdateOwnerSelections} from './installed-row-effect.mjs';
 import {installNodePublicSourcePreparation} from './public-source-preparation.mjs';
-import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import {fundedClientPreparation, fundedModelMaterialFixture} from './funded-client-preparation.fixture.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
@@ -728,7 +728,8 @@ test('actual JSON Model UPDATE acceptance saves and restores both originals in t
     assert.equal(prepare.kindOf(prepared), 'effectful');
     const occurrence = moon.clientProgramEffectInferOccurrence(prepared);
     assert.ok(occurrence);
-    const {execution} = readInstalledModelExecution(moon, prepared, installation, occurrence);
+    const {execution} = readInstalledModelExecution(moon, prepared, installation, occurrence,
+      fundedModelMaterialFixture(moon, prepared));
     const graph = checked(moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
     const control = runtimeCore(moon).publicationControl;
     const limits = {maxWireBytes: 1_000_000, maxNodes: 100_000, maxDepth: 100};
