@@ -1351,6 +1351,53 @@ test('Native after-check uses the original read-only verifier even after collect
 });
 
 
+test('Linux Release selects the original Python wheel platform through the actual ordinary verifier', async t => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-health-linux-platform-', label: 'Linux wheel platform control'});
+  t.after(() => scratch.passed());
+  const repository = new URL('../', import.meta.url).pathname;
+  const prepared = spawnSync('python3', ['-I', '-B', join(repository, 'scripts/fixtures/health-python-installed.py'), scratch.path],
+    {encoding: 'utf8'});
+  assert.equal(prepared.status, 0, prepared.stderr);
+  const fixture = JSON.parse(prepared.stdout), original = JSON.parse(await readFile(fixture.manifest));
+  const text = await readFile(new URL('./health-monitor-release.mjs', import.meta.url), 'utf8');
+  const start = text.indexOf('export async function releaseArtifacts('), end = text.indexOf('export async function releaseMeasurements(', start);
+  const adapter = runInNewContext('(' + text.slice(start, end).replace('export ', '') + ')', {
+    assert, readFile, join, platform: () => 'linux', arch: () => 'x64', jsonDigest: value => digest(JSON.stringify(value)),
+    digest, pythonInstalledInventory, JSON,
+  });
+  const launch = `import json, platform, runpy, sys
+platform.system = lambda: 'Linux'
+platform.machine = lambda: 'x86_64'
+ordinary = runpy.run_path(sys.argv[1])
+assert ordinary['platform_key']() == 'linux-x64-gnu'
+inspection = runpy.run_path(sys.argv[2])
+print(json.dumps(inspection['inspect'](*sys.argv[3:])))`;
+  const inspect = () => spawnSync('python3', ['-I', '-B', '-c', launch,
+    join(repository, 'scripts/benchmark-ordinary-processes.py'), join(repository, 'scripts/health-release-artifacts.py'),
+    fixture.manifest, fixture.consumer, fixture.source], {encoding: 'utf8', timeout: 15_000});
+  let inspections = 0;
+  const measure = async selection => {
+    await writeFile(fixture.manifest, JSON.stringify({...original, platform: selection}));
+    const artifacts = [], metrics = [];
+    await adapter({options: {pythonManifest: fixture.manifest, pythonConsumer: fixture.consumer}, repository,
+      source: {sha: fixture.source}, async command() {
+        inspections++;
+        const result = inspect(); assert.equal(result.status, 0, result.stderr); return {stdout: result.stdout};
+      }, onArtifact: async row => artifacts.push(row), onMetric: async metric => metrics.push(metric)});
+    return {artifacts, metrics};
+  };
+  const accepted = await measure('linux-x64');
+  assert.equal(accepted.artifacts.filter(row => row.artifactKind === 'wheel').length, 3);
+  assert.equal(accepted.metrics.find(row => row.id === 'installed:python-products')?.value, fixture.installedBytes);
+  const nativeLabel = await measure('linux-x64-gnu');
+  assert.equal(nativeLabel.artifacts.length, 0);
+  assert.equal(nativeLabel.metrics.find(row => row.id === 'python-platform-artifacts')?.status, 'incomplete');
+  assert.equal(inspections, 1);
+  const directRefusal = inspect();
+  assert.equal(directRefusal.status, 1, directRefusal.stderr);
+  assert.match(directRefusal.stderr, /manifest\['platform'\] == platform_key\('python'\)/u);
+});
+
 test('Python installed sizes measure product namespaces instead of wheel expansion bytes', async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-health-python-data-'));
   const prepared = spawnSync('python3', ['-I', '-B',

@@ -130,7 +130,8 @@ export async function releaseNativeOperations({options, repository, root, source
 
 export async function releaseArtifacts({options, repository, source, command, onArtifact, onMetric}) {
   let ready = true;
-  const platformKey = { 'darwin-arm64': 'darwin-arm64', 'linux-x64': 'linux-x64-gnu' }[platform() + '-' + arch()];
+  const pythonPlatform = `${platform()}-${arch()}`;
+  const nativePlatform = { 'darwin-arm64': 'darwin-arm64', 'linux-x64': 'linux-x64-gnu' }[pythonPlatform];
   for (const adapter of ['native', 'python']) {
     if (!options[adapter + 'Manifest'] || !options[adapter + 'Consumer']) {
       ready = false;
@@ -139,7 +140,7 @@ export async function releaseArtifacts({options, repository, source, command, on
       continue;
     }
     const selected = JSON.parse(await readFile(options[adapter + 'Manifest']));
-    if (!platformKey || (adapter === 'native' ? !selected.platforms?.[platformKey] : selected.platform !== platformKey)) {
+    if (!nativePlatform || (adapter === 'native' ? !selected.platforms?.[nativePlatform] : selected.platform !== pythonPlatform)) {
       ready = false;
       await onMetric({id: adapter + '-platform-artifacts', target: adapter, kind: 'size', required: true,
         status: 'incomplete', reason: 'Required ordinary artifacts absent for the actual selected OS/architecture'});
@@ -156,8 +157,8 @@ export async function releaseArtifacts({options, repository, source, command, on
       const installed = JSON.parse(result.stdout);
       assert.equal(installed.sourceSha, source.sha);
       assert.equal(installed.cohortSha256, digest(await readFile(path)));
-      assert.equal(installed.platform, platformKey);
-      assert.deepEqual(Object.keys(installed.packages).sort(), ['actql', '@actql/cli-' + platformKey].sort());
+      assert.equal(installed.platform, nativePlatform);
+      assert.deepEqual(Object.keys(installed.packages).sort(), ['actql', '@actql/cli-' + nativePlatform].sort());
       for (const row of Object.values(installed.packages)) {
         assert(Number.isSafeInteger(row.installedBytes) && row.installedBytes > 0);
         assert(Number.isSafeInteger(row.payloads) && row.payloads > 0);
