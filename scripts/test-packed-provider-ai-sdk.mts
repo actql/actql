@@ -5,11 +5,29 @@ import {isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState} from './packed-client-packages.mjs';
 import {prepareHealthPackages, execute} from './health-monitor-adapters.mjs';
-import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
+import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './node-benchmark-evidence.mjs';
 import {publicConsumerEnvironment, publicInstallCommand, releaseConsumerDestination,
   verifyPublicConsumer} from './release-public-install.mjs';
 import {nodeReleaseIncludesProvider, verifyPackageRelease} from './package-release.mjs';
 import {runLocalCheck} from './local-checks-guard.mjs';
+
+type ReleaseManifest = Awaited<ReturnType<typeof verifyPackageRelease>>;
+type Command = typeof execute;
+type ProviderOptions = {repository?: string; retained?: string; release?: string;
+  publicRegistry?: boolean; cases?: readonly string[]; command?: Command};
+type Observation = Record<string, unknown>;
+type ObservationInput = {caseId: string; phase: string; pid: number; originalPid?: number; observation: Observation};
+type PhaseRecord = {
+  case: string; phase: string; status: 'unexecuted' | 'running' | 'passed' | 'failed'; reason?: string;
+  pid?: number; actual?: Observation; consumer?: string; failure?: ReturnType<typeof nodeBenchmarkFailure>;
+};
+type Prepared = Awaited<ReturnType<typeof prepareHealthPackages>> | Awaited<ReturnType<typeof installRelease>>;
+type Report = {
+  source: string; phases: PhaseRecord[]; complete: boolean;
+  preparations: (Omit<Prepared, 'publicPayload'> & {case: string;
+    publicPayload?: Awaited<ReturnType<typeof verifyPublicConsumer>>})[];
+  failures?: ReturnType<typeof nodeBenchmarkFailure>[]; cleanup?: ReturnType<typeof nodeBenchmarkFailure>[];
+};
 
 const registeredProviderCases = Object.freeze([
   'registered-project', 'registered-anthropic', 'registered-google', 'registered-mixed', 'registered-mistral',
@@ -28,7 +46,7 @@ export const registeredProviderAcceptanceCases = Object.freeze([
 // Assertions over the original child report only; this issues no Run authority
 // or substitute provider result. The caller still owns actual process/state
 // selection, same-source software verification and independent installations.
-export function checkPackedProviderObservation({caseId, phase, pid, originalPid, observation: value}) {
+export function checkPackedProviderObservation({caseId, phase, pid, originalPid, observation: value}: ObservationInput) {
   assert.equal(value.phase, phase);
   assert(Number.isSafeInteger(pid) && pid > 0);
   if (caseId.startsWith('registered-credential-')) {
@@ -47,11 +65,11 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
   }
   assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
   if (Object.hasOwn(registeredTerminalFailures, caseId)) {
-    assert.equal(value.terminalFailure, registeredTerminalFailures[caseId]);
+    assert.equal(value.terminalFailure, registeredTerminalFailures[caseId as keyof typeof registeredTerminalFailures]);
     assert.equal(value.registeredSdk, true);
     assert.equal(value.projectCredential, true);
     assert.equal(value.maxCalls, 1);
-    assert.match(value.originalRunDefinitionCid, /^sha256:[0-9a-f]{64}$/u);
+    assert.match(value.originalRunDefinitionCid as string, /^sha256:[0-9a-f]{64}$/u);
     if (phase === 'cold') {
       assert.notEqual(pid, originalPid);
       assert.equal(value.originalSavedFirst, true);
@@ -64,7 +82,7 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
   if (caseId === 'registered-mixed') {
     assert.equal(value.registeredSdk, true); assert.equal(value.projectCredential, true);
     assert.deepEqual(value.mixedProviders, ['models/http', 'models/messages']);
-    assert.match(value.originalRunDefinitionCid, /^sha256:[0-9a-f]{64}$/u);
+    assert.match(value.originalRunDefinitionCid as string, /^sha256:[0-9a-f]{64}$/u);
     if (phase === 'cold') {
       assert.notEqual(pid, originalPid);
       for (const field of ['calls', 'egressChecks', 'projectTlsConnects', 'originalModelStarts']) assert.equal(value[field], 0);
@@ -83,7 +101,7 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
   if (registered) assert.equal(value.registeredSdk, true);
   if (caseId === 'registered-mistral') {
     assert.equal(value.originalModelStarts, phase === 'cold' ? 0 : 1);
-    assert.match(value.originalRunDefinitionCid, /^sha256:[0-9a-f]{64}$/u);
+    assert.match(value.originalRunDefinitionCid as string, /^sha256:[0-9a-f]{64}$/u);
   }
   if (project) {
     assert.equal(value.projectCredential, true);
@@ -105,7 +123,7 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     assert.equal(value.preserveOriginalState, true);
     for (const field of ['tasks', 'requests', 'calls']) assert.equal(value[field], 1);
     if (phase === 'timeout-call') {
-      assert(Number.isSafeInteger(value.continuousWrites) && value.continuousWrites >= 2 && value.continuousWrites < 128);
+      assert(typeof value.continuousWrites === 'number' && Number.isSafeInteger(value.continuousWrites) && value.continuousWrites >= 2 && value.continuousWrites < 128);
       assert.equal(value.responseClosedBeforeFirstClose, true);
     }
   } else if (phase === 'rate-limit') {
@@ -118,9 +136,9 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
   }
 }
 
-export async function runPackedProviderAI(root, {repository = fileURLToPath(new URL('../', import.meta.url)),
+export async function runPackedProviderAI(root: string, {repository = fileURLToPath(new URL('../', import.meta.url)),
   retained = process.env.ACTQL_PACKED_CLIENT_PACKAGES,
-  release = process.env.ACTQL_PACKED_PROVIDER_RELEASE, publicRegistry = false, cases, command = execute} = {}) {
+  release = process.env.ACTQL_PACKED_PROVIDER_RELEASE, publicRegistry = false, cases, command = execute}: ProviderOptions = {}) {
   const software = release ?? retained;
   assert(isAbsolute(root) && typeof software === 'string' && isAbsolute(software) &&
     (release === undefined || retained === undefined),
@@ -131,13 +149,12 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
   const source = checkoutState(repository);
   assert(source.clean, 'Normal plugin acceptance requires clean fixed source');
   if (process.env.GITHUB_SHA) assert.equal(source.revision, process.env.GITHUB_SHA);
-  const releaseManifest = release === undefined ? undefined : await verifyPackageRelease(release);
-  const releaseManifestPath = release === undefined ? undefined : join(release, 'release.json');
-  const releaseManifestBytes = release === undefined ? undefined : await readFile(releaseManifestPath);
-  assert(!publicRegistry || releaseManifest !== undefined, 'Public Provider install requires an original release');
-  if (releaseManifest !== undefined) {
-    assert.equal(releaseManifest.sourceSha, source.revision);
-    assert(nodeReleaseIncludesProvider(releaseManifest.cohort.packages), 'Provider acceptance requires the explicit five-package cohort');
+  const releaseSelected = release === undefined ? undefined : await readSelectedRelease(release);
+  assert(!publicRegistry || releaseSelected !== undefined, 'Public Provider install requires an original release');
+  if (releaseSelected !== undefined) {
+    const {manifest} = releaseSelected;
+    assert.equal(manifest.sourceSha, source.revision);
+    assert(nodeReleaseIncludesProvider(manifest.cohort.packages), 'Provider acceptance requires the explicit five-package cohort');
   }
   root = await releaseConsumerDestination(root, [repository, software]);
   await mkdir(root);
@@ -154,27 +171,27 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
     ...registeredRefusalCases.map(id => [id])].filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
     'Every selected provider case must match once');
-  const report = {source: source.revision, preparations: [],
+  const report: Report = {source: source.revision, preparations: [],
     phases: selections.flatMap(phases => phases.map(phase => ({case: phases[0], phase, status: 'unexecuted',
       reason: phase === 'cold' ? 'Requires the same original case and its confirmed first close' : 'Requires a fresh verified installation'}))),
     complete: false};
-  const preparedCases = [], failures = [], cleanup = [];
+  const preparedCases: Prepared[] = [], failures: unknown[] = [], cleanup: unknown[] = [];
   const env = Object.fromEntries(['PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TZ', 'TMPDIR']
     .filter(key => typeof process.env[key] === 'string').map(key => [key, process.env[key]]));
   for (const phases of selections) {
     const id = phases[0], caseRoot = join(casesRoot, id), caseRaw = join(raw, id);
     await mkdir(caseRoot); await mkdir(caseRaw);
     // Every preparation retains its own exclusive install-node.* diagnostics.
-    const run = (cmd, args, options) => command(cmd, args, {...options, raw: caseRaw});
+    const run: Command = (cmd, args, options) => command(cmd, args, {...options, raw: caseRaw});
     try {
-      const prepared = releaseManifest === undefined ? await prepareHealthPackages({repository, root: caseRoot,
-        source: {sha: source.revision, dirty: false}, retained,
-        optionalProvider: join(retained, 'optional-provider'), command: run, normalLifecycle: true})
-        : await installRelease(caseRoot, release, releaseManifest, releaseManifestPath, run, publicRegistry);
+      const prepared = releaseSelected === undefined ? await prepareHealthPackages({repository, root: caseRoot,
+        source: {sha: source.revision, dirty: false}, retained: software,
+        optionalProvider: join(software, 'optional-provider'), command: run, normalLifecycle: true})
+        : await installRelease(caseRoot, software, releaseSelected.manifest, releaseSelected.manifestPath, run, publicRegistry);
       preparedCases.push(prepared);
       report.preparations.push({case: id, consumer: prepared.consumer,
         manifestPath: prepared.manifestPath, manifest: prepared.manifest,
-        ...(publicRegistry ? {publicPayload: prepared.publicPayload} : {})});
+        ...(publicRegistry && 'publicPayload' in prepared ? {publicPayload: prepared.publicPayload} : {})});
       await copyFile(join(repository, 'scripts/fixtures/normal-openai-installed.fixture.mjs'),
         join(prepared.consumer, 'fixture.mjs'));
       await copyFile(join(repository, 'scripts/fixtures/external-rest/conformance.mjs'),
@@ -183,14 +200,15 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
         join(prepared.consumer, 'normal-provider-diagnostics.fixture.mjs'));
       await copyFile(join(repository, 'adapters/host-node/fixtures/work-observation.fixture.mjs'),
         join(prepared.consumer, 'work-observation.fixture.mjs'));
-      let originalPid, originalRunDefinitionCid;
+      let originalPid: number | undefined, originalRunDefinitionCid: unknown;
       for (const phase of phases) {
         const record = report.phases.find(value => value.case === id && value.phase === phase);
+        assert(record, 'Missing original phase');
         record.status = 'running'; delete record.reason;
         try {
           const actual = await run(process.execPath, ['fixture.mjs', phase],
             {cwd: prepared.consumer, env, name: phase, timeout: 120_000});
-          const value = JSON.parse(actual.stdout.trim());
+          const value = JSON.parse(actual.stdout.trim()) as Observation;
           Object.assign(record, {pid: actual.pid, actual: value, consumer: prepared.consumer});
           checkPackedProviderObservation({caseId: id, phase, pid: actual.pid, originalPid, observation: value});
           if (id === 'registered-mixed' || id === 'registered-mistral' ||
@@ -208,18 +226,20 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
   }
   for (const prepared of preparedCases) {
     try {
-      if (publicRegistry) assert.deepEqual(await verifyPublicConsumer(prepared.consumer, prepared.manifest, 'provider-ai-sdk'),
-        prepared.publicPayload, 'Public Provider installation changed during acceptance');
-      else await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
+      if (publicRegistry) {
+        assert('publicPayload' in prepared);
+        assert.deepEqual(await verifyPublicConsumer(prepared.consumer, prepared.manifest, 'provider-ai-sdk'),
+          prepared.publicPayload, 'Public Provider installation changed during acceptance');
+      } else await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
     }
     catch (failure) {cleanup.push(failure);}
   }
   try {assert.deepEqual(checkoutState(repository), source);}
   catch (failure) {cleanup.push(failure);}
-  if (releaseManifest !== undefined) {
+  if (releaseSelected !== undefined) {
     try {
-      assert.deepEqual(await readFile(releaseManifestPath), releaseManifestBytes);
-      assert.deepEqual(await verifyPackageRelease(release), releaseManifest);
+      assert.deepEqual(await readFile(releaseSelected.manifestPath), releaseSelected.manifestBytes);
+      assert.deepEqual(await verifyPackageRelease(software), releaseSelected.manifest);
     } catch (failure) {cleanup.push(failure);}
   }
   report.complete = failures.length === 0 && cleanup.length === 0 && report.phases.every(value => value.status === 'passed');
@@ -233,7 +253,14 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
   return report;
 }
 
-async function installRelease(root, release, manifest, manifestPath, run, publicRegistry) {
+async function readSelectedRelease(directory: string) {
+  const manifest = await verifyPackageRelease(directory);
+  const manifestPath = join(directory, 'release.json');
+  return {manifest, manifestPath, manifestBytes: await readFile(manifestPath)};
+}
+
+async function installRelease(root: string, release: string, manifest: ReleaseManifest, manifestPath: string,
+  run: Command, publicRegistry: boolean) {
   const consumer = join(root, 'consumer');
   const env = publicConsumerEnvironment(process.env, root);
   await Promise.all([consumer, env.HOME, env.TMPDIR].map(path => mkdir(path)));

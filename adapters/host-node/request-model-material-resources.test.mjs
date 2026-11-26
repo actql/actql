@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {configuration} from '../../scripts/fixtures/installed-infer-fixture.mjs';
 import {readInstalledModelExecution, readInstalledModelDependencies,
-  admitInstalledModelProviderBinding, consumeInstalledModelExecutionAbsence,
+  admitInstalledModelProviderBinding,
   consumeInstalledModelPreparationRefusal} from './installed-model.mjs';
 
 // Actual exported readers with explicit native/current reservation ports.
@@ -83,21 +83,21 @@ test('empty original Model execution absence belongs to the same tuple and one c
   const moon = {clientProgramInferOccurrenceCoordinates(value) {
     assert.equal(value, occurrence); return {_2: 0};
   }, clientProgramInferOccurrenceModelTaskCid() {assert.fail('No Task lookup for an empty inventory');}};
+  const beforeRead = () => assert.fail('No funded reader runs for absent immutable DATA');
   const absent = () => {
-    try {readInstalledModelExecution(moon, prepared, installation, occurrence,
-      () => assert.fail('No funded reader runs for absent immutable DATA'));}
+    try {readInstalledModelExecution(moon, prepared, installation, occurrence, beforeRead);}
     catch (error) {assert.equal(error.code, 'InstalledInferModelExecutionUnavailable'); return error;}
     assert.fail('The original empty inventory must refuse');
   };
   const error = absent();
-  assert.equal(consumeInstalledModelExecutionAbsence({...error}, prepared, installation, occurrence), false);
-  assert.equal(consumeInstalledModelExecutionAbsence(error, prepared, installation, occurrence), true);
-  assert.equal(consumeInstalledModelExecutionAbsence(error, prepared, installation, occurrence), false);
-  for (const tuple of [[{}, installation, occurrence], [prepared, frozen([], []), occurrence],
-    [prepared, installation, {}]]) {
+  assert.equal(consumeInstalledModelPreparationRefusal({...error}, prepared, installation, occurrence, beforeRead), false);
+  assert.equal(consumeInstalledModelPreparationRefusal(error, prepared, installation, occurrence, beforeRead), true);
+  assert.equal(consumeInstalledModelPreparationRefusal(error, prepared, installation, occurrence, beforeRead), false);
+  for (const tuple of [[{}, installation, occurrence, beforeRead], [prepared, frozen([], []), occurrence, beforeRead],
+    [prepared, installation, {}, beforeRead], [prepared, installation, occurrence, () => {}]]) {
     const foreign = absent();
-    assert.equal(consumeInstalledModelExecutionAbsence(foreign, ...tuple), false);
-    assert.equal(consumeInstalledModelExecutionAbsence(foreign, prepared, installation, occurrence), false);
+    assert.equal(consumeInstalledModelPreparationRefusal(foreign, ...tuple), false);
+    assert.equal(consumeInstalledModelPreparationRefusal(foreign, prepared, installation, occurrence, beforeRead), false);
   }
 });
 
@@ -106,6 +106,7 @@ test('Model execution absence does not promote custom metadata or callback error
     {code: 'InstalledInferModelExecutionUnavailable'});
   const moon = {clientProgramInferOccurrenceCoordinates: () => ({_2: 0}),
     clientProgramInferOccurrenceModelTaskCid: () => 'task'};
+  const beforeRead = () => assert.fail('Unselected or foreign DATA cannot be read');
   const cases = [
     frozen([{modelTaskCid: 'other', cid: 'execution', bodyWire: '{}'}], []),
     Object.freeze({environmentWire: '{}', executionContracts: Object.freeze(new Proxy([], {})),
@@ -117,17 +118,17 @@ test('Model execution absence does not promote custom metadata or callback error
   ];
   for (const installation of cases) {
     let failure;
-    try {readInstalledModelExecution(moon, prepared, installation, occurrence,
-      () => assert.fail('No selected execution body'));}
+    try {readInstalledModelExecution(moon, prepared, installation, occurrence, beforeRead);}
     catch (error) {failure = error;}
     assert(failure);
-    assert.equal(consumeInstalledModelExecutionAbsence(failure, prepared, installation, occurrence), false);
+    assert.equal(consumeInstalledModelPreparationRefusal(failure, prepared, installation, occurrence, beforeRead), false);
   }
-  assert.equal(consumeInstalledModelExecutionAbsence(callbackFailure, prepared, frozen([], []), occurrence), false);
+  assert.equal(consumeInstalledModelPreparationRefusal(callbackFailure, prepared, frozen([], []), occurrence, beforeRead), false);
   const installation = frozen([{modelTaskCid: 'task', cid: 'execution', bodyWire: '{}'}], []);
-  assert.throws(() => readInstalledModelExecution(moon, prepared, installation, occurrence,
-    () => {throw callbackFailure;}), error => error === callbackFailure);
-  assert.equal(consumeInstalledModelExecutionAbsence(callbackFailure, prepared, installation, occurrence), false);
+  const refusingFund = () => {throw callbackFailure;};
+  assert.throws(() => readInstalledModelExecution(moon, prepared, installation, occurrence, refusingFund),
+    error => error === callbackFailure);
+  assert.equal(consumeInstalledModelPreparationRefusal(callbackFailure, prepared, installation, occurrence, refusingFund), false);
 });
 
 test('original native Model metadata rejection follows returned material funding and consumes the same tuple once', () => {
@@ -192,14 +193,14 @@ test('original Mock dependencies keep the same funded materials and nominal read
   assert.equal(reads, 1);
 });
 
-test('native metadata witness excludes funding throws, native throws, foreign callbacks and asynchronous funding', () => {
+test('native metadata witness excludes funding throws, native throws and foreign callbacks', () => {
   const prepared = {}, occurrence = {}, installation = frozen([{modelTaskCid: 'task', cid: 'execution', bodyWire: '{}'}], []);
   const lookalike = Object.assign(new Error('MoonBitHostFailure'), {code: 'MoonBitHostFailure', cause: {}});
   const beforeRead = () => {}, moon = {clientProgramInferOccurrenceCoordinates: () => ({_2: 0}),
     clientProgramInferOccurrenceModelTaskCid: () => 'task',
     clientProgramReadComposedInferModelExecution: () => ({$tag: 0, _0: {}})};
   for (const [fund, read] of [[() => {throw lookalike;}, () => assert.fail('No native read after funding throw')],
-    [beforeRead, () => {throw lookalike;}], [() => Promise.resolve(), moon.clientProgramReadComposedInferModelExecution]]) {
+    [beforeRead, () => {throw lookalike;}]]) {
     moon.clientProgramReadComposedInferModelExecution = read;
     let failure;
     try {readInstalledModelExecution(moon, prepared, installation, occurrence, fund);} catch (error) {failure = error;}
@@ -211,6 +212,25 @@ test('native metadata witness excludes funding throws, native throws, foreign ca
   try {readInstalledModelExecution(moon, prepared, installation, occurrence, beforeRead);} catch (error) {failure = error;}
   assert.equal(consumeInstalledModelPreparationRefusal(failure, prepared, installation, occurrence, () => {}), false);
   assert.equal(consumeInstalledModelPreparationRefusal(failure, prepared, installation, occurrence, beforeRead), false);
+});
+
+test('Model readers refuse absent or asynchronous funding before native admission', () => {
+  const prepared = {}, occurrence = {}, execution = {};
+  const installation = frozen([{modelTaskCid: 'task', cid: 'execution', bodyWire: '{}'}], []);
+  let nativeReads = 0;
+  const moon = {clientProgramInferOccurrenceCoordinates: () => ({_2: 0}),
+    clientProgramInferOccurrenceModelTaskCid: () => 'task',
+    clientProgramInferDependencyReferences: () => ({_0: 'prompt', _1: 'retry', _2: 'backoff'}),
+    clientProgramInferMediaDependencyReferences: () => [],
+    clientProgramReadComposedInferModelExecution() {nativeReads++;},
+    clientProgramReadInferModelDependencies() {nativeReads++;},
+  };
+  for (const read of [fund => readInstalledModelExecution(moon, prepared, installation, occurrence, fund),
+    fund => readInstalledModelDependencies(moon, execution, installation, fund, prepared, occurrence)]) {
+    assert.throws(() => read(), /InstalledModelMaterialFundingUnavailable/u);
+    assert.throws(() => read(async () => {}), /InvalidInstalledModelMaterialFunding/u);
+  }
+  assert.equal(nativeReads, 0);
 });
 
 test('native metadata rejection cannot certify custom element reads or replaced original selection intrinsics', () => {
@@ -239,12 +259,10 @@ test('native metadata rejection cannot certify custom element reads or replaced 
 
 const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const hostTree = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'});
-let materialCallback;
 let mockGraph;
 const bindingCallbacks = [];
 const walk = node => {
   if (!node || typeof node !== 'object') return;
-  if (node.type === 'VariableDeclarator' && node.id.name === 'requestModelMaterials') materialCallback = node.init;
   if (node.type === 'VariableDeclarator' && node.id.name === 'graph' &&
       node.init?.type === 'ConditionalExpression' &&
       node.init.alternate?.callee?.name === 'checked' &&
@@ -254,11 +272,10 @@ const walk = node => {
   else if (child && typeof child === 'object') walk(child);
 };
 walk(hostTree);
-assert(materialCallback && mockGraph && bindingCallbacks.length === 2);
+assert(mockGraph && bindingCallbacks.length === 2);
 
-// Execute the actual Host and manager bodies with explicit typed constructor
-// ports. The Core companion owns the real Resource debit; these ports are not
-// a Model/Account grant, compiled ABI, Provider send or ordinary acceptance.
+// Use the imported Request manager with explicit constructor ports. The
+// native debit and Host caller are independently covered by the public tests.
 function effectMaterialCaller({foreignBorrow = false, refuse = false, replaceAfter = false} = {}) {
   const prepared = {}, request = {}, parent = {}, input = {}, holder = {}, evidence = {}, graph = {}, events = [];
   let nativeCalls = 0;
@@ -296,10 +313,6 @@ function effectMaterialCaller({foreignBorrow = false, refuse = false, replaceAft
     runtimeCore() {assert.fail('Effect materials cannot use the recovery runtime');},
   });
   const preparation = {
-    prepareManagedModelMaterials(runtime, p, ...args) {
-      assert.equal(this, preparation); assert.equal(runtime, moon); assert.equal(p, prepared);
-      return manager.prepareModelMaterials(prepared, request, ...args);
-    },
     prepareManagedModelBinding(runtime, p, ...args) {
       assert.equal(this, preparation); assert.equal(runtime, moon); assert.equal(p, prepared);
       return manager.prepareModelBinding(prepared, request, ...args);
@@ -313,10 +326,11 @@ function effectMaterialCaller({foreignBorrow = false, refuse = false, replaceAft
     `return (${hostSource.slice(node.start, node.end)});`)(preparation, moon, prepared,
     {kindOf: p => {assert.equal(p, prepared); return 'effectful';}}, true, ...Object.values(extra));
   return {prepared, evidence, graph, state, moon, events, select, nativeCalls: () => nativeCalls,
-    beforeRead: select(materialCallback), bindingCallbacks: bindingCallbacks.map(node => select(node))};
+    beforeRead: (count, wireAt, containers) => manager.prepareModelMaterials(prepared, request, count, wireAt, containers),
+    bindingCallbacks: bindingCallbacks.map(node => select(node))};
 }
 
-test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers', () => {
+test('Effect Model reserves execution and dependency materials through its same Request before readers', () => {
   const f = effectMaterialCaller(), occurrence = {}, execution = {}, dependencies = {};
   const installation = frozen([{modelTaskCid: 'task', cid: 'execution', bodyWire: '{"execution":1}'}], [
     {cid: 'prompt', bodyWire: '{"prompt":2}'}, {cid: 'retry', bodyWire: '{"retry":3}'},

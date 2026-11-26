@@ -18,7 +18,7 @@ import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {openNodeInferOperation} from './infer-operation.mjs';
 import {createInferIoNotification} from './infer-io-notification.mjs';
-import {installModelProviders,readInstalledModelDependencies,admitInstalledModelProvider,
+import {installModelProviders,admitInstalledModelProvider,
   admitInstalledModelProviderBinding} from './installed-model.mjs';
 
 const source=readFileSync(new URL('../../src/client_infer_host/fixture.generated_wbtest.mbt',import.meta.url),'utf8');
@@ -267,8 +267,8 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
       ports.push(port);
       return port.preflight;
     }}]).get('models/fixture');
-  const dependencies=readInstalledModelDependencies(moon,execution,{environmentWire,executionContracts:[],
-    dependencyBodies:[prompt,retry,backoff].map(value=>({cid:value.cid,bodyWire:value.wire}))});
+  const dependencies=checked(moon.clientProgramReadInferModelDependencies(
+    execution,prompt.wire,retry.wire,backoff.wire));
   const admittedProvider=admitInstalledModelProvider(moon,execution,dependencies,new Map([['models/fixture',registered]]));
   const providerBinding=admitInstalledModelProviderBinding(moon,'models/fixture',registered);
   if (structuredSdk) {

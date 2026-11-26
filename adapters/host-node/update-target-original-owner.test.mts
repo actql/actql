@@ -115,7 +115,7 @@ test('normal codec generation checks the single Owner source and refuses generat
     }
     for (const path of ['src/run_publication_host/client_effect_target_original_data.mbt',
       'src/remote_site_protocol/poll.mbt',
-      'scripts/templates/update-target-data-codec.mjs']) {
+      'scripts/templates/update-target-data-codec.mts']) {
       await writeFile(join(root, path), await readFile(new URL('../../' + path, import.meta.url)));
     }
     generateUpdateTargetDataCodec(root, true);
@@ -124,6 +124,13 @@ test('normal codec generation checks the single Owner source and refuses generat
     const declarationsPath = join(root, 'adapters/host-node/update-target-data.generated.d.mts');
     const originalRuntime = await readFile(runtimePath, 'utf8');
     const originalDeclarations = await readFile(declarationsPath, 'utf8');
+    const templatePath = join(root, 'scripts/templates/update-target-data-codec.mts');
+    const typedSource = await readFile(templatePath, 'utf8');
+    await writeFile(templatePath, typedSource.replace('value: unknown): string', 'value: unknown): boolean'));
+    assert.throws(() => generateUpdateTargetDataCodec(root, true), /TS2322/u);
+    assert.equal(await readFile(runtimePath, 'utf8'), originalRuntime);
+    assert.equal(await readFile(declarationsPath, 'utf8'), originalDeclarations);
+    await writeFile(templatePath, typedSource);
     const stale = '// stale declarations\n';
     await writeFile(declarationsPath, stale);
     assert.throws(() => generateUpdateTargetDataCodec(root), {message: 'Stale UPDATE transport codec declarations'});

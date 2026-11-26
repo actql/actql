@@ -2,9 +2,8 @@
 // uploads or turns a local record into owner approval.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
-import {copyFile, lstat, mkdir, open, readFile, realpath, writeFile} from 'node:fs/promises';
+import {copyFile, lstat, mkdir, readFile, realpath, writeFile} from 'node:fs/promises';
 import {basename, dirname, join, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {admitReleaseRequest} from './release-policy.mjs';
@@ -12,47 +11,14 @@ import {releaseVersion} from './release-version.mjs';
 import {requireNativeCohortPackageVersions} from './native-cli-artifact-reader.mjs';
 import {promotionPlan, nativeLatestPromotionPlan} from './release-channels.mjs';
 import {nodeReleaseIncludesProvider} from './package-release.mjs';
+import {
+  admitReview, checkedBytes, commitText, digest, digestText, exact, filename, hash, literal, originalFile, uniqueList,
+  verifyReleaseSet,
+} from './release-set-verification.mjs';
+export {verifyReleaseSet} from './release-set-verification.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const hash = value => createHash('sha256').update(value).digest('hex');
 const json = value => Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
-const exact = (value, keys) => assert.deepEqual(Object.keys(value).sort(), [...keys].sort());
-const filename = value => {
-  assert.equal(typeof value, 'string');
-  assert(value && value === basename(value) && value !== '.' && value !== '..' &&
-    !/[\\\u0000-\u001f\u007f]/u.test(value), 'Artifact filename must be a literal basename');
-};
-
-async function digest(path) {
-  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
-  try {
-    const before = await handle.stat(); assert(before.isFile(), 'Artifact must be a regular file');
-    const sha = createHash('sha256'), sri = createHash('sha512');
-    const buffer = Buffer.allocUnsafe(1024 * 1024);
-    let position = 0;
-    while (true) {
-      const {bytesRead} = await handle.read(buffer, 0, buffer.length, position);
-      if (!bytesRead) break;
-      const chunk = buffer.subarray(0, bytesRead); sha.update(chunk); sri.update(chunk); position += bytesRead;
-    }
-    assert.equal(position, before.size, 'Artifact length changed while hashing');
-    const after = await handle.stat();
-    for (const key of ['dev', 'ino', 'size', 'mtimeMs', 'mode']) assert.equal(after[key], before[key], 'Artifact changed while hashing');
-    return {bytes: before.size, sha256: sha.digest('hex'), integrity: `sha512-${sri.digest('base64')}`};
-  } finally {await handle.close();}
-}
-
-async function originalFile(directory, relative) {
-  const parent = await lstat(directory); assert(parent.isDirectory() && !parent.isSymbolicLink(), 'Original directory cannot be a symlink');
-  const parts = relative.split('/'); assert(parts.every(part => part && !['.', '..'].includes(part)));
-  let path = directory;
-  for (const part of parts) {
-    filename(part); path = join(path, part);
-    const stat = await lstat(path); assert(!stat.isSymbolicLink(), 'Release input path cannot contain a symlink');
-  }
-  return path;
-}
-
 async function readCohort(descriptor, target, request, python) {
   exact(descriptor, ['targetId', 'kind', 'directory']);
   const directory = resolve(descriptor.directory);
@@ -144,193 +110,6 @@ export async function freezeReleaseSet({request, policy, cohorts, destination, p
   // Detached digest avoids a self-reference. It is not an approval record.
   await writeFile(join(destination, 'release-set.sha256'), `${manifestSha256}  release-set.json\n`, {flag: 'wx'});
   return {manifest, sha256: manifestSha256};
-}
-
-export async function verifyReleaseSet(directory, {expectedSha256} = {}) {
-  directory = resolve(directory);
-  const bytes = await readFile(await originalFile(directory, 'release-set.json'));
-  const manifestSha256 = hash(bytes);
-  if (expectedSha256 !== undefined) {assert.match(expectedSha256, /^[a-f0-9]{64}$/u); assert.equal(manifestSha256, expectedSha256, 'Release set differs from the externally retained digest');}
-  const manifest = JSON.parse(bytes); exact(manifest, ['schemaVersion', 'release', 'request', 'policy', 'cohorts', 'artifacts', 'acceptance', 'qualification',
-    ...(Object.hasOwn(manifest, 'review') ? ['review'] : [])]);
-  assert.equal(manifest.schemaVersion, 'actql-release-set/0.1');
-  assert.equal(manifest.acceptance, 'unaccepted', 'Local byte verification cannot promote acceptance');
-  const selected = admitReleaseRequest(manifest.request, manifest.policy);
-  assert.deepEqual(manifest.release, selected.version, 'Release header differs from the complete original version');
-  assert.deepEqual(manifest.cohorts.map(value => value.targetId), selected.request.targets.map(value => value.id));
-  const keys = new Set();
-  for (const cohort of manifest.cohorts) {
-    exact(cohort, ['targetId', 'kind', 'path', 'bytes', 'sha256', 'verification']);
-    assert(cohort.path.startsWith(`${cohort.targetId}/`));
-    const actual = await digest(await originalFile(directory, cohort.path));
-    assert.equal(actual.bytes, cohort.bytes); assert.equal(actual.sha256, cohort.sha256);
-    const child = JSON.parse(await readFile(await originalFile(directory, cohort.path)));
-    const target = selected.request.targets.find(value => value.id === cohort.targetId);
-    let identities;
-    if (cohort.kind === 'node-npm' || cohort.kind === 'native-npm') {
-      assert.equal(target.ecosystem, 'npm');
-      assert.equal(child.version, cohort.kind === 'node-npm' ? 'actql-package-release/0.1' : 'actql-native-cli-release/0.1');
-      assert.equal(child.sourceSha, selected.request.source.commit);
-      assert.equal(child.cohort.packageVersion, selected.version.version);
-      assert.equal(child.cohort.registry, target.destination);
-      assert(target.channels.includes(child.cohort.tag), 'Original cohort tag is not explicitly selected');
-      identities = child.packages.map(item => ({targetId: target.id, ecosystem: 'npm', name: item.name,
-        version: item.version, file: item.file, bytes: item.bytes, sha256: item.sha256, integrity: item.integrity,
-        path: `${target.id}/${item.file}`}));
-    } else if (cohort.kind === 'native-standalone') {
-      assert.equal(target.ecosystem, 'native'); assert.equal(child.schemaVersion, 'actql-native-standalone/0.1');
-      assert.equal(child.sourceSha, selected.request.source.commit); assert.equal(child.packageVersion, selected.version.version);
-      assert.deepEqual(child.platforms, target.platforms); assert.deepEqual(child.requestedProfiles, target.profiles);
-      identities = [...child.archives, child.checksums].map(item => ({targetId: target.id, ecosystem: 'native', name: item.name,
-        version: item.version, file: item.file, bytes: item.bytes, sha256: item.sha256, path: `${target.id}/${item.file}`}));
-    } else {
-      assert.equal(cohort.kind, 'python-wheels'); assert.equal(target.ecosystem, 'pypi');
-      assert.equal(child.source_sha, selected.request.source.commit);
-      assert.equal(child.package_version, selected.version.pythonVersion);
-      assert(target.platforms.includes(child.platform));
-      identities = child.wheels.map(item => ({targetId: target.id, ecosystem: 'pypi', name: item.distribution,
-        version: selected.version.pythonVersion, file: item.file, bytes: item.bytes, sha256: item.sha256,
-        path: `${target.id}/${item.file}`}));
-    }
-    assert.deepEqual(manifest.artifacts.filter(value => value.targetId === target.id), identities,
-      'Upper artifact identities differ from the complete original child manifest');
-  }
-  for (const target of selected.request.targets) {
-    const records = manifest.artifacts.filter(value => value.targetId === target.id);
-    assert.deepEqual(records.map(value => value.name), target.packages);
-    for (const record of records) {
-      exact(record, ['targetId', 'ecosystem', 'name', 'version', 'file', 'bytes', 'sha256', 'path',
-        ...(target.ecosystem === 'npm' ? ['integrity'] : [])]);
-      assert.equal(record.ecosystem, target.ecosystem); filename(record.file);
-      assert.equal(record.path, `${target.id}/${record.file}`);
-      assert(!keys.has(record.path), 'Duplicate artifact path'); keys.add(record.path);
-      assert.equal(record.version, target.ecosystem === 'pypi' ? selected.version.pythonVersion : selected.version.version);
-      const actual = await digest(await originalFile(directory, record.path));
-      assert.equal(actual.bytes, record.bytes); assert.equal(actual.sha256, record.sha256);
-      if (target.ecosystem === 'npm') assert.equal(actual.integrity, record.integrity);
-    }
-  }
-  assert.equal(keys.size, manifest.artifacts.length, 'Unknown target artifact');
-  assert.equal(await readFile(await originalFile(directory, 'release-set.sha256'), 'utf8'), `${manifestSha256}  release-set.json\n`);
-  const review = Object.hasOwn(manifest, 'review') ? await verifyReview(directory, manifest) : null;
-  return {manifest, sha256: manifestSha256, ...(review ? {review} : {})};
-}
-
-const reviewKinds = ['recipe', 'toolchain', 'build', 'acceptance', 'diff', 'signing'];
-const literal = value => assert(typeof value === 'string' && value.length && value.length <= 4096 &&
-  value === value.trim() && !/[\u0000-\u001f\u007f]/u.test(value), 'Expected bounded literal review text');
-const uniqueList = value => {assert(Array.isArray(value)); assert.equal(new Set(value).size, value.length);};
-const digestText = value => {assert.equal(typeof value, 'string'); assert.match(value, /^[a-f0-9]{64}$/u);};
-const commitText = value => {assert.equal(typeof value, 'string'); assert.match(value, /^[a-f0-9]{40}$/u);};
-
-function admitReview(request, manifest, originalSha256) {
-  exact(request, ['schemaVersion', 'manifestSha256', 'evidence', 'provenance', 'environments', 'acceptance', 'changes', 'executionScope']);
-  assert.equal(request.schemaVersion, 'actql-release-review-request/0.1');
-  assert.equal(request.manifestSha256, originalSha256, 'Review request selects another preparation manifest');
-  assert(Array.isArray(request.evidence) && request.evidence.length > 0 && request.evidence.length <= 128);
-  const evidence = new Map(); let total = 0;
-  for (const item of request.evidence) {
-    exact(item, ['id', 'kind', 'file', 'bytes', 'sha256']);
-    assert.equal(typeof item.id, 'string'); assert.match(item.id, /^[a-z][a-z0-9-]{0,63}$/u);
-    assert(!evidence.has(item.id), 'Duplicate evidence id'); evidence.set(item.id, item);
-    assert(reviewKinds.includes(item.kind)); literal(item.file);
-    assert(!item.file.startsWith('/') && item.file.split('/').every(part => part && !['.', '..'].includes(part)));
-    assert(Number.isSafeInteger(item.bytes) && item.bytes > 0 && item.bytes <= 64 * 1024 * 1024);
-    total += item.bytes; assert(total <= 256 * 1024 * 1024); digestText(item.sha256);
-  }
-  const reference = (id, kind) => assert(evidence.has(id) && evidence.get(id).kind === kind, `Missing ${kind} evidence: ${id}`);
-  const targets = manifest.request.targets, ids = targets.map(value => value.id);
-  for (const field of ['provenance', 'environments']) {
-    assert(Array.isArray(request[field]));
-    assert.deepEqual(request[field].map(value => value.targetId), ids, `Review ${field} must follow every original target`);
-  }
-  for (const item of request.provenance) {
-    exact(item, ['targetId', 'recipeEvidence', 'toolchainEvidence', 'build']);
-    reference(item.recipeEvidence, 'recipe'); reference(item.toolchainEvidence, 'toolchain');
-    const build = item.build;
-    if (build.kind === 'github-actions') {
-      exact(build, ['kind', 'repository', 'runId', 'attempt', 'artifactId', 'artifactSha256', 'evidence']);
-      assert.equal(build.repository, manifest.request.source.repository);
-      for (const key of ['runId', 'artifactId']) {assert.equal(typeof build[key], 'string'); assert.match(build[key], /^[1-9][0-9]*$/u);}
-      assert(Number.isSafeInteger(build.attempt) && build.attempt > 0); digestText(build.artifactSha256);
-    } else {
-      exact(build, ['kind', 'run', 'artifactId', 'evidence']); assert.equal(build.kind, 'local'); literal(build.run);
-      assert.equal(build.artifactId, null, 'A local receipt cannot invent a hosted immutable artifact id');
-    }
-    reference(build.evidence, 'build');
-  }
-  for (const [index, item] of request.environments.entries()) {
-    exact(item, ['targetId', 'platforms', 'profiles', 'node', 'python', 'abi', 'limitations']);
-    assert.deepEqual(item.platforms, targets[index].platforms); assert.deepEqual(item.profiles, targets[index].profiles);
-    for (const field of ['node', 'python']) if (item[field] !== null) literal(item[field]);
-    literal(item.abi); assert(Array.isArray(item.limitations)); item.limitations.forEach(literal);
-  }
-  assert(Array.isArray(request.acceptance));
-  assert.deepEqual(request.acceptance.map(value => [value.targetId, value.phase]),
-    ids.flatMap(id => [[id, 'prepublication-install'], [id, 'public-install']]));
-  for (const item of request.acceptance) {
-    exact(item, ['targetId', 'phase', 'status', 'evidence', 'limitations']);
-    assert(['not-run', 'passed', 'failed'].includes(item.status)); uniqueList(item.evidence);
-    assert.equal(item.evidence.length > 0, item.status !== 'not-run', 'Executed acceptance needs its original evidence');
-    item.evidence.forEach(id => reference(id, 'acceptance'));
-    assert(Array.isArray(item.limitations)); item.limitations.forEach(literal);
-  }
-  exact(request.changes, ['previousSource', 'diffEvidence']);
-  if (request.changes.previousSource === null) assert.equal(request.changes.diffEvidence, null);
-  else {commitText(request.changes.previousSource); reference(request.changes.diffEvidence, 'diff');}
-  const scope = request.executionScope;
-  exact(scope, ['publish', 'promote', 'resumeIdenticalMissing']);
-  for (const field of ['publish', 'resumeIdenticalMissing']) {
-    uniqueList(scope[field]); assert(scope[field].every(id => ids.includes(id)), 'Unselected execution target');
-  }
-  assert(scope.resumeIdenticalMissing.every(id => scope.publish.includes(id)), 'Resume scope exceeds proposed publication');
-  assert(Array.isArray(scope.promote)); const moves = new Set();
-  for (const item of scope.promote) {
-    exact(item, ['targetId', 'channel']); const target = targets.find(value => value.id === item.targetId);
-    assert(target && target.channels.includes(item.channel), 'Unselected promotion channel');
-    const key = `${item.targetId}/${item.channel}`; assert(!moves.has(key), 'Duplicate promotion'); moves.add(key);
-  }
-  assert(scope.publish.length || scope.promote.length, 'Select the proposed execution scope explicitly');
-  // These are supplied review claims and raw evidence bindings, never a proof
-  // of the claims, an accepted support row, owner approval or an execution lease.
-  return structuredClone(request);
-}
-
-async function checkedBytes(directory, record, maximum) {
-  const path = await originalFile(directory, record.path);
-  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
-  try {
-    const before = await handle.stat();
-    assert(before.isFile() && before.size > 0 && before.size <= maximum, 'Review file exceeds its explicit byte bound');
-    const bytes = await handle.readFile();
-    const after = await handle.stat();
-    for (const key of ['dev', 'ino', 'size', 'mtimeMs', 'mode']) assert.equal(after[key], before[key]);
-    assert.equal(bytes.length, before.size);
-    if (record.bytes !== undefined) assert.equal(bytes.length, record.bytes);
-    if (record.sha256 !== undefined) assert.equal(hash(bytes), record.sha256);
-    return bytes;
-  } finally {await handle.close();}
-}
-
-async function verifyReview(directory, manifest) {
-  const binding = manifest.review; exact(binding, ['preparation', 'request', 'evidence']);
-  const verify = async (record, path, maximum) => {
-    exact(record, ['path', 'bytes', 'sha256']); assert.equal(record.path, path); digestText(record.sha256);
-    return checkedBytes(directory, record, maximum);
-  };
-  const preparation = await verify(binding.preparation, 'review/preparation.json', 4 * 1024 * 1024);
-  const {review, ...original} = manifest;
-  assert.deepEqual(JSON.parse(preparation), original, 'Review enrichment changed the original preparation body');
-  const request = admitReview(JSON.parse(await verify(binding.request, 'review/request.json', 1024 * 1024)), original, binding.preparation.sha256);
-  assert(Array.isArray(binding.evidence));
-  assert.deepEqual(binding.evidence.map(item => item.id), request.evidence.map(item => item.id));
-  for (const [index, item] of binding.evidence.entries()) {
-    exact(item, ['id', 'path', 'bytes', 'sha256']);
-    const {id, ...record} = item, supplied = request.evidence[index];
-    assert.equal(record.bytes, supplied.bytes); assert.equal(record.sha256, supplied.sha256);
-    await verify(record, `review/evidence/${id}`, 64 * 1024 * 1024);
-  }
-  return request;
 }
 
 export async function prepareReleaseReview({directory, expectedSha256, reviewFile, destination}) {

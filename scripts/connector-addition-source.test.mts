@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync,
   rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -14,12 +15,12 @@ import {
 } from './connector-addition-source.mjs';
 
 const repository = fileURLToPath(new URL('../',import.meta.url));
-const temporary = t => {
+const temporary = (t: TestContext) => {
   const root = mkdtempSync(join(tmpdir(),'actql-connector-common-source-'));
   t.after(() => rmSync(root,{recursive:true,force:true}));
   return root;
 };
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = temporary(t);
   for (const path of ['src/connectors_builtin/local_carrier_dispatch.mbt',
     'src/connectors_builtin_node/local_carrier_bridge.mbt','src/connectors_builtin_node/authorization_bridge.mbt',
@@ -30,23 +31,30 @@ function fixture(t) {
   return root;
 }
 
-function originalRun(t, platform, execute) {
-  const isolated = temporary(t), calls = [], records = [];
+type ChildOptions = {cwd: string; env: NodeJS.ProcessEnv; encoding: 'utf8'; maxBuffer: number};
+type ChildStatus = {status: number | null; stdout: string; stderr: string; error?: Error};
+type Child = {command: string; args: readonly string[]; options: ChildOptions};
+type CommandReceipt = {command: string[]; compilerProcess?: string[]};
+type Execute = (command: string, args: readonly string[], options: ChildOptions) => ChildStatus;
+type Run = (label: string, args: readonly string[], executable?: string) => string[];
+
+function originalRun(t: TestContext, platform: string, execute?: Execute) {
+  const isolated = temporary(t), calls: Child[] = [], records: CommandReceipt[] = [];
   const source = readFileSync(join(repository, 'scripts/check-connector-addition.mjs'), 'utf8');
   const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
-    .find(row => row.type === 'FunctionDeclaration' && row.id.name === 'run');
+    .find(row => row.type === 'FunctionDeclaration' && row.id?.name === 'run');
   assert(node);
   const invoke = runInNewContext('(' + source.slice(node.start, node.end) + ')', {
     isolated, join, writeFileSync, assertTestExecution, nodeTestArguments,
     process: {platform, env: {...process.env}, stderr: {write() {}}},
-    console: {log(value) { records.push(JSON.parse(value)); }},
-    spawnSync(command, args, options) {
+    console: {log(value: string) { records.push(JSON.parse(value) as CommandReceipt); }},
+    spawnSync(command: string, args: readonly string[], options: ChildOptions) {
       calls.push({command, args: [...args], options});
       return execute ? execute(command, args, options) : {
         status: 0, stdout: 'Total tests: 2, passed: 2, failed: 0.\n', stderr: '',
       };
     },
-  });
+  }) as Run;
   return {invoke, isolated, calls, records};
 }
 

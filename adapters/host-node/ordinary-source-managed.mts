@@ -41,7 +41,8 @@ type RequestSnapshot = Readonly<{
   kind: string; input: unknown; parameters?: unknown; stopBefore?: unknown; readOnly?: unknown; executionProfile?: unknown;
 }>;
 type RequestJournal = ReturnType<typeof openClientRequestJournal>;
-type StaticPlanLimits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+type StaticPlanLimits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number;
+  acquiredPlanAuthorization?: Readonly<{connection: () => boolean; accountMetadata: () => unknown}>}>;
 type StaticExplanationWires = Readonly<{plan: string; facts: string; context: string}>;
 type StaticExplanationVisitor<Value> = (wires: StaticExplanationWires, assertCurrent: () => void) => Value;
 type VerifyOriginalPolicy = (subject: unknown, options: Readonly<{signal: AbortSignal | undefined}>) => unknown;
@@ -1135,9 +1136,6 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
             const count = moon.clientProgramAcquisitionCount(prepared);
             if (!Number.isSafeInteger(count) || count < 0) fail('InvalidHostRuntimeResult');
             state.acquisitionCount = count;
-            if (staticPlan !== undefined && staticExplanation === undefined && count !== 0) {
-              fail('ClientOperationUnavailable');
-            }
             const requiresTime = moon.clientProgramRequiresQueryTime;
             state.requiresQueryTime = typeof requiresTime === 'function'
               ? checked(Reflect.apply(requiresTime, moon, [prepared, 100000, 100000])) as boolean : false;
@@ -1170,7 +1168,12 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
       }
       if (staticPlan !== undefined) {
         const effectful = state.compilationKind === 'effectful';
-        if (effectful || explanationPorts !== undefined) {
+        const acquired = (state.acquisitionCount ?? 0) > 0;
+        if (effectful || acquired || explanationPorts !== undefined) {
+          if (explanationPorts === undefined &&
+              (typeof readCheckedStaticPlan !== 'function' || typeof checkedStaticIssue !== 'function')) {
+            fail('ClientOperationUnavailable');
+          }
           // Checking has finished and its real nominal borrow is retained.
           // Metadata readers now enter their normal owner stages: no forged
           // `prepared`, preparing-guard bypass or execution-route setup.
@@ -1190,10 +1193,17 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
                   Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) {
                 fail('ForeignInstalledSourceProducer');
               }
+              // Acquired metadata uses the same immediate Account read
+              // decision as structural Explain, never a delegated or stale grant.
+              if (!effectful && acquired && explanationPorts === undefined &&
+                  (staticPlan.acquiredPlanAuthorization?.connection() !== true ||
+                    staticPlan.acquiredPlanAuthorization.accountMetadata() !== true)) fail('ClientConnectionDenied');
             };
             assertOriginal();
-            for (const occurrence of state.staticModelOccurrences!) {
-              const {execution} = readInstalledModelExecution(moon as typeof moon & ModelExecutionRuntime, prepared, staticModelInstallation,
+            const occurrences = effectful || explanationPorts !== undefined
+              ? state.staticModelOccurrences! : [];
+            for (const occurrence of occurrences) {
+              const {execution} = readInstalledModelExecution(moon as typeof moon & ModelExecutionRuntime, prepared, staticModelInstallation!,
                 occurrence, (count, wireAt, containers) =>
                   view.prepareModelMaterials(prepared, request, count, wireAt, containers))!;
               // Preserve the original parser return before Graph/current can

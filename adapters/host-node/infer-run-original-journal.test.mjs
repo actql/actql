@@ -10,7 +10,7 @@ import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import {openFundedClientPreparation, fundedModelMaterialFixture} from './funded-client-preparation.fixture.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -41,7 +41,8 @@ async function original(t, runId = 'saved-infer', authored = program, originalRe
   t.after(funded.close);
   const prepared = await funded.prepare({kind: 'program', input: authored, parameters: null});
   const inputs = funded.prepare.originalInputs(prepared);
-  const {execution} = readInstalledModelExecution(moon, prepared, installation);
+  const {execution} = readInstalledModelExecution(moon, prepared, installation, undefined,
+    fundedModelMaterialFixture(moon, prepared));
   const graph = checked(moon.clientProgramInstalledInferPlanGraph(prepared, 2, execution));
   const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer', {
     executionContextCid: cid('a'), hostPolicyCid: cid('b'), expiresAt: '2099-01-01T00:00:00.000Z',
