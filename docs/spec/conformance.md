@@ -52,12 +52,13 @@ Internal Core timing, a private shortcut, compiler optimization alone or an
 increased timeout establishes no ordinary performance result.
 
 <!-- requirement-block: ordinary-performance.latency-targets -->
-The ordinary cohort MUST demonstrate SQLite-comparable public completion for
-supported local simple operations using a measured local baseline and a fixed
-ratio-plus-additive-noise/essential-overhead comparison profile, calibrated
-before final candidate qualification. Comparable cases match machine and
-runtime/binding family, input data, indexes, Parameters, row count and output
-materialization, prepared versus one-shot use, warm versus cold state,
+Except for the authenticated ordinary Python v0.0.3 release cohort described
+below, the ordinary cohort MUST demonstrate SQLite-comparable public completion
+for supported local simple operations using a measured local baseline and a
+fixed ratio-plus-additive-noise/essential-overhead comparison profile,
+calibrated before final candidate qualification. Comparable cases match
+machine and runtime/binding family, input data, indexes, Parameters, row count
+and output materialization, prepared versus one-shot use, warm versus cold state,
 concurrency/load, and stated transaction/durability settings. An actual local
 SQLite binding is the initial comparator; already available local Turso/libSQL
 can be additional evidence without adding a dependency or remote service.
@@ -73,12 +74,38 @@ latency promise or permission to exempt the public operation's remaining work.
 Unchanged plain status receives no invented commit allowance.
 Median, nearest-rank p95, ratio and absolute delta retain the public total;
 fast inner-engine timing alone does not qualify a slow public operation.
-New-process existing-state open/operation/close at 2000 ms and fresh Host
-initialization with a small query and close at 5000 ms remain provisional cold
-guardrails, separately reported rather than folded into warm SQL comparison.
+Under the general profile, new-process existing-state open/operation/close at
+2000 ms and fresh Host initialization with a small query and close at 5000 ms
+remain provisional cold guardrails and are reported separately from warm SQL
+comparison.
 The initial Mock machine-workflow target is 5000 ms excluding human approval
 wait and actual external model/network time, without substituting a different
 execution or authority path.
+
+<!-- requirement-block: ordinary-performance.python-v003-latency ordinary-performance.python-v003-phase-limits ordinary-performance.python-v003-cold-clock ordinary-performance.python-v003-evidence -->
+The authenticated ordinary Python v0.0.3 release cohort MUST meet both limits
+for each required local public-operation series on each required release
+platform.
+
+| Phase | Nearest-rank p95 | Observed maximum |
+| --- | ---: | ---: |
+| Warm retained Result or Run status | 500 ms | 1000 ms |
+| Other warm operations | 1000 ms | 2000 ms |
+| Cold process with existing state | 2000 ms | 4000 ms |
+| Cold process with fresh Host initialization and a small query | 5000 ms | 8000 ms |
+
+Both cold phases MUST measure elapsed time from actual child process launch
+through verified output, first close, and natural process exit. A separate
+diagnostic may record elapsed time to first output.
+
+The Python v0.0.3 release cohort MUST retain a SQLite control matched on the
+conditions above, evidence of independently required durable work, and
+same-cohort authority, safety, and cleanup evidence, with elapsed-time ratios
+and absolute deltas used only as diagnostics for SQLite and for TypeScript warm
+or Native CLI new-process comparisons with matched fixtures and phases. The
+existing sample counts and structural regression requirements apply to the
+complete public operation in each phase. The Mock machine-workflow target
+applies separately.
 
 <!-- requirement-block: ordinary-performance.samples-and-coverage -->
 Final latency evidence MUST retain at least 100 warm and 30 cold-process

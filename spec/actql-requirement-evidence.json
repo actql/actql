@@ -21212,10 +21212,54 @@
     },
     {
       "requirement_id": "actql.conformance/ordinary-performance.latency-targets",
-      "statement_sha256": "aa6e17e04e7a75e0016c52bdf3734bb819871d5692aa40bf777c6587e8a2f48d",
+      "statement_sha256": "f3a540288ca82de07640aa38bfd39d95060d0c20e7a31f2406e80921aa065c72",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/ordinary-performance.python-v003-latency",
+      "statement_sha256": "83b8442018d70d874e0536bfc9f2f798644c3c9ed24f88263aa040c0adf3e3fd",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated ordinary Python latency evidence on each required release platform.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/ordinary-performance.python-v003-phase-limits",
+      "statement_sha256": "fdc104aff1453cb7a1c7e68554e7cc65bc35383257ea7e92efd40243ed8876e8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify both phase limits against retained per-operation wall-time samples.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
+        "kind": "table"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/ordinary-performance.python-v003-cold-clock",
+      "statement_sha256": "1e5af39c05e9f7652e6a307918026f64bbe489f8abaa77f48e18a619bedd78b4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify child launch, checked output, first close, and natural exit for both cold phases.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/ordinary-performance.python-v003-evidence",
+      "statement_sha256": "aeef7b5b03d0bb8b18d1befbb7e6569e252f24de88a8fb8aa45448ced5e89e8a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify matched SQLite, required durable work, authority, safety, and cleanup evidence for the same Python release cohort.",
       "source": {
         "anchor": "ordinary-operation-performance",
         "kind": "prose"

@@ -60,9 +60,10 @@ def write(path, value):
     path.write_text(json.dumps(value, indent=2) + '\n')
 
 
-def platform_key():
+def platform_key(adapter='native'):
+    linux = 'linux-x64' if adapter == 'python' else 'linux-x64-gnu'
     return {('Darwin', 'arm64'): 'darwin-arm64',
-            ('Linux', 'x86_64'): 'linux-x64-gnu'}.get((platform.system(), platform.machine()))
+            ('Linux', 'x86_64'): linux}.get((platform.system(), platform.machine()))
 
 
 def regular(path):
@@ -119,7 +120,7 @@ def verify_packages(adapter, manifest_path, consumer, source):
         executable = consumer / 'bin/actql.mjs'
         assert executable.is_file()
     else:
-        assert manifest['source_sha'] == source and manifest['platform'] == platform_key()
+        assert manifest['source_sha'] == source and manifest['platform'] == platform_key('python')
         assert {row['distribution'] for row in manifest['wheels']} == {'actql', 'actql-sdk', 'actql-local-runtime'}
         payloads = {}
         for wheel in manifest['wheels']:

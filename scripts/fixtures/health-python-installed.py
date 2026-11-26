@@ -73,7 +73,7 @@ def prepare(root):
     (unrelated / 'outside-scope').write_bytes(b'not a selected product package')
     (consumer / 'unrelated-package').symlink_to(unrelated, target_is_directory=True)
     manifest = root / 'manifest.json'
-    key = {('Darwin', 'arm64'): 'darwin-arm64', ('Linux', 'x86_64'): 'linux-x64-gnu'}[platform.system(), platform.machine()]
+    key = {('Darwin', 'arm64'): 'darwin-arm64', ('Linux', 'x86_64'): 'linux-x64'}[platform.system(), platform.machine()]
     manifest.write_text(json.dumps(dict(source_sha=source, package_version=version, platform=key, wheels=archives)))
     return dict(manifest=str(manifest), consumer=str(consumer), source=source, roots=sorted(roots),
                 installedBytes=sum(map(len, installed.values())), unpackedBytes=unpacked, verifiedPayloadBytes=verified)
