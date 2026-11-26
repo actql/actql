@@ -661,8 +661,8 @@ type EmbeddedHostPreparation = Readonly<{
     intent: RetainEffectInputArgs[1], captured: RetainEffectInputArgs[2], materialWire?: RetainEffectInputArgs[3]) => RequestInputRetention & Readonly<{body: unknown}>;
   retainedEffectManagedPlan: (runtime: PreparationRuntime, request: unknown, definition: EffectDefinition) => EffectPlanRun | undefined;
   readStaticPlan: (request: NonNullable<OrdinaryFundedArgs[5]>, environment: OrdinaryFundedArgs[1],
-    originalVerifier: OrdinaryFundedArgs[2], signal: AbortSignal | undefined, modelInstallation: OrdinaryFundedArgs[6]) =>
-    Promise<Awaited<ReturnType<OrdinarySourceInstallation['fundedPreparation']>>>;
+    originalVerifier: OrdinaryFundedArgs[2], signal: AbortSignal | undefined, modelInstallation: OrdinaryFundedArgs[6],
+    authorizeAcquiredPlan: () => boolean) => Promise<Awaited<ReturnType<OrdinarySourceInstallation['fundedPreparation']>>>;
   assertStaticEffectExplanationOriginal: (request: object) => void;
   readStaticEffectExplanation: <Value>(request: OrdinaryStaticEffectArgs[4],
     environment: OrdinaryStaticEffectArgs[1],
@@ -3721,7 +3721,8 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
   const plan = installClientStaticPlan<HostRequest<'plan'>, ReturnType<typeof prepareSubmit>>({moon, control, prepare: prepareSubmit,
     authorize: hostConnection,
     readOriginal: request => preparation.readStaticPlan(request, environment,
-      verifyRequestValuePolicy as OrdinaryFundedArgs[2], request.signal, modelInstallation)});
+      verifyRequestValuePolicy as OrdinaryFundedArgs[2], request.signal, modelInstallation,
+      () => hostConnection(request) && authorizeStaticPlan(request) === true)});
   const staticEffectExplanation = preparation !== undefined &&
     ['clientProgramReadRequestCheckedStaticEffectExplanation',
       'clientProgramStaticEffectExplanationPlanWire', 'clientProgramStaticEffectExplanationFactsWire',
@@ -8572,14 +8573,16 @@ async function openPreparedInstalledHost(options: unknown, initialEntry?: HostEn
       return current;
     },
     readStaticPlan(request: NonNullable<OrdinaryFundedArgs[5]>, environment: OrdinaryFundedArgs[1], originalVerifier: OrdinaryFundedArgs[2],
-        signal: AbortSignal | undefined, modelInstallation: OrdinaryFundedArgs[6]) {
+        signal: AbortSignal | undefined, modelInstallation: OrdinaryFundedArgs[6], authorizeAcquiredPlan: () => boolean) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) throw clientOperationError('ClientOperationUnavailable');
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.fundedPreparation!(originalSourceManagedHostRequest(originals, request),
-        environment, originalVerifier, signal, undefined, request, modelInstallation,
-        record.managedSourceProfile?.fileReadDeclarations);
+        environment, originalVerifier, signal, undefined, {
+          maxWireBytes: request.maxWireBytes, maxNodes: request.maxNodes, maxDepth: request.maxDepth,
+          authorizeAcquiredPlan,
+        }, modelInstallation, record.managedSourceProfile?.fileReadDeclarations);
     },
     assertStaticEffectExplanationOriginal(request: object) {
       // Only the same mapped, live ingress Request may touch metadata policy.
