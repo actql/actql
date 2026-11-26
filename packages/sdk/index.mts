@@ -1,5 +1,8 @@
 /// <reference lib="esnext.disposable" preserve="true" />
 
+import {signedAnswer} from './checkpoints.mjs';
+import {captureResponse, freezeInput} from './internal/data.mjs';
+import {validResolveItem} from '@actql/client-wire';
 import {connectSelected} from './internal/client.mjs';
 import {connectionFailure, connectionObjectExample, connectionOptions, connectionStringExample,
   connectionStringOptions} from './internal/connection-options.mjs';
@@ -449,6 +452,16 @@ export type CheckpointSigner = Readonly<{
   authorityScopeCid?: string;
   sign(bytes: Uint8Array): Uint8Array | string | Promise<Uint8Array | string>;
 }>;
+
+/** Sign one exact listed Checkpoint without opening a Host or submitting the answer.
+ * The caller provides the signing authority and retains the answer unchanged.
+ * Only the original Host can admit it. Obtain and inspect the authorized review first. */
+export async function signCheckpointAnswer(checkpoint: CheckpointSummary,
+  decision: 'approved' | 'rejected', signer: CheckpointSigner): Promise<SignedCheckpointAnswer> {
+  const answer = await signedAnswer(captureResponse(checkpoint), decision, signer, new Date().toISOString());
+  if (!validResolveItem(answer)) throw new TypeError('InvalidCheckpointAnswer');
+  return freezeInput(answer);
+}
 
 export type DynamicRow = Record<string, unknown>;
 /** Recovery locator using the existing Run and authored Result name. */

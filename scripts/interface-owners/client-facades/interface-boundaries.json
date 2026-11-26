@@ -3069,9 +3069,11 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "bf2f8accc98b366392f0ca97156909e7082ae1bf3247ee54cc505e52abe81ee4",
+      "sha256": "a141cd4b25aff67c836f2c214ce826453bab0318ae531292fea2247e9cafd0b7",
       "exports": [
         "CalendarArtifactInstallation",
+        "CheckpointSigner",
+        "CheckpointSummary",
         "Client",
         "ClientError",
         "ConfirmedProfile",
@@ -3101,10 +3103,12 @@
         "ResultPromise",
         "ResultReference",
         "RunReference",
+        "SignedCheckpointAnswer",
         "SourceProfilePaths",
         "StandardSchemaV1",
         "connect",
-        "open"
+        "open",
+        "signCheckpointAnswer"
       ],
       "operations": [
         {
@@ -3452,18 +3456,109 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "CheckpointSigner",
+            "CheckpointSummary",
+            "SignedCheckpointAnswer",
+            "signCheckpointAnswer"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "The helper signs an answer without sending it or transferring key custody."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "async function constructSignedAnswer("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "async function constructSignedAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "For an Effect approval the signer uses the original Run"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "The helper signs an answer without sending it or transferring key custody."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Constructs only a local signed value; no Host observation or state transition."
+            },
+            "failure": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "function candidateError("
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No Host request is opened. The application owns the external signing callback."
+            },
+            "resources": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "const candidateLimits ="
+              }
+            ],
+            "extension": {
+              "notApplicable": "Uses the existing Common answer profiles without a transport or contract extension."
+            },
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoints.test.mjs",
+                "anchor": "Public sign-only Checkpoint answer never contacts the Host"
+              },
+              {
+                "path": "scripts/fixtures/packed-native-checkpoint-handoff.mjs",
+                "anchor": "signCheckpointAnswer(checkpoint,"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d4efef8e757eb898f10ea9553264f5b6fc5ed10779d06d1d3007f4106db42cc8",
+      "sha256": "2814e41a8a020db18f76434cec8288aff9d3c15cdf6e27f829271c3750d89bf6",
       "exports": [
         "ClientError",
         "RequestHeld",
         "connect",
-        "open"
+        "open",
+        "signCheckpointAnswer"
       ],
       "operations": [
         {
@@ -3485,6 +3580,15 @@
           "name": "open/open",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "signCheckpointAnswer",
+          "parameters": [
+            "checkpoint",
+            "decision",
+            "signer"
           ],
           "async": false
         }
@@ -3672,6 +3776,95 @@
               {
                 "path": "packages/node/project-profile.typecheck.mts",
                 "anchor": "const opened={stateDir:'.actql',profile:'mock'} satisfies OpenOptions;"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "signCheckpointAnswer"
+          ],
+          "exports": [
+            "signCheckpointAnswer"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "The helper signs an answer without sending it or transferring key custody."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "async function constructSignedAnswer("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "async function constructSignedAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "For an Effect approval the signer uses the original Run"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "The helper signs an answer without sending it or transferring key custody."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Constructs only a local signed value; no Host observation or state transition."
+            },
+            "failure": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "function candidateError("
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No Host request is opened. The application owns the external signing callback."
+            },
+            "resources": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "const candidateLimits ="
+              }
+            ],
+            "extension": {
+              "notApplicable": "Uses the existing Common answer profiles without a transport or contract extension."
+            },
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoints.test.mjs",
+                "anchor": "Public sign-only Checkpoint answer never contacts the Host"
+              },
+              {
+                "path": "scripts/fixtures/packed-native-checkpoint-handoff.mjs",
+                "anchor": "signCheckpointAnswer(checkpoint,"
               }
             ]
           }
@@ -6066,7 +6259,7 @@
     {
       "module": "packages/sdk/index.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "2ad7b0f9c84dbfa438690d98ba266d0bd6236a990bcabe383bce8d8edb942276",
+      "sha256": "d5f5ac643c8d6d6c48fb718b9ff06bf305325b1dc4a713519d42710b4b5a16de",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -6191,7 +6384,8 @@
         "getSubmissionOutcome",
         "resolveCheckLocation",
         "resolveCheckTextRange",
-        "resolveCheckTextRangeEncoding"
+        "resolveCheckTextRangeEncoding",
+        "signCheckpointAnswer"
       ],
       "operations": [
         {
@@ -6779,6 +6973,15 @@
             "bytes: Uint8Array"
           ],
           "result": "Uint8Array | string | Promise<Uint8Array | string>"
+        },
+        {
+          "name": "signCheckpointAnswer",
+          "parameters": [
+            "checkpoint: CheckpointSummary",
+            "decision: 'approved' | 'rejected'",
+            "signer: CheckpointSigner"
+          ],
+          "result": "Promise<SignedCheckpointAnswer>"
         }
       ],
       "imports": [
@@ -7686,13 +7889,102 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "signCheckpointAnswer"
+          ],
+          "exports": [
+            "signCheckpointAnswer"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "The helper signs an answer without sending it or transferring key custody."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "async function constructSignedAnswer("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "async function constructSignedAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "For an Effect approval the signer uses the original Run"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "The helper signs an answer without sending it or transferring key custody."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Constructs only a local signed value; no Host observation or state transition."
+            },
+            "failure": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "function candidateError("
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No Host request is opened. The application owns the external signing callback."
+            },
+            "resources": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "const candidateLimits ="
+              }
+            ],
+            "extension": {
+              "notApplicable": "Uses the existing Common answer profiles without a transport or contract extension."
+            },
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoints.test.mjs",
+                "anchor": "Public sign-only Checkpoint answer never contacts the Host"
+              },
+              {
+                "path": "scripts/fixtures/packed-native-checkpoint-handoff.mjs",
+                "anchor": "signCheckpointAnswer(checkpoint,"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/sdk/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "63ee8aacbb1b1893af4aa0ad0b2babeccf579838d1c6a6aedc8c960ea64c2ee9",
+      "sha256": "aecfe57ec98fc87e4af674890b8a86696778ad10cddcd2a982931759de71b514",
       "exports": [
         "ClientError",
         "RequestHeld",
@@ -7739,7 +8031,8 @@
         "getSubmissionOutcome",
         "resolveCheckLocation",
         "resolveCheckTextRange",
-        "resolveCheckTextRangeEncoding"
+        "resolveCheckTextRangeEncoding",
+        "signCheckpointAnswer"
       ],
       "operations": [
         {
@@ -7821,21 +8114,33 @@
             "options"
           ],
           "async": false
+        },
+        {
+          "name": "signCheckpointAnswer",
+          "parameters": [
+            "checkpoint",
+            "decision",
+            "signer"
+          ],
+          "async": true
         }
       ],
       "imports": [
         "./check-presentation.mjs",
         "./check-reason-catalog.generated.js",
+        "./checkpoints.mjs",
         "./host-port.mjs",
         "./internal/check-observation.mjs",
         "./internal/client.mjs",
         "./internal/connection-options.mjs",
+        "./internal/data.mjs",
         "./internal/errors.mjs",
         "./internal/result-read.mjs",
         "./internal/run-observation.mjs",
         "./internal/submission-observation.mjs",
         "./operation-formats.mjs",
-        "./operation-presentation.mjs"
+        "./operation-presentation.mjs",
+        "@actql/client-wire"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -7992,6 +8297,95 @@
               {
                 "path": "packages/sdk/index.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "signCheckpointAnswer"
+          ],
+          "exports": [
+            "signCheckpointAnswer"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "The helper signs an answer without sending it or transferring key custody."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "async function constructSignedAnswer("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "async function constructSignedAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "For an Effect approval the signer uses the original Run"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "docs/cli.md",
+                "anchor": "The helper signs an answer without sending it or transferring key custody."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Constructs only a local signed value; no Host observation or state transition."
+            },
+            "failure": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "function candidateError("
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No Host request is opened. The application owns the external signing callback."
+            },
+            "resources": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "export async function signCheckpointAnswer("
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "const candidateLimits ="
+              }
+            ],
+            "extension": {
+              "notApplicable": "Uses the existing Common answer profiles without a transport or contract extension."
+            },
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoints.test.mjs",
+                "anchor": "Public sign-only Checkpoint answer never contacts the Host"
+              },
+              {
+                "path": "scripts/fixtures/packed-native-checkpoint-handoff.mjs",
+                "anchor": "signCheckpointAnswer(checkpoint,"
               }
             ]
           }

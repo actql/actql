@@ -1,8 +1,9 @@
 import type * as Public from './index.js';
-import type {Client,ConnectionStringOptions} from '@actql/sdk';
+import type {CheckpointSigner, CheckpointSummary, Client, ConnectionStringOptions, SignedCheckpointAnswer} from '@actql/sdk';
 // Static views of the same original SDK/provider namespaces. Runtime options,
 // provider/module resolution and installed Host admission remain unchanged.
-type SDKPort = {connect(options:unknown,stringOptions?:unknown):Promise<Client>};
+type SDKPort = {connect(options:unknown,stringOptions?:unknown):Promise<Client>;
+  signCheckpointAnswer: typeof import('@actql/sdk').signCheckpointAnswer};
 type ProviderPort = {connect(options:unknown):Client|Promise<Client>};
 type UncheckedFields = Record<PropertyKey,unknown>;
 import {resolve} from 'node:path';
@@ -18,6 +19,12 @@ function connectHost(...args:[unknown,unknown?]) {
 }
 
 export {ClientError, RequestHeld};
+
+export function signCheckpointAnswer(checkpoint: CheckpointSummary,
+  decision: 'approved' | 'rejected', signer: CheckpointSigner): Promise<SignedCheckpointAnswer> {
+  sdk ??= requireSdk('@actql/sdk') as SDKPort;
+  return sdk.signCheckpointAnswer(checkpoint, decision, signer);
+}
 
 // Trusted application options are captured before lazy provider acquisition.
 // Keep callbacks and opaque installation originals, rather than cloning their

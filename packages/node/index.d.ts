@@ -4,11 +4,11 @@ export type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, 
   InstalledConnectorTable, CalendarArtifactInstallation} from '@actql/local-node';
 import type {Client, ConnectionOptions, ConnectionStringOptions, Durability} from '@actql/sdk';
 
-export {ClientError, RequestHeld} from '@actql/sdk';
+export {ClientError, RequestHeld, signCheckpointAnswer} from '@actql/sdk';
 export type {Client, Execution, Result, Reader, RunReference,
   ConfirmedProfile, ReadOptions, RequestLookup, RequestLookupTarget, RequestRecovery,
   DeliveryAttemptLookup, ResultPromise, ResultReference, DynamicRow,
-  QueryOptions, QueryParameters, StandardSchemaV1} from '@actql/sdk';
+  QueryOptions, QueryParameters, StandardSchemaV1, CheckpointSummary, CheckpointSigner, SignedCheckpointAnswer} from '@actql/sdk';
 
 type InstalledModelSdkImage = Readonly<{
   packageName: string; version: string; path: string; cid: `sha256:${string}`;
