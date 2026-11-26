@@ -4705,7 +4705,9 @@
           }
         },
         {
-          "operations": [],
+          "operations": [
+            "<module>"
+          ],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -10270,7 +10272,9 @@
       "responsibilityFacet": "primary",
       "contracts": [
         {
-          "operations": [],
+          "operations": [
+            "<module>"
+          ],
           "exports": [],
           "attributes": {
             "responsibility": [

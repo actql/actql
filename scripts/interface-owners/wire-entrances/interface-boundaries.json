@@ -422,6 +422,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "clientHostRequestKeys",
             "validAdmissionContract",
             "validAdmissionShape",

@@ -40393,6 +40393,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "admission",
             "admissionEvidenceShape",
             "admissionEvidenceShape/admissionEvidenceShape",

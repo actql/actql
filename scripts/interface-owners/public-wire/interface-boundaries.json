@@ -1433,7 +1433,9 @@
           }
         },
         {
-          "operations": [],
+          "operations": [
+            "<module>"
+          ],
           "exports": [
             "checkOutcomeProtocol",
             "checkOutcomeSchemaCid",

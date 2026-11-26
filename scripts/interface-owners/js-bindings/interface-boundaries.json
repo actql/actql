@@ -48912,7 +48912,9 @@
           }
         },
         {
-          "operations": [],
+          "operations": [
+            "<module>"
+          ],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -57814,6 +57816,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#7",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand"
