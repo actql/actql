@@ -1747,8 +1747,25 @@ pub fn Store::begin_payload(
   self : Store,
   request : @payload.PublicationPayloadRequest,
 ) -> Result[PayloadWriter, NativePublicationStoreIssue] {
-  self.with_original_read(false, false, fn() {
-    self.begin_payload_in_scope(request)
+  self.with_payload_writer(fn() { self.begin_payload_in_scope(request) })
+}
+
+///|
+fn Store::with_payload_writer(
+  self : Store,
+  acquire : () -> Result[PayloadWriter, NativePublicationStoreIssue],
+) -> Result[PayloadWriter, NativePublicationStoreIssue] {
+  self
+  .with_original_read(false, false, acquire)
+  .map(writer => {
+    let key = record_key(
+      @payload.publication_payload_record_request(writer.record),
+    )
+    if self.operation_original is Some(_) {
+      ignore(self.pending_writers.remove(key))
+    }
+    self.active_writers[key] = true
+    writer
   })
 }
 
@@ -1858,6 +1875,9 @@ fn Store::begin_payload_in_scope(
   let key = record_key(request)
   if self.active_writers.contains(key) {
     return Err(RecoveryRequired)
+  }
+  if self.pending_writers.contains(key) {
+    return Err(CleanupPending)
   }
   let record = @payload.prepare_publication_payload_record(request)
   let initial = match
@@ -2051,7 +2071,11 @@ fn Store::begin_payload_in_scope(
       }
     }
   }
-  self.active_writers[key] = true
+  if self.operation_original is Some(_) {
+    // Keep the exact writer until its fallible original Read return. Only
+    // with_payload_writer can hand it to the caller after that acknowledgement.
+    self.pending_writers[key] = { physical, stopped: false, }
+  }
   Ok({
     store: self,
     record: owned,

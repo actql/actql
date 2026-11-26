@@ -474,7 +474,7 @@
       "role": "physical-io",
       "owner": "Existing Native publication Store, original operation and durable delivery owner",
       "referenceQualification": "Finite changed Result-read caller/construction source responsibilities and interface snapshot only. Preexisting module operations are indexed, not requalified as normal execution; matching installed Native/FD/Saved and whole backend acceptance remain separate.",
-      "sha256": "61bf8d9c6c00cea76a9af93c6504faa86fddacbf5bad3de18070e0fcea4bab2b",
+      "sha256": "8146e76f8bd569181a0361dd5b7c58b439e737ea854d26df7ab1270f649e1cd1",
       "exports": [],
       "operations": [
         {
@@ -1144,6 +1144,10 @@
         {
           "name": "Store::retry_pending_result_delivery_cleanup",
           "declaration": "Store : : retry_pending_result_delivery_cleanup ( self : Store , ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::with_payload_writer",
+          "declaration": "Store : : with_payload_writer ( self : Store , acquire : ( ) - > Result [ PayloadWriter , NativePublicationStoreIssue ] , ) - > Result [ PayloadWriter , NativePublicationStoreIssue ]"
         }
       ],
       "contracts": [
@@ -1316,7 +1320,8 @@
             "Store::resolve_committed_result_in_scope",
             "Store::retain_exact_publication_body",
             "Store::retained_data_current",
-            "Store::retry_pending_result_delivery_cleanup"
+            "Store::retry_pending_result_delivery_cleanup",
+            "Store::with_payload_writer"
           ],
           "exports": [],
           "attributes": {
@@ -1386,6 +1391,10 @@
               {
                 "path": "src/platform_native/publication_store/store_native_wbtest.mbt",
                 "anchor": "native publication keeps original quota and rows after an initial COMMIT reply is lost"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/store_wal_original_physical_scoped_wbtest.mbt",
+                "anchor": "unreturned original payload writer remains reachable from Store close"
               }
             ]
           }
