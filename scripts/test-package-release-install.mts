@@ -3,7 +3,7 @@
 // optional cohort adds a separate Provider consumer to the ordinary cases.
 import assert from 'node:assert/strict';
 import {spawn, execFileSync} from 'node:child_process';
-import {createHash, generateKeyPairSync, randomUUID} from 'node:crypto';
+import {createHash, generateKeyPairSync, randomUUID, type KeyObject} from 'node:crypto';
 import {createServer} from 'node:http';
 import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -14,11 +14,15 @@ import {releaseInterfaceCheck} from './release-interface-check.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {stageShortQueryFixtures} from './packed-fixture-support.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
-import {observeNpmPackageRelease} from './release-registry.mjs';
+import {observeNpmPackageRelease} from './release-registry-observation.mjs';
 import {nodePackages, nodeReleaseIncludesProvider, verifyPackageRelease} from './package-release.mjs';
 import {releaseInstallSelection, publicNpmRegistry, publicConsumerEnvironment,
   publicInstallCommand, verifyPublicConsumer, verifyPublicNodeReleaseBinding} from './release-public-install.mjs';
 import {runPackedProviderAI} from './test-packed-provider-ai-sdk.mjs';
+
+type InstallCommandResult = {command: string; args: readonly string[]; code: number; elapsedMs: number; stdout: string};
+type InterfaceReceipt = Awaited<ReturnType<Awaited<ReturnType<typeof releaseInterfaceCheck>>['verifyConsumer']>>;
+type PackagePayload = Awaited<ReturnType<typeof verifyPublicConsumer>>;
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const selection = releaseInstallSelection(process.argv.slice(2));
@@ -29,19 +33,19 @@ const {manifest} = interfaces;
 const includesProvider = nodeReleaseIncludesProvider(manifest.cohort.packages);
 assert(!isPublic || !includesProvider || releaseSetBinding,
   'Public Provider acceptance requires the exact upper release-set target');
-let publicObservation = null, publicObservationFile = null, publicObservationAfterFile = null;
+let publicObservationFile: string | null = null, publicObservationAfterFile: string | null = null;
 if (isPublic) {
-  publicObservation = await observeNpmPackageRelease(directory, selection.manifestSha256);
+  const publicObservation = await observeNpmPackageRelease(directory, selection.manifestSha256);
   publicObservationFile = `public-observation-${Date.now()}-${randomUUID()}.json`;
   await writeFile(join(directory, publicObservationFile), `${JSON.stringify(publicObservation, null, 2)}\n`, {flag: 'wx'});
   assert(publicObservation.observations.every(item => item.state === 'present'),
     'Public install refused: every original cohort package must be published with identical bytes; retain the observation');
-  assert.deepEqual(JSON.parse(await readFile(join(directory, 'release.json'))), manifest,
+  assert.deepEqual(JSON.parse(await readFile(join(directory, 'release.json'), 'utf8')), manifest,
     'Cohort differs from the original interface/consumer context');
 }
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-release-install-',
   label: 'fixed release registry installation', preserve: true});
-const root = scratch.path, requested = [];
+const root = scratch.path, requested: string[] = [];
 const nodeItems = manifest.packages.filter(item => nodePackages.includes(item.name.slice('@actql/'.length)));
 const artifacts = isPublic ? [] : await Promise.all(nodeItems.map(async item => ({item,
   metadata: JSON.parse(execFileSync('tar', ['-xOf', join(directory, item.file), 'package/package.json'], {encoding: 'utf8'})),
@@ -49,6 +53,7 @@ const artifacts = isPublic ? [] : await Promise.all(nodeItems.map(async item => 
 const registry = isPublic ? null : createServer((request, response) => {
   try {
     assert.equal(request.method, 'GET', 'Read-only acceptance registry');
+    assert(typeof request.url === 'string');
     const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname).slice(1);
     requested.push(path);
     const archive = artifacts.find(v => path === `archives/${v.item.file}`);
@@ -64,16 +69,22 @@ const registry = isPublic ? null : createServer((request, response) => {
       'dist-tags': {latest: artifact.item.version}, versions: {[artifact.item.version]: metadata}} : metadata));
   } catch {response.writeHead(400); response.end('{}');}
 });
-if (registry) await new Promise((resolve, reject) => {registry.once('error', reject); registry.listen(0, '127.0.0.1', resolve);});
-const registryUrl = registry ? `http://127.0.0.1:${registry.address().port}/` : publicNpmRegistry;
-let environment;
-async function run(command, args, cwd) {
+if (registry) await new Promise<void>((resolve, reject) => {
+  registry.once('error', reject); registry.listen(0, '127.0.0.1', resolve);
+});
+const address = registry?.address();
+assert(!registry || (address && typeof address !== 'string'), 'The acceptance registry must use the original loopback socket');
+const registryUrl = address && typeof address !== 'string' ? `http://127.0.0.1:${address.port}/` : publicNpmRegistry;
+let environment: NodeJS.ProcessEnv;
+async function run(command: string, args: readonly string[], cwd: string) {
   const started = Date.now();
-  return new Promise((resolve, reject) => {
+  return new Promise<InstallCommandResult>((resolve, reject) => {
     const process = spawn(command, args, {cwd, env: environment, stdio: ['ignore', 'pipe', 'pipe']});
     let stdout = '', stderr = '', bytes = 0;
     const timer = setTimeout(() => {process.kill('SIGTERM');}, 180_000);
-    for (const [stream, append] of [[process.stdout, s => {stdout += s;}], [process.stderr, s => {stderr += s;}]]) stream.on('data', chunk => {
+    const streams = [[process.stdout, (text: string) => {stdout += text;}],
+      [process.stderr, (text: string) => {stderr += text;}]] as const;
+    for (const [stream, append] of streams) stream.on('data', (chunk: Buffer) => {
       bytes += chunk.length;
       if (bytes > 8 * 1024 * 1024) process.kill('SIGTERM'); else append(chunk.toString());
     });
@@ -85,11 +96,15 @@ async function run(command, args, cwd) {
     });
   });
 }
-const results = [], publicPayloads = [];
+const results: (InstallCommandResult | InterfaceReceipt)[] = [], publicPayloads: PackagePayload[] = [];
+const entries = ['node', 'sdk'] as const;
 async function installNodeAndSdk() {
   environment = isPublic ? publicConsumerEnvironment(process.env, root) : {...process.env, npm_config_registry: registryUrl,
     npm_config_cache: join(root, 'npm-cache'), npm_config_update_notifier: 'false'};
-  if (isPublic) for (const path of [environment.HOME, environment.TMPDIR]) await mkdir(path);
+  if (isPublic) for (const path of [environment.HOME, environment.TMPDIR]) {
+    assert(path, 'Missing original public consumer path');
+    await mkdir(path);
+  }
   environment.npm_config_userconfig = join(root, 'npmrc');
   environment.npm_config_globalconfig = join(root, 'npmrc-global');
   await writeFile(environment.npm_config_userconfig, `registry=${registryUrl}\n@actql:registry=${registryUrl}\n`);
@@ -101,7 +116,7 @@ async function installNodeAndSdk() {
   delete environment.ACTQL_LOCAL_SOURCE_PROFILE;
   delete environment.ACTQL_LOCAL_EFFECT_PROFILE;
   if (isPublic) results.push(await run('npm', ['--version'], root));
-  for (const entry of ['node', 'sdk']) {
+  for (const entry of entries) {
     const consumer = join(root, entry); await mkdir(consumer);
     await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
     if (isPublic) environment.npm_config_cache = join(root, `npm-cache-${entry}`);
@@ -146,7 +161,7 @@ async function installNodeAndSdk() {
   await writeFile(join(approval, 'expected.json'), JSON.stringify(document.stages[0].steps[0].values.rows));
   await copyFile(join(repository, 'scripts/fixtures/release-pre-run-refusal.mjs'), join(approval, 'client.mjs'));
   const reviewer = generateKeyPairSync('ed25519'), host = generateKeyPairSync('ed25519');
-  const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
+  const pem = (key: KeyObject) => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
   await writeFile(join(approval, 'reviewer.key'), pem(reviewer.privateKey), {mode: 0o600});
   await writeFile(join(approval, 'authorization.json'), JSON.stringify({
     accountConfiguration: canonicalText({version: 'actql-execution-account-config/0.1',
@@ -193,11 +208,12 @@ try {
     const provider = await runPackedProviderAI(join(root, 'provider'), {repository, release: directory,
       publicRegistry: isPublic, cases: ['usage-reported']});
     const [preparation] = provider.preparations;
+    assert(preparation, 'Missing original Provider installation');
     results.push(await interfaces.verifyConsumer(preparation.consumer, ['provider-ai-sdk']));
     providerAcceptance = {entry: '@actql/provider-ai-sdk',
       phases: provider.phases.map(({case: id, phase, status, pid, actual}) => ({case: id, phase, status, pid, actual})),
       ...(isPublic ? {installed: preparation.publicPayload} : {})};
-    if (isPublic) for (const [index, entry] of ['node', 'sdk'].entries()) {
+    if (isPublic) for (const [index, entry] of entries.entries()) {
       assert.deepEqual(await verifyPublicConsumer(join(root, entry), manifest, entry), publicPayloads[index],
         'Public Node/SDK installation changed during acceptance');
     }
@@ -229,4 +245,4 @@ try {
     `${JSON.stringify(receipt, null, 2)}\n`, {flag: 'wx'});
   scratch.passed();
   console.log(`${isPublic ? 'Public exact-version' : 'Fixed RC'} clean installation passed: ${root}`);
-} finally {if (registry) await new Promise(resolve => registry.close(resolve));}
+} finally {if (registry) await new Promise<void>(resolve => registry.close(() => resolve()));}

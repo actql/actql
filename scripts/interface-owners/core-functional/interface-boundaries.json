@@ -32945,14 +32945,13 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "87ed1db7fdfa2c6fa72374b329b48cd8f907fe2de7d5b2a9672ec38954b19107",
+      "sha256": "686ca476c2ea1892124205929254692662c19c44ca3f4e9f98fe596df6c6ac97",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
         "assertInstalledModelDefaultsAdoption",
         "assertInstalledModelDefaultsPreparation",
-        "consumeInstalledModelExecutionAbsence",
         "consumeInstalledModelPreparationRefusal",
         "installModelProviders",
         "installedModelEnvironment",
@@ -33008,16 +33007,6 @@
           "async": false
         },
         {
-          "name": "consumeInstalledModelExecutionAbsence",
-          "parameters": [
-            "error",
-            "prepared",
-            "installation",
-            "occurrence"
-          ],
-          "async": false
-        },
-        {
           "name": "consumeInstalledModelPreparationRefusal",
           "parameters": [
             "error",
@@ -33027,6 +33016,11 @@
             "beforeRead",
             "execution"
           ],
+          "async": false
+        },
+        {
+          "name": "fundModelMaterials/fundModelMaterials",
+          "parameters": [],
           "async": false
         },
         {
@@ -33208,21 +33202,14 @@
           "async": false
         },
         {
-          "name": "readInstalledModelDependencies/funded/funded",
+          "name": "readInstalledModelDependencies/readInstalledModelDependencies",
           "parameters": [
             "index"
           ],
           "async": false
         },
         {
-          "name": "readInstalledModelDependencies/funded/funded/funded",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInstalledModelDependencies/readInstalledModelDependencies",
+          "name": "readInstalledModelDependencies/readInstalledModelDependencies/readInstalledModelDependencies",
           "parameters": [
             "entry"
           ],
@@ -33236,21 +33223,7 @@
           "async": false
         },
         {
-          "name": "readInstalledModelDependenciesLegacy/bodies/bodies",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy#2",
+          "name": "readInstalledModelDependencies/readInstalledModelDependencies#3",
           "parameters": [
             "entry"
           ],
@@ -33275,15 +33248,8 @@
           "async": false
         },
         {
-          "name": "readInstalledModelExecution/funded/funded",
+          "name": "readInstalledModelExecution/readInstalledModelExecution",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "readInstalledModelExecutionLegacy/entry/entry",
-          "parameters": [
-            "item"
-          ],
           "async": false
         },
         {
@@ -33356,17 +33322,9 @@
             "readInstalledModelDependencies/bodies/bodies",
             "readInstalledModelDependencies/readInstalledModelDependencies",
             "readInstalledModelDependencies/readInstalledModelDependencies#2",
-            "readInstalledModelDependenciesLegacy/bodies/bodies",
-            "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy",
-            "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy#2",
             "readInstalledModelExecution",
             "readInstalledModelExecution/entry/entry",
-            "readInstalledModelExecutionLegacy/entry/entry",
-            "consumeInstalledModelExecutionAbsence",
             "consumeInstalledModelPreparationRefusal",
-            "readInstalledModelDependencies/funded/funded",
-            "readInstalledModelDependencies/funded/funded/funded",
-            "readInstalledModelExecution/funded/funded",
             "installModelProviders/current/current",
             "installModelProviders/guarded/guarded/guarded",
             "installModelProviders/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
@@ -33380,7 +33338,11 @@
             "snapshotTaskInstallations/snapshotTaskInstallations#2",
             "snapshotTaskInstallations/snapshotTaskInstallations#3",
             "snapshotTaskInstallations/snapshotTaskInstallations#4",
-            "snapshotTaskInstallations/value/value"
+            "snapshotTaskInstallations/value/value",
+            "fundModelMaterials/fundModelMaterials",
+            "readInstalledModelDependencies/readInstalledModelDependencies/readInstalledModelDependencies",
+            "readInstalledModelDependencies/readInstalledModelDependencies#3",
+            "readInstalledModelExecution/readInstalledModelExecution"
           ],
           "exports": [
             "admitInstalledModelProvider",
@@ -33389,7 +33351,6 @@
             "installedModelEnvironment",
             "readInstalledModelDependencies",
             "readInstalledModelExecution",
-            "consumeInstalledModelExecutionAbsence",
             "consumeInstalledModelPreparationRefusal"
           ],
           "attributes": {

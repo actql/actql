@@ -1,4 +1,6 @@
 import {createHash} from 'node:crypto';
+import {join} from 'node:path';
+import {bindPythonOrdinaryLatency, pythonReleaseLatencyLimits} from './python-release-latency-policy.mjs';
 import {publicLatencyTarget, integer, requireValue, latencySummary, resourceSummary,
   assessPublicLatencySamples} from './operation-performance-sample-summary.mjs';
 export {publicLatencyTarget, latencySummary, resourceSummary, assessPublicLatencySamples} from
@@ -414,7 +416,13 @@ export function assessLatency(series, comparison) {
   return assessLatencyTarget(series, calibration.target, calibration.missing);
 }
 
-function assessLatencyTarget(series, target, initialMissing = []) {
+export function assessPythonOrdinaryLatency(series, comparison) {
+  const policy = pythonReleaseLatencyLimits(series.operation);
+  const calibrated = calibratedLatencyTarget(series, comparison);
+  return assessLatencyTarget(series, {...calibrated.target, ...policy}, calibrated.missing, policy);
+}
+
+function assessLatencyTarget(series, target, initialMissing = [], publicLimits) {
   requireValue(digest(series.cohortSha256) && digest(series.fixtureSha256) && digest(series.environmentSha256),
     'Exact cohort, fixture and environment identities are required');
   requireValue(['diagnostic', 'final'].includes(series.mode) && Array.isArray(series.samples), 'Invalid measurement mode');
@@ -444,7 +452,7 @@ function assessLatencyTarget(series, target, initialMissing = []) {
   if (series.stoppedEarly) missing.push('measurement stopped early');
   if (summary.count !== target.samples || verifiedSummary.count !== target.samples) missing.push(`${target.samples} successful raw samples`);
   if (target.publicEndToEnd) {
-    const actual = assessPublicLatencySamples(series.samples, target.samples, series.operation);
+    const actual = assessPublicLatencySamples(series.samples, target.samples, series.operation, publicLimits);
     failures.push(...actual.failures); missing.push(...actual.missing);
     if (!resources.cpu.available) missing.push('actual scoped CPU observations');
     if (!resources.rss.available) missing.push('actual scoped peak RSS observations');
@@ -765,6 +773,10 @@ export async function collectOperationSamples({operation, mode, identity, stateI
 }
 
 export function assessPerformanceEvidence(report) {
+  return assessBoundPerformanceEvidence(report);
+}
+
+function assessBoundPerformanceEvidence(report, pythonBinding) {
   requireValue(/^[a-f0-9]{40}$/u.test(report.sourceSha ?? '') && digest(report.cohortSha256), 'Fixed ordinary cohort identity required');
   requireValue(digest(report.environmentSha256) && digest(report.historyProtocolSha256), 'Environment and history protocol identities required');
   const native = report.comparison?.nativeSqliteDiagnostic;
@@ -781,7 +793,8 @@ export function assessPerformanceEvidence(report) {
       series.historyProtocolSha256 === report.historyProtocolSha256, 'Latency environment or history protocol differs');
     requireValue(!seen.has(series.operation), 'Duplicate operation series');
     seen.add(series.operation);
-    gates[series.operation] = assessLatency(series, report.comparison);
+    gates[series.operation] = pythonBinding
+      ? assessPythonOrdinaryLatency(series, report.comparison) : assessLatency(series, report.comparison);
   }
   for (const operation of Object.keys(operationTargets)) if (!seen.has(operation)) missing.push(operation);
   for (const [name, assess] of [['functional', assessFunctions], ['structure', assessStructure], ['history', assessHistory],
@@ -805,6 +818,7 @@ export function assessPerformanceEvidence(report) {
   }
   return outcome(failures, missing, {sourceSha: report.sourceSha, cohortSha256: report.cohortSha256, gates,
     ...(diagnostics ? {diagnostics} : {}),
+    ...(pythonBinding ? {pythonLatency: pythonBinding} : {}),
     qualification: 'Assesses supplied measurements; does not authenticate their provenance or establish full product completion.'});
 }
 
@@ -1223,19 +1237,20 @@ async function main(args) {
   const native = args[0] === '--native-operations';
   requireValue(args.length >= 2 && args.length % 2 === 0 &&
     ['--input', '--calibrate-sqlite', '--priority-transition', '--native-operations'].includes(args[0]),
-    'Usage: --input REPORT [--native-sqlite-control CONTROL --native-sqlite-protocol PROTOCOL] | --native-operations REPORT | --priority-transition COMBINED_REPORT | --calibrate-sqlite BASELINE [--result-control CONTROL] [--output JSON]');
+    'Usage: --input REPORT [--native-sqlite-control CONTROL --native-sqlite-protocol PROTOCOL] [--python-ordinary-packages ROOT --python-ordinary-operation OPERATION] | --native-operations REPORT | --priority-transition COMBINED_REPORT | --calibrate-sqlite BASELINE [--result-control CONTROL] [--output JSON]');
   const options = {};
   for (let index = 2; index < args.length; index += 2) {
     const key = args[index];
     requireValue((key === '--output' || calibration && key === '--result-control' || !calibration && !priority && !native &&
-      ['--native-sqlite-control', '--native-sqlite-protocol'].includes(key)) &&
+      ['--native-sqlite-control', '--native-sqlite-protocol', '--python-ordinary-packages', '--python-ordinary-operation'].includes(key)) &&
       !Object.hasOwn(options, key), 'Unknown or duplicate assessment option');
     options[key] = args[index + 1];
   }
-  const boundedInput = async path => {
+  const boundedBytes = async path => {
     requireValue((await stat(path)).size <= 16 * 1024 ** 2, 'Measurement report exceeds bounded input');
-    return JSON.parse(await readFile(path, 'utf8'));
+    return readFile(path);
   };
+  const boundedInput = async path => JSON.parse((await boundedBytes(path)).toString('utf8'));
   const input = await boundedInput(args[1]);
   const nativeControl = options['--native-sqlite-control'], nativeProtocol = options['--native-sqlite-protocol'];
   requireValue(Boolean(nativeControl) === Boolean(nativeProtocol), 'Native control and protocol must be supplied together');
@@ -1245,10 +1260,16 @@ async function main(args) {
     input.comparison = {...input.comparison, nativeSqliteDiagnostic: {
       control: await boundedInput(nativeControl), protocolText: await readFile(nativeProtocol, 'utf8')}};
   }
+  const pythonPackages = options['--python-ordinary-packages'], pythonOperation = options['--python-ordinary-operation'];
+  requireValue(Boolean(pythonPackages) === Boolean(pythonOperation), 'Select both the ordinary Python package root and operation');
+  requireValue(!pythonPackages || !nativeControl, 'Ordinary Python cannot use Native diagnostic selection');
+  const pythonBinding = pythonPackages ? bindPythonOrdinaryLatency(input,
+    await boundedInput(join(pythonPackages, 'source.json')),
+    await boundedBytes(join(pythonPackages, 'packages', 'cohort.json')), pythonOperation) : undefined;
   const resultControl = options['--result-control'] ? await boundedInput(options['--result-control']) : undefined;
   const result = calibration ? {baseline: input, ...(resultControl ? {resultControl} : {}),
     profile: calibrateSqliteComparisonProfile(input, resultControl)}
-    : priority ? assessPriorityTransition(input) : native ? assessNativeOperations(input) : assessPerformanceEvidence(input);
+    : priority ? assessPriorityTransition(input) : native ? assessNativeOperations(input) : assessBoundPerformanceEvidence(input, pythonBinding);
   const body = JSON.stringify(result, null, 2) + '\n';
   if (options['--output']) await writeFile(options['--output'], body, {flag: 'wx'});
   process.stdout.write(body);

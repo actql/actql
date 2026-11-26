@@ -103,6 +103,11 @@ or regenerate a baseline to match this expanded source inventory.
 The fixed Quick/Release inventory and sample counts are checked independently
 of a saved report's required flags/count claims. Collector errors disqualify a
 baseline; an expected verdict exit (such as size-regression exit 1) does not.
+For Python v0.0.3 Release comparisons, keep each report's original `cohort.json`,
+its `wheels/` directory, and the referenced raw measurement files available at
+their recorded paths. The offline comparison uses Python to verify the original
+wheel metadata and bytes without installing them. Both reports must bind their
+samples to their own verified cohort before the v0.0.3 limits are applied.
 Build/reuse reference timing never gates otherwise comparable size/runtime data.
 
 Size deltas show both bytes and percentage: npm/wheel/Native/Wasm +10% warns,

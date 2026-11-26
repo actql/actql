@@ -4,7 +4,8 @@ import {cpus, arch, platform, release} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
-import {compareReports, digest, jsonDigest, finishReport, saveReport, markdown, summarize, measurementProfile} from './health-monitor-report.mjs';
+import {compareReports, digest, jsonDigest, finishReport, exitStatus, saveReport, markdown, summarize, measurementProfile} from './health-monitor-report.mjs';
+import {verifiedPythonReleaseMetrics} from './health-python-release-evidence.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const self = fileURLToPath(import.meta.url);
@@ -100,15 +101,23 @@ export function recordGuardExit(report, code) {
   report.guardExitCode = code;
   if (code !== report.exitCode) {
     report.errors.push({target: 'resource/execution guard', message: `Original guard exited ${code}; inspect _build/local-checks/attempts original evidence`});
-    finishReport(report);
+    report.status = 'error';
+    report.exitCode = exitStatus(report.status);
+    report.formalAcceptance = false;
   }
   return report;
+}
+
+async function compareOriginalReports(base, current, python = 'python3') {
+  const [baseMetrics, currentMetrics] = await Promise.all([verifiedPythonReleaseMetrics(base, python),
+    verifiedPythonReleaseMetrics(current, python)]);
+  return {comparison: compareReports(base, current, policy, {base: baseMetrics, current: currentMetrics}), currentMetrics};
 }
 
 export async function applyComparison(report, options, root = repository) {
   const explicit = Object.hasOwn(options, 'base');
   const selection = explicit ? 'explicit' : 'default';
-  let baselinePath;
+  let baselinePath, baselineRead = false;
   try {
     if (explicit) baselinePath = resolve(options.base);
     else {
@@ -119,10 +128,12 @@ export async function applyComparison(report, options, root = repository) {
       baselinePath = join(root, 'benchmarks/health/baselines', `${platform}-${architecture}.json`);
     }
     const bytes = await readFile(baselinePath);
-    report.comparison = {...compareReports(JSON.parse(bytes), report, policy),
+    baselineRead = true;
+    const {comparison} = await compareOriginalReports(JSON.parse(bytes), report, options.python);
+    report.comparison = {...comparison,
       baselineSelection: selection, baselinePath, baselineSha256: digest(bytes)};
   } catch (error) {
-    if (!explicit && baselinePath && error.code === 'ENOENT') {
+    if (!explicit && !baselineRead && baselinePath && error.code === 'ENOENT') {
       report.comparison = {available: false, comparable: false, baselineId: null,
         baselineSelection: selection, baselinePath,
         reason: 'Default reviewed baseline absent; measurement-only first run; baseline not created or updated'};
@@ -138,13 +149,14 @@ export async function executeMonitor({mode, options, report, directory}) {
   const {execute, prepareHealthPackages, distributionMetrics, observeInstalledHealthNodeModules,
     quickNodeMetrics, mockWorkflowMetrics} = await import('./health-monitor-adapters.mjs');
   const raw = join(directory, 'raw'); await mkdir(raw, {recursive: true});
+  const pythonReleaseMetrics = new Set();
   const onMetric = async metric => {
     if (metric.kind === 'latency' && metric.samples?.length) metric = {...metric,
       statistics: summarize(metric.samples, mode === 'release' ? metric.requiredSamples
         : metric.temperature === 'cold' ? 30 : 100)};
     const index = report.metrics.findIndex(row => row.id === metric.id && row.target === metric.target);
     if (index < 0) report.metrics.push(structuredClone(metric)); else report.metrics[index] = structuredClone(metric);
-    await saveReport(directory, finishReport(report));
+    await saveReport(directory, finishReport(report, pythonReleaseMetrics));
 
   };
   const command = (command, args, settings = {}) => execute(command, args, {...settings, raw,
@@ -182,7 +194,16 @@ export async function executeMonitor({mode, options, report, directory}) {
       const ready = await releaseArtifacts({options, repository, source: report.source, command,
         onArtifact: async artifact => report.artifacts.push(artifact), onMetric});
       if (ready) {
-        await releaseMeasurements({options, prepared, repository, root: raw, source: report.source, command, onMetric});
+        await releaseMeasurements({options, prepared, repository, root: raw, source: report.source, command, onMetric,
+          onPythonMetric: async (metric, {cohortSha256}) => {
+            const cohort = {path: resolve(options.pythonManifest), sha256: cohortSha256};
+            if (report.pythonReleaseCohort && jsonDigest(report.pythonReleaseCohort) !== jsonDigest(cohort)) {
+              throw new Error('Python Health cohort changed during measurement');
+            }
+            report.pythonReleaseCohort = cohort;
+            pythonReleaseMetrics.add(metric.id);
+            await onMetric(metric);
+          }});
         const {assessLatency} = await import('./operation-performance.mjs');
         const {nodeBenchmarkInstrumentation} = await import('./node-benchmark-evidence.mjs');
         await mockWorkflowMetrics({prepared, root: raw, repository, command, counts,
@@ -226,7 +247,7 @@ export async function executeMonitor({mode, options, report, directory}) {
     report.environmentChanged = jsonDigest(report.environment) !== jsonDigest(report.environmentAfter);
     try {await applyComparison(report, options);} catch (error) {report.errors.push({target: 'baseline', message: error.message});}
     report.endedAt = new Date().toISOString();
-    await saveReport(directory, finishReport(report));
+    await saveReport(directory, finishReport(report, pythonReleaseMetrics));
   }
   return report;
 }
@@ -244,15 +265,16 @@ export async function main(args = process.argv.slice(2)) {
     directory = resolve(parsed.options.output ?? join(repository, '_build/health', `${new Date().toISOString().replaceAll(':', '-')}-${randomUUID()}`));
     await mkdir(directory, {recursive: false, mode: 0o700}); // Existing run can never be reused.
     if (parsed.mode === 'compare') {
-      report = JSON.parse(await readFile(parsed.options.current));
-      report = structuredClone(report);
+      const [baseBytes, currentBytes] = await Promise.all([readFile(parsed.options.base), readFile(parsed.options.current)]);
+      const current = JSON.parse(currentBytes);
+      report = structuredClone(current);
       report.id = randomUUID(); report.measuredMode = report.mode; report.mode = 'compare';
       // Compare original measurement modes, not the output presentation mode.
-      const current = JSON.parse(await readFile(parsed.options.current));
-      report.comparison = compareReports(JSON.parse(await readFile(parsed.options.base)), current, policy);
+      const {comparison, currentMetrics} = await compareOriginalReports(JSON.parse(baseBytes), current, parsed.options.python);
+      report.comparison = comparison;
       report.compareInputs = {base: resolve(parsed.options.base), current: resolve(parsed.options.current),
-        baseSha256: digest(await readFile(parsed.options.base)), currentSha256: digest(await readFile(parsed.options.current))};
-      finishReport(report); await saveReport(directory, report); console.log(markdown(report)); return report.exitCode;
+        baseSha256: digest(baseBytes), currentSha256: digest(currentBytes)};
+      finishReport(report, currentMetrics); await saveReport(directory, report); console.log(markdown(report)); return report.exitCode;
     }
     const methodologyFiles = await fixtureIdentities(parsed.mode);
     report = {format: 'actql-health/0.1', id: randomUUID(), mode: parsed.mode, startedAt: new Date().toISOString(),
@@ -312,7 +334,9 @@ export async function fixtureIdentities(mode = 'quick', {root = repository} = {}
     'scripts/package-release.mjs', 'scripts/package-inventory.mts', 'scripts/installed-connector-bin.mts',
     'scripts/connector-authoring-toolkit.mts', 'scripts/operation-performance.mjs', 'scripts/operation-performance-sample-summary.mts', 'scripts/ordinary-operation-packages.mjs'];
   if (mode === 'release') files.push('scripts/benchmark-node-process-operations.mjs', 'scripts/benchmark-ordinary-processes.py',
-    'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs');
+    'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs',
+    'scripts/python-release-latency-policy.mts', 'scripts/health-python-release-evidence.mts',
+    'scripts/python_release_cohort.py', 'scripts/build-python-product-wheels.py', 'scripts/release-version.mts');
   return Object.fromEntries(await Promise.all(files.map(async file => [file, digest(await readFile(join(root, file)))])));
 }
 

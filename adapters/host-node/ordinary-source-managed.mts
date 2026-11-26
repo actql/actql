@@ -1216,7 +1216,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
             const occurrences = effectful || explanationPorts !== undefined
               ? state.staticModelOccurrences! : [];
             for (const occurrence of occurrences) {
-              const {execution} = readInstalledModelExecution(moon as typeof moon & ModelExecutionRuntime, prepared, staticModelInstallation,
+              const {execution} = readInstalledModelExecution(moon as typeof moon & ModelExecutionRuntime, prepared, staticModelInstallation!,
                 occurrence, (count, wireAt, containers) =>
                   view.prepareModelMaterials(prepared, request, count, wireAt, containers))!;
               // Preserve the original parser return before Graph/current can

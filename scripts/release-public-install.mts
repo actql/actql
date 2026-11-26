@@ -5,12 +5,25 @@ import {createHash} from 'node:crypto';
 import {readFile, lstat, readdir, realpath} from 'node:fs/promises';
 import {join, resolve, dirname, isAbsolute, basename, relative, sep} from 'node:path';
 import {inventory, nodePackages, nodeReleaseIncludesProvider, verifyPackageRelease} from './package-release.mjs';
-import {verifyReleaseSet} from './release-set.mjs';
+import {verifyReleaseSet} from './release-set-verification.mjs';
 import {releaseVersion} from './release-version.mjs';
+
+type NodeManifest = Awaited<ReturnType<typeof verifyPackageRelease>>;
+type FixedSelection = {directory: string; manifestSha256: string; targetId: string};
+type PublicSelection = {kind: 'public-npm'; directory: string; manifestSha256: string; releaseSet?: FixedSelection};
+type InstallSelection = PublicSelection | {kind: 'private-loopback'; directory: string};
+type ConsumerEnvironment = Record<string, string>;
+type NpmLock = {
+  lockfileVersion: number;
+  packages: Record<string, {version?: string; integrity?: string; link?: boolean; resolved?: string;
+    dependencies?: Record<string, string>} | undefined>;
+};
+type NodeEntry = 'node' | 'sdk' | 'provider-ai-sdk';
+type PythonEntry = 'actql' | 'actql-sdk';
 
 export const publicNpmRegistry = 'https://registry.npmjs.org/';
 
-export function pythonReleaseInstallSelection(args) {
+export function pythonReleaseInstallSelection(args: string[]) {
   assert(Array.isArray(args) && (args.length === 5 || (args.length === 7 && args[5] === '--uv')),
     'usage: test-python-release-install.mjs <fixed-directory> <externally-retained-SHA256> <target-id> <absolute-python> <new-external-consumer-directory> [--uv <absolute-uv>]');
   assert.match(args[1], /^[a-f0-9]{64}$/u); assert(isAbsolute(args[3]), 'Select one absolute Python interpreter');
@@ -20,9 +33,9 @@ export function pythonReleaseInstallSelection(args) {
     manager: args.length === 7 ? 'uv' : 'pip', uv: args.length === 7 ? args[6] : null};
 }
 
-export function pythonPublicConsumerEnvironment(parent, root, interpreter) {
+export function pythonPublicConsumerEnvironment(parent: NodeJS.ProcessEnv, root: string, interpreter: string) {
   assert(isAbsolute(interpreter));
-  const environment = {};
+  const environment: ConsumerEnvironment = {};
   for (const key of ['LANG', 'LC_ALL', 'LC_CTYPE', 'TZ'])
     if (typeof parent[key] === 'string') environment[key] = parent[key];
   // Only the fresh venv's bin is available. Node/npm/actql, source paths,
@@ -33,7 +46,7 @@ export function pythonPublicConsumerEnvironment(parent, root, interpreter) {
   return environment;
 }
 
-export function pythonInstallCommand(version, entry, report) {
+export function pythonInstallCommand(version: string, entry: PythonEntry, report: string) {
   assert(['actql', 'actql-sdk'].includes(entry)); assert(isAbsolute(report));
   const selected = releaseVersion(version);
   return ['-I', '-B', '-m', 'pip', '--isolated', 'install', '--index-url', 'https://pypi.org/simple',
@@ -41,7 +54,7 @@ export function pythonInstallCommand(version, entry, report) {
     '--report', report, `${entry}==${selected.pythonVersion}`];
 }
 
-export function pythonUvConsumerEnvironment(parent, root) {
+export function pythonUvConsumerEnvironment(parent: NodeJS.ProcessEnv, root: string) {
   const env = pythonPublicConsumerEnvironment(parent, root, '/no-path/python');
   // The explicitly selected uv/Python executables are absolute. Nothing from
   // the invoking user's shared uv cache/config, active venv or PATH is used.
@@ -49,19 +62,19 @@ export function pythonUvConsumerEnvironment(parent, root) {
   return env;
 }
 
-export function pythonUvProject(minor) {
+export function pythonUvProject(minor: string) {
   assert.match(minor, /^3\.(?:1[1-9]|[2-9][0-9])$/u);
   return `[project]\nname = "release-consumer-check"\nversion = "0.0.0"\nrequires-python = "==${minor}.*"\ndependencies = []\n`;
 }
 
-export async function pythonUvProjectParents(root) {
+export async function pythonUvProjectParents(root: string) {
   // Refuse an enclosing project before uv can discover or modify a foreign
   // workspace. --no-workspace controls dependency membership, not discovery.
   let parent = dirname(root);
   for (let depth = 0; depth < 128; depth++) {
     for (const name of ['pyproject.toml', 'uv.toml']) {
       try {await lstat(join(parent, name)); throw Error('uv consumer has an enclosing project/configuration');}
-      catch (failure) {if (failure.code !== 'ENOENT') throw failure;}
+      catch (failure) {if ((failure as NodeJS.ErrnoException).code !== 'ENOENT') throw failure;}
     }
     const next = dirname(parent);
     if (next === parent) return;
@@ -70,7 +83,7 @@ export async function pythonUvProjectParents(root) {
   throw Error('uv consumer ancestor bound exceeded');
 }
 
-export function pythonUvInstallCommand(version, entry, python) {
+export function pythonUvInstallCommand(version: string, entry: PythonEntry, python: string) {
   assert(['actql', 'actql-sdk'].includes(entry)); assert(isAbsolute(python));
   const selected = releaseVersion(version);
   return ['add', '--python', python, '--no-managed-python', '--no-python-downloads', '--no-config',
@@ -79,7 +92,7 @@ export function pythonUvInstallCommand(version, entry, python) {
     '--keyring-provider', 'disabled', `${entry}==${selected.pythonVersion}`];
 }
 
-export async function releaseConsumerDestination(destination, excludedRoots) {
+export async function releaseConsumerDestination(destination: string, excludedRoots: readonly string[]) {
   const actual = join(await realpath(dirname(destination)), basename(destination));
   for (const root of excludedRoots) {
     const delta = relative(await realpath(root), actual);
@@ -87,12 +100,12 @@ export async function releaseConsumerDestination(destination, excludedRoots) {
       'Release consumer must be physically outside source and fixed artifacts');
   }
   try {await lstat(actual); throw Error('Release consumer destination already exists');}
-  catch (failure) {if (failure.code !== 'ENOENT') throw failure;}
+  catch (failure) {if ((failure as NodeJS.ErrnoException).code !== 'ENOENT') throw failure;}
   return actual;
 }
 export const pythonConsumerDestination = releaseConsumerDestination;
 
-export function releaseInstallSelection(args) {
+export function releaseInstallSelection(args: string[]): InstallSelection {
   assert(Array.isArray(args) && args.length >= 1, 'Supply the original RC directory');
   if (args.length === 1) return {kind: 'private-loopback', directory: resolve(args[0])};
   assert((args.length === 3 || (args.length === 8 && args[3] === '--release-set' && args[6] === '--target')) && args[1] === '--public-registry',
@@ -106,7 +119,7 @@ export function releaseInstallSelection(args) {
     ...(args.length === 8 ? {releaseSet: {directory: resolve(args[4]), manifestSha256: args[5], targetId: args[7]}} : {})};
 }
 
-export async function verifyPublicNodeReleaseBinding(selection) {
+export async function verifyPublicNodeReleaseBinding(selection: PublicSelection) {
   assert.equal(selection.kind, 'public-npm');
   if (!selection.releaseSet) return null; // Historical child-only scope remains explicit.
   const supplied = selection.releaseSet, fixed = await verifyReleaseSet(supplied.directory,
@@ -114,6 +127,7 @@ export async function verifyPublicNodeReleaseBinding(selection) {
   const target = fixed.manifest.request.targets.find(value => value.id === supplied.targetId);
   assert.equal(target?.ecosystem, 'npm', 'Select the original Node npm target');
   const cohort = fixed.manifest.cohorts.find(value => value.targetId === target.id);
+  assert(cohort, 'Missing original Node npm cohort');
   assert.equal(cohort.kind, 'node-npm', 'Native/Python cohorts cannot acquire Node consumer acceptance');
   assert.equal(cohort.sha256, selection.manifestSha256, 'Original Node child digest differs from the fixed selected target');
   const original = await readFile(join(selection.directory, 'release.json'));
@@ -139,11 +153,11 @@ export async function verifyPublicNodeReleaseBinding(selection) {
     qualification: 'full original Node cohort byte/lineage binding to exact upper set only; not runtime, approval, platform or release acceptance'};
 }
 
-export function publicConsumerEnvironment(parent, root, node = process.execPath) {
+export function publicConsumerEnvironment(parent: NodeJS.ProcessEnv, root: string, node = process.execPath) {
   // Do not inherit publisher tokens, npm configs, proxy credentials, Node
   // injection, ActQL profiles or previous HOME/state. The harness may later
   // add only its existing explicit own HTTPS fixture context.
-  const environment = {};
+  const environment: ConsumerEnvironment = {};
   for (const key of ['LANG', 'LC_ALL', 'LC_CTYPE', 'TZ', 'SystemRoot', 'SYSTEMROOT', 'COMSPEC'])
     if (typeof parent[key] === 'string') environment[key] = parent[key];
   environment.PATH = `${dirname(node)}${process.platform === 'win32' ? ';' : ':'}${parent.PATH ?? ''}`;
@@ -155,7 +169,7 @@ export function publicConsumerEnvironment(parent, root, node = process.execPath)
   return environment;
 }
 
-export function publicInstallCommand(manifest, entry) {
+export function publicInstallCommand(manifest: NodeManifest, entry: NodeEntry) {
   assert.equal(manifest.version, 'actql-package-release/0.1');
   const includesProvider = nodeReleaseIncludesProvider(manifest.cohort.packages);
   assert.equal(manifest.cohort.registry, publicNpmRegistry);
@@ -170,21 +184,21 @@ export function publicInstallCommand(manifest, entry) {
     ...selectors];
 }
 
-function publicResolved(value) {
-  assert.equal(typeof value, 'string'); assert.equal(value, value.trim());
+function publicResolved(value: unknown): asserts value is string {
+  assert(typeof value === 'string'); assert.equal(value, value.trim());
   assert(!/[\u0000-\u0020\u007f]/u.test(value), 'Installed artifact URL must be literal public text');
   const url = new URL(value);
   assert.equal(url.origin, 'https://registry.npmjs.org');
   assert(!url.username && !url.password && !url.search && !url.hash, 'Non-public installed artifact origin');
 }
 
-export async function verifyPublicConsumer(root, manifest, entry) {
+export async function verifyPublicConsumer(root: string, manifest: NodeManifest, entry: NodeEntry) {
   publicInstallCommand(manifest, entry);
   const provider = entry === 'provider-ai-sdk';
   const names = provider ? manifest.cohort.packages : entry === 'node' ? nodePackages : ['client-wire', 'sdk'];
   const lockPath = join(root, 'package-lock.json'), lockStat = await lstat(lockPath);
   assert(lockStat.isFile() && !lockStat.isSymbolicLink());
-  const original = await readFile(lockPath), lock = JSON.parse(original);
+  const original = await readFile(lockPath), lock = JSON.parse(original.toString('utf8')) as NpmLock;
   assert.equal(lock.lockfileVersion, 3, 'Public acceptance requires the selected modern npm lock format');
   assert(lock.packages && typeof lock.packages === 'object' && !Array.isArray(lock.packages));
   const entries = provider ? ['node', entry] : [entry];
@@ -203,6 +217,7 @@ export async function verifyPublicConsumer(root, manifest, entry) {
   for (const name of names) {
     const item = manifest.packages.find(value => value.name === `@actql/${name}`); assert(item);
     const locked = lock.packages[`node_modules/${item.name}`];
+    assert(locked, 'Missing original ActQL package in public lock');
     assert.equal(locked.version, item.version); assert.equal(locked.integrity, item.integrity); assert.notEqual(locked.link, true);
     publicResolved(locked.resolved);
     assert(!item.files.some(value => value.path === 'node_modules' || value.path.startsWith('node_modules/')),
