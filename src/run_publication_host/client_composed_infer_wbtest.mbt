@@ -359,6 +359,247 @@ test "common graph retains both independent Model barriers and rejects incomplet
 }
 
 ///|
+test "composed egress follows checked source-free imports for each sibling" {
+  let prepared = client_two_independent_infer_test_program()
+  let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+  assert_eq(occurrences.length(), 2)
+  let program = @strategy.graph_program(prepared_client_graph(prepared))
+  for occurrence in occurrences {
+    assert_true(
+      @checked.prepare_infer_input_policy(
+        program,
+        occurrence.stage,
+        occurrence.step,
+        1000000,
+        1000000,
+        100000,
+        100,
+      )
+      is Some(@checked.ClosedLocal),
+    )
+    let execution = client_infer_graph_test_execution(
+      prepared,
+      occurrence=Some(occurrence),
+    )
+    assert_true(
+      admit_client_infer_occurrence_egress(occurrence, execution, () => {
+        Some({
+          classification: @environment.Public,
+          region: "fixture-region",
+          provider_retention: false,
+          training_use: false,
+        })
+      })
+      is Ok(_),
+    )
+  }
+  let first = occurrences[0]
+  try
+    @checked.prepare_infer_input_policy(
+      program,
+      first.stage,
+      first.step,
+      1000000,
+      1000000,
+      100000,
+      0,
+    )
+  catch {
+    @checked.BudgetExceeded => ()
+    issue => raise issue
+  } noraise {
+    _ => fail("checked imports require bounded traversal")
+  }
+}
+
+///|
+fn client_composed_whole_sibling_test_program() -> PreparedClientProgram raise {
+  let document =
+    #|{"version":"actql/0.1","id":"model-whole-egress","stages":[{"id":"source","inputs":{"left":{"connector":"crm/main","resource":"r","view":"v"},"right":{"connector":"crm/right","resource":"r","view":"v"}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":100,"select":{"id":"left.id","amount":"right.amount"}},"as":"joined"}],"results":{"rows":{"from":"joined","fields":["id","amount"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"source","result":"rows"}}},"steps":[{"from":"rows","assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"literal":"fixture"}}},"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"source","result":"rows"}}},"steps":[{"from":"rows","assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"literal":"fixture"}}},"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id","outcome","value"]}}}],"results":{"a":{"from":{"stage":"first","result":"rows"}},"b":{"from":{"stage":"second","result":"rows"}}}}
+  let known = admit_client_check_environment(
+    mixed_known_policy_environment,
+    "sha256:a789489e096d742e32125c57801a7b8662174befe3c3b2a6369e19533a471115",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  match
+    prepare_effect_free_client_program(
+      document,
+      Json,
+      client_composed_effect_test_environment(known),
+      None,
+      client_standard_program_preparation_limits(),
+    ) {
+    Ok(value) => value
+    Err(Check(issue)) => raise @checked.diagnostic_cause(issue)
+    Err(_) => fail("Whole sibling preparation")
+  }
+}
+
+///|
+test "composed egress retains both source policies at each sibling input" {
+  let prepared = client_composed_whole_sibling_test_program()
+  let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+  assert_eq(occurrences.length(), 2)
+  let program = @strategy.graph_program(prepared_client_graph(prepared))
+  for occurrence in occurrences {
+    assert_true(
+      @checked.prepare_infer_input_policy(
+        program,
+        occurrence.stage,
+        occurrence.step,
+        1000000,
+        1000000,
+        100000,
+        100,
+      )
+      is Some(@checked.CheckedSources(@environment.Internal)),
+    )
+    let execution = client_infer_graph_test_execution(
+      prepared,
+      occurrence=Some(occurrence),
+    )
+    assert_true(
+      admit_client_infer_occurrence_egress(occurrence, execution, () => {
+        Some({
+          classification: @environment.Public,
+          region: "fixture-region",
+          provider_retention: false,
+          training_use: false,
+        })
+      })
+      is Ok(_),
+    )
+  }
+}
+
+///|
+test "Whole sibling INFER prefixes receive the same original declared Result port" {
+  let prepared = client_composed_whole_sibling_test_program()
+  let graph = prepared_client_graph(prepared)
+  let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+  assert_eq(occurrences.length(), 2)
+  let mut previous : @results.ResultPort? = None
+  for occurrence in occurrences {
+    let mut selected : @results.ResultPort? = None
+    for index in 0..<@strategy.graph_data_count(graph) {
+      let edge = @strategy.graph_data_at(graph, index).unwrap()
+      if @strategy.graph_task_unit_index(
+          graph,
+          @strategy.data_edge_consumer(edge),
+        ) !=
+        Some(occurrence.stage) {
+        continue
+      }
+      if @strategy_view.graph_result_input_port(graph, index).unwrap()
+        is Some(port) {
+        assert_true(selected is None)
+        assert_eq(
+          @strategy.graph_task_unit_index(
+            graph,
+            @strategy.data_edge_producer(edge),
+          ),
+          Some(0),
+        )
+        assert_eq(@results.name(@results.port_result(port)), "rows")
+        selected = Some(port)
+      }
+    }
+    guard selected is Some(port) else {
+      fail("missing original Whole Result import")
+    }
+    if previous is Some(first) {
+      assert_true(physical_equal(first, port))
+    }
+    previous = Some(port)
+  }
+
+  let port = previous.unwrap()
+  let program = @strategy.graph_program(graph)
+  let policy = @checked.prepare_local_result_source_policy(
+    program, 0, port, 100000, 65536, 8192, 64,
+  ).unwrap()
+  assert_false(policy.unknown_provenance)
+  assert_eq(
+    @checked.publication_policy_classification(policy),
+    @environment.Internal,
+  )
+  assert_eq(@checked.publication_policy_source_count(policy), 2)
+  let contributors = []
+  for index in 0..<2 {
+    let source = @checked.publication_policy_source_at(policy, index).unwrap()
+    contributors.push(
+      @acquisition.declaration(@checked.source_execution_subject(source).source).input_name,
+    )
+  }
+  contributors.sort_by(@canonical_value.compare_utf16)
+  assert_eq(contributors, ["left", "right"])
+  assert_true(
+    prepared_client_publication_data_policy_cid(prepared) != Some(policy.cid),
+  )
+  let foreign = @strategy.graph_program(
+    prepared_client_graph(client_composed_whole_sibling_test_program()),
+  )
+  try
+    @checked.prepare_local_result_source_policy(
+      foreign, 0, port, 100000, 65536, 8192, 64,
+    )
+  catch {
+    @checked.ForeignOwner => ()
+    issue => raise issue
+  } noraise {
+    _ => fail("same-Program foreign producer port admitted")
+  }
+  try
+    @checked.prepare_local_result_source_policy(
+      program, 0, port, 0, 65536, 8192, 64,
+    )
+  catch {
+    @checked.BudgetExceeded => ()
+    issue => raise issue
+  } noraise {
+    _ => fail("producer policy accepted without work")
+  }
+}
+
+///|
+test "composed egress refuses unattested prior Model output without acquisitions" {
+  let document =
+    #|{"version":"actql/0.1","id":"model-output-policy-unproven","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":false}},"rows":[{"id":"one","text":"first prompt"}]},"as":"rows"}],"results":{"rows":{"from":"rows","fields":["id","text"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"source","result":"rows"}}},"steps":[{"from":"rows","assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessed"}],"results":{"rows":{"from":"assessed","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"first","result":"rows"}}},"steps":[{"from":"rows","assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"outcome"}}},"as":"assessed"}],"results":{"rows":{"from":"assessed","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"second","result":"rows"}}}}
+  let prepared = client_composed_infer_test_program(authored=Some(document))
+  let graph = prepared_client_graph(prepared)
+  assert_eq(@strategy.graph_captured_prefix(graph), 0)
+  let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+  assert_eq(occurrences.length(), 2)
+  let observe = () => {
+    Some({
+      classification: @environment.Public,
+      region: "fixture-region",
+      provider_retention: false,
+      training_use: false,
+    })
+  }
+  let first = occurrences[0]
+  let second = occurrences[1]
+  assert_true(
+    admit_client_infer_occurrence_egress(
+      first,
+      client_infer_graph_test_execution(prepared, occurrence=Some(first)),
+      observe,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    admit_client_infer_occurrence_egress(
+      second,
+      client_infer_graph_test_execution(prepared, occurrence=Some(second)),
+      observe,
+    )
+    is Err(UnknownClassification),
+  )
+}
+
+///|
 test "composed egress binds the actual Unit and refuses changed or foreign authority" {
   let prepared = client_composed_infer_test_program()
   let occurrence = prepared_client_composed_infer_occurrence(prepared).unwrap()

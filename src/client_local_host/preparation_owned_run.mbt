@@ -174,9 +174,9 @@ fn[I] adopt_preparation_owned_pure_plan(
     PureManaged(admission, prepared),
     request,
     ledger,
+    captured~,
   )
   run.source_free_preparation = source_free
-  run.captured_preparation = captured
   run.preparation_retirement = Some(
     PurePreparation({ retirement, admission, holder: Some(holder), }),
   )

@@ -13,13 +13,18 @@ pub(all) enum ClientEffectLocalInvocationIssue {
 ///|
 /// Semantic identity for one checked local Unit. It does not
 /// attest execution, capture, retention, or permission to apply an Effect.
-struct ClientEffectLocalInvocation {
-  owner : PreparedClientEffectComputation
+struct ClientLocalUnitInvocation[Owner] {
+  owner : Owner
   unit : Int
   unit_definition_cid : String
   cid : String
   wire : String
 }
+
+///|
+pub type ClientEffectLocalInvocation = ClientLocalUnitInvocation[
+  PreparedClientEffectComputation,
+]
 
 ///|
 fn emit_client_effect_local_invocation(
@@ -83,7 +88,7 @@ pub fn issue_source_free_client_effect_local_invocation(
     @checked.unit_import_cid_count(program, unit) != Some(0) {
     return Err(NotSourceFree)
   }
-  issue_client_effect_local_invocation_body(
+  issue_client_local_unit_invocation(
     owner,
     unit,
     unit_definition_cid,
@@ -98,8 +103,8 @@ pub fn issue_source_free_client_effect_local_invocation(
 }
 
 ///|
-fn issue_client_effect_local_invocation_body(
-  owner : PreparedClientEffectComputation,
+fn[Owner] issue_client_local_unit_invocation(
+  owner : Owner,
   unit : Int,
   unit_definition_cid : String,
   used_values_cid : String,
@@ -110,7 +115,7 @@ fn issue_client_effect_local_invocation_body(
   max_nodes : Int,
   max_depth : Int,
   before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
-) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue] {
+) -> Result[ClientLocalUnitInvocation[Owner], ClientEffectLocalInvocationIssue] {
   if before_body is Some(back) {
     let measure = @encode.construction_measuring_writer(
       max_wire_bytes, max_nodes, max_depth,
@@ -246,7 +251,7 @@ pub fn issue_acquired_client_effect_local_invocation(
     is Err(_) {
     return Err(ForeignSourceObservation)
   }
-  issue_client_effect_local_invocation_body(
+  issue_client_local_unit_invocation(
     owner,
     unit,
     definition,

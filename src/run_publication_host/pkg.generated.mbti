@@ -33,6 +33,7 @@ import {
   "actql/actql/query_program",
   "actql/actql/query_syntax",
   "actql/actql/relation_join_shape",
+  "actql/actql/relation_results",
   "actql/actql/relation_schema",
   "actql/actql/relation_typing",
   "actql/actql/remote_site_protocol",
@@ -63,9 +64,9 @@ pub fn admit_client_compiled_run_definition(ClientCompiledRun, String) -> Result
 
 pub fn admit_client_effect_allowed_run(ClientEffectCompilation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ClientEffectAllowedRun, ClientEffectCompiledRunIssue]
 
-pub fn admit_client_effect_dependency_capture(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int, @physical_strategy_host.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, String, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?) -> Result[ClientEffectDependencyCapture, ClientEffectDependencyCaptureIssue]
+pub fn admit_client_effect_dependency_capture(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, @physical_strategy_host.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, String, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?) -> Result[ClientEffectDependencyCapture, ClientEffectDependencyCaptureIssue]
 
-pub fn admit_client_effect_local_source_evidence(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientEffectLocalInvocation, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
+pub fn admit_client_effect_local_source_evidence(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientLocalUnitInvocation[PreparedClientEffectComputation], ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
 pub fn admit_client_effect_prepared_original(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits, request_value_policies? : ((@program_check.EffectComputationCandidate) -> Result[Array[@program_check.HostRequestValuePolicyEvidence], ClientEffectComputationIssue])?) -> Result[ClientEffectPreparedOriginal, ClientEffectRunMaterialsIssue]
 
@@ -133,7 +134,7 @@ pub fn admit_client_serialization_captured_input(PreparedClientProgram, ClientSe
 
 pub fn admit_client_serialization_whole_captured_input(PreparedClientProgram, ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @sourceview_resolution.SourceAcquisition, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
-pub fn admit_client_source_free_project_bindings(String?, String?) -> Result[ClientSourceFreeProjectBindings, ClientProjectBindingsIssue]
+pub fn admit_client_source_free_project_bindings(String?, String?, model_registry? : ClientProjectModelRegistry?) -> Result[ClientSourceFreeProjectBindings, ClientProjectBindingsIssue]
 
 pub fn admit_client_submission_epoch_token(String) -> Result[ClientSubmissionEpochToken, ClientSubmissionEpochTokenIssue]
 
@@ -147,7 +148,11 @@ pub fn admit_client_transfer_input(@remote_site_protocol.RemoteInputBinding, Int
 
 pub fn admit_client_values_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, numeric_profile_cid? : String?) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue]
 
+pub fn[E] admit_funded_client_project_model_registry(String, (@execution_relation.PreparationRepresentationUnits) -> Result[Unit, E], (ClientProjectBindingsIssue) -> E, settle? : ((Int64) -> Result[Unit, E])?) -> Result[ClientProjectModelRegistry, E]
+
 pub fn admit_local_relation_check_environment(String, String) -> @program_check.CheckEnvironment?
+
+pub fn admit_local_relation_check_environment_from_wire(@check_environment.WireEnvironment) -> @program_check.CheckEnvironment?
 
 pub fn admit_measured_prepared_client_local_normalization(ClientLocalNormalizationPreparation, String, ClientLocalNormalizationConstruction) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue]
 
@@ -221,7 +226,7 @@ pub fn advance_client_model_read_state(ClientModelReadPreparation, ClientCompile
 
 pub fn advance_client_node_model_read_state(ClientNodeModelStateWriter, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int) -> @physical_resources.OriginalStateWritePoll
 
-pub fn advance_release_client_effect_command_content_artifact(ClientEffectLocalResultArtifact, Int) -> Bool
+pub fn advance_release_client_effect_command_content_artifact(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int) -> Bool
 
 pub fn begin_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest, @execution_relation.SuppliedRelationRead, capture? : @client_row_source_host.RowKeyedSourceCapture?) -> Result[Unit, ClientKeyedRequestIssue]
 
@@ -241,7 +246,7 @@ pub fn bind_client_effect_keyed_original(PreparedClientEffectComputation, Client
 
 pub fn bind_client_effect_model_read_scopes(ClientEffectCompilation, ClientCompiledRun, @run_publication.PublicationContract, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, Array[Int64], Array[Int64]) -> Result[Array[ClientModelReadScope], ClientModelReadPreparationIssue]
 
-pub fn bind_client_effect_producer_artifact(PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, ClientEffectLocalResultArtifact) -> Result[ClientEffectProducerArtifact, ClientEffectTransferredArtifactIssue]
+pub fn bind_client_effect_producer_artifact(PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> Result[ClientEffectProducerArtifact, ClientEffectTransferredArtifactIssue]
 
 pub fn bind_client_effect_query_evaluation_time(ClientQueryTimePreparation, PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract, ClientRequestIdentity) -> Result[@run_publication.QueryEvaluationTime, ClientQueryTimeIssue]
 
@@ -249,7 +254,9 @@ pub fn bind_client_effect_query_time_sequence(PreparedClientEffectComputation, I
 
 pub fn bind_client_effect_source_dispatch(ClientEffectRunMaterials, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[PreparedClientEffectRun, ClientEffectSourceDispatchIssue]
 
-pub fn bind_client_effect_unit_artifact_run_context(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, ClientEffectLocalResultArtifact, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[Unit, ClientEffectLocalResultArtifactIssue]
+pub fn bind_client_effect_unit_artifact_run_context(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[Unit, ClientEffectLocalResultArtifactIssue]
+
+pub fn bind_client_infer_composed_whole_sibling(ClientInferComposedSources, ClientInferOccurrence) -> Result[ClientInferComposedSources, ClientInferCallScopeIssue]
 
 pub fn bind_client_keyed_declared_file_physical_source(ClientKeyedLookupInput, Array[@client_row_source_host.RowDeclaration]) -> Result[Unit, ClientKeyedRequestIssue]
 
@@ -287,7 +294,7 @@ pub fn bind_client_serialization_completed_input(@lowering_relation.PreparedSeri
 
 pub fn bind_client_serialization_input_identity(ClientCompiledRun, ClientSerializationInput, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> Result[ClientSerializationInputEvidence, @run_publication.RunEvidenceValueIssue]
 
-pub fn bind_client_table_input(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, @effect_application.StorageMappingReference, Int, Int, Int) -> Result[ClientTableInput, ClientTableInputIssue]
+pub fn bind_client_table_input(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, @effect_application.StorageMappingReference, Int, Int, Int) -> Result[ClientTableInput, ClientTableInputIssue]
 
 pub fn bind_client_table_preview(ClientTableInput, @physical_strategy_host.CapturedEffectPreviewInputs, Int) -> Result[ClientTablePreview, ClientTableInputIssue]
 
@@ -303,11 +310,11 @@ pub fn bind_recovered_client_table_preview(@run_publication.EffectPreviewIdentit
 
 pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientValuesRunBinding, ClientValuesRunBindingIssue]
 
-pub fn bind_transferred_client_effect_local_result_artifact(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectResultImport, @physical_strategy_host.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, ClientEffectProducerArtifact, ClientRetainedTaskInput, ClientRetainedInputCurrent, () -> Bool) -> Result[ClientEffectLocalResultArtifact, ClientEffectTransferredArtifactIssue]
+pub fn bind_transferred_client_effect_local_result_artifact(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectResultImport, @physical_strategy_host.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, ClientEffectProducerArtifact, ClientRetainedTaskInput, ClientRetainedInputCurrent, () -> Bool) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectTransferredArtifactIssue]
 
 pub fn borrow_captured_effect_result_publication_export(@physical_strategy_host.CapturedEffectRunDAG, @physical_strategy_host.CapturedEffectInputs, Int, @physical_strategy_host.CapturedEffectLocalResultExport, @execution_relation.CompletedOutputExport, @execution_relation.CompletedRelationExportReceipt, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
-pub fn borrow_client_effect_command_content(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, String, Int, Int) -> Result[ClientEffectCommandContent, ClientEffectCommandContentIssue]
+pub fn borrow_client_effect_command_content(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, String, Int, Int) -> Result[ClientEffectCommandContent, ClientEffectCommandContentIssue]
 
 pub fn borrow_client_effect_command_content_workspace(ClientEffectCommandContent, @value_admission.CheckedValue, @physical_resources.SharedCapacity, @physical_resources.SharedAllocation) -> Result[@physical_resources.SharedBorrow, ClientEffectCommandContentIssue]
 
@@ -365,7 +372,7 @@ pub fn charge_client_keyed_lookup_verification(ClientKeyedLookupInput, ClientKey
 
 pub fn check_client_compiled_run_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientCompiledRunIssue]
 
-pub fn check_client_effect_unit_artifact_export(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, ClientEffectLocalResultArtifact, @physical_strategy_host.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Result[Unit, ClientEffectLocalResultArtifactIssue]
+pub fn check_client_effect_unit_artifact_export(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], @physical_strategy_host.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Result[Unit, ClientEffectLocalResultArtifactIssue]
 
 pub fn check_client_effectful_static_plan_view_binding(PreparedClientEffectComputation, ClientEffectCompilation, String, Int, Int, Int) -> Result[Unit, ClientEffectfulStaticPlanIssue]
 
@@ -569,7 +576,7 @@ pub fn client_effect_acquired_catalog_bodies(ClientEffectAcquiredEvidence, Int, 
 
 pub fn client_effect_acquired_dependency_bodies(ClientEffectAcquiredEvidence) -> Array[(String, String)]
 
-pub fn client_effect_acquired_invocation(ClientEffectAcquiredEvidence) -> ClientEffectLocalInvocation
+pub fn client_effect_acquired_invocation(ClientEffectAcquiredEvidence) -> ClientLocalUnitInvocation[PreparedClientEffectComputation]
 
 pub fn client_effect_acquired_observation(ClientEffectAcquiredEvidence) -> @run_publication.RunEvidenceValue
 
@@ -597,7 +604,7 @@ pub fn client_effect_allowed_run_result_names(ClientEffectAllowedRun) -> Array[S
 
 pub fn client_effect_allowed_serialization_run(ClientEffectAllowedRun) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
-pub fn client_effect_combined_source_public_result_evidence_refs(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectCombinedSourceUnit, ClientEffectLocalResultArtifact, Int, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[(String, Array[String], String, String, String), ClientEffectLocalResultArtifactIssue]
+pub fn client_effect_combined_source_public_result_evidence_refs(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectCombinedSourceUnit, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[(String, Array[String], String, String, String), ClientEffectLocalResultArtifactIssue]
 
 pub fn client_effect_combined_source_unit_catalog_bodies(ClientEffectCombinedSourceUnit, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?) -> Result[Array[(String, String, String)], ClientEffectAcquiredEvidenceIssue]
 
@@ -611,13 +618,13 @@ pub fn client_effect_combined_source_unit_dependency_bodies(ClientEffectCombined
 
 pub fn client_effect_combined_source_unit_dependency_body_count(ClientEffectCombinedSourceUnit) -> Int64
 
-pub fn client_effect_combined_source_unit_invocation(ClientEffectCombinedSourceUnit) -> ClientEffectLocalInvocation
+pub fn client_effect_combined_source_unit_invocation(ClientEffectCombinedSourceUnit) -> ClientLocalUnitInvocation[PreparedClientEffectComputation]
 
 pub fn client_effect_combined_source_unit_matches_inputs(ClientEffectCombinedSourceUnit, ClientEffectSourceUnitInputs) -> Bool
 
 pub fn client_effect_command_content_current(ClientEffectCommandContent) -> Bool
 
-pub fn client_effect_command_content_matches(ClientEffectCommandContent, PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, String) -> Bool
+pub fn client_effect_command_content_matches(ClientEffectCommandContent, PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, String) -> Bool
 
 pub fn client_effect_command_content_matches_issued(ClientEffectCommandContent, @value_admission.CheckedValue) -> Bool
 
@@ -655,11 +662,11 @@ pub fn client_effect_dependency_capture_body_at(ClientEffectDependencyCapture, I
 
 pub fn client_effect_dependency_capture_body_count(ClientEffectDependencyCapture) -> Int
 
-pub fn client_effect_dependency_capture_matches(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int) -> Bool
+pub fn client_effect_dependency_capture_matches(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int) -> Bool
 
-pub fn client_effect_dependency_capture_matches_artifact(ClientEffectDependencyCapture, ClientEffectLocalResultArtifact) -> Bool
+pub fn client_effect_dependency_capture_matches_artifact(ClientEffectDependencyCapture, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> Bool
 
-pub fn client_effect_dependency_capture_relation_rows(ClientEffectDependencyCapture, ClientEffectLocalResultArtifact, Int, Int, Int) -> @canonical_json.FrozenArray[@canonical_json.CanonicalValue]?
+pub fn client_effect_dependency_capture_relation_rows(ClientEffectDependencyCapture, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, Int, Int) -> @canonical_json.FrozenArray[@canonical_json.CanonicalValue]?
 
 pub fn client_effect_direct_acquisition_count(PreparedClientEffectComputation, Int) -> Result[Int, ClientDirectAcquisitionOccurrenceIssue]
 
@@ -671,7 +678,7 @@ pub fn client_effect_explanation_compilation_for_run(PreparedClientEffectComputa
 
 pub fn client_effect_imported_evidence_retained_bytes(ClientEffectImportedEvidence, Int, Int) -> Int64?
 
-pub fn client_effect_imported_invocation(ClientEffectImportedEvidence) -> ClientEffectLocalInvocation
+pub fn client_effect_imported_invocation(ClientEffectImportedEvidence) -> ClientLocalUnitInvocation[PreparedClientEffectComputation]
 
 pub fn client_effect_imported_matches_direct_source_unit(ClientEffectImportedEvidence, ClientEffectCombinedSourceUnit, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Bool
 
@@ -717,85 +724,85 @@ pub fn client_effect_keyed_request_retained_parent(ClientKeyedRequest, ClientEff
 
 pub fn client_effect_keyed_request_rows(ClientKeyedRequest, ClientEffectKeyedOriginal, @physical_resources.Ledger) -> Int?
 
-pub fn client_effect_keyed_source_public_result_evidence_refs(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectKeyedSourceUnit, ClientEffectLocalResultArtifact, Int, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[(String, Array[String], String, String, String), ClientEffectLocalResultArtifactIssue]
+pub fn client_effect_keyed_source_public_result_evidence_refs(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectKeyedSourceUnit, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[(String, Array[String], String, String, String), ClientEffectLocalResultArtifactIssue]
 
 pub fn client_effect_keyed_source_unit_artifact_construction_geometry(PreparedClientEffectComputation, ClientEffectKeyedSourceUnit, String, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], ClientEffectLocalResultArtifactIssue]
 
 pub fn client_effect_keyed_source_unit_construction_inventory() -> @execution_relation.PreparationRepresentationUnits
 
-pub fn client_effect_keyed_source_unit_invocation(ClientEffectKeyedSourceUnit) -> ClientEffectLocalInvocation
+pub fn client_effect_keyed_source_unit_invocation(ClientEffectKeyedSourceUnit) -> ClientLocalUnitInvocation[PreparedClientEffectComputation]
 
 pub fn client_effect_keyed_source_unit_metadata_bodies(ClientEffectKeyedSourceUnit) -> Array[(String, String, String)]
 
 pub fn client_effect_keyed_source_unit_scope_json(ClientEffectKeyedSourceUnit) -> String
 
-pub fn client_effect_local_artifact_definition_cid(ClientEffectLocalResultArtifact) -> String
+pub fn client_effect_local_artifact_definition_cid(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> String
 
-pub fn client_effect_local_artifact_dependency_root(ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyIssue]
+pub fn client_effect_local_artifact_dependency_root(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, Int, Int) -> Result[@run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyIssue]
 
-pub fn client_effect_local_artifact_invocation(ClientEffectLocalResultArtifact) -> ClientEffectLocalInvocation
+pub fn client_effect_local_artifact_invocation(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> ClientLocalUnitInvocation[PreparedClientEffectComputation]
 
-pub fn client_effect_local_artifact_invocation_cid(ClientEffectLocalResultArtifact) -> String
+pub fn client_effect_local_artifact_invocation_cid(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> String
 
-pub fn client_effect_local_artifact_matches_computation(ClientEffectLocalResultArtifact, PreparedClientEffectComputation) -> Bool
+pub fn client_effect_local_artifact_matches_computation(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], PreparedClientEffectComputation) -> Bool
 
-pub fn client_effect_local_artifact_matches_inputs(ClientEffectLocalResultArtifact, @physical_strategy_host.CapturedEffectInputs) -> Bool
+pub fn client_effect_local_artifact_matches_inputs(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], @physical_strategy_host.CapturedEffectInputs) -> Bool
 
-pub fn client_effect_local_artifact_run_definition_cid(ClientEffectLocalResultArtifact) -> String?
+pub fn client_effect_local_artifact_run_definition_cid(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> String?
 
 pub fn client_effect_local_identity_cid(ClientEffectLocalIdentity) -> String
 
 pub fn client_effect_local_identity_json(ClientEffectLocalIdentity) -> String
 
-pub fn client_effect_local_identity_matches(ClientEffectLocalIdentity, PreparedClientEffectComputation, Int, ClientEffectLocalResultArtifact) -> Bool
+pub fn client_effect_local_identity_matches(ClientEffectLocalIdentity, PreparedClientEffectComputation, Int, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> Bool
 
-pub fn client_effect_local_invocation_cid(ClientEffectLocalInvocation) -> String
+pub fn client_effect_local_invocation_cid(ClientLocalUnitInvocation[PreparedClientEffectComputation]) -> String
 
-pub fn client_effect_local_invocation_json(ClientEffectLocalInvocation) -> String
+pub fn client_effect_local_invocation_json(ClientLocalUnitInvocation[PreparedClientEffectComputation]) -> String
 
-pub fn client_effect_local_invocation_matches(ClientEffectLocalInvocation, PreparedClientEffectComputation, Int) -> Bool
+pub fn client_effect_local_invocation_matches(ClientLocalUnitInvocation[PreparedClientEffectComputation], PreparedClientEffectComputation, Int) -> Bool
 
-pub fn client_effect_local_invocation_unit_definition_cid(ClientEffectLocalInvocation) -> String
+pub fn client_effect_local_invocation_unit_definition_cid(ClientLocalUnitInvocation[PreparedClientEffectComputation]) -> String
 
 pub fn client_effect_local_manifest_cid(ClientEffectLocalManifest) -> String
 
-pub fn client_effect_local_manifest_construction_geometry(ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, ClientEffectLocalManifestIssue]
+pub fn client_effect_local_manifest_construction_geometry(ClientLocalUnitInvocation[PreparedClientEffectComputation], Array[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]], Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, ClientEffectLocalManifestIssue]
 
 pub fn client_effect_local_manifest_json(ClientEffectLocalManifest) -> String
 
-pub fn client_effect_local_manifest_matches(ClientEffectLocalManifest, PreparedClientEffectComputation, ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact]) -> Bool
+pub fn client_effect_local_manifest_matches(ClientEffectLocalManifest, PreparedClientEffectComputation, ClientLocalUnitInvocation[PreparedClientEffectComputation], Array[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]]) -> Bool
 
-pub fn client_effect_local_relation_export_receipt(ClientEffectLocalResultArtifact) -> @execution_relation.CompletedRelationExportReceipt
+pub fn client_effect_local_relation_export_receipt(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> @execution_relation.CompletedRelationExportReceipt
 
-pub fn client_effect_local_result_artifact_cid(ClientEffectLocalResultArtifact) -> String
+pub fn client_effect_local_result_artifact_cid(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> String
 
-pub fn client_effect_local_result_artifact_contract(ClientEffectLocalResultArtifact) -> @run_publication.PublicationContract
+pub fn client_effect_local_result_artifact_contract(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> @run_publication.PublicationContract
 
-pub fn client_effect_local_result_artifact_json(ClientEffectLocalResultArtifact) -> String
+pub fn client_effect_local_result_artifact_json(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> String
 
-pub fn client_effect_local_result_artifact_matches_public_result(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int) -> Bool
+pub fn client_effect_local_result_artifact_matches_public_result(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int) -> Bool
 
-pub fn client_effect_local_result_artifact_retained_bytes(ClientEffectLocalResultArtifact, Int, Int) -> Int64?
+pub fn client_effect_local_result_artifact_retained_bytes(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, Int) -> Int64?
 
-pub fn client_effect_local_result_definition_cid(ClientEffectLocalResultDefinition) -> String
+pub fn client_effect_local_result_definition_cid(ClientLocalUnitResultDefinition[PreparedClientEffectComputation]) -> String
 
 pub fn client_effect_local_result_definition_construction_geometry(PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, ClientEffectLocalResultDefinitionIssue]
 
 pub fn client_effect_local_result_definition_issuer_capacity(@encode_core.EncodingConstructionGeometry) -> @execution_relation.ExecutionCapacity?
 
-pub fn client_effect_local_result_definition_json(ClientEffectLocalResultDefinition) -> String
+pub fn client_effect_local_result_definition_json(ClientLocalUnitResultDefinition[PreparedClientEffectComputation]) -> String
 
-pub fn client_effect_local_result_definition_matches(ClientEffectLocalResultDefinition, PreparedClientEffectComputation, Int, String) -> Bool
+pub fn client_effect_local_result_definition_matches(ClientLocalUnitResultDefinition[PreparedClientEffectComputation], PreparedClientEffectComputation, Int, String) -> Bool
 
-pub fn client_effect_local_result_derivation_json(ClientEffectLocalResultArtifact) -> String
+pub fn client_effect_local_result_derivation_json(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> String
 
-pub fn client_effect_local_result_ordering_json(ClientEffectLocalResultArtifact) -> String
+pub fn client_effect_local_result_ordering_json(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> String
 
-pub fn client_effect_local_result_payload_binding(ClientEffectLocalResultArtifact, @run_publication.PublicationContract) -> Result[(String, Int), ClientEffectLocalResultArtifactIssue]
+pub fn client_effect_local_result_payload_binding(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], @run_publication.PublicationContract) -> Result[(String, Int), ClientEffectLocalResultArtifactIssue]
 
-pub fn client_effect_local_result_retention(ClientEffectLocalResultArtifact) -> @run_publication.PublicationContract
+pub fn client_effect_local_result_retention(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> @run_publication.PublicationContract
 
-pub fn client_effect_local_source_matches(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientEffectLocalInvocation, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact) -> Bool
+pub fn client_effect_local_source_matches(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientLocalUnitInvocation[PreparedClientEffectComputation], ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], @run_publication.CapturedEffectSourceArtifact) -> Bool
 
 pub fn client_effect_local_table_definition_cid(ClientEffectLocalTableDefinition) -> String
 
@@ -809,7 +816,7 @@ pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, Str
 
 pub fn client_effect_model_acquired_direct_sources(ClientEffectModelAcquiredEvidence) -> Array[ClientEffectAcquiredEvidence]
 
-pub fn client_effect_model_acquired_invocation(ClientEffectModelAcquiredEvidence) -> ClientEffectLocalInvocation
+pub fn client_effect_model_acquired_invocation(ClientEffectModelAcquiredEvidence) -> ClientLocalUnitInvocation[PreparedClientEffectComputation]
 
 pub fn client_effect_model_acquired_lookup_barrier(ClientEffectModelAcquiredEvidence) -> (String, String)?
 
@@ -821,7 +828,7 @@ pub fn client_effect_model_acquired_scope_import_bodies(ClientEffectModelAcquire
 
 pub fn client_effect_model_acquired_scope_json(ClientEffectModelAcquiredEvidence) -> String
 
-pub fn client_effect_model_public_result_evidence_refs(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectModelAcquiredEvidence, ClientEffectLocalResultArtifact, Int, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[(String, Array[String], String, String, String), ClientEffectLocalResultArtifactIssue]
+pub fn client_effect_model_public_result_evidence_refs(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectModelAcquiredEvidence, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[(String, Array[String], String, String, String), ClientEffectLocalResultArtifactIssue]
 
 pub fn client_effect_model_unit_artifact_construction_geometry(PreparedClientEffectComputation, ClientEffectModelAcquiredEvidence, String, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], ClientEffectLocalResultArtifactIssue]
 
@@ -873,9 +880,9 @@ pub fn client_effect_source_free_invocation_original_matches(ClientEffectSourceF
 
 pub fn client_effect_source_free_invocation_original_observation(ClientEffectSourceFreeInvocationOriginal) -> @run_publication.RunEvidenceValue
 
-pub fn client_effect_source_free_result_original_scope(ClientEffectLocalResultArtifact, ClientEffectSourceFreeInvocationOriginal) -> @run_publication.PublicationContract?
+pub fn client_effect_source_free_result_original_scope(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectSourceFreeInvocationOriginal) -> @run_publication.PublicationContract?
 
-pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
+pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
 
 pub fn client_effect_source_unit_artifact_construction_geometry(ClientEffectCombinedSourceUnit, String, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], ClientEffectLocalResultArtifactIssue]
 
@@ -923,7 +930,7 @@ pub fn client_effect_target_selection_original(PreparedClientEffectComputation) 
 
 pub fn client_effect_target_selection_wire(ClientEffectUpdateTargetSelections) -> String
 
-pub fn client_effect_unit_artifact_original_definition(ClientEffectLocalResultArtifact) -> ClientEffectLocalResultDefinition?
+pub fn client_effect_unit_artifact_original_definition(ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]) -> ClientLocalUnitResultDefinition[PreparedClientEffectComputation]?
 
 pub fn client_effectful_static_plan_view(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int, max_members? : Int, max_work? : Int) -> Result[String, ClientEffectfulStaticPlanIssue]
 
@@ -963,6 +970,10 @@ pub fn client_infer_composed_source_observations(ClientInferComposedSources) -> 
 
 pub fn client_infer_composed_sources_matches(ClientInferComposedSources, ClientInferOccurrence) -> Bool
 
+pub fn client_infer_composed_whole_sources_match_run(ClientInferComposedSources, @physical_strategy_host.CapturedDAG, after_completion? : Bool) -> Bool
+
+pub fn client_infer_composed_whole_sources_original(ClientInferComposedSources, ClientInferOccurrence) -> Bool
+
 pub fn client_infer_dispatch_authority(ClientInferDispatchAdmission) -> @run_publication.RunEvidenceValue
 
 pub fn client_infer_dispatch_matches_run(ClientInferDispatchAdmission, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
@@ -1001,6 +1012,8 @@ pub fn client_infer_occurrence_output_step(ClientInferOccurrence) -> Int?
 
 pub fn client_infer_occurrence_preparation(ClientInferOccurrence) -> @lowering_relation.BoundPrepared
 
+pub fn client_infer_occurrence_result_import_at(ClientInferOccurrence, Int) -> (Int, String)?
+
 pub fn client_infer_occurrence_result_import_count(ClientInferOccurrence) -> Int
 
 pub fn client_infer_occurrence_result_imports(ClientInferOccurrence) -> Array[(Int, String)]
@@ -1008,6 +1021,8 @@ pub fn client_infer_occurrence_result_imports(ClientInferOccurrence) -> Array[(I
 pub fn client_infer_occurrence_target_name(ClientInferOccurrence) -> String?
 
 pub fn client_infer_occurrence_terminal(ClientInferOccurrence) -> Bool
+
+pub fn client_infer_occurrences_share_model_execution(ClientInferOccurrence, ClientInferOccurrence, @check_environment.ModelExecutionContract) -> Bool
 
 pub fn client_infer_plan_boundary(ClientInferPlanGraph) -> (Int, Int, Int, String)
 
@@ -1054,6 +1069,8 @@ pub fn client_infer_saved_source_originals(ClientInferSavedCallScope, ClientComp
 pub fn client_infer_scope_snapshot_construction_capacity(ClientInferCallScope, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_infer_scope_snapshot_measurement_capacity() -> @execution_relation.ExecutionCapacity?
+
+pub fn client_infer_whole_result_input_edge(ClientInferOccurrence, Int, @physical_strategy_host.CapturedDAG, @relation_results.ResultPort) -> Int?
 
 pub fn client_journal_issuance_count(Bytes, Int) -> Result[Int, ClientJournalDecodingIssue]
 
@@ -1161,11 +1178,11 @@ pub fn client_local_configuration_custody_body(Bytes, (UInt64, UInt64, Int64)) -
 
 pub fn client_local_configuration_custody_record(String, (UInt64, UInt64, Int64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
-pub fn client_local_configuration_file_count_supported(Int, Bool, Int) -> Bool
+pub fn client_local_configuration_file_count_supported(Int, Bool, Int, Int) -> Bool
 
-pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfigurationFile], ClientLocalOriginalManagedRoot?, model_files? : Int) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfigurationFile], ClientLocalOriginalManagedRoot?, model_files? : Int, model_bindings? : Int) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
-pub fn client_local_configuration_selection_limits(Int) -> (Int, Int, Int)?
+pub fn client_local_configuration_selection_limits(Int, Int) -> (Int, Int, Int)?
 
 pub fn client_local_default_signing_bootstrap_policy() -> ClientLocalSigningBootstrapPolicy
 
@@ -1181,7 +1198,9 @@ pub fn client_local_journal_custody_body(Bytes, Bytes, (UInt64, UInt64)) -> Resu
 
 pub fn client_local_journal_custody_record(String, String, (UInt64, UInt64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
-pub fn client_local_model_configuration_file_limit() -> Int
+pub fn client_local_model_configuration_file_limit(Int) -> Int
+
+pub fn client_local_model_configuration_limit() -> Int
 
 pub fn client_local_normalization_preparation_work(ClientLocalNormalizationPreparation) -> Int
 
@@ -1394,6 +1413,10 @@ pub fn client_project_catalog_admission_construction_inventory(String) -> @execu
 pub fn client_project_connections_admission_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn client_project_local_files_issue_code(ClientProjectLocalFilesIssue) -> String
+
+pub fn client_project_model_environment_projection_inventory(@check_environment.WireEnvironment, Array[@check_environment.NormalizedPublicModelTask]) -> (@check_environment.ModelTaskLimits, @execution_relation.PreparationRepresentationUnits)?
+
+pub fn client_project_model_environment_read_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn client_project_model_task_selection_for(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
 
@@ -1723,7 +1746,7 @@ pub fn client_submitted_run_admission_wire(ClientRequestIdentity, String, Int64)
 
 pub fn client_table_input_mapping(ClientTableInput) -> @effect_application.StorageMappingReference
 
-pub fn client_table_input_matches_source(ClientTableInput, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity) -> Bool
+pub fn client_table_input_matches_source(ClientTableInput, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalIdentity) -> Bool
 
 pub fn client_table_input_operation(ClientTableInput) -> @effect_application.TableOperation
 
@@ -1858,6 +1881,16 @@ pub fn client_values_run_binding_result_name(ClientValuesRunBinding) -> String
 pub fn client_values_run_binding_task_key(ClientValuesRunBinding) -> String
 
 pub fn client_values_static_plan_view(PreparedClientProgram, ClientValuesCompilation, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientInteractivePlanIssue]
+
+pub fn client_whole_local_result_artifact_cid(ClientLocalResultArtifact[ClientWholeLocalUnitOriginal, ClientLocalUnitResultDefinition[ClientWholeLocalUnitOriginal], @physical_strategy_host.CapturedCompletedUnitResultHandoff]) -> String
+
+pub fn client_whole_local_result_manifest_cid(ClientWholeLocalResultManifest) -> String
+
+pub fn client_whole_local_result_manifest_json(ClientWholeLocalResultManifest) -> String
+
+pub fn client_whole_local_result_manifest_matches(ClientWholeLocalResultManifest, ClientLocalResultArtifact[ClientWholeLocalUnitOriginal, ClientLocalUnitResultDefinition[ClientWholeLocalUnitOriginal], @physical_strategy_host.CapturedCompletedUnitResultHandoff]) -> Bool
+
+pub fn client_whole_local_unit_invocation_matches(ClientLocalUnitInvocation[ClientWholeLocalUnitOriginal], ClientCompiledRun, @run_publication.PublicationContract, ClientRequestIdentity, @physical_strategy_host.CapturedDAG) -> Bool
 
 pub fn client_worker_resource_original_body(@physical_resources.BackedExecutionOriginalData) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
@@ -1995,13 +2028,13 @@ pub fn install_client_retained_input_current(() -> @execution_site.ExecutionSite
 
 pub fn install_client_retained_input_owner_current((String, String, String) -> Bool, () -> String, () -> Int64, (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> ClientRetainedInputCurrent
 
-pub fn issue_acquired_client_effect_local_invocation(PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, Int, Int, Int, unit? : Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
+pub fn issue_acquired_client_effect_local_invocation(PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, Int, Int, Int, unit? : Int) -> Result[ClientLocalUnitInvocation[PreparedClientEffectComputation], ClientEffectLocalInvocationIssue]
 
-pub fn issue_acquired_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectAcquiredEvidence, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_acquired_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectAcquiredEvidence, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
-pub fn issue_acquired_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectAcquiredEvidence, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_acquired_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectAcquiredEvidence, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
-pub fn issue_captured_client_effect_local_result_definition(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultDefinitionIssue]
+pub fn issue_captured_client_effect_local_result_definition(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientLocalUnitResultDefinition[PreparedClientEffectComputation], ClientEffectLocalResultDefinitionIssue]
 
 pub fn issue_captured_client_effect_local_table_definition(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientEffectLocalTableDefinition, ClientEffectLocalResultDefinitionIssue]
 
@@ -2039,7 +2072,7 @@ pub fn issue_client_effect_acquired_evidence(PreparedClientEffectComputation, @e
 
 pub fn issue_client_effect_allowed_run(ClientEffectCompilation, String, String, String) -> Result[ClientEffectAllowedRun, ClientEffectCompiledRunIssue]
 
-pub fn issue_client_effect_capture_inventory(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, @run_publication.CapturedEffectSourceArtifact, ClientEffectLocalManifest, ClientEffectLocalResultArtifact, ClientEffectImportedEvidence, ClientEffectAcquiredEvidence, String, String, Array[ClientEffectDependencyCapture], Array[@run_publication.CapturedEffectDependencyBody], @run_publication.CapturedEffectDependencyLimits, Int, Int) -> Result[(@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedEffectDependencyInventory), ClientEffectCaptureInventoryIssue]
+pub fn issue_client_effect_capture_inventory(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, @run_publication.CapturedEffectSourceArtifact, ClientEffectLocalManifest, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectImportedEvidence, ClientEffectAcquiredEvidence, String, String, Array[ClientEffectDependencyCapture], Array[@run_publication.CapturedEffectDependencyBody], @run_publication.CapturedEffectDependencyLimits, Int, Int) -> Result[(@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedEffectDependencyInventory), ClientEffectCaptureInventoryIssue]
 
 pub fn issue_client_effect_captured_invocation(PreparedClientEffectComputation, ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @execution_query.CapturedInputSource, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
@@ -2051,17 +2084,17 @@ pub fn issue_client_effect_keyed_captured_invocation(ClientEffectKeyedOriginal, 
 
 pub fn issue_client_effect_keyed_plan_graph(ClientEffectKeyedPlanConstruction, Int, Int, Int) -> Result[ClientEffectKeyedPlanGraph, ClientInferPlanGraphIssue]
 
-pub fn issue_client_effect_local_manifest(PreparedClientEffectComputation, ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact], Int, Int, Int, funding? : ((Int, Int, Int) -> Bool, (@encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[ClientEffectLocalManifest, ClientEffectLocalManifestIssue]
+pub fn issue_client_effect_local_manifest(PreparedClientEffectComputation, ClientLocalUnitInvocation[PreparedClientEffectComputation], Array[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]], Int, Int, Int, funding? : ((Int, Int, Int) -> Bool, (@encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[ClientEffectLocalManifest, ClientEffectLocalManifestIssue]
 
-pub fn issue_client_effect_local_result_definition(PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultDefinitionIssue]
+pub fn issue_client_effect_local_result_definition(PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[ClientLocalUnitResultDefinition[PreparedClientEffectComputation], ClientEffectLocalResultDefinitionIssue]
 
-pub fn issue_client_effect_local_source_artifact(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientEffectSourceArtifactIssue]
+pub fn issue_client_effect_local_source_artifact(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientEffectSourceArtifactIssue]
 
 pub fn issue_client_effect_multi_captured_invocation(PreparedClientEffectComputation, ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_effect_prepared_original(ClientEffectCompilation, before_body? : ((String, Int, Int, Int) -> Bool)?) -> Result[String, ClientEffectRunMaterialsIssue]
 
-pub fn issue_client_effect_result_import_observation(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectResultImport, ClientEffectLocalManifest, ClientEffectLocalResultArtifact, Int, Int, Int, before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[ClientEffectResultImportObservation, ClientEffectResultImportIssue]
+pub fn issue_client_effect_result_import_observation(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectResultImport, ClientEffectLocalManifest, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, Int, Int, before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[ClientEffectResultImportObservation, ClientEffectResultImportIssue]
 
 pub fn issue_client_effect_result_schema(ClientEffectCompilation, Int, @execution_relation.RelationSchemaIdentityLimits) -> Result[@execution_relation.RelationSchemaIdentity, ClientTaskOutputSchemaIssue]
 
@@ -2123,33 +2156,37 @@ pub fn issue_client_values_run_materials(PreparedClientProgram, ClientValuesComp
 
 pub fn issue_client_values_source_free_invocation(ClientValuesCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
+pub fn issue_client_whole_local_result_artifact(ClientWholeLocalUnitPublication, Int, @physical_strategy_host.CapturedCompletedUnitResultHandoff, Int, Int, Int, Int, () -> Bool, (String, @encode_core.EncodingConstructionGeometry) -> Bool) -> Result[ClientLocalResultArtifact[ClientWholeLocalUnitOriginal, ClientLocalUnitResultDefinition[ClientWholeLocalUnitOriginal], @physical_strategy_host.CapturedCompletedUnitResultHandoff], ClientEffectLocalResultArtifactIssue]
+
+pub fn issue_client_whole_local_result_manifest(ClientWholeLocalUnitPublication, Array[ClientLocalResultArtifact[ClientWholeLocalUnitOriginal, ClientLocalUnitResultDefinition[ClientWholeLocalUnitOriginal], @physical_strategy_host.CapturedCompletedUnitResultHandoff]], Int, Int, Int, (Int) -> Bool, (@encode_core.EncodingConstructionGeometry) -> Bool) -> Result[ClientWholeLocalResultManifest, ClientEffectLocalManifestIssue]
+
 pub fn issue_client_whole_native_effect_source_unit(PreparedClientEffectComputation, ClientDirectAcquisitionOccurrences, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @sourceview_resolution.SourceAcquisition, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
 
-pub fn issue_combined_source_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectCombinedSourceUnit, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_combined_source_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectCombinedSourceUnit, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
-pub fn issue_combined_source_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectCombinedSourceUnit, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_combined_source_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectCombinedSourceUnit, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
-pub fn issue_imported_client_effect_local_invocation(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Array[ClientEffectResultImportObservation], Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
+pub fn issue_imported_client_effect_local_invocation(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Array[ClientEffectResultImportObservation], Int, Int, Int) -> Result[ClientLocalUnitInvocation[PreparedClientEffectComputation], ClientEffectLocalInvocationIssue]
 
-pub fn issue_imported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectImportedEvidence, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_imported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectImportedEvidence, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
-pub fn issue_imported_client_effect_local_table_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, @physical_strategy_host.CapturedEffectTableInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedPublicationBridge[Int], @execution_relation.CompletedTableInputRelationExportPreparation, ClientEffectLocalTableDefinition, ClientEffectImportedEvidence, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_imported_client_effect_local_table_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, @physical_strategy_host.CapturedEffectTableInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedPublicationBridge[Int], @execution_relation.CompletedTableInputRelationExportPreparation, ClientEffectLocalTableDefinition, ClientEffectImportedEvidence, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
 pub fn issue_installed_client_composed_infer_plan_graph(ClientInferOccurrence, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int, construction? : ClientInferGraphConstruction?, keyed_native_read? : (ClientKeyedAcquisition, @run_publication.PublicationContract)?) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
 pub fn issue_installed_client_infer_plan_graph(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
-pub fn issue_keyed_source_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectKeyedSourceUnit, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_keyed_source_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectKeyedSourceUnit, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
-pub fn issue_keyed_source_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectKeyedSourceUnit, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_keyed_source_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectKeyedSourceUnit, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
-pub fn issue_model_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectModelAcquiredEvidence, @execution_relation.CompletedOutput, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int, funding? : ClientEffectModelArtifactFunding?) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_model_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectModelAcquiredEvidence, @execution_relation.CompletedOutput, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int, funding? : ClientEffectModelArtifactFunding?) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
 pub fn issue_original_client_infer_run_materials(ClientCompiledRun, @run_publication.PublicationContract, @decode_core.Cursor?, (String, Int, Int, Int) -> Bool) -> Result[String, ClientTaskRunMaterialsIssue]
 
-pub fn issue_preconsumer_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectCombinedSourceUnit, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_preconsumer_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectCombinedSourceUnit, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
-pub fn issue_preconsumer_model_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectModelAcquiredEvidence, @execution_relation.CompletedOutput, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_preconsumer_model_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectModelAcquiredEvidence, @execution_relation.CompletedOutput, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
 pub fn issue_prepared_client_acquired_serialization_plan_component(PreparedClientProgram, Int, Int, Int, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientSerializationPlanGraph, ClientSerializationPlanGraphIssue]
 
@@ -2255,21 +2292,21 @@ pub fn issue_restored_model_client_effect_imported_evidence(ClientCompiledRun, C
 
 pub fn issue_single_model_client_effect_acquired_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int, imports? : ClientEffectImportedEvidence?, before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
 
-pub fn issue_single_model_client_effect_direct_source_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int) -> Result[(ClientEffectLocalInvocation, Array[ClientEffectAcquiredEvidence]), ClientEffectAcquiredEvidenceIssue]
+pub fn issue_single_model_client_effect_direct_source_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int) -> Result[(ClientLocalUnitInvocation[PreparedClientEffectComputation], Array[ClientEffectAcquiredEvidence]), ClientEffectAcquiredEvidenceIssue]
 
-pub fn issue_single_model_client_effect_local_invocation(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
+pub fn issue_single_model_client_effect_local_invocation(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, Int, Int, Int) -> Result[ClientLocalUnitInvocation[PreparedClientEffectComputation], ClientEffectLocalInvocationIssue]
 
-pub fn issue_source_free_captured_client_effect_local_invocation(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
+pub fn issue_source_free_captured_client_effect_local_invocation(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientLocalUnitInvocation[PreparedClientEffectComputation], ClientEffectLocalInvocationIssue]
 
-pub fn issue_source_free_client_effect_local_identity(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, Int, Int, Int) -> Result[ClientEffectLocalIdentity, ClientEffectLocalIdentityIssue]
+pub fn issue_source_free_client_effect_local_identity(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, Int, Int, Int) -> Result[ClientEffectLocalIdentity, ClientEffectLocalIdentityIssue]
 
-pub fn issue_source_free_client_effect_local_invocation(PreparedClientEffectComputation, Int, Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
+pub fn issue_source_free_client_effect_local_invocation(PreparedClientEffectComputation, Int, Int, Int, Int) -> Result[ClientLocalUnitInvocation[PreparedClientEffectComputation], ClientEffectLocalInvocationIssue]
 
-pub fn issue_source_free_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, @physical_strategy_host.CapturedEffectInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedPublicationBridge[Int], @execution_relation.CompletedResultRelationExportPreparation, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_source_free_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, @physical_strategy_host.CapturedEffectInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedPublicationBridge[Int], @execution_relation.CompletedResultRelationExportPreparation, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], ClientLocalUnitInvocation[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
-pub fn issue_source_free_client_effect_local_table_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, @physical_strategy_host.CapturedEffectTableInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedPublicationBridge[Int], @execution_relation.CompletedTableInputRelationExportPreparation, ClientEffectLocalTableDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_source_free_client_effect_local_table_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, @physical_strategy_host.CapturedEffectTableInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedPublicationBridge[Int], @execution_relation.CompletedTableInputRelationExportPreparation, ClientEffectLocalTableDefinition, ClientLocalUnitInvocation[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
-pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientLocalUnitResultDefinition[PreparedClientEffectComputation], ClientLocalUnitInvocation[PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalResultArtifactIssue]
 
 pub fn[R, E] lookup_client_cancellation_journal_original(ClientRequestIdentity, String, String, Int, () -> Result[(Int, Int64), E], () -> Result[R?, E], (R) -> ClientCancellationRunOperationFacts, (String) -> Result[ClientCancellationJournalEncoding?, E], () -> Bool) -> Result[ClientCancellationJournalLookup, ClientCancellationJournalOperationIssue[E]]
 
@@ -2421,7 +2458,7 @@ pub fn prepare_client_effect_captured_run(ClientEffectRunMaterials, @physical_st
 
 pub fn prepare_client_effect_combined_source_unit(ClientEffectDirectSourcesPublication, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectCombinedSourceUnit, ClientEffectAcquiredEvidenceIssue]
 
-pub fn prepare_client_effect_command_content_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, Int) -> Result[Unit, ClientEffectCommandContentIssue]
+pub fn prepare_client_effect_command_content_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], Int, Int) -> Result[Unit, ClientEffectCommandContentIssue]
 
 pub fn prepare_client_effect_computation(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?, source_catalog? : @program_check.PreparedSourceCatalog?, request_value_policies? : ((@program_check.EffectComputationCandidate) -> Result[Array[@program_check.HostRequestValuePolicyEvidence], ClientEffectComputationIssue])?) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
 
@@ -2471,11 +2508,13 @@ pub fn prepare_client_effect_source_unit_inputs(PreparedClientEffectComputation,
 
 pub fn prepare_client_effect_task_sequence(PreparedClientEffectComputation, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int, prepared_sequence? : @lowering_relation.PreparedSequence?) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
 
-pub fn prepare_client_infer_fixed_result_artifact_input(ClientInferOccurrence, ClientInferPlanGraph, Int, @execution_relation.CompletedOutput, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.FixedRelationRead)], @execution_relation.CompletedSegmentInputs, ClientEffectLocalResultArtifact, ClientEffectLocalManifest) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue]
+pub fn prepare_client_infer_fixed_result_artifact_input(ClientInferOccurrence, ClientInferPlanGraph, Int, @execution_relation.CompletedOutput, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.FixedRelationRead)], @execution_relation.CompletedSegmentInputs, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalManifest) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue]
 
 pub fn prepare_client_infer_item_limit(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[@program_check.InferItemLimit, ClientInferItemLimitIssue]
 
-pub fn prepare_client_infer_result_artifact_input(ClientInferOccurrence, ClientInferPlanGraph, Int, @execution_relation.CompletedOutput, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedSegmentInputs, ClientEffectLocalResultArtifact, ClientEffectLocalManifest) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue]
+pub fn prepare_client_infer_result_artifact_input(ClientInferOccurrence, ClientInferPlanGraph, Int, @execution_relation.CompletedOutput, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedSegmentInputs, ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody], ClientEffectLocalManifest) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue]
+
+pub fn prepare_client_infer_whole_result_artifact_input(ClientInferOccurrence, ClientInferPlanGraph, Int, @execution_relation.CompletedOutput, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.FixedRelationRead)], @execution_relation.CompletedSegmentInputs, ClientLocalResultArtifact[ClientWholeLocalUnitOriginal, ClientLocalUnitResultDefinition[ClientWholeLocalUnitOriginal], @physical_strategy_host.CapturedCompletedUnitResultHandoff], ClientWholeLocalResultManifest) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue]
 
 pub fn prepare_client_keyed_acquisition(PreparedClientProgram, Int, Int, Int, join_step? : Int?) -> Result[ClientKeyedAcquisition, ClientKeyedAcquisitionIssue]
 
@@ -2625,6 +2664,10 @@ pub fn prepare_client_unpublished_run_state_original(@run_publication.Publicatio
 
 pub fn prepare_client_unpublished_run_state_update(ClientSavedSubmissionSnapshot, ClientRequestIdentity, @run_publication.PublicationContract, String) -> Result[ClientSavedRunStateUpdate, ClientSavedRunStateUpdateIssue]
 
+pub fn prepare_client_whole_local_unit_invocation(ClientModelReadScope, @run_publication.PublicationContract, ClientRequestIdentity, @physical_strategy_host.CapturedDAG, @physical_strategy_host.CapturedCompletedUnitResults, ClientInferComposedSources, Int, Int, Int, Int, (Int) -> Bool, (String, @encode_core.EncodingConstructionGeometry) -> Bool) -> Result[ClientLocalUnitInvocation[ClientWholeLocalUnitOriginal], ClientEffectLocalInvocationIssue]
+
+pub fn prepare_client_whole_local_unit_publication(ClientLocalUnitInvocation[ClientWholeLocalUnitOriginal], @run_publication.PublicationContract, Int, Int, Int, (Int) -> Bool, (String, @encode_core.EncodingConstructionGeometry) -> Bool) -> Result[ClientWholeLocalUnitPublication, ClientEffectAcquiredEvidenceIssue]
+
 pub fn prepare_effect_free_client_program(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, ClientProgramPreparationLimits, source_catalog? : @program_check.PreparedSourceCatalog?) -> Result[PreparedClientProgram, ClientProgramPreparationIssue]
 
 pub fn prepare_parsed_client_effect_computation(@stage_syntax.Program, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?, source_catalog? : @program_check.PreparedSourceCatalog?, request_value_policies? : ((@program_check.EffectComputationCandidate) -> Result[Array[@program_check.HostRequestValuePolicyEvidence], ClientEffectComputationIssue])?) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
@@ -2720,6 +2763,8 @@ pub fn prepared_client_effect_target_selections(PreparedClientEffectComputation)
 pub fn prepared_client_effect_task_sequence_limits(PreparedClientEffectComputation, Int) -> @lowering_relation.SequenceLimits?
 
 pub fn prepared_client_graph(PreparedClientProgram) -> @physical_strategy.CheckedDAG
+
+pub fn prepared_client_has_checked_sources(PreparedClientProgram) -> Bool
 
 pub fn prepared_client_identity(PreparedClientProgram) -> ClientProgramIdentity
 
@@ -3574,6 +3619,8 @@ pub struct ClientEffectKeyedPlanGraph {
 
 type ClientEffectKeyedSourceUnit
 
+type ClientEffectLocalArtifactCustody
+
 type ClientEffectLocalIdentity
 
 pub(all) enum ClientEffectLocalIdentityIssue {
@@ -3586,8 +3633,6 @@ pub(all) enum ClientEffectLocalIdentityIssue {
   WorkLimit
   Encoding
 } derive(Eq, @debug.Debug)
-
-type ClientEffectLocalInvocation
 
 pub(all) enum ClientEffectLocalInvocationIssue {
   MissingUnit
@@ -3613,7 +3658,7 @@ pub(all) enum ClientEffectLocalManifestIssue {
   Encoding
 } derive(Eq, @debug.Debug)
 
-type ClientEffectLocalResultArtifact
+type ClientEffectLocalRelationSource
 
 pub(all) enum ClientEffectLocalResultArtifactIssue {
   ForeignOwner
@@ -3627,8 +3672,6 @@ pub(all) enum ClientEffectLocalResultArtifactIssue {
   Artifact(@run_publication.ResultArtifactIssuanceIssue)
   Scope(@run_publication.PublicationContractIssue)
 } derive(Eq, @debug.Debug)
-
-type ClientEffectLocalResultDefinition
 
 pub(all) enum ClientEffectLocalResultDefinitionIssue {
   MissingUnit
@@ -4505,6 +4548,8 @@ pub(all) enum ClientLocalReadPreimageIssue {
   Encoding
 } derive(Eq, @debug.Debug)
 
+type ClientLocalResultArtifact[Owner, Source, Custody]
+
 type ClientLocalRunPolicyOriginal
 
 type ClientLocalRunPolicyProfile derive(Eq, @debug.Debug)
@@ -4544,6 +4589,10 @@ pub fn ClientLocalSigningBootstrapPolicy::issuer_identity(Self, String) -> Resul
 pub fn ClientLocalSigningBootstrapPolicy::max_uses(Self) -> Int
 pub fn ClientLocalSigningBootstrapPolicy::original_wire(Self) -> String
 pub fn ClientLocalSigningBootstrapPolicy::prepare_first_issue(Self, Int64, Int64?) -> Result[ClientLocalSigningBootstrapIssue, ClientLocalSigningBootstrapIssueError]
+
+type ClientLocalUnitInvocation[Owner]
+
+type ClientLocalUnitResultDefinition[Owner]
 
 pub struct ClientLocalWorkerRunJournalKey[Store, E] {
   material : ClientLocalAdoptedHostMaterial[Store, E]
@@ -6217,6 +6266,12 @@ pub(all) enum ClientValuesUnitSourceIssue {
   Encoding
 }
 
+type ClientWholeLocalResultManifest
+
+type ClientWholeLocalUnitOriginal
+
+type ClientWholeLocalUnitPublication
+
 pub struct PlanFactManifestIdentity {
   wire : String
   cid : String
@@ -6323,6 +6378,12 @@ type RecoveredClientEffectSourceCommandContent
 type RecoveredClientTablePreview
 
 // Type aliases
+pub type ClientEffectLocalInvocation = ClientLocalUnitInvocation[PreparedClientEffectComputation]
+
+pub type ClientEffectLocalResultArtifact = ClientLocalResultArtifact[PreparedClientEffectComputation, ClientEffectLocalRelationSource, ClientEffectLocalArtifactCustody]
+
+pub type ClientEffectLocalResultDefinition = ClientLocalUnitResultDefinition[PreparedClientEffectComputation]
+
 pub type ClientModelCurrentStateComparison = @physical_resources.OriginalCurrentStateComparison[ClientModelReadOrigin]
 
 pub type ClientModelCurrentStateMatch = @physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin]
@@ -6332,6 +6393,10 @@ pub type ClientModelCurrentStateWrite = @physical_resources.OriginalCurrentState
 pub type ClientModelResourceInvalidationRequest = @physical_resources.OriginalResourceInvalidationRequest[ClientModelReadOrigin]
 
 pub type ClientModelResourcePark = @physical_resources.OriginalResourcePark[ClientModelReadOrigin]
+
+pub type ClientWholeLocalResultArtifact = ClientLocalResultArtifact[ClientWholeLocalUnitOriginal, ClientLocalUnitResultDefinition[ClientWholeLocalUnitOriginal], @physical_strategy_host.CapturedCompletedUnitResultHandoff]
+
+pub type ClientWholeLocalUnitInvocation = ClientLocalUnitInvocation[ClientWholeLocalUnitOriginal]
 
 pub using @logical_request_scope {type SubmissionEpoch}
 

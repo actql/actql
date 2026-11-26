@@ -124,8 +124,9 @@ fn native_model_entry_body(
 
 ///|
 // Select the durable prerequisites from the trusted installed Work. The
-// standalone path adopts the existing compiled Result policy and Store
-// binding. The existing Effect path retains its own material requirement.
+// Portable uses the compiled Result policy and Store binding. Checked Sources
+// also require the exact admitted Whole tuple on this Work's original Execution.
+// The Mock Effect path retains its own material requirement.
 fn NativeClientMockModelWork::matches_model_call_journal_run(
   self : Self,
   record : NativeClientRunRecord,
@@ -146,7 +147,6 @@ fn NativeClientMockModelWork::matches_model_call_journal_run(
         record.publication_policy_originals is Some(_) &&
         record.publication_binding is Some(_) &&
         self.compiled.compilation is @host.Tasks(compilation) &&
-        @host.prepared_client_acquisition_count(compilation.owner) == 0 &&
         compilation.serialization is None &&
         @host.client_compiled_run_has_original_definition(
           self.compiled,
@@ -156,7 +156,17 @@ fn NativeClientMockModelWork::matches_model_call_journal_run(
       }
       for plan in compilation.infers {
         if physical_equal(plan, self.graph) {
-          return true
+          return if @host.prepared_client_has_checked_sources(compilation.owner) {
+            self.active is Some(active) &&
+            @infer.original_whole_model_journal_matches(
+              active,
+              self.graph,
+              self.compiled,
+              self.definition,
+            )
+          } else {
+            @host.prepared_client_acquisition_count(compilation.owner) == 0
+          }
         }
       }
       false
@@ -217,9 +227,48 @@ fn NativeClientMockModelWork::persist_model_entry_original(
       bound <= capture.max_snapshot_bytes else {
       return Err(Journal(CapacityExceeded))
     }
-    match capture.prepare_model_entry_construction(Some(bound.to_int())) {
+    let checked_store = self.provider_role is PortableHttp(_)
+    let store_writer = if checked_store { Some((4096, 8, 2)) } else { None }
+    let store_controls : @execution.PreparationRepresentationUnits? = if checked_store {
+      Some({
+        record_headers: 3L,
+        reference_slots: 8L,
+        scalar_words: 2L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      })
+    } else {
+      None
+    }
+    match
+      capture.prepare_model_entry_construction(
+        Some(bound.to_int()),
+        additional=store_writer,
+        additional_controls=store_controls,
+      ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
+    }
+    // Check the same physical Store as the later settlement, outside of the
+    // SQLite transaction. The retained binding only compares inside it.
+    let expected_store = match self.provider_role {
+      Mock(_) => None
+      PortableHttp(http) => {
+        let (authority, device, inode) = match http.store.custody_location() {
+          Ok(value) => value
+          Err(issue) => return Err(Journal(PublicationObservation(issue)))
+        }
+        match
+          installed_publication_binding(
+            self.namespace_id,
+            authority,
+            device,
+            inode,
+          ) {
+          Ok(value) => Some(value)
+          Err(issue) => return Err(Journal(issue))
+        }
+      }
     }
     let body = match
       native_model_entry_body(
@@ -247,6 +296,10 @@ fn NativeClientMockModelWork::persist_model_entry_original(
           Err(issue) => return Err(issue)
         }
         if !self.matches_model_call_journal_run(record) ||
+          (
+            expected_store is Some(binding) &&
+            record.publication_binding != Some(binding)
+          ) ||
           record.checkpoint is Some(_) ||
           (
             self.provider_role is PortableHttp(_) &&

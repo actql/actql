@@ -270,21 +270,168 @@ fn source_dispatch_limits(
 }
 
 ///|
-fn local_source_installation(
+fn local_source_installation_cursor(
   body : String,
-) -> LocalSourceInstallation raise ClientStop {
-  let root = @decode.closed_object(local_input_cursor(body), [
-    "version", "native",
-  ]).unwrap_or_else(() => stop("InvalidLocalSourceInstallation"))
+) -> @decode.Cursor raise ClientStop {
+  let root = local_host_settings_object(
+    local_host_settings_cursor(body, max_input_bytes=65536, max_nodes=8192),
+    ["version", "native"],
+    0,
+    "InvalidLocalSourceInstallation",
+  )
   if source_text(root, "version") != "actql-config/0.1" {
     stop("InvalidLocalSourceInstallation")
   }
-  let native = source_object(root, "native", ["source"])
-  let source = source_object(native, "source", [
+  let native = local_host_settings_object(
+    source_setting(root, "native"),
+    ["source"],
+    1,
+    "InvalidLocalSourceInstallation",
+  )
+  source_setting(native, "source")
+}
+
+///|
+// The operator-selected configuration retains declarations and a payload
+// locator. The original Run Read still has to admit the Source and open it.
+fn local_declared_file_source_installation(
+  source : @decode.Cursor,
+) -> (
+  @run_host.ClientProjectConnections,
+  @run_host.ClientProjectCatalog,
+  String,
+)? raise ClientStop {
+  let invalid = "InvalidLocalDeclaredFileSourceInstallation"
+  let count = @decode.object_length(source).unwrap_or_else(() => stop(invalid))
+  // The resident Source's closed object has fifteen fields. Inspect the
+  // discriminator on the original index without constructing a second map.
+  if count > 15 {
+    stop(invalid)
+  }
+  let fields = @shape.scale_collection_construction_extent(
+    @decode.indexed_field_construction_extent(),
+    count.to_int64(),
+  ).unwrap_or_else(() => stop("LocalCommandPreparationLayoutUnavailable"))
+  let selection = local_host_metadata_price(
+    local_host_metadata_units(
+      fields.record_headers + 6L,
+      fields.reference_slots + 10L,
+      fields.scalar_words + 8L,
+      0L,
+    ),
+  )
+  local_host_metadata_prepare(0L, selection)
+  let mut kind = None
+  for index in 0..<count {
+    if @decode.field_at(source, index) is Some(("kind", value)) {
+      kind = Some(value)
+      break
+    }
+  }
+  guard kind is Some(kind) else { return None }
+  if @decode.text(kind) != Ok("declared_file") {
+    stop(invalid)
+  }
+  let selected = local_host_settings_object(
+    source,
+    ["kind", "connections", "catalog", "data_file"],
+    2,
+    invalid,
+  )
+  let connections_wire = source_text(selected, "connections")
+  let catalog_wire = source_text(selected, "catalog")
+  let data_file = source_text(selected, "data_file")
+  guard @scalar.admit_utf8_length(data_file, 4096) is Ok(_) &&
+    local_declared_file_source_path(data_file) else {
+    stop("InvalidLocalSourceLocation")
+  }
+  guard @run_host.client_project_connections_admission_construction_inventory(
+      connections_wire,
+    )
+    is Some(connections_cost) &&
+    @run_host.client_project_catalog_admission_construction_inventory(
+      catalog_wire,
+    )
+    is Some(catalog_cost) &&
+    @execution.compose_preparation_representation([
+      connections_cost,
+      catalog_cost,
+      local_host_metadata_units(5L, 9L, 2L, 0L),
+    ])
+    is Some(inventory) else {
+    stop("LocalCommandPreparationLayoutUnavailable")
+  }
+  let prepared = local_host_metadata_price(inventory)
+  local_host_metadata_prepare(prepared, prepared)
+  let connections = @run_host.admit_client_project_connections(connections_wire).unwrap_or_else(() => {
+      stop(invalid)
+    },
+  )
+  let catalog = @run_host.admit_client_project_catalog(catalog_wire).unwrap_or_else(() => {
+      stop(invalid)
+    },
+  )
+  Some((connections, catalog, data_file))
+}
+
+///|
+fn local_declared_file_source_path(path : String) -> Bool {
+  if !path.has_prefix("/") || path.length() < 2 {
+    return false
+  }
+  let mut segment = 1
+  for index in 1..<(path.length() + 1) {
+    if index == path.length() || path[index] == '/' {
+      let length = index - segment
+      if length == 0 ||
+        (length == 1 && path[segment] == '.') ||
+        (length == 2 && path[segment] == '.' && path[segment + 1] == '.') {
+        return false
+      }
+      segment = index + 1
+    } else if path[index] == '\u{0000}' {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn local_prepare_source_installation(
+  body : String,
+) -> (
+  @run_host.ClientProjectConnections,
+  @run_host.ClientProjectCatalog,
+  String,
+)? raise ClientStop {
+  let source = local_source_installation_cursor(body)
+  let declared = local_declared_file_source_installation(source)
+  if declared is None {
+    ignore(local_resident_source_installation(source))
+  }
+  declared
+}
+
+///|
+fn local_source_installation(
+  body : String,
+) -> LocalSourceInstallation raise ClientStop {
+  let source = local_source_installation_cursor(body)
+  if local_declared_file_source_installation(source) is Some(_) {
+    stop("LocalDeclaredFileSourceBindingRequired")
+  }
+  local_resident_source_installation(source)
+}
+
+///|
+fn local_resident_source_installation(
+  source : @decode.Cursor,
+) -> LocalSourceInstallation raise ClientStop {
+  let source = @decode.closed_object(source, [
     "source_ref", "source_contract_cid", "duckdb_library", "database_file", "memory_bytes",
     "schema", "table", "contracts", "ledger", "dispatch", "estimates", "search",
     "imports", "transfer_bytes", "execution_bytes",
-  ])
+  ]).unwrap_or_else(() => stop("InvalidLocalSourceInstallation"))
   let source_ref = source_text(source, "source_ref")
   let source_contract_cid = source_cid(source, "source_contract_cid")
   let library_path = source_text(source, "duckdb_library")

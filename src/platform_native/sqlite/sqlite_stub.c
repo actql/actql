@@ -722,6 +722,25 @@ int32_t actql_native_sqlite_test_refuse_capacity_insert(
     "SELECT RAISE(ABORT, 'capacity fixture refused'); END");
 }
 
+// Whitebox-only: exercise a completed INSERT with zero affected rows.
+// Scope the suppressions to the selected fixture key on this connection.
+int32_t actql_native_sqlite_test_suppress_fresh_insert(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL || !database->opened ||
+      !actql_database_library_available(database->library)) return -1;
+  return actql_exec(database,
+    "CREATE TEMP TRIGGER actql_test_ignore_record "
+    "BEFORE INSERT ON main.actql_records WHEN NEW.record_key = 'suppressed' "
+    "BEGIN SELECT RAISE(IGNORE); END;"
+    "CREATE TEMP TRIGGER actql_test_ignore_capacity "
+    "BEFORE INSERT ON main.actql_capacity WHEN NEW.reservation_key = 'suppressed' "
+    "BEGIN SELECT RAISE(IGNORE); END;"
+    "CREATE TEMP TRIGGER actql_test_ignore_claim "
+    "BEFORE INSERT ON main.actql_claims WHEN NEW.claim_key = 'suppressed' "
+    "BEGIN SELECT RAISE(IGNORE); END");
+}
+
 static int actql_user_version(actql_native_sqlite_database *database) {
   sqlite3_stmt *statement = NULL;
   int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
@@ -1926,6 +1945,10 @@ static int32_t actql_database_insert(
     } else if (code != SQLITE_DONE) {
       actql_database_error(database, "insert journal record failed");
       result = actql_operation_code(code);
+    } else if (database->library->changes64(database->database) != 1) {
+      actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling,
+        "journal insert did not affect exactly one row");
+      result = -1;
     } else {
       database->result_revision = 0;
     }
@@ -2554,6 +2577,10 @@ int32_t actql_native_sqlite_database_reserve_capacity(
     if (code != SQLITE_DONE) {
       actql_database_error(database, "insert capacity reservation failed");
       result = actql_operation_code(code);
+    } else if (database->library->changes64(database->database) != 1) {
+      actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling,
+        "capacity insert did not affect exactly one row");
+      result = -1;
     }
   }
   int finalize_code = database->library->finalize(statement);
@@ -2958,6 +2985,10 @@ static int32_t actql_claim_ordinal(
     if (code != SQLITE_DONE) {
       actql_database_error(database, "insert bounded claim failed");
       result = actql_operation_code(code);
+    } else if (database->library->changes64(database->database) != 1) {
+      actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling,
+        "claim insert did not affect exactly one row");
+      result = -1;
     }
   }
   finalize_code = database->library->finalize(statement);

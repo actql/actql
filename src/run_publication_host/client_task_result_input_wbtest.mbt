@@ -106,7 +106,7 @@ test "checked Result dependency refuses foreign Carrier and contract identities"
   let mut checked = false
   for index in 0..<@strategy.graph_data_count(graph) {
     let edge = @strategy.graph_data_at(graph, index).unwrap()
-    if client_task_result_input_port(graph, edge) is Ok(Some(_)) {
+    if @strategy_view.graph_result_input_port(graph, index) is Ok(Some(_)) {
       let source = issue_prepared_client_task_fragment(
         prepared,
         @strategy.data_edge_producer(edge),
@@ -124,7 +124,7 @@ test "checked Result dependency refuses foreign Carrier and contract identities"
         ] {
         assert_true(
           issue_client_task_result_input_projection(
-            graph, edge, index, foreign, 1000000, 100000, 100,
+            graph, index, foreign, 1000000, 100000, 100,
           )
           is Err(ContractMismatch),
         )
@@ -196,4 +196,61 @@ test "checked Result dependency construction covers projection scratch and graph
       @canonical.object_field(plan, name).unwrap(),
     )
   }
+}
+
+///|
+test "checked Result dependency distinguishes two names on the same producer step" {
+  let program =
+    #|{"version":"actql/0.1","id":"distinct-result-inputs","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"int64","nullable":false}},"rows":[{"id":"1"},{"id":"2"}]},"as":"rows"}],"results":{"ascending":{"from":"rows","fields":["id"],"order_by":[{"id":"asc"}]},"descending":{"from":"rows","fields":["id"],"order_by":[{"id":"desc"}]}}},{"id":"first","inputs":{"x":{"result":{"stage":"source","result":"ascending"}}},"steps":[{"select":["id"],"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}},{"id":"second","inputs":{"x":{"result":{"stage":"source","result":"descending"}}},"steps":[{"select":["id"],"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}}],"results":{"first":{"from":{"stage":"first","result":"r"}},"second":{"from":{"stage":"second","result":"r"}}}}
+  let environment = admit_client_check_environment(
+    run_materials_environment_wire,
+    run_materials_environment_cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: true, calendar: false, text_rank: false, },
+  ).unwrap()
+  let original = prepare_effect_free_client_program(
+    program,
+    Json,
+    environment,
+    None,
+    run_materials_limits().preparation,
+  ).unwrap()
+  let graph = prepared_client_graph(original)
+  let received : Array[@results.ResultPort] = []
+  for index in 0..<@strategy.graph_data_count(graph) {
+    if @strategy_view.graph_result_input_port(graph, index) is Ok(Some(port)) {
+      let edge = @strategy.graph_data_at(graph, index).unwrap()
+      let name = @results.name(@results.port_result(port))
+      match
+        @strategy.graph_task_unit_index(
+          graph,
+          @strategy.data_edge_consumer(edge),
+        ) {
+        Some(1) => assert_eq(name, "ascending")
+        Some(2) => assert_eq(name, "descending")
+        _ => fail("unexpected Result receiving Unit")
+      }
+      assert_eq(
+        @strategy.graph_task_unit_index(
+          graph,
+          @strategy.data_edge_producer(edge),
+        ),
+        Some(0),
+      )
+      received.push(port)
+    }
+  }
+  assert_eq(received.length(), 2)
+  assert_eq(
+    @results.port_target(received[0]),
+    @results.port_target(received[1]),
+  )
+  assert_false(physical_equal(received[0], received[1]))
+  assert_true(
+    @strategy_view.graph_result_input_port(
+      graph,
+      @strategy.graph_data_count(graph),
+    )
+    is Err(ForeignPort(-1, _)),
+  )
 }

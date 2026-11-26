@@ -1319,11 +1319,16 @@ async function observeInstalledSourceFree(input, observationPath) {
       libraries: numericLibraries, runtimeWire, records,
     }));
     const controlledModel = await phase('controlled-model', async () => {
-      return observeInstalledNativeModel({root: join(root, 'controlled-model'),
+      const installedModel = {
         binary, modelImage, environment,
         runtimeSha256: artifact.localRuntime.sha256, assets: numericAssets, records,
         prepareProject: project => prepareNativeNumericOperator({project, assets: numericAssets,
-          libraries: numericLibraries, runtimeWire, maxRows: 16, includeSqlResult: true})});
+          libraries: numericLibraries, runtimeWire, maxRows: 16, includeSqlResult: true}),
+      };
+      const standalone = await observeInstalledNativeModel({...installedModel, root: join(root, 'controlled-model')});
+      const joined = await observeInstalledNativeModel({...installedModel, root: join(root, 'controlled-model-joined'),
+        joinedFile: true});
+      return {...standalone, joined};
     });
     const journalExhaustion = await phase('journal-exhaustion', async () => observeNativeJournalExhaustion({project: join(root, 'journal-exhaustion'),
       cli, assets: numericAssets, libraries: numericLibraries, environment: env, runtimeWire}));

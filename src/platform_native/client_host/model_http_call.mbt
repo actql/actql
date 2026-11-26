@@ -69,6 +69,7 @@ pub(all) struct NativeModelHttpConfigurationFiles {
 ///|
 struct NativeModelHttpExecution {
   configuration : NativeModelHttpConfiguration
+  occurrence : @host.ClientInferOccurrence
   contract : @environment.ModelExecutionContract
   dependencies : @environment.SingleAttemptModelDependencies
 }
@@ -104,6 +105,25 @@ pub fn NativeModelHttpConfiguration::provider_defaults(
   self : Self,
 ) -> @host.ClientModelProviderDefaults {
   self.defaults
+}
+
+///|
+/// Return the Task identity from the admitted Response Profile.
+pub fn NativeModelHttpConfiguration::task_cid(self : Self) -> String {
+  @environment.model_response_profile_task_cid(self.response)
+}
+
+///|
+/// Check the declared Task against this same installation's route and profile.
+pub fn NativeModelHttpConfiguration::matches_project_task(
+  self : Self,
+  task : @environment.NormalizedPublicModelTask,
+) -> Bool {
+  @environment.normalized_public_model_task_matches_response_profile(
+    task,
+    self.response,
+    self.route.selector,
+  )
 }
 
 ///|
@@ -386,35 +406,54 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
 }
 
 ///|
-/// Persist the selected file projection at the end of explicit adoption.
-/// Model preparation restores this row through its read-only entry below.
-pub fn NativeLocalJournalCapture::adopt_model_http_configuration_in_original_read(
+/// Persist the selected file projections in one explicit adoption transaction.
+/// Model preparation restores each projection through its read-only entry.
+pub fn NativeLocalJournalCapture::adopt_model_http_configurations_in_original_read(
   self : NativeLocalJournalCapture,
-  configuration : NativeModelHttpConfiguration,
+  configurations : Array[NativeModelHttpConfiguration],
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  if !physical_equal(configuration.capture, self) || self.session.existing_only {
+  if configurations.is_empty() || self.session.existing_only {
     return Err(CustodyLost)
   }
   let written = Ref(false)
   self.with_current_adoption_material_in_original_read(
     (host, _, operations) => {
-      if !physical_equal(host.session.settings, configuration.settings) {
-        return Err(CustodyLost)
+      let settings = host.session.settings
+      if configurations.length() > settings.files.length() {
+        return Err(InvalidInput)
+      }
+      for index, configuration in configurations {
+        if !physical_equal(configuration.capture, self) ||
+          !physical_equal(settings, configuration.settings) {
+          return Err(CustodyLost)
+        }
+        for prior in 0..<index {
+          if configurations[prior].setting.name == configuration.setting.name {
+            return Err(InvalidInput)
+          }
+        }
       }
       host.journal
       .transaction_with_reads(
         () => {
-          host
-          .installation_original_locked(
-            configuration.setting,
-            configuration.provider_file,
-            configuration.selected,
-            true,
-            () => self.check_original_read_lifetime().map_err(_ => CustodyLost),
-            capture=Some(self),
-            operations=Some(operations),
-          )
-          .map(_ => ())
+          for configuration in configurations {
+            match
+              host.installation_original_locked(
+                configuration.setting,
+                configuration.provider_file,
+                configuration.selected,
+                true,
+                () => {
+                  self.check_original_read_lifetime().map_err(_ => CustodyLost)
+                },
+                capture=Some(self),
+                operations=Some(operations),
+              ) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+          }
+          Ok(())
         },
         reads=Some(operations.reads),
       )
@@ -437,8 +476,11 @@ pub fn NativeLocalJournalCapture::prepare_model_http_execution_in_original_read(
   configuration : NativeModelHttpConfiguration,
   occurrence : @host.ClientInferOccurrence,
   limits : @environment.ModelTaskLimits,
+  original? : NativeModelHttpExecution? = None,
 ) -> Result[NativeModelHttpExecution, NativeClientModelHttpIssue] {
   guard physical_equal(configuration.capture, self) &&
+    @host.client_infer_occurrence_model_task_cid(occurrence) ==
+    Some(configuration.task_cid()) &&
     configuration.execution_file is Some(name) else {
     return Err(ForeignOriginal)
   }
@@ -446,6 +488,42 @@ pub fn NativeLocalJournalCapture::prepare_model_http_execution_in_original_read(
   .with_current_adoption_material_in_original_read((host, _, operations) => {
     if !physical_equal(host.session.settings, configuration.settings) {
       return Err(CustodyLost)
+    }
+    if original is Some(original) {
+      if !physical_equal(original.configuration, configuration) {
+        return Ok(Err(NativeClientModelHttpIssue::ForeignOriginal))
+      }
+      // The first occurrence already holds the parsed contract and its three
+      // dependencies. Fund this occurrence's four-reference wrapper and the
+      // bounded selectors for both Task coordinates, plus return carriers.
+      let binding : @execution.PreparationRepresentationUnits = {
+        record_headers: 1L,
+        reference_slots: 4L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }
+      let working = {
+        ..binding,
+        record_headers: 32L,
+        reference_slots: 44L,
+        scalar_words: 24L,
+      }
+      if fund_native_model_http_configuration(operations, binding, working)
+        is Err(issue) {
+        return Err(issue)
+      }
+      guard @host.client_infer_occurrences_share_model_execution(
+        original.occurrence,
+        occurrence,
+        original.contract,
+      ) else {
+        return Ok(Err(NativeClientModelHttpIssue::ForeignOriginal))
+      }
+      if self.check_original_read_lifetime() is Err(issue) {
+        return Err(issue)
+      }
+      return Ok(Ok({ ..original, occurrence, }))
     }
     guard configuration.settings.files
       .iter()
@@ -515,7 +593,12 @@ pub fn NativeLocalJournalCapture::prepare_model_http_execution_in_original_read(
           limits.max_work,
         )
         .map_err(issue => NativeClientModelHttpIssue::Dependencies(issue))
-        .map(dependencies => { configuration, contract, dependencies, })
+        .map(dependencies => {
+          configuration,
+          occurrence,
+          contract,
+          dependencies,
+        })
       }),
     )
   })
@@ -564,7 +647,9 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
 ) -> Result[NativeModelHttpInstallation, NativeClientModelHttpIssue] {
   let configuration = prepared.configuration
   let execution = prepared.contract
-  if !physical_equal(configuration.capture, self) || diagnostic_ceiling <= 0 {
+  if !physical_equal(configuration.capture, self) ||
+    !physical_equal(prepared.occurrence, occurrence) ||
+    diagnostic_ceiling <= 0 {
     return Err(ForeignOriginal)
   }
   if self.require_model_http_runtime_in_original_read(runtime) is Err(issue) {

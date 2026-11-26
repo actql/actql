@@ -349,7 +349,7 @@
         },
         {
           "name": "new_installed_managed_run_owned",
-          "declaration": "new_installed_managed_run_owned ( preparation : ClientInstalledManagedRunOriginal , request : @ publication_host . ClientRequestIdentity , ledger : @ resources . Ledger , ) - > ClientInstalledManagedRun"
+          "declaration": "new_installed_managed_run_owned ( preparation : ClientInstalledManagedRunOriginal , request : @ publication_host . ClientRequestIdentity , ledger : @ resources . Ledger , captured ? : ClientInstalledManagedCapturePlan ?"
         },
         {
           "name": "open_installed_managed_source_free_host",
@@ -400,7 +400,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "0d7e23fc55a2c915cd399ec590809b0316a16b445ab4b0eeb4d6902f41b2536f"
+      "sha256": "f39bba8fd409d0f084d585bc7c60ab1fe0905c92af4d73def10c2de3cef80715"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",

@@ -13,6 +13,24 @@ test "plain project declaration admission preserves each actual selected file fa
       ).unwrap()
       assert_eq(admitted.has_connectors_file(), connectors is Some(_))
       assert_eq(admitted.has_model_tasks_file(), model_tasks is Some(_))
+      if model_tasks is Some(wire) {
+        let original = admit_client_project_model_registry(wire).unwrap()
+        let ready = admit_client_source_free_project_bindings(
+          connectors,
+          None,
+          model_registry=Some(original),
+        ).unwrap()
+        assert_eq(ready.has_connectors_file(), admitted.has_connectors_file())
+        assert_true(ready.has_model_tasks_file())
+        assert_true(
+          admit_client_source_free_project_bindings(
+            connectors,
+            model_tasks,
+            model_registry=Some(original),
+          )
+          is Err(InvalidBindings),
+        )
+      }
     }
   }
 }
@@ -35,7 +53,7 @@ test "tasks providers and selected default provider never silently become a no-m
     selected in [
       "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{\"t\":\"task.yaml\"},\"providers\":{}}",
       "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{},\"providers\":{\"p\":{\"type\":\"openai\"}}}",
-      "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{},\"providers\":{},\"default_provider\":\"p\"}",
+      "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{},\"providers\":{\"p\":{\"type\":\"openai\"}},\"default_provider\":\"p\"}",
     ] {
     assert_true(
       admit_client_source_free_project_bindings(
@@ -59,6 +77,11 @@ test "empty declarations remain closed required versioned objects" {
       is Err(InvalidBindings),
     )
   }
+  let missing_default = "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{},\"providers\":{},\"default_provider\":\"missing\"}"
+  assert_true(
+    admit_client_source_free_project_bindings(None, Some(missing_default))
+    is Err(InvalidBindings),
+  )
   for
     bad in [
       "{}", "null", "[]", "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{}}",

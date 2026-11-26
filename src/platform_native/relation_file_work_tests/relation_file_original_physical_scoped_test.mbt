@@ -259,6 +259,8 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
   // central-tariff reference slot, not physical backing or a larger policy.
   let publication_failure_borrow = 8L
   let export_vectors = 6L * 16L + 32L * 8L + 4L * 8L
+  // Staged completion (H1/R1/W1) and the Work's Whole evidence slot (R1).
+  let staged_work = 16L + 2L * 8L + 8L
   for
     (
       page,
@@ -337,14 +339,16 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
       work_without_source_tag +
       single_source_tag +
       publication_failure_borrow +
-      export_vectors,
+      export_vectors +
+      staged_work,
     )
     assert_eq(
       @execution.execution_capacity_execution_bytes(work),
       work_without_source_tag +
       single_source_tag +
       publication_failure_borrow +
-      export_vectors,
+      export_vectors +
+      staged_work,
     )
     assert_eq(@execution.execution_capacity_retained_bytes(read), read_bytes)
     assert_eq(@execution.execution_capacity_execution_bytes(read), read_bytes)

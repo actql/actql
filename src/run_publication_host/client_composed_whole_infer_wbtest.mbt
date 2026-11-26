@@ -124,10 +124,138 @@ fn mixed_whole_infer_capture(
 }
 
 ///|
+test "Whole Model siblings bind the same ordered observations at their own receiving port" {
+  let prepared = client_composed_whole_sibling_test_program()
+  let siblings = prepared_client_composed_infer_occurrences(prepared).unwrap()
+  assert_eq(siblings.length(), 2)
+  let live = Ref(true)
+  let left = mixed_whole_infer_capture(prepared, 0, live)
+  let right = mixed_whole_infer_capture(prepared, 1, live)
+  let first = admit_client_infer_composed_whole_sources(
+    siblings[0],
+    [left.0, right.0],
+    [left.1, right.1],
+    [left.2, right.2],
+    [left.3, right.3],
+    [left.4, right.4],
+    "sha256:" + "a".repeat(64),
+    "2026-11-12T00:00:00.000Z",
+    "2026-11-12T00:00:02.000Z",
+  ).unwrap()
+  let second = bind_client_infer_composed_whole_sibling(first, siblings[1]).unwrap()
+  for source in first.inputs {
+    assert_true(
+      @publication.model_source_observation_matches_authority(
+        source.observation,
+        "sha256:" + "a".repeat(64),
+      ),
+    )
+    assert_false(
+      @publication.model_source_observation_matches_authority(
+        source.observation,
+        "sha256:" + "e".repeat(64),
+      ),
+    )
+  }
+  assert_true(client_infer_composed_sources_matches(first, siblings[0]))
+  assert_true(client_infer_composed_sources_matches(second, siblings[1]))
+  assert_false(client_infer_composed_whole_sources_original(first, siblings[1]))
+  assert_true(client_infer_composed_whole_sources_original(second, siblings[1]))
+  assert_false(physical_equal(first, second))
+  let graph = @strategy.prepare_source_inputs_dag(prepared.graph, [
+    left.2,
+    right.2,
+  ]).unwrap()
+  fn open(captures) {
+    let ledger = @resources.create_ledger({
+      planning_work: 100000,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 1000000L,
+      retained_bytes: 1000000L,
+      execution_bytes: 1000000L,
+    }).unwrap()
+    @strategy.open_source_inputs_dag(graph, captures, ledger).unwrap()
+  }
+  let run = open([left.0, right.0])
+  assert_true(client_infer_composed_whole_sources_match_run(first, run))
+  assert_true(client_infer_composed_whole_sources_match_run(second, run))
+  let equal_left = mixed_whole_infer_capture(prepared, 0, Ref(true))
+  let foreign_run = open([equal_left.0, right.0])
+  assert_true(
+    @query.captured_source_relation_logical_cid(equal_left.1) ==
+    @query.captured_source_relation_logical_cid(left.1),
+  )
+  assert_false(
+    client_infer_composed_whole_sources_match_run(first, foreign_run),
+  )
+  @strategy.stop_captured_dag(foreign_run)
+  @strategy.stop_captured_dag(run)
+  assert_false(client_infer_composed_whole_sources_match_run(first, run))
+  assert_eq(second.inputs.map(input => input.name), ["rows", "rows"])
+  for index in 0..<first.inputs.length() {
+    assert_true(
+      physical_equal(first.inputs[index].source, second.inputs[index].source),
+    )
+    assert_true(
+      physical_equal(
+        first.inputs[index].observation,
+        second.inputs[index].observation,
+      ),
+    )
+  }
+  let copied = client_composed_whole_sibling_test_program()
+  let foreign = prepared_client_composed_infer_occurrences(copied).unwrap()[1]
+  assert_true(
+    bind_client_infer_composed_whole_sibling(first, foreign)
+    is Err(ForeignInput),
+  )
+  assert_true(
+    bind_client_infer_composed_whole_sibling(first, siblings[0])
+    is Err(ForeignInput),
+  )
+}
+
+///|
 test "mixed Whole Model sources retain imported producer and local ordinal through downstream Model" {
   let prepared = mixed_whole_infer_test_program()
   let models = prepared_client_composed_infer_occurrences(prepared).unwrap()
   assert_eq(models.length(), 2)
+  let execution = client_infer_graph_test_execution(
+    prepared,
+    occurrence=Some(models[0]),
+  )
+  assert_true(
+    client_infer_occurrences_share_model_execution(
+      models[0],
+      models[1],
+      execution,
+    ),
+  )
+  let other = mixed_whole_infer_test_program()
+  let foreign = prepared_client_composed_infer_occurrences(other).unwrap()[1]
+  assert_eq(
+    client_infer_occurrence_model_task_cid(foreign),
+    client_infer_occurrence_model_task_cid(models[1]),
+  )
+  assert_false(
+    client_infer_occurrences_share_model_execution(
+      models[0],
+      foreign,
+      execution,
+    ),
+  )
+  let foreign_execution = client_infer_graph_test_execution(
+    other,
+    occurrence=Some(foreign),
+  )
+  assert_false(
+    client_infer_occurrences_share_model_execution(
+      models[0],
+      models[1],
+      foreign_execution,
+    ),
+  )
   let live = Ref(true)
   let left = mixed_whole_infer_capture(prepared, 0, live)
   let right = mixed_whole_infer_capture(prepared, 1, live)
@@ -143,6 +271,9 @@ test "mixed Whole Model sources retain imported producer and local ordinal throu
     "2026-11-12T00:00:02.000Z",
   ).unwrap()
   assert_eq(sources.inputs.map(input => input.name), ["imported", "local"])
+  assert_true(client_infer_composed_whole_sources_original(sources, models[0]))
+  assert_false(client_infer_composed_whole_sources_original(sources, models[1]))
+  assert_false(client_infer_composed_whole_sources_original(sources, foreign))
   assert_true(client_infer_composed_sources_matches(sources, models[0]))
   assert_true(client_infer_composed_sources_matches(sources, models[1]))
   let expected = infer_scope_expected_sources(models[1]).unwrap()

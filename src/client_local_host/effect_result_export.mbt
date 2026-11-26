@@ -60,7 +60,8 @@ pub fn LocalValuesExecution::prepare_effect_result_export(
     return Err(ForeignInput)
   }
   let (bridge, output) = match
-    self.prepare_publication_bridge_for_original(
+    prepare_publication_bridge_for_original(
+      self.available,
       operations,
       completed,
       row_limits,
