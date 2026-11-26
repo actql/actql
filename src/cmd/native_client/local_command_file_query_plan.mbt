@@ -1,15 +1,12 @@
 ///|
-// Exact original Project target, not an Account/permission merge. This private
-// selector runs under the same backed Query construction frontier.
+// Locate an exact checked target in the caller's current declarations. The
+// caller retains the original installation and the backed Query scope.
 fn local_command_file_row(
-  original : LocalProjectMockDeclarations,
+  declarations : Array[LocalProjectMockSourceDeclaration],
   connector : String,
   resource : String,
 ) -> (LocalProjectMockSourceDeclaration, LocalProjectMockRowBinding) raise ClientStop {
-  if original.closing || original.retired {
-    stop("LocalSourceInputSelectionUnavailable")
-  }
-  for declaration in original.sources {
+  for declaration in declarations {
     if declaration._retained_connection == connector {
       for row in declaration._retained_rows {
         if row.view.resource == resource {
@@ -19,6 +16,98 @@ fn local_command_file_row(
     }
   }
   stop("LocalSourceInputSelectionUnavailable")
+}
+
+///|
+// Query locators keep captured-task order. The declared provider is only
+// borrowed from the checked source target; the later Read owns access.
+fn local_native_query_file_row(
+  declarations : Array[LocalProjectMockSourceDeclaration],
+  direct : @run_host.ClientDirectAcquisitionOccurrences,
+  index : Int,
+) -> (Int, Int, LocalProjectMockSourceDeclaration, LocalProjectMockRowBinding) raise ClientStop {
+  guard @run_host.client_direct_acquisition_occurrence_at(direct, index)
+    is Some((stage, input_index, task)) &&
+    task == index &&
+    @run_host.client_direct_acquisition_occurrence_subject(direct, index)
+    is Some(subject) else {
+    stop("LocalSourceInputSelectionUnavailable")
+  }
+  let target = @sourceviews.declaration(subject.source)
+  let (declaration, row) = local_command_file_row(
+    declarations,
+    target.connector,
+    target.resource,
+  )
+  (stage, input_index, declaration, row)
+}
+
+///|
+// The File Model path uses the original admitted Whole inputs and exact
+// Project locators. Reject an unsupported Query before installing a module.
+fn[I] prepare_local_native_model_file_request_module(
+  control : LocalCommandPreparationOriginal,
+  parent : @local_values.ClientRequestPreparation[I],
+  input : I,
+  prepared : @run_host.PreparedClientProgram,
+  request : @run_host.ClientRequestIdentity,
+  compiled : @run_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @run_host.ClientTaskCompilation,
+  declarations : Array[LocalProjectMockSourceDeclaration],
+  listings : Array[LocalProjectMockFileSource]?,
+  contracts : @local_values.ClientInstalledSequenceContracts,
+  providers : Int,
+  component_factory : ((
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    @execution.GeneratedSequence?,
+  ) -> @local_compute.ManagedProvider)?,
+  components_factory : ((
+    Int,
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    @execution.GeneratedSequence?,
+  ) -> @local_compute.ManagedProvider)?,
+) -> (@local_values.ClientInstalledManagedCapturePlan, LocalCommandFileSources) raise ClientStop {
+  let (direct, originals) = local_command_query_preparation_result(
+    control,
+    @local_values.reserve_request_model_file_source_inputs(
+      parent, input, request,
+    ).map_err(issue => CommandBusinessQueryPlan(issue)),
+    "LocalSourceInputSelectionUnavailable",
+  )
+  if originals.is_empty() {
+    stop("LocalModelHttpSourcePlanUnavailable")
+  }
+  let (sources, capacities, transport, executing) = local_native_whole_file_inputs(
+    control, prepared, declarations, listings, contracts, direct, originals,
+  )
+  let selected = local_command_query_preparation_result(
+    control,
+    @local_values.prepare_request_model_capture_module(
+      parent,
+      input,
+      request,
+      compiled,
+      definition,
+      compilation,
+      [],
+      "",
+      "",
+      transport,
+      executing,
+      contracts,
+      true,
+      providers,
+      native_request_provider_factory,
+      whole_sources=capacities,
+      component_factory~,
+      components_factory~,
+    ).map_err(issue => CommandBusinessModelGraph(issue)),
+    "LocalOriginalModelModuleUnavailable",
+  )
+  (selected, WholeSet(sources))
 }
 
 ///|
@@ -45,7 +134,8 @@ fn[I] prepare_local_native_file_request_module(
   input : I,
   prepared : @run_host.PreparedClientProgram,
   request : @run_host.ClientRequestIdentity,
-  original : LocalProjectMockDeclarations,
+  declarations : Array[LocalProjectMockSourceDeclaration],
+  listings : Array[LocalProjectMockFileSource]?,
   contracts : @local_values.ClientInstalledSequenceContracts,
   assets : @run_host.ClientLocalProductAssets,
   bodies : (String, String)?,
@@ -84,7 +174,7 @@ fn[I] prepare_local_native_file_request_module(
           is None {
           let subject = @sourceviews.declaration(source_input)
           let (declaration, row) = local_command_file_row(
-            original,
+            declarations,
             subject.connector,
             subject.resource,
           )
@@ -105,8 +195,8 @@ fn[I] prepare_local_native_file_request_module(
       return (
         None,
         prepare_local_native_whole_files_request_module(
-          control, parent, input, prepared, request, original, contracts, assets,
-          direct, originals,
+          control, parent, input, prepared, request, declarations, listings, contracts,
+          assets, direct, originals,
         ),
       )
     }
@@ -120,18 +210,8 @@ fn[I] prepare_local_native_file_request_module(
   let transport : Array[Int64] = []
   let executing : Array[Int64] = []
   for index in 0..<count {
-    guard @run_host.client_direct_acquisition_occurrence_at(direct, index)
-      is Some((stage, input_index, task)) &&
-      task == index &&
-      @run_host.client_direct_acquisition_occurrence_subject(direct, index)
-      is Some(subject) else {
-      stop("LocalSourceInputSelectionUnavailable")
-    }
-    let target = @sourceviews.declaration(subject.source)
-    let (declaration, row) = local_command_file_row(
-      original,
-      target.connector,
-      target.resource,
+    let (stage, input_index, declaration, row) = local_native_query_file_row(
+      declarations, direct, index,
     )
     let requirement = local_command_query_preparation_result(
       control,

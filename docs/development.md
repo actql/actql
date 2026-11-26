@@ -1222,8 +1222,9 @@ shell without rerunning packed product acceptance or a mutation campaign.
 ## Pull request checks and main integration
 
 Normal CI runs on pull requests (`opened`, `synchronize`, `reopened`,
-`ready_for_review`, and `converted_to_draft`), pushes to `main`, weekly Monday
-03:23 UTC deep validation, and explicit manual dispatch. The repository must be public. No repository activation
+`ready_for_review`, and `converted_to_draft`) and explicit manual dispatch.
+Main integration runs at 00:17, 06:17, 12:17 and 18:17 UTC every day. The
+repository must be public. No repository activation
 variable is required: enable or disable the workflow through GitHub Actions.
 This workflow does not change repository visibility, permissions, branch
 protection, or release authorization.
@@ -1237,7 +1238,7 @@ write permissions, or `pull_request_target` execution are introduced.
 ### Draft preparation and Ready verification
 
 Drafts run preparation (`select-targets`, `preflight`, `lint`, `spec`, and the
-aggregate `check`). Draft `lint` installs the pinned MoonBit toolchain and runs
+aggregate `draft-preparation`). Draft `lint` installs the pinned MoonBit toolchain and runs
 its Node-only checks, so a failure there is found before Ready starts the full
 run; checks that need Python, the DuckDB transport or the Explorer build stay
 Ready-only. An exact registered
@@ -1247,10 +1248,12 @@ fixtures, or their CI/toolchain inputs also run the genuine macOS wheel lane
 automatically, including in Draft. Unrelated Draft changes do not start that
 lane; this targeted exception is not complete Draft product coverage. The
 source-bound selection drives both scheduling and required-job checks. These
-checks are not full product verification: the aggregate
-intentionally fails with “awaiting ready_for_review”. Marking Ready triggers
-the normal applicable coverage; subsequent non-Draft pushes rerun it. Returning
-to Draft cancels the superseded PR run through the existing concurrency group.
+checks are not full product verification. A successful Draft run reports
+`draft-preparation`; it does not publish a result under the required `check`
+name. Failed, cancelled or missing selected Draft checks still fail preparation.
+Marking Ready triggers the normal applicable coverage and publishes `check`;
+subsequent non-Draft pushes rerun it. Returning to Draft cancels the superseded
+PR run through the existing concurrency group.
 
 General product changes select full coverage. Reviewed maintenance, portable,
 and focused-test selections remain explicit, bounded exceptions. Missing or
@@ -1262,7 +1265,7 @@ A Ready PR that changes no Core target input runs JS core only; main
 integration runs every target. The inputs are a short directory policy: `src`,
 `vendor`, `spec`, `portability`, `proofs`, `.github`, and the Python SDK and
 Local Runtime packages. Moon and package manifests, the toolchain pin, native
-sources and binaries, and `scripts/ci-targets.mjs` also keep every target, and
+sources and binaries, and `scripts/ci-targets.mts` also keep every target, and
 the existing macOS workload and wheel selectors still decide those jobs.
 Ordinary `scripts/` changes, including fixtures and test drivers, do not keep
 the Wasm and Native Core legs on a PR, so a cross-target regression there can
@@ -1508,47 +1511,36 @@ coverage; local `run session-evidence` retains both sequences serially.
 
 ### Full integration and release evidence
 
-Every main push selects full runtime coverage, including all three Core
-backends and macOS. Complete Session and pipeline mutation/search campaigns run
-when their actual source snapshot or safety/orchestration inputs change. Their
-snapshot includes all Core source and vendor files; ownership, resource,
-platform, build and unknown inputs conservatively select deep coverage. Other
-reviewed integration-tree changes retain runtime/package acceptance without
-repeating unrelated proof campaigns. Cheap pipeline contract/negative checks
-remain independently mandatory even when deep assembly is not selected.
+Each scheduled main run covers all three Core backends, Linux and macOS, and
+the full Session and pipeline proof campaigns on its authenticated event SHA.
+The Monday 00:17 UTC run selects thirty formal approvals per original Mock
+workflow in the existing Native job. The other slots select the ordinary
+installed Mock workflows.
 
-Only the current push event's exact `before` and tested `after` endpoints are
-compared for deep scheduling, with both sides of renames and deletions retained.
-An absent, invalid or unavailable base selects deep coverage. This is not the
-removed prior-success API/history traversal: no previous successful run or
-ancestor search chooses ordinary CI jobs. Current checkout SHA, source,
-toolchain, artifact, and execution identity checks remain required.
-
-Main also records performance from the same run's normal Client artifacts
-using the existing measurement tools. Timing regression thresholds are not
+Scheduled main runs also record health and performance from their normal Client
+artifacts using the existing measurement tools. Timing regression thresholds are not
 blocking in record-only mode; malformed measurements, setup and correctness
 failures still fail the required main aggregate. No measured speedup is claimed
 from scheduling alone.
 
-The normal main concurrency group keeps one running integration and at most
-one pending run; newer arrivals replace pending work. This does not promise
-FIFO or test every intermediate merge. An active main run validates its
-immutable event SHA and may finish after main advances. PR and working-branch
-runs still reject superseded heads. Performance/probe runs have separate groups.
+Scheduled and manual main runs have separate concurrency groups. Within each
+group the active run continues, and GitHub retains at most the latest pending
+run. An active main run validates its immutable event SHA and may finish after
+main advances. PR and working-branch runs still reject superseded heads.
+Performance and evidence probes have separate groups.
 
-Weekly scheduled validation runs complete runtime and deep campaigns on its
-authenticated main event SHA. Manual normal dispatch also selects all deep
-campaigns, with optional `native_macos=true`. Scheduled receipt authentication
-retains the same source/run/attempt checks; it does not authorize new cross-run
-proof reuse.
+To start main integration on demand, select `main` in Actions → CI → Run workflow.
+Manual normal dispatch selects all deep campaigns. Use `native_macos=true` to
+include the macOS Native workload. Scheduled receipt authentication retains the
+same source, run and attempt checks.
 Performance and intentionally failing evidence probes are separate opt-in modes,
 not full integration checkpoints. The Python wheel acceptance job runs on its
 supported product platform independently of the optional native diagnostic job.
 No package publication or deployment is performed by ordinary CI.
 
 Before release, require the exact main SHA's successful full integration
-`check` with complete deep campaigns and macOS from the same attempt (use normal
-manual dispatch with `native_macos=true` if the push selected shallow proofs). Local tests, an
+`check` with complete deep campaigns and macOS from the same attempt. Use normal
+manual dispatch with `native_macos=true` to verify a SHA on demand. Local tests, an
 ancestor's green run, a Draft preparation, skipped checks, and performance
 results are not substitutes. Configure required branch checks separately under
 owner-approved repository rules; this workflow does not modify those rules.
@@ -1835,8 +1827,9 @@ that the product executes graph, vector or temporal profiles.
 
 ## Read-only worktree inventory
 
-Run this opt-in development command with every worktree whose borrowed
-links should be considered, using explicit paths (quote paths with spaces):
+From the repository after `npm ci`, run this opt-in development command with
+explicit paths for every worktree whose borrowed links should be considered.
+Quote paths with spaces:
 
 ```sh
 npm run inventory:worktrees -- -- "/path/to/owner tree" "/path/to/borrower tree"

@@ -68,7 +68,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
     stop("LocalValuesExecutionProfileNotSupported")
   }
   let requirements = (match business.model_run {
-    Some(model) => Some(model.requirements)
+    Some(model) => model.requirements
     None => self.requirements
   }).unwrap_or_else(() => stop("LocalValuesExecutionProfileNotSupported"))
   let drive_task = business.model_run.map(model => {
@@ -246,6 +246,11 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
+    // The File export can still borrow a Model result after an interrupted
+    // publication. Its original execution scope must return that view first.
+    if business.file_work is Some(file) && !file.retire_model_publication() {
+      return Err(CommandBusinessPublication)
+    }
     if business.effect_model is Some(state) {
       if state.source_review is Some(saved) {
         match saved.close() {
@@ -346,6 +351,9 @@ fn LocalCommandPreparationOriginal::close_business_children(
     // the original Journal/Database until their backing buffer is released.
     // Every Work above has already acknowledged its own child retirement.
     business.model_work.shrink_to_fit()
+    if business.model_run is Some(model) {
+      model.whole_inputs = None
+    }
     if business.effect_model is Some(state) {
       if !state.stop_mock_effect_direct_source_scan() {
         return Err(CommandBusinessChildren)
@@ -586,6 +594,14 @@ fn LocalCommandPreparationOriginal::close_business_children(
         Ok(true) => business.model_run = None
       }
     }
+    if business.terminal_content_selected {
+      guard business.request_run is Some(run) &&
+        @local_values.cleanup_installed_managed_terminal_serialization(run)
+        is Ok(true) else {
+        return Err(CommandBusinessChildren)
+      }
+      business.terminal_content_selected = false
+    }
     // Source preparation DATA is retained by this same caller only until its
     // logical children finish. Do not root it through physical C retirement.
     business.file_capacity = None
@@ -659,9 +675,11 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
       @local_host.native_relation_files_entry_read_capacity(sources, graph)
     WholeSet(sources) =>
       @local_host.native_relation_whole_files_entry_read_capacity(
-        sources, graph,
+        sources,
+        graph,
+        model=@run_host.client_compiled_run_has_infers(compiled),
       )
-    Project(_) => None
+    Original(_, _) => None
   }).unwrap_or_else(() => stop("LocalSourceReadCapacityUnavailable"))
   let result_count = @strategy.graph_result_count(graph)
   let generation_capacity = local_file_generation_capacity(result_count).unwrap_or_else(() => {
@@ -682,7 +700,7 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
     Whole(_, _) => 1
     Query(sources) => sources.length()
     WholeSet(sources) => sources.length()
-    Project(_) => 0
+    Original(_, _) => 0
   }
   let raw = @local_host.native_relation_file_entries_read_raw_bytes(
     Int::max(source_count, result_count),
@@ -713,9 +731,11 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
         @local_host.native_relation_files_work_control_capacity(sources, graph)
       WholeSet(sources) =>
         @local_host.native_relation_whole_files_work_control_capacity(
-          sources, graph,
+          sources,
+          graph,
+          model=@run_host.client_compiled_run_has_infers(compiled),
         )
-      Project(_) => None
+      Original(_, _) => None
     }).unwrap_or_else(() => stop("LocalSourceWorkCapacityUnavailable"))
     let admission = @local_values.installed_managed_preparation_admission_original(
       managed, prepared, request,
@@ -793,7 +813,7 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
         managed,
         sources,
       )
-    Project(_) => None
+    Original(_, _) => None
   }).unwrap_or_else(() => stop("LocalSourceWorkEntryUnavailable"))
   match outcome {
     Ok(entry) => {
@@ -819,24 +839,86 @@ fn LocalCommandBusinessPreparation::open_file_work(
   self : Self,
   entry : @local_host.NativeClientRelationFileWorkEntry,
   occurrence : String,
+  run : LocalRunInstallation,
+  reference : @local_host.NativeClientSubmissionReference,
 ) -> @local_host.NativeClientRelationFileWork raise ClientStop {
   guard self.original.business is Some(business) &&
     business.operation is Some(operation) &&
     business.file_entry is Some(original) &&
     physical_equal(original, entry) &&
     business.file_work is None &&
-    business.file_failure is None else {
+    business.file_failure is None &&
+    !self.original.closing &&
+    !self.original.closed else {
     stop("LocalBusinessOriginalUnavailable")
   }
   let opened = match self.file_source {
-    Some(Whole(_, _)) =>
+    Some(Whole(_, _)) if business.model_run is None =>
       self.host.open_original_whole_relation_file_source_work(
         operation, entry, occurrence, 16, 100000, local_utc_now,
       )
-    Some(Query(_) | WholeSet(_)) =>
+    Some(Query(_) | WholeSet(_)) => {
+      let drive_task = business.model_run.map(model => {
+        (task, operations) => {
+          self.drive_configured_model_task(
+            business, model, run, reference, task, operations,
+          )
+        }
+      })
+      let retain_model_sources = business.model_run.map(model => {
+        fn(sources : Array[@run_host.ClientInferComposedSources]) {
+          guard business.model_run is Some(original) &&
+            physical_equal(original, model) &&
+            model.whole_inputs is None &&
+            sources.length() == model.graphs.length() &&
+            !self.original.closing &&
+            !self.original.closed else {
+            return false
+          }
+          for index, binding in sources {
+            if !@run_host.client_infer_composed_whole_sources_original(
+                binding,
+                model.graphs[index].occurrence,
+              ) {
+              return false
+            }
+          }
+          model.whole_inputs = Some({ sources, pending: None, })
+          true
+        }
+      })
+      let model_results = business.model_run.bind(model => {
+        model.scopes
+        .get(0)
+        .map(scope => @local_host.NativeWholeModelResults::{
+          scope,
+          retention: run.retention,
+          retain: (task, results) => {
+            guard business.model_run is Some(original) &&
+              physical_equal(original, model) &&
+              model.whole_inputs is Some(inputs) &&
+              inputs.pending is None &&
+              !self.original.closing &&
+              !self.original.closed else {
+              return false
+            }
+            inputs.pending = Some((task, results))
+            true
+          },
+        })
+      })
       self.host.open_original_managed_relation_files_source_work(
-        operation, entry, occurrence, 16, 100000, local_utc_now,
+        operation,
+        entry,
+        occurrence,
+        16,
+        100000,
+        local_utc_now,
+        drive_task~,
+        retain_model_sources~,
+        model_results~,
       )
+    }
     _ => stop("LocalBusinessOriginalUnavailable")
   }
   match opened {

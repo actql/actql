@@ -1,6 +1,9 @@
 ///|
 priv enum LocalCommandFileSources {
-  Project(LocalProjectMockDeclarations)
+  Original(
+    Array[LocalProjectMockSourceDeclaration],
+    Array[LocalProjectMockFileSource]?
+  )
   Whole(LocalProjectMockSourceDeclaration, LocalProjectMockRowBinding)
   Query(Array[@local_host.NativeRelationFileQuerySource])
   WholeSet(Array[@local_host.NativeRelationFileWholeSource])
@@ -122,7 +125,12 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   // Select the actual Runtime/Host originals before publishing Project write
   // targets to the SAME Request. Static catalogue strings cannot supply them.
   self.bind_project_mock_runtime(runtime.physical, capture, settings.principal)
-  let environment = local_command_project_environment(base_environment)
+  self.prepare_declared_file_sources(configuration, capture)
+  let environment = local_command_project_environment(
+    base_environment,
+    Some(capture),
+    settings,
+  )
   let producer : LocalCommandBusinessInput = {
     root: input_root,
     operation,
@@ -142,14 +150,14 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   )
   let model_compilation = match
     (
-      settings.model_http_installation,
+      settings.model_http_installations,
       @local_host.native_client_submitted_preparation(preparation),
     ) {
     (Some(installation), Computation(prepared)) =>
       self.prepare_model_compilation(capture, prepared, installation, runtime)
     _ => None
   }
-  let (requirements, file_source) = match
+  let (requirements, file_source, terminal_content) = match
     @local_host.native_client_submitted_preparation(preparation) {
     Computation(prepared) => {
       // This original Pure route retains its unchanged normalization and
@@ -164,46 +172,52 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       // This gate only separates Programs with checked Source work from
       // source-free Programs. Their actual file route is selected later on
       // the same Request, once its original occurrences are backed.
-      let graph = @run_host.prepared_client_graph(prepared)
-      if model_compilation is Some(_) {
-        (None, None)
-      } else if @checked.source_execution_count(@strategy.graph_program(graph)) >
-        0 {
+      if @run_host.prepared_client_has_checked_sources(prepared) {
         let selected = self
-          .select_business_file_source(prepared)
+          .select_business_file_source(prepared, model_compilation)
           .unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
-        (None, Some(Project(selected)))
+        (None, Some(selected), false)
+      } else if model_compilation is Some(_) {
+        (None, None, false)
       } else {
         // The same Request already reserved its original Plan/body envelope.
         // Construct sequences in that business allocator, keeping any typed
         // failure primary before the original scope/Journal return can fail.
-        let requirements = self.with_business_request(capture, () => {
-          match
-            @local_values.prepare_source_free_runtime_requirements_result(
+        let (requirements, terminal_content) = self.with_business_request(
+          capture,
+          () => {
+            if local_terminal_serialization_occurrence(prepared) is Some(_) {
+              return (None, true)
+            }
+            match
+              @local_values.prepare_source_free_runtime_requirements_result(
+                prepared,
+                runtime.installed_contracts,
+                assets.values,
+                Some(assets.fragment),
+                assets.ordered,
+              ) {
+              Ok(original) => (Some(original), false)
+              Err(issue) => local_stop_runtime_requirements(issue)
+            }
+          },
+        )
+        if requirements is Some(requirements) {
+          command_preparation_result(
+            self.require_business_program(
               prepared,
               runtime.installed_contracts,
-              assets.values,
-              Some(assets.fragment),
-              assets.ordered,
-            ) {
-            Ok(original) => original
-            Err(issue) => local_stop_runtime_requirements(issue)
-          }
-        })
-        command_preparation_result(
-          self.require_business_program(
-            prepared,
-            runtime.installed_contracts,
-            assets,
-            requirements,
-          ),
-          stage=Some("business-program"),
-        )
-        |> ignore
-        (Some(requirements), None)
+              assets,
+              requirements,
+            ),
+            stage=Some("business-program"),
+          )
+          |> ignore
+        }
+        (requirements, None, terminal_content)
       }
     }
-    EffectComputation(_) => (None, None)
+    EffectComputation(_) => (None, None, false)
   }
   let selection : LocalCommandBusinessPreparation = {
     original: self,
@@ -240,7 +254,8 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   // exact admitted Runtime/Program/current selection may activate its route.
   if requirements is Some(_) ||
     file_source is Some(_) ||
-    model_compilation is Some(_) {
+    model_compilation is Some(_) ||
+    terminal_content {
     command_preparation_result(
       original_operation
       .activate()
@@ -286,6 +301,7 @@ fn LocalCommandBusinessPreparation::current(
   self.capture.selected_configuration_in_original_read(self.environment_name)
   is Ok(original_environment) &&
   original_environment == self.environment_body &&
+  self.configuration.declared_file_source_current(self.capture) &&
   self.capture.authority_scope_cid_in_original_read(
     self.principal,
     self.connection,
@@ -302,32 +318,61 @@ fn LocalCommandBusinessPreparation::current(
 }
 
 ///|
+// Select the source-free terminal family. Its exact checked coordinates and
+// Result roots are verified by the existing dedicated Content Graph issuer.
+fn local_terminal_serialization_occurrence(
+  prepared : @run_host.PreparedClientProgram,
+) -> (Int, Int)? {
+  guard @run_host.prepared_client_acquisition_count(prepared) == 0 &&
+    @strategy.graph_task_count(@run_host.prepared_client_graph(prepared)) == 1 &&
+    @run_host.prepared_client_composed_infer_occurrences(prepared)
+    is Some(infers) &&
+    infers.is_empty() else {
+    return None
+  }
+  let occurrences = @run_host.prepared_client_serialization_occurrences(
+    prepared,
+  )
+  if occurrences.length() == 1 {
+    occurrences.get(0)
+  } else {
+    None
+  }
+}
+
+///|
 // Select only the actual checked Source's existing Project declaration and
 // original prepared File provider. Names select immutable metadata, never an
 // Account grant, a route fallback, a new Environment or a physical read.
 fn LocalCommandPreparationOriginal::select_business_file_source(
   self : LocalCommandPreparationOriginal,
   prepared : @run_host.PreparedClientProgram,
-) -> LocalProjectMockDeclarations? {
-  guard self.project is Some(project) &&
-    project.mock_declarations is Some(original) &&
-    !original.closing &&
-    !original.retired else {
-    return None
-  }
+  model : LocalCommandModelCompilation?,
+) -> LocalCommandFileSources? {
   let graph = @run_host.prepared_client_graph(prepared)
   if @strategy.graph_result_count(graph) <= 0 ||
     @strategy.graph_program_has_effects(graph) ||
     @run_host.prepared_client_uses_graph_carrier(prepared) {
     return None
   }
-  guard @run_host.prepared_client_composed_infer_occurrences(prepared)
-    is Some(infers) &&
-    infers.is_empty() &&
+  let model_matches = match model {
+    Some(original) => physical_equal(original.program, prepared)
+    None => @run_host.prepared_client_composed_infer_count(prepared) == Some(0)
+  }
+  guard model_matches &&
     @run_host.prepared_client_serialization_occurrences(prepared).is_empty() else {
     return None
   }
-  // No unbacked Query/array construction here. The same Request's next Plan
-  // phase binds every original direct subject to its exact Project mapping.
-  Some(original)
+  // The same Request's next Plan phase binds each original checked subject
+  // to the already prepared locator of this command.
+  if self.declared_file_sources is Some((sources, listings)) {
+    return Some(Original(sources, Some(listings)))
+  }
+  guard self.project is Some(project) &&
+    project.mock_declarations is Some(original) &&
+    !original.closing &&
+    !original.retired else {
+    return None
+  }
+  Some(Original(original.sources, original.file_sources))
 }

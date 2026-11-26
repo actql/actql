@@ -25,6 +25,9 @@ fn local_execute_original_publish_file_source(
     selection.current(selection.host, settings, selection.environment) else {
     stop("LocalBusinessOriginalUnavailable")
   }
+  if business.model_run is Some(_) {
+    selection.prepare_configured_model_works(business, request, run, store)
+  }
   let publisher = selection.host
     .bind_original_run_publisher(
       operation,
@@ -73,7 +76,28 @@ fn local_execute_original_publish_file_source(
   operation
   .enter_business_from_original_read()
   .unwrap_or_else(() => stop("LocalBusinessScopeUnavailable"))
-  let work = selection.open_file_work(entry, attempt)
+  let work = selection.open_file_work(entry, attempt, run, reference)
+  let model_leader = if business.model_run is Some(model) {
+    guard business.model_work.get(0) is Some(leader) else {
+      stop("LocalOriginalModelUnavailable")
+    }
+    selection.original.require_model_step(
+      leader.prepare_model_run_observation(business.model_work, model.graphs),
+    )
+    while !selection.original.require_model_step(leader.advance_observation()) {
+
+    }
+    match work.bind_model_publication(leader) {
+      Ok(_) => ()
+      Err(issue) => {
+        business.file_publication_failure = Some(issue)
+        stop("LocalSourcePublicationEvidenceUnavailable")
+      }
+    }
+    Some(leader)
+  } else {
+    None
+  }
   let (_, limits) = work
     .publication_limits(local_values_publication_payload_limit(run))
     .unwrap_or_else(() => stop("LocalSourcePublicationLimit"))
@@ -138,8 +162,17 @@ fn local_execute_original_publish_file_source(
   })
   let pending = match
     work.prepare_local_publication(
-      service, results, normalization, authoring, intent, occurrence, limits, 65536,
-      8192, 64,
+      service,
+      results,
+      normalization,
+      authoring,
+      intent,
+      occurrence,
+      limits,
+      65536,
+      8192,
+      64,
+      model_leader~,
     ) {
     Ok(value) => value
     Err(issue) => {

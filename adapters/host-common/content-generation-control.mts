@@ -65,7 +65,7 @@ type GenerationPublicationBindings = Readonly<{
   ): unknown;
   prepareCheckedClientRequestSerializationPlan(
     parent: unknown, input: unknown, request: unknown, compiled: unknown, definition: unknown,
-    limits: PrefixLimits, workspace: CommonObject | undefined,
+    limits: PrefixLimits, workspace: CommonObject | undefined, sourcePlan?: unknown,
   ): unknown;
   prepareCheckedClientRequestModelSerializationPlan(
     parent: unknown, input: unknown, request: unknown, compiled: unknown, definition: unknown,
@@ -117,6 +117,9 @@ type CommonContentGenerationBindings = {
   clientProgramInstalledEffectContentPreparationProvider(original: unknown): CommonObject;
   clientProgramInstalledManagedAcquiredSerializationPrefixStart(
     run: unknown, prepared: unknown, selected: unknown, capture: unknown,
+  ): unknown;
+  clientProgramInstalledManagedWholeSerializationPrefixStart(
+    run: unknown, prepared: unknown, selected: unknown, captures: readonly unknown[],
   ): unknown;
   clientProgramInstalledManagedKeyedSerializationPrefixCleanup(run: unknown, selected: unknown): unknown;
   clientProgramInstalledManagedKeyedSerializationPrefixStart(
@@ -425,13 +428,13 @@ export function contentGenerationControl(
     },
     prepareRequestPrefix(
       parent: unknown, input: unknown, request: unknown, compiled: unknown, definition: unknown,
-      limits: PrefixLimits, workspace?: Workspace,
+      limits: PrefixLimits, workspace?: Workspace, sourcePlan?: unknown,
     ) {
       if (workspace !== undefined && !workspaces.has(workspace)) {
         throw new TypeError('Foreign Content workspace capacity');
       }
       return publications.prepareCheckedClientRequestSerializationPlan(parent, input, request, compiled,
-        definition, limits, workspace === undefined ? undefined : workspaces.get(workspace));
+        definition, limits, workspace === undefined ? undefined : workspaces.get(workspace), sourcePlan);
     },
     prepareModelRequestPrefix(
       parent: unknown, input: unknown, request: unknown, compiled: unknown, definition: unknown,
@@ -482,6 +485,12 @@ export function contentGenerationControl(
     startRequestAcquiredPrefix(run: unknown, program: unknown, selected: unknown, capture: unknown) {
       const prefix = checked(moon.clientProgramInstalledManagedAcquiredSerializationPrefixStart(
         run, program, selected, capture)) as CommonObject;
+      prefixes.add(prefix); return prefix;
+    },
+    startRequestWholePrefix(run: unknown, program: unknown, selected: unknown, captures: readonly unknown[]) {
+      const start = moon.clientProgramInstalledManagedWholeSerializationPrefixStart;
+      if (typeof start !== 'function') throw new TypeError('Request Whole Content prefix unavailable');
+      const prefix = checked(Reflect.apply(start, moon, [run, program, selected, captures])) as CommonObject;
       prefixes.add(prefix); return prefix;
     },
     cleanupRequestPrefix(run: unknown, selected: unknown) {

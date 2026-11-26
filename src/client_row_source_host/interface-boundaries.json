@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "ca257441c5b067ff063baec0680c34fd077fa0ffcb78fc0a2ce3f10859827e32",
+      "sha256": "6bb04bb53f054bebe28650056c61a70ad37a774f2d92797e8109c26b543f9181",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -465,6 +465,7 @@
         "pub fn keyed_row_read_facts(RowSourceRead) -> @sourceview_resolution.KeyedSourceFacts?",
         "pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)",
         "pub fn local_csv_page_issue_code(LocalCsvPageIssue) -> String",
+        "pub fn local_csv_table_issue_code(LocalCsvTableIssue) -> String",
         "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
         "pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int",
         "pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
@@ -484,6 +485,7 @@
         "pub fn prepare_declared_row_source(@query_planning.QueryRequirement, String, RowDeclaredView) -> Result[RowSourcePreparation, RowSourceIssue]",
         "pub fn prepare_keyed_row_acquisition(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, RowDeclaration, RowKeyedLimits, input_available? : (() -> Bool)?) -> Result[RowKeyedAcquisition, RowHostIssue]",
         "pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]",
+        "pub fn prepare_local_csv_table(String, @decode_core.Cursor, Int, Int) -> Result[LocalCsvTable?, LocalCsvTableIssue]",
         "pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]",
         "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPageLimits) -> Result[RelationDocumentPreparedContract, RowMappingIssue]",
@@ -1081,6 +1083,10 @@
           "declaration": "pub fn local_csv_page_issue_code(LocalCsvPageIssue) -> String"
         },
         {
+          "name": "local_csv_table_issue_code",
+          "declaration": "pub fn local_csv_table_issue_code(LocalCsvTableIssue) -> String"
+        },
+        {
           "name": "mock_churn_risk_query_alias_at",
           "declaration": "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?"
         },
@@ -1155,6 +1161,10 @@
         {
           "name": "prepare_keyed_row_capacity",
           "declaration": "pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]"
+        },
+        {
+          "name": "prepare_local_csv_table",
+          "declaration": "pub fn prepare_local_csv_table(String, @decode_core.Cursor, Int, Int) -> Result[LocalCsvTable?, LocalCsvTableIssue]"
         },
         {
           "name": "prepare_mock_churn_risk_catalogue",
@@ -6118,6 +6128,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "local_csv_table_issue_code",
+            "prepare_local_csv_table"
+          ],
+          "exports": [
+            "pub fn local_csv_table_issue_code(LocalCsvTableIssue) -> String",
+            "pub fn prepare_local_csv_table(String, @decode_core.Cursor, Int, Int) -> Result[LocalCsvTable?, LocalCsvTableIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/local_csv_table.mbt",
+                "anchor": "One admitted table from the original Local connector entry"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/local_csv_table.mbt",
+                "anchor": "pub fn prepare_local_csv_table"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_project_local_files.mbt",
+                "anchor": "self.at(index)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "assertCurrent()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/local_csv_table.mbt",
+                "anchor": "return Err(InvalidLocalCsvColumns)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
+                "anchor": "options.signal?.throwIfAborted()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/local_csv_table.mbt",
+                "anchor": "local_csv_path_matches_limits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "## Node Local availability"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_project_local_files_wbtest.mbt",
+                "anchor": "Local Project selects the original CSV single and multiple table declarations"
+              }
+            ]
+          }
         }
       ]
     },
@@ -8791,6 +8873,101 @@
               {
                 "path": "src/client_row_source_host/local_csv_page_wbtest.mbt",
                 "anchor": "Local CSV uses independent exact raw record and JSON output limits"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/local_csv_table.mbt",
+      "responsibilityFacet": "primary",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_csv_path_matches_limits",
+          "declaration": "local_csv_path_matches_limits ( path : String , max_path_bytes : Int , max_depth : Int , ) - > Bool"
+        },
+        {
+          "name": "local_csv_table_issue_code",
+          "declaration": "local_csv_table_issue_code ( issue : LocalCsvTableIssue ) - > String"
+        },
+        {
+          "name": "prepare_local_csv_table",
+          "declaration": "prepare_local_csv_table ( resource : String , table : @ decode . Cursor , max_path_bytes : Int , max_depth : Int , ) - > Result [ LocalCsvTable ? , LocalCsvTableIssue ]"
+        }
+      ],
+      "sha256": "17eaf8481fb346bb4bf1c929339f58f5304e5e370654b3ca25e60a156544ffbc",
+      "role": "common-semantics",
+      "owner": "Common Project Local declaration Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_csv_path_matches_limits",
+            "local_csv_table_issue_code",
+            "prepare_local_csv_table"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/local_csv_table.mbt",
+                "anchor": "One admitted table from the original Local connector entry"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/local_csv_table.mbt",
+                "anchor": "pub fn prepare_local_csv_table"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_project_local_files.mbt",
+                "anchor": "self.at(index)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "assertCurrent()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/local_csv_table.mbt",
+                "anchor": "return Err(InvalidLocalCsvColumns)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
+                "anchor": "options.signal?.throwIfAborted()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/local_csv_table.mbt",
+                "anchor": "local_csv_path_matches_limits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "## Node Local availability"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_project_local_files_wbtest.mbt",
+                "anchor": "Local Project selects the original CSV single and multiple table declarations"
               }
             ]
           }

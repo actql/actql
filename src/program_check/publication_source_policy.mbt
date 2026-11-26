@@ -533,9 +533,15 @@ fn prepare_publication_source_policy(
 }
 
 ///|
-/// Reuse the publication provenance walk at the model's checked input edge.
-/// This describes input policy, not a model response or dispatch permission.
-pub fn prepare_infer_input_source_policy(
+pub(all) enum CheckedInferInputPolicy {
+  ClosedLocal
+  CheckedSources(@environment.DataClassification)
+}
+
+///|
+/// Observe provenance at the checked receiving edge, independent of acquire
+/// scheduling. The returned policy does not admit a Model response.
+pub fn prepare_infer_input_policy(
   program : CheckedProgram,
   unit : Int,
   index : Int,
@@ -543,7 +549,7 @@ pub fn prepare_infer_input_source_policy(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> PublicationSourcePolicy? raise UnitBuildFailure {
+) -> CheckedInferInputPolicy? raise UnitBuildFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
     raise BudgetExceeded
   }
@@ -554,13 +560,21 @@ pub fn prepare_infer_input_source_policy(
     @pipeline.input_occurrence_at(step, 0) is Some(input) else {
     raise ForeignOwner
   }
-  prepare_target_source_policy(
+  let closed_local = Ref(false)
+  let policy = prepare_target_source_policy(
     selected,
     unit,
     input.target,
     { work: max_work, bytes: max_bytes, nodes: max_nodes, depth: max_depth, },
     producers=Some(program.units),
+    infer_local=Some(closed_local),
+    import_depth=max_depth,
   )
+  if closed_local.val {
+    Some(ClosedLocal)
+  } else {
+    policy.map(value => CheckedSources(value.effective.classification))
+  }
 }
 
 ///|
@@ -593,14 +607,69 @@ pub fn prepare_serialization_output_source_policy(
 }
 
 ///|
+/// Resolve the policy of a checked Unit Result without adding a Program
+/// export. Even a private Result must use its original declared port and
+/// its actual producing target.
+pub fn prepare_local_result_source_policy(
+  program : CheckedProgram,
+  unit : Int,
+  port : @publication.ResultPort,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> PublicationSourcePolicy? raise UnitBuildFailure {
+  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
+    raise BudgetExceeded
+  }
+  let wiring = @context.program_incoming_wiring(
+    @context.incoming_links_requirements(
+      @context.program_incoming_gates_owner(incoming_gates(program)),
+    ),
+  )
+  guard program.units.get(unit) is Some(selected) &&
+    @results.wiring_stage_at(wiring, unit) is Some(stage) else {
+    raise ForeignOwner
+  }
+  let ports = @results.stage_port_publications(stage)
+  let count = @publication.port_count(ports)
+  if count > max_work {
+    raise BudgetExceeded
+  }
+  let mut original = false
+  for index in 0..<count {
+    if physical_equal(@publication.port_at(ports, index).unwrap(), port) {
+      original = true
+      break
+    }
+  }
+  guard original else { raise ForeignOwner }
+  prepare_target_source_policy(
+    selected,
+    unit,
+    @publication.port_target(port),
+    {
+      work: max_work - count,
+      bytes: max_bytes,
+      nodes: max_nodes,
+      depth: max_depth,
+    },
+    producers=Some(program.units),
+    import_depth=max_depth,
+  )
+}
+
+///|
 fn prepare_target_source_policy(
   unit : BuiltUnit,
   stage : Int,
   original : @pipeline.Target,
   budget : IdentityBudget,
   producers? : Array[BuiltUnit]? = None,
+  infer_local? : Ref[Bool]? = None,
+  import_depth? : Int = 0,
 ) -> PublicationSourcePolicy? raise UnitBuildFailure {
-  if unit.source_execution.is_empty() {
+  if unit.source_execution.is_empty() && infer_local is None {
     return None
   }
   let pending = [original]
@@ -643,6 +712,7 @@ fn prepare_target_source_policy(
     }
   }
   let mut unknown = false
+  let mut local_import = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
     match target {
@@ -1250,7 +1320,7 @@ fn prepare_target_source_policy(
             raise ForeignOwner
           }
           guard producers is Some(completed) else { return None }
-          for prior in completed {
+          for prior_stage, prior in completed {
             identity_charge(budget, 1)
             if !physical_equal(prior.source, producer) {
               continue
@@ -1272,6 +1342,54 @@ fn prepare_target_source_policy(
                   @publication.port_result(@results.input_port(port)),
                 ) {
                 continue
+              }
+              if infer_local is Some(_) {
+                let target = @publication.target(
+                  @publication.port_result(result.port),
+                )
+                guard prior_stage < stage &&
+                  @pipeline.input_producer(unit.pipeline, index)
+                  is Some(produced) &&
+                  physical_equal(
+                    @pipeline.producer_pipeline(produced),
+                    prior.pipeline,
+                  ) &&
+                  @pipeline.producer_target(produced) == target else {
+                  raise ForeignOwner
+                }
+              }
+              if infer_local is Some(_) &&
+                !(output.source_policy is Some(policy) &&
+                !policy.sources.is_empty()) {
+                // A source-free producer can have no publication policy.
+                // Follow its exact typed export with the same remaining budget.
+                if import_depth == 0 {
+                  raise BudgetExceeded
+                }
+                let target = @publication.target(
+                  @publication.port_result(result.port),
+                )
+                let closed = Ref(false)
+                ignore(
+                  prepare_target_source_policy(
+                    prior,
+                    prior_stage,
+                    target,
+                    budget,
+                    producers=Some(completed),
+                    infer_local=Some(closed),
+                    import_depth=import_depth - 1,
+                  ),
+                )
+                guard closed.val else { return None }
+                local_import = true
+                unknown = unknown ||
+                  (
+                    output.source_policy is Some(policy) &&
+                    policy.unknown_provenance
+                  )
+                found = true
+                break
               }
               guard output.source_policy is Some(parent) else { return None }
               imports.push({ input: index, publication: output, })
@@ -1311,6 +1429,14 @@ fn prepare_target_source_policy(
         }
       }
     }
+  }
+  if infer_local is Some(closed_local) &&
+    sources.is_empty() &&
+    locals.is_empty() &&
+    model_steps.is_empty() &&
+    (!generators.is_empty() || local_import) {
+    closed_local.val = true
+    return None
   }
   let occurrences : Array[SourcePolicyOccurrence] = []
   for source in sources {

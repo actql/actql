@@ -554,6 +554,8 @@ pub fn model_response_profile_observation_at(ModelResponseProfile, Int) -> Strin
 
 pub fn model_response_profile_observation_count(ModelResponseProfile) -> Int
 
+pub fn model_response_profile_task_cid(ModelResponseProfile) -> String
+
 pub fn model_response_profile_transport_matches(ModelResponseProfile, Int, Int, Int, Int, Int) -> Bool
 
 pub fn model_response_profile_usage(ModelResponseProfile) -> (Int, Int, Int)
@@ -611,6 +613,8 @@ pub fn normalized_public_mock_model_task_matches_prompt(NormalizedPublicModelTas
 pub fn normalized_public_mock_model_task_matches_task(NormalizedPublicModelTask, PublicModelTaskDeclaration, ModelMockProfile, ModelTaskContract) -> Bool
 
 pub fn normalized_public_mock_model_task_original_for(NormalizedPublicModelTask, PublicModelTaskDeclaration, ModelMockProfile) -> Bool
+
+pub fn normalized_public_model_task_matches_response_profile(NormalizedPublicModelTask, ModelResponseProfile, String) -> Bool
 
 pub fn normalized_public_model_task_materials(NormalizedPublicModelTask) -> (String, String, String, String)
 

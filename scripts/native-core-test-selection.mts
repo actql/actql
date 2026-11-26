@@ -46,7 +46,7 @@ type CompilerOptions = {
 type SelectionOptions = Pick<CompilerOptions, 'env' | 'executionPackages'> & {
   platformScope?: string;
   partition?: string;
-  platformPackages?: readonly string[];
+  platformPackages?: object;
 };
 type ExecutionScope = {
   packages: string[];

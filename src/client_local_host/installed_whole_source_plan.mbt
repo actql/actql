@@ -7,6 +7,7 @@ struct ClientInstalledWholeSourceCapacity {
   acquisition : @row_source_host.RowInputAcquisition
   provider : @execution.ExecutionCapacity?
   complete : @execution.ExecutionCapacity
+  serialization : @publication_host.ClientSerializationPlanGraph?
 }
 
 ///|
@@ -45,14 +46,19 @@ pub fn select_installed_source_input(
     return Err(ForeignOriginal)
   }
   let graph = @publication_host.prepared_client_graph(prepared)
-  if stage == 0 &&
-    source_index == 0 &&
-    @strategy.graph_captured_prefix(graph) == 1 &&
-    installed_managed_run_purpose_supported(prepared) &&
-    @strategy.graph_requires_acquisition_result_publication(graph) {
-    // A checked root in the captured prefix needs its original computation
-    // and publication identity. Select complete input before Query lowering;
-    // this is not fallback from a failed Query or a caller purpose flag.
+  if installed_terminal_serialization_whole_source(
+      prepared, graph, stage, source_index,
+    ) ||
+    (
+      stage == 0 &&
+      source_index == 0 &&
+      @strategy.graph_captured_prefix(graph) == 1 &&
+      installed_managed_run_purpose_supported(prepared) &&
+      @strategy.graph_requires_acquisition_result_publication(graph)
+    ) {
+    // Both terminal ordinary Content and a checked root with acquisition
+    // results keep the original complete input before Query lowering. This
+    // is not fallback from a failed Query or a caller purpose flag.
     guard @context.program_identity_stage_requests(
         @checked.source_identity(@strategy.graph_program(graph)),
         stage,
@@ -67,6 +73,57 @@ pub fn select_installed_source_input(
       .map_err(issue => SourceRoute(@sourceviews.SourceInput(issue)))
   }
   select_installed_source_input_graph(graph, stage, source_index)
+}
+
+///|
+// Pre-Graph route selection only. The capacity constructor separately
+// requires proof from the exact checked terminal serialization component.
+fn installed_terminal_serialization_whole_source(
+  prepared : @publication_host.PreparedClientProgram,
+  graph : @strategy.CheckedDAG,
+  stage : Int,
+  source_index : Int,
+) -> Bool {
+  guard @publication_host.prepared_client_serialization_occurrences(prepared)
+    is [(task, _)] &&
+    @publication_host.prepared_client_composed_infer_occurrences(prepared)
+    is Some(infers) &&
+    infers.is_empty() &&
+    @publication_host.select_client_single_keyed_acquisition(prepared)
+    is Ok(None) &&
+    @publication_host.select_client_direct_acquisition_occurrences(
+      prepared, 1000000,
+    )
+    is Ok(direct) else {
+    return false
+  }
+  let count = @publication_host.client_direct_acquisition_occurrence_count(
+    direct,
+  )
+  let mut found = false
+  for index in 0..<count {
+    guard @publication_host.client_direct_acquisition_occurrence_at(
+        direct, index,
+      )
+      is Some((original_stage, original_source, upstream)) else {
+      return false
+    }
+    if @strategy.graph_task_unit_index(graph, task) != Some(original_stage) &&
+      !(count <= 2 &&
+      terminal_serialization_upstream_edge(prepared, task, upstream) is Some(_) &&
+      (
+        count == 2 ||
+        select_installed_source_input_graph(
+          graph, original_stage, original_source,
+        )
+        is Ok(@sourceviews.WholeInputRoute(_))
+      )) {
+      return false
+    }
+    found = found ||
+      (original_stage == stage && original_source == source_index)
+  }
+  found
 }
 
 ///|
@@ -191,6 +248,7 @@ pub fn prepare_installed_whole_source_capacity(
   contracts : ClientInstalledSequenceContracts,
   limits : @row_source_host.RowInputLimits,
   provider : @execution.ExecutionCapacity?,
+  serialization? : @publication_host.ClientSerializationPlanGraph? = None,
 ) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue] {
   prepare_installed_whole_source_capacity_original(
     prepared,
@@ -199,6 +257,7 @@ pub fn prepare_installed_whole_source_capacity(
     contracts,
     limits,
     provider,
+    serialization~,
   )
 }
 
@@ -210,6 +269,7 @@ pub fn prepare_installed_catalog_whole_source_capacity(
   original : @sourceviews.SourceAcquisition,
   contracts : ClientInstalledSequenceContracts,
   limits : @row_source_host.RowInputLimits,
+  serialization? : @publication_host.ClientSerializationPlanGraph? = None,
 ) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue] {
   // This installed table binding has no parameterized Source Request compiler.
   // Preserve that checked payload by refusing it, never by dropping fields.
@@ -226,6 +286,7 @@ pub fn prepare_installed_catalog_whole_source_capacity(
     contracts,
     limits,
     None,
+    serialization~,
   )
 }
 
@@ -237,6 +298,7 @@ fn prepare_installed_whole_source_capacity_original(
   contracts : ClientInstalledSequenceContracts,
   limits : @row_source_host.RowInputLimits,
   provider : @execution.ExecutionCapacity?,
+  serialization? : @publication_host.ClientSerializationPlanGraph? = None,
 ) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue] {
   let stage = @sourceviews.declaration(
       @sourceviews.mode_input(@sourceviews.source_acquisition_mode(original)),
@@ -253,14 +315,67 @@ fn prepare_installed_whole_source_capacity_original(
   // bound request. Its correspondence above selects THIS complete sequence;
   // inspecting the narrower Query grammar again would discard root placement
   // and reject the complete-input choice made from the checked Result graph.
-  let sequence = match
-    @publication_host.prepare_prepared_client_full_sequence(
-      prepared,
-      task,
-      @publication_host.prepared_client_values_sequence_limits(prepared),
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(Unsupported)
+  let sequence = match serialization {
+    None =>
+      match
+        @publication_host.prepare_prepared_client_full_sequence(
+          prepared,
+          task,
+          @publication_host.prepared_client_values_sequence_limits(prepared),
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(Unsupported)
+      }
+    Some(component) => {
+      guard @publication_host.client_serialization_plan_direct_occurrences(
+          component, prepared,
+        )
+        is Some(occurrences) &&
+        @sourceviews.source_acquisition_input(original) is @pipeline.Input(slot) &&
+        @strategy.graph_task_owner(graph, task) is Some(owner) &&
+        @strategy.graph_task_owner(graph, component.task) is Some(receiver) &&
+        (
+          physical_equal(receiver, owner) ||
+          (
+            @publication_host.client_direct_acquisition_occurrence_count(
+              occurrences,
+            ) <=
+            2 &&
+            terminal_serialization_upstream_edge(prepared, component.task, task)
+            is Some(_)
+          )
+        ) else {
+        return Err(ForeignOriginal)
+      }
+      let count = @publication_host.client_direct_acquisition_occurrence_count(
+        occurrences,
+      )
+      let mut found = false
+      for index in 0..<count {
+        if @publication_host.client_direct_acquisition_occurrence_at(
+            occurrences, index,
+          ) ==
+          Some((stage, ordinal, task)) {
+          found = true
+          break
+        }
+      }
+      if !found {
+        return Err(ForeignOriginal)
+      }
+      // The observation is an original checked Input, not a terminal task
+      // completion. It never lowers, runs or claims the Content operation.
+      match
+        @lower.prepare_sequence_prefix(
+          owner,
+          -1,
+          @publication_host.prepared_client_values_sequence_limits(prepared),
+          original_input=Some(slot),
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(Unsupported)
+      }
+    }
   }
   let program = @checked.source_identity(
     @strategy.graph_program(@publication_host.prepared_client_graph(prepared)),
@@ -298,7 +413,7 @@ fn prepare_installed_whole_source_capacity_original(
 
   match
     installed_whole_source_capture_capacity(original, acquisition, provider) {
-    Some(value) => Ok(value)
+    Some(value) => Ok({ ..value, serialization, })
     None => Err(Unsupported)
   }
 }
@@ -503,7 +618,7 @@ pub fn installed_whole_source_capture_capacity(
     is Some(complete) else {
     return None
   }
-  Some({ original, acquisition, provider, complete, })
+  Some({ original, acquisition, provider, complete, serialization: None, })
 }
 
 ///|

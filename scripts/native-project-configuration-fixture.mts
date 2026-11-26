@@ -1,0 +1,265 @@
+// Only populate the invocation's existing owned namespace. These files are
+// reader test inputs, never installed project configuration or Run authority.
+import assert from 'node:assert/strict';
+import {mkdirSync, readFileSync, symlinkSync, writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {dirname, join} from 'node:path';
+import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
+import {mixedDeleteUpdateMockProject, threeWriteMockProject,
+  sameResourceMixedMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {fileCreateMockProject} from '../adapters/host-node/fixtures/mock-file-create.fixture.mjs';
+import {files as nullableMockFiles} from '../adapters/host-node/fixtures/mock-nullable-update.fixture.mjs';
+
+type MockConnection = {
+  views: Record<string, unknown>[];
+  query_aliases: {name: string; resource: string}[];
+  data: {resource: string; primary_identity: string; items_path: string[]; key_path: string[]}[];
+  writes: Record<string, unknown>[];
+};
+
+type DealReviewData = {
+  drive: {files: {rows: {id: string; content_utf8: string}[]}};
+};
+
+export function nativeProjectConfigurationFixture(namespace: string) {
+  const root = join(namespace, 'project-configuration');
+  mkdirSync(root, {mode: 0o700});
+  const directory = (name: string) => {
+    const path = join(root, name);
+    mkdirSync(path, {mode: 0o700});
+    return path;
+  };
+  const write = (directory: string, name: string, body: string | Buffer) => writeFileSync(join(directory, name), body,
+    {mode: 0o600, flag: 'wx'});
+  write(namespace, 'native-file-task-boundary.json',
+    readFileSync(new URL('./fixtures/native-file-task-boundary.json', import.meta.url)));
+  const configuration = (state?: string) => JSON.stringify({version: 'actql-config/0.1',
+    ...(state === undefined ? {} : {state_dir: state})});
+  write(root, 'actql.config.json', configuration());
+  for (const [name, state] of [['parent', '.parent-state'], ['nearer', '.nearer-state']]) {
+    const path = directory(name);
+    mkdirSync(join(path, 'child'), {mode: 0o700});
+    write(path, 'actql.config.json', configuration(state));
+  }
+  for (const name of ['malformed', 'symlink', 'oversize', 'invalid-utf8', 'directory']) {
+    const path = directory(name);
+    mkdirSync(join(path, 'child'), {mode: 0o700});
+    if (name === 'symlink') symlinkSync('../actql.config.json', join(path, 'actql.config.json'));
+    else if (name === 'directory') mkdirSync(join(path, 'actql.config.json'), {mode: 0o700});
+    else write(path, 'actql.config.json', name === 'malformed' ? '{' : name === 'oversize'
+      ? Buffer.alloc(65537, 0x20) : Buffer.from([0xc3, 0x28]));
+  }
+  // Independent declaration wires match the existing Common source-free
+  // project contract; nonempty and malformed files must remain refusals.
+  const connectors = '{"version":"actql-connectors/0.1","connections":{}}';
+  const models = '{"version":"actql-model-tasks/0.1","tasks":{},"providers":{}}';
+  for (const name of ['plain', 'connector', 'model', 'provider', 'default-provider',
+    'bad-connectors', 'bad-model', 'duplicate-connectors']) {
+    const path = directory(name);
+    if (name === 'plain') mkdirSync(join(path, 'nested'), {mode: 0o700});
+    write(path, 'connectors.json', name === 'connector'
+      ? '{"version":"actql-connectors/0.1","connections":{"salesforce":{"connector":"salesforce"}}}'
+      : name === 'bad-connectors' ? '{}' : name === 'duplicate-connectors'
+        ? '{"version":"actql-connectors/0.1","connections":{"x":{},"x":{}},"connections":{}}'
+        : connectors);
+    write(path, 'model-tasks.json', name === 'model'
+      ? '{"version":"actql-model-tasks/0.1","tasks":{"t":"task.yaml"},"providers":{}}'
+      : name === 'provider'
+        ? '{"version":"actql-model-tasks/0.1","tasks":{},"providers":{"p":{"type":"openai"}}}'
+        : name === 'default-provider'
+          ? '{"version":"actql-model-tasks/0.1","tasks":{},"providers":{},"default_provider":"p"}'
+          : name === 'bad-model' ? '{}' : models);
+  }
+  for (const name of ['missing-bindings', 'symlink-bindings', 'oversize-bindings',
+    'invalid-utf8-bindings', 'directory-bindings']) {
+    const path = directory(name);
+    if (name === 'missing-bindings') continue;
+    if (name === 'symlink-bindings') symlinkSync('../plain/connectors.json', join(path, 'connectors.json'));
+    else if (name === 'directory-bindings') mkdirSync(join(path, 'connectors.json'), {mode: 0o700});
+    else write(path, 'connectors.json', name === 'oversize-bindings'
+      ? Buffer.alloc(65537, 0x20) : Buffer.from([0xc3, 0x28]));
+  }
+  // Exact public authored inputs, not an old business-state fixture.
+  const pluralProjects = ['deal-review-plural', 'deal-review-overlapping-writes', 'deal-review-nested-writes'];
+  for (const name of ['deal-review', ...pluralProjects, 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task', 'deal-review-approval', 'churn-risk']) {
+    const path = directory(name);
+    const files = {...projectTemplateFiles(name === 'churn-risk' ? 'churn-risk-mock' : 'deal-review-mock')};
+    if (pluralProjects.includes(name)) {
+      // These inputs are the fixed deal-review template documents above.
+      const catalog = JSON.parse(files['mock/catalog.json']) as {connections: Record<string, MockConnection>};
+      const connectors = JSON.parse(files['connectors.json']) as {connections: Record<string, {connector: string}>};
+      const data = JSON.parse(files['mock/data.json']) as {crossover?: unknown};
+      const {views: [view], writes: [writeTarget]} = catalog.connections.salesforce;
+      connectors.connections.outreach = {connector: 'salesforce'};
+      catalog.connections.outreach = {views: [], query_aliases: [], data: [], writes: []};
+      data.crossover = {
+        directory: {key: ['contact_key'], rows: [
+          {contact_key: 'C-1', status: 'Qualified', visits: 4, summary: null},
+        ]},
+        inbox: {key: ['lead_key'], rows: [
+          {lead_key: 'L-1', status: 'New', visits: 12, summary: 'Unread'},
+        ]},
+        controls: {key: ['audit_key'], rows: [
+          {audit_key: 'A-1', status: 'Keep', visits: 0, summary: null},
+        ]},
+      };
+      for (const [name, resource, key, collection, writable] of [
+        ['salesforce', 'Contacts', 'contact_key', 'directory', true],
+        ['outreach', 'Leads', 'lead_key', 'inbox', true],
+        ['outreach', 'Control', 'audit_key', 'controls', false],
+      ] as const) {
+        const connection = catalog.connections[name];
+        connection.views.push({...view, resource, schema: {
+          [key]: {type: 'string', nullable: false},
+          status: {type: 'string', nullable: false},
+          visits: {type: 'int64', nullable: false},
+          summary: {type: 'string', nullable: true},
+        }, facts: {relation_keys: {candidate_keys: [[key]]}}});
+        connection.query_aliases.push({name: name + '.' + resource.toLowerCase(), resource});
+        connection.data.push({resource, primary_identity: key,
+          items_path: ['crossover', collection, 'rows'], key_path: ['crossover', collection, 'key']});
+        if (writable) connection.writes.push({...writeTarget, resource, primary_identity: key,
+          writable_fields: ['status'], aliases: [name + '.' + resource]});
+      }
+      // Independent declarations exercise exact and prefix overlap across
+      // connections before either target opens the shared data file.
+      if (name !== 'deal-review-plural') {
+        const leads = catalog.connections.outreach.data.find(binding => binding.resource === 'Leads')!;
+        leads.items_path = name === 'deal-review-overlapping-writes'
+          ? ['crossover', 'directory', 'rows'] : ['crossover', 'directory', 'rows', 'nested'];
+      }
+      files['connectors.json'] = JSON.stringify(connectors) + '\n';
+      files['mock/catalog.json'] = JSON.stringify(catalog) + '\n';
+      files['mock/data.json'] = JSON.stringify(data) + '\n';
+    }
+    for (const [originalPath, original] of Object.entries(files)) {
+      // Cold approval selects the original write implementation metadata only.
+      // Missing Model registry/Task/answers and payload prove those are not replayed.
+      if (name === 'deal-review-approval' && !['actql.config.json', 'connectors.json',
+        'mock/catalog.json'].includes(originalPath)) continue;
+      if (name === 'deal-review-missing' && originalPath === 'mock/data.json') continue;
+      if (name === 'deal-review-missing-task' && originalPath === 'model-tasks/deal-review.v1.yaml') {
+        // Reach the actual missing-file Reader boundary, with its owned Root
+        // present. An absent parent instead tests Root construction refusal.
+        mkdirSync(dirname(join(path, originalPath)), {recursive: true, mode: 0o700});
+        continue;
+      }
+      let relative = originalPath;
+      let body = name === 'deal-review-wrong-task' && relative === 'model-tasks/deal-review.v1.yaml'
+        ? original.replace('task: model-task:deal-review.v1', 'task: model-task:foreign.v1') : original;
+      if (name === 'deal-review-wrong-answer' && relative === 'mock/deal-review.v1.answers.yaml') {
+        body = original.replace('changed: true', 'changed: "not-a-boolean"');
+      }
+      if (name === 'deal-review-nested-registry') {
+        // A distinct locator-only case, never retagged as the exact template.
+        if (relative === 'actql.config.json') body = original.replace('./model-tasks.json', './registry/model-tasks.json');
+        if (relative === 'model-tasks.json') {
+          relative = 'registry/model-tasks.json';
+          body = original.replace('./model-tasks/deal-review.v1.yaml', '../model-tasks/deal-review.v1.yaml');
+        }
+      }
+      mkdirSync(dirname(join(path, relative)), {recursive: true, mode: 0o700});
+      write(path, relative, body);
+    }
+  }
+  const sharedProject = threeWriteMockProject(), sharedFile: Readonly<Record<string, string>> = sharedProject.files;
+  const modelFixture = projectTemplateFiles('deal-review-mock');
+  for (const name of ['shared-file-empty-models', 'shared-file-missing-answers']) {
+    const path = directory(name);
+    const missingAnswers = name === 'shared-file-missing-answers';
+    mkdirSync(join(path, 'mock'), {mode: 0o700});
+    for (const file of ['actql.config.json', 'connectors.json', 'mock/catalog.json']) {
+      write(path, file, sharedFile[file]);
+    }
+    write(path, 'model-tasks.json', missingAnswers ? modelFixture['model-tasks.json'] : sharedFile['model-tasks.json']);
+    if (missingAnswers) {
+      mkdirSync(join(path, 'model-tasks'), {mode: 0o700});
+      write(path, 'model-tasks/deal-review.v1.yaml', modelFixture['model-tasks/deal-review.v1.yaml']);
+    } else {
+      write(path, sharedProject.programFile, sharedFile[sharedProject.programFile]);
+      write(path, 'mock/data.json', sharedFile['mock/data.json']);
+    }
+  }
+  for (const [name, project] of [
+    ['shared-file-mixed-delete-update', mixedDeleteUpdateMockProject()],
+    ['same-resource-mixed-delete-update', sameResourceMixedMockProject()],
+  ] as const) {
+    const projectRoot = directory(name);
+    for (const [file, contents] of Object.entries(project.files)) {
+      mkdirSync(dirname(join(projectRoot, file)), {recursive: true, mode: 0o700});
+      write(projectRoot, file, contents);
+    }
+  }
+  const create = directory('source-free-create');
+  for (const [file, contents] of Object.entries(fileCreateMockProject().files)) {
+    mkdirSync(dirname(join(create, file)), {recursive: true, mode: 0o700});
+    write(create, file, contents);
+  }
+  const nullable = directory('nullable-mock');
+  for (const [file, contents] of Object.entries(nullableMockFiles)) {
+    mkdirSync(dirname(join(nullable, file)), {recursive: true, mode: 0o700});
+    write(nullable, file, contents);
+  }
+  // Independent oracle for the SAME public File-facts consumer. The missing
+  // payload case still supplies only its original locator/catalogue metadata.
+  const missing = join(root, 'deal-review-missing');
+  const scope = JSON.stringify({catalog: readFileSync(join(missing, 'mock/catalog.json'), 'utf8'),
+    connection: 'drive', connector: 'drive', dataPath: join(missing, 'mock/data.json')});
+  const scopeCid = 'sha256:' + createHash('sha256').update(scope).digest('hex');
+  // The issuer case projects this public document in memory. Keep the missing
+  // payload locator absent, and derive its oracle from the independent ASCII
+  // canonical identity preimage rather than the Native issuer's output.
+  const resource = JSON.stringify({collection: 'files', identity: 'file-acme-notes', scope: scopeCid});
+  const data = JSON.parse(projectTemplateFiles('deal-review-mock')['mock/data.json']) as DealReviewData;
+  const contentDigests = Object.fromEntries(data.drive.files.rows.map(row => [row.id,
+    'sha256:' + createHash('sha256').update(Buffer.from(row.content_utf8, 'utf8')).digest('hex')]));
+  return {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: root,
+    ACTQL_TEST_NATIVE_CONTENT_DIGESTS: JSON.stringify(contentDigests),
+    ACTQL_TEST_NATIVE_QUERY_CONTRACT: readFileSync(new URL('../spec/contracts/actql-query-acquisition.json', import.meta.url), 'utf8'),
+    ACTQL_TEST_NATIVE_EVIDENCE_CONTRACT: readFileSync(new URL('../spec/contracts/actql-query-process-evidence.json', import.meta.url), 'utf8'),
+    ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID: scopeCid,
+    ACTQL_TEST_NATIVE_MOCK_FILE_DATA: projectTemplateFiles('deal-review-mock')['mock/data.json'],
+    ACTQL_TEST_NATIVE_MOCK_FIRST_RESOURCE_CID: 'sha256:' + createHash('sha256').update(resource).digest('hex')};
+}
+
+// Every compiler-selected case retains a fresh Store. Later component cases
+// require their original earlier ports too; the original Source-closure/Effect
+// cases keep their separate selections. Ambient flags cannot retarget a case.
+export function nativeProjectContentCaseFixture(namespace: string, index: number, projectRoot: string) {
+  assert(Number.isInteger(index) && index >= 0 && index <= 19,
+    'An exact original Native Content case index is required');
+  // The three authored Lookup cases extend the original captured-page inputs.
+  // Existing cases 13..15 moved to 16..18 and retain every original role.
+  const lookupCompletion = index >= 13 && index <= 15;
+  // The appended whole-Source Unit case uses the existing Source-artifact
+  // inputs, including their original raw file, in its own fresh Store.
+  const sourceUnitEvidence = index === 19;
+  const originalIndex = sourceUnitEvidence ? 8 : index === 0 || lookupCompletion ? 11 :
+    index >= 16 ? index - 4 : index - 1;
+  const selected = (first: number, last = 11) => originalIndex >= first && originalIndex <= last;
+  const raw = selected(2) ? readFileSync(join(projectRoot, 'deal-review/mock/data.json')) : undefined;
+  const store = join(namespace, 'content-store');
+  mkdirSync(store, {mode: 0o700});
+  return {ACTQL_TEST_NATIVE_METADATA_REMAINDER: index === 0 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: originalIndex === 0 ? '1' : '2',
+    ACTQL_TEST_NATIVE_LOOKUP_COMPLETION: lookupCompletion ? '1' : undefined,
+    ACTQL_TEST_NATIVE_LOOKUP_DEPENDENCIES: index === 14 || index === 15 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_LOOKUP_CLOSURE: index === 15 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_SOURCE_UNIT_EVIDENCE: sourceUnitEvidence ? '1' : undefined,
+    ACTQL_TEST_NATIVE_RAW_SNAPSHOT: selected(2) ? '1' : undefined,
+    // The actual authored input file, independently of any capture/Store output.
+    ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID: raw === undefined ? undefined :
+      'sha256:' + createHash('sha256').update(raw).digest('hex'),
+    ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES: raw === undefined ? undefined : String(raw.length),
+    ACTQL_TEST_NATIVE_BATCH_PLAN: selected(3) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_ACTIVATION: selected(4) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_RAW_STORE: selected(5) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL: originalIndex === 6 || originalIndex === 10 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_LEFT_IDENTITY: selected(7) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS: selected(8) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_ATTEMPT_USAGE: selected(9) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: selected(8) || originalIndex === 13 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_CAPTURED_PAGE: originalIndex === 11 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: originalIndex === 14 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_STORE_ROOT: store};
+}

@@ -81,7 +81,7 @@ test "set expression keeps original tasks beside measured installed execution ov
   @row_source_host.check_row_input_compute_binding(capture, dag, 0).unwrap()
   let host = bind_client_local_configuration(
     dag,
-    plan.configuration,
+    plan.configuration.unwrap(),
     1L,
     1L,
     1L,
@@ -301,7 +301,7 @@ test "nested set startup keeps full parents and original Ledger through final cl
   @row_source_host.check_row_input_compute_binding(capture, dag, 0).unwrap()
   let host = bind_client_local_configuration(
     dag,
-    plan.configuration,
+    plan.configuration.unwrap(),
     1L,
     1L,
     1L,

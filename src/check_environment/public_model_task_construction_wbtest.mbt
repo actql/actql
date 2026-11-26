@@ -33,3 +33,62 @@ test "public Task metadata constructor keeps only its actual original retained q
   assert_true(normalization.record_headers > retained.record_headers)
   assert_true(normalization.owned_wire_bytes > retained.owned_wire_bytes)
 }
+
+///|
+test "unused contract text policy does not inflate the original Task document quote" {
+  let limits = declaration_limits()
+  let loose = {
+    ..limits,
+    contracts: { ..limits.contracts, max_text_bytes: 65536, },
+  }
+  let denied = {
+    ..limits,
+    contracts: { ..limits.contracts, max_text_bytes: 1, },
+  }
+  let yaml =
+    #|task: model-task:quote.original
+    #|input: {notes: string}
+    #|output: {enabled: boolean}
+    #|instructions: >-
+    #|  Preserve the authored text
+    #|  and the original checked schema.
+  for (wire, format) in [(declaration_base(""), "json"), (yaml, "yaml")] {
+    let peak = public_model_task_document_construction_extent(
+      wire, format, limits,
+    ).unwrap()
+    assert_eq(
+      public_model_task_document_construction_extent(wire, format, loose),
+      Some(peak),
+    )
+    let original = read_public_model_task_document(wire, format, limits).unwrap()
+    let expanded = read_public_model_task_document(wire, format, loose).unwrap()
+    for
+      (first, second) in [
+        (original.input, expanded.input),
+        (original.output, expanded.output),
+      ] {
+      assert_eq(first.wire, second.wire)
+      assert_eq(first.cid, second.cid)
+    }
+    assert_true(read_public_model_task_document(wire, format, denied) is Err(_))
+  }
+}
+
+///|
+test "Task construction funds YAML escapes whose decoded UTF-8 outgrows the document" {
+  let limits = declaration_limits()
+  let prefix = "task: model-task:quote.original\ninput: {kind: {type: string, enum: [\""
+  let suffix = "\"]}}\noutput: {enabled: boolean}\ninstructions: preserve\n"
+  let escaped = prefix + "\\L\\P".repeat(120) + suffix
+  let same_wire_size = prefix + "abcd".repeat(120) + suffix
+  assert_eq(escaped.length(), same_wire_size.length())
+  let task = read_public_model_task_document(escaped, "yaml", limits).unwrap()
+  assert_true(task.input.text > escaped.length())
+  let ordinary = public_model_task_document_construction_extent(
+    same_wire_size, "yaml", limits,
+  ).unwrap()
+  let expanded = public_model_task_document_construction_extent(
+    escaped, "yaml", limits,
+  ).unwrap()
+  assert_true(expanded.owned_utf16_units > ordinary.owned_utf16_units)
+}

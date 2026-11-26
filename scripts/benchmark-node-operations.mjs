@@ -9,18 +9,11 @@ import {pathToFileURL} from 'node:url';
 import {assessLatency, recordOperationMeasurements, calibratedLatencyTarget, collectOperationSamples,
   assessPriorityTransition, priorityTransitionTarget} from './operation-performance.mjs';
 
-import {hash, nodeBenchmarkFailure, verifyNodeBenchmarkPackages,
+import {hash, nodeBenchmarkFailure, nodeBenchmarkInstrumentation, verifyNodeBenchmarkPackages,
   nodeWarmSmallQueryFixtures} from './node-benchmark-evidence.mjs';
 export {nodeBenchmarkFailure, verifyNodeBenchmarkPackages,
   nodeWarmSmallQueryFixtures} from './node-benchmark-evidence.mjs';
 
-export function nodeBenchmarkInstrumentation({execArgv = process.execArgv,
-  nodeOptions = process.env.NODE_OPTIONS ?? '', coverage = process.env.NODE_V8_COVERAGE} = {}) {
-  // Known startup instrumentation is evidence against unprofiled acceptance.
-  // This is not whole-runtime provenance or hostile embedding detection.
-  const flags = [...execArgv, nodeOptions].join(' ');
-  return {profiled: /--(?:cpu-prof|heap-prof|prof|inspect|perf-basic-prof|trace-events-enabled|trace-event-categories)(?:[=\s-]|$)/u.test(flags) || Boolean(coverage)};
-}
 export function nodeWarmProtocol(mode) {
   assert(['diagnostic', 'final', 'record-only'].includes(mode));
   return {entry: 'ordinary open/stateDir', mode, priorState: 'new empty directory',

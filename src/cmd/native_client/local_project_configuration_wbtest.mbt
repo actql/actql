@@ -119,6 +119,25 @@ test "project selection refuses Remote or conflicting legacy options before file
 }
 
 ///|
+test "explicit Project Model task and protected operator selectors keep their state selection independent" {
+  let matches = command().parse(argv=[
+    "--mode", "local", "--config", "actql.config.json", "--config-root", "/operator",
+    "--config-file", "operator.json", "check", "program.json",
+  ])
+  assert_true(local_project_requires_read(matches))
+  let selected = local_project_select_loaded(
+    matches, "/project", "{\"version\":\"actql-config/0.1\",\"state_dir\":\"./host\",\"model_tasks\":\"models.json\"}",
+  )
+  assert_eq(selected.state_directory, "/project/host")
+  assert_true(local_project_explicit_operator_selected(matches))
+  // State selection stays an original Project comparison beside the operator
+  // bytes. It cannot replace the command's explicitly selected original.
+  assert_eq(optional(matches, "state-dir"), None)
+  assert_eq(required(matches, "config-root"), "/operator")
+  assert_eq(required(matches, "config-file"), "operator.json")
+}
+
+///|
 test "uninstalled project bindings cannot silently run live or fabricate a mock Run" {
   let matches = command().parse(argv=["--mode", "local", "connect"])
   for
@@ -471,7 +490,7 @@ test "project declaration paths use the selected project directory rather than p
 
 ///|
 test "nonempty selected declarations cannot fall back to the packaged empty environment" {
-  for directory in ["connector", "model", "provider", "default-provider"] {
+  for directory in ["connector", "model", "provider"] {
     let project = project_bindings_fixture(
       directory, "{\"version\":\"actql-config/0.1\",\"connectors\":\"connectors.json\",\"model_tasks\":\"model-tasks.json\"}",
     )
@@ -487,6 +506,24 @@ test "nonempty selected declarations cannot fall back to the packaged empty envi
     assert_eq(required(matches, "mode"), "remote")
     assert_eq(optional(matches, "state-dir"), None)
   }
+}
+
+///|
+test "an undeclared default Model provider refuses before changing project route" {
+  let project = project_bindings_fixture(
+    "default-provider", "{\"version\":\"actql-config/0.1\",\"connectors\":\"connectors.json\",\"model_tasks\":\"model-tasks.json\"}",
+  )
+  let matches = command().parse(argv=["check", "never-read.aql"])
+  let rejected = try {
+    let selected = local_project_read_execution_bindings(Some(project), "check").unwrap()
+    local_project_apply_selection(matches, selected)
+    false
+  } catch {
+    ClientStop(reason) => reason == "InvalidProjectBindings"
+  }
+  assert_true(rejected)
+  assert_eq(required(matches, "mode"), "remote")
+  assert_eq(optional(matches, "state-dir"), None)
 }
 
 ///|
@@ -1004,7 +1041,7 @@ test "Native Mock Catalog binds ordered write declarations to the physical key" 
     #|{"kind":"tuple","fields":["site","serial"]}
   let original =
     #|{"views":[{"resource":"Account","resource_kind":"record","schema":{"site":{"type":"string","nullable":false},"serial":{"type":"int64","nullable":false},"label":{"type":"string","nullable":true}},"facts":{"relation_keys":{"candidate_keys":[["site","serial"]]}}}],"data":[{"resource":"Account","items_path":["accounts","rows"],"key_path":["accounts","key"],"primary_identity":@key}],"writes":[{"resource":"Account","operation":"update","primary_identity":@key,"writable_fields":["label"],"permission":"fixture:update","observe_permission":"fixture:observe-update","approval":"required","aliases":["accounts.Update"]},{"resource":"Account","operation":"delete","primary_identity":@key,"permission":"fixture:delete","observe_permission":"fixture:observe-delete","approval":"required","aliases":["accounts.Delete"]},{"resource":"Account","operation":"upsert","primary_identity":@key,"writable_fields":["label"],"write_null_fields":["label"],"permission":"fixture:upsert","observe_permission":"fixture:observe-upsert","approval":"required","aliases":["accounts.Upsert"]}]}
-  let original = original.replace(old="@key", new=key)
+  let original = original.replace_all(old="@key", new=key)
   let entry = @json.parse(original)
   let declaration = @row_host.restore_relation_row_declaration(
     "salesforce",
@@ -1404,7 +1441,9 @@ test "Native Mock readonly JOIN has a record source and a typed listing source" 
     .iter()
     .find_first(value => value._retained_connection == "drive")
     .unwrap()
-  assert_true(local_command_file_listing(original, "drive", "files") is None)
+  assert_true(
+    local_command_file_listing(original.file_sources, "drive", "files") is None,
+  )
   original.file_sources = Some([
     local_project_mock_file_source(drive, "sha256:" + "8".repeat(64)).unwrap(),
   ])
@@ -1483,7 +1522,9 @@ test "Native Mock readonly JOIN has a record source and a typed listing source" 
   assert_true(observed.contains(("salesforce", "Opportunity", true, false)))
   assert_true(observed.contains(("drive", "files", false, true)))
   let (declaration, provider, binding) = local_command_file_listing(
-    original, "drive", "files",
+    original.file_sources,
+    "drive",
+    "files",
   ).unwrap()
   assert_true(physical_equal(declaration, drive))
   assert_true(
@@ -1501,6 +1542,10 @@ test "Native Mock readonly JOIN has a record source and a typed listing source" 
     ),
   )
   assert_true(
-    local_command_file_listing(original, "salesforce", "files") is None,
+    local_command_file_listing(original.file_sources, "salesforce", "files")
+    is None,
   )
+  let listings = original.file_sources
+  listings.unwrap()[0].retire()
+  assert_true(local_command_file_listing(listings, "drive", "files") is None)
 }

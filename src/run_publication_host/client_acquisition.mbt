@@ -198,6 +198,15 @@ pub fn prepared_client_acquisition_count(value : PreparedClientProgram) -> Int {
 }
 
 ///|
+/// Inline Whole inputs can have no captured-task prefix. Use the checked
+/// Source inventory when selecting Result policy and ordinary Host routing.
+pub fn prepared_client_has_checked_sources(
+  value : PreparedClientProgram,
+) -> Bool {
+  @checked.source_execution_count(@strategy.graph_program(value.graph)) > 0
+}
+
+///|
 /// The original checked Catalog facts for one Source. These facts are used
 /// to validate a later physical observation, never to authorize a file read.
 pub fn prepared_client_source_evidence_facts(

@@ -534,8 +534,11 @@ pub fn Root::create_writer(
 pub fn Writer::append(
   self : Writer,
   chunk : Bytes,
+  length? : Int,
 ) -> Result[Unit, NativeFilesystemIssue] {
-  match writer_append_ffi(self, chunk, chunk.length()) {
+  let count = length.unwrap_or(chunk.length())
+  guard count >= 0 && count <= chunk.length() else { return Err(InvalidLimit) }
+  match writer_append_ffi(self, chunk, count) {
     0 => Ok(())
     1 => Err(CapacityExceeded)
     2 => Err(WriterClosed)

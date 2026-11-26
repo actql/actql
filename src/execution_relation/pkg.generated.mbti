@@ -658,6 +658,8 @@ pub fn completed_row_count(CompletedOutput) -> Int
 
 pub fn completed_segment_inputs_construction_inventory(Int) -> PreparationRepresentationUnits?
 
+pub fn completed_segment_inputs_has_exact_pipeline_input(CompletedSegmentInputs, @lowering_relation.BoundPrepared, Int, CompletedOutput) -> Bool
+
 pub fn completed_segment_inputs_has_original_pipeline_input(CompletedSegmentInputs, @lowering_relation.BoundPrepared, Int, CompletedOutput) -> Bool
 
 pub fn completed_segment_inputs_output(CompletedSegmentInputs, GeneratedSequence, Array[(Int, Int, ProducerRead)]) -> CompletedOutput?
@@ -679,6 +681,8 @@ pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relat
 pub fn completion_preparation_terminal_step(CompletionPreparation) -> Int
 
 pub fn compose_preparation_representation(Array[PreparationRepresentationUnits]) -> PreparationRepresentationUnits?
+
+pub fn confirm_bounded_join_stop(BoundedJoinExecution) -> Bool
 
 pub fn constrain_generated_aggregate_output(GeneratedSequence, Int, String, AggregateOutputUnit, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
@@ -1649,6 +1653,8 @@ pub fn supplied_relation_read_rows_identity(SuppliedRelationRead, RowWireLimits)
 pub fn supplied_relation_read_same_binding(SuppliedRelationRead, SuppliedRelationRead) -> Bool
 
 pub fn supplied_relation_read_schema(SuppliedRelationRead) -> @relation_schema.Schema
+
+pub fn supplied_relation_read_value_usage(SuppliedRelationRead) -> ValueUsage?
 
 pub fn supplied_source_input_capture_capacity(CapturedRows) -> ExecutionCapacity?
 

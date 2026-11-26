@@ -121,7 +121,9 @@ pub fn[T] managed_publication_bridge_import_geometry(
     row: {
       max_bytes: bytes,
       max_nodes: nodes.to_int(),
-      max_depth: receipt.measured_depth + 2,
+      // The producer's shape includes its configured measurement depth.
+      // Retained row admission still applies the existing codec ceiling.
+      max_depth: Int::min(receipt.measured_depth + 2, 64),
       max_text_bytes: bytes,
     },
   })

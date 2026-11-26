@@ -133,6 +133,49 @@ fn local_project_mock_check_writable_collections(
 }
 
 ///|
+// Assemble the checked Relation File declarations shared by Project and
+// installed File selection. The caller retains the catalog, connection and
+// locator originals and separately owns any Mapping or physical Read.
+fn local_native_file_source_declaration(
+  connection : String,
+  provider : String,
+  catalog_wire : String,
+  entry_wire : String,
+  data_file : String,
+) -> Result[
+  (Json, @row_host.RowDeclaration, Array[LocalProjectMockFileBinding], String),
+  @row_host.RowHostIssue,
+] {
+  // The caller owns the original entry from the admitted Common catalog.
+  let entry = @json.parse(entry_wire) catch {
+    _ => return Err(InvalidSpecification)
+  }
+  let input = match local_project_mock_relation_input(entry) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let declaration = match
+    @row_host.restore_relation_row_declaration(
+      connection,
+      "declared_file",
+      "declared_file/0.1",
+      input,
+      None,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let files = match
+    local_project_mock_file_bindings(connection, entry, declaration, data_file) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  local_project_mock_file_declaration(
+    connection, provider, catalog_wire, entry, data_file, declaration, files,
+  ).map(result => (entry, result.0, result.1, result.2))
+}
+
+///|
 fn LocalProjectMockDeclarations::prepare_source_declarations(
   self : Self,
   fund_ordered? : ((@execution.ExecutionCapacity) -> Bool)? = None,
@@ -168,59 +211,13 @@ fn LocalProjectMockDeclarations::prepare_source_declarations(
       self.model_failure = Some(ForeignOriginal)
       return Err(ForeignOriginal)
     }
-    // ClientProjectCatalog already admitted duplicate keys/Unicode and retained
-    // this exact entry. No file/payload re-read or provider callback occurs.
-    let entry = @json.parse(wire) catch {
-      _ => {
-        self.model_failure = Some(
-          Source(@row_host.RowHostIssue::InvalidSpecification),
-        )
-        return Err(self.model_failure.unwrap())
-      }
-    }
-    let input = match local_project_mock_relation_input(entry) {
-      Ok(value) => value
-      Err(issue) => {
-        self.model_failure = Some(Source(issue))
-        return Err(Source(issue))
-      }
-    }
-    let initial_declaration = match
-      @row_host.restore_relation_row_declaration(
-        connection,
-        "declared_file",
-        "declared_file/0.1",
-        input,
-        None,
-      ) {
-      Ok(value) => value
-      Err(issue) => {
-        self.model_failure = Some(Source(issue))
-        return Err(Source(issue))
-      }
-    }
-    let files = match
-      local_project_mock_file_bindings(
-        connection,
-        entry,
-        initial_declaration,
-        self._retained_data_file,
-      ) {
-      Ok(value) => value
-      Err(issue) => {
-        self.model_failure = Some(Source(issue))
-        return Err(Source(issue))
-      }
-    }
-    let (declaration, files, scope) = match
-      local_project_mock_file_declaration(
+    let (entry, declaration, files, scope) = match
+      local_native_file_source_declaration(
         connection,
         provider,
         self._retained_catalog.original_wire(),
-        entry,
+        wire,
         self._retained_data_file,
-        initial_declaration,
-        files,
       ) {
       Ok(value) => value
       Err(issue) => {

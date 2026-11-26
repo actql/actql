@@ -264,7 +264,15 @@ fn NativeClientModelRawCapture::acknowledge_saved(
   if self.phase != ReceiptReady {
     return Err(ForeignOriginal)
   }
-  @model.acknowledge_saved_model_raw_capture(self.view).map_err(issue => {
-    Capture(issue)
-  })
+  match @model.acknowledge_saved_model_raw_capture(self.view) {
+    Err(issue) => Err(Capture(issue))
+    Ok(receipt) => {
+      let descriptor = @publication.model_raw_response_value(
+        @model.model_raw_capture_save_binding(self.view),
+      )
+      let wire = @publication.run_evidence_value_json(descriptor)
+      native_model_confirmation_observation(1, wire, wire.length())
+      Ok(receipt)
+    }
+  }
 }

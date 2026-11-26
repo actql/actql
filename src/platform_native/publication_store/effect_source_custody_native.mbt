@@ -268,9 +268,7 @@ fn Store::restore_effect_source_custody_in_scope(
 pub fn EffectSourceCustody::begin_payload(
   self : EffectSourceCustody,
 ) -> Result[PayloadWriter, NativePublicationStoreIssue] {
-  self.store.with_original_read(false, false, fn() {
-    self.begin_payload_in_scope()
-  })
+  self.store.with_payload_writer(fn() { self.begin_payload_in_scope() })
 }
 
 ///|

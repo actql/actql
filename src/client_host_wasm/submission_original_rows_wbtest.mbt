@@ -48,7 +48,6 @@ test "completed original data avoids repeated full nested validator and keeps fr
         "sha256:" + "b".repeat(64),
         "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
         Some(original),
-        (_, _) => Err(-99),
         (table, key) => {
           let result = targeted_row_read(rows, table, key)
           if result is Ok(_) {
@@ -127,7 +126,6 @@ test "changed and absent original proofs take full nested path with original can
         "sha256:" + "b".repeat(64),
         "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
         Some(original),
-        (_, _) => Err(-99),
         (name, key) => targeted_row_read(changed, name, key),
         row => {
           let result = submission_append_run_inspection(row)
@@ -154,7 +152,6 @@ test "changed and absent original proofs take full nested path with original can
       "sha256:" + "b".repeat(64),
       "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
       Some(original),
-      (_, _) => Err(-99),
       (name, key) => targeted_row_read(missing, name, key),
       _ => Err(-98),
       () => Err(-97),
@@ -170,7 +167,6 @@ test "changed and absent original proofs take full nested path with original can
       "sha256:" + "b".repeat(64),
       "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
       Some(original),
-      (_, _) => Err(-99),
       (name, key) => targeted_row_read(rows, name, key),
       _ => Err(-98),
       () => Ok(()),
@@ -195,7 +191,6 @@ test "original data never repairs corrupt nested rows or replaces current cancel
       "sha256:" + "b".repeat(64),
       "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
       Some(original),
-      (_, _) => Err(-99),
       (name, key) => targeted_row_read(corrupt, name, key),
       submission_append_run_inspection,
       () => {
@@ -213,7 +208,6 @@ test "original data never repairs corrupt nested rows or replaces current cancel
       "sha256:" + "b".repeat(64),
       "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
       Some(original),
-      (_, _) => Err(-99),
       (name, key) => targeted_row_read(rows, name, key),
       _ => Err(-98),
       () => Err(-97),
@@ -227,7 +221,6 @@ test "original data never repairs corrupt nested rows or replaces current cancel
       "sha256:" + "b".repeat(64),
       "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
       Some(original),
-      (_, _) => Err(-99),
       (_, _) => Err(-96),
       _ => Err(-98),
       () => Err(-97),
@@ -242,7 +235,6 @@ test "original data never repairs corrupt nested rows or replaces current cancel
       "sha256:" + "b".repeat(64),
       "sha256:7a12ebea352eee2a7d88bf6df5c5b6d7b56d6383f7e6e5fc9231fef79412fafc",
       Some(original),
-      (_, _) => Err(-99),
       (name, key) => targeted_row_read(rows, name, key),
       row => {
         let result = submission_append_run_inspection(row)

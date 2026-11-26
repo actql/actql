@@ -16,7 +16,7 @@ fn request_model_module_container_bytes(
   // A captured Stage can also own the serialized Model continuation. Its
   // Compute tail is then empty, but the module's fixed containers still exist.
   guard tasks > 0 &&
-    tasks >= captures &&
+    (whole_inputs || tasks >= captures) &&
     captures >= 0 &&
     installed_providers >= 0 &&
     provider_captures >= 0 &&
@@ -216,7 +216,9 @@ fn[I] begin_request_model_module(
   if input_segments > 2147483647L {
     return Err(Preparation(Policy))
   }
-  guard @strategy.graph_captured_prefix(dag) == captures &&
+  // A Query prefix counts captured tasks. Whole inputs count Source ports
+  // instead, and retain the full task table on the later physical graph.
+  guard (whole_inputs || @strategy.graph_captured_prefix(dag) == captures) &&
     (captures == 0 || captures == 1 || captures == 2) &&
     owner.program_plan_quote is Some((quoted_r, quoted_e)) &&
     request_model_module_container_bytes(
@@ -915,10 +917,12 @@ pub fn[I] prepare_request_model_capture_module(
             direct, index,
           )
           is Some((stage, source_input, task)) &&
-          task == index else {
+          (whole || task == index) else {
           return Err(Installed(ForeignOriginal))
         }
         if whole {
+          // Complete inputs are ordered by the checked Source occurrences.
+          // Several of them can feed the same task through different ports.
           let source = whole_sources[index]
           if !@publication_host.client_source_acquisition_matches_program(
               prepared,

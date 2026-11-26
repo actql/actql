@@ -7,8 +7,9 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {assessPriorityTransition} from './operation-performance.mjs';
-import {nodeBenchmarkInstrumentation, nodeWarmSmallQueryFixtures, runNodeWarmBenchmark, nodeWarmProtocol,
+import {nodeWarmSmallQueryFixtures, runNodeWarmBenchmark, nodeWarmProtocol,
   nodePriorityProtocol, runNodePriorityBenchmark, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
+import {nodeBenchmarkInstrumentation} from './node-benchmark-evidence.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 test('known startup profiling cannot be labeled uninstrumented latency', () => {

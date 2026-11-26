@@ -647,13 +647,6 @@ const currentJournalSchema = [
   ...submissionUsageTables, ...submissionUsageTriggers,
   ...journalRowUsageTables, ...journalRowUsageTriggers,
 ] as const;
-const currentJournalVersion = 3;
-
-function requireCurrentJournalVersion(version: SQLOutputValue | undefined) {
-  if (version === 0 || version === 1 || version === 2) fail('LegacyClientRequestJournalFormat');
-  if (version !== currentJournalVersion) fail('UnknownClientRequestJournalFormat');
-}
-
 function currentJournalMarkersMatch(directory: string, entries: readonly string[]) {
   return currentJournalMarkers.every(([name, bytes]) => entries.includes(name) &&
     lstatSync(join(directory, name)).isFile() && journalMarkerMatches(join(directory, name), bytes));
@@ -661,7 +654,6 @@ function currentJournalMarkersMatch(directory: string, entries: readonly string[
 
 export function inspectJournalNativeStorage(database: JournalSqlConnection,
   requireSourceOperations: boolean, requireLocalExecutionOwners: boolean) {
-  requireCurrentJournalVersion(database.prepare('PRAGMA user_version').get()?.user_version);
   const select = database.prepare('SELECT substr(sql, 1, ?) AS sql FROM sqlite_master WHERE name = ?');
   for (const [name, sql] of currentJournalSchema) {
     if (select.get(sql.length + 1, name)?.sql !== sql) fail('UnknownClientRequestJournalFormat');
@@ -708,7 +700,6 @@ export function inspectJournalSnapshot(directory: string, databasePath: string, 
       schemaSqlSupport: primarySchemaSqlSupport,
       assertCurrent: primaryCurrent,
       assertExclusiveSource,
-      checkUserVersion: requireCurrentJournalVersion,
       temporaryDirectory: inspectionTemporaryDirectory,
       validateSource: () => currentJournalMarkersMatch(directory, entries) &&
         JSON.stringify(journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection)) === JSON.stringify(entries)});
@@ -846,12 +837,8 @@ export function admitJournalDirectory(directory: string, maxInspectionEntries: n
   const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);
   if (entries.length === 0) return false;
   const markerPath = join(directory, 'journal-format.json');
-  if (!entries.includes('journal-format.json')) {
-    fail(entries.includes('client-requests.sqlite3') ?
-      'LegacyClientRequestJournalFormat' :
-      'UnknownClientRequestJournalFormat');
-  }
-  if (!entries.includes('client-requests.sqlite3') ||
+  if (!entries.includes('journal-format.json') ||
+      !entries.includes('client-requests.sqlite3') ||
       !lstatSync(markerPath).isFile() ||
       !journalMarkerMatches(markerPath, journalMarker)) {
     fail('UnknownClientRequestJournalFormat');
@@ -889,8 +876,7 @@ export function admitJournalDirectory(directory: string, maxInspectionEntries: n
     if ((cause as InspectionFailure)?.code === 'ClientRequestJournalSqlUnavailable' ||
         (cause as InspectionFailure)?.code === 'ClientRequestJournalSqlCleanupPending') throw cause;
     if ((cause as InspectionFailure)?.code === 'SqliteSchemaPreparationUnavailable') throw cause;
-    if ((cause as InspectionFailure)?.code === 'UnknownClientRequestJournalFormat' ||
-        (cause as InspectionFailure)?.code === 'LegacyClientRequestJournalFormat') throw cause;
+    if ((cause as InspectionFailure)?.code === 'UnknownClientRequestJournalFormat') throw cause;
     fail('UnknownClientRequestJournalFormat', cause);
   }
   return true;
@@ -958,7 +944,6 @@ export function initializeJournalSchema(database: JournalSqlConnection,
       INSERT INTO client_submission_restart_usage VALUES (1, 0, 0, 0);
       INSERT INTO client_request_row_usage VALUES (1, 0);
       INSERT INTO client_cancellation_row_usage VALUES (1, 0);
-      PRAGMA user_version = ${currentJournalVersion};
     `);
     if (sourceOperationLimits !== undefined) database.exec(sourceOperationTable);
     if (ownedOriginal !== undefined) database.exec(localExecutionOwnerTable);

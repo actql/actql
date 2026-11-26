@@ -183,14 +183,19 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
         intent,
         environment,
         publication,
-        verify_request_value_policy=match self.project {
-          Some(project) =>
-            project.mock_declarations.map(original => {
+        verify_request_value_policy=match self.declared_file_sources {
+          Some((sources, _)) =>
+            Some(subject => {
+              local_verify_file_source_request_policy(sources, subject)
+            })
+          None =>
+            self.project
+            .bind(project => project.mock_declarations)
+            .map(original => {
               subject => {
                 original.verify_static_request_policy(environment, subject)
               }
             })
-          None => None
         },
         before_program_borrow=Some(() => {
           match
@@ -225,12 +230,15 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
 ///|
 fn LocalCommandBusinessPreparation::request_compilation(
   self : LocalCommandBusinessPreparation,
+  installation : LocalRunInstallation,
 ) -> @run_host.ClientRunCompilation raise ClientStop {
   guard self.original.business is Some(business) &&
     business.request_parent is Some(parent) &&
     business.request_input is Some(input) &&
     business.request_intent is Some(original_intent) &&
-    physical_equal(original_intent, self.intent) else {
+    physical_equal(original_intent, self.intent) &&
+    @local_host.native_client_submitted_preparation(self.preparation)
+    is Computation(prepared) else {
     stop("LocalBusinessOriginalUnavailable")
   }
   self.original.with_business_request(self.capture, () => {
@@ -238,6 +246,80 @@ fn LocalCommandBusinessPreparation::request_compilation(
         stop("LocalCompilerLimitsUnavailable")
       },
     )
+    if local_terminal_serialization_occurrence(prepared) is Some((task, step)) {
+      guard business.request_body
+        is Some(@local_host.Program(original_body) as holder) &&
+        @initial_resources.preparation_body_borrow_value(original_body)
+        is Some(original) &&
+        physical_equal(original, prepared) else {
+        stop("LocalBusinessOriginalUnavailable")
+      }
+      let installed = installation.source_free.unwrap_or_else(() => {
+        stop("LocalValuesInstallationRequired")
+      })
+      // Replace the checking borrow with the funded Content Plan input on
+      // this same Request. Keep whichever original borrow is still live.
+      @local_host.return_native_client_submitted_request_body(holder).unwrap_or_else(() => {
+          stop("LocalRequestBodyReturnPending")
+        },
+      )
+      |> ignore
+      business.request_body = None
+      let content = command_preparation_result(
+        @local_host.borrow_native_client_content_plan_input(parent, input).map_err(issue => {
+            CommandRequestPreparation(issue)
+          },
+        ),
+        stage=Some("request-content-plan-input"),
+      )
+      business.request_body = Some(content)
+      guard content is @local_host.Program(body) &&
+        @initial_resources.preparation_body_borrow_value(body) is Some(selected) &&
+        physical_equal(selected, prepared) else {
+        stop("LocalBusinessOriginalUnavailable")
+      }
+      let policy = @checked.checked_host_capacity_policy(
+        @strategy.graph_program(@run_host.prepared_client_graph(prepared)),
+      )
+      let rows = local_serialization_host_ceiling(policy, "max_artifact_rows")
+      let bytes = local_serialization_host_ceiling(policy, "max_artifact_bytes")
+      let graph = match
+        @local_values.prepare_request_serialization_graph(
+          parent,
+          input,
+          task,
+          step,
+          installed.result_policy_cid,
+          installed.result_policy_wire,
+          rows,
+          bytes,
+          true,
+          self.installed_contracts,
+          manifests=native_request_manifests,
+          compilation_limits=limits,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          local_compilation_failure_tags(issue, native_timing_amount)
+          stop("LocalSerializationGraphNotReady")
+        }
+      }
+      return match
+        @local_values.prepare_request_serialization_compilation(
+          parent,
+          input,
+          graph,
+          self.installed_contracts,
+          manifests=native_request_manifests,
+          compilation_limits=limits,
+        ) {
+        Ok(value) => @run_host.Tasks(value)
+        Err(issue) => {
+          local_compilation_failure_tags(issue, native_timing_amount)
+          stop("LocalCompilationNotReady")
+        }
+      }
+    }
     match
       @local_values.prepare_request_program_compilation(
         parent,
@@ -258,9 +340,26 @@ fn LocalCommandBusinessPreparation::request_compilation(
 }
 
 ///|
+fn local_serialization_host_ceiling(
+  policy : @capacity_policy.Policy,
+  field : String,
+) -> Int raise ClientStop {
+  guard @capacity_policy.ceiling(policy, field) is Some(original) else {
+    stop("LocalSerializationLimitUnavailable")
+  }
+  let value = @capacity_policy.ceiling_value(original)
+  guard value >= 0L && value <= 2147483647L else {
+    stop("LocalSerializationLimitUnavailable")
+  }
+  value.to_int()
+}
+
+///|
 fn LocalCommandBusinessPreparation::adopt_request_run(
   self : LocalCommandBusinessPreparation,
   request : @run_host.ClientRequestIdentity,
+  compiled : @run_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
     business.request_parent is Some(parent) &&
@@ -278,12 +377,8 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
     None => stop("PackagedLocalRuntimeChanged")
   }
   self.original.with_business_request(self.capture, () => {
-    let limits = @local_values.request_program_compilation_limits(parent, input).unwrap_or_else(() => {
-        stop("LocalCompilerLimitsUnavailable")
-      },
-    )
     let run = match self.file_source {
-      Some(Project(original)) => {
+      Some(Original(declarations, listings)) => {
         guard @local_host.native_client_submitted_preparation(self.preparation)
           is Computation(prepared) &&
           business.file_capacity is None else {
@@ -295,7 +390,8 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
           input,
           prepared,
           request,
-          original,
+          declarations,
+          listings,
           self.installed_contracts,
           self.assets,
           query_contracts,
@@ -317,7 +413,34 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
       }
       Some(Whole(_, _) | Query(_) | WholeSet(_)) =>
         stop("LocalBusinessOriginalUnavailable")
+      None if @run_host.client_compiled_run_serialization(compiled) is Some(_) => {
+        guard business.request_body is Some(holder) else {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+        let plan = @local_values.prepare_request_terminal_serialization_plan(
+          parent, input, request, compiled, definition,
+        ).unwrap_or_else(() => stop("LocalSerializationPlanUnavailable"))
+        command_preparation_result(
+          @local_values.complete_request_serialization_preparation(
+            parent, input, plan,
+          ).map_err(issue => CommandRequestPreparation(issue)),
+          stage=Some("request-content-plan-complete"),
+        )
+        @local_host.return_native_client_submitted_request_body(holder).unwrap_or_else(() => {
+            stop("LocalRequestBodyReturnPending")
+          },
+        )
+        |> ignore
+        business.request_body = None
+        @local_values.begin_request_content_managed_run(parent, request).unwrap_or_else(() => {
+            stop("LocalSerializationRunUnavailable")
+          },
+        )
+      }
       None => {
+        let limits = @local_values.request_program_compilation_limits(
+          parent, input,
+        ).unwrap_or_else(() => stop("LocalCompilerLimitsUnavailable"))
         @local_values.prepare_request_program_module_body(
           parent,
           input,

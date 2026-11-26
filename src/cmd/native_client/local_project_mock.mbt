@@ -67,20 +67,6 @@ fn local_project_required_declaration(
 }
 
 ///|
-// Resolve Task locators relative to the original registry, as the public
-// Project contract requires. The bounded Reader remains authoritative for
-// missing, symlinked, changed, oversized and physically unclosed files.
-fn local_project_registry_document(
-  project : LocalProjectConfiguration,
-  registry_path : String,
-  path : String,
-) -> Result[String, @files.NativeBoundedTextFailure] raise ClientStop {
-  let registry = local_project_absolute_path(project.directory, registry_path)
-  let directory = local_product_selected_location(Some(registry), None).parent_path
-  local_project_required_declaration({ ..project, directory, }, Some(path))
-}
-
-///|
 // Read and select original DATA through the existing Common owners. Limits
 // belong to the selected caller; parsing this input installs no Source, Model,
 // reviewer, Account or capacity. The caller retains a successful result before
@@ -170,27 +156,13 @@ fn local_project_read_mock_declarations(
   ] = []
   if registry_original is Some((registry_path, registry)) {
     for index in 0..<registry.task_count() {
-      let (name, path) = registry
-        .task_at(index)
-        .unwrap_or_else(() => stop("InvalidProjectBindings"))
-      let wire = match
-        local_project_registry_document(project, registry_path, path) {
+      let (name, task, selection) = match
+        local_project_read_selected_model_task(
+          project, registry_path, registry, index, task_limits,
+        ) {
         Ok(value) => value
         Err(original) => return Err(original)
       }
-      let format = if path.has_suffix(".json") { "json" } else { "yaml" }
-      let task = @compiler_environment.read_public_model_task_document(
-        wire, format, task_limits,
-      ).unwrap_or_else(() => stop("InvalidProjectBindings"))
-      if @compiler_environment.public_model_task_declaration_identity(task).0 !=
-        name {
-        stop("InvalidProjectBindings")
-      }
-      let selection = @run_host.select_client_project_model_task(
-        registry,
-        task,
-        task_limits.max_work,
-      ).unwrap_or_else(() => stop("InvalidProjectBindings"))
       let mut answer_path = None
       for
         answer_index in 0..<profile
@@ -630,6 +602,8 @@ fn LocalProjectMockDeclarations::prepare_model_environment(
 // Project Task inventory before the SAME Request's first semantic check.
 fn local_command_project_environment(
   base : @checked.CheckEnvironment,
+  capture : @local_host.NativeLocalJournalCapture?,
+  settings : LocalHostSettings,
 ) -> @checked.CheckEnvironment raise ClientStop {
   guard command_preparation_invocation.val is Some(original) else {
     return base
@@ -637,10 +611,30 @@ fn local_command_project_environment(
   if original.closing || original.closed {
     stop("LocalBusinessOriginalUnavailable")
   }
-  guard original.project is Some(project) &&
-    project.mock_declarations is Some(mock) else {
-    return base
+  let base = match original.declared_file_sources {
+    None => base
+    Some((sources, listings)) =>
+      match
+        local_project_file_check_environment(
+          base,
+          sources,
+          local_file_source_lookup_policy(listings),
+        ) {
+        Ok(environment) => environment
+        Err(issue) => {
+          original.retain_primary(CommandProjectMock(issue))
+          stop("InvalidLocalDeclaredFileSourceInstallation")
+        }
+      }
   }
+  guard original.project is Some(project) else { return base }
+  if project.portable_model is Some(model) {
+    guard capture is Some(capture) else {
+      stop("LocalProjectBindingsUnavailable")
+    }
+    return model.checked_environment(original, base, capture, settings)
+  }
+  guard project.mock_declarations is Some(mock) else { return base }
   let source = match mock.prepare_source_environment(base) {
     Ok(value) => value
     Err(issue) => {

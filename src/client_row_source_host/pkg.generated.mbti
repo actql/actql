@@ -232,6 +232,8 @@ pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)
 
 pub fn local_csv_page_issue_code(LocalCsvPageIssue) -> String
 
+pub fn local_csv_table_issue_code(LocalCsvTableIssue) -> String
+
 pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?
 
 pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int
@@ -269,6 +271,8 @@ pub fn prepare_declared_row_source(@query_planning.QueryRequirement, String, Row
 pub fn prepare_keyed_row_acquisition(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, RowDeclaration, RowKeyedLimits, input_available? : (() -> Bool)?) -> Result[RowKeyedAcquisition, RowHostIssue]
 
 pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]
+
+pub fn prepare_local_csv_table(String, @decode_core.Cursor, Int, Int) -> Result[LocalCsvTable?, LocalCsvTableIssue]
 
 pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]
 
@@ -638,6 +642,21 @@ pub(all) enum LocalCsvPageIssue {
   LocalCsvFieldLimit
   LocalCsvRowsLimit
   LocalFilesPageBytesLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LocalCsvTable {
+  path : String
+  column_names : Array[String]
+  integer_columns : Array[Bool]
+  keys : Array[String]
+  view : RowRelationViewSpec
+}
+
+pub(all) enum LocalCsvTableIssue {
+  InvalidLocalCsvResource
+  InvalidLocalCsvPath
+  InvalidLocalCsvColumns
+  InvalidLocalCsvKey
 } derive(Eq, @debug.Debug)
 
 pub struct MockChurnRiskCatalogue {

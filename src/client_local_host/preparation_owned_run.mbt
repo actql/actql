@@ -174,9 +174,9 @@ fn[I] adopt_preparation_owned_pure_plan(
     PureManaged(admission, prepared),
     request,
     ledger,
+    captured~,
   )
   run.source_free_preparation = source_free
-  run.captured_preparation = captured
   run.preparation_retirement = Some(
     PurePreparation({ retirement, admission, holder: Some(holder), }),
   )
@@ -568,6 +568,60 @@ fn[I] begin_preparation_owned_installed_serialization_run_original(
     SerializationContent(selected),
     selected.limits,
   )
+}
+
+///|
+/// Retain the Whole Source and terminal Content preparations on one managed Run.
+/// Both borrowers keep the original capacity and ledger through physical close.
+fn[I] adopt_preparation_owned_whole_serialization(
+  initial : ClientPreparationInitial[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[
+    I,
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  selected : ClientInstalledManagedSerializationPreparation,
+  captured : ClientInstalledManagedCapturePlan,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+  guard physical_equal(selected.prepared, prepared) &&
+    physical_equal(selected.request, request) &&
+    physical_equal(captured.prepared, prepared) &&
+    physical_equal(captured.request, request) &&
+    (!captured.whole_sources.is_empty() || captured.captures.length() == 1) &&
+    selected.whole_plan is Some(plan) &&
+    physical_equal(plan, captured) else {
+    return Err(ForeignOriginal)
+  }
+  match check_preparation_owned_body_limits(initial, input, capacity) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let limits = match preparation_initial_limits(initial, input) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  guard @resources.add_ledger_limits(selected.limits, captured.limits)
+    is Some(required) &&
+    installed_effect_limits_fit(required, limits) else {
+    return Err(InsufficientCapacity)
+  }
+  let run = match
+    adopt_preparation_owned_pure_plan(
+      initial,
+      input,
+      capacity,
+      prepared,
+      request,
+      None,
+      Some(captured),
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  run.content = SerializationContent(selected)
+  Ok(run)
 }
 
 ///|

@@ -127,6 +127,12 @@ pub fn issue_client_infer_occurrence_call_scope(
     if result_bindings.any(value => value.0 == binding.0) {
       return Err(ForeignInput)
     }
+    if original.original is Whole(artifact, _) &&
+      !(sources is Some(tuple) &&
+      client_infer_composed_whole_sources_original(tuple, occurrence) &&
+      client_infer_whole_result_sources_match(artifact, tuple)) {
+      return Err(ForeignInput)
+    }
     result_bindings.push(binding)
   }
   let all_result_inputs = !result_bindings.is_empty() &&
@@ -367,6 +373,14 @@ fn client_infer_call_scope_generation_available(
     return false
   }
   if !value.result_inputs.all(original => {
+      if original.original is Whole(artifact, _) &&
+        !client_infer_whole_result_scope_sources_match(
+          artifact,
+          value.named_sources,
+          value.sources,
+        ) {
+        return false
+      }
       client_infer_result_artifact_input_binding(
         original,
         value.plan.occurrence,
@@ -586,7 +600,10 @@ fn emit_client_infer_call_scope_snapshot(
         @encode.key(writer, "result_artifact_cid")
         @encode.string_value(writer, artifact)
         @encode.key(writer, "producer_local_manifest_cid")
-        @encode.string_value(writer, original.manifest.cid)
+        @encode.string_value(
+          writer,
+          client_infer_result_artifact_original_cids(original).1,
+        )
         @encode.end_object(writer)
       }
       if value.saved_result_scope is Some(saved) {
@@ -1082,7 +1099,17 @@ pub fn read_client_infer_saved_call_scope(
       @lower.pipeline(@lower.bound_preparation(occurrence.preparation)),
     )
   let expected = if all_result_ports && sources.is_empty() {
-    []
+    match compiled.compilation {
+      // The authenticated Effect form can bind the producer by its Result
+      // manifest alone. Ordinary Whole retains its actual Source observations.
+      Effects(_) => []
+      Values(_) | Tasks(_) =>
+        match infer_scope_expected_whole_sources(occurrence) {
+          Ok(Some(value)) => value
+          Ok(None) => []
+          Err(issue) => return Err(issue)
+        }
+    }
   } else {
     match infer_scope_expected_sources(occurrence, plan=Some(plan)) {
       Ok(value) => value

@@ -11,6 +11,73 @@ test "caller claim refuses autocommit without consuming the original ordinal" {
 }
 
 ///|
+#borrow(database)
+extern "C" fn suppress_fresh_insert(database : Database) -> Int = "actql_native_sqlite_test_suppress_fresh_insert"
+
+///|
+test "a suppressed fresh record requires rollback of the earlier caller write" {
+  let (library, database, path) = original_claim_lookup_database(
+    "suppressed-fresh-record",
+  )
+  database.insert("control", "run", b"original").unwrap() |> ignore
+  assert_eq(suppress_fresh_insert(database), 0)
+  database.begin_immediate().unwrap()
+  assert_eq(
+    database.compare_exchange("control", "run", 0L, b"tentative").unwrap(),
+    1L,
+  )
+  assert_true(
+    database.insert("control", "suppressed", b"witness")
+    is Err(Physical("journal insert did not affect exactly one row")),
+  )
+  assert_true(database.transaction_state() is Ok(ActiveSqliteTransaction))
+  database.rollback().unwrap()
+  assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
+  database.close_checked().unwrap()
+  let restored = library.open_existing_database(path, 64L).unwrap()
+  let run = restored.read("control", "run").unwrap()
+  assert_eq(run.body, b"original")
+  assert_eq(run.revision, 0L)
+  assert_true(restored.read("control", "suppressed") is Err(NotFound))
+  restored.close_checked().unwrap()
+}
+
+///|
+test "suppressed capacity and claim inserts cannot acknowledge new ownership" {
+  let (library, database, path) = original_claim_lookup_database(
+    "suppressed-fresh-ownership",
+  )
+  assert_true(
+    database.reserve_capacity("files", "first", 8L, 1L, 16L, 2L).unwrap(),
+  )
+  assert_true(
+    database.claim_ordinal_action("uses", "first", 2L) is Ok(Fresh(1L)),
+  )
+  assert_eq(suppress_fresh_insert(database), 0)
+  assert_true(
+    database.reserve_capacity("files", "suppressed", 8L, 1L, 16L, 2L)
+    is Err(Physical("capacity insert did not affect exactly one row")),
+  )
+  assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
+  assert_true(
+    database.claim_ordinal_action("uses", "suppressed", 2L)
+    is Err(Physical("claim insert did not affect exactly one row")),
+  )
+  assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
+  assert_false(database.transaction_fenced())
+  database.close_checked().unwrap()
+  let restored = library.open_existing_database(path, 64L).unwrap()
+  assert_true(restored.read_capacity("files", "suppressed") is Err(NotFound))
+  assert_eq(restored.capacity_usage("files").unwrap().reserved_bytes, 8L)
+  assert_true(restored.lookup_claim_ordinal("uses", "suppressed") is Ok(None))
+  assert_true(restored.lookup_claim_ordinal("uses", "first") is Ok(Some(1L)))
+  assert_true(
+    restored.claim_ordinal_action("uses", "next", 2L) is Ok(Fresh(2L)),
+  )
+  restored.close_checked().unwrap()
+}
+
+///|
 test "caller claim rolls back with original use and control CAS without an early commit" {
   let (library, db, path) = original_claim_lookup_database(
     "caller-claim-rollback",

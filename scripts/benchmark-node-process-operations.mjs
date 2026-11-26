@@ -8,7 +8,8 @@ import {arch, cpus, platform, release, totalmem} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {assessLatency, recordOperationMeasurements, operationTargets} from './operation-performance.mjs';
-import {nodeBenchmarkFailure, nodeBenchmarkInstrumentation, nodeOperationProtocol, verifyNodeBenchmarkPackages} from './benchmark-node-operations.mjs';
+import {nodeBenchmarkFailure, nodeOperationProtocol, verifyNodeBenchmarkPackages} from './benchmark-node-operations.mjs';
+import {nodeBenchmarkInstrumentation} from './node-benchmark-evidence.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const integer = n => Number.isSafeInteger(n) && n >= 0;

@@ -55,9 +55,8 @@ Open that file directly if the client does not discover repository skills.
   packages, and targeted Node tests for SDK, adapters and scripts. Native-only
   or FFI changes need an explicitly selected matching-target diagnostic.
 - Do not default to full Core, all-target, proof, packed acceptance or performance
-  suites. Public-repository PRs run applicable hosted checks; main pushes retain
-  full runtime integration verification except for exact reviewed prose-only
-  modifications, which retain the required document/source checks. Local and PR
+  suites. Public-repository PRs run applicable hosted checks. Main integration
+  runs every six hours and can be started manually. Local and PR
   review establish only the checks actually executed. Draft checks are
   preparation only and never establish merge
   or release evidence.

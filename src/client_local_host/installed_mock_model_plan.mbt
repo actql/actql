@@ -382,7 +382,11 @@ fn prepare_installed_mock_model_plan_owned(
         Some(value) => value
         None => return Err(ForeignOriginal)
       }
-    (None, Some(original)) => original.configuration
+    (None, Some(original)) =>
+      match original.configuration {
+        Some(value) => value
+        None => return Err(ForeignOriginal)
+      }
     _ => return Err(ForeignOriginal)
   }
   let compute_limits = match

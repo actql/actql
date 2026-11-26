@@ -14,18 +14,25 @@ fn registration_parent_fixture(
   )? = None,
   initial_limits? : @resources.LedgerLimits? = None,
   intent_wire? : String? = None,
+  original_parent? : (ClientRequestPreparation[Array[Int]], Array[Int])? = None,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   ClientProgramCheckPreparation[Array[Int], Unit],
   @stages.Source,
   Array[Int],
 ) raise {
-  let input = [1]
-  let parent = begin_request_preparation(
-    request_parent_fixture(input, current~, initial_limits~),
-    input,
-    client_local_resource_policy(),
-  ).unwrap()
+  let (parent, input) = match original_parent {
+    Some(original) => original
+    None => {
+      let input = [1]
+      let parent = begin_request_preparation(
+        request_parent_fixture(input, current~, initial_limits~),
+        input,
+        client_local_resource_policy(),
+      ).unwrap()
+      (parent, input)
+    }
+  }
   if intent_wire is Some(original) {
     reserve_request_snapshot(
       parent,

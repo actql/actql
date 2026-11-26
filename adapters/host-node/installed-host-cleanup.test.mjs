@@ -121,7 +121,7 @@ for (const phase of ['schema', 'prepare']) {
       await mkdir(root, {recursive: true});
       const directory = await mkdtemp(join(root, 'request-init-'));
       t.after(() => rm(directory, {recursive: true, force: true}));
-      // Schema DDL only runs on fresh v3 initialization. Statement setup
+      // Schema DDL only runs on fresh initialization. Statement setup
       // also runs on a valid reopen.
       if (phase === 'prepare') openClientRequestJournal(directory).close();
       const fault = failRequestJournalInitialization(t, phase, closeFailures);
@@ -155,12 +155,11 @@ for (const phase of ['schema', 'prepare']) {
         const path = join(directory, 'client-requests.sqlite3');
         const database = new DatabaseSync(path, {readOnly: true});
         try {
-          assert.equal(database.prepare('PRAGMA user_version').get().user_version, 0);
           assert.equal(database.prepare("SELECT name FROM sqlite_master WHERE name = 'client_requests'").get(), undefined);
         } finally {database.close();}
         const original = await readFile(path);
         assert.throws(() => openClientRequestJournal(directory),
-          {code: 'LegacyClientRequestJournalFormat'});
+          {code: 'UnknownClientRequestJournalFormat'});
         assert.deepEqual(await readFile(path), original);
       } else openClientRequestJournal(directory).close();
     });

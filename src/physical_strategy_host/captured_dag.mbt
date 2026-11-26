@@ -2843,13 +2843,15 @@ pub fn captured_next_task_has_prepared_input(
 }
 
 ///|
-/// Exact whole-input occurrence already supplied to this DAG. Availability is
-/// a real Source callback; callers retain their current fence around it.
+/// Exact whole-input occurrence already supplied to this DAG. A finished task
+/// can attest the original binding while its external Source is still held.
+/// This does not make its expired receiving read usable again.
 pub fn captured_source_input_original_matches(
   run : CapturedDAG,
   task : Int,
   input : Int,
   source : @query.CapturedInputSource,
+  after_completion? : Bool = false,
 ) -> Bool {
   guard !run.stopped &&
     task >= 0 &&
@@ -2859,7 +2861,11 @@ pub fn captured_source_input_original_matches(
     run.supplied_reads[task][input] is Some(original) &&
     @query.captured_source_original_input_read(source) is Some(read) &&
     @execution.supplied_relation_read_same_binding(original, read) &&
-    @execution.supplied_relation_read_available(original) &&
+    (if after_completion {
+      task_done(run, task)
+    } else {
+      @execution.supplied_relation_read_available(original)
+    }) &&
     @execution.supplied_relation_read_available(read) &&
     @query.captured_source_available(source) else {
     return false

@@ -2264,7 +2264,8 @@
             "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
             "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
             "contentGenerationControl/init:startRequestAcquiredPrefix/init:startRequestAcquiredPrefix",
-            "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix"
+            "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
+            "contentGenerationControl/init:startRequestWholePrefix/init:startRequestWholePrefix"
           ],
           "exports": [],
           "attributes": {
@@ -3037,7 +3038,8 @@
             "compiled",
             "definition",
             "limits",
-            "workspace"
+            "workspace",
+            "sourcePlan"
           ],
           "async": false
         },
@@ -3189,6 +3191,16 @@
           "async": false
         },
         {
+          "name": "contentGenerationControl/init:startRequestWholePrefix/init:startRequestWholePrefix",
+          "parameters": [
+            "run",
+            "program",
+            "selected",
+            "captures"
+          ],
+          "async": false
+        },
+        {
           "name": "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity",
           "parameters": [
             "generation",
@@ -3236,7 +3248,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "9d34ad0e806a34e1478b9bf64c5312f7abdd329e62d65e6bdeec5beac8a36d80"
+      "sha256": "416e22cbdc5f494d49591cde9eca5332a9d9cd12416d31f87b55623863372d74"
     },
     {
       "module": "adapters/host-common/publication-progress-control.mjs",
@@ -19039,7 +19051,8 @@
             "compiled",
             "definition",
             "limits",
-            "workspace"
+            "workspace",
+            "sourcePlan"
           ],
           "async": false
         },
@@ -19062,7 +19075,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "1b9e1d27985f1572a26aa5f7ef41eb40d49dd724db5dea7acb8e220992ec223f"
+      "sha256": "adffbb7116072f3392bf24fe7bf2fc520d916b022945131825d167775d2c658e"
     },
     {
       "module": "adapters/host-common/runtime-infer-original-read-control.mjs",
@@ -22155,7 +22168,15 @@
             "createContentPublicationControls/init:inferSerializationGraph/init:inferSerializationGraph",
             "createContentPublicationControls/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "createContentPublicationControls/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
-            "createContentPublicationControls/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand"
+            "createContentPublicationControls/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/captures/captures",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#2",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#3",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#4",
+            "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#5",
+            "createContentPublicationControls/init:withCheckedClientSerializationGraph/init:withCheckedClientSerializationGraph"
           ],
           "exports": [
             "createContentPublicationControls"
@@ -22417,6 +22438,62 @@
           "async": false
         },
         {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures",
+          "parameters": [
+            "run",
+            "checkedProgram",
+            "selected",
+            "graph",
+            "sources",
+            "authorityScopeCid",
+            "startedAt",
+            "completedAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/captures/captures",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#2",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#4",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures/init:bindCheckedClientSerializationManagedCaptures#5",
+          "parameters": [
+            "sourceEvidenceWire"
+          ],
+          "async": false
+        },
+        {
           "name": "createContentPublicationControls/init:capturedContentGenerationCount/init:capturedContentGenerationCount",
           "parameters": [
             "captured"
@@ -22655,6 +22732,15 @@
             "content"
           ],
           "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:withCheckedClientSerializationGraph/init:withCheckedClientSerializationGraph",
+          "parameters": [
+            "compiled",
+            "graph",
+            "use"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -22664,7 +22750,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "b2d252c16769e1810d7f2462dc9732282c921f88649fe249eb1e30fa3a33da80"
+      "sha256": "7a204553a571d41eb0832a8c12bff5ddb7d572011c691213a660899431896597"
     },
     {
       "module": "adapters/host-common/runtime-publication-contract-control.mjs",
@@ -44237,7 +44323,7 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "27ebcad213c37016ec8b7697f4a6fc02ca634070423323f782850afc75e1a88f",
+      "sha256": "d36ed264fd2052d64e6833fc95788f6021351034656a8e3ff1e9335261c444cf",
       "exports": [],
       "operations": [
         {
@@ -44285,6 +44371,14 @@
           "declaration": "prepare_installed_managed_capture_plan_owned ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , captures : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , model_purpose : Bool , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
         },
         {
+          "name": "prepare_installed_managed_query_serialization_source_plan",
+          "declaration": "prepare_installed_managed_query_serialization_source_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , component : @ publication_host . ClientSerializationPlanGraph , capture : ClientInstalledCaptureCapacity , transfer : Int64 , scratch : Int64 , contracts : ClientInstalledSequenceContracts , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_managed_whole_serialization_sources_plan",
+          "declaration": "prepare_installed_managed_whole_serialization_sources_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , component : @ publication_host . ClientSerializationPlanGraph , sources : Array [ ClientInstalledWholeSourceCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "prepare_retained_installed_capture_ledger",
           "declaration": "prepare_retained_installed_capture_ledger ( value : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , capacities : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ledger : @ resources . Ledger , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
         },
@@ -44319,7 +44413,9 @@
             "prepare_retained_installed_capture_ledger",
             "prepared_installed_managed_capture_acquisition",
             "prepared_installed_managed_capture_requirements",
-            "installed_managed_capture_publication_geometry_original"
+            "installed_managed_capture_publication_geometry_original",
+            "prepare_installed_managed_query_serialization_source_plan",
+            "prepare_installed_managed_whole_serialization_sources_plan"
           ],
           "exports": [],
           "attributes": {
@@ -47819,7 +47915,7 @@
         },
         {
           "name": "new_installed_managed_run_owned",
-          "declaration": "new_installed_managed_run_owned ( preparation : ClientInstalledManagedRunOriginal , request : @ publication_host . ClientRequestIdentity , ledger : @ resources . Ledger , ) - > ClientInstalledManagedRun"
+          "declaration": "new_installed_managed_run_owned ( preparation : ClientInstalledManagedRunOriginal , request : @ publication_host . ClientRequestIdentity , ledger : @ resources . Ledger , captured ? : ClientInstalledManagedCapturePlan ?"
         },
         {
           "name": "open_installed_managed_source_free_host",
@@ -47870,11 +47966,11 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "a65cbbe304cdace87583fa1f6affbcc387c8afd38e92e2e6a247011a93363c0c"
+      "sha256": "e733fa10505b44b4266538772a6e4b6237037ede6536c9f4868a6a7be6a1141e"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
-      "sha256": "f7fd95ced725f07f78947c5c14795108ca8a3a6991e24873e8c355436788de61",
+      "sha256": "421bd270f11c0d5dc1c57deefd2bda0e3ef2b557184ea6921e57af189a5e6341",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -49547,7 +49643,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "663e77173b3ba722fd5133c543e1bb053a3c676c9982b922004c591405a9eb82",
+      "sha256": "328599e3816cb90cec46f10febda48efa1a054228af8ecd27da21c8723c9eb73",
       "exports": [],
       "operations": [
         {
@@ -49603,6 +49699,10 @@
           "declaration": "installed_source_row_input_policy ( max_pages : Int , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ row_source_host . RowInputLimits , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "installed_terminal_serialization_whole_source",
+          "declaration": "installed_terminal_serialization_whole_source ( prepared : @ publication_host . PreparedClientProgram , graph : @ strategy . CheckedDAG , stage : Int , source_index : Int , ) - > Bool"
+        },
+        {
           "name": "installed_whole_source_acquisition",
           "declaration": "installed_whole_source_acquisition ( value : ClientInstalledWholeSourceCapacity , ) - > @ row_source_host . RowInputAcquisition"
         },
@@ -49620,7 +49720,7 @@
         },
         {
           "name": "prepare_installed_catalog_whole_source_capacity",
-          "declaration": "prepare_installed_catalog_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
+          "declaration": "prepare_installed_catalog_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , serialization ? : @ publication_host . ClientSerializationPlanGraph ?"
         },
         {
           "name": "prepare_installed_managed_whole_source_plan",
@@ -49644,11 +49744,11 @@
         },
         {
           "name": "prepare_installed_whole_source_capacity",
-          "declaration": "prepare_installed_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , declaration : @ row_source_host . RowDeclaration , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , provider : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
+          "declaration": "prepare_installed_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , declaration : @ row_source_host . RowDeclaration , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , provider : @ execution . ExecutionCapacity ? , serialization ? : @ publication_host . ClientSerializationPlanGraph ?"
         },
         {
           "name": "prepare_installed_whole_source_capacity_original",
-          "declaration": "prepare_installed_whole_source_capacity_original ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , declaration : @ row_source_host . RowDeclaration ? , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , provider : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
+          "declaration": "prepare_installed_whole_source_capacity_original ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , declaration : @ row_source_host . RowDeclaration ? , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , provider : @ execution . ExecutionCapacity ? , serialization ? : @ publication_host . ClientSerializationPlanGraph ?"
         },
         {
           "name": "render_installed_catalog_source_sql",
@@ -49880,7 +49980,8 @@
         },
         {
           "operations": [
-            "select_installed_source_input"
+            "select_installed_source_input",
+            "installed_terminal_serialization_whole_source"
           ],
           "exports": [],
           "attributes": {
@@ -53223,7 +53324,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_capture_body.mbt",
-      "sha256": "9c7b8dc76837b92de5eb0a3e88120e4c287df56ac06452cf8d28390f1799c021",
+      "sha256": "b4cadb2872999a5c1f092597197a2f1a73a52bd8a2e4e9577161443b31d8772d",
       "exports": [],
       "operations": [
         {
@@ -54819,7 +54920,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
-      "sha256": "541b71caee759be78804fad939e4e42876241c3e7a0f3246ba8321633e6c3853",
+      "sha256": "ee6c956aad683a2c9d13e5f82af7e1a4b2a929eacd358c754485bbe4280345c6",
       "operations": [
         {
           "name": "[I]begin_request_model_module",
@@ -55008,6 +55109,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "test \"two Source singleton Model component refuses original current loss before its constructor\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "native joined Whole inputs bind the two Model scopes on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "native joined Whole inputs refuse swapped original ports before Model factory selection"
               }
             ]
           }
@@ -58563,7 +58672,7 @@
           "exports": []
         }
       ],
-      "sha256": "3fad7bdbd63ee81e18151f8728b937238de55aa4b990d79775d335b4b664817e",
+      "sha256": "59d87fcc95ea6128840bf417b78fa363c617c9f52ed845d13e477043b609e28a",
       "exports": [],
       "operations": [
         {
@@ -60053,7 +60162,7 @@
     },
     {
       "module": "src/client_local_host/serialization_capacity.mbt",
-      "sha256": "e15381cefc95061ffd73bd53d0d42e7719c1750c3382e9457bf4099ed6828b42",
+      "sha256": "3e223051b64ee251e8c071d22c735001187544afc302ae1d2f9f63a3bc8b4584",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Content component workspace and checked input-shape owners",
@@ -60078,6 +60187,14 @@
         {
           "name": "client_serialization_workspace_capacity",
           "declaration": "client_serialization_workspace_capacity ( limits : ClientSerializationWorkspaceLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_terminal_content_result_workspace",
+          "declaration": "client_terminal_content_result_workspace ( workspace : ClientSerializationWorkspaceLimits , result_count : Int , ) - > ( @ publication_host . PublicationOutputExportLimits , @ execution . ExecutionCapacity , ) ?"
+        },
+        {
+          "name": "client_terminal_serialization_workspace_limits",
+          "declaration": "client_terminal_serialization_workspace_limits ( ) - > ClientSerializationWorkspaceLimits"
         }
       ],
       "contracts": [
@@ -60088,7 +60205,9 @@
             "client_serialization_json_leaf_field_count",
             "client_serialization_workspace_capacity",
             "client_serialization_input_row_bound",
-            "client_serialization_output_limits"
+            "client_serialization_output_limits",
+            "client_terminal_serialization_workspace_limits",
+            "client_terminal_content_result_workspace"
           ],
           "exports": [],
           "attributes": {
@@ -77952,7 +78071,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_row_json_page_bridge.mbt",
-      "sha256": "df997021cc0b661d45862aa708da4e7d2eac00e12b4b6052aba6b3e53ea56099",
+      "sha256": "c60e6673fee2b573fd2d59699c5cca880525c3385da202a27fa458bfda9e6949",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -77961,10 +78080,6 @@
         {
           "name": "client_program_local_csv_page",
           "declaration": "client_program_local_csv_page ( bytes : Bytes , column_names : Array [ String ] , integer_columns : Array [ Bool ] , keys : Array [ String ] , max_bytes : Int , max_field_bytes : Int , max_rows : Int , max_page_bytes : Int , ) - > Result [ String , String ]"
-        },
-        {
-          "name": "client_program_local_csv_relation_view",
-          "declaration": "client_program_local_csv_relation_view ( resource : String , column_names : Array [ String ] , integer_columns : Array [ Bool ] , keys : Array [ String ] , ) - > Result [ ( String , String , String ) , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_program_row_source_accept_charged_projected_page",
@@ -78110,8 +78225,7 @@
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
             "client_program_row_source_typed_json_page_row_count",
-            "client_program_local_csv_page",
-            "client_program_local_csv_relation_view"
+            "client_program_local_csv_page"
           ],
           "exports": [],
           "attributes": {
@@ -78387,7 +78501,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_serialization_bridge.mbt",
-      "sha256": "d3bc6d8ff0e9bb524303b233cb036e160da9e40c8f73c3d9ed2c5dd230027bf5",
+      "sha256": "e2464e0ee29b5c33daf1a40c3fca6ded3ca3d875d33f2ed1cddd4e26b1ddc7db",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Content component workspace and checked input-shape owners",
@@ -78408,6 +78522,14 @@
         {
           "name": "client_program_acquired_serialization_plan_graph",
           "declaration": "client_program_acquired_serialization_plan_graph ( owner : @ publication_host . PreparedClientProgram , task : Int , step : Int , max_rows : Int , max_bytes : Int , ) - > Result [ @ publication_host . ClientSerializationPlanGraph , @ publication_host . ClientSerializationPlanGraphIssue , ]"
+        },
+        {
+          "name": "client_program_admit_managed_serialization_query_captured_input",
+          "declaration": "client_program_admit_managed_serialization_query_captured_input ( run : @ client_local_host . ClientInstalledManagedRun , owner : @ publication_host . PreparedClientProgram , selected : @ client_local_host . ClientInstalledManagedSerializationPreparation , graph : @ publication_host . ClientSerializationPlanGraph , capture : @ client_row_source_host . RowSourceCapture , identity : @ query . CapturedSourceRelationIdentity , logical : @ publication . RunEvidenceValue , source_wire : String , authority_scope_cid : String , started_at : String , completed_at : String , ) - > Result [ @ publication_host . ClientSerializationCapturedInput , @ publication . RunEvidenceValueIssue , ]"
+        },
+        {
+          "name": "client_program_admit_managed_serialization_whole_captured_inputs",
+          "declaration": "client_program_admit_managed_serialization_whole_captured_inputs ( run : @ client_local_host . ClientInstalledManagedRun , owner : @ publication_host . PreparedClientProgram , selected : @ client_local_host . ClientInstalledManagedSerializationPreparation , graph : @ publication_host . ClientSerializationPlanGraph , captures : Array [ @ client_row_source_host . RowSourceCapture ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , logical : Array [ @ publication . RunEvidenceValue ] , source_wires : Array [ String ] , authority_scope_cid : String , started_at : String , completed_at : String , ) - > Result [ @ publication_host . ClientSerializationCapturedInput , @ publication . RunEvidenceValueIssue , ]"
         },
         {
           "name": "client_program_admit_serialization_captured_input",
@@ -78474,6 +78596,10 @@
           "declaration": "client_program_installed_managed_serialization_prefix_start ( run : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : @ client_local_host . ClientInstalledManagedSerializationPreparation , ) - > Result [ @ client_local_host . ClientSerializationPrefix , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_managed_whole_serialization_prefix_start",
+          "declaration": "client_program_installed_managed_whole_serialization_prefix_start ( run : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : @ client_local_host . ClientInstalledManagedSerializationPreparation , captures : Array [ @ client_row_source_host . RowSourceCapture ] , ) - > Result [ @ client_local_host . ClientSerializationPrefix , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_issue_generated_content",
           "declaration": "client_program_issue_generated_content ( candidate : @ publication . GeneratedContentReference , issuer : @ admitted . ReferenceIssuer , max_bytes : Int , max_nodes : Int , max_depth : Int , max_text_units : Int , ) - > Result [ @ admitted . CheckedValue , @ publication . GeneratedContentReferenceIssue ]"
         },
@@ -78484,6 +78610,14 @@
         {
           "name": "client_program_issue_stored_generated_content",
           "declaration": "client_program_issue_stored_generated_content ( candidate : @ publication . StoredGeneratedContentReference , issuer : @ admitted . ReferenceIssuer , max_bytes : Int , max_nodes : Int , max_depth : Int , max_text_units : Int , ) - > Result [ @ admitted . CheckedValue , @ publication . GeneratedContentReferenceIssue ]"
+        },
+        {
+          "name": "client_program_prepare_installed_managed_query_serialization_source_plan",
+          "declaration": "client_program_prepare_installed_managed_query_serialization_source_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , graph : @ publication_host . ClientSerializationPlanGraph , capacity : @ client_local_host . ClientInstalledCaptureCapacity , transfer : Int64 , scratch : Int64 , contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_managed_whole_serialization_sources_plan",
+          "declaration": "client_program_prepare_installed_managed_whole_serialization_sources_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , component : @ publication_host . ClientSerializationPlanGraph , sources : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_prepare_request_keyed_content_plan",
@@ -78502,8 +78636,16 @@
           "declaration": "client_program_prepare_request_serialization_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , max_rows : Int , max_work : Int , max_entries : Int , max_value_bytes : Int , max_value_nodes : Int , max_value_depth : Int , max_frames : Int , workspace : @ execution . ExecutionCapacity ? , ) - > Result [ @ client_local_host . ClientInstalledManagedSerializationPreparation , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_whole_serialization_plan",
+          "declaration": "client_program_prepare_request_whole_serialization_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , max_rows : Int , max_work : Int , max_entries : Int , max_value_bytes : Int , max_value_nodes : Int , max_value_depth : Int , max_frames : Int , workspace : @ execution . ExecutionCapacity ? , whole_plan : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Result [ @ client_local_host . ClientInstalledManagedSerializationPreparation , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_prepare_serialization",
           "declaration": "client_program_prepare_serialization ( owner : @ publication_host . PreparedClientProgram , task : Int , step : Int , max_work : Int , ) - > Result [ @ lower . PreparedSerialization , @ publication_host . ClientSerializationPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_whole_serialization_source_capacity",
+          "declaration": "client_program_prepare_whole_serialization_source_capacity ( prepared : @ publication_host . PreparedClientProgram , selection : @ acquisition . SourceAcquisitionRoute , declaration : @ client_row_source_host . RowDeclaration , contracts : @ client_local_host . ClientInstalledSequenceContracts , provider : @ execution . ExecutionCapacity ? , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , max_pages : Int , serialization : @ publication_host . ClientSerializationPlanGraph , ) - > Result [ @ client_local_host . ClientInstalledWholeSourceCapacity , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_prepared_installed_keyed_prefix_requirements",
@@ -78817,7 +78959,14 @@
             "client_program_stored_generated_content_candidate",
             "client_program_stored_generated_content_candidate_wire",
             "client_program_stored_generated_content_storage",
-            "serialization_prefix_limits"
+            "serialization_prefix_limits",
+            "client_program_admit_managed_serialization_query_captured_input",
+            "client_program_admit_managed_serialization_whole_captured_inputs",
+            "client_program_installed_managed_whole_serialization_prefix_start",
+            "client_program_prepare_request_whole_serialization_plan",
+            "client_program_prepare_installed_managed_query_serialization_source_plan",
+            "client_program_prepare_installed_managed_whole_serialization_sources_plan",
+            "client_program_prepare_whole_serialization_source_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -79955,7 +80104,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_row_json_page_bridge.mbt",
-      "sha256": "b8e446ab42460ca2214b54b2605c09ec91d846225a5b0b02eaf6de748f3fdb5b",
+      "sha256": "efbe4562b1c1bd8b5ef26ca91284ec3517d5394ca8e29aceccda9aef79fe1a57",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -79964,10 +80113,6 @@
         {
           "name": "client_program_local_csv_page",
           "declaration": "client_program_local_csv_page ( bytes : Bytes , column_names : Array [ String ] , integer_columns : Array [ Bool ] , keys : Array [ String ] , max_bytes : Int , max_field_bytes : Int , max_rows : Int , max_page_bytes : Int , ) - > Result [ String , String ]"
-        },
-        {
-          "name": "client_program_local_csv_relation_view",
-          "declaration": "client_program_local_csv_relation_view ( resource : String , column_names : Array [ String ] , integer_columns : Array [ Bool ] , keys : Array [ String ] , ) - > Result [ ( String , String , String ) , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_program_row_source_accept_charged_projected_page",
@@ -80113,8 +80258,7 @@
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
             "client_program_row_source_typed_json_page_row_count",
-            "client_program_local_csv_page",
-            "client_program_local_csv_relation_view"
+            "client_program_local_csv_page"
           ],
           "exports": [],
           "attributes": {
@@ -85063,7 +85207,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "64a602c89dec1fa0312f4d376abc6344206d8165652f4a38e912808aa85a2ffa",
+      "sha256": "f6d3bc50d402c5253c9a3787b28ca9fca1d7707baaed8216619961ba26f04002",
       "exports": [],
       "operations": [
         {
@@ -85212,7 +85356,7 @@
         },
         {
           "name": "captured_source_input_original_matches",
-          "declaration": "captured_source_input_original_matches ( run : CapturedDAG , task : Int , input : Int , source : @ query . CapturedInputSource , ) - > Bool"
+          "declaration": "captured_source_input_original_matches ( run : CapturedDAG , task : Int , input : Int , source : @ query . CapturedInputSource , after_completion ? : Bool"
         },
         {
           "name": "captured_supplied_task_input",
@@ -87158,12 +87302,16 @@
     {
       "module": "src/run_publication_host/client_acquisition.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c9936ebc8fa3c708c99717c36b08f16de9d8d92631de01f6a817644d4cec36de",
+      "sha256": "4b1eeea224111cdf59abf66f89fc616d86c2eecdae53b796ddd13eaff922da43",
       "exports": [],
       "operations": [
         {
           "name": "client_captured_task_tuple_matches",
           "declaration": "client_captured_task_tuple_matches ( value : PreparedClientProgram , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , requirement : @ planning . QueryRequirement , task : Int , ) - > Bool"
+        },
+        {
+          "name": "client_publication_policy_contains_result",
+          "declaration": "client_publication_policy_contains_result ( candidate : @ checked . PublicationSourcePolicy , original : @ checked . PublicationSourcePolicy , ) - > Bool"
         },
         {
           "name": "client_publication_policy_covers_source_responses",
@@ -87214,6 +87362,10 @@
           "declaration": "prepared_client_captured_task_source_matches ( value : PreparedClientProgram , source : @ query . CapturedInputSource , task : Int , ) - > Bool"
         },
         {
+          "name": "prepared_client_has_checked_sources",
+          "declaration": "prepared_client_has_checked_sources ( value : PreparedClientProgram , ) - > Bool"
+        },
+        {
           "name": "prepared_client_publication_data_policy_cid",
           "declaration": "prepared_client_publication_data_policy_cid ( value : PreparedClientProgram , ) - > String ?"
         },
@@ -87240,7 +87392,8 @@
             "prepare_client_query_requirement_from_acquisition",
             "prepared_client_acquisition_count",
             "prepared_client_captured_task_source_matches",
-            "prepared_client_source_evidence_facts"
+            "prepared_client_source_evidence_facts",
+            "prepared_client_has_checked_sources"
           ],
           "exports": [],
           "attributes": {
@@ -87329,7 +87482,8 @@
         {
           "operations": [
             "client_publication_policy_covers_source_responses",
-            "prepared_client_publication_data_policy_cid"
+            "prepared_client_publication_data_policy_cid",
+            "client_publication_policy_contains_result"
           ],
           "exports": [],
           "attributes": {
@@ -87395,6 +87549,10 @@
               {
                 "path": "src/run_publication_host/client_pure_source_inventory_wbtest.mbt",
                 "anchor": "test \"Pure three Source policy refuses an uncovered checked response and equal foreign owners\""
+              },
+              {
+                "path": "src/run_publication_host/client_mixed_result_policy_wbtest.mbt",
+                "anchor": "test \"mixed Result policies preserve unknown and reject equal CID foreign contributors\""
               }
             ]
           }
@@ -89768,7 +89926,7 @@
     },
     {
       "module": "src/run_publication_host/client_pure_compilation_construction.mbt",
-      "sha256": "cffc845e397b05572b1160bf477d663011c90581e37519b2c8e5945b9da55d24",
+      "sha256": "05530d44ba9b5e39c490da1d95b26c61d8c9f659a881874d58efc279bbace97e",
       "exports": [],
       "operations": [
         {
@@ -89801,7 +89959,7 @@
         },
         {
           "name": "measure_prepared_client_compilation_construction_owned",
-          "declaration": "measure_prepared_client_compilation_construction_owned ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , components : Array [ ClientInferPlanGraph ] , ) - > Result [ ClientPureCompilationConstruction , ClientValuesExecutablePlanIssue ]"
+          "declaration": "measure_prepared_client_compilation_construction_owned ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , components : Array [ ClientInferPlanGraph ] , effect ? : PreparedClientEffectComputation ?"
         },
         {
           "name": "measure_prepared_client_model_compilation_construction",
@@ -90937,7 +91095,7 @@
     },
     {
       "module": "src/run_publication_host/client_serialization_generation.mbt",
-      "sha256": "2ba6e69b848261656a6a2a051638fc91c221008e8c73f65992ba79d790442e5c",
+      "sha256": "cb20a3c91575c86272c47cbcd0252a955bef9c2140ed5ead80df243088752c1f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing original Content input evidence and generation codec owner",
@@ -93985,7 +94143,7 @@
     },
     {
       "module": "src/client_local_host/installed_managed_serialization.mbt",
-      "sha256": "167009410e10fdefba85fd16d153647a209244690de6c994e78df75bf663d571",
+      "sha256": "bbcbbc124546fc97db7be136cfa59a8effedf054f5a37f51d7b048c174c65f6b",
       "exports": [],
       "operations": [
         {
@@ -93993,8 +94151,32 @@
           "declaration": "cleanup_installed_managed_serialization_prefix ( owner : ClientInstalledManagedRun , selected : ClientInstalledManagedSerializationPreparation , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "cleanup_installed_managed_terminal_serialization",
+          "declaration": "cleanup_installed_managed_terminal_serialization ( owner : ClientInstalledManagedRun , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "fund_terminal_serialization_store",
+          "declaration": "fund_terminal_serialization_store ( owner : ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , units : @ execution . PreparationRepresentationUnits , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_query_serialization_capture_ledger",
+          "declaration": "installed_managed_query_serialization_capture_ledger ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : ClientInstalledManagedSerializationPreparation , capture : @ row_source_host . RowSourceCapture , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_query_serialization_capture_matches",
+          "declaration": "installed_managed_query_serialization_capture_matches ( owner : ClientInstalledManagedRun , selected : ClientInstalledManagedSerializationPreparation , capture : @ row_source_host . RowSourceCapture , ledger : @ resources . Ledger , ) - > Bool"
+        },
+        {
+          "name": "installed_managed_serialization_whole_batch_matches",
+          "declaration": "installed_managed_serialization_whole_batch_matches ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : ClientInstalledManagedSerializationPreparation , captures : Array [ @ row_source_host . RowSourceCapture ] , ) - > ClientInstalledManagedCapturePlan ?"
+        },
+        {
+          "name": "installed_managed_whole_serialization_capture_ledger",
+          "declaration": "installed_managed_whole_serialization_capture_ledger ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : ClientInstalledManagedSerializationPreparation , captures : Array [ @ row_source_host . RowSourceCapture ] , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "prepare_installed_managed_serialization",
-          "declaration": "prepare_installed_managed_serialization ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , component : @ publication_host . ClientSerializationPlanGraph , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , workspace : @ execution . ExecutionCapacity ? , model ? : @ publication_host . ClientInferPlanGraph ?"
+          "declaration": "prepare_installed_managed_serialization ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , component : @ publication_host . ClientSerializationPlanGraph , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , workspace : @ execution . ExecutionCapacity ? , terminal_output : ClientSerializationOutputDemand ? , whole_plan ? : ClientInstalledManagedCapturePlan ?"
         },
         {
           "name": "prepared_installed_managed_serialization_prefix_requirements",
@@ -94010,7 +94192,27 @@
         },
         {
           "name": "start_installed_managed_serialization_prefix_owned",
-          "declaration": "start_installed_managed_serialization_prefix_owned ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : ClientInstalledManagedSerializationPreparation , capture : @ row_source_host . RowSourceCapture ? , ) - > Result [ ClientSerializationPrefix , ClientInstalledManagedRunIssue ]"
+          "declaration": "start_installed_managed_serialization_prefix_owned ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : ClientInstalledManagedSerializationPreparation , capture : @ row_source_host . RowSourceCapture ? , whole ? : Array [ @ row_source_host . RowSourceCapture ] ?"
+        },
+        {
+          "name": "start_installed_managed_terminal_serialization",
+          "declaration": "start_installed_managed_terminal_serialization ( owner : ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Result [ ( ClientInstalledManagedSerializationPreparation , ClientSerializationPrefix , ClientSerializationOutputDemand , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "start_installed_managed_whole_serialization_prefix",
+          "declaration": "start_installed_managed_whole_serialization_prefix ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : ClientInstalledManagedSerializationPreparation , captures : Array [ @ row_source_host . RowSourceCapture ] , ) - > Result [ ClientSerializationPrefix , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "terminal_serialization_evidence_entries",
+          "declaration": "terminal_serialization_evidence_entries ( owner : ClientInstalledManagedRun , ) - > Int ?"
+        },
+        {
+          "name": "terminal_serialization_execution_work",
+          "declaration": "terminal_serialization_execution_work ( selected : ClientInstalledManagedSerializationPreparation , ) - > Int"
+        },
+        {
+          "name": "terminal_serialization_run_matches",
+          "declaration": "terminal_serialization_run_matches ( owner : ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Bool"
         }
       ],
       "responsibilityFacet": "primary",
@@ -94021,11 +94223,22 @@
           "operations": [
             "<module>",
             "cleanup_installed_managed_serialization_prefix",
+            "cleanup_installed_managed_terminal_serialization",
+            "fund_terminal_serialization_store",
             "prepare_installed_managed_serialization",
             "prepared_installed_managed_serialization_prefix_requirements",
             "start_installed_managed_acquired_serialization_prefix",
             "start_installed_managed_serialization_prefix",
-            "start_installed_managed_serialization_prefix_owned"
+            "start_installed_managed_serialization_prefix_owned",
+            "start_installed_managed_terminal_serialization",
+            "terminal_serialization_evidence_entries",
+            "terminal_serialization_execution_work",
+            "terminal_serialization_run_matches",
+            "installed_managed_query_serialization_capture_ledger",
+            "installed_managed_query_serialization_capture_matches",
+            "installed_managed_serialization_whole_batch_matches",
+            "installed_managed_whole_serialization_capture_ledger",
+            "start_installed_managed_whole_serialization_prefix"
           ],
           "exports": [],
           "attributes": {
@@ -94099,6 +94312,10 @@
               {
                 "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
                 "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              },
+              {
+                "path": "src/client_local_host/terminal_normal_serialization_adoption_js_wbtest.mbt",
+                "anchor": "test \"normal terminal Serialization encodes the same admitted ordered input and retires\""
               }
             ]
           }
@@ -94107,7 +94324,7 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "07640e6fa0c8271e158e6cfa0faf47fbbf56d23d65d33a9a3bafbcc3bbc5f746",
+      "sha256": "104560fea36dec4b7c59a34f2e14f26c6450defba2a6e5485d78c2e79342e8ff",
       "exports": [],
       "operations": [
         {
@@ -94127,6 +94344,10 @@
           "declaration": "borrow_installed_managed_dispatch_preparation ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] ? , ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "completed_unit_result_export_capacity",
+          "declaration": "completed_unit_result_export_capacity ( borrow : @ strategy . CapturedAnyResultBorrow , rows : Int , limits : @ publication_host . PublicationOutputExportLimits , codec : Int64 , managed : @ execution . ManagedPublicationBridgeLimits ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "effect_unit_publication_body",
           "declaration": "effect_unit_publication_body ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . PreparationBodyBorrow [ ClientInstalledEffectManagedPlan ] , ClientInstalledManagedRunIssue , ]"
         },
@@ -94143,8 +94364,20 @@
           "declaration": "installed_effect_direct_publication_control ( entries : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "installed_effect_imported_model_evidence_body_capacity",
+          "declaration": "installed_effect_imported_model_evidence_body_capacity ( kind : String , geometry : @ encode . EncodingConstructionGeometry , original_cid : String , coheld_workspace : Int64 , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_effect_imported_model_evidence_frame_capacity",
+          "declaration": "installed_effect_imported_model_evidence_frame_capacity ( source_slots : Int64 , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "installed_effect_managed_publication_limits",
           "declaration": "installed_effect_managed_publication_limits ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , max_payload_bytes : Int , ) - > @ publication_host . PublicationOutputExportLimits ?"
+        },
+        {
+          "name": "installed_effect_model_result_artifact_capacity",
+          "declaration": "installed_effect_model_result_artifact_capacity ( bodies : Array [ ( String , @ encode . EncodingConstructionGeometry ) ] , original_cid : String , coheld_workspace : Int64 , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "installed_effect_model_unit_parent",
@@ -94210,11 +94443,15 @@
             "[T]measure_installed_effect_direct_publication",
             "borrow_installed_effect_dispatch_preparation",
             "borrow_installed_managed_dispatch_preparation",
+            "completed_unit_result_export_capacity",
             "effect_unit_publication_body",
             "effect_unit_publication_capacity",
             "effect_unit_sealed_geometry",
             "installed_effect_direct_publication_control",
+            "installed_effect_imported_model_evidence_body_capacity",
+            "installed_effect_imported_model_evidence_frame_capacity",
             "installed_effect_managed_publication_limits",
+            "installed_effect_model_result_artifact_capacity",
             "installed_effect_model_unit_parent",
             "installed_effect_model_unit_result_export_limits",
             "installed_managed_preparation_usage_isolated",
@@ -94313,6 +94550,14 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_binding_js_wbtest.mbt",
                 "anchor": "test \"two Effect Unit measurements return writer workspace on the same adopted Plan\""
+              },
+              {
+                "path": "src/cmd/native_client/local_effect_capture_wbtest.mbt",
+                "anchor": "test \"Native returned import funds next Model body on the exact original reservation\""
+              },
+              {
+                "path": "src/cmd/native_client/local_effect_capture_wbtest.mbt",
+                "anchor": "test \"Native Model Result Artifact reserves measured bodies beside its original census\""
               }
             ]
           }
@@ -94438,7 +94683,7 @@
     },
     {
       "module": "src/client_local_host/preparation_owned_run.mbt",
-      "sha256": "e6bbfb7cf7666e27a30e904899e41d945a1971082ef47a7585dcc02d1e4fb405",
+      "sha256": "a60c475a7614d8238bc89d362b44d390b6147dd050538eaca741f7823fa1d958",
       "exports": [],
       "operations": [
         {
@@ -94456,6 +94701,10 @@
         {
           "name": "[I]adopt_preparation_owned_pure_plan",
           "declaration": "[ I ] adopt_preparation_owned_pure_plan ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source_free : ClientInstalledManagedSourceFreePreparation ? , captured : ClientInstalledManagedCapturePlan ? , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]adopt_preparation_owned_whole_serialization",
+          "declaration": "[ I ] adopt_preparation_owned_whole_serialization ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , selected : ClientInstalledManagedSerializationPreparation , captured : ClientInstalledManagedCapturePlan , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "[I]begin_preparation_owned_installed_capture_run",
@@ -94518,6 +94767,10 @@
           "declaration": "[ P ] retire_preparation_owned_installed_run ( value : ClientInstalledManagedRun , original : ClientManagedPreparationRetirement [ P ] , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "installed_managed_preparation_admission_original",
+          "declaration": "installed_managed_preparation_admission_original ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > @ resources . PreparedRunAdmission [ @ publication_host . PreparedClientProgram ] ?"
+        },
+        {
           "name": "installed_preparation_payload_severed",
           "declaration": "installed_preparation_payload_severed ( value : ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , ) - > Bool"
         }
@@ -94546,9 +94799,11 @@
             "[I]check_preparation_owned_effect_limits",
             "[P]preparation_retirement_payload_severed",
             "[P]retire_preparation_owned_installed_run",
+            "installed_managed_preparation_admission_original",
             "installed_preparation_payload_severed",
             "[I,P]check_preparation_owned_body_limits",
-            "[P]preparation_owned_run_limits_fit"
+            "[P]preparation_owned_run_limits_fit",
+            "[I]adopt_preparation_owned_whole_serialization"
           ],
           "exports": [],
           "attributes": {
@@ -94714,7 +94969,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_content_body.mbt",
-      "sha256": "74eca21a1fe4b3b03846889337e57c07252d084ed79a0013fd8abee4d8266acb",
+      "sha256": "8d3ac62076d9c24cd8cfd021c9adf2846f175064a18001225ae2cbf3e89c70dd",
       "exports": [],
       "operations": [
         {
@@ -94751,11 +95006,15 @@
         },
         {
           "name": "[I]prepare_request_serialization_plan",
-          "declaration": "[ I ] prepare_request_serialization_plan ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , workspace : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledManagedSerializationPreparation , ClientInstalledManagedRunIssue , ]"
+          "declaration": "[ I ] prepare_request_serialization_plan ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , workspace : @ execution . ExecutionCapacity ? , whole_plan ? : ClientInstalledManagedCapturePlan ?"
         },
         {
           "name": "[I]prepare_request_serialization_plan_owned",
-          "declaration": "[ I ] prepare_request_serialization_plan_owned ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , workspace : @ execution . ExecutionCapacity ? , model : @ publication_host . ClientInferPlanGraph ? , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ ClientInstalledManagedSerializationPreparation , ClientInstalledManagedRunIssue , ]"
+          "declaration": "[ I ] prepare_request_serialization_plan_owned ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , workspace : @ execution . ExecutionCapacity ? , model : @ publication_host . ClientInferPlanGraph ? , query_time : @ publication_host . ClientQueryTimePreparation ? , terminal_output : ClientSerializationOutputDemand ? , whole_plan ? : ClientInstalledManagedCapturePlan ?"
+        },
+        {
+          "name": "[I]prepare_request_terminal_serialization_plan",
+          "declaration": "[ I ] prepare_request_terminal_serialization_plan ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Result [ ClientInstalledManagedSerializationPreparation , ClientInstalledManagedRunIssue , ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -94774,7 +95033,8 @@
             "[I]prepare_request_serialization_compilation",
             "[I]prepare_request_serialization_compilation_owned",
             "[I]prepare_request_serialization_plan",
-            "[I]prepare_request_serialization_plan_owned"
+            "[I]prepare_request_serialization_plan_owned",
+            "[I]prepare_request_terminal_serialization_plan"
           ],
           "exports": [],
           "attributes": {
@@ -103131,7 +103391,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "5597da971a73fd7db50eb9628acc579779be0627ded5335422579dde8dc5bee5"
+      "sha256": "830c78aa7bd287d16b6ddd790cdc457766143235f7adb11bf30b9a3acab407b0"
     },
     {
       "module": "src/run_publication_host/client_model_read_consumer.mbt",
@@ -109418,9 +109678,13 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "fcaca9feb7a03d88b07498fcfd5311d53aed1d154398409bafdcc7a1f5b86598",
+      "sha256": "be24d811750aaefb1f1d4e8ea04f3c5557a36b4164c6911fbc0f4b8d5d604667",
       "exports": [],
       "operations": [
+        {
+          "name": "local_terminal_serialization_occurrence",
+          "declaration": "local_terminal_serialization_occurrence ( prepared : @ run_host . PreparedClientProgram , ) - > ( Int , Int ) ?"
+        },
         {
           "name": "LocalCommandBusinessPreparation::current",
           "declaration": "LocalCommandBusinessPreparation : : current ( self : LocalCommandBusinessPreparation , host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , environment : @ checked . CheckEnvironment , ) - > Bool"
@@ -109431,7 +109695,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::select_business_file_source",
-          "declaration": "LocalCommandPreparationOriginal : : select_business_file_source ( self : LocalCommandPreparationOriginal , prepared : @ run_host . PreparedClientProgram , ) - > LocalProjectMockDeclarations ?"
+          "declaration": "LocalCommandPreparationOriginal : : select_business_file_source ( self : LocalCommandPreparationOriginal , prepared : @ run_host . PreparedClientProgram , model : LocalCommandModelCompilation ? , ) - > LocalCommandFileSources ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -109443,7 +109707,8 @@
             "<module>",
             "LocalCommandBusinessPreparation::current",
             "LocalCommandPreparationOriginal::prepare_business_submission",
-            "LocalCommandPreparationOriginal::select_business_file_source"
+            "LocalCommandPreparationOriginal::select_business_file_source",
+            "local_terminal_serialization_occurrence"
           ],
           "exports": [],
           "attributes": {
@@ -109932,7 +110197,7 @@
     },
     {
       "module": "src/program_check/local_common_normalization.mbt",
-      "sha256": "a6464ce18363b46927033c54298718eaf1899f9909b78ab701b1c96db76d49e3",
+      "sha256": "b3ef5653bc4e5eee179cade8cf3931841e2863a4004317404d0ba53c8843be87",
       "exports": [],
       "operations": [
         {
@@ -110921,7 +111186,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "06f565b5792f6ee2dd42bd6904aa0ed1d77b3952ba60e15aeaced5646a37819d",
+      "sha256": "4882465f532adc3a8f2f45b91700984f8ec07ccaed44fe5cce299f648f1b9fd9",
       "exports": [],
       "operations": [
         {
@@ -110933,8 +111198,12 @@
           "declaration": "[ T ] LocalCommandPreparationOriginal : : with_business_request ( self : LocalCommandPreparationOriginal , capture : @ local_host . NativeLocalJournalCapture , callback : ( ) - > T raise ClientStop , ) - > T raise ClientStop"
         },
         {
+          "name": "local_serialization_host_ceiling",
+          "declaration": "local_serialization_host_ceiling ( policy : @ capacity_policy . Policy , field : String , ) - > Int raise ClientStop"
+        },
+        {
           "name": "LocalCommandBusinessPreparation::adopt_request_run",
-          "declaration": "LocalCommandBusinessPreparation : : adopt_request_run ( self : LocalCommandBusinessPreparation , request : @ run_host . ClientRequestIdentity , ) - > Unit raise ClientStop"
+          "declaration": "LocalCommandBusinessPreparation : : adopt_request_run ( self : LocalCommandBusinessPreparation , request : @ run_host . ClientRequestIdentity , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Unit raise ClientStop"
         },
         {
           "name": "LocalCommandBusinessPreparation::compile_effect_first",
@@ -110942,7 +111211,7 @@
         },
         {
           "name": "LocalCommandBusinessPreparation::request_compilation",
-          "declaration": "LocalCommandBusinessPreparation : : request_compilation ( self : LocalCommandBusinessPreparation , ) - > @ run_host . ClientRunCompilation raise ClientStop"
+          "declaration": "LocalCommandBusinessPreparation : : request_compilation ( self : LocalCommandBusinessPreparation , installation : LocalRunInstallation , ) - > @ run_host . ClientRunCompilation raise ClientStop"
         },
         {
           "name": "LocalCommandPreparationOriginal::begin_business_request",
@@ -110966,7 +111235,8 @@
             "LocalCommandBusinessPreparation::compile_effect_first",
             "LocalCommandBusinessPreparation::request_compilation",
             "LocalCommandPreparationOriginal::begin_business_request",
-            "LocalCommandPreparationOriginal::prepare_business_request"
+            "LocalCommandPreparationOriginal::prepare_business_request",
+            "local_serialization_host_ceiling"
           ],
           "exports": [],
           "attributes": {
@@ -111133,9 +111403,13 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_request_preparation.mbt",
-      "sha256": "d42e21bffc68c1b84dbc9e46973848d3a311ccf1a4c20f21ac3555352729a4ad",
+      "sha256": "7530436f6ab4ae7ee22be291497adc43211a6f16622f70ef1310c03ff46a5234",
       "exports": [],
       "operations": [
+        {
+          "name": "[I]borrow_native_client_content_plan_input",
+          "declaration": "[ I ] borrow_native_client_content_plan_input ( owner : @ local . ClientRequestPreparation [ I ] , input : I , ) - > Result [ NativeClientSubmittedRequestBody , @ local . ClientRequestPreparationIssue , ]"
+        },
         {
           "name": "[I]borrow_native_client_model_plan_input",
           "declaration": "[ I ] borrow_native_client_model_plan_input ( owner : @ local . ClientRequestPreparation [ I ] , input : I , ) - > Result [ NativeClientSubmittedRequestBody , @ local . ClientRequestPreparationIssue , ]"
@@ -111173,7 +111447,8 @@
             "[I]prepare_native_client_submitted_request_input",
             "prepare_native_client_submitted_request",
             "return_native_client_submitted_request_body",
-            "[I]borrow_native_client_model_plan_input"
+            "[I]borrow_native_client_model_plan_input",
+            "[I]borrow_native_client_content_plan_input"
           ],
           "exports": [],
           "attributes": {
@@ -117266,7 +117541,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_serialization_output.mbt",
-      "sha256": "e3e34571ea001a78b27cd9dd343a91cf8b8ec26f478e9062b8e0457e9be172a3",
+      "sha256": "9182f9303aedb549889881d4f4599f111257d842dee7f56b5d5d0182992ba23d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing original Request preparation capacity, same compiled Task/Content Graph, and imported current owner",
@@ -117274,7 +117549,7 @@
       "operations": [
         {
           "name": "[I]prepare_request_serialization_output_limits",
-          "declaration": "[ I ] prepare_request_serialization_output_limits ( owner : ClientRequestPreparation [ I ] , input : I , compiled : @ publication_host . ClientCompiledRun , component : @ publication_host . ClientSerializationPlanGraph , generation_rows : Int , construct_limits : ( ) - > ClientSerializationWorkspaceLimits ? , ) - > Result [ ClientSerializationOutputDemand , ClientRequestPreparationIssue ]"
+          "declaration": "[ I ] prepare_request_serialization_output_limits ( owner : ClientRequestPreparation [ I ] , input : I , compiled : @ publication_host . ClientCompiledRun , component : @ publication_host . ClientSerializationPlanGraph , generation_rows : Int , construct_limits : ( ) - > ClientSerializationWorkspaceLimits ? , terminal ? : Bool"
         }
       ],
       "contracts": [
@@ -117391,7 +117666,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_query_contracts.mbt",
-      "sha256": "81889107dd8f8f3e61d8cbf71c139031e703bb9414e4361426eb8add6e93d54f",
+      "sha256": "1dfdd7c1b2bdfe43ae2caf532b4f5eba5eb61fd3b331dd7f98d7a4882eb3b629",
       "exports": [],
       "operations": [
         {
@@ -117486,12 +117761,16 @@
     },
     {
       "module": "src/cmd/native_client/local_command_file_query_plan.mbt",
-      "sha256": "57f75c049c4c16931d33426eb3eb06d56dadfa21fcfa9cdaccc8508d1d0c6e29",
+      "sha256": "fd595f05dcdbb4778b744e26f4f4431c125b72442579e82539b4e85c1ea60edc",
       "exports": [],
       "operations": [
         {
           "name": "[I]prepare_local_native_file_request_module",
-          "declaration": "[ I ] prepare_local_native_file_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , bodies : ( String , String ) ? , ) - > ( @ local_values . ClientInstalledWholeSourceCapacity ? , LocalCommandFileSources , ) raise ClientStop"
+          "declaration": "[ I ] prepare_local_native_file_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , declarations : Array [ LocalProjectMockSourceDeclaration ] , listings : Array [ LocalProjectMockFileSource ] ? , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , bodies : ( String , String ) ? , ) - > ( @ local_values . ClientInstalledWholeSourceCapacity ? , LocalCommandFileSources , ) raise ClientStop"
+        },
+        {
+          "name": "[I]prepare_local_native_model_file_request_module",
+          "declaration": "[ I ] prepare_local_native_model_file_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ run_host . ClientTaskCompilation , declarations : Array [ LocalProjectMockSourceDeclaration ] , listings : Array [ LocalProjectMockFileSource ] ? , contracts : @ local_values . ClientInstalledSequenceContracts , providers : Int , component_factory : ( ( @ execution . ExecutionCapacity , @ execution . GeneratedSequence , @ execution . GeneratedSequence ? , ) - > @ local_compute . ManagedProvider ) ? , components_factory : ( ( Int , @ execution . ExecutionCapacity , @ execution . GeneratedSequence , @ execution . GeneratedSequence ? , ) - > @ local_compute . ManagedProvider ) ? , ) - > ( @ local_values . ClientInstalledManagedCapturePlan , LocalCommandFileSources ) raise ClientStop"
         },
         {
           "name": "[T]local_command_query_preparation_result",
@@ -117499,7 +117778,11 @@
         },
         {
           "name": "local_command_file_row",
-          "declaration": "local_command_file_row ( original : LocalProjectMockDeclarations , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , LocalProjectMockRowBinding ) raise ClientStop"
+          "declaration": "local_command_file_row ( declarations : Array [ LocalProjectMockSourceDeclaration ] , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , LocalProjectMockRowBinding ) raise ClientStop"
+        },
+        {
+          "name": "local_native_query_file_row",
+          "declaration": "local_native_query_file_row ( declarations : Array [ LocalProjectMockSourceDeclaration ] , direct : @ run_host . ClientDirectAcquisitionOccurrences , index : Int , ) - > ( Int , Int , LocalProjectMockSourceDeclaration , LocalProjectMockRowBinding ) raise ClientStop"
         }
       ],
       "responsibilityFacet": "primary",
@@ -117511,7 +117794,9 @@
           "operations": [
             "[I]prepare_local_native_file_request_module",
             "[T]local_command_query_preparation_result",
-            "local_command_file_row"
+            "local_command_file_row",
+            "[I]prepare_local_native_model_file_request_module",
+            "local_native_query_file_row"
           ],
           "exports": [],
           "attributes": {
@@ -117573,6 +117858,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "two captured Model Request keeps original Direct inventory and all scopes on its one aggregate Plan"
               }
             ]
           }
@@ -117581,7 +117870,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "7c0f0ed975cca55a793c005dfc1e186abd22efc498e160f3e6c62169e0224194",
+      "sha256": "9fa22be19e7ff8f54a3166b9f246c993757e4c1384a9767cbf545f7f3c994d0a",
       "exports": [],
       "operations": [
         {
@@ -117594,7 +117883,7 @@
         },
         {
           "name": "LocalCommandBusinessPreparation::open_file_work",
-          "declaration": "LocalCommandBusinessPreparation : : open_file_work ( self : Self , entry : @ local_host . NativeClientRelationFileWorkEntry , occurrence : String , ) - > @ local_host . NativeClientRelationFileWork raise ClientStop"
+          "declaration": "LocalCommandBusinessPreparation : : open_file_work ( self : Self , entry : @ local_host . NativeClientRelationFileWorkEntry , occurrence : String , run : LocalRunInstallation , reference : @ local_host . NativeClientSubmissionReference , ) - > @ local_host . NativeClientRelationFileWork raise ClientStop"
         },
         {
           "name": "LocalCommandBusinessPreparation::open_store",
@@ -117953,7 +118242,7 @@
     },
     {
       "module": "src/cmd/native_client/local_relation_file_original_start.mbt",
-      "sha256": "3e085ff3c1bb7190ff747a43c9f08bca4eb18823fc17924f48ab83dc8f934b8a",
+      "sha256": "b03afd6667b4058f41b3ca91e34cb87d561ec0e6de6778b5b5a8a7e1945279de",
       "exports": [],
       "operations": [
         {
@@ -118140,7 +118429,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "49279d2cfd4977e6c3aaac46f7ba6b655fcbd031fb857eb094ef93880db1bbeb",
+      "sha256": "0e11d602f30e29186ce4ac23736a89cffb14dacf37a5515d58f5dd543eed6d91",
       "exports": [],
       "operations": [
         {
@@ -118149,7 +118438,7 @@
         },
         {
           "name": "NativeLocalHostConnection::open_original_managed_relation_files_source_work",
-          "declaration": "NativeLocalHostConnection : : open_original_managed_relation_files_source_work ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , entry : NativeClientRelationFileWorkEntry , occurrence : String , quantum : Int , max_rounds : Int , current_time : ( ) - > String , ) - > Result [ NativeClientRelationFileWork , NativeClientRelationFileWorkFailure ]"
+          "declaration": "NativeLocalHostConnection : : open_original_managed_relation_files_source_work ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , entry : NativeClientRelationFileWorkEntry , occurrence : String , quantum : Int , max_rounds : Int , current_time : ( ) - > String , drive_task ? : ( ( Int , @ local_driver . LocalManagedDispatchOperations [ Int ] ) - > Result [ Unit , @ local . LocalValuesExecutionIssue , ] ) ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -118443,12 +118732,16 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_file_work.mbt",
-      "sha256": "f7bdb006fa8fe88666fbefcf1155fa0a6c3e219c805107a33a653822645c4fc9",
+      "sha256": "08897bedf10442add68c70421d9462f9a2a9d68a049bcd5a83b83ece2c42a420",
       "exports": [],
       "operations": [
         {
           "name": "NativeClientRelationFileWork::close",
           "declaration": "NativeClientRelationFileWork : : close ( self : NativeClientRelationFileWork , ) - > Bool"
+        },
+        {
+          "name": "NativeClientRelationFileWork::close_children",
+          "declaration": "NativeClientRelationFileWork : : close_children ( self : Self ) - > Bool"
         },
         {
           "name": "NativeClientRelationFileWork::require_bound_source_current",
@@ -118500,6 +118793,7 @@
           "operations": [
             "<module>",
             "NativeClientRelationFileWork::close",
+            "NativeClientRelationFileWork::close_children",
             "NativeClientRelationFileWork::require_bound_source_current",
             "NativeClientRelationFileWork::require_current",
             "NativeClientRelationFileWork::require_publication_current",
@@ -118579,7 +118873,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_values_original_operation.mbt",
-      "sha256": "fe7b39332e2bcdcf9cbf7a4d1b755edc861bc073c071d26fc8c7827f715c48df",
+      "sha256": "2caf65176a0d413f799115e5fd4015a8aa423de20448d056a0e92ba8f3e6aabc",
       "exports": [],
       "operations": [
         {
@@ -118593,6 +118887,10 @@
         {
           "name": "NativeLocalValuesOriginalAccess::claim",
           "declaration": "NativeLocalValuesOriginalAccess : : claim ( self : NativeLocalValuesOriginalAccess , ) - > Result [ NativeClientWorkFirstStart , NativeClientValuesWorkIssue ]"
+        },
+        {
+          "name": "NativeLocalValuesOriginalAccess::cleanup_entered",
+          "declaration": "NativeLocalValuesOriginalAccess : : cleanup_entered ( self : NativeLocalValuesOriginalAccess , ) - > Bool"
         },
         {
           "name": "NativeLocalValuesOriginalAccess::current",
@@ -118650,6 +118948,7 @@
             "[T]NativeLocalValuesOriginalAccess::in_original_read",
             "NativeLocalHostConnection::open_original_values_work",
             "NativeLocalValuesOriginalAccess::claim",
+            "NativeLocalValuesOriginalAccess::cleanup_entered",
             "NativeLocalValuesOriginalAccess::current",
             "NativeLocalValuesOriginalAccess::lookup",
             "NativeLocalValuesOriginalAccess::poll_execution_original",
@@ -118730,7 +119029,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_publication.mbt",
-      "sha256": "a2651dc373d05c2e515cb06d84f710f808513b34011c8e6eeeaa5d11e3255b50",
+      "sha256": "b0783f5486f7fc98737edf946723a56b862888e8d02ee076e00339c3b2bb3b80",
       "exports": [],
       "operations": [
         {
@@ -118743,7 +119042,7 @@
         },
         {
           "name": "NativeClientRelationFileWork::prepare_local_publication",
-          "declaration": "NativeClientRelationFileWork : : prepare_local_publication ( self : NativeClientRelationFileWork , service : @ native_publication . NativeRunPublicationService , results : Array [ @ native_publication . NativeCapturedResultPublicationContext ] , original_normalization : @ host . ClientLocalNormalization , authoring : @ publication . RunEvidenceValue , intent : @ native_publication . NativeRunPublicationIntent , occurrence : @ native_publication . NativeRunPublicationOccurrence , limits : @ host . PublicationOutputExportLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ native_publication . NativePreparedCapturedRunPublication , NativeClientSourcePublicationIssue , ]"
+          "declaration": "NativeClientRelationFileWork : : prepare_local_publication ( self : NativeClientRelationFileWork , service : @ native_publication . NativeRunPublicationService , results : Array [ @ native_publication . NativeCapturedResultPublicationContext ] , original_normalization : @ host . ClientLocalNormalization , authoring : @ publication . RunEvidenceValue , intent : @ native_publication . NativeRunPublicationIntent , occurrence : @ native_publication . NativeRunPublicationOccurrence , limits : @ host . PublicationOutputExportLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , model_leader ? : NativeClientMockModelWork ?"
         },
         {
           "name": "NativeClientRelationFileWork::publication_entry_limits",
@@ -118855,7 +119154,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_result_export.mbt",
-      "sha256": "2400fc3253a622e8f61e6601305ce5d4b9d9e66185e4a46376feeae893cfd1d7",
+      "sha256": "db7154f68eb76958a8e077751f85f091737de7dc46c579fd8ab5a4a4ac86e084",
       "exports": [],
       "operations": [
         {
@@ -118951,7 +119250,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_work_capacity.mbt",
-      "sha256": "1400c3bc2a052dd685df0806466f7788a7ad968bfc8349ca736096f11b6376e7",
+      "sha256": "38784f0d96ab67f6cbe3371354cd96bde7c6271e530b7027e4e80976fa0cfecb",
       "exports": [],
       "operations": [
         {
@@ -119439,7 +119738,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_layout.mbt",
-      "sha256": "0107ec3f9f10f8c0b43c49db444d2c32b0ef379658b4181a8d26ecdfd80c6a2d",
+      "sha256": "52c424d94a9c857659f61cb0f8fcdc51056d3be3d00583e6d4a4e64accfc48fe",
       "exports": [],
       "operations": [
         {
@@ -119529,7 +119828,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_routes.mbt",
-      "sha256": "a0b19d838e0ff32c4a89227688468cc981b74ff3df92787f84595556e693a1cd",
+      "sha256": "f508b6b10aee7dae7bf081e89c91d1bb765215ee4e8bb421d160c22d2da5caa7",
       "exports": [],
       "operations": [
         {
@@ -119606,6 +119905,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "native joined Whole inputs bind the two Model scopes on the same Request"
               }
             ]
           }
@@ -119705,7 +120008,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_construction.mbt",
-      "sha256": "b83d257f4bdb3f8faa572762275746b1d6bddb8d46fa2be35259a9150529e745",
+      "sha256": "15d5d01adfa02ed383a90f9d7d44e3026705acb3b0810a23bc84afbaab3df527",
       "exports": [],
       "operations": [
         {
@@ -119713,8 +120016,12 @@
           "declaration": "[ I ] prepare_request_native_file_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , bodies : ( String , String ) ? , ) - > Result [ ClientRequestNativeFileSourceInputs , ClientRequestNativeFileSourceIssue , ]"
         },
         {
+          "name": "[I]reserve_request_model_file_source_inputs",
+          "declaration": "[ I ] reserve_request_model_file_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ( @ publication_host . ClientDirectAcquisitionOccurrences , Array [ @ sourceviews . SourceAcquisition ] , ) , ClientRequestProgramPlanIssue , ]"
+        },
+        {
           "name": "[I]reserve_request_selected_whole_source_inputs",
-          "declaration": "[ I ] reserve_request_selected_whole_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , sources : Array [ @ sourceviews . SourceAcquisition ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+          "declaration": "[ I ] reserve_request_selected_whole_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , sources : Array [ @ sourceviews . SourceAcquisition ] , phase ? : ClientRequestPreparationPhase"
         },
         {
           "name": "[I]reserve_request_whole_source_construction",
@@ -119729,6 +120036,7 @@
         {
           "operations": [
             "[I]prepare_request_native_file_source_inputs",
+            "[I]reserve_request_model_file_source_inputs",
             "[I]reserve_request_selected_whole_source_inputs",
             "[I]reserve_request_whole_source_construction"
           ],
@@ -119792,6 +120100,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "native joined Whole inputs bind the two Model scopes on the same Request"
               }
             ]
           }
@@ -119800,7 +120112,7 @@
     },
     {
       "module": "src/client_local_host/execute_source_free_tasks.mbt",
-      "sha256": "2679f364a3d70e4a48fd10afdf7ddbdc20a63668c85db68da3e981709a4da07e",
+      "sha256": "3d991738f781a212b200cd592c2bf41a4e6405911b8879d86031466fd85d1e93",
       "exports": [],
       "operations": [
         {
@@ -119821,7 +120133,7 @@
         },
         {
           "name": "execute_installed_whole_source_values_guarded",
-          "declaration": "execute_installed_whole_source_values_guarded ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , ) - > Result [ LocalValuesExecution , LocalValuesExecutionFailure ]"
+          "declaration": "execute_installed_whole_source_values_guarded ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , drive_task ? : ( ( Int , @ local_driver . LocalManagedDispatchOperations [ Int ] ) - > Result [ Unit , LocalValuesExecutionIssue , ] ) ?"
         },
         {
           "name": "execute_local_tasks_guarded",
@@ -119938,6 +120250,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/client_local_host/installed_query_tasks_js_wbtest.mbt",
+                "anchor": "installed Query driver refusal retains original Source and task cleanup"
+              },
+              {
+                "path": "src/client_local_host/installed_whole_source_result_js_wbtest.mbt",
+                "anchor": "Native Whole execution retains its bound Plan and refuses copied or unbound Runs"
               }
             ]
           }
@@ -120037,16 +120357,20 @@
     },
     {
       "module": "src/cmd/native_client/local_command_whole_files_plan.mbt",
-      "sha256": "7e15f78c0337bbc5b8afed0bf3d5bdde7de01ee76b6c8c4bf46dcab725e176df",
+      "sha256": "401f933f7154c2951182c7426386e12634eacd6458ae2f4810ee512e1bc80f5b",
       "exports": [],
       "operations": [
         {
           "name": "[I]prepare_local_native_whole_files_request_module",
-          "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , direct : @ run_host . ClientDirectAcquisitionOccurrences , originals : Array [ @ sourceviews . SourceAcquisition ] , ) - > LocalCommandFileSources raise ClientStop"
+          "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , declarations : Array [ LocalProjectMockSourceDeclaration ] , listings : Array [ LocalProjectMockFileSource ] ? , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , direct : @ run_host . ClientDirectAcquisitionOccurrences , originals : Array [ @ sourceviews . SourceAcquisition ] , ) - > LocalCommandFileSources raise ClientStop"
         },
         {
           "name": "local_command_file_listing",
-          "declaration": "local_command_file_listing ( original : LocalProjectMockDeclarations , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , @ row_file . NativeRelationFileListingProvider , LocalProjectMockFileBinding , ) ?"
+          "declaration": "local_command_file_listing ( listings : Array [ LocalProjectMockFileSource ] ? , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , @ row_file . NativeRelationFileListingProvider , LocalProjectMockFileBinding , ) ?"
+        },
+        {
+          "name": "local_native_whole_file_inputs",
+          "declaration": "local_native_whole_file_inputs ( control : LocalCommandPreparationOriginal , prepared : @ run_host . PreparedClientProgram , declarations : Array [ LocalProjectMockSourceDeclaration ] , listings : Array [ LocalProjectMockFileSource ] ? , contracts : @ local_values . ClientInstalledSequenceContracts , direct : @ run_host . ClientDirectAcquisitionOccurrences , originals : Array [ @ sourceviews . SourceAcquisition ] , ) - > ( Array [ @ local_host . NativeRelationFileWholeSource ] , Array [ @ local_values . ClientInstalledWholeSourceCapacity ] , Array [ Int64 ] , Array [ Int64 ] , ) raise ClientStop"
         }
       ],
       "responsibilityFacet": "primary",
@@ -120057,7 +120381,8 @@
         {
           "operations": [
             "[I]prepare_local_native_whole_files_request_module",
-            "local_command_file_listing"
+            "local_command_file_listing",
+            "local_native_whole_file_inputs"
           ],
           "exports": [],
           "attributes": {
@@ -120119,6 +120444,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "two captured Model Request keeps original Direct inventory and all scopes on its one aggregate Plan"
               }
             ]
           }
@@ -120127,7 +120456,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_whole_files_entry.mbt",
-      "sha256": "b395ca75482d96bfe03368ca33491968a754c49441dbdfe47278cbde89fcf45d",
+      "sha256": "62cc363a6ff1bc0fe09719409cb1f8bf1c27ae001a05ed2344321f388c6b093b",
       "exports": [],
       "operations": [
         {
@@ -120238,7 +120567,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_publication.mbt",
-      "sha256": "14d9e6fee30b973f505ede3d0e0d6a52cb97f342c6b97e93dc75dd0e5aa1c11f",
+      "sha256": "dc1cd63881069be350126467e339ffa0c09322ae6db68d72541f9abb44195f41",
       "exports": [],
       "operations": [
         {
@@ -120246,8 +120575,24 @@
           "declaration": "native_whole_source_publication_task ( prepared : @ host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , ) - > Int ?"
         },
         {
+          "name": "NativeClientRelationFileWork::admit_managed_whole_model_sources",
+          "declaration": "NativeClientRelationFileWork : : admit_managed_whole_model_sources ( self : Self , graphs : Array [ @ host . ClientInferPlanGraph ] , captures : Array [ @ execution_query . CapturedInputSource ] , originals : Array [ NativeRelationFileWholeSource ] , evidence : NativeRelationFileWholeEvidence , ) - > Result [ Array [ @ host . ClientInferComposedSources ] , NativeClientSourceWorkIssue , ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::bind_model_publication",
+          "declaration": "NativeClientRelationFileWork : : bind_model_publication ( self : Self , leader : NativeClientMockModelWork , ) - > Result [ Unit , NativeClientSourcePublicationIssue ]"
+        },
+        {
           "name": "NativeClientRelationFileWork::managed_whole_publication_invocation",
           "declaration": "NativeClientRelationFileWork : : managed_whole_publication_invocation ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileWholeSource ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , result_controls : Int64 , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::prepare_managed_whole_source_evidence",
+          "declaration": "NativeClientRelationFileWork : : prepare_managed_whole_source_evidence ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileWholeSource ] , max_wire_bytes : Int , max_nodes : Int , result_controls : Int64 , model_source_bindings ~ : Int , ) - > Result [ NativeRelationFileWholeEvidence , NativeClientSourceWorkIssue ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::retire_model_publication",
+          "declaration": "NativeClientRelationFileWork : : retire_model_publication ( self : Self , ) - > Bool"
         }
       ],
       "responsibilityFacet": "primary",
@@ -120258,8 +120603,12 @@
         {
           "operations": [
             "<module>",
+            "NativeClientRelationFileWork::admit_managed_whole_model_sources",
             "NativeClientRelationFileWork::managed_whole_publication_invocation",
-            "native_whole_source_publication_task"
+            "NativeClientRelationFileWork::prepare_managed_whole_source_evidence",
+            "native_whole_source_publication_task",
+            "NativeClientRelationFileWork::bind_model_publication",
+            "NativeClientRelationFileWork::retire_model_publication"
           ],
           "exports": [],
           "attributes": {
@@ -120333,16 +120682,16 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_work_capacity.mbt",
-      "sha256": "590674389e0a27442f6ff9ace8a20b610110ceb1251d73e97fdea5c7e2c59446",
+      "sha256": "cd25c4fbe1e77c22f0d6118190cd660f7e8b2274b3bb4029284399ffd7119011",
       "exports": [],
       "operations": [
         {
           "name": "native_relation_whole_files_entry_read_capacity",
-          "declaration": "native_relation_whole_files_entry_read_capacity ( sources : Array [ NativeRelationFileWholeSource ] , graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "native_relation_whole_files_entry_read_capacity ( sources : Array [ NativeRelationFileWholeSource ] , graph : @ strategy . CheckedDAG , model ? : Bool"
         },
         {
           "name": "native_relation_whole_files_work_control_capacity",
-          "declaration": "native_relation_whole_files_work_control_capacity ( sources : Array [ NativeRelationFileWholeSource ] , graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "native_relation_whole_files_work_control_capacity ( sources : Array [ NativeRelationFileWholeSource ] , graph : @ strategy . CheckedDAG , model ? : Bool"
         }
       ],
       "responsibilityFacet": "primary",
@@ -120424,7 +120773,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "3dfa1ba6f2470fe05e8ee6afd6c699c99a71c8f39daa08fa3515f4d90c09adfe",
+      "sha256": "9d53d50673cd448c74d38e2f96c63d18ed9be397b6286b4cb0dca4e77b72bc12",
       "exports": [],
       "operations": [
         {
@@ -120449,7 +120798,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::acquire_physical_read",
-          "declaration": "LocalCommandPreparationOriginal : : acquire_physical_read ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+          "declaration": "LocalCommandPreparationOriginal : : acquire_physical_read ( self : LocalCommandPreparationOriginal , remote_budget ? : @ initial_arena . InstalledArenaOriginalReadBudget ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::acquire_runtime",
@@ -120481,7 +120830,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::prepare_adoption",
-          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , model_configuration ? : @ local_host . NativeLocalModelConfigurationSelection ?"
+          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , model_configurations ? : Array [ @ local_host . NativeLocalModelConfigurationSelection , ] ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::read_command",

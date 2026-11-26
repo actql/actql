@@ -10,9 +10,7 @@ priv struct StoredSavedResultRead {
   finite : @host.ClientLocalRunPolicyOriginal?
   mut owner : @publication.PublicationCommitPreparation?
   mut view : @publication.PublicationCommitReadView?
-  // Absolute value is the original schema plus two. Kind 6 uses 1. A
-  // negative sign records the existing observed-commit child.
-  mut schema_phase : Int
+  mut commit_observation : Bool
   // Positive while a phase can advance, zero only after final encoding,
   // and negative once an entered advance can no longer continue.
   mut advances_remaining : Int
@@ -82,21 +80,20 @@ fn begin_saved_result_read(
     Err(code) => return Err(code)
     Ok(_) => ()
   }
-  let admitted_schema = if record.kind == INCREMENTAL_SAVED_RESULT_KIND {
+  let catalog_checked = if record.kind == INCREMENTAL_SAVED_RESULT_KIND {
     match submission_lookup_current(value, record, configuration) {
       Err(code) => return Err(code)
       Ok(_) => ()
     }
-    let schema = physical_journal_schema(current.physical)
-    if schema != 0 && schema != 1 {
+    if physical_journal_schema(current.physical) != 1 {
       return Err(-41)
     }
-    schema
+    true
   } else {
-    -1
+    false
   }
   let snapshot = match
-    observe_submission_lookup(value, record, configuration, admitted_schema~) {
+    observe_submission_lookup(value, record, configuration, catalog_checked~) {
     Ok(Some(value)) => value
     Ok(None) => return Err(-42)
     Err(code) => return Err(code)
@@ -151,7 +148,7 @@ fn begin_saved_result_read(
     finite: Some(finite),
     owner: None,
     view: None,
-    schema_phase: admitted_schema + 2,
+    commit_observation: false,
     advances_remaining: -1,
   }
   // Retain this carrier before the first publication query or fallible advance.
@@ -219,7 +216,7 @@ fn begin_saved_result_commit_observation(
   if owner.begin_observed_commit(view, request, attempt, index) is Err(_) {
     return Err(-31)
   }
-  retained.schema_phase = -retained.schema_phase
+  retained.commit_observation = true
   Ok(())
 }
 
@@ -253,7 +250,7 @@ fn advance_saved_result_read(
       Ok(_) => ()
     }
   }
-  let result = if retained.schema_phase < 0 {
+  let result = if retained.commit_observation {
     guard retained.view is Some(view) else { return Err(-33) }
     owner.advance_observed_commit(view, 256)
   } else {
@@ -265,7 +262,7 @@ fn advance_saved_result_read(
   }
   let mut next = remaining - 1
   if done {
-    if retained.schema_phase < 0 {
+    if retained.commit_observation {
       return Ok(true)
     }
     match begin_saved_result_commit_observation(retained, owner) {
@@ -490,7 +487,7 @@ fn reobserve_saved_result_read(
     Ok(_) => ()
   }
   if incremental {
-    let schema = physical_journal_schema(current.physical)
+    let catalog_status = physical_journal_schema(current.physical)
     let read = (table, key) => {
       physical_journal_row(current.physical, check, 1, table, key)
     }
@@ -499,7 +496,7 @@ fn reobserve_saved_result_read(
     }
     return rebind_saved_result_originals(
       retained,
-      schema,
+      catalog_status,
       scan,
       read,
       census_ticket=if same_reader_census { current.physical } else { 0 },
@@ -533,18 +530,15 @@ fn reobserve_saved_result_read(
 ///|
 fn rebind_saved_result_originals(
   retained : StoredSavedResultRead,
-  schema : Int,
+  catalog_status : Int,
   scan : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
   census_ticket? : Int = 0,
   census_current? : (Int) -> Int64 = _ => -41L,
   reuse_proven_fence_rows? : Bool = false,
 ) -> Result[Unit, Int] {
-  if schema != 0 && schema != 1 {
+  if catalog_status != 1 {
     return Err(-41)
-  }
-  if schema != retained.schema_phase.abs() - 2 {
-    return Err(-32)
   }
   // The same initial admission proved the selected Run, policy and binding.
   // Rebind that exact snapshot before any original work is allowed to extend.
@@ -644,7 +638,7 @@ fn close_saved_result_read(record : StoredSubmissionProjection) -> Int {
   if retained.owner is Some(owner) {
     owner.cancel()
     if retained.view is Some(view) {
-      if retained.schema_phase < 0 &&
+      if retained.commit_observation &&
         owner.release_observed_commit(view) is Err(_) {
         return -9
       }

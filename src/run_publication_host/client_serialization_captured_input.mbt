@@ -11,6 +11,7 @@ pub struct ClientSerializationCapturedInput {
   observation : @publication.ModelSourceObservation
   keyed : ClientKeyedLookupObservation?
   named_sources : Array[(String, @publication.ModelSourceObservation)]
+  priv whole_originals : (@resources.Ledger, @row_host.RowCapturedInputs)?
 }
 
 ///|
@@ -139,6 +140,133 @@ pub fn admit_client_serialization_whole_captured_input(
     None,
     [],
   )
+}
+
+///|
+/// Evidence of one physically completed Whole read. Its exact Source and
+/// capacity are borrowed from the opaque RowRun capture, not supplied as DATA.
+pub(all) struct ClientSerializationWholeCapture {
+  capture : @row_host.RowSourceCapture
+  identity : @query.CapturedSourceRelationIdentity
+  logical : @publication.RunEvidenceValue
+  source_evidence : @publication.RunEvidenceValue
+  started_at : String
+  completed_at : String
+}
+
+///|
+/// Admit the ordered Whole captures selected by the original Content graph.
+/// The installed caller also proves each RowRun belongs to its adopted Run.
+/// This borrows the existing captures in that Run's ledger; it neither
+/// acquires data nor creates a new holding or release obligation.
+pub fn admit_client_serialization_whole_captured_inputs(
+  owner : PreparedClientProgram,
+  component : ClientSerializationPlanGraph,
+  ledger : @resources.Ledger,
+  captures : Array[ClientSerializationWholeCapture],
+  authority_scope_cid : String,
+  max_work : Int,
+) -> Result[
+  ClientSerializationCapturedInput,
+  @publication.RunEvidenceValueIssue,
+] {
+  let mismatch = @publication.RunEvidenceReferenceMismatch(
+    "content_whole_source_owner",
+  )
+  guard client_serialization_plan_direct_occurrences(component, owner)
+    is Some(occurrences) &&
+    !captures.is_empty() &&
+    captures.length() <= max_work &&
+    captures.length() == client_direct_acquisition_occurrence_count(occurrences) else {
+    return Err(mismatch)
+  }
+  let original_tokens = []
+  let named_sources = []
+  let mut first_source = None
+  let names : Map[(Int, String), Unit] = Map([])
+  let evidence_ids : Map[String, Unit] = Map([])
+  for index, item in captures {
+    guard @row_host.row_capture_input(item.capture) is Some(token) &&
+      @row_host.row_captured_input_source_original(token) is Some(capacity) &&
+      @row_host.row_captured_input_source(token) is Some(source) &&
+      client_direct_acquisition_occurrence_at(occurrences, index)
+      is Some((stage, original_input, task)) &&
+      client_direct_acquisition_occurrence_subject(occurrences, index)
+      is Some(subject) &&
+      subject.request is @acquisition.Direct(mode, _) &&
+      physical_equal(mode, @acquisition.source_acquisition_mode(capacity)) &&
+      client_source_acquisition_matches_program(
+        owner, stage, original_input, capacity,
+      ) &&
+      @strategy.graph_task_owner(owner.graph, task) is Some(preparation) &&
+      @query.captured_source_matches(
+        source,
+        @checked.source_identity(@strategy.graph_program(owner.graph)),
+        preparation,
+      ) &&
+      @query.captured_source_matches_input_acquisition(source, capacity) &&
+      @query.captured_source_relation_identity_matches_source(
+        item.identity,
+        source,
+      ) &&
+      @planning.source_acquisition_evidence_facts(capacity) is Some(facts) else {
+      return Err(mismatch)
+    }
+    let name = @acquisition.declaration(@acquisition.mode_input(mode)).input_name
+    // Input names belong to their declaring Stage. The occurrence and the
+    // ordered evidence, not a global alias, distinguish each Whole original.
+    if names.contains((stage, name)) {
+      return Err(
+        @publication.RunEvidenceReferenceMismatch("content_source_names"),
+      )
+    }
+    names[(stage, name)] = ()
+    let observation = match
+      admit_client_serialization_source_observation_value(
+        item.identity,
+        facts,
+        item.logical,
+        item.source_evidence,
+        authority_scope_cid,
+        item.started_at,
+        item.completed_at,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    // The ordinary Receipt requires distinct ordered evidence. A duplicate
+    // cannot discharge two occurrences by deduplicating the inventory.
+    let citation = @publication.model_source_observation_fields(observation).0
+    if evidence_ids.contains(citation) {
+      return Err(
+        @publication.RunEvidenceReferenceMismatch("content_source_evidence"),
+      )
+    }
+    evidence_ids[citation] = ()
+    if index == 0 {
+      first_source = Some((source, item.identity, observation))
+    }
+    original_tokens.push(token)
+    named_sources.push((name, observation))
+  }
+  guard first_source is Some((source, identity, observation)) &&
+    @row_host.borrow_row_captured_input_originals(
+      original_tokens, ledger, max_work,
+    )
+    is Some(originals) else {
+    return Err(mismatch)
+  }
+  Ok({
+    owner,
+    task: component.task,
+    step: component.step,
+    source,
+    identity,
+    observation,
+    keyed: None,
+    named_sources,
+    whole_originals: Some((ledger, originals)),
+  })
 }
 
 ///|
@@ -378,31 +506,9 @@ fn admit_client_serialization_source_observation(
   ClientSerializationCapturedInput,
   @publication.RunEvidenceValueIssue,
 ] {
-  let values = @planning.query_source_evidence_fact_values(facts)
-  if @publication.admit_completed_source_input_logical(
-      logical,
-      @query.captured_source_relation_logical_cid(identity),
-      @query.captured_source_relation_schema_cid(identity),
-      values[1],
-      "{\"stable\":false,\"keys\":[]}",
-      4096,
-      128,
-      16,
-    )
-    is Err(_) {
-    return Err(
-      @publication.RunEvidenceReferenceMismatch("content_source_input"),
-    )
-  }
   let observation = match
-    @publication.admit_model_source_observation(
-      source_evidence,
-      logical,
-      values[0],
-      values[1],
-      authority_scope_cid,
-      values[3],
-      started_at,
+    admit_client_serialization_source_observation_value(
+      identity, facts, logical, source_evidence, authority_scope_cid, started_at,
       completed_at,
     ) {
     Ok(value) => value
@@ -421,7 +527,60 @@ fn admit_client_serialization_source_observation(
     observation,
     keyed,
     named_sources,
+    whole_originals: None,
   })
+}
+
+///|
+fn admit_client_serialization_source_observation_value(
+  identity : @query.CapturedSourceRelationIdentity,
+  facts : @planning.QuerySourceEvidenceFacts,
+  logical : @publication.RunEvidenceValue,
+  source_evidence : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+) -> Result[
+  @publication.ModelSourceObservation,
+  @publication.RunEvidenceValueIssue,
+] {
+  let values = @planning.query_source_evidence_fact_values(facts)
+  if @publication.admit_completed_source_input_logical(
+      logical,
+      @query.captured_source_relation_logical_cid(identity),
+      @query.captured_source_relation_schema_cid(identity),
+      values[1],
+      "{\"stable\":false,\"keys\":[]}",
+      4096,
+      128,
+      16,
+    )
+    is Err(_) {
+    return Err(
+      @publication.RunEvidenceReferenceMismatch("content_source_input"),
+    )
+  }
+  @publication.admit_model_source_observation(
+    source_evidence,
+    logical,
+    values[0],
+    values[1],
+    authority_scope_cid,
+    values[3],
+    started_at,
+    completed_at,
+  )
+}
+
+///|
+fn client_serialization_whole_captures_live(
+  captured : ClientSerializationCapturedInput,
+) -> Bool {
+  match captured.whole_originals {
+    Some((ledger, originals)) =>
+      @row_host.row_captured_inputs_borrowed_available(originals, ledger)
+    None => true
+  }
 }
 
 ///|
@@ -447,5 +606,6 @@ fn client_serialization_captured_input_matches(
   @query.captured_source_relation_identity_matches_source(
     captured.identity,
     captured.source,
-  )
+  ) &&
+  client_serialization_whole_captures_live(captured)
 }

@@ -142,3 +142,171 @@ test "project registry rejects duplicate declarations null maps and trailing or 
     )
   }
 }
+
+///|
+test "funded Project registry refuses one short and retains its original ledger allowance" {
+  let wire =
+    #|{"version":"actql-model-tasks/0.1","tasks":{"z":"z.yaml","a":"a.json"},"providers":{"mock":{"type":"mock","api_key_env":"KEY"}},"default_provider":"mock"}
+  let (expected, _) = client_project_model_registry_admission_inventory(wire).unwrap()
+  let amount = @execution.preparation_representation_cost(expected).unwrap()
+  let limits : @resources.LedgerLimits = {
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: amount,
+    execution_bytes: amount,
+  }
+  let short_ledger = @resources.create_ledger({
+    ..limits,
+    retained_bytes: amount - 1L,
+  }).unwrap()
+  let refused = admit_funded_client_project_model_registry(
+    wire,
+    units => {
+      let quoted = @execution.preparation_representation_cost(units).unwrap()
+      @resources.reserve_capacity(short_ledger, quoted, quoted).map(_ => ())
+    },
+    _ => @resources.InvalidCharge,
+  )
+  assert_true(refused is Err(RetentionLimit))
+  assert_eq(@resources.ledger_usage(short_ledger).live_reservations, 0)
+
+  let original_ledger = @resources.create_ledger(limits).unwrap()
+  let held : Ref[@resources.CapacityReservation?] = Ref(None)
+  {
+    let original = admit_funded_client_project_model_registry(
+      wire,
+      units => {
+        let quoted = @execution.preparation_representation_cost(units).unwrap()
+        @resources.reserve_capacity(original_ledger, quoted, quoted).map(token => {
+          held.val = Some(token)
+        })
+      },
+      _ => @resources.InvalidCharge,
+    ).unwrap()
+    assert_eq(original.original_wire(), wire)
+    assert_eq(original.task_at(0), Some(("z", "z.yaml")))
+    assert_eq(original.task_at(1), Some(("a", "a.json")))
+    assert_eq(original.provider_at(0), Some(("mock", "mock", Some("KEY"))))
+    assert_eq(original.selected_default_provider(), Some("mock"))
+    assert_true(
+      @resources.capacity_reservation_matches(
+        original_ledger,
+        held.val.unwrap(),
+        amount,
+        amount,
+      ),
+    )
+  }
+  @resources.settle_capacity(original_ledger, held.val.unwrap()).unwrap()
+  assert_eq(@resources.ledger_usage(original_ledger).live_reservations, 0)
+}
+
+///|
+test "funded Project registry keeps original large geometry and exact preparation refusal" {
+  let wire = "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":" +
+    project_geometry_locators(5000) +
+    ",\"providers\":{}}"
+  let (units, _) = client_project_model_registry_admission_inventory(wire).unwrap()
+  assert_true(units.owned_wire_bytes > 65536L)
+  let admitted = Ref(0)
+  let original = admit_funded_client_project_model_registry(
+    wire,
+    observed => {
+      if observed != units {
+        return Err("different quote")
+      }
+      admitted.val += 1
+      Ok(())
+    },
+    _ => "binding refusal",
+  ).unwrap()
+  assert_eq(admitted.val, 1)
+  assert_eq(original.task_at(4999), Some(("original-4999", "./original.yaml")))
+  assert_eq(original.task_at(5000), None)
+
+  assert_true(
+    admit_funded_client_project_model_registry(
+      "{\"tasks\":null}",
+      _ => Err("original funding refusal"),
+      _ => "binding refusal",
+    )
+    is Err("original funding refusal"),
+  )
+  assert_true(
+    admit_funded_client_project_model_registry(
+      "{\"tasks\":null}",
+      _ => Ok(()),
+      _ => "binding refusal",
+    )
+    is Err("binding refusal"),
+  )
+}
+
+///|
+test "funded Project registry returns only typed parser scratch after successful construction" {
+  let wire =
+    #|{"version":"actql-model-tasks/0.1","tasks":{"z":"z.yaml"},"providers":{"mock":{"type":"mock","api_key_env":"KEY"}},"default_provider":"mock"}
+  let (peak, scratch) = client_project_model_registry_admission_inventory(wire).unwrap()
+  let amount = @execution.preparation_representation_cost(peak).unwrap()
+  assert_true(scratch > 0L && scratch < amount)
+  let ledger = @resources.create_ledger({
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: amount,
+    execution_bytes: amount,
+  }).unwrap()
+  let token : Ref[@resources.CapacityReservation?] = Ref(None)
+  let retained = amount - scratch
+  let registry = admit_funded_client_project_model_registry(
+    wire,
+    units => {
+      if units != peak {
+        return Err(@resources.InvalidCharge)
+      }
+      @resources.reserve_capacity(ledger, amount, amount).map(capacity => {
+        token.val = Some(capacity)
+      })
+    },
+    _ => @resources.InvalidCharge,
+    settle=Some(returned => {
+      let original = token.val.unwrap()
+      if returned != scratch ||
+        !@resources.capacity_reservation_matches(
+          ledger, original, amount, amount,
+        ) {
+        return Err(@resources.InvalidCharge)
+      }
+      @resources.shrink_capacity_reservation(
+        ledger, original, retained, retained,
+      )
+    }),
+  ).unwrap()
+  assert_eq(registry.original_wire(), wire)
+  assert_eq(registry.task_at(0), Some(("z", "z.yaml")))
+  assert_eq(registry.provider_at(0), Some(("mock", "mock", Some("KEY"))))
+  assert_eq(registry.selected_default_provider(), Some("mock"))
+  assert_true(
+    @resources.capacity_reservation_matches(
+      ledger,
+      token.val.unwrap(),
+      retained,
+      retained,
+    ),
+  )
+  @resources.settle_capacity(ledger, token.val.unwrap()).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+
+  assert_true(
+    admit_funded_client_project_model_registry(
+      "{\"tasks\":null}",
+      _ => Ok(()),
+      _ => "original registry refusal",
+      settle=Some(_ => Err("unexpected registry settlement")),
+    )
+    is Err("original registry refusal"),
+  )
+}

@@ -1,4 +1,20 @@
 ///|
+/// Compare the same normalized Task with the admitted installation profile.
+/// Physical routing, authority and credential checks remain separate.
+pub fn normalized_public_model_task_matches_response_profile(
+  value : NormalizedPublicModelTask,
+  profile : ModelResponseProfile,
+  selector : String,
+) -> Bool {
+  value.mock_profile is None &&
+  value.resolved.model == selector &&
+  profile.kind == StructuredGenerate &&
+  profile.task_cid == value.task_cid &&
+  profile.input_schema_cid == value.declaration.input.cid &&
+  profile.output_schema_cid == value.declaration.output.cid
+}
+
+///|
 /// Re-emit an admitted physical declaration for the SAME normalized Task.
 /// This is bounded DATA construction, not profile installation, physical
 /// adequacy, a capacity reservation, raw custody or permission to send.

@@ -216,7 +216,7 @@ pub fn client_compiled_run_infer_observation_policy(
         )
       }
     Tasks(_) =>
-      if prepared_client_acquisition_count(value.owner) == 0 {
+      if !prepared_client_has_checked_sources(value.owner) {
         value.source_free_result_policy.map(
           @publication.captured_effect_dependency_body_cid,
         )
@@ -243,7 +243,7 @@ pub fn with_client_infer_result_policy(
     !client_compiled_run_infers(value).is_empty() else {
     return Err(ForeignOwner)
   }
-  if prepared_client_acquisition_count(value.owner) != 0 {
+  if prepared_client_has_checked_sources(value.owner) {
     return Ok(value)
   }
   with_client_source_free_result_policy(
@@ -264,7 +264,7 @@ pub fn with_client_source_free_result_policy(
   max_depth : Int,
 ) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
   if value.compilation is Effects(_) ||
-    prepared_client_acquisition_count(value.owner) != 0 {
+    prepared_client_has_checked_sources(value.owner) {
     return Err(ForeignOwner)
   }
   let original = match
