@@ -1135,9 +1135,6 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
             const count = moon.clientProgramAcquisitionCount(prepared);
             if (!Number.isSafeInteger(count) || count < 0) fail('InvalidHostRuntimeResult');
             state.acquisitionCount = count;
-            if (staticPlan !== undefined && staticExplanation === undefined && count !== 0) {
-              fail('ClientOperationUnavailable');
-            }
             const requiresTime = moon.clientProgramRequiresQueryTime;
             state.requiresQueryTime = typeof requiresTime === 'function'
               ? checked(Reflect.apply(requiresTime, moon, [prepared, 100000, 100000])) as boolean : false;
@@ -1170,7 +1167,12 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
       }
       if (staticPlan !== undefined) {
         const effectful = state.compilationKind === 'effectful';
-        if (effectful || explanationPorts !== undefined) {
+        const acquired = (state.acquisitionCount ?? 0) > 0;
+        if (effectful || acquired || explanationPorts !== undefined) {
+          if (explanationPorts === undefined &&
+              (typeof readCheckedStaticPlan !== 'function' || typeof checkedStaticIssue !== 'function')) {
+            fail('ClientOperationUnavailable');
+          }
           // Checking has finished and its real nominal borrow is retained.
           // Metadata readers now enter their normal owner stages: no forged
           // `prepared`, preparing-guard bypass or execution-route setup.
@@ -1192,7 +1194,9 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
               }
             };
             assertOriginal();
-            for (const occurrence of state.staticModelOccurrences!) {
+            const occurrences = effectful || explanationPorts !== undefined
+              ? state.staticModelOccurrences! : [];
+            for (const occurrence of occurrences) {
               const {execution} = readInstalledModelExecution(moon as typeof moon & ModelExecutionRuntime, prepared, staticModelInstallation,
                 occurrence, (count, wireAt, containers) =>
                   view.prepareModelMaterials(prepared, request, count, wireAt, containers))!;
