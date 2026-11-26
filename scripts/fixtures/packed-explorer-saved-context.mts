@@ -27,6 +27,14 @@ type ProducedRun = {
   saved: WireRunExplanationContextView;
   targetDigest: string;
 };
+const dealReviewHeading = {
+  en: 'Read salesforce.Opportunity, drive.files, drive.contents, join inputs, ask model-task:deal-review.v1, ' +
+    'filter on checks including review.value.changed, return updates, and plan to update Opportunity in salesforce.',
+  ja: 'salesforce の Opportunity、drive の files、drive の contents を読み、入力を結合し、' +
+    'model-task:deal-review.v1 に問い合わせ、review.value.changed などの条件で絞り込み、' +
+    'updates を結果として返し、salesforce の Opportunity を更新する計画。',
+};
+
 type Capture = {locale: 'en' | 'ja'; width: 1440 | 390; file: string};
 type BeforeReceipt = {browserRequests: string[]; checkedSources: number; checkedJoinSteps: number;
   originalLogicalSteps: number; groupedGraphNodes: number;
@@ -207,6 +215,7 @@ try {
         assert.equal(await staticSteps.locator('details.story-card[open]').count(), 1);
         assert.match(await staticSteps.innerText(), /Planned/u);
         const heading = page.getByRole('heading', {level: 1});
+        assert.equal(await heading.innerText(), dealReviewHeading.en);
         const checkedJoins = beforeRun.story.occurrences.filter(step => step.explanation.meaning.kind === 'join');
         assert(checkedJoins.some(({explanation: {meaning}}) =>
           meaning.kind === 'join' && meaning.keys.some(key => key.left === 'name' && key.right === 'name')));
@@ -326,7 +335,8 @@ try {
         await page.locator('.query-options label').filter({hasText: /^Language/u}).locator('select').selectOption('ja');
         await page.getByLabel('クエリオプション').click();
         await page.getByRole('button', {name: '説明', exact: true}).click();
-        await heading.filter({hasText: /review\.value\.changed などの条件で絞り込む/u}).waitFor();
+        await heading.filter({hasText: dealReviewHeading.ja}).waitFor();
+        assert.equal(await heading.innerText(), dealReviewHeading.ja);
         await page.getByText('実行前 · 確認済みプラン', {exact: true}).waitFor();
         const japaneseStory = page.getByRole('region', {name: '元のストーリー', exact: true});
         const japaneseOrigin = japaneseStory.locator('details.story-card[open] .occurrence-origin summary').first();
@@ -449,7 +459,7 @@ try {
         let queryClosed: Capture[] | undefined;
         if (dealReview) {
           const heading = page.getByRole('heading', {level: 1});
-          assert.match(await heading.innerText(), /^Read .*Opportunity.*files.*contents/u);
+          assert.equal(await heading.innerText(), dealReviewHeading.en);
           assert.equal(await story.locator('details.story-card').count(), 8);
           queryClosed = [
             await captureClosedSteps('en', 1440, 'installed-deal-review-saved-en-1440.png'),
@@ -458,7 +468,8 @@ try {
           const beforeLocaleChange = requests.length;
           await openOriginal(true, 'ja');
           assert.deepEqual(requests.slice(beforeLocaleChange), ['/api/read/run-explanation-context', '/api/read/run']);
-          await heading.filter({hasText: /Opportunity.*files.*contents.*を読む/u}).waitFor();
+          await heading.filter({hasText: dealReviewHeading.ja}).waitFor();
+          assert.equal(await heading.innerText(), dealReviewHeading.ja);
           const japaneseStory = page.getByRole('region', {name: '元のストーリー', exact: true});
           assert.equal(await japaneseStory.locator('details.story-card').count(), 8);
           await page.getByRole('button', {name: '状態を確認', exact: true}).waitFor();
