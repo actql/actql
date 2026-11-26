@@ -1319,6 +1319,45 @@ test('packed evidence uploads remain always-on after their original command', ()
   }
 });
 
+test('required packed INFER selects the external provider on only the authenticated Client artifact', () => {
+  const job = jobs['client-packed'];
+  assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
+  assert.equal(job['timeout-minutes'], 45);
+  assert(acceptanceGroups.includes('client-packed'));
+  const step = job.steps.find(step => step.id === 'packed-registered-external-provider');
+  assert(step);
+  const input = job.steps.find(step => step.id === 'client-inputs');
+  assert(input && job.steps.indexOf(input) < job.steps.indexOf(step));
+  assert.equal(input.uses, './.github/actions/download-client-packages');
+  assert.deepEqual(input.with, {
+    'artifact-id': '${{ needs.client-packages.outputs.artifact-id }}',
+    path: '${{ runner.temp }}/actql-client-packages',
+  });
+  assert.equal(step.if, "${{ matrix.group == 'infer' && !cancelled() && steps.client-inputs.outcome == 'success' }}");
+  assert.equal(step['continue-on-error'], undefined);
+  assert.equal(step['timeout-minutes'], 6);
+  assert.deepEqual(step.run.trimEnd().split('\n'), [
+    'test "${ACTQL_PACKED_CLIENT_PACKAGES:-}" = "$RUNNER_TEMP/actql-client-packages"',
+    'node scripts/test-packed-provider-ai-sdk.mjs "$RUNNER_TEMP/packed-registered-external-provider" --registered-external-only',
+  ]);
+  const all = Object.values(jobs).flatMap(job => job.steps ?? []);
+  assert.deepEqual(all.filter(step => step.run?.includes('--registered-external-only')), [step]);
+  const upload = job.steps[job.steps.indexOf(step) + 1];
+  assert.equal(upload.if, "${{ always() && matrix.group == 'infer' && steps.client-inputs.outcome == 'success' }}");
+  const pinnedUpload = jobs['client-readme-packed'].steps.find(step =>
+    step.name === 'Preserve actual functional outcomes and failures');
+  assert(pinnedUpload);
+  assert.equal(upload.uses, pinnedUpload.uses);
+  assert.equal(upload.with.name, 'packed-registered-external-provider-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}');
+  const prefix = '${{ runner.temp }}/packed-registered-external-provider/';
+  assert.deepEqual(upload.with.path.trimEnd().split('\n'), [
+    'summary.json', 'cases/*/packages/*packages.json', 'raw/*/*',
+    'cases/registered-external/consumer/usage-original.json',
+    'cases/registered-external/consumer/usage-receipt.json',
+  ].map(path => prefix + path));
+  assert.equal(upload.with['if-no-files-found'], 'error');
+});
+
 test('the original client check succeeds only when every producer and acceptance group succeeds', () => {
   assert.deepEqual(jobs.client.needs, acceptanceGroups);
   assert.match(jobs.client.if, /always\(\)/u);
