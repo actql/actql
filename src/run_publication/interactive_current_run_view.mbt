@@ -1,6 +1,6 @@
 ///|
 priv struct LocalDebugPark {
-  logical_map_cid : String
+  logical_map_cid : String?
   boundary_cid : String
   kind : String
   position : String
@@ -29,17 +29,23 @@ fn admit_local_debug_park(
   max_depth : Int,
 ) -> Result[LocalDebugPark, RunControlReadIssue] {
   let invalid = ControlReadContract(InvalidField("debug_park"))
-  // The current caller's authorization has no place in the park CID.
+  let park_kind = contract_string_from_value(park, "kind")
+  // Current delivery permission is separate from the enduring park identity.
   let (resume_available, availability_fields) = match
     @json.object_field(park, "resume_available") {
     None => (false, 0)
     Some(@json.Bool(value)) => (value, 1)
     _ => return Err(invalid)
   }
+  let map = match @json.object_field(park, "logical_map_cid") {
+    Some(@json.String(cid)) if valid_contract_cid(cid) => Some(cid)
+    // Entry consumes the checked Run boundary before any logical Step. A
+    // Host without a retained map cannot issue a logical Step boundary.
+    Some(@json.Null) if park_kind == Some("entry") && !resume_available => None
+    _ => return Err(invalid)
+  }
   guard @json.object_field(park, "run_ref") is Some(original_ref) &&
     @json.object_field_count(original_ref) == Some(3) &&
-    contract_string_from_value(park, "logical_map_cid") is Some(map) &&
-    valid_contract_cid(map) &&
     interactive_integer(park, "revision") == Some(revision) &&
     revision > 0L &&
     contract_string_from_value(park, "ttl_policy") ==
@@ -64,13 +70,36 @@ fn admit_local_debug_park(
     @encode.string_value(writer, value)
     @encode.finish(writer)
   }
-  let (kind, position, step_wire, task_fields) = match
-    contract_string_from_value(park, "kind") {
+  fn map_wire() -> String raise {
+    match map {
+      Some(cid) => quote(cid)
+      None => "null"
+    }
+  }
+  let (kind, position, step_wire, task_fields) = match park_kind {
     // The legacy Run view calls a reserved dispatch "running", including an
     // entry park whose original Journal has yet to reserve physical start.
-    Some("entry") if (status == "preparing" || status == "running") &&
-      @json.object_field_count(park) == Some(7 + availability_fields) =>
-      ("entry", "before", "null", "")
+    Some("entry") if status == "preparing" || status == "running" => {
+      let (step_wire, step_fields) = match
+        @json.object_field(park, "next_step_id") {
+        None => ("null", 0)
+        Some(@json.String(step)) if map is Some(_) && valid_contract_cid(step) =>
+          (
+            quote(step) catch {
+              _ => return Err(ControlReadContract(Encoding))
+            },
+            1,
+          )
+        _ => return Err(invalid)
+      }
+      guard @json.object_field_count(park) ==
+        Some(7 + availability_fields + step_fields) else {
+        return Err(invalid)
+      }
+      // Display the first known Step without changing the consumed entry
+      // boundary or the existing Journal receipt's identity.
+      ("entry", "before", step_wire, "")
+    }
     Some("logical_step") if status == "running" &&
       @json.object_field_count(park) == Some(12 + availability_fields) => {
       guard interactive_integer(park, "start_revision") is Some(start_revision) &&
@@ -132,7 +161,7 @@ fn admit_local_debug_park(
     ",\"compiled_plan_cid\":" +
     quote(contract_string(run, "compiled_plan_cid").unwrap()) +
     ",\"logical_map_cid\":" +
-    quote(map) +
+    map_wire() +
     ",\"revision\":" +
     revision.to_string() +
     ",\"kind\":" +
@@ -437,7 +466,10 @@ pub fn project_current_interactive_run_view(
       None => ("null", "")
       Some(debug) =>
         (
-          quote(debug.logical_map_cid),
+          match debug.logical_map_cid {
+            Some(cid) => quote(cid)
+            None => "null"
+          },
           ",{\"owner\":\"journal\",\"revision\":" +
           quote(revision.to_string()) +
           ",\"state\":\"observed\",\"provenance_cid\":" +

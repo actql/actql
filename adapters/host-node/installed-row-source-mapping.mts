@@ -31,9 +31,12 @@ export {fail as rejectInstalledRowSource};
 // field of the Effect's source result: [{target, field, null_behavior}].
 export function rowSourceMapping(moon: RowSourceMappingRuntime, declaration: unknown,
   writesJson: string, resource: string, sources: readonly unknown[],
-  operation: 'create' | 'file-create' | 'update' | 'delete' = 'create', sourcesJson?: string) {
-  if (operation !== 'create' && operation !== 'file-create' && operation !== 'update' && operation !== 'delete') fail('InvalidInstalledEffectMappings');
-  const prepare = operation === 'update' ? moon.clientProgramRowSourcePrepareUpdateMapping
+  operation: 'create' | 'file-create' | 'update' | 'file-upsert' | 'delete' = 'create', sourcesJson?: string) {
+  const selected = operation === 'update' || operation === 'file-upsert';
+  if (!selected && operation !== 'create' && operation !== 'file-create' && operation !== 'delete') {
+    fail('InvalidInstalledEffectMappings');
+  }
+  const prepare = selected ? moon.clientProgramRowSourcePrepareUpdateMapping
     : operation === 'delete' ? moon.clientProgramRowSourcePrepareDeleteMapping
     : operation === 'file-create' ? moon.clientProgramRowSourcePrepareFileCreateMapping
     : moon.clientProgramRowSourcePrepareMapping;
@@ -42,11 +45,13 @@ export function rowSourceMapping(moon: RowSourceMappingRuntime, declaration: unk
   const prepared: MappingReply = JSON.parse(operation === 'delete'
     ? Reflect.apply(prepare, moon, [declaration, writesJson, resource])
     : Reflect.apply(prepare, moon, [declaration, writesJson, resource,
-      sourcesJson === undefined ? JSON.stringify(sources) : sourcesJson]));
+      sourcesJson === undefined ? JSON.stringify(selected ? {operation, sources} : sources) : sourcesJson]));
   if (prepared.issue !== undefined) fail(`RowSourceMapping${prepared.issue}`);
+  const body = JSON.parse(prepared.body) as {target_ref: string; schema?: string; resource_identity_cid?: string};
   return Object.freeze({mappingRef: prepared.mapping_ref,
     mappingCid: prepared.mapping_cid, body: prepared.body,
-    target: (JSON.parse(prepared.body) as {target_ref: string}).target_ref,
+    target: body.target_ref,
+    ...(body.schema === 'actql.mapping_contract/0.2' ? {resourceIdentityCid: body.resource_identity_cid} : {}),
     writeFields: Object.freeze(prepared.write_fields),
     omittable: Object.freeze(prepared.omittable)});
 }

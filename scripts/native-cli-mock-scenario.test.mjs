@@ -16,6 +16,7 @@ import {nativeMockInstallOptions} from './test-native-cli-mock-install.mjs';
 import {observeNativeJournalExhaustion, requireNativeJournalCapacityRefusal}
   from './test-native-cli-source-free-install.mjs';
 import {mixedDeleteUpdateMockProject, threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {orderedFileMockProjects} from '../adapters/host-node/fixtures/mock-ordered-file.fixture.mjs';
 import * as nullable from '../adapters/host-node/fixtures/mock-nullable-update.fixture.mjs';
 
 test('Native shared-file fixture requests three ordered rows with independent complete oracles', () => {
@@ -75,6 +76,29 @@ test('Native multi-member observations retain one distinct dispatch and receipt 
   assert.throws(() => requireNativeMockWork(['approve'], [{events: repeated}], 3, options),
     /Repeated original Effect dispatch/u);
   assert.throws(() => requireNativeMockWork(['result'], [{events}], 3, options), /replayed Model or Effect work/u);
+  const twoRows = [...chain('first', 0), ...chain('second', 1)];
+  assert.deepEqual(requireNativeMockWork(['approve'], [{events: twoRows}], 2,
+    {modelRows: 0, writeOrdinals: [0, 1]}).writes.map(row => row.ordinal), [0, 1]);
+  assert.throws(() => requireNativeMockWork(['approve'], [{events: twoRows}], 2,
+    {modelRows: 0, writeOrdinals: [0, 0]}), /Changed original Effect member row ordinals/u);
+});
+
+test('Native ordered File accepts the authored tuple spellings and refuses a rounded or string physical key', () => {
+  const [mixed, upsert] = orderedFileMockProjects();
+  assert.deepEqual(mixed.effects.map(effect => effect.rows[0].identity),
+    [['west', '9007199254740993'], ['east', '9007199254740994']]);
+  assert.deepEqual(upsert.effects[0].rows.map(row => row.before.state), ['present', 'absent']);
+  const approved = mixed.before
+    .replace('"before update"', '"updated"')
+    .replace('{"label":"before delete","serial":9007199254740994,"site":"east"},', '');
+  assert.notEqual(approved, mixed.before);
+  mixed.checkApprovedFile(approved);
+  assert.throws(() => mixed.checkApprovedFile(approved.replace('9007199254740993', '9007199254740992')),
+    /Only the selected Account rows may change/u);
+  assert.throws(() => mixed.checkApprovedFile(approved.replace('9007199254740993', '"9007199254740993"')),
+    /Physical Int64 must use its canonical numeric token/u);
+  assert.throws(() => mixed.checkApprovedFile(approved.replace('"retain"', '"removed control"')),
+    /Only the selected Account rows may change/u);
 });
 
 test('installed Mock acceptance requires both complete same-cohort public templates without skips', async () => {
@@ -911,7 +935,8 @@ test('the required Node caller cannot silently become a direct Native caller', a
     if (node === null || typeof node !== 'object') return;
     if (node.type === 'VariableDeclarator' && node.id.name === 'runScenarioCommand') declarations.push(node.init);
     if (node.type === 'CallExpression' && ['runNativeCliMockScenario', 'runNativeSharedFileMockScenario',
-      'runNativeNullableMockScenarios', 'runNativeMixedFileMockScenarios'].includes(node.callee.name)) {
+      'runNativeNullableMockScenarios', 'runNativeMixedFileMockScenarios', 'runNativeOrderedFileMockScenarios']
+      .includes(node.callee.name)) {
       assert.equal(invocations.has(node.callee.name), false);
       invocations.set(node.callee.name, node.arguments[0]);
     }
@@ -935,7 +960,7 @@ test('the required Node caller cannot silently become a direct Native caller', a
   assert.equal(launchArguments.elements[1].type, 'SpreadElement');
   assert.equal(launchArguments.elements[1].argument.name, 'args');
   assert.equal(directory.name, 'cwd');
-  assert.equal(invocations.size, 4);
+  assert.equal(invocations.size, 5);
   for (const [name, options] of invocations) {
     assert.equal(options.type, 'ObjectExpression');
     const byName = new Map(options.properties.map(property => [property.key.name, property.value]));

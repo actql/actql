@@ -277,7 +277,8 @@ test "Native cancellation commit loss is looked up without deriving a retry from
         () => true,
         () => false,
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(
       journal.lookup_cancellation(request, "namespace-a", "original", 1, () => {

@@ -95,9 +95,9 @@ fn file_capture_metadata_capacity(
       6L +
       11L +
       10L,
-      // Target IO's replacement-ACK and predecessor slots exist for read and
-      // write children alike; write-only carriers are in the update quote.
-      reference_slots: references + 14L + 2L,
+      // Target IO's replacement ACK, predecessor and ordered key metadata
+      // slots exist for read and write children alike.
+      reference_slots: references + 14L + 3L,
       scalar_words: 1L +
       8L +
       26L +
@@ -190,7 +190,12 @@ fn file_capture_transport_capacity(
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
   layout : @files.NativeFilesystemReadLayout,
+  measured_transport_bytes? : Int? = None,
 ) -> Int64? {
+  let receive_bytes = measured_transport_bytes.unwrap_or(limits.page.max_bytes)
+  if receive_bytes < 0 || receive_bytes > limits.page.max_bytes {
+    return None
+  }
   guard layout.root_payload_bytes > 0L &&
     layout.reader_payload_bytes > 0L &&
     layout.observation_payload_bytes > 0L &&
@@ -251,7 +256,7 @@ fn file_capture_transport_capacity(
     // the Reader's C chunk coexists with the returned MoonBit chunk Bytes.
     @execution.checked_preparation_add_product(
       total,
-      limits.page.max_bytes.to_int64(),
+      receive_bytes.to_int64(),
       2L,
     )
     is Some(total) &&
@@ -281,6 +286,9 @@ fn file_capture_provider_capacity(
   prepared_contract? : @rows.RelationDocumentPreparedContract? = None,
   response_bytes? : Int? = None,
   writable_fields? : Int = 0,
+  ordered_projection? : Bool = false,
+  measured_transport_bytes? : Int? = None,
+  measured_projection? : @rows.RowPageLimits? = None,
 ) -> @execution.ExecutionCapacity? {
   file_capture_provider_construction(
     selection,
@@ -289,6 +297,9 @@ fn file_capture_provider_capacity(
     prepared_contract~,
     response_bytes~,
     writable_fields~,
+    ordered_projection~,
+    measured_transport_bytes~,
+    measured_projection~,
   ).map(value => value.0)
 }
 
@@ -300,19 +311,27 @@ fn file_capture_provider_construction(
   prepared_contract? : @rows.RelationDocumentPreparedContract? = None,
   response_bytes? : Int? = None,
   writable_fields? : Int = 0,
+  ordered_projection? : Bool = false,
+  measured_transport_bytes? : Int? = None,
+  measured_projection? : @rows.RowPageLimits? = None,
 ) -> (@execution.ExecutionCapacity, @execution.PreparationRepresentationUnits)? {
   let page = match
     file_capture_response_backing_page(limits.page, response_bytes) {
     Some(value) => value
     None => return None
   }
-  guard file_capture_projection_backing_page(
-      contract,
-      limits.page,
-      response_bytes,
-    )
-    is Some(projection_page) else {
-    return None
+  let projection_page = match measured_projection {
+    Some(selected) => selected
+    None =>
+      match
+        file_capture_projection_backing_page(
+          contract,
+          limits.page,
+          response_bytes,
+        ) {
+        Some(selected) => selected
+        None => return None
+      }
   }
   let projection : @rows.RelationDocumentProjectionConstruction = {
     original: contract,
@@ -332,13 +351,34 @@ fn file_capture_provider_construction(
         is Some(projected) else {
         return None
       }
-      @execution.compose_preparation_representation([raw, projected])
+      if ordered_projection {
+        // The borrowed key stays with its prepared provider. Only the
+        // temporary ordered document wrapper overlaps the projected rows.
+        @execution.compose_preparation_representation([
+          raw,
+          projected,
+          {
+            record_headers: 1L,
+            reference_slots: 2L,
+            scalar_words: 0L,
+            owned_utf16_units: 0L,
+            owned_wire_bytes: 0L,
+          },
+        ])
+      } else {
+        @execution.compose_preparation_representation([raw, projected])
+      }
     }
   }
   guard document is Some(document) &&
     @execution.preparation_representation_cost(document) is Some(document_bytes) &&
     @files.native_filesystem_read_layout() is Some(layout) &&
-    file_capture_transport_capacity(selection, limits, layout)
+    file_capture_transport_capacity(
+      selection,
+      limits,
+      layout,
+      measured_transport_bytes~,
+    )
     is Some(transport) &&
     @execution.checked_preparation_add_product(document_bytes, transport, 1L)
     is Some(total) else {

@@ -79,20 +79,11 @@ fn published_update_targets_from_root(
     if aliases.is_empty() {
       return Ok(None)
     }
-    let mappings = match admission {
-      Some(admission) => publication_admission_mappings(admission)
-      None =>
-        @check_environment.check_mapping_contract_shapes(
-          @program_check.checking_environment_wire(environment),
-          {
-            max_bytes: 1048576,
-            max_nodes: 16384,
-            max_depth: 32,
-            max_members: 32768,
-          },
-          1000000,
-        ).unwrap_or_else(() => raise PublicationStop(Publication))
-    }
+    let mappings = publication_admission_mappings(
+      admission.unwrap_or_else(() => {
+        publication_environment_admission(environment)
+      }),
+    )
     match
       @query_program.bind_update_target_publication(mappings, aliases, 1000000) {
       Ok(value) => Ok(Some(value))

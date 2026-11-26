@@ -41,27 +41,34 @@ type View = Readonly<{
   resource_identity?: unknown; data_classification?: unknown;
 }>;
 type QueryAlias = Readonly<{name: string; resource: string; request?: object}>;
+type OrderedFileIdentity = Readonly<{kind: 'tuple'; fields: readonly string[]}>;
+type FilePrimaryIdentity = string | OrderedFileIdentity;
 type DataBinding = Readonly<{resource: string; items_path: readonly string[]; key_path: readonly string[];
-  primary_identity: string; schema?: Schema}>;
+  primary_identity: FilePrimaryIdentity; schema?: Schema}>;
 type FileBinding = Readonly<{
   listing_resource: string; content_resource: string; data_resource: string;
   identity_field: string; name_field: string; version_field: string; media_type_field: string;
   content_utf8_field: string; path_field?: string;
 }>;
-type WriteBase = Readonly<{
-  resource: string; primary_identity: string;
+type WriteBase<Key extends FilePrimaryIdentity> = Readonly<{
+  resource: string; primary_identity: Key;
   permission: string; observe_permission: string; approval: 'required'; aliases: readonly string[];
 }>;
-type UpdateWriteSpec = WriteBase & Readonly<{
+type UpdateWriteSpec<Key extends FilePrimaryIdentity> = WriteBase<Key> & Readonly<{
   operation?: 'update'; writable_fields: readonly string[];
   update_fields?: readonly string[]; write_null_fields?: readonly string[];
 }>;
-type CreateWriteSpec = WriteBase & Readonly<{
+type CreateWriteSpec = WriteBase<string> & Readonly<{
   operation: 'create'; writable_fields: readonly string[];
   update_fields?: never; write_null_fields?: readonly string[];
 }>;
-type WriteSpec = UpdateWriteSpec | CreateWriteSpec | (WriteBase & Readonly<{operation: 'delete';
-  writable_fields?: never; update_fields?: never; write_null_fields?: never}>);
+type UpsertWriteSpec = WriteBase<OrderedFileIdentity> & Readonly<{
+  operation: 'upsert'; writable_fields: readonly string[];
+  update_fields?: never; write_null_fields?: readonly string[];
+}>;
+type WriteSpec<Key extends FilePrimaryIdentity = FilePrimaryIdentity> = UpdateWriteSpec<Key> |
+  (Key extends string ? CreateWriteSpec : UpsertWriteSpec) | (WriteBase<Key> & Readonly<{operation: 'delete';
+    writable_fields?: never; update_fields?: never; write_null_fields?: never}>);
 type Entry = Readonly<{
   views: readonly View[]; query_aliases: readonly QueryAlias[]; data: readonly DataBinding[];
   writes?: readonly WriteSpec[]; file_bindings?: readonly FileBinding[];
@@ -77,6 +84,10 @@ type SavedInput = Readonly<{
 }>;
 type FileProfileFields = [identity: string, name: string, version: string, mediaType: string,
   contentUtf8: string, path: string | undefined, itemsPath: readonly string[], keyPath: readonly string[]];
+type FileKeyLimits = [bytes: number, nodes: number, depth: number, rows: number];
+// The same prepared layout can be borrowed within the ordinary Source page
+// limits and the larger existing File Effect document limits.
+const fileKeyLimits: FileKeyLimits = [1048576, 16384, 32, 100];
 type CatalogBindings = Readonly<{
   clientProjectCatalogAdmit(wire: string): unknown;
   clientProjectCatalogAdmissionConstructionCapacity(wire: string): unknown;
@@ -102,23 +113,27 @@ type CatalogBindings = Readonly<{
   clientProgramRowSourceBindFileReadProfile(declaration: unknown, resource: string, physical: unknown,
     physicalResource: string, ...fields: FileProfileFields): unknown;
   clientProgramComposeInstalledSourceConstructionCapacity(quantity: unknown, providers: readonly unknown[]): unknown;
+  clientProgramRelationFileKeyMetadataCapacity(capacity: unknown, declaration: unknown, resource: string, width: number,
+    ...limits: FileKeyLimits): unknown;
+  clientProgramRelationPrepareFileKey(declaration: unknown, resource: string, fields: readonly string[],
+    ...limits: FileKeyLimits): unknown;
 }>;
 type Runtime = Partial<CatalogBindings> & RowSourceMappingRuntime;
 type Restored = Readonly<Partial<ReturnType<Member['prepareNativeDeclaration']>>>;
 type EffectPrepared = ReturnType<Member['prepareMappings']>;
-type PhysicalBinding = Readonly<{
+type PhysicalBinding<Key extends FilePrimaryIdentity> = Readonly<{
   resource: string; declaration: unknown; itemsPath: readonly string[]; keyPath: readonly string[];
-  primaryIdentity: string; schema: Schema; writableFields: readonly string[];
+  primaryIdentity: Key; schema: Schema; writableFields: readonly string[]; preparedKey?: unknown;
 }>;
-type PublishedWrite = Readonly<WriteSpec & {mappingWire: string}>;
+type PublishedWrite<Key extends FilePrimaryIdentity> = WriteSpec<Key> & Readonly<{mappingWire: string}>;
 type WritableInventorySource = Readonly<{
   catalogue: Readonly<{connection: string}>;
   writes: readonly Readonly<{resource: string; operation?: WriteSpec['operation']; mappingWire: string}>[];
   physical: readonly Readonly<{resource: string; itemsPath: readonly string[]; schema: object}>[];
   effectPrepared?: Readonly<{mappings?: readonly Readonly<{resource: string; body: string}>[]}>;
 }>;
-type CatalogSource = Readonly<{
-  declaration: unknown; wire: string; physical: readonly PhysicalBinding[]; writes: readonly PublishedWrite[];
+type CatalogSource<Key extends FilePrimaryIdentity = FilePrimaryIdentity> = Readonly<{
+  declaration: unknown; wire: string; physical: readonly PhysicalBinding<Key>[]; writes: readonly PublishedWrite<Key>[];
   fileBindings: readonly FileBinding[]; scopeCid: string; sourceMember?: Member; sourcePrepared: Restored;
   effectMember?: Member; effectPrepared?: EffectPrepared;
   catalogue: Readonly<{
@@ -149,10 +164,21 @@ const freeze = <Value,>(value: Value): Value => {
 };
 const invalid: () => never = () => fail('InvalidInstalledMockCatalog');
 
-type WritePermission = Pick<WriteBase, 'permission' | 'approval'>;
-type ResourceWriteFacts = {resource: string; primary_identity: string;
+function catalogFileIdentity(value: unknown): value is FilePrimaryIdentity {
+  return text(value) || (object(value) && closed(value, ['kind', 'fields']) &&
+    value.kind === 'tuple' && names(value.fields) && value.fields.length >= 2);
+}
+function equalFileIdentity(left: unknown, right: FilePrimaryIdentity) {
+  if (typeof right === 'string') return left === right;
+  return catalogFileIdentity(left) && typeof left !== 'string' && left.fields.length === right.fields.length &&
+    left.fields.every((field, index) => field === right.fields[index]);
+}
+
+type WritePermission = Pick<WriteBase<FilePrimaryIdentity>, 'permission' | 'approval'>;
+type ResourceWriteFacts = {resource: string; primary_identity: FilePrimaryIdentity;
   create?: WritePermission & {fields: readonly string[]};
-  update?: WritePermission & {fields: readonly string[]}; delete?: WritePermission};
+  update?: WritePermission & {fields: readonly string[]};
+  upsert?: WritePermission & {fields: readonly string[]}; delete?: WritePermission};
 function writeFacts(specs: readonly WriteSpec[]) {
   const writes: ResourceWriteFacts[] = [];
   for (const spec of specs) {
@@ -174,8 +200,9 @@ function writeFacts(specs: readonly WriteSpec[]) {
   return {writes};
 }
 const noSources = Object.freeze([]);
-const mappingOperation = (spec: WriteSpec) => spec.operation === 'create' ? 'file-create' : spec.operation ?? 'update';
-const mappingSources = (spec: UpdateWriteSpec | CreateWriteSpec) => Object.freeze((spec.update_fields ?? spec.writable_fields).map(name => Object.freeze({
+const mappingOperation = (spec: WriteSpec) => spec.operation === 'create' ? 'file-create' :
+  spec.operation === 'upsert' ? 'file-upsert' : spec.operation ?? 'update';
+const mappingSources = (spec: UpdateWriteSpec<FilePrimaryIdentity> | CreateWriteSpec | UpsertWriteSpec) => Object.freeze((spec.update_fields ?? spec.writable_fields).map(name => Object.freeze({
   target: name, field: name, null_behavior: spec.write_null_fields?.includes(name) ? 'write_null' : 'reject',
 })));
 
@@ -227,6 +254,7 @@ async function projectDeclaredCatalog(moon: Runtime, {directory, catalogFile, da
     'clientProgramRowSourceFileReadProfileConstructionCapacity',
     'clientProgramRowSourceBindFileReadProfile',
     'clientProgramComposeInstalledSourceConstructionCapacity',
+    'clientProgramRelationFileKeyMetadataCapacity', 'clientProgramRelationPrepareFileKey',
   ] as const).map(name => [name, moon?.[name]])));
   const call = <Name extends keyof CatalogBindings>(name: Name, ...args: Parameters<CatalogBindings[Name]>) =>
     Reflect.apply(methods[name] as (...args: Parameters<CatalogBindings[Name]>) =>
@@ -238,12 +266,13 @@ async function projectDeclaredCatalog(moon: Runtime, {directory, catalogFile, da
     fail('ForeignDeclaredFileInstallation');
   }
   const inputStage = <Value extends NativeValue>(member: Member | undefined, geometry: () => Geometry,
-    project: () => Value, metadata = false): Value => {
+    project: () => Value, metadata = false, compose?: (capacity: unknown) => unknown): Value => {
     if (installationInventory === undefined) return project();
     const projection = Object.freeze({capacity() {
       const {retained, workspace} = geometry();
-      return checked(call('clientProgramInstalledSourceConstructionCapacity',
+      const capacity = checked(call('clientProgramInstalledSourceConstructionCapacity',
         retained.nodes, retained.text, retained.wire, workspace.nodes, workspace.text, workspace.wire));
+      return compose === undefined ? capacity : compose(capacity);
     }, project});
     return metadata ? installationInventory.prepareMetadataInput(projection)
       : member!.prepareNativeInput(projection) as Value;
@@ -350,11 +379,23 @@ async function projectDeclaredCatalog(moon: Runtime, {directory, catalogFile, da
     for (const binding of entry.data) {
       if (!closed(binding, ['resource', 'items_path', 'key_path', 'primary_identity'], ['schema']) ||
           !publicViews.has(binding.resource) || data.has(binding.resource) ||
-          !path(binding.items_path) || !path(binding.key_path) || !text(binding.primary_identity) ||
+          !path(binding.items_path) || !path(binding.key_path) || !catalogFileIdentity(binding.primary_identity) ||
           binding.schema !== undefined && !object(binding.schema)) invalid();
       const schema = binding.schema ?? publicViews.get(binding.resource)!.schema;
-      if (!Object.hasOwn(schema, binding.primary_identity) ||
-          schema[binding.primary_identity]?.type !== 'string' || schema[binding.primary_identity]?.nullable !== false) invalid();
+      const identity = binding.primary_identity;
+      if (typeof identity === 'string') {
+        if (!Object.hasOwn(schema, identity) || schema[identity]?.type !== 'string' ||
+            schema[identity]?.nullable !== false) invalid();
+      } else {
+        if (binding.schema !== undefined) invalid();
+        // The original Common constructor also checks the exact published key
+        // and the effective schema when issuing any selected Mapping.
+        for (const field of identity.fields) {
+          const component = schema[field];
+          if (!Object.hasOwn(schema, field) || component?.nullable !== false ||
+              component.type !== 'string' && component.type !== 'int64') invalid();
+        }
+      }
       data.set(binding.resource, {...binding, schema});
     }
     const bound = new Set<string>(), fileBindings: FileBinding[] = [];
@@ -389,12 +430,15 @@ async function projectDeclaredCatalog(moon: Runtime, {directory, catalogFile, da
         ['operation', 'writable_fields', 'write_null_fields', 'update_fields']) ||
           !data.has(spec.resource) || bound.has(spec.resource) ||
           !names(spec.aliases) || !spec.aliases.length || !text(spec.permission) || !text(spec.observe_permission) ||
-          spec.approval !== 'required' || spec.primary_identity !== data.get(spec.resource)!.primary_identity) invalid();
+          spec.approval !== 'required' ||
+          !equalFileIdentity(spec.primary_identity, data.get(spec.resource)!.primary_identity)) invalid();
       const operation = Object.hasOwn(spec, 'operation') ? spec.operation : 'update';
+      const scalar = typeof spec.primary_identity === 'string';
+      if ((operation === 'upsert' && scalar) || (operation === 'create' && !scalar)) invalid();
       if (operation === 'delete') {
         if (Object.hasOwn(spec, 'writable_fields') || Object.hasOwn(spec, 'write_null_fields') ||
             Object.hasOwn(spec, 'update_fields')) invalid();
-      } else if ((operation !== 'update' && operation !== 'create') ||
+      } else if ((operation !== 'update' && operation !== 'create' && operation !== 'upsert') ||
           !names(spec.writable_fields) || !spec.writable_fields.length) invalid();
       if (Object.hasOwn(spec, 'update_fields')) {
         const fields = spec.update_fields;
@@ -563,27 +607,42 @@ async function projectDeclaredCatalog(moon: Runtime, {directory, catalogFile, da
       mappingOriginals = effectPrepared.mappings!;
     } else mappingOriginals = [];
     const source = inputStage<CatalogSource>(undefined,
-      () => declaredProjectCatalogFinalDescriptorsConstructionGeometry(entry, declarationWire, mappingOriginals, count),
       () => {
-      const physical: PhysicalBinding[] = [];
-      for (const binding of data.values()) {
-        physical.push(Object.freeze({resource: binding.resource,
-          declaration: overrideInputs?.get(binding.resource) ?? declaration,
-          itemsPath: Object.freeze(binding.items_path), keyPath: Object.freeze(binding.key_path),
-          primaryIdentity: binding.primary_identity, schema: freeze(binding.schema), writableFields: Object.freeze([])}));
-      }
-      const writes = writeSpecs.map((spec, index) => {
-        const mappingWire = installationInventory === undefined ? mappingOriginals[index]
-          : (mappingOriginals[index] as {body: unknown}).body;
-        if (typeof mappingWire !== 'string') fail('InvalidHostRuntimeResult');
-        return freeze({...spec, mappingWire});
+        let orderedDataCount = 0;
+        for (const binding of data.values()) if (typeof binding.primary_identity !== 'string') orderedDataCount++;
+        return declaredProjectCatalogFinalDescriptorsConstructionGeometry(entry, declarationWire, mappingOriginals, count, orderedDataCount);
+      },
+      () => {
+        const physical: PhysicalBinding<FilePrimaryIdentity>[] = [];
+        for (const binding of data.values()) {
+          const preparedKey = installationInventory === undefined || typeof binding.primary_identity === 'string'
+            ? undefined : checked(fileCall('clientProgramRelationPrepareFileKey', declaration,
+              binding.resource, binding.primary_identity.fields, ...fileKeyLimits));
+          physical.push(Object.freeze({resource: binding.resource,
+            declaration: overrideInputs?.get(binding.resource) ?? declaration,
+            itemsPath: Object.freeze(binding.items_path), keyPath: Object.freeze(binding.key_path),
+            primaryIdentity: binding.primary_identity, schema: freeze(binding.schema), writableFields: Object.freeze([]),
+            ...(preparedKey === undefined ? {} : {preparedKey})}));
+        }
+        const writes = writeSpecs.map((spec, index) => {
+          const mappingWire = installationInventory === undefined ? mappingOriginals[index]
+            : (mappingOriginals[index] as {body: unknown}).body;
+          if (typeof mappingWire !== 'string') fail('InvalidHostRuntimeResult');
+          return freeze({...spec, mappingWire});
+        });
+        return Object.freeze({declaration, wire: declarationWire, physical: Object.freeze(physical),
+          writes: Object.freeze(writes), fileBindings: freeze(fileBindings), scopeCid,
+          sourceMember, sourcePrepared, effectMember, effectPrepared,
+          catalogue: freeze({connection, connectorId, provider: provider!, registration, revision, views: finalViews,
+            queryAliases, updateAliases: writes.flatMap(spec => spec.aliases.map(name => ({name, resource: spec.resource})))})});
+      }, true, capacity => {
+        for (const binding of data.values()) {
+          if (typeof binding.primary_identity === 'string') continue;
+          capacity = checked(fileCall('clientProgramRelationFileKeyMetadataCapacity', capacity, declaration,
+            binding.resource, binding.primary_identity.fields.length, ...fileKeyLimits));
+        }
+        return capacity;
       });
-      return Object.freeze({declaration, wire: declarationWire, physical: Object.freeze(physical),
-        writes: Object.freeze(writes), fileBindings: freeze(fileBindings), scopeCid,
-        sourceMember, sourcePrepared, effectMember, effectPrepared,
-        catalogue: freeze({connection, connectorId, provider: provider!, registration, revision, views: finalViews,
-          queryAliases, updateAliases: writes.flatMap(spec => spec.aliases.map(name => ({name, resource: spec.resource})))})});
-    }, true);
     sources.push(source);
     assertCurrent();
   }

@@ -18,7 +18,7 @@ import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {inspectProjectMockDeclarations, prepareInstalledProjectMock,
   installPreparedProjectMockSources} from '../local-node/installed-project-mock.mjs';
 import {installPreparedProjectMockEffects} from '../local-node/installed-mock-row-effect.mjs';
-import {createMockFileRowCodec, mockFileRowFootprint, mockFileEffectPlanRecipe}
+import {createMockFileRowCodec, mockFileRowFootprint, mockFileEffectPlanRecipe, prepareMockFileRequestRecord}
   from '../local-node/installed-mock-row-effect.mjs';
 import {createMockFileTarget} from './mock-file-target.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -64,6 +64,175 @@ async function withMockCatalog(action, files = multipleTargetMockProjectFiles())
     current = false;
   }
 }
+
+test('installed Mock retains the funded ordered layout of each original File resource', async () => {
+  const files = {...multipleTargetMockProjectFiles()};
+  const catalog = JSON.parse(files['mock/catalog.json']);
+  const source = catalog.connections.salesforce;
+  source.writes = [];
+  for (const view of source.views) {
+    view.schema = {site: {type: 'string', nullable: false}, serial: {type: 'int64', nullable: false},
+      label: {type: 'string', nullable: false}};
+    view.facts.relation_keys.candidate_keys = [['site', 'serial']];
+  }
+  for (const binding of source.data) binding.primary_identity = {kind: 'tuple', fields: ['site', 'serial']};
+  files['mock/catalog.json'] = JSON.stringify(catalog);
+  const adjacent = '{"label":"control","serial":9007199254740992,"site":"west"}';
+  const present = '{"label":"old","serial":9007199254740993,"site":"west"}';
+  const independent = '{"label":"other resource","serial":9007199254740994,"site":"east"}';
+  files['mock/data.json'] = '{"salesforce":{"Account":{"key":["site","serial"],"rows":[' + adjacent + ',' + present +
+    ']},"Contact":{"key":["site","serial"],"rows":[' + independent + ']}}}';
+  await withMockCatalog(async ({directory, bundle, assertCurrent}) => {
+    assert.deepEqual(bundle.writables, []);
+    const [account, contact] = bundle.sources[0].physical;
+    assert.equal(account.resource, 'Account');
+    assert.equal(contact.resource, 'Contact');
+    assert.ok(account.preparedKey);
+    assert.ok(contact.preparedKey);
+    assert.notEqual(account.preparedKey, contact.preparedKey);
+    const path = join(directory, 'mock/data.json');
+    const bytes = await readFile(path);
+    const document = checked(moon.clientProgramRelationAdmitDocument(bytes, 1048576, 4096, 32, 100, 16777216));
+    const project = (binding, key) => checked(moon.clientProgramRelationProjectTargetDocument(document,
+      binding.declaration, binding.resource, binding.itemsPath, binding.keyPath, undefined, key, []));
+    assert.throws(() => project(account, undefined), {code: 'MoonBitHostFailure'});
+    assert.throws(() => project(account, contact.preparedKey), {code: 'MoonBitHostFailure'});
+    const observe = (binding, tuple) => {
+      const rows = project(binding, binding.preparedKey);
+      const row = checked(moon.clientProgramRelationObserveTarget(rows, binding.declaration, JSON.stringify(tuple)));
+      return JSON.parse(moon.clientProgramRelationTargetBefore(row));
+    };
+    assert.deepEqual(observe(account, ['west', '9007199254740993']), {site: 'west', serial: '9007199254740993', label: 'old'});
+    assert.deepEqual(observe(contact, ['east', '9007199254740994']), {site: 'east', serial: '9007199254740994', label: 'other resource'});
+    assert.deepEqual(await readFile(path), bytes);
+
+    const methods = {admit: 'clientProgramRelationAdmitDocument', project: 'clientProgramRelationProjectTargetDocument',
+      observe: 'clientProgramRelationObserveTarget', findOrdered: 'clientProgramRelationFindOrderedTarget',
+      before: 'clientProgramRelationTargetBefore', version: 'clientProgramRelationTargetVersion',
+      update: 'clientProgramRelationPrepareTargetUpdate', delete: 'clientProgramRelationPrepareTargetDelete',
+      orderedInsert: 'clientProgramRelationPrepareOrderedTargetInsert'};
+    const codec = createMockFileRowCodec({bundle, original: bundle.sources[0],
+      call: (name, ...args) => Reflect.apply(moon[methods[name]], moon, args)});
+    const target = {physical: account, write: {operation: 'upsert', writable_fields: ['label']}};
+    const existingKey = ['west', '9007199254740993'], emptyKey = ['east', '9007199254740994'];
+    const admitted = codec.admit(bytes, target);
+    const found = codec.findOrdered(admitted, existingKey);
+    assert.equal(found.before.label, 'old');
+    assert.equal(codec.findOrdered(admitted, emptyKey), undefined);
+    assert.throws(() => codec.findOrdered(admitted, '["east",9007199254740994]'), {code: 'MoonBitHostFailure'});
+    const bindingCid = 'sha256:' + '4'.repeat(64), mappingCid = 'sha256:' + '5'.repeat(64);
+    const requestTarget = {...target, mapping:{mappingCid}, beforeFields:['label','serial','site']};
+    const prepare = (record, preview) => prepareMockFileRequestRecord({bindingCid, target:requestTarget,
+      record:{binding:bindingCid,mapping:mappingCid,...record}, preview});
+    const proposedUpdate = {target: existingKey, value: {label: 'updated'}, version: found.versionCid, before: found.before};
+    const proposedInsert = {target: emptyKey, value: {label: 'inserted'}};
+    const update = prepare(proposedUpdate).record, insert = prepare(proposedInsert).record;
+    assert.deepEqual(update.target, existingKey);
+    assert.ok(Object.isFrozen(update.target));
+    assert.notEqual(update.target, existingKey);
+    const absentPreview = {target_row_identity:[...emptyKey], before:{state:'absent'}, target_guard:{state:'not_applicable'}};
+    const presentPreview = {target_row_identity:[...existingKey], before:{state:'present',value:found.before},
+      target_guard:{state:'version',version_cid:found.versionCid}};
+    const restore = (entry, preview) => prepare(JSON.parse(entry.retainedWire), preview);
+    for (const [request, preview] of [[proposedInsert, absentPreview], [proposedUpdate, presentPreview]]) {
+      const captured = prepare(request);
+      const recovered = restore(captured, preview);
+      assert.equal(recovered.retainedWire, captured.retainedWire);
+      assert.ok(Array.isArray(JSON.parse(recovered.retainedWire).target));
+    }
+    assert.throws(() => prepare({...proposedInsert,target:JSON.stringify(emptyKey)}), {code:'InvalidMockEffectRequest'});
+    assert.throws(() => prepare({...proposedUpdate,before:{...found.before,serial:'9007199254740992'}}), {code:'InvalidMockEffectRequest'});
+    assert.throws(() => prepare({...proposedInsert,version:found.versionCid}), {code:'InvalidMockEffectRequest'});
+    assert.throws(() => restore(prepare(proposedInsert), {...absentPreview,target_row_identity:[...emptyKey].reverse()}),
+      {code:'InvalidMockEffectRecovery'});
+    assert.throws(() => restore(prepare(proposedUpdate), {...presentPreview,before:{state:'present',value:{...found.before,label:'wrong'}}}),
+      {code:'InvalidMockEffectRecovery'});
+    const expectedUpdate = present.replace('"old"', '"updated"');
+    const expectedInsert = '{"label":"inserted","serial":9007199254740994,"site":"east"}';
+    const afterUpdate = files['mock/data.json'].replace(present, expectedUpdate);
+    const afterInsert = afterUpdate.replace(expectedUpdate + ']', expectedUpdate + ',' + expectedInsert + ']');
+    let writes = 0;
+    const file = createMockFileTarget({dataPath: path, maxBytes: 1048576, assertCurrent, observeWrite: () => {writes++;}});
+    const runOriginal = Object.freeze({purpose: 'ordered locked file component'});
+    const runChild = async (kind, selected, record, authorize = () => {}) => {
+      const child = file.updateChild({runOriginal, authorize, replace: input => codec.replace(kind, input, selected, record)});
+      try {return await child.prepare();}
+      finally {assert.equal((await child.release()).pending, false);}
+    };
+    try {
+      const refused = new Error('Fixture decision denied');
+      await assert.rejects(runChild('upsert', target, insert, () => {throw refused;}), cause => cause === refused);
+      assert.equal(writes, 0);
+      assert.deepEqual(await readFile(path), bytes);
+      await assert.rejects(runChild('upsert', {...target,physical:{...account,preparedKey:contact.preparedKey}}, insert),
+        {code:'InvalidInstalledMockEffect'});
+      assert.equal(writes, 0);
+      await runChild('upsert', target, update);
+      assert.equal(await readFile(path, 'utf8'), afterUpdate);
+      await assert.rejects(runChild('upsert', target, update), {code: 'MockTargetVersionConflict'});
+      await runChild('upsert', target, insert);
+      assert.equal(await readFile(path, 'utf8'), afterInsert);
+      await assert.rejects(runChild('upsert', target, insert), {code: 'MoonBitHostFailure'});
+      assert.equal(writes, 2);
+      assert.equal(await readFile(path, 'utf8'), afterInsert);
+      const remove = {physical: account, write: {operation: 'delete'}};
+      const inserted = codec.findOrdered(codec.admit(Buffer.from(afterInsert), remove), emptyKey);
+      await runChild('delete', remove, {target: emptyKey, before: inserted.before, version: inserted.versionCid});
+      assert.equal(await readFile(path, 'utf8'), afterUpdate);
+      assert.equal(writes, 3);
+    } finally {
+      assert.equal((await file.closeFor(runOriginal)).pending, false);
+      assert.equal((await file.close()).pending, false);
+    }
+  }, files);
+  source.writes = [{resource: 'Account', operation: 'upsert', primary_identity: source.data[0].primary_identity,
+    writable_fields: ['label'], permission: 'fixture:account:upsert', observe_permission: 'fixture:account:observe',
+    approval: 'required', aliases: ['salesforce.Account']}];
+  files['mock/catalog.json'] = JSON.stringify(catalog);
+  await withMockCatalog(async ({directory, bundle, preparation, services, baseEnvironmentWire, assertCurrent}) => {
+    const [target] = bundle.writables;
+    const mapping = JSON.parse(target.mapping.body);
+    assert.equal(mapping.schema, 'actql.mapping_contract/0.2');
+    assert.equal(target.mapping.resourceIdentityCid, mapping.resource_identity_cid);
+    const decodedSelectors = [...source.writes[0].primary_identity.fields];
+    assert.deepEqual(mapping.primary_identity, {kind:'tuple',fields:decodedSelectors});
+    const dimensions = token => runtimeField(moon.clientProgramSerializationCapacityBytes(token), 1);
+    const pricedInput = (size, keyUnits, mappedUnits) => checked(moon.clientProgramRelationOrderedMutationWorkspaceCapacity(
+      target.physical.preparedKey, target.physical.itemsPath.length, size, keyUnits, mappedUnits));
+    const probe = pricedInput(256, 32), insert = pricedInput(256, 32, 100);
+    assert.equal(runtimeField(moon.clientProgramSerializationCapacityBytes(probe), 0), 0n);
+    assert(dimensions(probe) < dimensions(insert));
+    assert.throws(() => pricedInput(256, 1048577), {code:'MoonBitHostFailure'});
+    const observedWrites = [];
+    const recipe = mockFileEffectPlanRecipe(moon, bundle, target.write.permission, target.write.observe_permission,
+      undefined, Object.freeze({canInsert:true,workspace(size,keyUnits,mappedUnits) {
+        observedWrites.push([size,keyUnits,mappedUnits]);
+        return pricedInput(size,keyUnits,mappedUnits);
+      }}));
+    assert.deepEqual(recipe.footprintConstruction, {operationIndex:2});
+    assert.deepEqual(recipe.ownedReadOperations.map(read => read.phase), ['capture-target','apply-target','resume-target']);
+    assert(recipe.physicalWrite.inputExtent(294, 120));
+    assert.deepEqual(observedWrites.at(-1), [294,120,120]);
+
+    let writes = 0;
+    const unused = () => assert.fail('Installing a recipe must not enter a Run or issue a grant');
+    const effect = await installPreparedProjectMockEffects({moon, mockPreparation:preparation, baseEnvironmentWire,
+      installationServices:services, authorizationFor:() => ({authorize:unused}), principalId:'operator',
+      runtimeBundleCid:bundle.sources[0].effectMember.runtimeBundleCid, bindingCid:'sha256:'+'a'.repeat(64),
+      assertCurrent, ledgerRoot:join(directory,'effect-ledger'), observeWrite:()=>{writes++;},
+      effectResources:{bindRunOriginal:unused,assertCurrent:unused,limits:unused}});
+    const path = join(directory, 'mock/data.json');
+    try {
+      assert.deepEqual(effect.effects.flatMap(owner => owner.effectSelectors.map(({kind,mappingCid})=>[kind,mappingCid])),
+        [['upsert',target.mapping.mappingCid]]);
+    } finally {
+      await effect.close();
+    }
+    assert.equal(writes,0);
+    await assert.rejects(lstat(path + '.actql-write.lock'),{code:'ENOENT'});
+    assert.equal(await readFile(path, 'utf8'), files['mock/data.json']);
+  }, files);
+});
 
 test('installed Mock mapping retains only the declared nullable write policy', async () => {
   const files = {...multipleTargetMockProjectFiles()};

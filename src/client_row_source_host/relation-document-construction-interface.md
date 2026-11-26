@@ -48,3 +48,16 @@
   composition, unsupported nested contracts, invalid/overflowing bounds,
   cumulative mapping geometry, long integer refusal and original metadata
   correspondence. These checks alone do not establish Host funding integration.
+
+### Ordered key metadata
+
+An ordered file key is prepared under the original mapping construction
+allowance plus the extra canonical carrier-facts verification and the bounded
+array of column positions. The authored field names remain borrowed. The
+selected key and projected rows share the original typed values, so projection
+does not allocate a separate key tuple for each row. A caller funds the ordered
+projection wrapper and lookup's temporary checked components alongside the
+existing projection and row-observation phases.
+The physical target child also funds the bounded canonical tuple decoder
+and writer. For insertion the complete tuple contributes to the physical row
+writer's node and scalar bounds.

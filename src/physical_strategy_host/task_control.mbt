@@ -45,6 +45,7 @@ priv struct CapturedTaskControl {
   mut revision : Int
   mut phase : CapturedTaskControlPhase
   mut remaining : Int
+  entry_task : Int
   // Two scalar words per original task: generation, then consumed attempt.
   mut sample_commits : FixedArray[Int]?
   mut sample_start_revision : Int
@@ -70,10 +71,10 @@ let captured_task_control_bytes : Int64 = @execution.preparation_representation_
     // Control ledger/token/binding/phase/commits/cleanup6; binding tuple/subject/context3;
     // retained Some2; snapshot2; refusal2; cleanup1; carrier1.
     reference_slots: 6L + 3L + 2L + 2L + 2L + 1L + 1L,
-    // Revision/remaining/start revision/fence4;
+    // Revision/remaining/entry task/start revision/fence5;
     // binding/control tags2; OLD+NEW phase tags/payload4; snapshot2;
     // refusal3; cleanup1; other result tags3.
-    scalar_words: 4L + 2L + 4L + 2L + 3L + 1L + 3L,
+    scalar_words: 5L + 2L + 4L + 2L + 3L + 1L + 3L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
@@ -236,13 +237,20 @@ pub fn prepare_captured_task_control(
   hooks.admitting_control = true
   let generation = run.generation
   let tasks = run.done.length()
-  // The original boundary check and update plus the two initial scalar
-  // writes and two commit writes. No later observation mutates these slots.
-  if tasks > 2147483647 / 6 {
+  // Fund the original boundary and commit slots plus the one unstarted
+  // readiness scan. Inspection reuses the admitted entry coordinate.
+  let readiness = 1L +
+    graph_data_count(run.graph).to_int64() +
+    graph_control_count(run.graph).to_int64()
+  let units_per_task = 6L + readiness
+  if tasks.to_int64() > 2147483647L / units_per_task {
     hooks.admitting_control = false
     return Err(Resource(@resources.PlanningLimit))
   }
-  let admitted = @resources.charge_planning(run.ledger, tasks * 6)
+  let admitted = @resources.charge_planning(
+    run.ledger,
+    (tasks.to_int64() * units_per_task).to_int(),
+  )
   if admitted is Err(issue) {
     hooks.admitting_control = false
     refresh_captured_task_boundary_cleanup(run)
@@ -252,6 +260,11 @@ pub fn prepare_captured_task_control(
     hooks.admitting_control = false
     refresh_captured_task_boundary_cleanup(run)
     return Err(BoundaryUnavailable(task))
+  }
+  guard next_captured_task_ungated(run) is Some(entry_task) else {
+    hooks.admitting_control = false
+    refresh_captured_task_boundary_cleanup(run)
+    return Err(BoundaryUnavailable(0))
   }
   let bytes = captured_task_control_construction_bytes(tasks)
   let reservation = match
@@ -270,6 +283,7 @@ pub fn prepare_captured_task_control(
     revision: 0,
     phase: Paused,
     remaining: tasks,
+    entry_task,
     sample_commits: Some(FixedArray::make(2 * tasks, 0)),
     sample_start_revision: 0,
     changing: false,
@@ -310,6 +324,24 @@ pub fn captured_task_control_state(
     return Err(InProgress)
   }
   Ok((control.revision, control.phase))
+}
+
+///|
+/// Observe the exact admitted first task before any physical start.
+pub fn captured_task_control_entry_task(
+  run : CapturedDAG,
+  hooks : CapturedTaskBoundaryHooks,
+) -> Int? {
+  guard captured_task_control_state(run, hooks) is Ok((0, Paused)) &&
+    hooks.control is Some(control) &&
+    control.sample_start_revision == 0 &&
+    hooks.committed is None &&
+    run.running is None &&
+    !resident_provision_pending(run) &&
+    !task_done(run, control.entry_task) else {
+    return None
+  }
+  Some(control.entry_task)
 }
 
 ///|

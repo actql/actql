@@ -475,6 +475,7 @@ export const projectEffectUncertainty = (state: RunState, ref: RunReference) => 
       next: {operation: 'reconcile', ref: {...ref}},
     });
   }
+  return undefined;
 };
 
 export const projectSubmissionNotSent = (input: SubmissionContext) => freezeInput({observation: 'not_sent',

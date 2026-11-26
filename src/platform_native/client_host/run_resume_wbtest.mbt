@@ -592,7 +592,8 @@ test "Native original resume claim distinguishes precommit failure and lost comm
           }
         },
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(database.transaction_fenced())
     if !reply_lost {
@@ -924,9 +925,9 @@ test "Resume original lost COMMIT returns Unknown without a dispatch handle or r
       ..ordinary,
       transaction: operation => {
         if operation is JournalCommit && calls.contains("claim-cas") {
-          database.commit().unwrap()
           calls.push("commit-reply-lost")
-          Err(@sqlite.Busy)
+          client_test_fail_commit_reply(database, 1)
+          operation.observe(database)
         } else {
           (ordinary.transaction)(operation)
         }
@@ -950,7 +951,8 @@ test "Resume original lost COMMIT returns Unknown without a dispatch handle or r
       () => true,
       operations=Some(access),
     )
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_true(calls.contains("commit-reply-lost"))
   assert_true(journal.fenced)

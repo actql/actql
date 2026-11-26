@@ -3793,6 +3793,14 @@
           "async": false
         },
         {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:reopenEntry/init:reopenEntry",
+          "parameters": [
+            "parked",
+            "currentOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask",
           "parameters": [
             "commandWire",
@@ -5330,6 +5338,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:reopenEntry/init:reopenEntry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "reopenEntry(parked: RetainedDebugEntry['park']"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "return holdPause(parked, original.signal);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "projected?.stepId !== parked.entryStep.stepId"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "const original = live;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "currentOriginal() !== true || !journal.debugPauseCurrent"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "throw new Error('ClientRunDebugEntryOriginalUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "entry.abort.signal.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "retainedDebugEntry = undefined;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "const projected = projectEntryStep(original);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "a detached Local SDK process attaches and steps the retained unstarted Debug entry"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -5357,7 +5433,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "757d9f91bb66678843359691f643cd98ac1f557cb52e1c781dc4ec8329e311bf",
+      "sha256": "7aebcc077e53504ab8f87671e50499b21d3f3f41bbb029761afc678afa7adb47",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -11983,7 +12059,6 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/renewal/renewal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
@@ -11998,9 +12073,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/changed/changed",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
@@ -12037,10 +12110,20 @@
             "publishInstalledSource",
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/assertInstalledModelPreflight/assertInstalledModelPreflight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/assertOriginalModelPlanReplay/assertOriginalModelPlanReplay/assertOriginalModelPlanReplay",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#12",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/modelPlanBindingsFor/modelPlanBindingsFor",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/retainedModelReplay/retainedModelReplay"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retainedModelReplay/retainedModelReplay",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/init:assertCurrent/init:assertCurrent",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/modelResume/modelResume",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#6"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -14505,8 +14588,9 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4",
             "openPreparedInstalledHost/preparation/init:retainedEffectManagedPlan/init:retainedEffectManagedPlan",
             "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput",
-            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:finish/init:finish",
-            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending"
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput",
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput#2",
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput#3"
           ],
           "exports": [],
           "attributes": {
@@ -14648,7 +14732,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "const admissionFailures = new WeakMap<EmbeddedSubmission, Parameters<PreparedAdmissionFailure['set']>[1]>();"
+                "anchor": "const admissionFailures = new WeakMap<PreparationAdmission, Parameters<PreparedAdmissionFailure['set']>[1]>();"
               }
             ],
             "inputsOutputs": [
@@ -14944,7 +15028,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "readWorkspace!.metadata(request, 2 * (2112 + 6 * names))"
+                "anchor": "readWorkspace!.metadata(request, parkBytes)"
               }
             ],
             "extension": [
@@ -15041,7 +15125,6 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#11",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#2",
@@ -15079,7 +15162,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "resumeOriginal: interactiveDispatch.resumeDebugTask"
+                "anchor": "resumeOriginal(ref, actor, wire) {"
               }
             ],
             "failure": [
@@ -18373,6 +18456,78 @@
         },
         {
           "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/init:observeDebugPause/init:observeDebugPause",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/init:resumeOriginal/init:resumeOriginal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/physical/physical",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const reopenDebugEntry = async"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "interactiveJournal.restoreUnstartedDebugEntry(ref, wire,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "held.plan.runDefinition.wire !== accepted.runDefinition.wire"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const submission = localPreparationCustody.attach(request,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "await Promise.race([ready.promise, physical.then(() => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "if (reopeningDebugEntries.has(ref.runDefinitionCid)) throw clientOperationError('ClientRunDebugEntryRevisionConflict');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "actor.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "{current: actor.authorize, reserve: actor.reserveOriginal}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const park = interactiveJournal.observeUnstartedDebugEntry(original, authorize);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "a detached Local SDK process attaches and steps the retained unstarted Debug entry"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/localPreparationCustody/localPreparationCustody",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/localPreparationCustody/localPreparationCustody#2",
             "openPreparedInstalledHost/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
@@ -20450,14 +20605,14 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#7",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#5",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#6",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result#2",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
             "openPreparedInstalledHost/preparation/init:restoreManagedModelOriginal/init:restoreManagedModelOriginal",
             "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput",
             "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/init:finish/init:finish",
-            "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/pending/pending"
+            "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/pending/pending",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#5"
           ],
           "exports": [],
           "attributes": {
@@ -27474,21 +27629,6 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/assertInstalledModelPreflight/assertInstalledModelPreflight",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/assertOriginalModelPlanReplay/assertOriginalModelPlanReplay/assertOriginalModelPlanReplay",
-          "parameters": [
-            "prior",
-            "index"
-          ],
-          "async": false
-        },
-        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/attach/attach",
           "parameters": [
             "ref",
@@ -27937,6 +28077,11 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#10",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#11",
           "parameters": [
             "actual",
             "connection",
@@ -27945,7 +28090,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#11",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#12",
           "parameters": [],
           "async": false
         },
@@ -27992,14 +28137,16 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#8",
           "parameters": [
-            "operation",
-            "connection"
+            "prepared"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#9",
-          "parameters": [],
+          "parameters": [
+            "operation",
+            "connection"
+          ],
           "async": false
         },
         {
@@ -28026,6 +28173,17 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/init:observeDebugPause/init:observeDebugPause",
+          "parameters": [
+            "request",
+            "authorize",
+            "resume",
+            "original",
+            "reserveOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun",
           "parameters": [
             "request",
@@ -28045,15 +28203,6 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#3",
           "parameters": [
             "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#4",
-          "parameters": [
-            "request",
-            "authorize",
-            "canResume"
           ],
           "async": false
         },
@@ -28094,6 +28243,15 @@
             "expectedRevision",
             "actual",
             "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/init:resumeOriginal/init:resumeOriginal",
+          "parameters": [
+            "ref",
+            "actor",
+            "wire"
           ],
           "async": false
         },
@@ -28563,6 +28721,21 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#4",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/physical/physical",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry#2",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/init:onUnsupportedSelection/init:onUnsupportedSelection",
@@ -29108,6 +29281,49 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight",
+          "parameters": [
+            "retainInput"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#2",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#3",
+          "parameters": [
+            "request",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#4",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#5",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
         },
@@ -29152,11 +29368,6 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
         },
@@ -29247,12 +29458,46 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
+          "parameters": [
+            "retainInput"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/modelResume/modelResume",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#2",
+          "parameters": [
+            "request",
+            "intent",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#3",
+          "parameters": [
+            "request",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#5",
           "parameters": [
             "signal",
             "retainExecution",
@@ -29261,19 +29506,9 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#6",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
@@ -30585,16 +30820,22 @@
           "async": false
         },
         {
-          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:finish/init:finish",
+          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput",
           "parameters": [
-            "terminal"
+            "pending"
           ],
           "async": false
         },
         {
-          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending",
+          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput#3",
           "parameters": [
-            "resolve"
+            "receipt",
+            "terminal"
           ],
           "async": false
         },
@@ -31487,7 +31728,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "c57b3c59a9f4f3864175f25077a2a2eb9871029aaaefe1288d44cda6e374f7e9"
+      "sha256": "2364ae0e061795a588044649bf76175e76c6588ca04314e7eb7e6c26681b3fa6"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

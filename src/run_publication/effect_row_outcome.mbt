@@ -118,7 +118,8 @@ pub fn issue_effect_row_outcome_receipt(
 
 ///|
 /// Reuse one admitted digest and bounded byte count across ordered batch
-/// rows. This does not replace Store custody or external re-admission.
+/// rows. The response ordinal selects the original dispatch row. This does not
+/// replace Store custody or external re-admission.
 pub fn issue_effect_row_outcome_receipt_from_response(
   preview : EffectPreviewIdentity,
   member_index : Int,
@@ -132,7 +133,7 @@ pub fn issue_effect_row_outcome_receipt_from_response(
 ) -> Result[PublicationContract, EffectRowOutcomeIssue] {
   guard effect_preview_member_identity(preview, member_index)
     is Some(member_cid) &&
-    effect_preview_row_identity(preview, member_index, row_index)
+    effect_preview_ordered_row_identity(preview, member_index, row_index)
     is Some(row_cid) else {
     return Err(InvalidRow)
   }

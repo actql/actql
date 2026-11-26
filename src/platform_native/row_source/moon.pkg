@@ -21,6 +21,7 @@ import {
   "actql/actql/sourceview_resolution" @sourceviews,
   "actql/actql/sha256" @sha,
   "actql/actql/decode_scalar" @scalar,
+  "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/utf8",
 }
 
@@ -29,7 +30,6 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "actql/actql/execution_query" @query,
-  "actql/actql/source_value" @source,
   "actql/actql/program_check" @checked,
   "actql/actql/check_environment" @environment,
   "actql/actql/physical_strategy_host" @strategy,

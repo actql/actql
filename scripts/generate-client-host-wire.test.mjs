@@ -116,6 +116,32 @@ test('Native schema discovery preserves the full registered Program schema', asy
   assert.deepEqual(actual, original);
   assert.equal(actual.$id, 'https://smooth.dev/schemas/actql/0.1.json');
   assert.ok(actual.$defs && actual.properties && actual.allOf);
+  assert.deepEqual(actual, protocol.artifact_schemas.plan_document
+    .properties.plan.properties.execution_material.properties.program);
+  const effects = actual.properties.effects.additionalProperties.oneOf;
+  const update = effects.find(member => member.required.includes('update')).properties.update;
+  const removal = effects.find(member => member.required.includes('delete')).properties.delete;
+  const upsert = effects.find(member => member.required.includes('upsert')).properties.upsert;
+  const tuple = {type: 'array', minItems: 2, items: {
+    type: 'object', additionalProperties: false,
+    required: ['target_field', 'result_field'], properties: {
+      target_field: {type: 'string', minLength: 1},
+      result_field: {type: 'string', minLength: 1},
+    },
+  }};
+  for (const body of [update, removal]) {
+    assert.equal(body.additionalProperties, false);
+    assert.deepEqual(body.properties.match_tuple, tuple);
+    assert.deepEqual(body.allOf.find(rule => rule.oneOf).oneOf.map(rule => rule.required),
+      [['id'], ['ids'], ['match'], ['external_id'], ['where'], ['match_tuple']]);
+    assert.deepEqual(body.allOf.find(rule => rule.if?.required?.includes('match_tuple')),
+      {if: {required: ['match_tuple']}, then: {required: ['from']}});
+  }
+  assert.equal(upsert.additionalProperties, false);
+  assert.deepEqual(upsert.properties.key_tuple, tuple);
+  assert.deepEqual(upsert.required, ['from', 'set']);
+  assert.deepEqual(upsert.allOf.find(rule => rule.oneOf).oneOf,
+    [{required: ['key']}, {required: ['key_tuple']}]);
 });
 
 test('Native schema segments preserve Unicode and escaped annotation bytes', () => {

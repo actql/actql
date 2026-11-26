@@ -14,6 +14,7 @@ fn local_project_mock_row_bindings(
   declaration : @row_host.RowDeclaration,
   files : Array[LocalProjectMockFileBinding],
   data_file : String,
+  fund_ordered? : ((@execution.ExecutionCapacity) -> Bool)? = None,
 ) -> Result[Array[LocalProjectMockRowBinding], @row_host.RowHostIssue] {
   guard entry is Object(body) else { return Err(InvalidSpecification) }
   let data = match body.get("data") {
@@ -40,11 +41,45 @@ fn local_project_mock_row_bindings(
       fields.length() == 4 &&
       local_project_mock_file_path(value, "items_path") is Some(items_path) &&
       local_project_mock_file_path(value, "key_path") is Some(key_path) &&
-      local_project_mock_file_text(value, "primary_identity") is Some(identity) &&
+      fields.get("primary_identity") is Some(original_key) &&
       declaration.views.iter().find_first(view => view.resource == resource)
       is Some(view) &&
       !result.any(prior => prior.view.resource == resource) else {
       return Err(InvalidSpecification)
+    }
+    // The same installed file profile supplies the ordinary read limits.
+    let limits = local_project_mock_file_limits()
+    let (identity, ordered_fields) = match original_key {
+      String(_) => {
+        guard local_project_mock_file_text(value, "primary_identity")
+          is Some(identity) else {
+          return Err(InvalidSpecification)
+        }
+        (identity, None)
+      }
+      Object(tuple) => {
+        guard tuple.length() == 2 &&
+          tuple.get("kind") == Some(Json::string("tuple")) &&
+          tuple.get("fields") is Some(Array(names)) &&
+          fund_ordered is Some(fund) &&
+          @row_host.relation_document_key_metadata_capacity(
+            declaration,
+            resource,
+            limits.page,
+            names.length(),
+          )
+          is Some(quote) &&
+          fund(quote) else {
+          return Err(InvalidSpecification)
+        }
+        guard local_project_mock_write_names(tuple.get("fields"))
+          is Some(fields) &&
+          fields.get(0) is Some(identity) else {
+          return Err(InvalidSpecification)
+        }
+        (identity, Some(fields))
+      }
+      _ => return Err(InvalidSpecification)
     }
     let selection : @row_file.NativeRelationFileSelection = {
       directory: selected_file.root,
@@ -54,16 +89,13 @@ fn local_project_mock_row_bindings(
       key_path: Some(key_path),
       primary_identity: identity,
     }
-    // The existing Mock relation-document implementation uses the SAME
-    // 1MiB/4096-node/32-depth/100-row decoder for records and file data.
-    // Reuse that installed profile, not a row observation or new policy cap.
-    let limits = local_project_mock_file_limits()
     let provider = match
       @row_file.prepare_native_relation_file_provider(
         declaration,
         selection,
         limits,
         response_measured=true,
+        ordered_fields~,
       ) {
       Ok(value) => value
       Err(_) => return Err(InvalidSpecification)

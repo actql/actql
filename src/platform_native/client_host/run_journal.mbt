@@ -65,7 +65,10 @@ pub(all) enum NativeClientRunJournalIssue {
   ChangedIntent
   ForeignRun
   Fenced
-  TransactionUnknown
+  JournalStepFailed(
+    NativeClientJournalStepFailure,
+    NativeClientRunJournalIssue?
+  )
   Encoding
   Physical(@sqlite.NativeSqliteIssue)
   Start(@host.ClientRunStartIssue)
@@ -83,6 +86,17 @@ pub(all) enum NativeClientRunJournalIssue {
   CancellationOperation(@host.ClientCancellationOperationIssue)
   PublicationObservation(@publication_store.NativePublicationStoreIssue)
   RunIdIndexIncomplete
+}
+
+///|
+pub fn NativeClientRunJournalIssue::requires_transaction_reconciliation(
+  self : Self,
+) -> Bool {
+  match self {
+    JournalStepFailed(step, _) => step.requires_reconciliation()
+    Epoch(issue) => issue.requires_transaction_reconciliation()
+    _ => false
+  }
 }
 
 ///|
@@ -694,7 +708,14 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
   match
     client_journal_transaction_operation(self.database, JournalBegin, reads) {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(failure) => {
+      if failure.requires_reconciliation() {
+        self.invalidate_operation_record()
+        self.fenced = true
+        fence_client_journal_transactions(self.database, reads)
+      }
+      return Err(JournalStepFailed(failure, None))
+    }
   }
   if !self.operation_active {
     self.admitted_publications.clear()
@@ -725,12 +746,12 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
           native_timing_count(4)
           Ok(value)
         }
-        Err(_) => {
+        Err(failure) => {
           native_timing_count(5)
           self.invalidate_operation_record()
           self.fenced = true
           fence_client_journal_transactions(self.database, reads)
-          Err(TransactionUnknown)
+          Err(JournalStepFailed(failure, None))
         }
       }
     Err(issue) => {
@@ -747,11 +768,11 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
           native_timing_count(6)
           Err(issue)
         }
-        Err(_) => {
+        Err(failure) => {
           native_timing_count(7)
           self.fenced = true
           fence_client_journal_transactions(self.database, reads)
-          Err(TransactionUnknown)
+          Err(JournalStepFailed(failure, Some(issue)))
         }
       }
     }

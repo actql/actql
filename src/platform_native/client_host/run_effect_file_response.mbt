@@ -208,16 +208,21 @@ fn NativeClientRunJournal::record_effect_file_response_with_operations(
     acknowledged_intent {
     return Err(Checkpoint(InvalidMaterial))
   }
-  let selector = try {
-    let writer = @encode.writer(
-      limits.max_wire_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    )
-    @encode.string_value(writer, ack.identity())
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Encoding)
+  let selector = if ack.has_ordered_key() {
+    // The original file child admitted the exact canonical tuple wire.
+    ack.identity()
+  } else {
+    try {
+      let writer = @encode.writer(
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      )
+      @encode.string_value(writer, ack.identity())
+      @encode.finish(writer)
+    } catch {
+      _ => return Err(Encoding)
+    }
   }
   let selected = ack.selection()
   let target_matches = match
@@ -234,7 +239,10 @@ fn NativeClientRunJournal::record_effect_file_response_with_operations(
     Ok(cid) => cid == operation.target_cid
     Err(_) => false
   }
-  let row_matches = if ack.is_insert() {
+  let member_kind = @publication.effect_preview_member_kind(
+    preview, member_index,
+  )
+  let row_matches = if member_kind == Some("create") {
     match
       @publication.effect_file_create_storage_key_from_preview(
         preview,

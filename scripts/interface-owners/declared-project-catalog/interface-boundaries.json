@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "08e6aea8dfea8a5438ded3cf45163613f26b80fe39aa6e92deeda4242a341850",
+      "sha256": "d2d92eb13b676f3e4dc36720ade697c7a7c3d1dc3584c24249a7b65544543604",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog",
@@ -21,6 +21,14 @@
           "name": "closed/closed/closed#2",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "equalFileIdentity/equalFileIdentity",
+          "parameters": [
+            "field",
+            "index"
           ],
           "async": false
         },
@@ -441,6 +449,13 @@
           "async": false
         },
         {
+          "name": "projectDeclaredCatalog/source/source#3",
+          "parameters": [
+            "capacity"
+          ],
+          "async": false
+        },
+        {
           "name": "projectDeclaredCatalog/writables/writables",
           "parameters": [],
           "async": false
@@ -602,10 +617,12 @@
             "projectDeclaredCatalog/source/source/source/source",
             "projectDeclaredCatalog/source/source/writes/writes",
             "projectDeclaredCatalog/source/source#2",
+            "projectDeclaredCatalog/source/source#3",
             "text/text",
             "wire/wire",
             "writeFacts/facts/facts",
-            "mappingSources/mappingSources/mappingSources"
+            "mappingSources/mappingSources/mappingSources",
+            "equalFileIdentity/equalFileIdentity"
           ],
           "exports": [
             "inspectDeclaredProjectCatalog",
@@ -726,6 +743,10 @@
               {
                 "path": "adapters/host-node/declared-project-catalog-construction.mts",
                 "anchor": "export function declaredProjectCatalogMappingInputsConstructionGeometry"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mts",
+                "anchor": "capacity = checked(fileCall('clientProgramRelationFileKeyMetadataCapacity', capacity, declaration,"
               }
             ],
             "extension": [
@@ -774,6 +795,14 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock binds UPDATE and DELETE to the same original table with distinct mappings"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
+                "anchor": "test('actual Catalog selects Common Mapping for the complete ordered File key'"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
+                "anchor": "actual Catalog selects Common Mapping for the complete ordered File key"
               }
             ]
           }

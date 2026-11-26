@@ -17739,7 +17739,7 @@
     {
       "module": "packages/sdk/internal/transport.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "a0ef27d968a020c6a195bc37269a6d867c0a04516d5cbb30678110900f6afdd8",
+      "sha256": "d40521d52565917d611d0401a8a1e8ce0d0a9aabe61cf430b859e229dcf72796",
       "exports": [
         "RuntimeHostPort",
         "createTransport",
@@ -17764,7 +17764,7 @@
         {
           "name": "<call>#3",
           "parameters": [],
-          "result": "Promise<{\n    requestLoopbackClient: DirectLoopback;\n}>"
+          "result": "Promise<{\n    requestLoopbackClient: DirectLoopback | undefined;\n}>"
         },
         {
           "name": "createTransport",
@@ -19289,7 +19289,7 @@
     {
       "module": "packages/sdk/operation-presentation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7a98df1242bab268cb70ab2dfc8b9e2a0c714742a19d0a57723c1bd3bd6ac6a2",
+      "sha256": "dba44833e67a0327071c3ec7a5857a6e16c904f1a5d465bd80069d87ebee1071",
       "exports": [
         "getOperationPresentationInfo",
         "localizeOperation",

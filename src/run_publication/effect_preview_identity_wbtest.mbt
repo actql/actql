@@ -758,6 +758,42 @@ test "Authored Preview dispatch preserves a nontrivial original row order" {
   )
   assert_eq(effect_preview_row_key(completed, 0, 0), Some(original_key))
   assert_eq(effect_preview_row_key(completed, 0, 1), Some(second_key))
+  let response = Bytes::from_array([0x7B, 0x7D])
+  let dispatch = preview_identity_test_cid("d")
+  let credential_use = preview_identity_test_cid("e")
+  let receipt = issue_effect_row_outcome_receipt(
+    completed,
+    0,
+    0,
+    dispatch,
+    credential_use,
+    response,
+    201,
+    (
+      #|{"result":{"id":"001000000000001"},"state":"applied"}
+    ),
+    8192,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(
+    effect_row_outcome_receipt_row_identity(receipt),
+    effect_preview_row_identity(semantic, 0, 1),
+  )
+  let wire = publication_contract_json(receipt)
+  let current = admit_effect_row_outcome_receipt(
+    completed, 0, 0, dispatch, credential_use, response, 201, wire, 8192, 8192, 256,
+    12,
+  ).unwrap()
+  assert_eq(publication_contract_json(current), wire)
+  assert_true(
+    admit_effect_row_outcome_receipt(
+      completed, 0, 1, dispatch, credential_use, response, 201, wire, 8192, 8192,
+      256, 12,
+    )
+    is Err(ForeignResponse),
+  )
   let duplicate = prepare_effect_preview_dispatch_completion(authored, [
     [original_key, original_key],
   ]).unwrap()
@@ -1635,4 +1671,171 @@ test "Retained Preview admission keeps the same complete original body" {
     )
     is Err(_),
   )
+}
+
+///|
+test "file target identity commits the complete ordered tuple in its original type" {
+  let target = selector => {
+    effect_file_target_cid(
+      preview_identity_test_cid("a"),
+      "/mock",
+      "data.json",
+      "Account",
+      selector,
+      8192,
+      512,
+      12,
+    )
+  }
+  let original = target("[\"west\",\"9223372036854775807\"]").unwrap()
+  assert_eq(
+    original, "sha256:2d4ab32091bc652106438325657c87b35201540c87c5867f4b53ec76bc9ec210",
+  )
+  assert_true(target("[\"9223372036854775807\",\"west\"]").unwrap() != original)
+  assert_true(
+    target("\"[\\\"west\\\",\\\"9223372036854775807\\\"]\"").unwrap() !=
+    original,
+  )
+  assert_true(target("[ \"west\",\"9223372036854775807\"]") is Err(ForeignRow))
+}
+
+///|
+test "file UPSERT receipts bind the approved row transition on write and Saved" {
+  let installation = preview_identity_test_cid("a")
+  let run = preview_identity_test_cid("b")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let dispatch = preview_identity_test_cid("4")
+  let selector = "[\"west\",\"9223372036854775807\"]"
+  let scalar = preview_identity_test_wire(
+    run, authoring, dispatch, "target-sentinel", installation, installation,
+  ).replace(old="\"effect_kind\":\"update\"", new="\"effect_kind\":\"upsert\"")
+  let present = scalar.replace(old="\"target-sentinel\"", new=selector)
+  let singleton = present.replace(old=selector, new="[\"west\"]")
+  assert_true(parse_effect_preview_shape(singleton, 8192, 512, 12) is Err(_))
+  let absent = present
+    .replace(
+      old="{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}}",
+      new="{\"state\":\"absent\"}",
+    )
+    .replace(
+      old="{\"state\":\"version\",\"version_cid\":\"\{installation}\"}",
+      new="{\"state\":\"not_applicable\"}",
+    )
+  let read = draft => {
+    match
+      author_effect_preview_semantic_wire(draft, run, authoring, 8192, 512, 12) {
+      Ok((_, preview)) => preview
+      Err(issue) =>
+        fail("invalid original UPSERT Preview: " + @debug.to_string(issue))
+    }
+  }
+  let target = effect_file_target_cid(
+    installation, "/mock", "data.json", "Account", selector, 8192, 512, 12,
+  ).unwrap()
+  let prepare = (preview, version) => {
+    prepare_effect_file_operation(
+      preview, 0, 0, installation, target, dispatch, dispatch, installation, installation,
+      version,
+    )
+  }
+  let present = read(present)
+  let absent = read(absent)
+  let update = prepare(present, installation).unwrap()
+  let create = prepare(absent, "").unwrap()
+  assert_eq(update.kind, "update")
+  assert_eq(update.target_version_cid, Some(installation))
+  assert_eq(create.kind, "create")
+  assert_eq(create.target_version_cid, None)
+  assert_true(prepare(present, "") is Err(ForeignRow))
+  assert_true(prepare(absent, installation) is Err(ForeignRow))
+  assert_true(prepare(read(scalar), installation) is Err(ForeignRow))
+
+  let replacement = @utf8.encode("{\"items\":[{\"Name\":\"After\"}]}")
+  let evidence = admit_effect_file_replacement_evidence(
+    replacement,
+    "1",
+    "44",
+    replacement.length().to_int64(),
+    8192,
+  ).unwrap()
+  let result = "\"result\":{\"id\":" + selector + "},\"state\":\"applied\"}"
+  for
+    (preview, operation, foreign) in [
+      (present, update, absent),
+      (absent, create, present),
+    ] {
+    let (action, foreign_action) = if operation.kind == "create" {
+      ("created", "updated")
+    } else {
+      ("updated", "created")
+    }
+    let outcome = "{" + result
+    assert_true(
+      prepare_effect_file_operation_receipt(
+        operation,
+        evidence,
+        "{\"action\":\"" + foreign_action + "\"," + result,
+        8192,
+        512,
+        12,
+      )
+      is Err(ForeignResponse),
+    )
+    let receipt = prepare_effect_file_operation_receipt(
+      operation, evidence, outcome, 8192, 512, 12,
+    ).unwrap()
+    let saved = admit_saved_effect_file_operation_receipt(
+      effect_file_operation_receipt_wire(receipt),
+      replacement,
+      8192,
+      8192,
+      512,
+      12,
+    ).unwrap()
+    assert_eq(saved.operation.kind, operation.kind)
+    assert_eq(saved.operation.target_version_cid, operation.target_version_cid)
+    assert_eq(saved.typed_outcome_wire, outcome)
+    let row = issue_effect_row_outcome_receipt_from_file(
+      preview, 0, 0, dispatch, saved, 8192, 512, 12,
+    ).unwrap()
+    let typed = @json.object_field(row.value, "typed_outcome").unwrap()
+    assert_eq(
+      @json.stringify_value(typed, 8192, 512, 12),
+      "{\"action\":\"" + action + "\"," + result,
+    )
+    for wrong in [outcome, "{\"action\":\"" + foreign_action + "\"," + result] {
+      let wrong = parse_effect_outcome_shape(wrong, 8192, 512, 12).unwrap()
+      let forged = seal_effect_local_row_outcome(
+        operation.effect_preview_cid,
+        operation.member_preview_cid,
+        operation.row_preview_cid,
+        dispatch,
+        saved.contract,
+        wrong,
+        8192,
+        512,
+        12,
+      ).unwrap()
+      assert_true(
+        admit_effect_row_outcome_receipt_from_file(
+          preview,
+          0,
+          0,
+          dispatch,
+          saved,
+          forged.wire,
+          8192,
+          512,
+          12,
+        )
+        is Err(ForeignResponse),
+      )
+    }
+    assert_true(
+      issue_effect_row_outcome_receipt_from_file(
+        foreign, 0, 0, dispatch, saved, 8192, 512, 12,
+      )
+      is Err(ForeignRow),
+    )
+  }
 }

@@ -465,7 +465,8 @@ test "Native row dispatch distinguishes precommit failure from lost committed re
           1001L
         },
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     if !reply_lost {
       database.rollback().unwrap()

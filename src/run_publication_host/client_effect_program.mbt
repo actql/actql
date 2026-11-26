@@ -276,8 +276,8 @@ fn prepare_checked_client_effect_computation_owned(
   source_intent? : ClientSubmittedIntent? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let mappings = match
-    @environment.check_mapping_contract_shapes(
-      @checked.effect_computation_environment(computation),
+    @checked.check_effect_computation_mappings(
+      computation,
       limits.mapping,
       limits.max_mapping_work,
     ) {

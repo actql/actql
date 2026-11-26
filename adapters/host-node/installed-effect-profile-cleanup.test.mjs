@@ -367,6 +367,7 @@ async function constructionFixture(t, {refuseMapping = false, beforeAdapter, ope
     connector_catalogs: [], schema_snapshots: [], connector_capabilities: [], mapping_contracts: []});
   const refusal = new Error('original Mapping backing refusal'), pendingClose = new Error('original Site cleanup pending');
   let mappingPhase = false, retained, prepared, installedOptions, closePending = true, nativeRetire = 0, working = false;
+  let guardedMappingInput;
   const quantities = new Set();
   const quantity = (kind, values) => {
     assert.equal(working, true);assert.equal(nativeRetire, 0);
@@ -426,7 +427,10 @@ async function constructionFixture(t, {refuseMapping = false, beforeAdapter, ope
     clientProgramRowSourceDeclarationJson(value) {assert.equal(value, declaration);return JSON.stringify(declared);},
     clientProgramRowSourcePrepareMapping(value, writes, resource, sources) {
       assert.equal(value, declaration);assert.equal(writes, '{"original":"writes"}');
-      assert.equal(resource, 'records');assert.deepEqual(JSON.parse(sources), [{target: 'label', field: 'label', null_behavior: 'reject'}]);
+      assert.equal(resource, 'records');
+      const expectedSources = [{target: 'label', field: 'label', null_behavior: 'reject'}];
+      assert.deepEqual(JSON.parse(sources), operation === 'update' ? {operation, sources: expectedSources} : expectedSources);
+      if (operation === 'update') assert.deepEqual([value, writes, resource, sources], guardedMappingInput);
       assert.equal(events.at(-1), 'reserve');events.push('mapping');
       return JSON.stringify({mapping_ref: `mapping:construction/${operation}.v1`, mapping_cid: cid,
         body: JSON.stringify({mapping_contract_cid: cid, target_ref: 'connector://construction/records',
@@ -438,9 +442,11 @@ async function constructionFixture(t, {refuseMapping = false, beforeAdapter, ope
     moon.clientProgramRowSourceUpdateMappingConstructionCapacity = function (value, writes, resource, sources) {
       assert.strictEqual(this, moon);assert.strictEqual(value, declaration);
       assert.equal(writes, '{"original":"writes"}');assert.equal(resource, 'records');
-      assert.deepEqual(JSON.parse(sources), [{target: 'label', field: 'label', null_behavior: 'reject'}]);
+      assert.deepEqual(JSON.parse(sources),
+        {operation: 'update', sources: [{target: 'label', field: 'label', null_behavior: 'reject'}]});
       assert.equal(live.size, 0);events.push('mapping-quantity');
-      return ok(quantity('update-mapping', [value, writes, resource, sources]));
+      guardedMappingInput = [value, writes, resource, sources];
+      return ok(quantity('update-mapping', guardedMappingInput));
     };
     moon.clientProgramRowSourcePrepareUpdateMapping = moon.clientProgramRowSourcePrepareMapping;
     moon.clientProgramRowSourcePrepareMapping = () => assert.fail('UPDATE must not select CREATE');

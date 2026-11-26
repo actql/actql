@@ -531,7 +531,10 @@ test "Signing history Host lost read transaction ACK stays typed Unknown without
     original.operation_id,
     "history-use",
   )
-  assert_true(observed is Err(HistoryKey(SigningJournal(TransactionUnknown))))
+  assert_true(
+    observed is Err(HistoryKey(SigningJournal(JournalStepFailed(step, None)))) &&
+    journal_test_original_commit_failure(step, true),
+  )
   // No follow-up read or new attempt is made through the fenced original.
   assert_true(host.database.transaction_fenced())
   host.close().unwrap()

@@ -61146,7 +61146,7 @@
     {
       "module": "src/client_local_preparation/client_check_program.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7db408b6c2f8a963bde8d03041faeb033f209c0623a0d513bf994c869be12b93",
+      "sha256": "4708b95e42f80ff3f2d7293d66df9bb7a54c314cba560e60c1a4e0286b5643c1",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -63608,7 +63608,7 @@
     },
     {
       "module": "src/client_source_publication/prepared_environment.mbt",
-      "sha256": "2c9c9a846478e9dec41c7e07e397dfec4a093ccb689c2e06fe6d963861708a73",
+      "sha256": "81f34a2be887e1f2ec2ef7bb6ec88a5566a30479064165720588aae605caa30b",
       "exports": [],
       "operations": [
         {
@@ -63680,6 +63680,10 @@
           "declaration": "publication_admission_mappings ( admission : PublicationEnvironmentAdmission , ) - > @ check_environment . MappingContractShapes raise PublicationStop"
         },
         {
+          "name": "publication_environment_admission",
+          "declaration": "publication_environment_admission ( environment : @ program_check . CheckEnvironment , ) - > PublicationEnvironmentAdmission"
+        },
+        {
           "name": "publication_read_catalog",
           "declaration": "publication_read_catalog ( environment : @ program_check . CheckEnvironment , limits : @ program_check . SourceCatalogLimits , contents_limits : @ check_environment . Limits ? , ) - > Result [ @ program_check . PreparedSourceCatalog , @ program_check . EnvironmentFailure , ]"
         }
@@ -63708,6 +63712,7 @@
             "publication_admission_catalog",
             "publication_admission_contents",
             "publication_admission_mappings",
+            "publication_environment_admission",
             "publication_read_catalog"
           ],
           "exports": [],
@@ -63898,7 +63903,7 @@
     },
     {
       "module": "src/client_source_publication/publication.mbt",
-      "sha256": "f77ce7682f5fc250cece19ba81b59c96f2da77916439a59de2b56d1dfb43afaa",
+      "sha256": "b2a6b2c2a8ecffa10bb80d297de432544e4d4dbe5a0c92f9e99966ae0dbf4f69",
       "exports": [],
       "operations": [
         {
@@ -75415,7 +75420,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "5fa1749f513ff0c463a0d27add9888ee38b29fabc30d326bd8da8953d379ebdb",
+      "sha256": "5a8db2ea85c437cd4a41b3cdbf24b04ff83e941292116442c5ef21b190aeabb4",
       "exports": [],
       "operations": [
         {
@@ -77556,7 +77561,7 @@
         },
         {
           "name": "client_row_source_prepare_mapping",
-          "declaration": "client_row_source_prepare_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , guarded : Bool , prepare : ( @ client_row_source_host . RowDeclaration , String , String , Array [ @ client_row_source_host . RowMappingSource ] , ) - > Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ] , ) - > String"
+          "declaration": "client_row_source_prepare_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , guarded : Bool , prepare : ( @ client_row_source_host . RowDeclaration , String , String , Array [ @ client_row_source_host . RowMappingSource ] , ) - > Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ] , select_guarded_operation ? : Bool"
         },
         {
           "name": "client_run_control_observation",
@@ -78582,6 +78587,10 @@
               {
                 "path": "adapters/local-node/declared-file-installation.test.mjs",
                 "anchor": "clientProgramRowSourcePrepareUpdateMapping(declaration, wire, resource, sources)"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_relation_update_mapping_wbtest.mbt",
+                "anchor": "installed guarded Mapping selects the original ordered UPDATE or File UPSERT"
               }
             ]
           }
@@ -112788,7 +112797,7 @@
     },
     {
       "module": "src/cmd/native_client/local_publisher_diagnostic.mbt",
-      "sha256": "6c2090cdb5a128de38f4c12e2469ccf119deb25729a13e3f77e679dab03199c4",
+      "sha256": "4be11f2048694a7efff49193414596de0e7813a9f4ddc85aae6ba001c35666dc",
       "exports": [],
       "operations": [
         {
@@ -112925,7 +112934,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
-      "sha256": "128caafa2b10db259ee0eba491d5325c678ac6188479b1107889e57f51c76fc5",
+      "sha256": "a9e42ad464e5f0e70648cb46414d3eb9766951d8e41646a61537b1aca5ff61b7",
       "exports": [],
       "operations": [
         {
@@ -112967,6 +112976,10 @@
         {
           "name": "client_program_relation_sample_debug_entry_runnable",
           "declaration": "client_program_relation_sample_debug_entry_runnable ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , owner : @ client_local_host . ClientInstalledManagedRun , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , start_revision : Int , ) - > Result [ Bool , @ client_local_host . InstalledRelationSampleStartIssue ]"
+        },
+        {
+          "name": "client_program_relation_sample_debug_entry_step",
+          "declaration": "client_program_relation_sample_debug_entry_step ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , owner : @ client_local_host . ClientInstalledManagedRun , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , ) - > String"
         },
         {
           "name": "client_program_relation_sample_debug_next_input",
@@ -113543,6 +113556,74 @@
               {
                 "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
                 "anchor": "let pause_only = @authorization.admit_account_configuration"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_relation_sample_debug_entry_step"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "pub fn installed_relation_sample_debug_entry_step("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramRelationSampleDebugEntryStep\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "physical_equal(profile.captured, captured)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "installed_relation_sample_profile_current(owner, profile)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "pub fn captured_task_control_entry_task("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "profile.driver_outputs.get(task) is Some((step, _, _))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "if run.stopped || hooks.closing {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "let bytes = captured_task_control_construction_bytes(tasks)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "@strategy.captured_task_control_entry_task(captured, hooks) is Some(task)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "a detached Local SDK process attaches and steps the retained unstarted Debug entry"
               }
             ]
           }
@@ -119375,7 +119456,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_cleanup_cause.mbt",
-      "sha256": "14c5271e557f75a5cddc63e162bc23e59e735f6f68c0d9704bac46be375e7e89",
+      "sha256": "a789bbe4b24da1afe34230815fe41a0b33178637afb1faab859bf2bb6deeebd8",
       "exports": [],
       "operations": [
         {
@@ -120248,7 +120329,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_values_original_operation.mbt",
-      "sha256": "2caf65176a0d413f799115e5fd4015a8aa423de20448d056a0e92ba8f3e6aabc",
+      "sha256": "6ff31d8a64f781b0ba799fc796c70d823541048946ea441fcef16a78b6f3bcbd",
       "exports": [],
       "operations": [
         {

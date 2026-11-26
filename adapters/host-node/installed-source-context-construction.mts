@@ -22,7 +22,8 @@ type NativeValue = Extract<SynchronousRuntimeData, object>;
 type Geometry = ReturnType<typeof sourceEnvironmentConstructionGeometry>['parsed'];
 type CoreMethod = (...args: unknown[]) => unknown;
 type Role = 'source' | 'effect';
-type MappingCarrier = Readonly<{resource: string; mappingRef: string; mappingCid: string; body: string}>;
+type MappingCarrier = Readonly<{resource: string; mappingRef: string; mappingCid: string; body: string;
+  resourceIdentityCid?: string}>;
 type MappingOutput = ReturnType<typeof rowSourceMapping>;
 type ProviderOriginal = Readonly<{
   declared: Readonly<{declaration: unknown; catalog: string; manifest_entry: string;
@@ -852,7 +853,7 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
             !Object.isFrozen(writes) || writes.length === 0) fail('InvalidInstalledEffectMappings');
         // Inspect only checked immutable own String DATA before the current/
         // resize boundary. Do not stringify proportional input before backing.
-        let units = 0n, guarded = true, requiresGuarded = false;
+        let units = 0n, guarded = true, requiresGuarded = false, selectedOperations = 0n;
         const field = (value: unknown, name: string): unknown => {
           if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || !Object.isFrozen(value)) {
             fail('InvalidInstalledEffectMappings');
@@ -867,14 +868,16 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
               !Object.isFrozen(sources)) fail('InvalidInstalledEffectMappings');
           const operationField = Object.getOwnPropertyDescriptor(write as object, 'operation');
           const operation = operationField === undefined ? 'create' : field(write, 'operation');
-          if (operation !== 'create' && operation !== 'file-create' && operation !== 'update' && operation !== 'delete' ||
+          const selected = operation === 'update' || operation === 'file-upsert';
+          if (!selected && operation !== 'create' && operation !== 'file-create' && operation !== 'delete' ||
               operation === 'file-create' && typeof original.prepareFileCreateMapping !== 'function' ||
-              operation === 'update' && typeof original.prepareUpdateMapping !== 'function' ||
+              selected && typeof original.prepareUpdateMapping !== 'function' ||
               operation === 'delete' && (sources.length !== 0 || typeof original.prepareDeleteMapping !== 'function')) {
             fail('InvalidInstalledEffectMappings');
           }
           guarded &&= operation !== 'create';
-          requiresGuarded ||= operation === 'file-create' || operation === 'delete';
+          requiresGuarded ||= operation === 'file-create' || operation === 'file-upsert' || operation === 'delete';
+          if (selected) selectedOperations++;
           units += BigInt(resource.length + operation.length);
           for (let j = 0; j < sources.length; j++) {
             const source = field(sources, String(j));
@@ -897,7 +900,7 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
           // Returned Mapping vector, one argument/closure cohort per constructor,
           // and the later body-reference vector. Payloads have their OWN native
           // quantities below; borrowed declaration/Environment are not restored.
-          const containerNodes = 16n + 8n * BigInt(writes.length);
+          const containerNodes = 16n + 8n * BigInt(writes.length) + 3n * selectedOperations;
           reserveSource(original, material, containerNodes);
           validate();
           const mappings: (MappingCarrier & MappingOutput)[] = [];
@@ -920,14 +923,16 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
               mappings.push(mapping);
               continue;
             }
-            const geometry = installedEnvironmentDataWriterConstructionGeometry(write.sources);
+            const sourceValue = write.operation === 'file-create' ? write.sources
+              : Object.freeze({operation: write.operation, sources: write.sources});
+            const geometry = installedEnvironmentDataWriterConstructionGeometry(sourceValue);
             const sourceWire = prepareSourceNativeInput(original, material, Object.freeze({
               capacity() {
                 const {retained: r, workspace: w} = geometry;
                 return checked(Reflect.apply(material.methods!.InstalledSourceConstructionCapacity as CoreMethod,
                   original.moon, [r.nodes, r.text, r.wire, w.nodes, w.text, w.wire]));
               },
-              project: () => Object.freeze({wire: JSON.stringify(write.sources)}),
+              project: () => Object.freeze({wire: JSON.stringify(sourceValue)}),
             }), inputProjections, validate, retainNativeInput) as Readonly<{wire: string}>;
             const mapping = prepareSourceNativeInput(original, material, Object.freeze({
               capacity: () => checked(Reflect.apply(capacity, original.moon,
@@ -961,7 +966,7 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
         // The final Environment overlaps those bodies. The SAME proportional
         // material recipe covers the failed prefix, without a second Resource.
         const basis = BigInt(writes.length) * (scope.declarationBasis! + 6n * BigInt(writesJson.length)) +
-          6n * (units + BigInt(scope.baseEnvironmentWire.length));
+          6n * (units + BigInt(scope.baseEnvironmentWire.length) + 32n * selectedOperations);
         scope.mappingsAttempted = true;
         reserveSource(original, material, 4n * basis, 8n * basis, 8n * basis);
         // Reserve can call the original current fence. Recheck only the local

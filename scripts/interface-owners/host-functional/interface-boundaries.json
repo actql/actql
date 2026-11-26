@@ -30117,7 +30117,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e0855637782797486534109efcfdc367d22d105c0fccb8c4143474322c124b3e",
+      "sha256": "182cabff349551a013a1aa22a4079f20dacc9587c5ea000b520820a268bfee39",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -30301,6 +30301,14 @@
             "publicationControl"
           ],
           "async": true
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:admitUnstartedDebugEntry/init:admitUnstartedDebugEntry",
+          "parameters": [
+            "frame",
+            "scope"
+          ],
+          "async": false
         },
         {
           "name": "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
@@ -30491,6 +30499,7 @@
             "namespaceId",
             "sampleRunRef",
             "reserveSampleRead",
+            "assertOriginalExtent",
             "requestControl",
             "publicationControl"
           ],
@@ -30552,6 +30561,7 @@
             "expectedRevision",
             "expiresAt",
             "current",
+            "entryStep",
             "requestControl",
             "publicationControl"
           ],
@@ -30696,6 +30706,17 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:restoreUnstartedDebugEntry/init:restoreUnstartedDebugEntry",
+          "parameters": [
+            "ref",
+            "commandWire",
+            "scope",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:retireRelationSamplePayload/init:retireRelationSamplePayload",
           "parameters": [
             "ref",
@@ -30713,6 +30734,14 @@
         {
           "name": "openClientRequestJournal/journal/init:supportsOriginalExplanationContext/init:supportsOriginalExplanationContext",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/observeUnstartedDebugEntry",
+          "parameters": [
+            "frame",
+            "current"
+          ],
           "async": false
         },
         {
@@ -30757,6 +30786,21 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/readUnstartedDebugOriginal/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/readUnstartedDebugOriginal/assertOriginalExtent/assertOriginalExtent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/readUnstartedDebugOriginal/readUnstartedDebugOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/reserveDebugReceipt/reserveDebugReceipt/reserveDebugReceipt",
           "parameters": [],
           "async": false
@@ -30766,6 +30810,20 @@
           "parameters": [
             "frame",
             "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sameDebugOriginalRow/sameDebugOriginalRow/sameDebugOriginalRow",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sameUnstartedDebugPark/sameUnstartedDebugPark/sameUnstartedDebugPark",
+          "parameters": [
+            "key"
           ],
           "async": false
         },
@@ -31215,7 +31273,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
-                "anchor": "const original = transaction.run(readOriginal);"
+                "anchor": "? transaction.run(readOriginal) : transaction.read(readOriginal);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -32537,7 +32595,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
-                "anchor": "const original = transaction.run(readOriginal);"
+                "anchor": "? transaction.run(readOriginal) : transaction.read(readOriginal);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -33754,6 +33812,81 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "a retained Debug entry requires one exact resume across Journal reopen"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/journal/init:admitUnstartedDebugEntry/init:admitUnstartedDebugEntry",
+            "openClientRequestJournal/journal/init:restoreUnstartedDebugEntry/init:restoreUnstartedDebugEntry",
+            "openClientRequestJournal/observeUnstartedDebugEntry",
+            "openClientRequestJournal/readUnstartedDebugOriginal/assertCurrent/assertCurrent",
+            "openClientRequestJournal/readUnstartedDebugOriginal/assertOriginalExtent/assertOriginalExtent",
+            "openClientRequestJournal/readUnstartedDebugOriginal/readUnstartedDebugOriginal",
+            "openClientRequestJournal/sameDebugOriginalRow/sameDebugOriginalRow/sameDebugOriginalRow",
+            "openClientRequestJournal/sameUnstartedDebugPark/sameUnstartedDebugPark/sameUnstartedDebugPark"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "function readUnstartedDebugOriginal("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "return Object.freeze({park, entryStep, profile, identity, intent: input.intent, assertCurrent,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const sameUnstartedDebugPark ="
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const retained = runStateFrames.get(frame);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "if (!sameDebugOriginalRow(row, readRunDefinitionRow(ref, requestControl)))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "if (latest.fresh !== 1) fail('ClientRunDebugEntryExpired');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "frame.preDispatchFailureConfirmed || frame.cancellationRequested ||"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const bytes = 4096 + 2 * measured.stored_bytes;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "admitUnstartedDebugEntry(frame: RunFrame"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "a detached Local SDK process attaches and steps the retained unstarted Debug entry"
               }
             ]
           }
@@ -35928,7 +36061,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
-                "anchor": "const original = transaction.run(readOriginal);"
+                "anchor": "? transaction.run(readOriginal) : transaction.read(readOriginal);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -37296,7 +37429,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
-                "anchor": "const original = transaction.run(readOriginal);"
+                "anchor": "? transaction.run(readOriginal) : transaction.read(readOriginal);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -38094,7 +38227,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
-                "anchor": "const original = transaction.run(readOriginal);"
+                "anchor": "? transaction.run(readOriginal) : transaction.read(readOriginal);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -39645,7 +39778,7 @@
     {
       "module": "adapters/host-node/client-request-journal-records.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2b046088064b14a067bc016983f0bc02609358097346f6880fef8da68520ca7d",
+      "sha256": "127e72e73f24459bfeb42c72b1a1f5e640cc0e07b733896dbe7e928539b519da",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -40865,7 +40998,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
-                "anchor": "const original = transaction.run(readOriginal);"
+                "anchor": "? transaction.run(readOriginal) : transaction.read(readOriginal);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -43112,7 +43245,7 @@
     {
       "module": "adapters/host-node/client-run-inspect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d0aa690c2dad38677b657f0b578dbb678fb89a5cc8564921c719ade4be4db943",
+      "sha256": "9046908ec91751a63fed8e2688fca62caf656e702fb139d1e02876a1a8d6f637",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -43170,6 +43303,13 @@
           "async": false
         },
         {
+          "name": "installClientRunInspect/installClientRunInspect/reserveOriginal/reserveOriginal",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
           "name": "installClientRunInspect/installClientRunInspect/vector/vector",
           "parameters": [
             "value"
@@ -43219,7 +43359,7 @@
               },
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               }
             ],
             "inputsOutputs": [
@@ -43237,7 +43377,7 @@
               },
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               }
             ],
             "identity": [
@@ -43283,7 +43423,7 @@
               },
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               }
             ],
             "failure": [
@@ -43343,7 +43483,7 @@
               },
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               }
             ],
             "verification": [
@@ -43379,7 +43519,7 @@
               },
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               }
             ],
             "inputsOutputs": [
@@ -43397,7 +43537,7 @@
               },
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               }
             ],
             "identity": [
@@ -43443,7 +43583,7 @@
               },
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               }
             ],
             "failure": [
@@ -43503,7 +43643,7 @@
               },
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               }
             ],
             "verification": [
@@ -43530,7 +43670,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -43544,7 +43684,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -43602,7 +43742,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -43618,7 +43758,7 @@
               },
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "const live = observeDebugPause!(selected, current, canResume);"
+                "anchor": "const live = observeDebugPause!(selected, current, canResume, original, reserveOriginal);"
               }
             ],
             "failure": [
@@ -43664,13 +43804,13 @@
               },
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "readWorkspace!.metadata(request, 2 * (2112 + 6 * names));"
+                "anchor": "readWorkspace!.metadata(request, parkBytes);"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState,"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -43757,13 +43897,81 @@
             "resources": [
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "readWorkspace!.metadata(request, 2 * (2112 + 6 * names))"
+                "anchor": "readWorkspace!.metadata(request, parkBytes)"
               }
             ],
             "extension": [
               {
                 "path": "src/run_publication/interactive_current_run_view.mbt",
                 "anchor": "park is Some(debug) && debug.resume_available"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-inspect.test.mts",
+                "anchor": "Run Inspect sends funded scalars to Common and rechecks the same original park before delivery"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installClientRunInspect/installClientRunInspect/reserveOriginal/reserveOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "const reserveOriginal = canResume"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "observeDebugPause!(selected, current, canResume, original, reserveOriginal)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "sameDebugPause(pause, capability)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "const original = lookupOriginal(selected.ref);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "if (!sameDebugPause(capability, live))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "if (capability === undefined || !sameDebugPause(pause, capability))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "readWorkspace!.metadata(request, parkBytes + bytes)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication/interactive_current_run_view.mbt",
+                "anchor": "@json.object_field(park, \"next_step_id\")"
               }
             ],
             "verification": [
@@ -43785,7 +43993,7 @@
     {
       "module": "adapters/host-node/client-run-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bdc94f176699a43194ffe92641027a729698e868d424f7348808646c0000cdca",
+      "sha256": "f3ddf72a1ced44f5f817575ccf2c5026a1623089c943f0c430106668f6514f4c",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -43838,6 +44046,13 @@
           "name": "installClientControlOperationLookup/installClientControlOperationLookup/reserveConstruction/reserveConstruction",
           "parameters": [
             "peak"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientControlOperationLookup/installClientControlOperationLookup/result/result",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -44567,6 +44782,74 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "both permissions are required before probing Sample existence"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installClientControlOperationLookup/installClientControlOperationLookup/result/result"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const result = resumeOriginal!(request.ref"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "reserveOriginal: bytes => readWorkspace.metadata(request, bytes), signal: request.signal"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "accepted.commandCid !== operationRef.command_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "interactiveJournal.restoreUnstartedDebugEntry(ref, wire,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const accepted = result instanceof Promise ? await result : result;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (error?.outcome !== 'unknown'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.metadata(request, 4096);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "lookupOriginal, readWorkspace,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "a detached Local SDK process attaches and steps the retained unstarted Debug entry"
               }
             ]
           }
@@ -45502,7 +45785,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "const admissionFailures = new WeakMap<EmbeddedSubmission, Parameters<PreparedAdmissionFailure['set']>[1]>();"
+                "anchor": "const admissionFailures = new WeakMap<PreparationAdmission, Parameters<PreparedAdmissionFailure['set']>[1]>();"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -46182,7 +46465,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "const admissionFailures = new WeakMap<EmbeddedSubmission, Parameters<PreparedAdmissionFailure['set']>[1]>();"
+                "anchor": "const admissionFailures = new WeakMap<PreparationAdmission, Parameters<PreparedAdmissionFailure['set']>[1]>();"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -56757,7 +57040,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "e232b26a399ac368d4fca4dcc5d5b9fceafc5bd6d784a8783d06df6f23b0f0a6",
+      "sha256": "593654742663b690b53d24d7e7d12b25e2bad83cdb44ec4d4f9c22a31a7be9e9",
       "exports": [
         "commonjs:sql"
       ],
@@ -80176,15 +80459,58 @@
     {
       "module": "adapters/host-node/installed-model-originals.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "892837fefaf53fa96fcc8d487e22e9de9398069260e89a33f8b422fe741234d8",
+      "sha256": "69175ef9d10f4aab3d6e660a0105e3d206f8aed60242f9157c27ad35955b317d",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
+        "assertInstalledModelPreflight",
+        "assertOriginalModelPlanReplay",
+        "assertRestoredModelRunSelection",
         "originalModelPlanReplayRefusal",
         "originalModelRunWire",
-        "rejectModelPlanReplay"
+        "prepareOriginalEffectReadRequest",
+        "prepareRestoredModelEffectRequest",
+        "rejectModelPlanReplay",
+        "retainOriginalEffectInput",
+        "runWithEffectReadInput",
+        "runWithRestoredModelInput",
+        "selectedModelPlanRows"
       ],
       "operations": [
+        {
+          "name": "assertInstalledModelPreflight",
+          "parameters": [
+            "selection"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertOriginalModelPlanReplay",
+          "parameters": [
+            "moon",
+            "retained",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertOriginalModelPlanReplay/assertOriginalModelPlanReplay",
+          "parameters": [
+            "prior",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertRestoredModelRunSelection",
+          "parameters": [
+            "moon",
+            "ref",
+            "admitted",
+            "selected"
+          ],
+          "async": false
+        },
         {
           "name": "originalModelPlanReplayRefusal",
           "parameters": [
@@ -80210,10 +80536,114 @@
           "async": false
         },
         {
+          "name": "prepareOriginalEffectReadRequest",
+          "parameters": [
+            "request",
+            "moon",
+            "retained",
+            "retain",
+            "retainInput",
+            "prepare",
+            "attach",
+            "bind",
+            "check"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareRestoredModelEffectRequest",
+          "parameters": [
+            "request",
+            "originalIntent",
+            "materialWire",
+            "retain",
+            "retainInput",
+            "prepare",
+            "assertIntent",
+            "attach"
+          ],
+          "async": true
+        },
+        {
           "name": "rejectModelPlanReplay",
           "parameters": [
             "ref",
             "issue"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainOriginalEffectInput",
+          "parameters": [
+            "register",
+            "open",
+            "finish"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainOriginalEffectInput/init:finish/init:finish",
+          "parameters": [
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainOriginalEffectInput/pending/pending",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "runWithEffectReadInput",
+          "parameters": [
+            "work",
+            "stopRenewal"
+          ],
+          "async": true
+        },
+        {
+          "name": "runWithEffectReadInput/runWithEffectReadInput",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "runWithEffectReadInput/runWithEffectReadInput#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runWithEffectReadInput/runWithEffectReadInput#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runWithRestoredModelInput",
+          "parameters": [
+            "work"
+          ],
+          "async": true
+        },
+        {
+          "name": "runWithRestoredModelInput/result/result",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "runWithRestoredModelInput/runWithRestoredModelInput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedModelPlanRows",
+          "parameters": [
+            "moon",
+            "selection"
           ],
           "async": false
         }
@@ -80513,11 +80943,251 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "assertInstalledModelPreflight",
+            "assertOriginalModelPlanReplay",
+            "assertOriginalModelPlanReplay/assertOriginalModelPlanReplay",
+            "assertRestoredModelRunSelection",
+            "selectedModelPlanRows"
+          ],
+          "exports": [
+            "assertInstalledModelPreflight",
+            "assertOriginalModelPlanReplay",
+            "assertRestoredModelRunSelection",
+            "selectedModelPlanRows"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "test('cold Model Effect checks the original provider before preflight, capture or execution'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOriginalEffectReadRequest",
+            "prepareRestoredModelEffectRequest",
+            "retainOriginalEffectInput",
+            "retainOriginalEffectInput/init:finish/init:finish",
+            "retainOriginalEffectInput/pending/pending",
+            "runWithEffectReadInput",
+            "runWithEffectReadInput/runWithEffectReadInput",
+            "runWithEffectReadInput/runWithEffectReadInput#2",
+            "runWithEffectReadInput/runWithEffectReadInput#3",
+            "runWithRestoredModelInput",
+            "runWithRestoredModelInput/result/result",
+            "runWithRestoredModelInput/runWithRestoredModelInput"
+          ],
+          "exports": [
+            "prepareOriginalEffectReadRequest",
+            "prepareRestoredModelEffectRequest",
+            "retainOriginalEffectInput",
+            "runWithEffectReadInput",
+            "runWithRestoredModelInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-target-read-continuation.test.mjs",
+                "anchor": "test('actual read-access resume retains the same input retirement retry without preparing again'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('cold Model Effect cannot return its request input before the same failed execution cleanup'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/sdk/host-port.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "./installed-host-cleanup.mjs",
         "./source-alias-construction.mjs"
       ],
       "compilerFields": [],
@@ -82751,7 +83421,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "38a44e262ba1dc98ef88559eb0d07a34bc658d284a10067b11f5ad7445f087c2",
+      "sha256": "558565bfbd13f82437a790c505f94566f84c37b5a7267ee65c95ad6aca6f6152",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -83415,7 +84085,7 @@
             "extension": [
               {
                 "path": "adapters/local-node/installed-project-mock.mts",
-                "anchor": "let sources: Catalog['sources'] | undefined = catalog.sources;"
+                "anchor": "let sources: View['sources'] | undefined = catalog.sources;"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -84510,7 +85180,7 @@
             "extension": [
               {
                 "path": "adapters/local-node/installed-project-mock.mts",
-                "anchor": "let sources: Catalog['sources'] | undefined = catalog.sources;"
+                "anchor": "let sources: View['sources'] | undefined = catalog.sources;"
               }
             ],
             "verification": [
@@ -130010,7 +130680,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-mock-account.mjs",
-      "sha256": "17a883347a33a8669a0d028716105247e8282d2462cc912d1a4ba07b87fae8bd",
+      "sha256": "5db8451c2c663398820dfaca2b24ad1cae3d95cf5c3527a4a91e2ccf4f0bc641",
       "exports": [
         "initializeOrdinaryMockAccount",
         "prepareOrdinaryMockAccountSubjects"
@@ -130123,6 +130793,13 @@
             "projectDirectory",
             "configurationWire",
             "requestRealization"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryMockAccountSubjects/includesTargets/includesTargets",
+          "parameters": [
+            "target"
           ],
           "async": false
         },
@@ -130527,7 +131204,8 @@
             "prepareOrdinaryMockAccountSubjects/sources/sources/sources",
             "prepareOrdinaryMockAccountSubjects/subject/subject",
             "prepareOrdinaryMockAccountSubjects/tasks/tasks",
-            "prepareOrdinaryMockAccountSubjects/prepareOrdinaryMockAccountSubjects#2"
+            "prepareOrdinaryMockAccountSubjects/prepareOrdinaryMockAccountSubjects#2",
+            "prepareOrdinaryMockAccountSubjects/includesTargets/includesTargets"
           ],
           "exports": [
             "prepareOrdinaryMockAccountSubjects"
@@ -130579,6 +131257,10 @@
               {
                 "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "const maximum = 1024 * 1024;"
+              },
+              {
+                "path": "adapters/host-node/ordinary-mock-account.mts",
+                "anchor": "const includesTargets = bundle.writables.length > 1 || bundle.writables.some(target =>"
               }
             ],
             "extension": [
@@ -131307,13 +131989,14 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d640b805dabc5f12fcf2413331105f84872a6a2233a5446bf3c82c1336fd401a",
+      "sha256": "71028c81dd6565815ef440434207891d101dbd8d85b878f45232949317c3b479",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
         "mockFileEffectPlanRecipe",
         "mockFileRowFootprint",
-        "observeInstalledMockEffectResources"
+        "observeInstalledMockEffectResources",
+        "prepareMockFileRequestRecord"
       ],
       "operations": [
         {
@@ -131339,6 +132022,21 @@
             "bytes",
             "target",
             "includeTarget"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileRowCodec/admit/admit/admit",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileRowCodec/findOrdered/findOrdered",
+          "parameters": [
+            "document",
+            "target"
           ],
           "async": false
         },
@@ -131450,6 +132148,15 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed/orderedCapacity/orderedCapacity",
+          "parameters": [
+            "size",
+            "keyUnits",
+            "mappedUnits"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed/targets/targets",
           "parameters": [
             "target"
@@ -131491,6 +132198,20 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectMockEffects/ordered/ordered",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/ordered/ordered/ordered",
+          "parameters": [
+            "model"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockEffects/resourceMethods/resourceMethods",
           "parameters": [
             "name"
@@ -131519,7 +132240,8 @@
             "bundle",
             "operation",
             "targetReadOperation",
-            "insertion"
+            "insertion",
+            "ordered"
           ],
           "async": false
         },
@@ -131552,35 +132274,6 @@
             "bindingCid",
             "target",
             "selectors"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockFileRowFootprint/mockFileRowFootprint",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockFileRowFootprint/mockFileRowFootprint#2",
-          "parameters": [
-            "identity"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockRowEffectDriver/changes/changes",
-          "parameters": [
-            "value",
-            "target"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockRowEffectDriver/changes/changes/changes",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -131942,6 +132635,39 @@
           "async": false
         },
         {
+          "name": "prepareMockFileRequestRecord",
+          "parameters": [
+            "bindingCid",
+            "target",
+            "record",
+            "preview"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareMockFileRequestRecord/prepareMockFileRequestRecord",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareMockFileRequestRecord/prepareMockFileRequestRecord#2",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameFileSelector/sameFileSelector",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "snapshot/snapshot/freeze/freeze",
           "parameters": [
             "entry"
@@ -131972,7 +132698,8 @@
         "../host-node/installed-host-cleanup.mjs",
         "../host-node/installed-row-effect.mjs",
         "../host-node/mock-file-target.mjs",
-        "node:crypto"
+        "node:crypto",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -131998,8 +132725,6 @@
             "mockFileEffectPlanRecipe",
             "mockFileEffectPlanRecipe/projections/projections",
             "mockFileRowFootprint",
-            "mockFileRowFootprint/mockFileRowFootprint",
-            "mockFileRowFootprint/mockFileRowFootprint#2",
             "mockRowEffectDriver/consume",
             "mockRowEffectDriver/describe",
             "mockRowEffectDriver/describe/describe",
@@ -132048,14 +132773,21 @@
             "mockRowEffectDriver/requestChild/init:retainedOutputWire/init:retainedOutputWire",
             "mockRowEffectDriver/requestChild/release/release",
             "mockRowEffectDriver/requestChild/requestChild",
-            "mockRowEffectDriver/supportedKinds/supportedKinds/supportedKinds"
+            "mockRowEffectDriver/supportedKinds/supportedKinds/supportedKinds",
+            "prepareMockFileRequestRecord",
+            "createMockFileRowCodec/admit/admit/admit",
+            "createMockFileRowCodec/findOrdered/findOrdered",
+            "prepareMockFileRequestRecord/prepareMockFileRequestRecord",
+            "prepareMockFileRequestRecord/prepareMockFileRequestRecord#2",
+            "sameFileSelector/sameFileSelector"
           ],
           "exports": [
             "createMockFileRowCodec",
             "installPreparedProjectMockEffects",
             "mockFileEffectPlanRecipe",
             "mockFileRowFootprint",
-            "observeInstalledMockEffectResources"
+            "observeInstalledMockEffectResources",
+            "prepareMockFileRequestRecord"
           ],
           "attributes": {
             "responsibility": [
@@ -132232,6 +132964,14 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
+              },
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction.test.mts",
+                "anchor": "test('Mock exact footprints hash the checked original tuple and distinguish adjacent Int64 values'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock retains the funded ordered layout of each original File resource"
               }
             ]
           }
@@ -132406,8 +133146,6 @@
         },
         {
           "operations": [
-            "mockRowEffectDriver/changes/changes",
-            "mockRowEffectDriver/changes/changes/changes",
             "snapshot/snapshot/freeze/freeze"
           ],
           "exports": [],
@@ -132491,7 +133229,10 @@
             "mockRowEffectDriver/issue/issue",
             "mockRowEffectDriver/memberCurrent/target/target",
             "installPreparedProjectMockEffects/create/create",
-            "installPreparedProjectMockEffects/installed/installed/constructed/constructed/insertion/insertion"
+            "installPreparedProjectMockEffects/installed/installed/constructed/constructed/insertion/insertion",
+            "installPreparedProjectMockEffects/installed/installed/constructed/constructed/orderedCapacity/orderedCapacity",
+            "installPreparedProjectMockEffects/ordered/ordered",
+            "installPreparedProjectMockEffects/ordered/ordered/ordered"
           ],
           "exports": [],
           "attributes": {
@@ -132569,6 +133310,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock admits the closed file CREATE mapping beside an original UPDATE"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock retains the funded ordered layout of each original File resource"
               }
             ]
           }
@@ -142219,7 +142964,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-context-construction.mjs",
-      "sha256": "ef356795501ae8755f6c0e3163762313259e83916923f6cc3466a9220385b953",
+      "sha256": "f42d079f5f394409bbbe48940e6906b103d23b1ee153a4f2bcb5f4b3ade8ede5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",

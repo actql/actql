@@ -371,6 +371,8 @@ fn local_host_issue(issue : @local_host.NativeLocalAdoptionIssue) -> String {
     SourceChanged => "LocalConfigurationChanged"
     CustodyLost => "LocalHostCustodyLost"
     AmbiguousInitialization | TransactionUnknown => "LocalAdoptionUnknown"
+    issue if issue.requires_transaction_reconciliation() =>
+      "LocalAdoptionUnknown"
     ForeignAccount => "ForeignLocalAccount"
     Fenced => "LocalHostFenced"
     _ => "LocalHostAdoptionRefused"
@@ -916,7 +918,9 @@ fn local_journal_migration_issue(
   issue : @local_host.NativeClientRunJournalIssue,
 ) -> String {
   match issue {
-    TransactionUnknown | Fenced => "LocalJournalMigrationUnknown"
+    Fenced => "LocalJournalMigrationUnknown"
+    original if original.requires_transaction_reconciliation() =>
+      "LocalJournalMigrationUnknown"
     AuthorizationDenied => "LocalJournalMigrationAuthorizationDenied"
     _ => "LocalJournalMigrationUnavailable"
   }

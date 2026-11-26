@@ -99,7 +99,8 @@ fn local_effect_first_compilation(
   let normalization_result = match first_kind {
     "create" if @syntax.effect_header_count(headers) == 1 =>
       @run_host.issue_prepared_client_effect_normalization(prepared)
-    "update" | "delete" if first_kind == "update" || allow_file_mutation =>
+    "update" | "delete" | "upsert" if first_kind == "update" ||
+      allow_file_mutation =>
       @run_host.issue_prepared_client_effect_selected_normalization(
         prepared,
         allow_source_completion=true,

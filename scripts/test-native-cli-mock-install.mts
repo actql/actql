@@ -18,7 +18,8 @@ import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approvalPhases, publishNativeApprovalReceipt, nativeApprovalObservationOptions,
   nativeApprovalObservedCommand, retainNativeApprovalObservation, observeNativeMockHarnessPhase} from './native-approval-performance.mjs';
 import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario, runNativeNullableMockScenarios,
-  runNativeFileCreateMockScenarios, runNativeFileNamedResults, runNativeMixedFileMockScenarios, runNativeSameResourceMockScenarios, runNativeSharedFileMockScenario} from './native-cli-mock-scenario.mjs';
+  runNativeFileCreateMockScenarios, runNativeFileNamedResults, runNativeMixedFileMockScenarios, runNativeOrderedFileMockScenarios,
+  runNativeSameResourceMockScenarios, runNativeSharedFileMockScenario} from './native-cli-mock-scenario.mjs';
 import {expectedChanges, nativeLauncherEnvelope, requireNativeMockWork} from './native-cli-mock-scenario.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {inventory, verifyPackageRelease} from './package-release.mjs';
@@ -247,6 +248,9 @@ export async function runNativeCliMockInstall(input: string, {measureResources =
       caseSha256: string; decisions: Awaited<ReturnType<typeof runNativeFileCreateMockScenarios<CommandRecord>>>;
     } | undefined;
     let fileNamedResults: Awaited<ReturnType<typeof runNativeFileNamedResults<CommandRecord>>> | undefined;
+    let orderedFileMock: {
+      caseSha256: string; cases: Awaited<ReturnType<typeof runNativeOrderedFileMockScenarios<CommandRecord>>>;
+    } | undefined;
     if (sharedFileMock) {
       scenarios.push(await observe('shared-file-scenario', () => runNativeSharedFileMockScenario({root,
         launcherTimings: 'required', run: runScenarioCommand})));
@@ -272,6 +276,11 @@ export async function runNativeCliMockInstall(input: string, {measureResources =
       }));
       fileNamedResults = await observe('file-named-results', () => runNativeFileNamedResults({
         root, launcherTimings: 'required', run: runScenarioCommand,
+      }));
+      orderedFileMock = await observe('ordered-file-mutation-scenarios', async () => ({
+        caseSha256: createHash('sha256').update(await readFile(new URL(
+          '../adapters/host-node/fixtures/mock-ordered-file.fixture.mjs', import.meta.url))).digest('hex'),
+        cases: await runNativeOrderedFileMockScenarios({root, launcherTimings: 'required', run: runScenarioCommand}),
       }));
     } else {
       for (const template of mockTemplates) scenarios.push(await observe('scenario', () => runNativeCliMockScenario({
@@ -345,6 +354,7 @@ export async function runNativeCliMockInstall(input: string, {measureResources =
       ...(nullableUpdate === undefined ? {} : {nullableUpdate}),
       ...(mixedFileMutations === undefined ? {} : {mixedFileMutations}),
       ...(fileCreate === undefined ? {} : {fileCreate}),
+      ...(orderedFileMock === undefined ? {} : {orderedFileMock}),
       ...(sameResourceMock === undefined ? {} : {sameResourceMock}),
       ...(fileNamedResults === undefined ? {} : {fileNamedResults}),
       ...(projectSequences ? {projectSequences, originalMockRegressions, nodeSourceSha: nodeManifest!.sourceSha,

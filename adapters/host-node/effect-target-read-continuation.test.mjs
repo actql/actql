@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
-import {retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
+import {prepareOriginalEffectReadRequest, runWithEffectReadInput} from './installed-model-originals.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {assertEffectTargetReadBinding, effectTargetReadContinuation} from './effect-target-read-continuation.mjs';
 import {effectTargetReadInventory} from './effect-target-read-inventory.mjs';
@@ -307,27 +307,10 @@ test('opaque binding identity distinguishes exact keys and ignores insertion ord
 });
 
 
-// Execute the existing Host's actual read-access resume flight with explicit
-// Journal/Request/claim ports. This is caller ordering and custody evidence,
-// not a Common compiler, permission, physical cleanup or ordinary Run proof.
-async function capturedReadResumeFixture({rejectPrepare = false, failFinish = false} = {}) {
-  const source = await readFile(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
-  const flights = [];
-  const walk = node => {
-    if (node === null || typeof node !== 'object') return;
-    if (node.type === 'VariableDeclarator' && node.id.name === 'flight' &&
-        node.init?.type === 'CallExpression' && node.init.callee.type === 'ArrowFunctionExpression' &&
-        source.slice(node.init.callee.start, node.init.callee.end)
-          .includes('await checkpoints.runUnitReadContinuation(view)')) flights.push(node.init.callee);
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(walk);
-      else if (value && typeof value === 'object') walk(value);
-    }
-  };
-  walk(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
-  assert.equal(flights.length, 1);
+// Use the same retained Request preparation and return as the approved read flight.
+function capturedReadResumeFixture({rejectPrepare = false, failFinish = false} = {}) {
   const events = [], captured = Object.freeze({kind: 'program', input: {original: 'authored input'}, parameters: null});
-  const prepared = {}, facts = {}, accepted = {ref: {runDefinitionCid: 'same-definition'}};
+  const prepared = {}, accepted = {ref: {runDefinitionCid: 'same-definition'}};
   const ref = accepted.ref, claim = {}, view = {checkpointCid: 'same-checkpoint', runId: 'same-run'};
   let retainedRequest, held = false, preparing = 0, finishAttempts = 0;
   const primary = undefined, cleanupFailure = new Error('OriginalInputRetirementPending');
@@ -361,26 +344,31 @@ async function capturedReadResumeFixture({rejectPrepare = false, failFinish = fa
     adopt(actual, request) {assert.equal(actual, prepared);assert.equal(request, retainedRequest);events.push('adopt');return actual;},
     attach(request, actual) {assert.equal(request, retainedRequest);assert.equal(actual, prepared);request.preparedProgram = actual;events.push('attach');},
   };
-  const retained = Object.freeze({kind: 'same admitted Run frame'}), control = {};
-  const ports = {authorization: {}, checkpoints, view, claimed: {claim}, ref, preparation, moon, control, retained,
-    localPreparationCustody, prepareCapturedSubmission,
-    requestOf(request) {assert.equal(request, retainedRequest);assert.equal(request.preparedProgram, prepared);return {effectful: true};},
-    inferSelections: new Map(), EFFECT_TARGET_CONTINUATION: 'target',
-    admitEffectDefinition(request) {assert.equal(request, retainedRequest);assert(held);events.push('definition');return accepted;},
-    effectRun: {restoreComputation(actual) {assert.equal(actual, accepted);return facts;}, reconciliation() {return undefined;}},
-    async executeEffectComputation(actual, sourceResume, targetResume) {
-      assert.equal(actual, facts);assert.equal(sourceResume, undefined);assert(held);targetResume.assertCurrent();events.push('execute');return {};
-    },
-    journal: {observeRunCancellation(actual, requestControl, publicationControl, original) {
-      assert.equal(actual,ref);assert.equal(requestControl,moon);
-      assert.equal(publicationControl,control);assert.equal(original,retained);
-      return () => ({cancellationRequested:false});
-    }},
-    terminal() {return false;}, observeRun() {assert.fail('No terminal observation selected');},
-    setInterval() {return {unref() {}};}, clearInterval() {events.push('clear');},
-    retainInstalledHostRuntimeFailure,
-  };
-  const execute = compileFunction('return '+source.slice(flights[0].start, flights[0].end), Object.keys(ports))(...Object.values(ports));
+  const retained = Object.freeze({ref});
+  const execute = () => runWithEffectReadInput(async retainInput => {
+    const continuation = await checkpoints.runUnitReadContinuation(view);
+    const request = {...continuation.submission};
+    try {
+      await prepareOriginalEffectReadRequest(request, moon, retained, {
+        retain: original => preparation.retainEffectRequestInput(moon, original, undefined, captured),
+        retainInput,
+        prepare: original => prepareCapturedSubmission(original, ref),
+        attach: (original, value) => localPreparationCustody.attach(original, localPreparationCustody.adopt(value, original)),
+        bind: original => preparation.bindSourceRequest(original, original.preparedProgram),
+        check: original => {
+          assert.equal(original, retainedRequest);assert.equal(original.preparedProgram, prepared);
+          return undefined;
+        },
+      });
+      assert(held);events.push('definition');
+      assert.equal(continuation.version, 'target');assert(held);
+      checkpoints.journal.admitResume(claim, {checkpointCid: view.checkpointCid});
+      events.push('execute');
+    } catch (cause) {
+      checkpoints.journal.refuseUnsentReadResume();
+      throw cause;
+    }
+  }, () => {events.push('clear');});
   return {execute, events, primary, cleanupFailure, held: () => held, preparing: () => preparing};
 }
 

@@ -25,7 +25,18 @@ fn journal_first_start_commit_failure(reply_lost : Bool) -> Unit raise {
       true
     },
   )
-  assert_true(original is Err(Journal(TransactionUnknown)))
+  guard original
+    is Err(Journal(JournalStepFailed(SqlStep(@sqlite.Commit, observed), None))) &&
+    observed.result is Err(failure) else {
+    fail("first-start must preserve the original COMMIT observation")
+  }
+  if reply_lost {
+    assert_true(failure.reply is @sqlite.SqlReplyLost)
+    assert_true(observed.state is Some(Ok(@sqlite.NoActiveSqliteTransaction)))
+  } else {
+    assert_true(failure.reply is @sqlite.SqlNotIssued)
+    assert_true(observed.state is Some(Ok(@sqlite.ActiveSqliteTransaction)))
+  }
   assert_eq(callbacks.val, 2)
   assert_true(journal.fenced)
   assert_true(database.transaction_fenced())
@@ -46,7 +57,10 @@ fn journal_first_start_commit_failure(reply_lost : Bool) -> Unit raise {
     // It does not clear either fence or reinterpret Unknown as non-execution.
     database.rollback().unwrap()
   }
-  assert_true(original is Err(Journal(TransactionUnknown)))
+  assert_true(
+    original
+    is Err(Journal(JournalStepFailed(SqlStep(@sqlite.Commit, _), None))),
+  )
   assert_true(journal.fenced)
   assert_true(database.transaction_fenced())
   assert_true(
@@ -65,7 +79,10 @@ fn journal_first_start_commit_failure(reply_lost : Bool) -> Unit raise {
   let after = database.read("client_runs", key).unwrap()
   assert_eq(after.body, stored.body)
   assert_eq(after.revision, stored.revision)
-  assert_true(original is Err(Journal(TransactionUnknown)))
+  assert_true(
+    original
+    is Err(Journal(JournalStepFailed(SqlStep(@sqlite.Commit, _), None))),
+  )
   assert_true(journal.fenced)
   assert_true(database.transaction_fenced())
   database.close_checked().unwrap()
@@ -79,4 +96,74 @@ test "Journal first-start pre-COMMIT failure retains Unknown and refuses replay"
 ///|
 test "Journal first-start lost COMMIT reply retains the durable claim without a token" {
   journal_first_start_commit_failure(true)
+}
+
+///|
+#borrow(database)
+extern "C" fn journal_test_refuse_rollback(
+  database : @sqlite.Database,
+  count : Int,
+) -> Unit = "actql_native_sqlite_test_fail_rollback"
+
+///|
+#borrow(database)
+extern "C" fn journal_test_refuse_transaction_state(
+  database : @sqlite.Database,
+  count : Int,
+) -> Unit = "actql_native_sqlite_test_fail_transaction_state"
+
+///|
+test "Journal retains its body refusal and the actual rollback refusal on the same connection" {
+  let name = "journal-original-body-and-rollback-issues"
+  let database = epoch_test_database(name)
+  initialize_native_client_run_journal(database).unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  let result : Result[Unit, NativeClientRunJournalIssue] = journal.transaction(() => {
+    database.insert("fixture", "original", b"private").unwrap() |> ignore
+    journal_test_refuse_rollback(database, 1)
+    Err(ChangedIntent)
+  })
+  guard result
+    is Err(
+      JournalStepFailed(
+        SqlStep(@sqlite.Rollback, observed),
+        Some(ChangedIntent)
+      )
+    ) &&
+    observed.result is Err(rollback) else {
+    fail("missing body or rollback refusal")
+  }
+  assert_true(rollback.reply is @sqlite.SqlNotIssued)
+  assert_true(observed.state is Some(Ok(@sqlite.ActiveSqliteTransaction)))
+  assert_true(journal.transaction(() => Ok(())) is Err(Fenced))
+  assert_true(database.transaction_fenced())
+  database.close_checked().unwrap()
+  let retained = epoch_test_database(name)
+  assert_true(retained.read("fixture", "original") is Err(@sqlite.NotFound))
+  retained.close_checked().unwrap()
+}
+
+///|
+test "Journal withholds acknowledgement after confirmed COMMIT with unavailable state" {
+  let name = "journal-original-confirmed-with-unavailable-state"
+  let database = epoch_test_database(name)
+  initialize_native_client_run_journal(database).unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  let result = journal.transaction(() => {
+    database.insert("fixture", "original", b"committed").unwrap() |> ignore
+    journal_test_refuse_transaction_state(database, 1)
+    Ok(())
+  })
+  guard result
+    is Err(JournalStepFailed(SqlStep(@sqlite.Commit, observed), None)) else {
+    fail("expected a confirmed step without a state acknowledgement")
+  }
+  assert_true(observed.result is Ok(_))
+  assert_true(observed.state is Some(Err(@sqlite.Physical(_))))
+  assert_true(journal.transaction(() => Ok(())) is Err(Fenced))
+  assert_true(database.transaction_fenced())
+  database.close_checked().unwrap()
+  let retained = epoch_test_database(name)
+  assert_eq(retained.read("fixture", "original").unwrap().body, b"committed")
+  retained.close_checked().unwrap()
 }

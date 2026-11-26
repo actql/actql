@@ -249,7 +249,8 @@ test "Native named Host COMMIT ambiguity keeps Unknown and reconciles without an
         Some(candidate),
         1001.0,
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(host.database.transaction_fenced())
     if !reply_lost {

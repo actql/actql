@@ -9771,6 +9771,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/effects.tuple-match-required",
+      "statement_sha256": "86d378ca53da933fe36070140459cb363b4026731f19d94e0493cba0ce8c4054",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.tuple-upsert-key-required",
+      "statement_sha256": "b1fae67e632c16bd38e4423903036d15ea8a6df21cf60d3f141826ee51d697db",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/effects.tuple-complete-ordered-target-key",
+      "statement_sha256": "89dad2da3f983a7ed14c776e87396225659e4ae344437c4fd9015eb60856b420",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effects",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/effects.the-runtime-must-correlate-those-two-fields-must-not-assume",
       "statement_sha256": "37a7f9da802240bf3180b5f02d6b2e968c4955160719535885cbadcdbe65c81f",
       "status": "pending",

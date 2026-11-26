@@ -226,6 +226,7 @@ pub fn resolve_concrete_update_target_binding(
   mapping_reference : String,
   max_work : Int,
   effect_kind? : String = "update",
+  match_tuple? : Bool = false,
 ) -> Result[ResolvedUpdateTarget, UpdateTargetIssue] {
   if effect_kind != "update" && effect_kind != "delete" {
     return Err(InvalidPublication)
@@ -237,6 +238,7 @@ pub fn resolve_concrete_update_target_binding(
     mapping_reference,
     max_work,
     effect_kind~,
+    match_tuple~,
   )
 }
 
@@ -248,6 +250,7 @@ fn resolve_concrete_effect_target_candidates(
   mapping_reference : String,
   max_work : Int,
   effect_kind? : String = "update",
+  match_tuple? : Bool = false,
 ) -> Result[ResolvedUpdateTarget, UpdateTargetIssue] {
   if max_work < 0 {
     return Err(WorkLimit)
@@ -276,15 +279,17 @@ fn resolve_concrete_effect_target_candidates(
     return Err(UnresolvedTarget)
   }
   let mut selected_mapping : @environment.MappingContractShape? = None
-  // Concrete checked DELETE uses the original complete Mapping inventory.
-  // Short keyed selections retain their operation-classified candidates.
-  let mapping_count = if effect_kind == "update" {
+  // Short scalar UPDATE selections retain their original candidates.
+  // A checked tuple occurrence resolves its exact operation rule against
+  // the complete inventory, which ordinary concrete DELETE also uses.
+  let use_candidates = effect_kind == "update" && !match_tuple
+  let mapping_count = if use_candidates {
     candidates.length()
   } else {
     @environment.mapping_shape_count(publication.mappings)
   }
   for index in 0..<mapping_count {
-    let mapping = if effect_kind == "update" {
+    let mapping = if use_candidates {
       candidates[index]
     } else {
       @environment.mapping_shape_at(publication.mappings, index).unwrap()
@@ -295,6 +300,23 @@ fn resolve_concrete_effect_target_candidates(
     remaining -= 1
     if @environment.mapping_shape_target(mapping) != target ||
       @environment.mapping_shape_reference(mapping) != mapping_reference {
+      continue
+    }
+    if match_tuple {
+      let (supported, work) = match
+        @environment.mapping_supports_operation(
+          mapping, effect_kind, "match_tuple", remaining,
+        ) {
+        Ok(value) => value
+        Err(@environment.MappingPermissionIssue::WorkLimit) =>
+          return Err(WorkLimit)
+        Err(_) => return Err(InvalidPublication)
+      }
+      remaining -= work
+      if !supported {
+        continue
+      }
+    } else if @environment.mapping_shape_tuple_field_count(mapping) != 0 {
       continue
     }
     if selected_mapping is Some(_) {

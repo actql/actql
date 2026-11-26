@@ -333,7 +333,7 @@ fn receipt_test_settle(
       println("Native receipt boundary: bounded storage refused")
     Err(Physical(@sqlite.Collision)) =>
       println("Native receipt boundary: physical revision collision")
-    Err(TransactionUnknown) =>
+    Err(issue) if issue.requires_transaction_reconciliation() =>
       println("Native receipt boundary: commit result unknown")
     Err(AuthorizationDenied) =>
       println("Native receipt boundary: current evidence authority denied")
@@ -593,7 +593,8 @@ test "Native original terminal and receipt commit together after lost reply" {
     }
     assert_true(
       receipt_test_settle(journal, dispatch, preview, locator, key, basis)
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     if !reply_lost {
       database.rollback().unwrap()

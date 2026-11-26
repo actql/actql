@@ -7,19 +7,29 @@ import {restConnectorPackageMetadata} from '../../connector-authoring.mjs';
 import {checkHostBundle} from '../../connector-host-bundle-contract.mjs';
 import {inventory, unpack} from '../../package-release.mjs';
 import {assertAuthorRestSchema, readAuthorBytes} from './conformance-input.mjs';
+import type {AuthorRestCase, AuthorRestSchema} from './conformance-input.mjs';
+
+type AuthorDefinition = {
+  id?: unknown;
+  origin: string;
+  sources?: Record<string, {fields?: unknown}>;
+  transform?: string;
+};
+type SelectedAuthor = {definition: AuthorDefinition; transform?: Buffer};
+type InstalledRestDeclaration = {registration: unknown; origin: unknown; profileVersion: unknown; authoredViewsWire: string};
 
 const maxAuthorBytes = 1024 * 1024;
-const registrationDirectory = (root, registration) => join(root, 'src/connectors', registration);
-const readJson = async path => JSON.parse(await readFile(path, 'utf8'));
+const registrationDirectory = (root: string, registration: string) => join(root, 'src/connectors', registration);
+const readJson = async (path: string): Promise<unknown> => JSON.parse(await readFile(path, 'utf8'));
 
-export function selectAuthorPackage(casePath, author) {
+export function selectAuthorPackage(casePath: string, author: AuthorRestCase): {bytes: Buffer} | SelectedAuthor {
   const {connector, schema} = author;
   const root = dirname(casePath);
   const packed = connector.kind === 'packed';
   const bytes = readAuthorBytes(root, connector.path, connector.sha256,
     packed ? 16 * maxAuthorBytes : maxAuthorBytes);
   if (packed) return {bytes};
-  const definition = JSON.parse(bytes);
+  const definition: AuthorDefinition = JSON.parse(bytes.toString('utf8'));
   assert.equal(definition?.id, schema.registration, 'REST author registration mismatch');
   const declaredOrigin = new URL(definition.origin);
   assert(declaredOrigin.protocol === 'https:' && declaredOrigin.origin === definition.origin,
@@ -34,26 +44,27 @@ export function selectAuthorPackage(casePath, author) {
   return {definition, transform};
 }
 
-export async function stageAuthorDefinition(authorDirectory, selected, origin) {
+export async function stageAuthorDefinition(authorDirectory: string, selected: SelectedAuthor, origin: string) {
   const definitionPath = join(authorDirectory, 'connector.json');
   const definition = {...selected.definition, origin};
   await writeFile(definitionPath, JSON.stringify(definition, null, 2) + '\n');
   if (selected.transform !== undefined) {
-    const transformPath = join(authorDirectory, definition.transform);
+    // The selected transform is retained only when the definition names it.
+    const transformPath = join(authorDirectory, definition.transform!);
     await mkdir(dirname(transformPath), {recursive: true});
     await writeFile(transformPath, selected.transform, {flag: 'wx'});
   }
   return definitionPath;
 }
 
-export async function readAuthorPackage(root, schema, origin, hostPackageVersion) {
+export async function readAuthorPackage(root: string, schema: AuthorRestSchema, origin: string, hostPackageVersion: string) {
   const {registration} = schema;
   assert.equal(typeof hostPackageVersion, 'string');
-  const metadata = await readJson(join(root, 'package.json'));
+  const metadata = await readJson(join(root, 'package.json')) as ReturnType<typeof restConnectorPackageMetadata>;
   assert.deepEqual(metadata, restConnectorPackageMetadata(registration, hostPackageVersion),
     'REST package manifest must match the generated package without lifecycle hooks or extra dependencies');
   const path = registrationDirectory(root, registration);
-  const declaration = await readJson(join(path, 'rest-source.json'));
+  const declaration = await readJson(join(path, 'rest-source.json')) as InstalledRestDeclaration;
   assert.equal(declaration.registration, registration, 'REST package registration mismatch');
   assert.equal(declaration.origin, origin, 'REST package origin must match the controlled loopback fixture');
   const bundle = checkHostBundle(root, registration, join(path, 'host-bundle.json'));
@@ -66,13 +77,14 @@ export async function readAuthorPackage(root, schema, origin, hostPackageVersion
   assert.deepEqual(JSON.parse(declaration.authoredViewsWire), views);
   const files = await inventory(root);
   const owned = new Set(['package.json', 'index.mjs', `src/connectors/${registration}/host-bundle.json`,
-    ...bundle.assets, bundle.source.module, posix.join(posix.dirname(bundle.source.module), 'transform.mjs')]);
+    ...bundle.assets, bundle.source!.module, posix.join(posix.dirname(bundle.source!.module), 'transform.mjs')]);
   assert(files.every(file => owned.has(file.path) || /^(?:README|LICENSE)(?:[.][a-z]+)?$/iu.test(file.path)),
     'REST packed payload contains files outside the generated installation');
   return {name: metadata.name, profileVersion, files};
 }
 
-export async function stagePackedAuthorPackage(output, author, bytes, hostPackageVersion) {
+export async function stagePackedAuthorPackage(output: string, author: Pick<AuthorRestCase, 'schema' | 'protocol'>,
+    bytes: Buffer, hostPackageVersion: string) {
   const tar = join(output, 'author-connector.tgz');
   await writeFile(tar, bytes, {flag: 'wx'});
   const root = await unpack(tar, join(output, 'packed-connector-inventory'));

@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_construction.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e4fd5943834d566027507a2138caf9aaa7ca5a6afacdea47677a654e3900b302",
+      "sha256": "6bd158d806a971b048082776200017f17863a2078cea8db8ad07f0955b03c264",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -12,6 +12,10 @@
         {
           "name": "prepare_relation_document_contract",
           "declaration": "prepare_relation_document_contract ( declaration : RowDeclaration , resource : String , primary_identity : String , limits : RowPageLimits , ) - > Result [ RelationDocumentPreparedContract , RowMappingIssue ]"
+        },
+        {
+          "name": "prepare_relation_document_key_contract",
+          "declaration": "prepare_relation_document_key_contract ( declaration : RowDeclaration , resource : String , ordered_key : Array [ String ] , limits : RowPageLimits , ) - > Result [ RelationDocumentPreparedKey , RowMappingIssue ]"
         },
         {
           "name": "relation_document_construction_inventory",
@@ -24,6 +28,18 @@
         {
           "name": "relation_document_construction_scale",
           "declaration": "relation_document_construction_scale ( units : @ execution . PreparationRepresentationUnits , count : Int64 , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_document_key_metadata_capacity",
+          "declaration": "relation_document_key_metadata_capacity ( declaration : RowDeclaration , resource : String , limits : RowPageLimits , key_fields : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "relation_document_key_metadata_construction_inventory",
+          "declaration": "relation_document_key_metadata_construction_inventory ( limits : RowPageLimits , key_fields : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_document_key_prepared_contract",
+          "declaration": "relation_document_key_prepared_contract ( original : RelationDocumentPreparedKey , ) - > RelationDocumentPreparedContract"
         },
         {
           "name": "relation_document_mapping_construction_inventory",
@@ -64,6 +80,18 @@
         {
           "name": "relation_target_insert_workspace_inventory",
           "declaration": "relation_target_insert_workspace_inventory ( prepared : RelationDocumentPreparedContract , items_path_depth : Int , original_bytes : Int , row_wire_utf16 : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_target_insert_workspace_inventory_with_width",
+          "declaration": "relation_target_insert_workspace_inventory_with_width ( prepared : RelationDocumentPreparedContract , items_path_depth : Int , original_bytes : Int , row_wire_utf16 : Int , key_fields : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_target_key_wire_workspace_inventory",
+          "declaration": "relation_target_key_wire_workspace_inventory ( prepared : RelationDocumentPreparedKey , key_wire_utf16 : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_target_ordered_insert_workspace_inventory",
+          "declaration": "relation_target_ordered_insert_workspace_inventory ( prepared : RelationDocumentPreparedKey , items_path_depth : Int , original_bytes : Int , row_wire_utf16 : Int , ) - > @ execution . PreparationRepresentationUnits ?"
         }
       ],
       "contracts": [
@@ -81,7 +109,14 @@
             "relation_document_typed_construction",
             "prepare_relation_document_contract",
             "relation_document_prepared_contract",
-            "relation_target_insert_workspace_inventory"
+            "relation_target_insert_workspace_inventory",
+            "prepare_relation_document_key_contract",
+            "relation_document_key_metadata_construction_inventory",
+            "relation_document_key_prepared_contract",
+            "relation_target_key_wire_workspace_inventory",
+            "relation_target_ordered_insert_workspace_inventory",
+            "relation_target_insert_workspace_inventory_with_width",
+            "relation_document_key_metadata_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -147,6 +182,18 @@
               {
                 "path": "src/client_row_source_host/relation_document_target_wbtest.mbt",
                 "anchor": "relation insertion workspace includes decoded input row output and full replacement"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_key_wbtest.mbt",
+                "anchor": "ordered file target matches the exact typed tuple and updates only its original row"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_key_wbtest.mbt",
+                "anchor": "ordered File key preparation uses only the original fact and schema quote"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_key_wbtest.mbt",
+                "anchor": "ordered File probe prices both typed fields in either declared order"
               }
             ]
           }

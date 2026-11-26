@@ -29,7 +29,8 @@ fn installed_update_bridge_declaration() -> @client_row_source_host.RowDeclarati
 test "installed UPDATE bridge returns the existing mapping metadata projection" {
   let declaration = installed_update_bridge_declaration()
   let writes = "{\"writes\":[{\"resource\":\"records\",\"primary_identity\":\"id\",\"update\":{\"fields\":[\"amount\",\"choices\"],\"permission\":\"fixture:update\",\"approval\":\"required\"}}]}"
-  let sources = "[{\"target\":\"amount\",\"field\":\"amount\",\"null_behavior\":\"write_null\"},{\"target\":\"choices\",\"field\":\"choices\",\"null_behavior\":\"reject\"}]"
+  let sources =
+    #|{"operation":"update","sources":[{"target":"amount","field":"amount","null_behavior":"write_null"},{"target":"choices","field":"choices","null_behavior":"reject"}]}
   let wire = client_program_row_source_prepare_update_mapping(
     declaration, writes, "records", sources,
   )
@@ -45,8 +46,14 @@ test "installed UPDATE bridge returns the existing mapping metadata projection" 
   assert_true(body.contains("\"precision\":18"))
   for
     bad in [
-      "{}", "[{\"target\":\"amount\",\"target\":\"choices\",\"field\":\"amount\",\"null_behavior\":\"reject\"}]",
-      "[{\"target\":\"amount\",\"field\":\"amount\",\"null_behavior\":\"reject\",\"extra\":true}]",
+      "{}",
+      "[]",
+      (
+        #|{"operation":"update","sources":[{"target":"amount","target":"choices","field":"amount","null_behavior":"reject"}]}
+      ),
+      (
+        #|{"operation":"update","sources":[{"target":"amount","field":"amount","null_behavior":"reject","extra":true}]}
+      ),
     ] {
     assert_eq(
       client_program_row_source_prepare_update_mapping(
@@ -55,6 +62,86 @@ test "installed UPDATE bridge returns the existing mapping metadata projection" 
       "{\"issue\":\"InvalidSpecification\"}",
     )
   }
+}
+
+///|
+test "installed guarded Mapping selects the original ordered UPDATE or File UPSERT" {
+  let declaration = @client_row_source_host.restore_relation_row_declaration(
+    "ordered",
+    "fixture",
+    "fixture/0.1",
+    @client_row_source_host.project_relation_declaration_input(
+      {
+        "views": [
+          {
+            "resource": "records",
+            "resource_kind": "record",
+            "schema": {
+              "site": { "type": "string", "nullable": false },
+              "serial": { "type": "int64", "nullable": false },
+              "label": { "type": "string", "nullable": true },
+            },
+            "facts": {
+              "relation_keys": { "candidate_keys": [["site", "serial"]] },
+            },
+          },
+        ],
+      },
+      65536,
+      8192,
+      32,
+    ).unwrap(),
+    None,
+  ).unwrap()
+  let writes =
+    #|{"writes":[{"resource":"records","primary_identity":{"kind":"tuple","fields":["site","serial"]},"update":{"fields":["label"],"permission":"fixture:update","approval":"required"},"upsert":{"fields":["label"],"permission":"fixture:upsert","approval":"required"}}]}
+  let input =
+    #|{"operation":"@operation","sources":[{"target":"label","field":"incoming","null_behavior":"write_null"}]}
+  let mappings = []
+  for
+    (operation, kind, selector) in [
+      ("update", "update", "match_tuple"),
+      ("file-upsert", "upsert", "key_tuple"),
+    ] {
+    let wire = client_program_row_source_prepare_update_mapping(
+      declaration,
+      writes,
+      "records",
+      input.replace(old="@operation", new=operation),
+    )
+    guard @json.parse(wire) is Object(output) &&
+      output.get("body") is Some(String(body)) &&
+      output.get("mapping_cid") is Some(String(cid)) else {
+      abort("missing ordered Mapping")
+    }
+    mappings.push(cid)
+    assert_true(body.contains("actql.mapping_contract/0.2"))
+    assert_true(body.contains("\"fields\":[\"site\",\"serial\"]"))
+    assert_true(body.contains("\"effect_kind\":\"" + kind + "\""))
+    assert_true(body.contains("\"selector_class\":\"" + selector + "\""))
+    assert_true(body.contains("\"fixture:" + kind + "\""))
+    let required = if kind == "upsert" { "[\"label\"]" } else { "[]" }
+    assert_true(body.contains("\"required_fields\":" + required))
+  }
+  assert_true(mappings[0] != mappings[1])
+  assert_eq(
+    client_program_row_source_prepare_update_mapping(
+      declaration,
+      writes,
+      "records",
+      input.replace(old="@operation", new="upsert"),
+    ),
+    "{\"issue\":\"InvalidSpecification\"}",
+  )
+  assert_eq(
+    client_program_row_source_prepare_update_mapping(
+      declaration,
+      writes.replace(old="\"site\",\"serial\"", new="\"serial\",\"site\""),
+      "records",
+      input.replace(old="@operation", new="file-upsert"),
+    ),
+    "{\"issue\":\"InvalidSpecification\"}",
+  )
 }
 
 ///|

@@ -58,7 +58,81 @@ priv enum FileMappingKind {
   FileCreate
   FileUpdate
   FileDelete
+  FileUpsert
 } derive(Eq)
+
+///|
+/// Select an insert-capable Mapping for the same original complete File row.
+/// Every non-key field must be supplied because an approved key can be absent.
+pub fn prepare_row_file_upsert_mapping(
+  declaration : RowDeclaration,
+  writes_json : String,
+  resource : String,
+  sources : Array[RowMappingSource],
+) -> Result[RowMapping, RowMappingIssue] {
+  prepare_row_guarded_mapping(
+    declaration,
+    writes_json,
+    resource,
+    sources,
+    FileUpsert,
+  )
+}
+
+///|
+fn file_tuple_identity_body(fields : Array[String]) -> Json {
+  object([
+    ("kind", "tuple".to_json()),
+    ("fields", Json::array(fields.map(field => field.to_json()))),
+  ])
+}
+
+///|
+fn relation_file_tuple_key_valid(
+  schema : @schema.Schema,
+  fields : Array[String],
+) -> Bool {
+  fields.all(name => {
+    guard @schema.lookup_reference(schema, name) is Some(field) else {
+      return false
+    }
+    !field.contract.nullable &&
+    (
+      field.contract.shape is @contract.Text(_) ||
+      field.contract.shape is @contract.Signed64
+    )
+  })
+}
+
+///|
+fn file_write_key(
+  cursor : @decode.Cursor,
+  max_fields : Int,
+) -> (String, Array[String]?)? {
+  if @decode.text(cursor) is Ok(identity) {
+    return Some((identity, None))
+  }
+  guard @decode.closed_object(cursor, ["kind", "fields"]) is Ok(tuple) &&
+    @decode.lookup(tuple, "kind").map(@decode.text) is Some(Ok("tuple")) &&
+    @decode.lookup(tuple, "fields") is Some(fields) &&
+    @decode.array_length(fields) is Some(width) &&
+    width >= 2 &&
+    width <= max_fields else {
+    return None
+  }
+  let names : Array[String] = []
+  let seen : Map[String, Bool] = Map([])
+  for index in 0..<width {
+    guard @decode.text(@decode.element_at(fields, index).unwrap()) is Ok(name) &&
+      !name.is_empty() &&
+      !seen.contains(name) else {
+      return None
+    }
+    seen[name] = true
+    names.push(name)
+  }
+  Some((names[0], Some(names)))
+}
 
 ///|
 fn prepare_row_guarded_mapping(
@@ -90,34 +164,44 @@ fn prepare_row_guarded_mapping(
     return Err(InvalidSpecification)
   }
   let seen : Array[String] = []
-  let mut selected : (String, RowRelationWriteSpec)? = None
+  let mut selected : (String, Array[String]?, RowRelationWriteSpec)? = None
   for write in writes {
     guard @decode.closed_object(write, [
-        "resource", "primary_identity", "create", "update", "delete",
+        "resource", "primary_identity", "create", "update", "delete", "upsert",
       ])
       is Ok(fields) &&
       @decode.lookup(fields, "resource").map(@decode.text) is Some(Ok(name)) &&
-      @decode.lookup(fields, "primary_identity").map(@decode.text)
-      is Some(Ok(identity)) else {
+      @decode.lookup(fields, "primary_identity") is Some(key) &&
+      file_write_key(key, limits.max_fields) is Some((identity, ordered)) else {
       return Err(InvalidSpecification)
     }
     let create = @decode.lookup(fields, "create")
     let update = @decode.lookup(fields, "update")
     let delete = @decode.lookup(fields, "delete")
+    let upsert = @decode.lookup(fields, "upsert")
     if seen.contains(name) ||
       name.is_empty() ||
       identity.is_empty() ||
-      (create is None && update is None && delete is None) {
+      (create is None && update is None && delete is None && upsert is None) {
       return Err(InvalidSpecification)
     }
     seen.push(name)
     // All operations select the same original Relation schema and key.
     let (_, contract) = match
-      mapping_original_relation(declaration, name, identity, limits) {
+      mapping_original_relation(
+        declaration,
+        name,
+        identity,
+        limits,
+        ordered_key=ordered,
+      ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
     guard @schema.from_object(contract) is Ok(schema) else {
+      return Err(InvalidSpecification)
+    }
+    if ordered is Some(fields) && !relation_file_tuple_key_valid(schema, fields) {
       return Err(InvalidSpecification)
     }
     for
@@ -125,8 +209,13 @@ fn prepare_row_guarded_mapping(
         (FileCreate, create),
         (FileUpdate, update),
         (FileDelete, delete),
+        (FileUpsert, upsert),
       ] {
       guard candidate is Some(operation) else { continue }
+      if (kind is FileCreate && ordered is Some(_)) ||
+        (kind is FileUpsert && ordered is None) {
+        return Err(InvalidSpecification)
+      }
       let is_delete = kind is FileDelete
       let keys = if is_delete {
         ["permission", "approval"]
@@ -153,7 +242,8 @@ fn prepare_row_guarded_mapping(
         for field in names {
           guard @decode.text(field) is Ok(field) &&
             !writable_fields.contains(field) &&
-            field != identity else {
+            field != identity &&
+            !ordered.map(fields => fields.contains(field)).unwrap_or(false) else {
             return Err(InvalidSpecification)
           }
           if @schema.lookup_reference(schema, field) is None {
@@ -178,11 +268,21 @@ fn prepare_row_guarded_mapping(
           return Err(InvalidSpecification)
         }
       }
+      if kind is FileUpsert {
+        guard ordered is Some(fields) &&
+          approval == "required" &&
+          contract.shape is @contract.Object(all) &&
+          @contract.field_count(all) ==
+          writable_fields.length() + fields.length() else {
+          return Err(InvalidSpecification)
+        }
+      }
       // Validate every declared operation before issuing the selected Mapping.
       if name == resource && kind == expected {
         selected = Some(
           (
             identity,
+            ordered,
             {
               kind: if kind is FileCreate {
                 RelationCreate
@@ -190,7 +290,7 @@ fn prepare_row_guarded_mapping(
                 RelationUpdate
               },
               writable_fields,
-              required_fields: if kind is FileCreate {
+              required_fields: if kind is (FileCreate | FileUpsert) {
                 writable_fields
               } else {
                 []
@@ -203,8 +303,19 @@ fn prepare_row_guarded_mapping(
       }
     }
   }
-  guard selected is Some((identity, spec)) else {
+  guard selected is Some((identity, ordered, spec)) else {
     return Err(NotWritable(resource))
+  }
+  if ordered is Some(fields) {
+    return prepare_relation_row_write_mapping_original(
+      declaration,
+      resource,
+      identity,
+      spec,
+      sources,
+      limits,
+      tuple=Some((expected, fields)),
+    )
   }
   if expected is FileDelete {
     prepare_row_delete_mapping(

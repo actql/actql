@@ -255,6 +255,10 @@ fn native_mock_effect_operations(
     }
     let deleting = descriptor.2 == "delete"
     let creating = descriptor.2 == "create"
+    let upserting = descriptor.2 == "upsert"
+    if upserting && !binding.provider.has_ordered_key() {
+      stop("LocalOriginalEffectImplementationUnavailable")
+    }
     if creating {
       let candidate = @run_host.prepared_client_effect_computation_candidate(
         prepared,
@@ -282,6 +286,21 @@ fn native_mock_effect_operations(
       ).map(value => value.0)
     } else if deleting {
       @row_file.native_relation_file_delete_target_io_capacity(binding.provider)
+    } else if upserting {
+      // Only one locked target branch runs for a row. Keep the normal
+      // guarded-update maximum beside the fixed insertion controls.
+      @row_file.native_relation_file_target_io_capacity(
+        binding.provider,
+        installation.write.writable_fields.length(),
+      ).bind(update => {
+        @row_file.native_relation_file_target_insert_construction(
+          binding.provider,
+          None,
+          None,
+        ).bind(insertion => {
+          native_mock_effect_capacity_envelope(update, insertion.0)
+        })
+      })
     } else {
       @row_file.native_relation_file_target_io_capacity(
         binding.provider,
@@ -390,7 +409,7 @@ fn native_mock_effect_operations(
     let rows = [request, write]
     if !creating {
       let read_initial = installation
-        .file_target_read_capacity(binding.provider, response_bytes=Some(0))
+        .file_target_initial_read_capacity(binding.provider)
         .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
       let read_maximum = installation
         .file_target_read_capacity(binding.provider)

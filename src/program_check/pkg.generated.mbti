@@ -111,6 +111,8 @@ pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimit
 
 pub fn check_document_with_evidence(String, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
+pub fn check_effect_computation_mappings(EffectComputationCandidate, @check_environment.Limits, Int) -> Result[@check_environment.MappingContractShapes, @check_environment.MappingShapeIssue]
+
 pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, CheckLimits, source_catalog? : PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> CheckOutcome
 
 pub fn check_parsed_scoped(@stage_syntax.Program, CheckEnvironment, CheckScope, @decode_core.Cursor?, CheckLimits, source_preparation? : @stage_parameters.Source?) -> ScopedCheckOutcome
@@ -249,7 +251,7 @@ pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_re
 
 pub fn effect_computation_supplied(EffectComputationCandidate) -> @decode_core.Cursor?
 
-pub fn effect_program_common_file_mutation_normalization_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonFileMutationNormalizationInventory, CompletionFreeInventoryIssue]
+pub fn effect_program_common_file_mutation_normalization_inventory(EffectProgramStaticCandidate, ordered? : Bool) -> Result[LocalCommonFileMutationNormalizationInventory, CompletionFreeInventoryIssue]
 
 pub fn effect_program_common_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
 
@@ -436,6 +438,8 @@ pub fn keyed_input_runtime_admission(KeyedInputProof) -> KeyedExecution?
 pub fn local_common_file_mutation_normalization_computation(LocalCommonFileMutationNormalizationInventory) -> LocalCommonNormalizationInventory
 
 pub fn local_common_file_mutation_normalization_inventory_matches(LocalCommonFileMutationNormalizationInventory, EffectProgramStaticCandidate) -> Bool
+
+pub fn local_common_file_mutation_normalization_ordered(LocalCommonFileMutationNormalizationInventory) -> Bool
 
 pub fn local_common_normalization_entry_at(LocalCommonNormalizationInventory, Int) -> (String, String, String, String)?
 

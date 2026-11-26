@@ -441,7 +441,8 @@ test "initial issue lost COMMIT ACK fences original grant and claim without anot
       samples.val += 1
       10000L
     })
-    is Err(InitialStorageJournal(TransactionUnknown))
+    is Err(InitialStorageJournal(JournalStepFailed(step, None))) &&
+    journal_test_original_commit_failure(step, true)
   let fenced = host.journal.fenced
   let again = initial_issue_storage_transaction(key, request, scope, () => {
       samples.val += 1

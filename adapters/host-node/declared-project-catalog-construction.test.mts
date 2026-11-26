@@ -211,24 +211,24 @@ test('physical overrides sum schema hash candidate facts and detached payload fo
 
 test('final descriptors borrow all native wires and reject accessor or proxy metadata arrays', () => {
   const original = JSON.stringify(sample('x'));
-  const one = finalGeometry(original, '{}', ['{}'], 1);
-  const large = finalGeometry(original, 'x'.repeat(100000), ['y'.repeat(100000)], 1);
+  const one = finalGeometry(original, '{}', ['{}'], 1, 0);
+  const large = finalGeometry(original, 'x'.repeat(100000), ['y'.repeat(100000)], 1, 0);
   assert.deepEqual(one, large, 'native output text is borrowed, never reparsed or copied');
   assert.equal(one.retained.text, 0n);
   assert.equal(one.workspace.wire, 0n);
   const records = Object.freeze([Object.freeze({body: '{}', resource: 'rows'})]);
-  assert.deepEqual(finalGeometry(original, '{}', records, 1), one);
-  assert.throws(() => finalGeometry(original, '{}', [{body: '{}'}], 1), TypeError);
+  assert.deepEqual(finalGeometry(original, '{}', records, 1, 0), one);
+  assert.throws(() => finalGeometry(original, '{}', [{body: '{}'}], 1, 0), TypeError);
   let bodyReads = 0;
   const getter = Object.freeze({get body() {bodyReads++; return '{}';}});
-  assert.throws(() => finalGeometry(original, '{}', Object.freeze([getter]), 1), TypeError);
+  assert.throws(() => finalGeometry(original, '{}', Object.freeze([getter]), 1, 0), TypeError);
   assert.equal(bodyReads, 0);
-  assert.ok(finalGeometry(original, '{}', ['{}', '{}'], 2).nodes > one.nodes);
+  assert.ok(finalGeometry(original, '{}', ['{}', '{}'], 2, 0).nodes > one.nodes);
   let reads = 0;
   const array: unknown[] = [];
   Object.defineProperty(array, '0', {get() {reads++; return '{}';}});
-  assert.throws(() => finalGeometry(original, '{}', array, 1), TypeError);
-  assert.throws(() => finalGeometry(original, '{}', new Proxy([], {get() {reads++;}}), 1), TypeError);
+  assert.throws(() => finalGeometry(original, '{}', array, 1, 0), TypeError);
+  assert.throws(() => finalGeometry(original, '{}', new Proxy([], {get() {reads++;}}), 1, 0), TypeError);
   assert.equal(reads, 0);
 });
 
@@ -241,13 +241,81 @@ test('all later quotations scan Strings only and reject unbounded count guesses'
     assert.ok(scopeGeometry(...scopeInputs).nodes > 0n);
     assert.ok(fileGeometry(original, exported, 'scope', 1).nodes > 0n);
     assert.ok(physicalGeometry(original, 1).nodes > 0n);
-    assert.ok(finalGeometry(original, exported, ['mapping'], 1).nodes > 0n);
+    assert.ok(finalGeometry(original, exported, ['mapping'], 1, 0).nodes > 0n);
     for (const count of [-1, 0.5, 129, Infinity, 1n, '1']) {
       assert.throws(() => fileGeometry(original, exported, 'scope', count as number), TypeError);
       assert.throws(() => physicalGeometry(original, count as number), TypeError);
-      assert.throws(() => finalGeometry(original, exported, [], count as number), TypeError);
+      assert.throws(() => finalGeometry(original, exported, [], count as number, 0), TypeError);
     }
   } finally {JSON.parse = parse; JSON.stringify = stringify;}
+});
+
+import {mockFileRowFootprint} from '../local-node/installed-mock-row-effect.mjs';
+import {declaredProjectMockFootprintConstructionGeometry as footprintGeometry}
+  from './declared-project-catalog-construction.mjs';
+
+test('Mock write footprint quote includes the original ordered identity and preserves the scalar quote', () => {
+  const paths = {itemsPath: ['rows'], keyPath: ['key']};
+  const rowLimit = 2, requestBytes = 64;
+  const measure = (primaryIdentity: unknown) =>
+    footprintGeometry([{physical: {...paths, primaryIdentity}}], rowLimit, requestBytes);
+  const scalar = measure('id');
+  assert.equal(scalar.bounds.wireBytes, 254n);
+  assert.deepEqual(scalar.retained, {nodes: 0n, text: 0n, wire: 0n});
+
+  const fields = Object.freeze(['site' + '雪'.repeat(72), 'serial']);
+  const tuple = Object.freeze({kind: 'tuple', fields});
+  const ordered = measure(tuple);
+  const selector = ['north', '9007199254740993'];
+  assert.ok(ordered.workspace.wire >= BigInt(Buffer.byteLength(wire({
+    items_path: paths.itemsPath, key_path: paths.keyPath, primary_identity: tuple, identity: selector,
+  }))));
+  assert.ok(ordered.workspace.nodes > scalar.workspace.nodes);
+  assert.ok(ordered.workspace.text > scalar.workspace.text);
+  assert.deepEqual(ordered.retained, scalar.retained);
+
+  let getterCalls = 0;
+  const hostile = Object.freeze({kind: 'tuple', get fields() {getterCalls++; return fields;}});
+  assert.throws(() => measure(hostile), TypeError);
+  assert.throws(() => measure({kind: 'tuple', fields}), TypeError);
+  assert.equal(getterCalls, 0);
+});
+
+test('Mock exact footprints hash the checked original tuple and distinguish adjacent Int64 values', () => {
+  const primaryIdentity = Object.freeze({kind: 'tuple' as const, fields: Object.freeze(['site', 'serial'])});
+  const bindingCid = 'sha256:' + 'a'.repeat(64);
+  const resourceIdentityCid = 'sha256:' + 'b'.repeat(64);
+  const target = {physical: {primaryIdentity, itemsPath: ['rows'], keyPath: ['key']},
+    write: {resource: 'Account'}, resourceIdentityCid};
+  const west = Object.freeze(['west', '9007199254740993']);
+  const next = Object.freeze(['west', '9007199254740994']);
+  const rows = mockFileRowFootprint({bindingCid, target, selectors: [west, next]});
+  const expected = (serial: string) => 'sha256:' + createHash('sha256').update(
+    '{"identity":["west","' + serial + '"],"items_path":["rows"],"key_path":["key"],' +
+    '"primary_identity":{"fields":["site","serial"],"kind":"tuple"}}').digest('hex');
+  assert.equal(rows.resource_identity_scheme_cid, resourceIdentityCid);
+  assert.deepEqual(rows.provider_object_identity_cids, [expected(west[1]), expected(next[1])]);
+  const scalar = mockFileRowFootprint({bindingCid,
+    target: {...target, physical: {...target.physical, primaryIdentity: 'id'}}, selectors: ['west']});
+  assert.equal(scalar.resource_identity_scheme_cid, 'sha256:' + createHash('sha256').update(
+    '{"identity_fields":["items_path","key_path","primary_identity","identity"],"kind":"mock-file-row-update"}').digest('hex'));
+  assert.deepEqual(scalar.provider_object_identity_cids, ['sha256:' + createHash('sha256').update(
+    '{"identity":"west","items_path":["rows"],"key_path":["key"],"primary_identity":"id"}').digest('hex')]);
+  const alias = {...target, write: {resource: 'AccountAlias'}};
+  assert.deepEqual(mockFileRowFootprint({bindingCid, target: alias, selectors: [west]}).provider_object_identity_cids,
+    [rows.provider_object_identity_cids[0]]);
+  assert.throws(() => mockFileRowFootprint({bindingCid, target, selectors: ['west|9007199254740993']}),
+    {code: 'InvalidMockEffectFootprint'});
+  assert.throws(() => mockFileRowFootprint({bindingCid, target, selectors: [Object.freeze(['west'])]}),
+    {code: 'InvalidMockEffectFootprint'});
+  assert.throws(() => mockFileRowFootprint({bindingCid, target: {physical: target.physical, write: target.write}, selectors: [west]}),
+    {code: 'InvalidMockEffectFootprint'});
+  let getterCalls = 0;
+  const accessor = ['west', west[1]];
+  Object.defineProperty(accessor, '1', {get() {getterCalls++; return west[1];}});
+  assert.throws(() => mockFileRowFootprint({bindingCid, target, selectors: [Object.freeze(accessor)]}),
+    {code: 'InvalidMockEffectFootprint'});
+  assert.equal(getterCalls, 0);
 });
 
 import {declaredProjectCatalogMappingInputsConstructionGeometry as mappingGeometry}
@@ -425,10 +493,15 @@ test('physical immutable entry overload counts only exact selected schemas and r
 test('final immutable entry overload uses actual data count and original mapping records', () => {
   const entry = deepFreeze(sample('x'));
   const mappings = Object.freeze([Object.freeze({body: '{}'})]);
-  const q = finalGeometry(entry, '{}', mappings, 2);
+  const q = finalGeometry(entry, '{}', mappings, 2, 0);
   assert.equal(q.bounds.mappingCount, 1n);
-  assert.ok(q.nodes < finalGeometry(JSON.stringify(entry), '{}', mappings, 2).nodes);
-  assert.deepEqual(q, finalGeometry(entry, '{}', ['{}'], 2));
+  assert.ok(q.nodes < finalGeometry(JSON.stringify(entry), '{}', mappings, 2, 0).nodes);
+  assert.deepEqual(q, finalGeometry(entry, '{}', ['{}'], 2, 0));
+  const ordered = finalGeometry(entry, '{}', mappings, 2, 1);
+  assert.equal(ordered.retained.nodes, q.retained.nodes + 1n, 'retain one borrowed prepared key slot');
+  assert.deepEqual(ordered.workspace, {...q.workspace, nodes: q.workspace.nodes + 3n},
+    'each retained slot also traverses the arrays, slots and frames of the freeze workspace');
+  assert.throws(() => finalGeometry(entry, '{}', mappings, 2, 2), TypeError);
 });
 
 import {declaredProjectCatalogEntryHostConstructionGeometry as hostOnlyGeometry,

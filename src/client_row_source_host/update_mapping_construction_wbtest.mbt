@@ -134,3 +134,87 @@ test "UPDATE Mapping sibling results keep separate retained debt and original id
   @resources.settle_capacity(ledger, one).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
+
+///|
+test "Ordered File Mapping quotes and funds each original operation" {
+  let declaration = ordered_file_target_fixture()
+  let writes =
+    #|{"writes":[{"resource":"records","primary_identity":{"kind":"tuple","fields":["site","serial"]},"update":{"fields":["label"],"permission":"fixture:update","approval":"required"},"delete":{"permission":"fixture:delete","approval":"required"},"upsert":{"fields":["label"],"permission":"fixture:upsert","approval":"required"}}]}
+  let sources = [
+    { target: "label", field: "incoming", null_behavior: "write_null", },
+  ]
+  let sources_wire =
+    #|[{"target":"label","field":"incoming","null_behavior":"write_null"}]
+  for
+    (operation, selector, written) in [
+      ("update", "match_tuple", ["label"]),
+      ("delete", "match_tuple", []),
+      ("upsert", "key_tuple", ["label"]),
+    ] {
+    let quote = row_update_mapping_construction_capacity(
+      declaration,
+      writes,
+      "records",
+      if operation == "delete" {
+        "[]"
+      } else {
+        sources_wire
+      },
+    ).unwrap()
+    let retained = @execution.execution_capacity_retained_bytes(quote)
+    let execution = @execution.execution_capacity_execution_bytes(quote)
+    assert_true(retained > 0L && execution > retained)
+    for
+      (retention_short, execution_short) in [
+        (false, false),
+        (true, false),
+        (false, true),
+      ] {
+      let ledger = @resources.create_ledger({
+        planning_work: 0,
+        attempts: 1,
+        holdings: 0,
+        transfer_bytes: 0L,
+        retained_bytes: retained - (if retention_short { 1L } else { 0L }),
+        execution_bytes: execution - (if execution_short { 1L } else { 0L }),
+      }).unwrap()
+      let before = @resources.ledger_usage(ledger)
+      let admitted = @resources.reserve_capacity(ledger, retained, execution)
+      if retention_short {
+        assert_true(admitted is Err(@resources.RetentionLimit))
+        assert_eq(@resources.ledger_usage(ledger), before)
+      } else if execution_short {
+        assert_true(admitted is Err(@resources.ExecutionLimit))
+        assert_eq(@resources.ledger_usage(ledger), before)
+      } else {
+        let original = admitted.unwrap()
+        let prepared = match operation {
+          "update" =>
+            prepare_row_update_mapping(declaration, writes, "records", sources)
+          "delete" =>
+            prepare_row_delete_mapping_from_writes(
+              declaration, writes, "records",
+            )
+          _ =>
+            prepare_row_file_upsert_mapping(
+              declaration, writes, "records", sources,
+            )
+        }
+        let mapping = prepared.unwrap()
+        let usage = @resources.ledger_usage(ledger)
+        assert_eq(usage.reserved_retention_bytes, retained)
+        assert_eq(usage.live_reservations, 1)
+        let shape = checked_ordered_file_mapping(declaration, mapping)
+        assert_eq(mapping.write_fields, written)
+        let permissions = @environment.select_mapping_permissions(
+          shape, operation, selector, written, 1000,
+        ).unwrap()
+        assert_eq(@environment.mapping_permission_names(permissions), [
+          "fixture:" + operation,
+        ])
+        @resources.settle_capacity(ledger, original).unwrap()
+        assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+      }
+    }
+  }
+}

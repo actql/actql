@@ -92,6 +92,11 @@ fn bind_published_query_parts_with_reader(
     let root = read(publication)
     // Preserve the complete unused-section checks and their original order.
     source_publication_closed(root)
+    let admission = Some(
+      admission.unwrap_or_else(() => {
+        publication_environment_admission(environment)
+      }),
+    )
     let store = match
       published_store_targets_from_root(environment, root, admission~) {
       Ok(value) => value

@@ -1238,7 +1238,8 @@ Plan and Preview. `target_schema` is the complete checked object field contract.
 Without `target_schema_reference`, `target_schema_identity` is that contract's
 canonical CID; with one, it binds the exact external schema reference CID and
 the referenced body still requires separate closure admission.
-`primary_identity` is required. A string names one non-null scalar target field.
+`primary_identity` is required. In `actql.mapping_contract/0.1`, a string
+names one non-null scalar target field.
 An explicit `null` declares a collection-only Mapping with no row identity; it
 does not mean a missing, unresolved, or inferable identity. Every permission rule
 of this shape MUST be `create` with selector class `none`. Common preparation
@@ -1257,6 +1258,7 @@ equal to `connector_connection`. This is distinct from a row identity scheme. It
 complete body is hashed without exclusions; identifiers remain typed, not
 inferred from a title, row number, or row content. A changed collection changes
 the Mapping and Preview identity and needs separate current authorization.
+
 `writable_fields`
 is an explicit subset of that schema, and `required_fields` is the subset
 required for writes. A conversion entry binds one target field,
@@ -1267,6 +1269,18 @@ selector class, exact write-field set and its non-empty permission set.
 result field or literal and one null behavior (`reject`, `write_null`, or
 `omit`). Contract integrity and these static facts do not establish current
 provider authority, schema freshness, uniqueness, or apply permission.
+
+<!-- requirement-block: mapping-contracts.ordered-file-candidate-key -->
+`actql.mapping_contract/0.2` admits an ordered tuple identity for the
+File Mock write profile. Its `primary_identity` is the closed object
+`{"kind":"tuple","fields":[...]}` with at least two distinct field names.
+The fields MUST equal a candidate key published by the original target
+Resource, in the published order. The complete Mapping target schema supplies
+each component's contract. File Mock components are required, non-null Text
+or Int64. Each key field is outside `writable_fields`. UPDATE and DELETE
+require a `match_tuple` permission rule, and UPSERT requires a `key_tuple`
+rule. The complete body, including the exact field order and schema tag,
+contributes to `mapping_contract_cid`.
 
 <!-- requirement-block: store-command.exact-original-catalog-member store-command.invalid-present-relationship store-command.retained-installed-selection -->
 An object/file/stage write Mapping may additionally publish the closed
@@ -1895,7 +1909,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:df8124c401dd2ae789d3e22befa1c1c0de3c819addcdc39fc028c1f3df57721d -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:9e65ba98c720ed7f117b4109a68a23689ccee95367ac8d38c35f6e4554e99be2 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:e69679ab7bfbaf9d6343382d4d851fcfc5120778bec66480d0603af9d78dbc61 -->
 
 <a id="parameter-value-projection"></a>
@@ -2985,7 +2999,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:c7e2c377fd558613961f08fde77aa3397e0dde1a113ef4ab8049b025c1318b29
+../../../spec/contracts/actql-check-environment.json# sha256:5be3f143890cfe9cc4f2b387ce09da5113e05518334886c06df7b3d406fe0076
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:2525cf415e21053e77b5fb4fc199ea47617c4ddf5f6d1938dd0463a7f84961e4
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:380ffe3bf1833cc3080d8fe69c5c5fe9260944669817723b5ae67ce258c620b5
@@ -3026,11 +3040,11 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:29a10374ce6930547316e5e25805cfb42ed887d0aad0ec38ca7d5a68fbfa6f45
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:ba955ed34f24fc2d819a072c1ca18c5adb5c79f24151d10b3667511508cc5e9d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:1ba24295b62c70a8f7a831a9ace1e8b0d32aca342c34c6158a49774cef96a589
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:acd9139ef8b35163040b2bf87ee2bb94978476f8cb98b14db45691e2e9028ea8
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:12497b50d1f2a20ef355b6a3a59ae497bd8dd86ebaca33797ed47af4e2f08423

@@ -286,7 +286,8 @@ test "initial Signing commit response loss preserves same original or missing re
         settings=Some(session.settings),
         initial_signing=Some(capture),
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, lost),
     )
     assert_true(database.transaction_fenced())
     assert_true(

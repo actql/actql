@@ -21,7 +21,7 @@ test "Values command projects only the original typed row execution limit" {
     @local_host.Configuration,
     @local_host.Execution(Fenced),
     @local_host.Execution(UnsupportedGraph),
-    @local_host.Journal(TransactionUnknown),
+    @local_host.Journal(test_original_routed_commit_issue()),
   ]
   for issue in other {
     local_command_diagnostic_reset()
@@ -66,7 +66,10 @@ test "Values failure diagnostics preserve configuration and physical transaction
   assert_eq(fields.get(11), Some(7003L))
   assert_eq(fields.length(), 2)
   fields.clear()
-  local_values_failure_tags(@local_host.Journal(TransactionUnknown), emit)
+  local_values_failure_tags(
+    @local_host.Journal(test_original_routed_commit_issue()),
+    emit,
+  )
   assert_eq(fields.get(11), Some(7004L))
   assert_eq(fields.get(12), Some(4L))
   fields.clear()

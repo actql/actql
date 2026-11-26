@@ -324,11 +324,16 @@ pub(all) struct NativeRelationFileTargetIO {
   mut closed : Bool
   mut advance_refuses : Bool
   mut advances : Int
+  mut absence_checks : Int
 }
 pub fn NativeRelationFileTargetIO::byte_counts(_self : Self) -> (Int64, Int64) { (32L, 0L) }
 pub fn NativeRelationFileTargetIO::advance(self : Self) -> Result[Bool, NativeRelationFileIssue] {
   self.advances += 1
   if self.advance_refuses { Err(FileLimit) } else { Ok(false) }
+}
+pub fn NativeRelationFileTargetIO::target_absent(self : Self) -> Bool {
+  self.absence_checks += 1
+  false
 }
 pub fn NativeRelationFileTargetIO::snapshot(_self : Self) -> (String, String)? { Some(("before", "version")) }
 
@@ -354,7 +359,7 @@ test "same original debt and physical close remain separate" {
   for kind in [0, 1, 2] {
     let operation : @local_values.ClientInstalledEffectOperationBorrow = { refusing: true, charged: 0L, retire_calls: 0 }
     let request : @local_values.ClientInstalledEffectOperationBorrow = { refusing: false, charged: 0L, retire_calls: 0 }
-    let child : @row_file.NativeRelationFileTargetIO = { close_kind: kind, close_calls: 0, closed: false, advance_refuses: false, advances: 0 }
+    let child : @row_file.NativeRelationFileTargetIO = { close_kind: kind, close_calls: 0, closed: false, advance_refuses: false, advances: 0, absence_checks: 0 }
     let input : LocalNativeMockEffectRequestInput = {
       value: Json::null(), before: "original-input-before", version: "original-input-version",
       initial: {retained: 1L, execution: 2L},
@@ -431,7 +436,7 @@ priv struct Preparation { original : LocalCommandPreparationOriginal }
 ${actual}
 ${primary}
 ${helper}
-fn Preparation::step(self : Self, held : LocalNativeMockEffectTarget) -> Bool raise ClientStop {
+fn Preparation::step(self : Self, held : LocalNativeMockEffectTarget, upserting : Bool) -> Bool raise ClientStop {
   let report = issue => self.original.retain_primary(issue)
 ${proposalReporter}
   let mut complete = false
@@ -439,9 +444,12 @@ ${step}
   complete
 }
 test "physical failure survives a distinct accounting refusal" {
-  for (physical_failure, accounting_failure) in [(true, true), (false, true), (true, false)] {
+  for (physical_failure, accounting_failure, upserting) in [
+    (true, true, false), (false, true, false), (true, false, false),
+    (true, true, true), (false, true, true), (true, false, true),
+  ] {
     let operation : @local_values.ClientInstalledEffectOperationBorrow = { refusing: accounting_failure, charged: 0L, retire_calls: 0 }
-    let child : @row_file.NativeRelationFileTargetIO = { close_kind: 0, close_calls: 0, closed: false, advance_refuses: physical_failure, advances: 0 }
+    let child : @row_file.NativeRelationFileTargetIO = { close_kind: 0, close_calls: 0, closed: false, advance_refuses: physical_failure, advances: 0, absence_checks: 0 }
     let input : LocalNativeMockEffectRequestInput = {
       value: Json::null(), before: "original-input-before", version: "original-input-version",
       initial: {retained: 1L, execution: 2L},
@@ -453,9 +461,10 @@ test "physical failure survives a distinct accounting refusal" {
     let original : LocalCommandPreparationOriginal = { primary: None }
     let caller : Preparation = { original, }
     let mut stopped = false
-    try { caller.step(held) |> ignore } catch { ClientStop(_) => stopped = true }
+    try { caller.step(held, upserting) |> ignore } catch { ClientStop(_) => stopped = true }
     assert_true(stopped)
     assert_eq(child.advances, 1)
+    assert_eq(child.absence_checks, 0)
     assert_eq(child.close_calls, 0)
     if physical_failure {
       assert_eq(original.primary, Some(CommandBusinessSource(FileLimit)))

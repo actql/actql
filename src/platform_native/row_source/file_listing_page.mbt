@@ -13,6 +13,7 @@ fn file_listing_fields_valid(
   provider : NativeRelationFilePreparedProvider,
   selected : NativeRelationFileListingFields,
 ) -> Bool {
+  guard provider.ordered_key is None else { return false }
   let contract = @rows.relation_document_prepared_contract(
     provider.prepared_contract,
   )

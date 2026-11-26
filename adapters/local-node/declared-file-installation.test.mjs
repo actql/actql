@@ -410,15 +410,18 @@ async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformed
         assert.equal(exports.get(declaration) ?? 0, 0, 'each native restore has exactly one owned export');
         exports.set(declaration, 1);state.nativeExports++;return nativeOriginals.get(declaration);
       },
-      clientProgramRowSourceUpdateMappingConstructionCapacity(declaration) {
+      clientProgramRowSourceUpdateMappingConstructionCapacity(declaration, wire, resource, sources) {
         assert(nativeOriginals.has(declaration));
+        assert.deepEqual(JSON.parse(sources),
+          {operation: 'update', sources: [{target: 'label', field: 'label', null_behavior: 'reject'}]});
         return ok(Object.freeze({fixture: 'same-original-update-mapping-quantity'}));
       },
       clientProgramRowSourcePrepareUpdateMapping(declaration, wire, resource, sources) {
         assert(nativeOriginals.has(declaration));assert.equal(events.at(-1), 'reserve:' + state.phase);
         assert.deepEqual(JSON.parse(wire), {writes: [{resource: 'records', primary_identity: 'id',
           update: {fields: ['label'], permission: 'write', approval: 'required'}}]});
-        assert.deepEqual(JSON.parse(sources), [{target: 'label', field: 'label', null_behavior: 'reject'}]);
+        assert.deepEqual(JSON.parse(sources),
+          {operation: 'update', sources: [{target: 'label', field: 'label', null_behavior: 'reject'}]});
         const declared = JSON.parse(nativeOriginals.get(declaration));
         const connector = JSON.parse(declared.catalog).connector_id;
         state.mappings++;

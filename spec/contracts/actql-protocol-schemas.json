@@ -17439,7 +17439,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:c80bbb151dfae7dc6bf4220b6887fe9687922f11560b0ed19d0f8febcbe93e1b",
+  "artifact_registry_cid": "sha256:71fadbca9b2b827b960fa968dc675bf4ad5ef4710c5e353fce0ddbbcdd98c372",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17449,12 +17449,12 @@
     "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:29a10374ce6930547316e5e25805cfb42ed887d0aad0ec38ca7d5a68fbfa6f45",
+    "executable_plan": "sha256:ba955ed34f24fc2d819a072c1ca18c5adb5c79f24151d10b3667511508cc5e9d",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:8b96ef58002bd3dcf7404fba1d692f1e5baf1b7decb54fc493756a08f8e825e1",
-    "review_projection": "sha256:99680abc66cdaa569fb44ac546fd1f814ed128e5d1ed3002d38d3a885acfe87b",
+    "effect_preview": "sha256:89431281f4a73819ec46d763ebd79f0a50ea45231e5ad6907a848257f73bb813",
+    "review_projection": "sha256:bef9adb109bbaf0afba3e72929b93e27a26cc156896f2ca21adbe006ccbbe338",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
     "effect_set_apply_receipt": "sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb",
@@ -17473,7 +17473,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:1ba24295b62c70a8f7a831a9ace1e8b0d32aca342c34c6158a49774cef96a589",
+    "plan_document": "sha256:acd9139ef8b35163040b2bf87ee2bb94978476f8cb98b14db45691e2e9028ea8",
     "plan_result": "sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
     "captured_run": "sha256:aa479d8c10e61bd10667a81df180bdf17a58c474b09ab3fa298fef6b96afe4b5",
@@ -17481,7 +17481,7 @@
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
     "source_input_logical": "sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea",
-    "effect_row_outcome_receipt": "sha256:8b4147335ba233b174f0493e12ca98ce76a39ea7046b2d911653df8ad116e79c",
+    "effect_row_outcome_receipt": "sha256:4e06c2c095a26263cf8ebf85089872567d1a8d22e0cf19d07cefcb8bd96cbe6c",
     "effect_source_artifact": "sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc",
     "model_effective_inputs": "sha256:b44b64433d41470d143efa8deac6692201804a5714380694a84d66759819a727",
     "model_input_artifact": "sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c",
@@ -46719,6 +46719,28 @@
                                     }
                                   ]
                                 }
+                              },
+                              "match_tuple": {
+                                "type": "array",
+                                "minItems": 2,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "target_field",
+                                    "result_field"
+                                  ],
+                                  "properties": {
+                                    "target_field": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "result_field": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  }
+                                }
                               }
                             },
                             "allOf": [
@@ -46754,6 +46776,11 @@
                                     "required": [
                                       "where"
                                     ]
+                                  },
+                                  {
+                                    "required": [
+                                      "match_tuple"
+                                    ]
                                   }
                                 ]
                               },
@@ -46761,6 +46788,18 @@
                                 "required": [
                                   "set"
                                 ]
+                              },
+                              {
+                                "if": {
+                                  "required": [
+                                    "match_tuple"
+                                  ]
+                                },
+                                "then": {
+                                  "required": [
+                                    "from"
+                                  ]
+                                }
                               }
                             ]
                           },
@@ -46781,7 +46820,6 @@
                             "additionalProperties": false,
                             "required": [
                               "from",
-                              "key",
                               "set"
                             ],
                             "properties": {
@@ -46889,6 +46927,28 @@
                                     }
                                   ]
                                 }
+                              },
+                              "key_tuple": {
+                                "type": "array",
+                                "minItems": 2,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "target_field",
+                                    "result_field"
+                                  ],
+                                  "properties": {
+                                    "target_field": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "result_field": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  }
+                                }
                               }
                             },
                             "allOf": [
@@ -46896,6 +46956,20 @@
                                 "required": [
                                   "target",
                                   "mapping"
+                                ]
+                              },
+                              {
+                                "oneOf": [
+                                  {
+                                    "required": [
+                                      "key"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "key_tuple"
+                                    ]
+                                  }
                                 ]
                               }
                             ]
@@ -46991,7 +47065,29 @@
                               "external_id": {
                                 "type": "object"
                               },
-                              "where": {}
+                              "where": {},
+                              "match_tuple": {
+                                "type": "array",
+                                "minItems": 2,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "target_field",
+                                    "result_field"
+                                  ],
+                                  "properties": {
+                                    "target_field": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "result_field": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  }
+                                }
+                              }
                             },
                             "allOf": [
                               {
@@ -47026,8 +47122,25 @@
                                     "required": [
                                       "where"
                                     ]
+                                  },
+                                  {
+                                    "required": [
+                                      "match_tuple"
+                                    ]
                                   }
                                 ]
+                              },
+                              {
+                                "if": {
+                                  "required": [
+                                    "match_tuple"
+                                  ]
+                                },
+                                "then": {
+                                  "required": [
+                                    "from"
+                                  ]
+                                }
                               }
                             ]
                           },
@@ -48747,6 +48860,13 @@
                           }
                         },
                         {
+                          "type": "array",
+                          "minItems": 2,
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        {
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
@@ -49215,6 +49335,13 @@
                         "type": "integer",
                         "minimum": 0
                       }
+                    }
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                      "type": "string"
                     }
                   },
                   {
@@ -80547,6 +80674,28 @@
                                         }
                                       ]
                                     }
+                                  },
+                                  "match_tuple": {
+                                    "type": "array",
+                                    "minItems": 2,
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "target_field",
+                                        "result_field"
+                                      ],
+                                      "properties": {
+                                        "target_field": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "result_field": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        }
+                                      }
+                                    }
                                   }
                                 },
                                 "allOf": [
@@ -80582,6 +80731,11 @@
                                         "required": [
                                           "where"
                                         ]
+                                      },
+                                      {
+                                        "required": [
+                                          "match_tuple"
+                                        ]
                                       }
                                     ]
                                   },
@@ -80589,6 +80743,18 @@
                                     "required": [
                                       "set"
                                     ]
+                                  },
+                                  {
+                                    "if": {
+                                      "required": [
+                                        "match_tuple"
+                                      ]
+                                    },
+                                    "then": {
+                                      "required": [
+                                        "from"
+                                      ]
+                                    }
                                   }
                                 ]
                               },
@@ -80609,7 +80775,6 @@
                                 "additionalProperties": false,
                                 "required": [
                                   "from",
-                                  "key",
                                   "set"
                                 ],
                                 "properties": {
@@ -80717,6 +80882,28 @@
                                         }
                                       ]
                                     }
+                                  },
+                                  "key_tuple": {
+                                    "type": "array",
+                                    "minItems": 2,
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "target_field",
+                                        "result_field"
+                                      ],
+                                      "properties": {
+                                        "target_field": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "result_field": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        }
+                                      }
+                                    }
                                   }
                                 },
                                 "allOf": [
@@ -80724,6 +80911,20 @@
                                     "required": [
                                       "target",
                                       "mapping"
+                                    ]
+                                  },
+                                  {
+                                    "oneOf": [
+                                      {
+                                        "required": [
+                                          "key"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "key_tuple"
+                                        ]
+                                      }
                                     ]
                                   }
                                 ]
@@ -80819,7 +81020,29 @@
                                   "external_id": {
                                     "type": "object"
                                   },
-                                  "where": {}
+                                  "where": {},
+                                  "match_tuple": {
+                                    "type": "array",
+                                    "minItems": 2,
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "target_field",
+                                        "result_field"
+                                      ],
+                                      "properties": {
+                                        "target_field": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "result_field": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        }
+                                      }
+                                    }
+                                  }
                                 },
                                 "allOf": [
                                   {
@@ -80854,8 +81077,25 @@
                                         "required": [
                                           "where"
                                         ]
+                                      },
+                                      {
+                                        "required": [
+                                          "match_tuple"
+                                        ]
                                       }
                                     ]
+                                  },
+                                  {
+                                    "if": {
+                                      "required": [
+                                        "match_tuple"
+                                      ]
+                                    },
+                                    "then": {
+                                      "required": [
+                                        "from"
+                                      ]
+                                    }
                                   }
                                 ]
                               },
@@ -91408,7 +91648,13 @@
                     "state": {
                       "const": "applied"
                     },
-                    "result": {}
+                    "result": {},
+                    "action": {
+                      "enum": [
+                        "created",
+                        "updated"
+                      ]
+                    }
                   }
                 },
                 {

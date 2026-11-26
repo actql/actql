@@ -342,9 +342,8 @@ pub fn NativeLocalJournalCapture::refresh_original_run_availability_in_original_
       now, operations,
     )
     match result {
-      Err(Journal(TransactionUnknown)) => Err(Journal(TransactionUnknown))
-      Err(Journal(Epoch(TransactionUnknown))) =>
-        Err(Journal(Epoch(TransactionUnknown)))
+      Err(Journal(issue)) if issue.requires_transaction_reconciliation() =>
+        Err(Journal(issue))
       _ => Ok(result.map(state => { original, state, }))
     }
   })

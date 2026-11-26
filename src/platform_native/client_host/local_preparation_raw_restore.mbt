@@ -142,7 +142,8 @@ fn[T] NativeLocalHostConnection::preparation_raw_read_transaction(
   // A lost transaction ACK dominates a callback refusal, not the reverse.
   match result {
     Ok(value) => Ok(value)
-    Err(TransactionUnknown) => Err(Journal(TransactionUnknown))
+    Err(issue) if issue.requires_transaction_reconciliation() =>
+      Err(Journal(issue))
     Err(issue) => Err(read_issue.unwrap_or(Journal(issue)))
   }
 }

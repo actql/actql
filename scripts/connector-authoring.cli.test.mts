@@ -8,9 +8,7 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {connectorConformancePlan} from './connector.mjs';
 import {projectRestConnector, restConnectorPackageMetadata} from './connector-authoring.mjs';
-// @ts-expect-error TS7016: The author-case fixture is still authored JavaScript.
 import {assertAuthorRestRows, createAuthorRestProvider, readAuthorRestCase, readRestConformanceInput} from './fixtures/external-rest/conformance-input.mjs';
-// @ts-expect-error TS7016: The installed author-package fixture is still authored JavaScript.
 import {readAuthorPackage, selectAuthorPackage} from './fixtures/external-rest/author-package.mjs';
 import {authoringToolkitPath, observeInstalledAuthoringToolkit} from './connector-authoring-toolkit.mjs';
 import {inventory, unpack} from './package-release.mjs';
@@ -328,8 +326,11 @@ test('author conformance selects independent connector, schema, Program, binding
   assert.equal(connectorConformancePlan(root, [input, '--timeout-seconds', '180'])
     .steps[0].env.ACTQL_REST_CONFORMANCE_INPUT, input);
   const author = readAuthorRestCase(casePath, caseSha256);
-  const {definition} = selectAuthorPackage(casePath, author);
+  const selected = selectAuthorPackage(casePath, author);
+  assert('definition' in selected, 'Expected the original unpacked author definition');
+  const {definition} = selected;
   assert.equal(definition.id, 'harbor');
+  assert.ok(definition.sources);
   assert.deepEqual(Object.keys(definition.sources), ['berths']);
   assert.deepEqual(author.parameters, {minimum_depth: 9});
   const provider = createAuthorRestProvider(author);
@@ -342,10 +343,10 @@ test('author conformance selects independent connector, schema, Program, binding
   assert.throws(() => assertAuthorRestRows(author.expected, JSON.parse(response.body).berths),
     /independent row oracle/u);
   const wrongSchema = structuredClone(author);
-  wrongSchema.schema.fields[1].type = 'string';
+  wrongSchema.schema.fields[1]['type'] = 'string';
   assert.throws(() => selectAuthorPackage(casePath, wrongSchema), /independent case schema/u);
   const wrongControl = structuredClone(author);
-  wrongControl.expected.control.harbor_master_note = 'Open Pier D';
+  wrongControl.expected.control['harbor_master_note'] = 'Open Pier D';
   assert.throws(() => createAuthorRestProvider(wrongControl).assertState('after'), /control records differ/u);
   assert.throws(() => readAuthorRestCase(casePath, '0'.repeat(64)), /digest mismatch/u);
   writeFileSync(connectorPath, '{}');

@@ -859,7 +859,8 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
     Err(issue) => {
       self.forget_read_evidence()
       match issue {
-        TransactionUnknown => Err(Journal(TransactionUnknown))
+        issue if issue.requires_transaction_reconciliation() =>
+          Err(Journal(issue))
         _ => Err(authority_refusal.unwrap_or(Journal(issue)))
       }
     }

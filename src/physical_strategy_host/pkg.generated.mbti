@@ -474,6 +474,8 @@ pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
 pub fn captured_task_control_construction_bytes(Int) -> Int64
 
+pub fn captured_task_control_entry_task(CapturedDAG, CapturedTaskBoundaryHooks) -> Int?
+
 pub fn captured_task_control_paused_task(CapturedDAG, CapturedTaskBoundaryHooks) -> Result[(Int, Int, Int?, Int), CapturedTaskControlIssue]
 
 pub fn captured_task_control_state(CapturedDAG, CapturedTaskBoundaryHooks) -> Result[(Int, CapturedTaskControlPhase), CapturedTaskControlIssue]

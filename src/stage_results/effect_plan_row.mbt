@@ -5,8 +5,14 @@
 pub struct EffectPlanRow {
   terminal : EffectPlanTerminal
   source_row_index : Int
-  selector_value : @json.CanonicalValue
+  priv selector : EffectPlanProjectedSelector
   fields : Array[(String, @json.CanonicalValue)]
+}
+
+///|
+priv enum EffectPlanProjectedSelector {
+  ProjectedEffectScalar(@json.CanonicalValue)
+  ProjectedEffectTuple(@json.CanonicalValue)
 }
 
 ///|
@@ -15,6 +21,7 @@ pub(all) enum EffectPlanRowIssue {
   InvalidRow
   WorkLimit
   MissingSelector
+  InvalidTupleComponent(String)
   MissingSourceField(String)
 } derive(Eq, Debug)
 
@@ -30,7 +37,7 @@ pub fn effect_plan_row_field_only_construction_count(
     effect_mapping_literal_count(literals) != 0 {
     return None
   }
-  Some(count)
+  Some(count + effect_plan_selector_width(terminal.selector))
 }
 
 ///|
@@ -50,16 +57,52 @@ pub fn project_effect_plan_row(
   guard @json.object_field_count(source_row) is Some(row_width) else {
     return Err(InvalidRow)
   }
-  let lookups = terminal.field_map.length() + 1
-  if terminal.field_map.length() > max_fields ||
-    lookups > max_work ||
-    row_width > (max_work - lookups) / lookups {
+  let width = effect_plan_selector_width(terminal.selector)
+  // Tuple cells are validated, then read again by the measuring and final
+  // writers. Each pass borrows from this exact row without a copied key.
+  let lookups = terminal.field_map.length().to_int64() +
+    (if width == 0 { 1L } else { 3L * width.to_int64() })
+  let work = max_work.to_int64()
+  if width > max_fields ||
+    terminal.field_map.length() > max_fields - width ||
+    lookups > work ||
+    row_width.to_int64() > (work - lookups) / lookups {
     return Err(WorkLimit)
   }
-  let selector_value = match
-    @json.object_field(source_row, terminal.selector_field) {
-    Some(value) => value
-    None => return Err(MissingSelector)
+  let selector = match terminal.selector {
+    ScalarEffectSelector(_, name) =>
+      match @json.object_field(source_row, name) {
+        Some(value) => ProjectedEffectScalar(value)
+        None => return Err(MissingSelector)
+      }
+    TupleEffectSelector(width) => {
+      let mut left = work - (row_width.to_int64() + 1L) * lookups
+      let binding = effect_plan_result_binding(terminal)
+      for index in 0..<width {
+        let component = binding.fields[index]
+        guard component.role is EffectTupleSelector(target) else {
+          return Err(MissingSelector)
+        }
+        let name = @schema.field_reference_name(component.field)
+        guard @json.object_field(source_row, name) is Some(value) else {
+          return Err(MissingSelector)
+        }
+        guard value is @json.String(text) else {
+          return Err(InvalidTupleComponent(target))
+        }
+        if @schema.field_contract(component.field).shape is @contract.Signed64 {
+          let cost = 3L * text.length().to_int64()
+          if cost > left {
+            return Err(WorkLimit)
+          }
+          left -= cost
+          if text.length() > 20 || @scalar.read_decimal_int64(text) is Err(_) {
+            return Err(InvalidTupleComponent(target))
+          }
+        }
+      }
+      ProjectedEffectTuple(source_row)
+    }
   }
   let fields : Array[(String, @json.CanonicalValue)] = []
   for (target, source) in terminal.field_map {
@@ -69,7 +112,7 @@ pub fn project_effect_plan_row(
     }
     fields.push((target, value))
   }
-  Ok({ terminal, source_row_index, selector_value, fields, })
+  Ok({ terminal, source_row_index, selector, fields, })
 }
 
 ///|
@@ -83,8 +126,25 @@ pub fn effect_plan_row_source_index(value : EffectPlanRow) -> Int {
 }
 
 ///|
-pub fn effect_plan_row_selector(value : EffectPlanRow) -> @json.CanonicalValue {
-  value.selector_value
+pub fn emit_effect_plan_row_selector(
+  row : EffectPlanRow,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  match row.selector {
+    ProjectedEffectScalar(value) => @json.emit_value(value, writer)
+    ProjectedEffectTuple(source_row) => {
+      guard row.terminal.selector is TupleEffectSelector(width) else {
+        raise @encode.InvalidStructure
+      }
+      @encode.begin_array(writer)
+      let binding = effect_plan_result_binding(row.terminal)
+      for index in 0..<width {
+        let name = @schema.field_reference_name(binding.fields[index].field)
+        @json.emit_value(@json.object_field(source_row, name).unwrap(), writer)
+      }
+      @encode.end_array(writer)
+    }
+  }
 }
 
 ///|

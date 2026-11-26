@@ -903,11 +903,11 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:8b96ef58002bd3dcf7404fba1d692f1e5baf1b7decb54fc493756a08f8e825e1
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:89431281f4a73819ec46d763ebd79f0a50ea45231e5ad6907a848257f73bb813
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_source_artifact sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:8b4147335ba233b174f0493e12ca98ce76a39ea7046b2d911653df8ad116e79c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:4e06c2c095a26263cf8ebf85089872567d1a8d22e0cf19d07cefcb8bd96cbe6c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_local_operation_receipt sha256:d3b5cddcf6c48beba73b64981011288c01284b1a5e4746bf2af5e3e123fcc3e0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:99680abc66cdaa569fb44ac546fd1f814ed128e5d1ed3002d38d3a885acfe87b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:bef9adb109bbaf0afba3e72929b93e27a26cc156896f2ca21adbe006ccbbe338
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_set_apply_receipt sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb

@@ -317,6 +317,57 @@ fn effect_mapping_rule_bound_values(
 }
 
 ///|
+fn effect_mapping_rule_tuple(
+  effect : EffectResultBinding,
+  mapping : @environment.MappingContractShape,
+  remaining : Ref[Int],
+  header : @syntax.EffectHeader,
+) -> Result[Unit, EffectMappingRuleIssue] {
+  let count = @environment.mapping_shape_tuple_field_count(mapping)
+  let mut ordinal = 0
+  if effect.fields.length() > remaining.val {
+    return Err(effect_mapping_rule_issue(WorkLimit, header))
+  }
+  remaining.val -= effect.fields.length()
+  for component in effect.fields {
+    guard component.role is EffectTupleSelector(name) else { continue }
+    if @environment.mapping_shape_tuple_field_at(mapping, ordinal) != Some(name) {
+      return Err(effect_mapping_rule_issue(InvalidBody, header))
+    }
+    let source = @schema.field_contract(component.field)
+    if @schema.field_presence(component.field) != @schema.Required ||
+      source.nullable {
+      return Err(
+        effect_mapping_rule_issue(IncompatibleSourceType(name), header),
+      )
+    }
+    let checked = match
+      effect_mapping_rule_direct_type(
+        name, source, mapping, remaining, header, false,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if !((
+        source.shape is @contract.Text(_) && checked.shape is @contract.Text(_)
+      ) ||
+      (
+        source.shape is @contract.Signed64 &&
+        checked.shape is @contract.Signed64
+      )) {
+      return Err(
+        effect_mapping_rule_issue(IncompatibleSourceType(name), header),
+      )
+    }
+    ordinal += 1
+  }
+  if ordinal != count {
+    return Err(effect_mapping_rule_issue(InvalidBody, header))
+  }
+  Ok(())
+}
+
+///|
 /// Derive the selector and complete write-field set from retained checked
 /// Effect headers, check direct source value shapes, then select a static
 /// Mapping rule. Literal values, null behavior, conversion laws, current
@@ -346,7 +397,10 @@ pub fn bind_effect_mapping_rules(
     let selector = match kind {
       "update" | "delete" => {
         let mut selected = ""
-        for candidate in ["id", "match", "ids", "external_id", "where"] {
+        for
+          candidate in [
+            "id", "match", "ids", "external_id", "where", "match_tuple",
+          ] {
           if @decode.lookup(object, candidate) is Some(_) {
             selected = candidate
           }
@@ -356,11 +410,30 @@ pub fn bind_effect_mapping_rules(
         }
         selected
       }
-      "upsert" => "key"
+      "upsert" =>
+        if @decode.lookup(object, "key_tuple") is Some(_) {
+          "key_tuple"
+        } else {
+          "key"
+        }
       "create" | "store" => "none"
       _ => return Err(effect_mapping_rule_issue(InvalidBody, header))
     }
     let mapping = effect_mapping_shape_contract(binding)
+    if @environment.mapping_shape_tuple_field_count(mapping) != 0 ||
+      selector == "match_tuple" ||
+      selector == "key_tuple" {
+      match
+        effect_mapping_rule_tuple(
+          effect_mapping_shape_effect(binding),
+          mapping,
+          remaining,
+          header,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
     if @syntax.effect_header_table_write(header) is Some(table_write) {
       if remaining.val == 0 {
         return Err(effect_mapping_rule_issue(WorkLimit, header))

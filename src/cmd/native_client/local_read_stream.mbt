@@ -12,7 +12,8 @@ fn local_read_issue(issue : @local_host.NativeLocalReadBindingIssue) -> String {
         None => ""
       })
     Journal(CustodyLost) => "LocalReadCustodyLost"
-    Journal(TransactionUnknown) => "LocalReadAdmissionUnknown"
+    Journal(issue) if issue.requires_transaction_reconciliation() =>
+      "LocalReadAdmissionUnknown"
     Journal(CapacityExceeded) => "LocalReadCapacityExceeded"
     Journal(ForeignRun) => "LocalReadOriginalMismatch"
     AuthorizationDenied | Journal(AuthorizationDenied) =>

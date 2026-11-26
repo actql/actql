@@ -11,7 +11,7 @@ type InspectRequest = WireClientBodyByOperation['inspect-run'] & Readonly<{
 }>;
 type InspectOperation = Readonly<{principalId: string; indexKey: WireRunRef; purpose: 'inspect'}>;
 type DebugPause = Readonly<{
-  runRef: WireRunRef; revision: number; logicalMapCid?: string; pausedAt: number; expiresAt: number;
+  runRef: WireRunRef; revision: number; logicalMapCid?: string | null; pausedAt: number; expiresAt: number;
   ttlPolicy?: string; startRevision?: number; controlRevision?: number; committedGeneration?: number;
   completedStepId?: string; nextStepId?: string; resumeAvailable?: boolean;
 }>;
@@ -28,18 +28,21 @@ type Observations<RunState> = Readonly<{
   }>[];
   revisionVector: readonly Readonly<{owner: WireOwnerRef; snapshotCid?: string}>[];
 }>;
-type InspectInstallation<Definition, Prepared, Authorization, RunState> = Readonly<{
+type InspectOriginal<Definition> = Readonly<{
+  runDefinition: Definition;
+  runAdmissionEvidence?: Readonly<{prepared?: string; authorization?: string}>;
+}>;
+type InspectInstallation<Definition, Prepared, Authorization, RunState,
+  Original extends InspectOriginal<Definition>> = Readonly<{
   authorize(request: InspectRequest, operation: InspectOperation): boolean | PromiseLike<boolean>;
   authorizeCurrent(request: InspectRequest, operation: InspectOperation): boolean | PromiseLike<boolean> | undefined;
-  authorizeResume?(request: InspectRequest): boolean;
-  observeDebugPause?(request: InspectRequest, current: () => boolean, canResume?: () => boolean): DebugPause | undefined;
+  authorizeResume?(request: InspectRequest): boolean | undefined;
+  observeDebugPause?(request: InspectRequest, current: () => boolean, canResume: (() => boolean) | undefined,
+    original: Original, reserveOriginal?: (bytes: number) => unknown): DebugPause | undefined;
   readWorkspace?: InspectReadWorkspace;
   observeOwners(request: InspectRequest & Readonly<{cursors: readonly WireOwnerCursor[]; maxEntries: number}>):
     Observations<RunState> | PromiseLike<Observations<RunState>>;
-  lookupOriginal(ref: WireRunRef): Readonly<{
-    runDefinition: Definition;
-    runAdmissionEvidence?: Readonly<{prepared?: string; authorization?: string}>;
-  }> | undefined;
+  lookupOriginal(ref: WireRunRef): Original | undefined;
   control: Readonly<{
     admitRunEvidence(kind: 'prepared_invocation', wire: string, limits: InspectRequest): Prepared;
     admitRunEvidence(kind: 'run_authorization', wire: string, limits: InspectRequest): Authorization;
@@ -48,12 +51,13 @@ type InspectInstallation<Definition, Prepared, Authorization, RunState> = Readon
   }>;
 }>;
 
-const sameDebugPause = (observed: DebugPause, current: DebugPause | undefined) =>
-  current !== undefined && (Object.keys(observed) as (keyof DebugPause)[]).every(key => observed[key] === current[key]);
+const sameDebugPause = (original: DebugPause, current: DebugPause | undefined): current is DebugPause =>
+  current !== undefined && (Object.keys(original) as (keyof DebugPause)[]).every(key => original[key] === current[key]);
 
-export function installClientRunInspect<Definition, Prepared, Authorization, RunState>(
+export function installClientRunInspect<Definition, Prepared, Authorization, RunState,
+  Original extends InspectOriginal<Definition> = InspectOriginal<Definition>>(
   {authorize, authorizeCurrent, observeOwners, lookupOriginal, control, observeDebugPause, authorizeResume, readWorkspace}:
-    InspectInstallation<Definition, Prepared, Authorization, RunState>) {
+    InspectInstallation<Definition, Prepared, Authorization, RunState, Original>) {
   if (typeof authorize !== 'function' || typeof authorizeCurrent !== 'function' || typeof observeOwners !== 'function' ||
       typeof lookupOriginal !== 'function' || typeof control?.readCurrentClientRunView !== 'function' ||
       typeof control?.admitRunEvidence !== 'function' ||
@@ -118,7 +122,7 @@ export function installClientRunInspect<Definition, Prepared, Authorization, Run
       return view;
     };
     const current = () => {requireCurrent(); return true;};
-    const pause = observeDebugPause?.(selected, current);
+    const pause = observeDebugPause?.(selected, current, undefined, original);
     if (pause === undefined || pause.logicalMapCid === undefined) {
       const view = project('');
       requireCurrent();
@@ -132,10 +136,14 @@ export function installClientRunInspect<Definition, Prepared, Authorization, Run
       // Fixed space includes scalar framing, CIDs, timestamps and delivery.
       const {run_id: runId} = state as {run_id?: unknown};
       const names = selected.ref.namespaceId.length + (typeof runId === 'string' ? runId.length : 0);
-      readWorkspace!.metadata(request, 2 * (2112 + 6 * names));
+      const parkBytes = 2 * (2112 + 6 * names);
+      readWorkspace!.metadata(request, parkBytes);
       requireCurrent();
       const canResume = authorizeResume === undefined ? undefined : () => authorizeResume(selected) === true;
-      const capability = canResume === undefined ? pause : observeDebugPause!(selected, current, canResume);
+      const reserveOriginal = canResume === undefined ? undefined
+        : (bytes: number) => readWorkspace!.metadata(request, parkBytes + bytes);
+      const capability = canResume === undefined ? pause :
+        observeDebugPause!(selected, current, canResume, original, reserveOriginal);
       if (capability === undefined || !sameDebugPause(pause, capability)) throw unavailable();
       const step = capability.controlRevision !== undefined;
       const debugParkWire = JSON.stringify({kind: step ? 'logical_step' : 'entry',
@@ -145,9 +153,10 @@ export function installClientRunInspect<Definition, Prepared, Authorization, Run
         ...(capability.resumeAvailable === undefined ? {} : {resume_available: capability.resumeAvailable}),
         ...(step ? {start_revision: capability.startRevision, control_revision: capability.controlRevision,
           committed_generation: capability.committedGeneration, completed_step_id: capability.completedStepId,
-          next_step_id: capability.nextStepId ?? null} : {})});
+          next_step_id: capability.nextStepId ?? null}
+          : capability.nextStepId === undefined ? {} : {next_step_id: capability.nextStepId})});
       const view = project(debugParkWire);
-      const live = observeDebugPause!(selected, current, canResume);
+      const live = observeDebugPause!(selected, current, canResume, original, reserveOriginal);
       if (!sameDebugPause(capability, live)) throw unavailable();
       requireCurrent();
       return await consume(view);

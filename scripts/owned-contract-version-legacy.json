@@ -1755,6 +1755,118 @@
       "line": 20,
       "count": 1,
       "reason": "Explicit Root review on November 18 permits only this existing current-reported observation reader context. It distinguishes the already supported historical and current invocation formats without changing either writer or default wire bytes. The new opt-in usage Sink receives local seven-field DATA, not a new versioned artifact, writer, authority or self-CID."
+    },
+    {
+      "path": "docs/spec/protocols/contracts.md",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "47eef7a9714c2b31f438c9fade5fac26c7f2096585e28bdbbce6b51cd9fcc14c",
+      "line": 1274,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "scripts/mapping-contract.mjs",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "4047f76ed85b655098dd54b0f9a38f12b2b65acb92628a72f40d7f2462b494c3",
+      "line": 108,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "spec/contracts/actql-check-environment.json",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "53de1dcf1acede1b19fdb121e3eb5f6dea473cd0bc8c2b39a6d462fb2b56e5dc",
+      "line": 2991,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "src/canonical_json/identity_vectors.generated_test.mbt",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "eea79417c262547cbbfec3f53ae5f5e19adcc88278b4ce157d33d2897952f56f",
+      "line": 4626,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "src/check_environment/mapping_contracts.mbt",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "30fe3b22299b9c8a85784f07a6c34a5c7ff49eac1141b86e57ab38dc8a73db50",
+      "line": 310,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "src/check_environment/mapping_contracts.mbt",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "5407a07cbcaf5f6e11d6dc5cb6b532ebf08c310dbb4846500cf460d74445b108",
+      "line": 380,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "src/check_environment/mapping_tuple_identity_test.mbt",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "0e98048cbf4712e6b12c7c2421c321c3fd3a976c8654da08aa3fd2ca081c8da2",
+      "line": 6,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "src/stage_results/effect_plan_tuple_test.mbt",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "33332a912b4af5cf3891538a8efcb7192f2a347e211593e62ed5b23a733aaa9d",
+      "line": 78,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "src/client_row_source_host/relation_write_mapping.mbt",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "354fc0850968ced7efa6e36c1aa3a8a0173c783a9d3d4e6b3ae837ffd2b6586d",
+      "line": 349,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This occurrence emits the closed Mapping only after checking the original published typed key. Scalar Mapping schema and canonical bytes stay original."
+    },
+    {
+      "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "24f76e2cf520c06777c5cbaef519038fe126ed47f050db461462d416d1b69e38",
+      "line": 195,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "adapters/host-node/installed-row-effect-construction.mts",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "cbf21575c3d1b33999b610e70da26ffa45f52407296f3787922f35df0e9041c6",
+      "line": 259,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "adapters/host-node/installed-row-source-mapping.mts",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "d4b37d45ca05a7b555c53b98ff173949f8772f69341e568c3f9a121f1e307929",
+      "line": 54,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "2333dfdcd641544d10024d72fa78a11f07ffbcabc09185934066d7472d3b8b5e",
+      "line": 282,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
+    },
+    {
+      "path": "src/connectors_builtin_node/client_relation_update_mapping_wbtest.mbt",
+      "token": "actql.mapping_contract/0.2",
+      "contextSha256": "4eb036894588a7dde7fadba930819b4b07fc976bc1b66d2549f3d6f910bf51d3",
+      "line": 118,
+      "count": 1,
+      "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
     }
   ]
 }
