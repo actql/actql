@@ -106,6 +106,7 @@ test('shared Host preparation builds its original Common and signing checkpoint 
       assert.equal(args.filter(value => value === entry).length, 1, entry);
   }
   for (const file of ['adapters/host-node/normal-openai-http.actual.test.mjs',
+    'adapters/host-node/infer-original-http-common.test.mjs',
     'adapters/host-node/model-task-candidate-binding.actual.test.mjs', 'scripts/ci-rest-actual-common.mjs']) {
     const selected = jobs.host.steps.filter(step => step.run?.split(/\s+/u).includes(file));
     assert.equal(selected.length, 1);
@@ -179,8 +180,12 @@ test('catalogue compiled projection cannot hide a preceding or selected consumer
 });
 
 test('normal Model Host HTTP retains its single prepared Common and required SDK and FD tools', t => {
-  const steps=jobs.host.steps, file='adapters/host-node/normal-openai-http.actual.test.mjs';
-  const selected=steps.filter(step=>step.run?.split(/\s+/u).includes(file));
+  const steps=jobs.host.steps;
+  const files = [
+    'adapters/host-node/normal-openai-http.actual.test.mjs',
+    'adapters/host-node/infer-original-http-common.test.mjs',
+  ];
+  const selected=steps.filter(step=>files.some(file=>step.run?.split(/\s+/u).includes(file)));
   assert.equal(selected.length,1);
   const [gate]=selected, preparation=steps.find(step=>step.id==='host-runtime-preparation');
   assert(steps.indexOf(preparation)<steps.indexOf(gate));
@@ -189,7 +194,7 @@ test('normal Model Host HTTP retains its single prepared Common and required SDK
   assert.equal(steps.filter(step=>step.run?.includes('moon build')&&step.run.includes('src/connectors_builtin_node')).length,1);
   const args=gate.run.trim().split('\n').at(-1).trim().split(/\s+/u);
   assert.deepEqual(args.slice(0,4),['node','scripts/local-checks.mjs','test','node']);
-  assert.equal(args.filter(value=>value===file).length,1);
+  for (const file of files) assert.equal(args.filter(value=>value===file).length,1,file);
   assert(!args.includes('--test-name-pattern'),'The actual file includes every required case without a partial selector');
   const timeout=Number(args[args.indexOf('--timeout-seconds')+1]);
   const grace=Number(args[args.indexOf('--kill-grace-seconds')+1]);
@@ -214,7 +219,7 @@ test('normal Model Host HTTP retains its single prepared Common and required SDK
     assert.equal(recorded.filter(value=>value.startsWith('npm:')).length,lsof?1:0);
     assert.equal(recorded.filter(value=>value.startsWith('node:')).length,lsof&&status===0?1:0);
     if(lsof)assert.equal(recorded[0],'npm:ci --prefix packages/provider-ai-sdk --ignore-scripts');
-    if(lsof&&status===0)assert(recorded[1].includes(file));
+    if(lsof&&status===0) for (const file of files) assert(recorded[1].includes(file),file);
   }
 });
 
