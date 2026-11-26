@@ -1670,7 +1670,7 @@ fn command() -> @argparse.Command {
         flags=[
           @argparse.FlagArg(
             "json",
-            about="Print the command response and diagnostics as JSON",
+            about="Print the delivery response as JSON; requires --output or --deliver",
           ),
         ],
         positionals=[
@@ -1687,7 +1687,7 @@ fn command() -> @argparse.Command {
           ),
           @argparse.OptionArg(
             "format",
-            about="Result row format: table, json, jsonl, or csv",
+            about="Result row format: json, jsonl, or csv (default: jsonl)",
           ),
           @argparse.OptionArg(
             "output",

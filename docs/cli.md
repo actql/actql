@@ -224,6 +224,7 @@ flags override the file. The full schema is in the
 actql check <program> [--params <file>] [--bindings <file>] [--json]
 actql explain [<program>] [--params <file>] [--input <name=file>] [--stop-before <boundary>] [--verbose] [--json]
 actql explain --run <run> [--verbose] [--json]
+actql explain <program> --explanation-json
 actql run <program> [--params <file>] [--input <name=file>] [--stop-before <boundary>]
                     [--deliver <result=format:file>] [--output <file>] [--receipt <file>] [--json]
 ```
@@ -246,13 +247,14 @@ range and its exact/approximate precision; structured inputs use JSON pointers.
 Analysis limits and incomplete observations remain visible. `--json` preserves
 the complete original CheckOutcome, including identities and structured facts.
 
-**`explain`** prints the plan: each operation with the Site and Engine it
-will use, what is pushed down to a source, where a model is called and where
-the Run may stop for approval. Choices that depend on data, such as the engine
-for a join, are shown as decided at run time. It creates no Run, reads no
-business data and calls no model. It takes the same inputs as `run`.
-`explain --run <run>` reads the recorded compiler plan for a finished or waiting
-Run. See [Plans and pushdown](guides/plans-and-pushdown.md).
+**`explain`** prints the compiler plan: logical operations, their inputs,
+and any Site, Engine, pushdown or approval information available to the Host.
+Decisions that depend on runtime data, such as the engine for a join, can
+remain unknown. It creates no Run, reads no business data and calls no model. It uses the same Program parameters and Host
+configuration as `run`. For a structural Explanation from an installed
+Local Host, use `--explanation-json` instead of `--json`.
+`explain --run <run>` reads the original compiler plan when that Local Run
+retained one. See [Plans and pushdown](guides/plans-and-pushdown.md).
 
 Human `explain` output starts with numbered logical operations, authored names,
 and inputs linked to the exact original step and output port. These numbers
@@ -355,6 +357,11 @@ partial failure still uses an array with zero or one object. Each destination
 has its own outcome and receipt. Exporting the array does not certify aggregate
 success or roll back files, and retrying receipt export must not resend output.
 `run --receipt` remains a Run receipt.
+
+For Native Local stdout, use `--format json` for a JSON array. Native Local
+supports `json`, `jsonl`, and `csv`, not `table`. `--json` selects the command
+response envelope, not the row format, and requires `--output` or `--deliver`
+for Native Local `result`.
 
 Fresh Native Local projects use the requested Result from that Run's committed
 manifest. The selected principal, connection, Data Policy, retention, delivery
