@@ -42,7 +42,7 @@ type RequestSnapshot = Readonly<{
 }>;
 type RequestJournal = ReturnType<typeof openClientRequestJournal>;
 type StaticPlanLimits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number;
-  authorizeAcquiredPlan?: () => boolean}>;
+  acquiredPlanAuthorization?: Readonly<{connection: () => boolean; accountMetadata: () => unknown}>}>;
 type StaticExplanationWires = Readonly<{plan: string; facts: string; context: string}>;
 type StaticExplanationVisitor<Value> = (wires: StaticExplanationWires, assertCurrent: () => void) => Value;
 type VerifyOriginalPolicy = (subject: unknown, options: Readonly<{signal: AbortSignal | undefined}>) => unknown;
@@ -1196,7 +1196,8 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
               // Acquired metadata uses the same immediate Account read
               // decision as structural Explain, never a delegated or stale grant.
               if (!effectful && acquired && explanationPorts === undefined &&
-                  staticPlan.authorizeAcquiredPlan?.() !== true) fail('ClientConnectionDenied');
+                  (staticPlan.acquiredPlanAuthorization?.connection() !== true ||
+                    staticPlan.acquiredPlanAuthorization.accountMetadata() !== true)) fail('ClientConnectionDenied');
             };
             assertOriginal();
             const occurrences = effectful || explanationPorts !== undefined
