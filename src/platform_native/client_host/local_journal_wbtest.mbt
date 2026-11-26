@@ -153,7 +153,8 @@ test "Native Local commit response loss preserves all original custody in one tr
         epoch_test_crypto(),
         b"exact-adoption",
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(database.transaction_fenced())
     assert_true(

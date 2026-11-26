@@ -148,7 +148,8 @@ test "recorded live worker current preserves unknown resource COMMIT and cold lo
   submitted_test_fail_commit_after(host.database, 1, true)
   assert_true(
     attempt.record_resource_original(domain, "operator", "local")
-    is Err(Journal(TransactionUnknown)),
+    is Err(Journal(JournalStepFailed(step, None))) &&
+    journal_test_original_commit_failure(step, true),
   )
   let original = attempt.resource.unwrap()
   assert_true(
@@ -177,7 +178,8 @@ test "recorded live worker current read transaction failure fences the same atte
   submitted_test_fail_commit_after(host.database, 0, true)
   assert_true(
     attempt.require_recorded_resource_current(domain, "operator", "local")
-    is Err(Journal(TransactionUnknown)),
+    is Err(Journal(JournalStepFailed(step, None))) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_true(
     attempt.require_recorded_resource_current(domain, "operator", "local")

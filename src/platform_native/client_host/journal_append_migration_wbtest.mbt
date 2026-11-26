@@ -298,7 +298,8 @@ test "legacy migration commit loss retains Unknown without publishing a format f
         "sha256:" + "a".repeat(64),
       )
     })
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_eq(journal.append_schema, 0)
   assert_true(database.transaction_fenced())

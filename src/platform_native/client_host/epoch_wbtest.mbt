@@ -269,13 +269,22 @@ test "no-op watermark commit loss remains Unknown and fences its original handle
   let authority = open_native_client_epoch_authority(database, crypto, 100.0).unwrap()
   let scope = "sha256:" + "a".repeat(64)
   let epoch = authority.issue_epoch(scope, true, 1000.0).unwrap()
+  let original = database.read("client_submission_epoch", "authority").unwrap()
   submitted_test_fail_commit_after(database, 0, true)
-  assert_true(
-    authority.verify_epoch(epoch, scope, true, 1000.0)
-    is Err(TransactionUnknown),
-  )
+  guard authority.verify_epoch(epoch, scope, true, 1000.0)
+    is Err(JournalStepFailed(SqlStep(@sqlite.Commit, observed), None)) &&
+    observed.result is Err(failure) else {
+    fail("expected the original Epoch COMMIT observation")
+  }
+  assert_true(failure.reply is @sqlite.SqlReplyLost)
+  assert_true(observed.state is Some(Ok(@sqlite.NoActiveSqliteTransaction)))
   assert_true(database.transaction_fenced())
   assert_true(authority.verify_epoch(epoch, scope, true, 1000.0) is Err(Fenced))
   database.close_checked().unwrap()
+  let retained = epoch_test_database("epoch-noop-commit-unknown")
+  let restored = retained.read("client_submission_epoch", "authority").unwrap()
+  assert_eq(restored.revision, original.revision)
+  assert_eq(restored.body, original.body)
+  retained.close_checked().unwrap()
   crypto.close_checked().unwrap()
 }

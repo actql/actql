@@ -16,7 +16,7 @@ test "explicit policy upgrade and lookup retain user operation identity" {
 ///|
 test "unknown policy append keeps original identity without retry permission" {
   let issues : Array[@local_host.NativeClientRunJournalIssue] = [
-    TransactionUnknown,
+    test_original_routed_commit_issue(),
     Fenced,
   ]
   for issue in issues {

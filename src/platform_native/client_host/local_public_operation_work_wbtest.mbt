@@ -376,7 +376,8 @@ test "operation retention refuses changed target bytes and preserves rollback an
   client_test_fail_commit_reply(host.database, 1)
   assert_true(
     journal.transaction(() => journal.retained(request))
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_true(journal.fenced && host.database.transaction_fenced())
   assert_true(journal.lookup(request, true) is Err(Fenced))

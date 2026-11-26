@@ -26,7 +26,7 @@ priv struct NativeClientJournalReadAccess {
   _observed_census : () -> Int64
   transaction : (NativeClientJournalTransactionOperation) -> Result[
     Unit,
-    @sqlite.NativeSqliteIssue,
+    NativeClientJournalStepFailure,
   ]
   read : (String, String) -> Result[
     @sqlite.NativeJournalValue,
@@ -115,6 +115,76 @@ priv enum NativeClientJournalTransactionOperation {
 }
 
 ///|
+/// Evidence of a transaction refusal. These values carry no authority to enter or retry the original connection.
+pub(all) enum NativeClientJournalStepFailure {
+  ForeignDatabase(@sqlite.NativeSqliteTransactionStep)
+  SqlStep(
+    @sqlite.NativeSqliteTransactionStep,
+    @sqlite.NativeSqliteTransactionObservation
+  )
+  ScopeStep(
+    @sqlite.NativeSqliteTransactionStep,
+    NativeLocalAdoptionIssue,
+    @sqlite.NativeSqliteTransactionObservation?
+  )
+}
+
+///|
+fn NativeClientJournalTransactionOperation::sqlite_step(
+  self : Self,
+) -> @sqlite.NativeSqliteTransactionStep {
+  match self {
+    JournalBegin => BeginImmediate
+    JournalCommit => Commit
+    JournalRollback => Rollback
+  }
+}
+
+///|
+fn NativeClientJournalTransactionOperation::observe(
+  self : Self,
+  database : @sqlite.Database,
+) -> Result[Unit, NativeClientJournalStepFailure] {
+  self.check_observation(database.observe_transaction_step(self.sqlite_step()))
+}
+
+///|
+fn NativeClientJournalTransactionOperation::check_observation(
+  self : Self,
+  observation : @sqlite.NativeSqliteTransactionObservation,
+) -> Result[Unit, NativeClientJournalStepFailure] {
+  let expected = match self {
+    JournalBegin => @sqlite.ActiveSqliteTransaction
+    JournalCommit | JournalRollback => @sqlite.NoActiveSqliteTransaction
+  }
+  match (observation.result, observation.state) {
+    (Ok(_), Some(Ok(state))) if state == expected => Ok(())
+    _ => Err(SqlStep(self.sqlite_step(), observation))
+  }
+}
+
+///|
+// The ordinary writer-contention refusal has not acquired a transaction.
+// A missing sample, lost reply or failed scope exchange cannot prove that.
+pub fn NativeClientJournalStepFailure::requires_reconciliation(
+  self : Self,
+) -> Bool {
+  match self {
+    ForeignDatabase(_) => false
+    SqlStep(@sqlite.BeginImmediate, observation) =>
+      match (observation.result, observation.state) {
+        (Err(failure), Some(Ok(@sqlite.NoActiveSqliteTransaction))) =>
+          failure.issue is @sqlite.OperationRoutingBefore(_) ||
+          failure.issue is @sqlite.OperationRoutingAfter(_, _) ||
+          !(failure.reply is @sqlite.SqlNotIssued ||
+          failure.reply is @sqlite.SqlRejected(_))
+        _ => true
+      }
+    _ => true
+  }
+}
+
+///|
 fn read_client_submission_name_schema(
   database : @sqlite.Database,
   reads : NativeClientJournalReadAccess?,
@@ -135,20 +205,15 @@ fn client_journal_transaction_operation(
   database : @sqlite.Database,
   operation : NativeClientJournalTransactionOperation,
   reads : NativeClientJournalReadAccess?,
-) -> Result[Unit, @sqlite.NativeSqliteIssue] {
+) -> Result[Unit, NativeClientJournalStepFailure] {
   match reads {
     Some(original) => {
       if !physical_equal(database, original.database) {
-        return Err(@sqlite.Collision)
+        return Err(ForeignDatabase(operation.sqlite_step()))
       }
       (original.transaction)(operation)
     }
-    None =>
-      match operation {
-        JournalBegin => database.begin_immediate()
-        JournalCommit => database.commit()
-        JournalRollback => database.rollback()
-      }
+    None => operation.observe(database)
   }
 }
 

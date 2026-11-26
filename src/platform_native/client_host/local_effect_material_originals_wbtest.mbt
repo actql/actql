@@ -299,7 +299,8 @@ test "Native original packet commit loss never creates a partial Run packet or n
         issued,
         1002.0,
       )
-      is Err(Journal(TransactionUnknown)),
+      is Err(Journal(JournalStepFailed(step, None))) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(host.database.transaction_fenced())
     if !reply_lost {

@@ -295,7 +295,8 @@ test "Native original Run acceptance separates commit loss and reply loss withou
         authority, reference, preparation, request, compiled, definition, scope,
         true, 1002.0,
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(database.transaction_fenced())
     if !reply_lost {

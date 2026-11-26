@@ -107,6 +107,15 @@ pub struct NativeSqliteTransactionFailure {
 }
 
 ///|
+/// The state sample belongs to the same SQL entry as the step. An absent
+/// sample means the physical owner was never entered. The step result still
+/// carries any later failure returning from that original SQL entry.
+pub struct NativeSqliteTransactionObservation {
+  result : Result[Unit, NativeSqliteTransactionFailure]
+  state : Result[NativeSqliteTransactionState, NativeSqliteIssue]?
+}
+
+///|
 /// The physical stop attempt belongs to the same transaction and connection.
 /// A missing rollback means no rollback statement was issued.
 pub struct NativeSqliteTransactionStopFailure {

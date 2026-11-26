@@ -182,7 +182,10 @@ test "evidence migration install refusal and lost commit never publish a format 
     )
     assert_eq(host.journal.observed_evidence_schema, None)
     if lost_commit {
-      assert_true(result is Err(TransactionUnknown))
+      assert_true(
+        result is Err(JournalStepFailed(step, None)) &&
+        journal_test_original_commit_failure(step, true),
+      )
       assert_true(host.database.transaction_fenced())
       assert_true(host.journal.transaction(() => Ok(())) is Err(Fenced))
     } else {

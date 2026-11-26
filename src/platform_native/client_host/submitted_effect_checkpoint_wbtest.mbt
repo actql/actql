@@ -317,7 +317,8 @@ test "Native checked Effect waiting and its independent witness commit together 
         persisted,
         before.revision,
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(database.transaction_fenced())
     if !reply_lost {

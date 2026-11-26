@@ -111773,7 +111773,7 @@
     },
     {
       "module": "src/cmd/native_client/local_publisher_diagnostic.mbt",
-      "sha256": "6c2090cdb5a128de38f4c12e2469ccf119deb25729a13e3f77e679dab03199c4",
+      "sha256": "4be11f2048694a7efff49193414596de0e7813a9f4ddc85aae6ba001c35666dc",
       "exports": [],
       "operations": [
         {
@@ -117950,7 +117950,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_cleanup_cause.mbt",
-      "sha256": "14c5271e557f75a5cddc63e162bc23e59e735f6f68c0d9704bac46be375e7e89",
+      "sha256": "a789bbe4b24da1afe34230815fe41a0b33178637afb1faab859bf2bb6deeebd8",
       "exports": [],
       "operations": [
         {
@@ -118823,7 +118823,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_values_original_operation.mbt",
-      "sha256": "2caf65176a0d413f799115e5fd4015a8aa423de20448d056a0e92ba8f3e6aabc",
+      "sha256": "6ff31d8a64f781b0ba799fc796c70d823541048946ea441fcef16a78b6f3bcbd",
       "exports": [],
       "operations": [
         {

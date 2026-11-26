@@ -117,7 +117,9 @@ fn NativeLocalJournalReadQueries::access(
     },
     fence: () => {
       (self.invalidate_snapshot)(None)
-      self.query(() => self.database.fence_transactions()) |> ignore
+      // This only marks the original connection unusable. It executes no SQL
+      // and does not need to reenter a Read whose return may have failed.
+      self.database.fence_transactions()
     },
     read: (table_name, key) => {
       if table_name == "client_submitted_intents" ||
@@ -195,16 +197,23 @@ fn NativeLocalJournalReadQueries::access(
       self.query(() => submission_name_census_ffi(self.database)).unwrap_or(-1L)
     },
     transaction: operation => {
+      let step = operation.sqlite_step()
+      let mut physical = None
       match
         self.query(() => {
-          match operation {
-            JournalBegin => self.database.begin_immediate()
-            JournalCommit => self.database.commit()
-            JournalRollback => self.database.rollback()
-          }
+          let observation = self.database.observe_transaction_step(step)
+          physical = Some(observation)
+          observation
         }) {
-        Ok(value) => value
-        Err(issue) => Err(issue)
+        Ok(observation) => operation.check_observation(observation)
+        Err(_) =>
+          Err(
+            ScopeStep(
+              step,
+              self.failure.unwrap_or(OriginalResourceScopePending),
+              physical,
+            ),
+          )
       }
     },
   }
@@ -225,8 +234,8 @@ fn[T] NativeLocalJournalOriginalResources::audit_read_stage(
     }
     let result = audit(queries.access())
     match (queries.failure, result) {
-      (Some(original), Err(Journal(TransactionUnknown))) =>
-        Err(InstallationReadTransactionFailure(original, TransactionUnknown))
+      (_, Err(Journal(JournalStepFailed(_, _) | Epoch(JournalStepFailed(_, _))))
+      ) => result
       (Some(original), _) => Err(original)
       (None, value) => value
     }
@@ -295,10 +304,13 @@ fn[T] NativeLocalJournalOriginalResources::bootstrap_read_stage(
     }
     let result = initialize(queries.bootstrap_access())
     match (queries.failure, result) {
-      (Some(original), Err(TransactionUnknown)) =>
-        Err(InstallationReadTransactionFailure(original, TransactionUnknown))
-      (Some(original), Err(Journal(TransactionUnknown))) =>
-        Err(InstallationReadTransactionFailure(original, TransactionUnknown))
+      (
+        _,
+        Err(
+          JournalStepFailed(_, _)
+          | Journal(JournalStepFailed(_, _) | Epoch(JournalStepFailed(_, _)))
+        ),
+      ) => result
       (Some(original), _) => Err(original)
       (None, value) => value
     }

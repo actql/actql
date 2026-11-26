@@ -371,8 +371,8 @@ pub fn NativeLocalReviewerSigningGrantOperation::adopt(
   })
   let after = self.require_current()
   let issuer_after = issuer.require_current(host, self.original.operation_cid)
-  if saved is Err(TransactionUnknown) {
-    return Err(SigningGrantJournal(TransactionUnknown))
+  if saved is Err(issue) && issue.requires_transaction_reconciliation() {
+    return Err(SigningGrantJournal(issue))
   }
   match after {
     Ok(_) => ()
@@ -453,8 +453,8 @@ pub fn NativeLocalReviewerSigningGrantOperation::lookup_adoption(
     authority,
     self.original.request,
   )
-  if read is Err(TransactionUnknown) {
-    return Err(SigningGrantJournal(TransactionUnknown))
+  if read is Err(issue) && issue.requires_transaction_reconciliation() {
+    return Err(SigningGrantJournal(issue))
   }
   match after {
     Ok(_) => ()

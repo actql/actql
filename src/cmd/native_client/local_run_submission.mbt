@@ -22,10 +22,8 @@ fn local_new_submission_reference(
       @env.now().to_double(),
     ) {
     Ok(value) => value
-    Err(
-      @local_host.Epoch(TransactionUnknown)
-      | @local_host.InstallationReadTransactionFailure(_, TransactionUnknown)
-    ) => stop("LocalSubmissionEpochUnknown")
+    Err(issue) if issue.requires_transaction_reconciliation() =>
+      stop("LocalSubmissionEpochUnknown")
     Err(@local_host.Epoch(Fenced)) => stop("LocalSubmissionEpochFenced")
     Err(@local_host.Epoch(AuthorizationDenied)) =>
       stop("LocalSubmissionAuthorizationDenied")
@@ -169,19 +167,16 @@ fn local_select_run_submission(
             ) {
             Ok(epoch) => Ok(epoch)
             Err(@local_host.Epoch(issue)) => Err(issue)
-            Err(
-              @local_host.InstallationReadTransactionFailure(
-                _,
-                TransactionUnknown
-              )
-            ) => Err(TransactionUnknown)
+            Err(issue) if issue.requires_transaction_reconciliation() =>
+              stop("LocalSubmissionEpochUnknown")
             Err(_) => stop("LocalSubmissionEpochUnavailable")
           }
         }
       }
       let epoch = match issued {
         Ok(value) => value
-        Err(TransactionUnknown) => stop("LocalSubmissionEpochUnknown")
+        Err(issue) if issue.requires_transaction_reconciliation() =>
+          stop("LocalSubmissionEpochUnknown")
         Err(Fenced) => stop("LocalSubmissionEpochFenced")
         Err(AuthorizationDenied) => stop("LocalSubmissionAuthorizationDenied")
         Err(_) => stop("LocalSubmissionEpochUnavailable")

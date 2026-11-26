@@ -226,7 +226,8 @@ fn local_saved_state_issue(
     Unavailable => "LocalOriginalRunStateUnavailable"
     Journal(@local_host.AuthorizationDenied) =>
       "LocalRunStateReadAuthorizationDenied"
-    Journal(@local_host.TransactionUnknown) => "LocalRunStateLookupUnknown"
+    Journal(original) if original.requires_transaction_reconciliation() =>
+      "LocalRunStateLookupUnknown"
     Journal(@local_host.ForeignRun | @local_host.ChangedIntent) =>
       "LocalOriginalRunReferenceMismatch"
     Journal(_) => "LocalOriginalRunStateCustodyUnavailable"
