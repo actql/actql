@@ -91,6 +91,23 @@ connection, token and mTLS options on each command. See the
    never received the original. Keep the reference and attempt for recovery,
    and use lookup without resending the submission.
 
+To submit a decision that has already been signed for an exact Checkpoint,
+pass its original single signed answer to the same HTTPS Host:
+
+```text
+actql --mode remote <Host connection options> resolve --signed-answer-file answer.json
+```
+
+The file, relative to `--connection-root`, is one public
+`SignedCheckpointAnswer` object, not an array or a Run receipt. The command
+does not create a signature; `approve <checkpoint>` and `reject <checkpoint>`
+with CLI-managed signing are Embedded Local commands. The Remote Host still
+checks the authenticated caller, exact original Checkpoint and proof.
+A `committed` or `duplicate` reply acknowledges the signed decision only;
+use the original Run reference with Remote `status` or `wait` to observe
+its continuation. After `ResolutionUnknown`, keep the original answer and
+Run reference. Do not sign a replacement or resubmit the Program.
+
 ### Initialize a Local project
 
 ```text

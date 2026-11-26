@@ -742,6 +742,15 @@ fn request_body(
         required(child, "submission-ref-file"),
         8192L,
       )
+    "resolve" => {
+      let answer = json_file(
+        root,
+        required(child, "signed-answer-file"),
+        maximum.to_int64(),
+      )
+      ignore(remote_signed_resolution_binding(answer))
+      fields["items"] = Json::array([answer])
+    }
     "lookup-request" =>
       fields["requestId"] = Json::string(required(child, "request-id"))
     "attach" | "status" | "reconcile" =>
@@ -1412,6 +1421,17 @@ fn command() -> @argparse.Command {
         ],
       ),
       @argparse.Command(
+        "resolve",
+        about="Send one previously signed Checkpoint answer to a Remote Host",
+        options=[
+          @argparse.OptionArg(
+            "signed-answer-file",
+            about="Original signed Checkpoint answer JSON file",
+            required=true,
+          ),
+        ],
+      ),
+      @argparse.Command(
         "approve",
         about="Approve a waiting Checkpoint",
         flags=[
@@ -1771,8 +1791,19 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   normalize_native_status_arguments(matches)
   normalize_native_result_arguments(matches)
   match required(matches, "mode") {
-    "local" => return execute_native_local(matches)
-    "remote" =>
+    "local" => {
+      if matches.subcommand is Some(("resolve", _)) {
+        stop("RemoteResolutionRequiresRemoteHost")
+      }
+      return execute_native_local(matches)
+    }
+    "remote" => {
+      if matches.subcommand is Some(("approve", _)) ||
+        matches.subcommand is Some(("reject", _)) {
+        stop(
+          "RemoteCheckpointSignerUnavailable; use resolve with the original signed answer",
+        )
+      }
       if matches.subcommand is Some(("check", _)) ||
         matches.subcommand is Some(("explain", _)) ||
         matches.subcommand is Some(("run", _)) ||
@@ -1783,6 +1814,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
         matches.subcommand is Some(("lookup-preparation-raw", _)) {
         stop("operation requires an explicit Local configuration")
       }
+    }
     _ => stop("unsupported Client mode")
   }
   if optional(matches, "state-dir") is Some(_) {
@@ -1940,6 +1972,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     None if route == "read" =>
       stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
     None if route == "cancel" => stop(cancellation_unknown(body))
+    None if route == "resolve" => stop("ResolutionUnknown")
     None => stop("ClientTransportUnknown")
   }
   if result.status < 200 || result.status >= 300 {
@@ -1955,6 +1988,9 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     if route == "cancel" && result.status >= 500 {
       stop(cancellation_unknown(body))
     }
+    if route == "resolve" && result.status >= 500 {
+      stop("ResolutionUnknown")
+    }
     stop("ClientHostHTTP" + result.status.to_string())
   }
   let text = @utf8.decode(result.body) catch {
@@ -1968,6 +2004,8 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
         stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
       } else if route == "cancel" {
         stop(cancellation_unknown(body))
+      } else if route == "resolve" {
+        stop("ResolutionUnknown")
       } else {
         stop("invalid UTF-8 Host response")
       }
@@ -2027,6 +2065,10 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
           )
       }
     }
+    return text
+  }
+  if route == "resolve" {
+    verify_remote_resolution_reply(body, result.body, text, response_max)
     return text
   }
   if route == "attach" && !admitted_run(text, connection) {

@@ -136,6 +136,19 @@ let cancelReply = originalCancellation;
 let cancelAttemptReply;
 let loseCancelReply = false;
 let cancellationLookupReply = {kind: 'found', cancellation: originalCancellation};
+const modelWire = JSON.parse(await readFile(new URL(
+  '../portability/corpus/model-invocation-scope.json', import.meta.url), 'utf8'));
+const signedResolution = JSON.parse(modelWire.expected_resolution_wire);
+const signedAnswer = {
+  checkpointCid: signedResolution.checkpoint_cid,
+  resolutionWire: modelWire.expected_resolution_wire,
+  approvalEvidenceWire: modelWire.expected_approval_evidence_wire,
+};
+const committedResolution = {results: [{
+  checkpointCid: signedAnswer.checkpointCid, status: 'committed',
+  decision: signedResolution.decision, resolutionCid: signedResolution.resolution_cid,
+}]};
+let resolveMock = {reply: committedResolution};
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt')),
   ca: await readFile(join(root, 'ca.crt')),
@@ -150,6 +163,16 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
   assert.equal(request.method, 'POST');
   assert.deepEqual(body.connection, body.connection.durability === 'durable'
     ? {...connection, durability: 'durable'} : connection);
+  if (operation === 'resolve') {
+    assert.deepEqual(body.items, [signedAnswer]);
+    if (resolveMock.lose) {
+      response.destroy();
+    } else {
+      response.writeHead(resolveMock.status ?? 200, {'content-type': 'application/json'});
+      response.end(resolveMock.raw ?? JSON.stringify(resolveMock.reply));
+    }
+    return;
+  }
   if ((operation === 'submit-intent' || operation === 'lookup-request') &&
       heldReplies[requestId]) {
     response.writeHead(200, {'content-type': 'application/json'});
@@ -304,6 +327,53 @@ try {
     assert.match(timed.stderr, /maximum resident set size/);
     console.log(timed.stderr.trim());
   }
+  await writeFile(join(root, 'signed-answer.json'), JSON.stringify(signedAnswer));
+  const sendResolution = () => run('resolve', '--signed-answer-file', 'signed-answer.json');
+  const committed = await sendResolution();
+  assert.equal(committed.code, 0, committed.stderr);
+  assert.deepEqual(JSON.parse(committed.stdout), committedResolution);
+  resolveMock = {reply: {results: [{...committedResolution.results[0], status: 'duplicate'}]}};
+  const duplicate = await sendResolution();
+  assert.equal(duplicate.code, 0, duplicate.stderr);
+  assert.equal(JSON.parse(duplicate.stdout).results[0].status, 'duplicate');
+  resolveMock = {reply: {results: [{checkpointCid: signedAnswer.checkpointCid,
+    status: 'invalid', reason: 'authorization'}]}};
+  const refusal = await sendResolution();
+  assert.equal(refusal.code, 0, refusal.stderr);
+  assert.deepEqual(JSON.parse(refusal.stdout), resolveMock.reply);
+  for (const outcome of [
+    {lose: true},
+    {status: 503, reply: {}},
+    {raw: Buffer.from([0xff])},
+    {raw: '{"results":[],"results":[]}'},
+    {reply: {results: []}},
+    {reply: {results: [{...committedResolution.results[0], decision: 'rejected'}]}},
+    {reply: {results: [{...committedResolution.results[0], checkpointCid: ref.runDefinitionCid}]}},
+    {reply: {results: [{...committedResolution.results[0], resolutionCid: ref.runDefinitionCid}]}},
+  ]) {
+    resolveMock = outcome;
+    const before = requests.filter(item => item.operation === 'resolve').length;
+    const failure = await sendResolution();
+    assert.notEqual(failure.code, 0);
+    assert.match(failure.stderr, /ResolutionUnknown/u);
+    assert.equal(failure.stdout, '');
+    assert.equal(requests.filter(item => item.operation === 'resolve').length, before + 1);
+  }
+  resolveMock = {status: 403, reply: {}};
+  const deniedResolution = await sendResolution();
+  assert.notEqual(deniedResolution.code, 0);
+  assert.match(deniedResolution.stderr, /ClientHostHTTP403/u);
+  await writeFile(join(root, 'foreign-answer.json'), JSON.stringify({
+    ...signedAnswer, checkpointCid: ref.runDefinitionCid,
+  }));
+  const beforeInvalidResolution = requests.length;
+  const foreign = await run('resolve', '--signed-answer-file', 'foreign-answer.json');
+  assert.notEqual(foreign.code, 0);
+  assert.match(foreign.stderr, /InvalidCheckpointAnswer/u);
+  const bareApprove = await run('approve', 'checkpoint-id');
+  assert.notEqual(bareApprove.code, 0);
+  assert.match(bareApprove.stderr, /RemoteCheckpointSignerUnavailable/u);
+  assert.equal(requests.length, beforeInvalidResolution);
   const durableArgs = [...common];
   durableArgs[durableArgs.indexOf('--connection-file') + 1] =
     'connection-durable.json';
