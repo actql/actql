@@ -4,7 +4,7 @@ import {createConfiguredUndiciOpenAIChatRegistration,
   createConfiguredUndiciRegisteredSdkRegistration} from './installed-openai-chat.mjs';
 import {runtimeTupleFromFields} from './compiler-binding.generated.mjs';
 import type {RegisteredSdk} from './model-port.mjs';
-import type {OpenAIChatProviderOptions} from '../index.d.ts';
+import type {OpenAIChatProviderOptions, RegisteredSdkModelGeneration, RegisteredSdkProviderOptions} from '../index.d.ts';
 
 type ProjectSelection = Readonly<{providerId: string}>;
 type Registration = ReturnType<typeof createConfiguredUndiciOpenAIChatRegistration>;
@@ -97,11 +97,40 @@ const readEnvelopeBytes = (rows: number, physical = limits) => BigInt(rows) * (1
   256n * BigInt(limits.parse_nodes + limits.metadata_nodes)) +
   BigInt(physical.adapter_holding_bytes + physical.adapter_workspace_bytes);
 
+function readRegisteredModelGeneration(raw: unknown, maxTokens: bigint) {
+  if (raw === undefined) return undefined;
+  if (!Array.isArray(raw) || types.isProxy(raw) || !Object.isFrozen(raw) || raw.length < 1 || raw.length > 64) {
+    refuse('InvalidInstalledModelGenerationProfile');
+  }
+  const profiles = new Map<string, RegisteredSdkModelGeneration>();
+  // The existing initial configuration owns this snapshot before it enters
+  // the bounded binding writer. Leave space for other configuration strings.
+  let selectorBytes = 8192;
+  for (let index = 0; index < raw.length; index++) {
+    const field = Object.getOwnPropertyDescriptor(raw, String(index));
+    if (!field?.enumerable || !Object.hasOwn(field, 'value')) refuse('InvalidInstalledModelGenerationProfile');
+    const entry = data(field.value, ['selector', 'temperature', 'topP', 'maxOutputTokens', 'taskMaxOutputTokens'],
+      ['seed']) as unknown as RegisteredSdkModelGeneration;
+    const {selector, temperature, topP, maxOutputTokens, taskMaxOutputTokens, seed} = entry;
+    if (!text(selector, 256) || profiles.has(selector) || !Number.isFinite(temperature) || Object.is(temperature, -0) ||
+        temperature < 0 || temperature > 2 || !Number.isFinite(topP) || topP <= 0 || topP > 1 ||
+        !integer(maxOutputTokens, 1) || !integer(taskMaxOutputTokens, maxOutputTokens) ||
+        BigInt(taskMaxOutputTokens) > maxTokens || seed !== undefined && !Number.isSafeInteger(seed)) {
+      refuse('InvalidInstalledModelGenerationProfile');
+    }
+    selectorBytes -= Buffer.byteLength(selector);
+    if (selectorBytes < 0) refuse('InvalidInstalledModelGenerationProfile');
+    profiles.set(selector, Object.freeze(entry));
+  }
+  return profiles;
+}
+
 function configuration(options: unknown, project: ProjectSelection | undefined, registeredMode: boolean) {
   const required = ['generation', 'budget', 'observeEgress'];
   const optional = ['maxSecretBytes', 'transportTimeouts'];
   if (registeredMode) {
     required.push('providerId', 'dataHandlingContractWire');
+    optional.push('modelGeneration');
   } else {
     required.push('modelId');
     optional.push('modelSelector');
@@ -110,7 +139,8 @@ function configuration(options: unknown, project: ProjectSelection | undefined, 
     required.push('providerId', 'apiKeyFile');
     optional.push('baseURL');
   }
-  const value = data(options, required, optional) as unknown as OpenAIChatProviderOptions & {dataHandlingContractWire: string};
+  const value = data(options, required, optional) as unknown as OpenAIChatProviderOptions &
+    Pick<RegisteredSdkProviderOptions, 'dataHandlingContractWire' | 'modelGeneration'>;
   const generation = data(value.generation, ['temperature', 'topP', 'maxOutputTokens'], ['seed']) as unknown as OpenAIChatProviderOptions['generation'];
   const budget = data(value.budget, ['maxCalls', 'maxRows', 'maxTokens', 'maxCostUnits', 'maxDurationMs']) as unknown as OpenAIChatProviderOptions['budget'];
   const selector = value.modelSelector ?? value.modelId;
@@ -146,6 +176,7 @@ function configuration(options: unknown, project: ProjectSelection | undefined, 
   }
   return Object.freeze({...value, providerId, modelSelector: selector, baseURL, maxSecretBytes,
     generation: Object.freeze(generation), budget: Object.freeze(budget),
+    modelGeneration: registeredMode ? readRegisteredModelGeneration(value.modelGeneration, budget.maxTokens) : undefined,
     ...(transportTimeouts === undefined ? {} : {transportTimeouts})});
 }
 
@@ -336,11 +367,17 @@ async function prepareSdkProvider(moon: Runtime, context: ConfigurationContext, 
   // Record the resolved route even when the selector equals the model ID so
   // a current fixed route cannot match a historical selector-only binding.
   const bindings = await context.prepareBindingOriginals(() => {
-    const generation = {temperature: config.generation.temperature, top_p: config.generation.topP,
-      max_output_tokens: config.generation.maxOutputTokens,
-      ...(config.generation.seed === undefined ? {} : {seed_requested: config.generation.seed})};
+    const generationConfig = (generation: OpenAIChatProviderOptions['generation']) => ({
+      temperature: generation.temperature, top_p: generation.topP, max_output_tokens: generation.maxOutputTokens,
+      ...(generation.seed === undefined ? {} : {seed_requested: generation.seed})});
+    const defaultGeneration = generationConfig(config.generation);
     const dataHandling: unknown = registeredMode ? JSON.parse(config.dataHandlingContractWire) : handling;
-    const modelDefault = (model: string) => ({model, data_handling: dataHandling, generation_config: generation});
+    const modelDefault = (model: string) => {
+      const selected = config.modelGeneration?.get(model);
+      return {model, data_handling: dataHandling,
+        generation_config: selected === undefined ? defaultGeneration : generationConfig(selected),
+        ...(selected === undefined ? {} : {max_task_output_tokens: selected.taskMaxOutputTokens})};
+    };
     const configuration = {provider_id: config.providerId, adapter_kind: 'ai-sdk',
       ...(registeredMode ? {} : {endpoint, selector, model_id: modelId, api_mode: apiMode}),
       ...(!registeredMode && projectMode ? {credential_reference: 'OPENAI_API_KEY'} : {}),
@@ -351,6 +388,7 @@ async function prepareSdkProvider(moon: Runtime, context: ConfigurationContext, 
       configurationWire = JSON.stringify(configuration);
     } else {
       const routes = Object.create(null) as Record<string, unknown>;
+      let modelGenerationMatches = 0;
       // Bound the aggregate before copying it into one configuration wire.
       // A partial route encoding is temporary and the policy is parsed once.
       let remaining = bodyLimits.maxBytes -
@@ -366,7 +404,13 @@ async function prepareSdkProvider(moon: Runtime, context: ConfigurationContext, 
           (defaults === undefined ? 0 : Buffer.byteLength(JSON.stringify(defaults)) + 1);
         if (remaining < 0) refuse('InstalledModelConfigurationSizeLimit');
         routes[alias] = route;
-        if (defaults !== undefined) configuration.model_defaults.models.push(defaults);
+        if (defaults !== undefined) {
+          configuration.model_defaults.models.push(defaults);
+          if (defaults.max_task_output_tokens !== undefined) modelGenerationMatches++;
+        }
+      }
+      if (modelGenerationMatches !== (config.modelGeneration?.size ?? 0)) {
+        refuse('InstalledModelGenerationRouteMismatch');
       }
       configurationWire = JSON.stringify({...configuration, structured_routes: routes});
     }

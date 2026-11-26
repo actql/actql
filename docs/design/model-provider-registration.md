@@ -66,8 +66,11 @@ overlap; the original startup/Run funding supplier must cover it separately.
 ## Original generation profiles and public Task normalization
 
 The original installed Provider configuration may explicitly select a closed
-`model_defaults` subrecord: an ordered `models` array of `{model,
-generation_config}` and an optional `default_model` that names one entry.
+`model_defaults` subrecord with an ordered array of model entries and an
+optional `default_model` that names one entry. An entry contains `model` and
+`generation_config` and may include the Host's `max_task_output_tokens`
+ceiling. The ceiling is a positive safe integer at least as large as the
+entry's default output-token count.
 Generation uses the existing Task reader's finite settings and safe integer
 rules. Every entry, including unused models, is checked. The containing
 configuration's own contract still has to admit the subrecord; this grammar is
@@ -84,8 +87,9 @@ responsibility. This does not claim GC, physical release or a funded envelope.
 An explicit public provider/model pair is atomic. Omission selects the original
 registry default provider and only that actual registration's explicit default
 model. Temperature/top-p/seed come from its applicable profile, never an SDK
-default. An explicit Task token count replaces a default, even if larger;
-independent hard ceilings still belong to original bound execution admission.
+default. An explicit Task output-token count replaces a default within the
+selected model entry's ceiling when one is present. Original bound execution
+admission applies its separate resource ceilings as well.
 Current settings do not rewrite canonical Task identity or saved Run settings.
 
 The existing bounded Run-materials codec retains the normalized Task inside

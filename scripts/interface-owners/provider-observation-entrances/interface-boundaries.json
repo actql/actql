@@ -3149,7 +3149,7 @@
     {
       "module": "packages/provider-ai-sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "101ff62b1251294cf58fcb5068b0da45c819878768a69281e2ddc96260acb7e3",
+      "sha256": "ed5a018c1eeb8f7dc6fd0375fa209cec4b59f18618f7b6d9f97f3ee736456541",
       "exports": [
         "ConfiguredModelProviderRegistration",
         "ModelProviderRegistration",
@@ -3168,6 +3168,7 @@
         "ProjectOpenAIChatProviderOptions",
         "ProjectionLimits",
         "QuantityCapacity",
+        "RegisteredSdkModelGeneration",
         "RegisteredSdkProviderOptions",
         "RequestLimits",
         "ResponseLimits",
@@ -3344,7 +3345,8 @@
             "createOpenAIChatProvider",
             "createProjectOpenAIChatProvider",
             "createRegisteredSdkProvider",
-            "createRegisteredSdkProviders"
+            "createRegisteredSdkProviders",
+            "RegisteredSdkModelGeneration"
           ],
           "attributes": {
             "responsibility": [
@@ -4118,7 +4120,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f9e2602cbb10fd7ac3d77b44651a7a550b4450b7f5722c92d9083a20c24a2e8b",
+      "sha256": "1788ee5f423211f4ffdb3bb9559e438fb97111acc9286b793dd6ad4febfb6169",
       "exports": [
         "createOpenAIChatProvider",
         "createProjectOpenAIChatProvider",

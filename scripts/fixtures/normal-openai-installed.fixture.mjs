@@ -334,6 +334,9 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
     promptText = body.messages[1].content[0].text;
   } else if (responses) {
     assert.equal(body.store, false);
+    assert.equal(body.temperature, 0.25);
+    assert.equal(body.top_p, 0.5);
+    assert.equal(body.max_output_tokens, 100);
     assert.equal(body.tools, undefined);
     assert.equal(body.previous_response_id, undefined);
     assert.equal(body.text.format.type, 'json_schema');
@@ -442,6 +445,8 @@ const fixtureHandling = {schema: 'actql.contract/0.1', id: 'registered-sdk-fixtu
   cid: 'sha256:45514e22d8ea4714fb2d6a4bfac3a963f51fd8ef0b5c5e12229f053b9f8955aa'};
 const configureProvider = ({createOpenAIChatProvider, createProjectOpenAIChatProvider, createRegisteredSdkProvider}) =>
   capabilities || selection.provider !== undefined ? createRegisteredSdkProvider({...providerOptions, providerId: 'models/http',
+    ...(responses ? {modelGeneration: Object.freeze([Object.freeze({selector: selectedRoute.selector,
+      temperature: 0.25, topP: 0.5, maxOutputTokens: 80, taskMaxOutputTokens: 100})])} : {}),
     dataHandlingContractWire: JSON.stringify(fixtureHandling)})
     : missingKey || project ? createProjectOpenAIChatProvider({...providerOptions, modelId: 'fixture-chat'})
     : createOpenAIChatProvider({...providerOptions, modelId: 'fixture-chat', providerId: 'models/http',

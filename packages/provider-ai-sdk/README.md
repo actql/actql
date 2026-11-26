@@ -80,6 +80,14 @@ adapter. Register `gpt-4.1-mini` with API mode `responses`, endpoint
 `OPENAI_API_KEY` credential reference. This profile accepts a single
 structured text response with a strict JSON Schema.
 
+The Host can provide a frozen `modelGeneration` array to
+`createRegisteredSdkProvider` for specific route selectors. Each entry
+sets `temperature`, `topP`, `maxOutputTokens`, and an independent
+`taskMaxOutputTokens` ceiling. A Task may author `limits.max_output_tokens`
+within that ceiling. The selected route's defaults apply when the Task omits
+the limit. Provider options, temperature, top-p, seed, and credentials
+come from the Host. The provider's existing token budget still applies.
+
 ## Configure a Host from project Tasks
 
 `createOpenAIChatProvider` returns one asynchronous `registerModelProviders`

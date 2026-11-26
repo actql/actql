@@ -70,6 +70,62 @@ test "explicit model and Task token limit override defaults without making defau
 }
 
 ///|
+test "the original Host model ceiling independently bounds the selected Task option" {
+  let wire =
+    #|{"model_defaults":{"default_model":"tight","models":[{"model":"tight","generation_config":{"temperature":0,"top_p":1,"max_output_tokens":10},"max_task_output_tokens":12},{"model":"wide","generation_config":{"temperature":0.5,"top_p":0.5,"max_output_tokens":20},"max_task_output_tokens":24}]}}
+  let original = default_profile_read(wire)
+  assert_eq(
+    resolve_model_provider_defaults(original, None, None, 1000).unwrap().generation.max_output_tokens,
+    10L,
+  )
+  assert_eq(
+    resolve_model_provider_defaults(original, None, Some(12L), 1000).unwrap().generation.max_output_tokens,
+    12L,
+  )
+  assert_true(
+    resolve_model_provider_defaults(original, None, Some(13L), 1000)
+    is Err(InvalidTaskOutputTokens),
+  )
+  assert_eq(
+    resolve_model_provider_defaults(original, None, Some(12L), 13).unwrap().work,
+    13,
+  )
+  assert_true(
+    resolve_model_provider_defaults(original, None, Some(12L), 12)
+    is Err(WorkLimit),
+  )
+  let other = resolve_model_provider_defaults(
+    original,
+    Some("wide"),
+    Some(13L),
+    1000,
+  ).unwrap()
+  assert_eq(other.generation.max_output_tokens, 13L)
+  assert_eq(other.generation.temperature, 0.5)
+  assert_true(
+    resolved_model_provider_defaults_generation(
+      other,
+      default_profile_read(wire),
+    )
+    is None,
+  )
+  for ceiling in ["0", "9", "12.5", "null"] {
+    let invalid = wire.replace(
+      old="\"max_task_output_tokens\":12",
+      new="\"max_task_output_tokens\":" + ceiling,
+    )
+    assert_true(
+      read_model_provider_defaults_configuration(
+        @utf8.encode(invalid),
+        default_profile_limits(),
+        100000,
+      )
+      is Err(_),
+    )
+  }
+}
+
+///|
 test "absent defaults preserve explicit legacy configuration without inventing a model" {
   for wire in ["{}", "null", "17", "{\"selector\":\"legacy-explicit\"}"] {
     let (profile, bytes, nodes, work) = read_model_provider_defaults_configuration(
