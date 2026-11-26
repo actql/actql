@@ -37,7 +37,10 @@ not the spelling of the key. The catalog describes:
   `observe_permission`, `approval` and aliases. The optional `update_fields`
   list is a nonempty, duplicate-free subset of `writable_fields`. It declares
   the exact field set for this UPDATE Mapping. It defaults to all
-  `writable_fields`. The optional `write_null_fields` list selects nullable
+  `writable_fields`. To update only some writable fields, set `update_fields`
+  to the same field names used by `SET`. Native CLI reports
+  `ACTQL_E_EFFECT_MAPPING_RULE_MISMATCH` when no rule matches the operation,
+  selector and exact write field set. The optional `write_null_fields` list selects nullable
   writable fields that accept an explicit SQL `NULL` when they are part of the
   UPDATE. The other selected fields retain the default NULL rejection, and
   fields outside the UPDATE remain unchanged. These Mapping declarations do

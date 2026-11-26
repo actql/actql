@@ -201,8 +201,8 @@ test('Native File Named Result requires first close and reads both original name
 });
 
 
-test('Native nullable Mock harness checks original preview, exact Read bindings and separate Saved reads', async t => {
-  for (const fault of [undefined, 'null-preview', 'eligible-field-cleared']) {
+test('Native nullable Mock harness checks exact Mapping refusal, original Preview and separate Saved reads', async t => {
+  for (const fault of [undefined, 'null-preview', 'eligible-field-cleared', 'generic-mapping-error', 'mismatch-writes']) {
     const root = await mkdtemp(join(tmpdir(), 'actql-nullable-mock-unit-'));
     t.after(() => rm(root, {recursive: true, force: true}));
     const decisions = [], projects = new Set();
@@ -210,6 +210,7 @@ test('Native nullable Mock harness checks original preview, exact Read bindings 
     const execute = runNativeNullableMockScenarios({root, launcherTimings: 'optional', async run(args, cwd) {
       const [command, file] = args;
       const approve = cwd.endsWith('-approve'), key = approve ? 'approval' : 'rejection';
+      const overbroad = cwd.endsWith('-overbroad'), implicit = cwd.endsWith('-implicit');
       const checkpoint = key + '-checkpoint', runId = key + '-run';
       const cid = observedCid(approve ? 'a' : 'b');
       const target = join(cwd, 'mock/data.json');
@@ -226,7 +227,8 @@ test('Native nullable Mock harness checks original preview, exact Read bindings 
         const [write] = catalog.connections.salesforce.writes;
         assert(write.writable_fields.includes('omitted_value'));
         assert(!write.writable_fields.includes('protected_value'));
-        assert.deepEqual(write.update_fields, ['clear_value', 'blank_value']);
+        assert.deepEqual(write.update_fields, overbroad ? write.writable_fields
+          : implicit ? undefined : ['clear_value', 'blank_value']);
         assert(!write.write_null_fields.includes('omitted_value'));
         assert(!Object.hasOwn(nullable.definition.review.changes, 'omitted_value'));
       } else if (command === 'run') {
@@ -238,6 +240,13 @@ test('Native nullable Mock harness checks original preview, exact Read bindings 
         assert.deepEqual(parameters, nullable.definition[kind].parameters);
         if (kind === 'effect') {
           assert.deepEqual(args.slice(6), ['--stop-before', 'commit', '--json']);
+          if (overbroad || implicit) {
+            if (fault === 'mismatch-writes') await writeFile(target, nullable.after);
+            return {code: 1, signal: null, stdout: '', stderr: JSON.stringify({
+              code: fault === 'generic-mapping-error' ? 'ACTQL_E_PREPARATION_FAILED' : 'ACTQL_E_EFFECT_MAPPING_RULE_MISMATCH',
+              message: 'No rule matches; match SET to update_fields.',
+            }) + '\n' + observation(200 + ++count, events)};
+          }
           stdout = state('waiting_checkpoint');
         } else stdout = state('succeeded', decisions.includes(key) ? 'after-read' : 'before-read');
       } else if (command === 'status' && !args.includes('--json')) {
@@ -286,10 +295,14 @@ test('Native nullable Mock harness checks original preview, exact Read bindings 
     } else if (fault === 'eligible-field-cleared') {
       await assert.rejects(execute, /Only the explicit NULL and empty Text fields may change/u);
       assert.deepEqual(decisions, ['approval']);
+    } else if (fault === 'generic-mapping-error' || fault === 'mismatch-writes') {
+      await assert.rejects(execute, fault === 'generic-mapping-error' ? /ACTQL_E_EFFECT_MAPPING_RULE_MISMATCH/u
+        : /Rejected field set must not replace the file/u);
+      assert.deepEqual(decisions, []);
     } else {
       const outcomes = await execute;
       assert.deepEqual(decisions, ['approval', 'rejection']);
-      assert.equal(projects.size, 2);
+      assert.equal(projects.size, 4);
       assert.deepEqual(outcomes.map(({decision, lockPathAbsent, commands}) =>
         [decision, lockPathAbsent, commands.filter(x => x.workflowPhase === 'saved-result').length]),
       [['approve', true, 1], ['reject', true, 0]]);
