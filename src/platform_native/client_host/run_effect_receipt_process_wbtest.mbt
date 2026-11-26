@@ -80,7 +80,8 @@ test "Native terminal receipt handoff re-admits original saved custody without e
       client_test_fail_commit_reply(database, 1)
       assert_true(
         receipt_test_settle(journal, dispatch, preview, locator, key, basis)
-        is Err(TransactionUnknown),
+        is Err(JournalStepFailed(step, None)) &&
+        journal_test_original_commit_failure(step, true),
       )
       assert_true(
         database.transaction_state() is Ok(@sqlite.NoActiveSqliteTransaction),

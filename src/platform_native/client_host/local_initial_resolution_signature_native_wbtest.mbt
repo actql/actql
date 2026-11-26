@@ -172,7 +172,8 @@ test "lost signature commit return retains original signature and outcome on sam
         host, original, signing_use, signature,
       )
     })
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   physical.close_checked().unwrap()
   host.close().unwrap()
@@ -303,7 +304,10 @@ test "Initial routed signature lost commit retains Unknown and cannot enter anot
     },
     reads=Some(access.reads),
   )
-  assert_true(result is Err(TransactionUnknown))
+  assert_true(
+    result is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
+  )
   assert_true(host.journal.fenced)
   assert_true(
     calls.contains(

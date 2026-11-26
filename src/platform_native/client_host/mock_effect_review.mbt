@@ -266,11 +266,7 @@ fn NativeLocalJournalCapture::save_effect_review_original_in_scope(
             // lost COMMIT/rollback. All other failures precede COMMIT or have
             // its successful rollback. This clears no Read/Store duty and
             // never retries waiting; it only permits their actual cleanup.
-            let unknown = match issue {
-              TransactionUnknown | Epoch(TransactionUnknown) => true
-              _ => false
-            }
-            if !unknown {
+            if !issue.requires_transaction_reconciliation() {
               saved.waiting_attempted = false
             }
             return Err(Review(Journal(issue)))

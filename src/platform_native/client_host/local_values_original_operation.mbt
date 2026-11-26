@@ -174,8 +174,8 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
         // Preserve the existing combined Read/COMMIT-Unknown return rule, rather
         // than hiding a committed/lost reply inside an otherwise successful value.
         match result {
-          Err(Journal(TransactionUnknown) | Start(Journal(TransactionUnknown))) =>
-            Err(Journal(TransactionUnknown))
+          Err(Journal(issue) | Start(Journal(issue))) if issue.requires_transaction_reconciliation() =>
+            Err(Journal(issue))
           _ => Ok(())
         }
       })
@@ -218,8 +218,8 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
         // Preserve the existing combined Read/COMMIT-Unknown return rule, rather
         // than hiding a committed/lost reply inside an otherwise successful value.
         match result {
-          Err(Journal(TransactionUnknown) | Start(Journal(TransactionUnknown))) =>
-            Err(Journal(TransactionUnknown))
+          Err(Journal(issue) | Start(Journal(issue))) if issue.requires_transaction_reconciliation() =>
+            Err(Journal(issue))
           _ => Ok(())
         }
       })

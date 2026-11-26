@@ -51,20 +51,14 @@ fn journal_test_read_access(
       submission_name_census_ffi(database)
     },
     transaction: operation => {
-      match operation {
-        JournalBegin => {
-          calls.push("begin")
-          database.begin_immediate()
-        }
-        JournalCommit => {
-          calls.push("commit")
-          database.commit()
-        }
-        JournalRollback => {
-          calls.push("rollback")
-          database.rollback()
-        }
-      }
+      calls.push(
+        match operation {
+          JournalBegin => "begin"
+          JournalCommit => "commit"
+          JournalRollback => "rollback"
+        },
+      )
+      operation.observe(database)
     },
   }
 }
@@ -162,7 +156,7 @@ test "original query routing refuses a different physical DB before invoking cal
   )
   assert_true(
     client_journal_transaction_operation(foreign, JournalBegin, Some(reads))
-    is Err(@sqlite.Collision),
+    is Err(ForeignDatabase(@sqlite.BeginImmediate)),
   )
   assert_eq(read_client_submission_name_schema(foreign, Some(reads)), -1)
   assert_eq(read_client_submission_name_census(foreign, Some(reads)), -1L)
@@ -323,7 +317,8 @@ test "routed transaction uncertainty fences the same physical DB without resetti
     }
     assert_true(
       journal.transaction_with_reads(() => Ok(()), reads=Some(reads))
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_eq(calls[0], "fenced")
     assert_eq(calls[calls.length() - 1], "fence")
@@ -370,5 +365,23 @@ fn read_client_submission_name_census(
       } else {
         -1L
       }
+  }
+}
+
+///|
+fn journal_test_original_commit_failure(
+  failure : NativeClientJournalStepFailure,
+  reply_lost : Bool,
+) -> Bool {
+  guard failure is SqlStep(@sqlite.Commit, observation) &&
+    observation.result is Err(original) else {
+    return false
+  }
+  if reply_lost {
+    original.reply is @sqlite.SqlReplyLost &&
+    observation.state is Some(Ok(@sqlite.NoActiveSqliteTransaction))
+  } else {
+    original.reply is @sqlite.SqlNotIssued &&
+    observation.state is Some(Ok(@sqlite.ActiveSqliteTransaction))
   }
 }

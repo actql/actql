@@ -134,7 +134,8 @@ test "worker resource original lost commit reply looks up the same actual row an
   submitted_test_fail_commit_after(host.database, 1, true)
   assert_true(
     attempt.record_resource_original(domain, "operator", "local")
-    is Err(Journal(TransactionUnknown)),
+    is Err(Journal(JournalStepFailed(step, None))) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_true(attempt.resource is Some(_))
   assert_true(
@@ -162,7 +163,8 @@ test "worker resource original uncommitted write stays unresolved under the same
   submitted_test_fail_commit_after(host.database, 1, false)
   assert_true(
     attempt.record_resource_original(domain, "operator", "local")
-    is Err(Journal(TransactionUnknown)),
+    is Err(Journal(JournalStepFailed(step, None))) &&
+    journal_test_original_commit_failure(step, false),
   )
   let original = attempt.resource.unwrap()
   assert_true(physical_equal(original.domain, domain))

@@ -94,7 +94,9 @@ fn[T] local_policy_upgrade_result(
     Ok(value) => value
     Err(issue) => {
       let code = match issue {
-        TransactionUnknown | Fenced => "LocalPolicyUpgradeUnknown"
+        Fenced => "LocalPolicyUpgradeUnknown"
+        original if original.requires_transaction_reconciliation() =>
+          "LocalPolicyUpgradeUnknown"
         AuthorizationDenied => "LocalPolicyUpgradeAuthorizationDenied"
         ChangedIntent | ForeignRun => "LocalPolicyUpgradeChangedIntent"
         CapacityExceeded => "LocalPolicyUpgradeCapacityRefused"

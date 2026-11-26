@@ -195,11 +195,14 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
       Some(issue),
       _,
       Err(
-        Epoch(TransactionUnknown)
-        | Journal(TransactionUnknown)
-        | Journal(Epoch(TransactionUnknown))
+        Epoch(JournalStepFailed(_, _))
+        | Journal(JournalStepFailed(_, _) | Epoch(JournalStepFailed(_, _)))
       ),
     ) => {
+      self.read_operation_issue = Some(issue)
+      result
+    }
+    (Some(issue), _, Err(Journal(TransactionUnknown))) => {
       self.read_operation_issue = Some(issue)
       Err(InstallationReadTransactionFailure(issue, TransactionUnknown))
     }

@@ -51,6 +51,7 @@ pub fn Database::lookup_claim_ordinal(Self, String, String) -> Result[Int64?, Na
 pub fn Database::matches_original_store_operation(Self, NativeStoreOperationOriginal) -> Bool
 pub fn Database::observe_body_extent(Self, String, String) -> Result[NativeJournalHeader, NativeSqliteIssue]
 pub fn Database::observe_scan_body_extent(Self, String, String) -> Result[(String, NativeJournalHeader), NativeSqliteIssue]
+pub fn Database::observe_transaction_step(Self, NativeSqliteTransactionStep) -> NativeSqliteTransactionObservation
 pub fn Database::owns_lookup_read(Self, NativeLookupRead) -> Bool
 pub fn Database::prepare_lookup_read(Self) -> Result[NativeLookupReadAcquisition, NativeSqliteIssue]
 pub fn Database::read(Self, String, String) -> Result[NativeJournalValue, NativeSqliteIssue]
@@ -192,6 +193,11 @@ pub struct NativeSqliteTransactionFailure {
   step : NativeSqliteTransactionStep
   reply : NativeSqliteTransactionReply
   issue : NativeSqliteIssue
+}
+
+pub struct NativeSqliteTransactionObservation {
+  result : Result[Unit, NativeSqliteTransactionFailure]
+  state : Result[NativeSqliteTransactionState, NativeSqliteIssue]?
 }
 
 pub(all) enum NativeSqliteTransactionReply {

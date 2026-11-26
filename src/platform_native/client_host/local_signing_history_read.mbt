@@ -231,8 +231,8 @@ fn NativeLocalSigningKeyOriginal::read_signing_history_current(
   let after = self.require_signing_history_current(authority, request)
   // Lost commit/rollback ACK retains the same original Unknown responsibility.
   // A resulting current denial must not turn it into a known read refusal.
-  if result is Err(TransactionUnknown) {
-    return Err(HistoryOriginal(TransactionUnknown))
+  if result is Err(issue) && issue.requires_transaction_reconciliation() {
+    return Err(HistoryOriginal(issue))
   }
   match after {
     Ok(_) => ()

@@ -245,11 +245,22 @@ test "read snapshot preserves commit and rollback uncertainty plus original body
     let reads : NativeClientJournalReadAccess = {
       ..original,
       transaction: operation => {
-        let result = (original.transaction)(operation)
-        if !lost_commit && operation is JournalRollback && result is Ok(_) {
-          Err(@sqlite.Physical("controlled rollback reply lost"))
+        if !lost_commit && operation is JournalRollback {
+          calls.push("rollback")
+          let physical = database.observe_transaction_step(@sqlite.Rollback)
+          operation
+          .check_observation(physical)
+          .bind(_ => {
+            Err(
+              ScopeStep(
+                @sqlite.Rollback,
+                OriginalResourceScopePending,
+                Some(physical),
+              ),
+            )
+          })
         } else {
-          result
+          (original.transaction)(operation)
         }
       },
     }
@@ -264,10 +275,29 @@ test "read snapshot preserves commit and rollback uncertainty plus original body
       }
     })
     if lost_commit {
-      assert_true(result is Err(OriginalRead(None, TransactionUnknown)))
+      assert_true(
+        result
+        is Err(
+          OriginalRead(
+            None,
+            Journal(JournalStepFailed(SqlStep(@sqlite.Commit, _), None))
+          )
+        ),
+      )
     } else {
       assert_true(
-        result is Err(OriginalRead(Some(PolicyNotSelected), TransactionUnknown)),
+        result
+        is Err(
+          OriginalRead(
+            Some(PolicyNotSelected),
+            Journal(
+              JournalStepFailed(
+                ScopeStep(@sqlite.Rollback, _, _),
+                Some(AuthorizationDenied)
+              )
+            )
+          )
+        ),
       )
     }
     assert_true(journal.fenced)

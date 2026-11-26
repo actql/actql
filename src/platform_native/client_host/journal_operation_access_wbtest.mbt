@@ -270,7 +270,8 @@ test "Model journal cumulative reservation keeps lost commit acknowledgement Unk
       },
       reads=Some(access.reads),
     )
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_true(host.journal.fenced)
   assert_true(host.database.transaction_fenced())
@@ -447,8 +448,8 @@ test "Epoch routed commit loss preserves Unknown and fences without replacement 
     transaction: operation => {
       if operation is JournalCommit {
         calls.push("commit-lost")
-        database.commit().unwrap()
-        Err(@sqlite.Busy)
+        client_test_fail_commit_reply(database, 1)
+        operation.observe(database)
       } else {
         (ordinary.transaction)(operation)
       }
@@ -463,7 +464,8 @@ test "Epoch routed commit loss preserves Unknown and fences without replacement 
       1000.0,
       operations=Some(access),
     )
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_true(authority.fenced)
   assert_true(database.transaction_fenced())
@@ -697,7 +699,8 @@ test "Submission original routing retains real commit loss and never creates a r
         1001.0,
         operations=Some(access),
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(journal.fenced)
     assert_true(database.transaction_fenced())

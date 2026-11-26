@@ -91,7 +91,10 @@ test "rollback retires prepared correspondence and lost commit cannot revive it"
   .validate_prepared_run_binding(request, prepared, compiled, definition)
   .unwrap()
   submitted_test_fail_commit_after(database, 0, true)
-  assert_true(journal.transaction(() => Ok(())) is Err(TransactionUnknown))
+  assert_true(
+    journal.transaction(() => Ok(())) is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
+  )
   assert_true(
     journal.validate_prepared_run_binding(
       request, prepared, compiled, definition,

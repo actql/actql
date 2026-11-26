@@ -247,7 +247,8 @@ test "Native Effect acceptance distinguishes precommit failure and lost committe
         authority, reference, preparation, request, allowed, definition, scope, true,
         1002.0,
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(database.transaction_fenced())
     if !reply_lost {

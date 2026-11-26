@@ -186,7 +186,10 @@ test "epoch receipt lost outer commit leaves no reusable watermark observation" 
     )
     .map_err(issue => Epoch(issue))
   })
-  assert_true(result is Err(TransactionUnknown))
+  assert_true(
+    result is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
+  )
   assert_true(journal.fenced)
   assert_true(authority.observed_custody is None)
   assert_true(
@@ -531,7 +534,8 @@ test "epoch command retains its actual opening observation and never caches a lo
       1100.0,
       operations=Some(operations),
     )
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_true(database.transaction_fenced())
   assert_true(authority.observed_custody is None)
@@ -544,7 +548,8 @@ test "epoch command retains its actual opening observation and never caches a lo
       1000.0,
       operations=Some(operations),
     )
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   authority.end_operation()
   assert_true(authority.verify_epoch(epoch, scope, true, 1000.0) is Err(Fenced))

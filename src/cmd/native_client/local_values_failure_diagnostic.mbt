@@ -28,7 +28,7 @@ fn local_values_failure_tags(
           CapacityExceeded => 1L
           CustodyLost => 2L
           ForeignRun => 3L
-          TransactionUnknown => 4L
+          failure if failure.requires_transaction_reconciliation() => 4L
           Physical(cause) => {
             emit(15, local_submission_sql_tag(cause))
             5L

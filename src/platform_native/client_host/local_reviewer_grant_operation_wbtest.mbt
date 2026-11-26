@@ -268,7 +268,9 @@ test "Signing append lost commit ACK retains Unknown and never reissues" {
   )
   client_test_fail_commit_reply(host.database, 1)
   assert_true(
-    signing_append_storage_only(issuer, original) is Err(TransactionUnknown),
+    signing_append_storage_only(issuer, original)
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_true(host.journal.fenced)
   // No follow-up original lookup or another append in this fenced instance.

@@ -62,7 +62,8 @@ test "Native original Submission commit and reply-loss remain distinct across re
       journal.record_submitted_intent(
         authority, reference, intent, scope, true, 1001.0,
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(database.transaction_fenced())
     assert_true(

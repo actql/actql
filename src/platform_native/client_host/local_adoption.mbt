@@ -53,6 +53,7 @@ pub(all) enum NativeLocalAdoptionIssue {
   Journal(NativeClientRunJournalIssue)
   Fenced
   TransactionUnknown
+  JournalStepFailed(NativeClientJournalStepFailure, NativeLocalAdoptionIssue?)
   DatabasePending(@sqlite.Database, NativeLocalAdoptionIssue)
   Inspection(NativeClientStateInspectionIssue)
   InstallationReadTransactionFailure(
@@ -71,6 +72,20 @@ pub(all) enum NativeLocalAdoptionIssue {
     NativeLocalAdoptionIssue,
     @journal.CoordinatorInitializationCleanup
   )
+}
+
+///|
+pub fn NativeLocalAdoptionIssue::requires_transaction_reconciliation(
+  self : Self,
+) -> Bool {
+  match self {
+    TransactionUnknown => true
+    JournalStepFailed(step, _) => step.requires_reconciliation()
+    Journal(issue) | InstallationReadTransactionFailure(_, issue) =>
+      issue.requires_transaction_reconciliation()
+    Epoch(issue) => issue.requires_transaction_reconciliation()
+    _ => false
+  }
 }
 
 ///|

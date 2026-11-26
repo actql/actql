@@ -90,6 +90,12 @@ fn local_publisher_adoption_issue_code(
       "Journal(" + local_publisher_journal_issue_code(issue, depth + 1) + ")"
     Fenced => "Fenced"
     TransactionUnknown => "TransactionUnknown"
+    JournalStepFailed(step, _) =>
+      if step.requires_reconciliation() {
+        "TransactionUnknown"
+      } else {
+        "Physical"
+      }
     DatabasePending(_, issue) =>
       "DatabasePending(" +
       local_publisher_adoption_issue_code(issue, depth + 1) +
@@ -150,6 +156,12 @@ fn local_publisher_journal_issue_code(
     ForeignRun => "ForeignRun"
     Fenced => "Fenced"
     TransactionUnknown => "TransactionUnknown"
+    JournalStepFailed(step, _) =>
+      if step.requires_reconciliation() {
+        "TransactionUnknown"
+      } else {
+        "Physical"
+      }
     Encoding => "Encoding"
     Physical(issue) =>
       "Physical(" + local_publisher_sqlite_issue_code(issue, depth + 1) + ")"

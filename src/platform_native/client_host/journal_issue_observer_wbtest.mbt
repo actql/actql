@@ -47,7 +47,7 @@ fn test_observe_adoption(
       test_observe_run(p0, emit, depth - 1)
     }
     Fenced => emit(118)
-    TransactionUnknown => emit(119)
+    TransactionUnknown | JournalStepFailed(_, _) => emit(119)
     DatabasePending(_, p1) => {
       emit(120)
       test_observe_adoption(p1, emit, depth - 1)
@@ -170,7 +170,7 @@ fn test_observe_epoch(
     Unverifiable => emit(405)
     ScopeMismatch => emit(406)
     Fenced => emit(407)
-    TransactionUnknown => emit(408)
+    JournalStepFailed(_, _) => emit(408)
     Physical(p0) => {
       emit(409)
       test_observe_sql(p0, emit, depth - 1)
@@ -200,7 +200,7 @@ fn test_observe_run(
     ChangedIntent => emit(503)
     ForeignRun => emit(504)
     Fenced => emit(505)
-    TransactionUnknown => emit(506)
+    TransactionUnknown | JournalStepFailed(_, _) => emit(506)
     Encoding => emit(507)
     Physical(p0) => {
       emit(508)

@@ -326,12 +326,8 @@ fn local_submission_start(
           Err(issue) => {
             local_report_submission_failure(issue)
             match issue {
-              @local_host.Journal(TransactionUnknown)
-              | @local_host.Journal(Epoch(TransactionUnknown))
-              | @local_host.InstallationReadTransactionFailure(
-                _,
-                TransactionUnknown
-              ) => stop("LocalSubmissionAcceptanceUnknown")
+              issue if issue.requires_transaction_reconciliation() =>
+                stop("LocalSubmissionAcceptanceUnknown")
               _ => stop("LocalSubmissionAcceptanceUnavailable")
             }
           }
