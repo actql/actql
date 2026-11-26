@@ -40,6 +40,8 @@ export const registeredSafetyAcceptanceCases = Object.freeze([
   'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist',
 ]);
 const externalCase = 'registered-external';
+const externalDuplicateCase = 'registered-external-double';
+const externalCases: readonly string[] = [externalCase, externalDuplicateCase];
 const externalAdapter = '@actql-acceptance/external-openai-adapter';
 const registeredTerminalFailures = Object.freeze({
   'registered-length': 'truncated', 'registered-refusal': 'refusal',
@@ -75,6 +77,27 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     return;
   }
   assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
+  if (caseId === externalDuplicateCase) {
+    assert.equal(value.registeredSdk, true);
+    assert.equal(value.externalTerminal, 'failed');
+    assert.equal(value.externalResultIssue, 'ResultAccessDenied');
+    for (const name of ['externalAdapterCid', 'externalLockCid', 'originalRunDefinitionCid']) {
+      assert.match(value[name] as string, /^sha256:[a-f0-9]{64}$/u);
+    }
+    for (const name of ['calls', 'projectTlsConnects', 'externalTcp', 'externalCredentialReads',
+      'originalModelStarts', 'usageCaptures', 'usageAuthorizations']) assert.equal(value[name], 0, name);
+    if (phase === 'cold') {
+      assert.notEqual(pid, originalPid);
+      assert.equal(value.originalFailureObserved, true);
+      assert.equal(value.egressChecks, 0);
+      assert.equal(value.interceptedFetches, 0);
+      assert.equal(value.additionalIssue, undefined);
+    } else {
+      assert.equal(value.interceptedFetches, 2);
+      assert.equal(value.additionalIssue, 'SdkAdditionalRequestRefused');
+    }
+    return;
+  }
   if (caseId === externalCase) {
     assert.equal(value.registeredSdk, true);
     for (const name of ['externalAdapterCid', 'externalLockCid', 'originalRunDefinitionCid']) {
@@ -194,7 +217,7 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
     ['usage-reported', 'cold'], ['usage-zero'], ['usage-absent'],
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : [...available,
-    ...[...registeredProviderCases, externalCase].map(id => [id, 'cold']),
+    ...[...registeredProviderCases, ...externalCases].map(id => [id, 'cold']),
     ...Object.keys(registeredTerminalFailures).map(id => [id, 'cold']),
     ...registeredRefusalCases.map(id => [id])].filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
@@ -216,7 +239,7 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
       {...options, raw: caseRaw});
     try {
       const fixture = join(repository, 'scripts/fixtures/external-model-adapter');
-      if (id === externalCase) {
+      if (externalCases.includes(id)) {
         assert(releaseSelected === undefined, 'The fixture package uses the exact retained ordinary cohort');
         await run('npm', ['pack', '--pack-destination', caseRoot, '--ignore-scripts', '--json'],
           {cwd: fixture, name: 'pack-external-adapter', timeout: 60_000});
@@ -234,7 +257,7 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
       };
       if (external !== undefined) {
         assert.equal(external.packageImages[0].name, externalAdapter);
-        for (const file of ['package.json', 'index.mjs', 'npm-shrinkwrap.json']) {
+        for (const file of ['package.json', 'index.mjs', 'second-fetch.mjs', 'npm-shrinkwrap.json']) {
           const held: {sha256: string; bytes: number} | undefined =
             external.packageImages[0].images.find(image => image.path === file);
           const bytes = await readFile(join(fixture, file));
@@ -267,17 +290,18 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
           const value = JSON.parse(actual.stdout.trim()) as Observation;
           Object.assign(record, {pid: actual.pid, actual: value, consumer: prepared.consumer});
           checkPackedProviderObservation({caseId: id, phase, pid: actual.pid, originalPid, observation: value});
-          if (id === externalCase) {
-            for (const [field, path] of [['externalAdapterCid', 'index.mjs'], ['externalLockCid', 'npm-shrinkwrap.json']]) {
+          if (externalCases.includes(id)) {
+            const adapterPath = id === externalDuplicateCase ? 'second-fetch.mjs' : 'index.mjs';
+            for (const [field, path] of [['externalAdapterCid', adapterPath], ['externalLockCid', 'npm-shrinkwrap.json']]) {
               assert.equal(value[field], 'sha256:' + external!.packageImages[0].images.find(image => image.path === path)?.sha256);
             }
-            if (phase !== 'cold') {
+            if (id === externalCase && phase !== 'cold') {
               const usage = JSON.parse(await readFile(join(prepared.consumer, 'usage-original.json'), 'utf8'));
               assert.match(usage.raw_response_artifact_cid, /^sha256:[0-9a-f]{64}$/u);
               assert.equal(usage.input_tokens, 2); assert.equal(usage.output_tokens, 3);
             }
           }
-          if (id === 'registered-mixed' || id === 'registered-mistral' || id === externalCase ||
+          if (id === 'registered-mixed' || id === 'registered-mistral' || externalCases.includes(id) ||
               Object.hasOwn(registeredTerminalFailures, id)) {
             if (phase === 'cold') assert.equal(value.originalRunDefinitionCid, originalRunDefinitionCid);
             else originalRunDefinitionCid = value.originalRunDefinitionCid;
@@ -355,7 +379,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT [--registered-only | --registered-safety-only | --registered-external-only]');
   const cases = selection === '--registered-only' ? registeredProviderAcceptanceCases
     : selection === '--registered-safety-only' ? registeredSafetyAcceptanceCases
-    : selection === '--registered-external-only' ? [externalCase] : undefined;
+    : selection === '--registered-external-only' ? externalCases : undefined;
   process.exitCode = await runLocalCheck({root: fileURLToPath(new URL('../', import.meta.url)),
     heavy: false, timeoutSeconds: 300, graceSeconds: 5,
     steps: [{name: 'Original normal provider, usage and timeout consumers', command: process.execPath,

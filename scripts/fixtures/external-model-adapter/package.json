@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "exports": "./index.mjs",
-  "files": ["index.mjs", "npm-shrinkwrap.json"],
+  "files": ["index.mjs", "second-fetch.mjs", "npm-shrinkwrap.json"],
   "dependencies": {
     "@ai-sdk/openai": "4.0.91",
     "zod": "4.6.5"

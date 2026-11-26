@@ -377,6 +377,27 @@ test('registered terminal failures require original Saved in a distinct zero-egr
   }
 });
 
+test('external duplicate fetch refuses before transport and keeps the same failed Run cold', () => {
+  const caseId = 'registered-external-double';
+  const cid = 'sha256:' + 'd'.repeat(64);
+  const shared = {firstCloseReturned: true, aliveScopedFD0: true, registeredSdk: true, calls: 0,
+    projectTlsConnects: 0, externalTcp: 0, externalCredentialReads: 0, originalModelStarts: 0,
+    usageCaptures: 0, usageAuthorizations: 0, externalTerminal: 'failed', externalResultIssue: 'ResultAccessDenied',
+    externalAdapterCid: cid, externalLockCid: cid, originalRunDefinitionCid: cid};
+  const warm = {...shared, phase: caseId, interceptedFetches: 2, additionalIssue: 'SdkAdditionalRequestRefused'};
+  const cold = {...shared, phase: 'cold', interceptedFetches: 0, egressChecks: 0, originalFailureObserved: true};
+  checkPackedProviderObservation({caseId, phase: caseId, pid: 1, observation: warm});
+  checkPackedProviderObservation({caseId, phase: 'cold', pid: 2, originalPid: 1, observation: cold});
+  for (const observation of [{...warm, interceptedFetches: 1}, {...warm, externalTcp: 1},
+    {...warm, externalCredentialReads: 1}, {...warm, externalResultIssue: 'ProviderError'}]) {
+    assert.throws(() => checkPackedProviderObservation({caseId, phase: caseId, pid: 1, observation}));
+  }
+  for (const [pid, observation] of [[1, cold], [2, {...cold, originalFailureObserved: false}],
+    [2, {...cold, calls: 1}], [2, {...cold, usageCaptures: 1}]]) {
+    assert.throws(() => checkPackedProviderObservation({caseId, phase: 'cold', pid, originalPid: 1, observation}));
+  }
+});
+
 test('optional diagnostic selection retains nested inventories and bounded usage evidence without keys or state', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-provider-diagnostic-'));
   t.after(() => rm(root, {recursive: true, force: true}));
