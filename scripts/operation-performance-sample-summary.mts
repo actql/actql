@@ -57,7 +57,7 @@ export function resourceSummary(samples: readonly ResourceSample[], minimum: num
 // oracle, not validation-call counters or inferred work durations. Child
 // clocks are compared by elapsed time only, never by cross-process origin.
 export function assessPublicLatencySamples(samples: readonly PublicLatencySample[], minimum: number,
-  operation: string) {
+  operation: string, limits: Readonly<{p95Ms: number; maxMs: number}> = publicLatencyTarget) {
   const summary = latencySummary(samples, minimum), failures: string[] = [], missing: string[] = [];
   for (const row of samples) {
     if (row.completed !== true || row.verified !== true) continue;
@@ -77,7 +77,7 @@ export function assessPublicLatencySamples(samples: readonly PublicLatencySample
       failures.push(`sample ${row.iteration}: public timer excludes completion or close`);
     }
   }
-  if (summary.p95Ms !== null && summary.p95Ms > publicLatencyTarget.p95Ms) failures.push('public E2E p95 exceeds 200ms');
-  if (summary.maxMs !== null && summary.maxMs > publicLatencyTarget.maxMs) failures.push('public E2E observed max exceeds 200ms');
+  if (summary.p95Ms !== null && summary.p95Ms > limits.p95Ms) failures.push(`public E2E p95 exceeds ${limits.p95Ms}ms`);
+  if (summary.maxMs !== null && summary.maxMs > limits.maxMs) failures.push(`public E2E observed max exceeds ${limits.maxMs}ms`);
   return {summary, failures, missing};
 }

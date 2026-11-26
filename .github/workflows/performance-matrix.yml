@@ -858,7 +858,10 @@ jobs:
             --mode final --load isolated --output "$RUNNER_TEMP/ordinary-python/measurement"
       - name: Require the actual report assessment including missing coverage
         if: always()
-        run: node scripts/operation-performance.mjs --input "$RUNNER_TEMP/ordinary-python/measurement/measurements.json" --output "$RUNNER_TEMP/ordinary-python/assessment.json"
+        run: |
+          node scripts/operation-performance.mjs --input "$RUNNER_TEMP/ordinary-python/measurement/measurements.json" \
+            --python-ordinary-packages "$RUNNER_TEMP/ordinary-python" --python-ordinary-operation '${{ matrix.operation }}' \
+            --output "$RUNNER_TEMP/ordinary-python/assessment.json"
       - name: Retain raw samples and failed or incomplete assessment
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

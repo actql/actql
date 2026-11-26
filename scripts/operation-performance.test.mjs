@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdtempSync, writeFileSync, rmSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, writeFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {operationTargets, latencySummary, assessLatency as rawAssessLatency, calibrateSqliteComparisonProfile, calibratedLatencyTarget, assessStructure, assessHistory,
@@ -570,4 +570,90 @@ test('record-only stops failed public operation without retry and cannot summari
     execute: () => {calls++; throw new Error('Unknown');}, emit: () => {}});
   assert.equal(calls, 1); assert.equal(collected.stoppedEarly, true);
   assert.throws(() => recordOperationMeasurements({operation: 'warm-result', mode: 'record-only', ...collected}));
+});
+
+test('ordinary Python command applies the fixed phase limits only to the selected package cohort', t => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-python-profile-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  mkdirSync(join(directory, 'packages'));
+  const sourceSha = 'a'.repeat(40);
+  const original = JSON.stringify({source_sha: sourceSha, package_version: '0.0.3'});
+  const manifestSha256 = createHash('sha256').update(original).digest('hex');
+  writeFileSync(join(directory, 'packages', 'cohort.json'), original);
+  writeFileSync(join(directory, 'source.json'), JSON.stringify({adapter: 'python', sourceSha,
+    manifestSha256, manifestFile: 'cohort.json'}));
+  const file = join(directory, 'report.json');
+  const entry = new URL('./operation-performance.mjs', import.meta.url);
+  const run = (body, selected, operation, extra = []) => {
+    writeFileSync(file, JSON.stringify(body));
+    const args = selected ? ['--python-ordinary-packages', directory, '--python-ordinary-operation', operation] : [];
+    const result = spawnSync(process.execPath, [entry.pathname, '--input', file, ...args, ...extra], {encoding: 'utf8'});
+    assert.ifError(result.error);
+    return result;
+  };
+  for (const [operation, p95Ms, maxMs] of [['warm-result', 500, 1000], ['warm-status', 500, 1000],
+    ['warm-select', 1000, 2000], ['cold-existing', 2000, 4000], ['first-init', 5000, 8000]]) {
+    const measured = series(operation, operationTargets[operation].samples, p95Ms);
+    measured.cohortSha256 = manifestSha256;
+    for (const row of measured.samples) {
+      row.cohortSha256 = manifestSha256;
+      if (!operation.startsWith('warm-')) {row.pid = row.iteration + 1; row.stateId = 'state-' + row.iteration;}
+    }
+    measured.samples.at(-1).wallNs = maxMs * 1e6;
+    const input = {sourceSha, cohortSha256: manifestSha256, environmentSha256: environment,
+      historyProtocolSha256: protocol, executionPath: 'python-sdk', protocol: {adapter: 'python', operation},
+      latencyProfile: 'python-v0.0.3-public', target: {p95Ms: 1e8, maxMs: 1e8}, latency: [measured]};
+    const atLimits = run(input, true, operation);
+    assert.equal(atLimits.status, 1, atLimits.stderr); // Other suite-wide evidence remains missing.
+    const report = JSON.parse(atLimits.stdout);
+    assert.deepEqual(report.pythonLatency, {profile: 'python-v0.0.3-public', packageVersion: '0.0.3', sourceSha,
+      cohortSha256: manifestSha256});
+    assert.deepEqual([report.gates[operation].target.p95Ms, report.gates[operation].target.maxMs], [p95Ms, maxMs]);
+    assert.deepEqual(report.gates[operation].failures, []);
+    const generic = JSON.parse(run(input, false, operation).stdout);
+    assert.equal(generic.pythonLatency, undefined);
+    assert(generic.gates[operation].failures.includes('public E2E p95 exceeds 200ms'));
+    assert(generic.gates[operation].failures.includes('public E2E observed max exceeds 200ms'));
+    measured.samples.at(-1).wallNs += 1e6;
+    const aboveMax = JSON.parse(run(input, true, operation).stdout).gates[operation].failures;
+    assert(aboveMax.includes('public E2E observed max exceeds ' + maxMs + 'ms'));
+    assert(!aboveMax.some(reason => reason.includes('public E2E p95')));
+    for (const row of measured.samples.slice(0, -1)) row.wallNs += 1e6;
+    measured.samples.at(-1).wallNs -= 1e6;
+    const aboveP95 = JSON.parse(run(input, true, operation).stdout).gates[operation].failures;
+    assert(aboveP95.includes('public E2E p95 exceeds ' + p95Ms + 'ms'));
+    assert(!aboveP95.some(reason => reason.includes('public E2E observed max')));
+    assert.match(run(input, true, operation, ['--python-p95-ms', '99999']).stderr, /Unknown or duplicate/u);
+    assert.match(run({...input, sourceSha: 'b'.repeat(40)}, true, operation).stderr, /Foreign ordinary Python report source/u);
+    assert.match(run({...input, executionPath: 'native-cli'}, true, operation).stderr, /Expected ordinary Python SDK/u);
+    assert.match(run(input, true, 'warm-unknown').stderr, /Foreign ordinary Python operation protocol/u);
+    if (!operation.startsWith('warm-')) {
+      measured.samples[0].publicTiming = {kind: 'cli-result-exit', startNs: 1, exitNs: 2, observedNs: 3, endNs: 3};
+      assert.match(run(input, true, operation).stderr, /Expected Python Result and first-close clocks/u);
+    }
+  }
+});
+
+test('Release Health only applies the Python profile to collector-selected Python metrics', async () => {
+  const {assessMeasurements} = await import('./health-monitor-report.mjs');
+  const operation = 'warm-result';
+  const samples = Array.from({length: 100}, (_, iteration) => ({
+    iteration, wallNs: 500e6, cpuUserUs: 1, cpuSystemUs: 1, cpuScope: 'observed process',
+    peakRssBytes: 2048, rssScope: 'observed process', completed: true, verified: true,
+    publicTiming: {kind: 'public-result', startNs: 1, observedNs: 500e6, endNs: 500e6},
+  }));
+  const metric = {id: operation, kind: 'latency', unit: 'ms', samples, requiredSamples: 100,
+    fixtureSha256: 'a'.repeat(64), evidence: 'original.json'};
+  const report = {mode: 'release', metrics: [{...metric, target: 'python'},
+    {...metric, target: 'node-local', latencyProfile: 'python-v0.0.3-public'}]};
+  const verdicts = assessMeasurements(report, new Set([operation]));
+  assert.deepEqual(verdicts.map(result => result.status), ['pass', 'regression']);
+  const {recordGuardExit} = await import('./health-monitor.mjs');
+  const retained = {...report, verdicts, errors: [], exitCode: 2};
+  recordGuardExit(retained, 124);
+  assert.equal(retained.status, 'error');
+  assert.equal(retained.exitCode, 3);
+  assert.deepEqual(retained.verdicts.map(result => result.status), ['pass', 'regression']);
+  assert.deepEqual(assessMeasurements(report).map(result => result.status), ['regression', 'regression']);
+  assert.deepEqual(assessMeasurements({...report, mode: 'quick'}, new Set([operation])).map(result => result.status), ['pass', 'pass']);
 });

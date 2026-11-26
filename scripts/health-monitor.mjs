@@ -4,7 +4,7 @@ import {cpus, arch, platform, release} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
-import {compareReports, digest, jsonDigest, finishReport, saveReport, markdown, summarize, measurementProfile} from './health-monitor-report.mjs';
+import {compareReports, digest, jsonDigest, finishReport, exitStatus, saveReport, markdown, summarize, measurementProfile} from './health-monitor-report.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const self = fileURLToPath(import.meta.url);
@@ -100,7 +100,9 @@ export function recordGuardExit(report, code) {
   report.guardExitCode = code;
   if (code !== report.exitCode) {
     report.errors.push({target: 'resource/execution guard', message: `Original guard exited ${code}; inspect _build/local-checks/attempts original evidence`});
-    finishReport(report);
+    report.status = 'error';
+    report.exitCode = exitStatus(report.status);
+    report.formalAcceptance = false;
   }
   return report;
 }
@@ -138,13 +140,14 @@ export async function executeMonitor({mode, options, report, directory}) {
   const {execute, prepareHealthPackages, distributionMetrics, observeInstalledHealthNodeModules,
     quickNodeMetrics, mockWorkflowMetrics} = await import('./health-monitor-adapters.mjs');
   const raw = join(directory, 'raw'); await mkdir(raw, {recursive: true});
+  const pythonReleaseMetrics = new Set();
   const onMetric = async metric => {
     if (metric.kind === 'latency' && metric.samples?.length) metric = {...metric,
       statistics: summarize(metric.samples, mode === 'release' ? metric.requiredSamples
         : metric.temperature === 'cold' ? 30 : 100)};
     const index = report.metrics.findIndex(row => row.id === metric.id && row.target === metric.target);
     if (index < 0) report.metrics.push(structuredClone(metric)); else report.metrics[index] = structuredClone(metric);
-    await saveReport(directory, finishReport(report));
+    await saveReport(directory, finishReport(report, pythonReleaseMetrics));
 
   };
   const command = (command, args, settings = {}) => execute(command, args, {...settings, raw,
@@ -182,7 +185,11 @@ export async function executeMonitor({mode, options, report, directory}) {
       const ready = await releaseArtifacts({options, repository, source: report.source, command,
         onArtifact: async artifact => report.artifacts.push(artifact), onMetric});
       if (ready) {
-        await releaseMeasurements({options, prepared, repository, root: raw, source: report.source, command, onMetric});
+        await releaseMeasurements({options, prepared, repository, root: raw, source: report.source, command, onMetric,
+          onPythonMetric: async metric => {
+            pythonReleaseMetrics.add(metric.id);
+            await onMetric(metric);
+          }});
         const {assessLatency} = await import('./operation-performance.mjs');
         const {nodeBenchmarkInstrumentation} = await import('./node-benchmark-evidence.mjs');
         await mockWorkflowMetrics({prepared, root: raw, repository, command, counts,
@@ -226,7 +233,7 @@ export async function executeMonitor({mode, options, report, directory}) {
     report.environmentChanged = jsonDigest(report.environment) !== jsonDigest(report.environmentAfter);
     try {await applyComparison(report, options);} catch (error) {report.errors.push({target: 'baseline', message: error.message});}
     report.endedAt = new Date().toISOString();
-    await saveReport(directory, finishReport(report));
+    await saveReport(directory, finishReport(report, pythonReleaseMetrics));
   }
   return report;
 }
@@ -312,7 +319,8 @@ export async function fixtureIdentities(mode = 'quick', {root = repository} = {}
     'scripts/package-release.mjs', 'scripts/package-inventory.mts', 'scripts/installed-connector-bin.mts',
     'scripts/connector-authoring-toolkit.mts', 'scripts/operation-performance.mjs', 'scripts/operation-performance-sample-summary.mts', 'scripts/ordinary-operation-packages.mjs'];
   if (mode === 'release') files.push('scripts/benchmark-node-process-operations.mjs', 'scripts/benchmark-ordinary-processes.py',
-    'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs');
+    'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs',
+    'scripts/python-release-latency-policy.mts');
   return Object.fromEntries(await Promise.all(files.map(async file => [file, digest(await readFile(join(root, file)))])));
 }
 

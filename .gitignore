@@ -3873,3 +3873,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/worktree-inventory.d.mts
 /scripts/worktree-inventory.test.mjs
 /scripts/worktree-inventory.test.d.mts
+/scripts/python-release-latency-policy.mjs
+/scripts/python-release-latency-policy.d.mts

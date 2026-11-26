@@ -11,7 +11,8 @@ import {runNodeProcessBenchmark} from './benchmark-node-process-operations.mjs';
 import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {jsonDigest, digest} from './health-monitor-report.mjs';
-import {assessLatency, assessNativeOperations} from './operation-performance.mjs';
+import {assessNativeOperations, assessPythonOrdinaryLatency} from './operation-performance.mjs';
+import {pythonReleaseLatencyProfile} from './python-release-latency-policy.mjs';
 
 // Observe the interpreter that the existing ordinary collector will execute,
 // rather than substituting the controller's optional --python interpreter.
@@ -224,7 +225,7 @@ export async function releaseArtifacts({options, repository, source, command, on
   return ready;
 }
 
-export async function releaseMeasurements({options, prepared, repository, root, source, command, onMetric}) {
+export async function releaseMeasurements({options, prepared, repository, root, source, command, onMetric, onPythonMetric = onMetric}) {
   const env = {platform: platform(), arch: arch(), osRelease: release(), node: process.version,
     cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
   if (!options.nodeControls) {
@@ -279,7 +280,12 @@ export async function releaseMeasurements({options, prepared, repository, root, 
       '--load', options.load ?? 'concurrent', ...(adapter === 'python' ? ['--venv', options.pythonVenv] : [])],
     {cwd: repository, name: `formal-${adapter}-${operation}`, timeout: 0});
     const raw = JSON.parse(await readFile(join(output, 'measurements.json')));
-    if (adapter === 'python') assertPythonCollectorRuntime(raw, pythonRuntime);
+    const originalPythonCohort = await readFile(options.pythonManifest);
+    assert.equal(raw.sourceSha, source.sha, 'Foreign Python collector source');
+    assert.equal(raw.cohortSha256, digest(originalPythonCohort), 'Foreign Python collector cohort');
+    assert.equal(raw.executionPath, 'python-sdk', 'Expected the ordinary Python SDK collector');
+    assert.equal(raw.protocol?.operation, operation, 'Foreign Python collector operation');
+    assertPythonCollectorRuntime(raw, pythonRuntime);
     if (adapter === 'python' && pythonControls) {
       assert.equal(pythonControls.sourceSha, source.sha);
       assert.equal(pythonControls.cohortSha256, digest(await readFile(options.pythonManifest)));
@@ -291,13 +297,17 @@ export async function releaseMeasurements({options, prepared, repository, root, 
           resultStorageMatch: pythonControls.resultStorageMatches?.[operation]});
       }
     }
-    raw.assessments = raw.latency.map(series => assessLatency(series, adapter === 'python' ? pythonControls?.comparison : undefined));
+    raw.assessments = raw.latency.map(series => {
+      assert.equal(series.operation, operation, 'Foreign Python Health series');
+      return assessPythonOrdinaryLatency(series, pythonControls?.comparison);
+    });
     const assessmentPath = join(output, 'health-assessments.json');
     await writeFile(assessmentPath, JSON.stringify({sourceSha: source.sha, assessments: raw.assessments,
+      latencyProfile: pythonReleaseLatencyProfile, cohortSha256: raw.cohortSha256,
       ...(adapter === 'python' ? {pythonRuntime} : {}),
       controlsSha256: adapter === 'python' && options.pythonControls ? digest(await readFile(options.pythonControls)) : null}, null, 2), {flag: 'wx'});
     const verdict = formalCollectorVerdict(raw);
-    for (const series of raw.latency) await onMetric({id: operation, target: adapter, kind: 'latency', required: true,
+    for (const series of raw.latency) await onPythonMetric({id: operation, target: adapter, kind: 'latency', required: true,
       unit: 'ms', temperature: operation.startsWith('warm-') ? 'warm' : 'cold', requiredSamples: operation.startsWith('warm-') ? 100 : 30,
       fixtureSha256: series.fixtureSha256, samples: series.samples, evidence: join(output, 'measurements.json'),
       formalAssessments: assessmentPath, ...verdict});
