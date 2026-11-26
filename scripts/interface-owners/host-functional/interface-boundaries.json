@@ -17,7 +17,7 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5539,
+    "operations": 5544,
     "exports": 1202,
     "explicitContractGroups": 550
   },
@@ -1787,7 +1787,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4ee939592974a0295e808265fdc5f7358e8f91234e1b3c3fb57914b93dcf3a3c",
+      "sha256": "d82c99592e3941ce5f5fd381592b33b92b3834cd8efc98c5f0aa41e64091029b",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2856,6 +2856,10 @@
               {
                 "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
                 "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "if (owner?.releaseComplete === true) return false;"
               }
             ],
             "synchronization": [
@@ -3076,6 +3080,10 @@
               {
                 "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
                 "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
+              },
+              {
+                "path": "adapters/host-node/table-durable-capture.test.mjs",
+                "anchor": "assert.equal(await suspendCompletedEffectfulComputation(suspension), false);"
               }
             ]
           }
@@ -7959,7 +7967,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -8147,7 +8155,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -14512,7 +14520,7 @@
     {
       "module": "adapters/host-common/sqlite-format-inspection.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "32ac390d80f48d85389c96449bc933d5c809b16696e91209d89f73435c7fe3a0",
+      "sha256": "da47b2da51eda2dee628cf74ff39b57f2b0da802bc343057014869d300809891",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -14558,7 +14566,6 @@
             "schemaSqlSupport",
             "assertCurrent",
             "assertExclusiveSource",
-            "checkUserVersion",
             "temporaryDirectory"
           ],
           "async": false
@@ -15173,7 +15180,7 @@
     {
       "module": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3360004e2e08aaed5c6ec057ace8b0d512ba72005db4b1b4c2556794e12f4800",
+      "sha256": "5ac6c3b37c277db855cca725c3da583ae3b0e1fda6da1defb137d343abc12a21",
       "exports": [
         "inspectBoundedSqliteSchema",
         "snapshotSqliteSchemaReadLimits",
@@ -15187,8 +15194,7 @@
             "wal",
             "limits",
             "maxSourceBytes",
-            "schemaSqlSupport",
-            "checkUserVersion"
+            "schemaSqlSupport"
           ],
           "async": false
         },
@@ -15337,10 +15343,6 @@
               {
                 "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "if (payload.value > maxRecordBytes) unavailable();"
-              },
-              {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
-                "anchor": "checkUserVersion?.(be(page, 60) | 0);"
               }
             ],
             "cancellation": [
@@ -23891,7 +23893,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -24406,7 +24408,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -24503,7 +24505,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9dc2f9a6f1efa076195ca20a516b6aa0ec002c0228497de104ae5f8f6b2a8ede",
+      "sha256": "37fc1b75612cf5c33386f914a6568ed81d2a3d081bbdeafd0d115f32fba7d372",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -24700,6 +24702,14 @@
           "parameters": [
             "resolve",
             "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/deliverStaticPlan",
+          "parameters": [
+            "view",
+            "assertCurrent"
           ],
           "async": false
         },
@@ -26300,7 +26310,8 @@
         },
         {
           "operations": [
-            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#7"
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#7",
+            "createClientHttpHandler/createClientHttpHandler/deliverStaticPlan"
           ],
           "exports": [],
           "attributes": {
@@ -26362,6 +26373,10 @@
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
               }
             ]
           }
@@ -26583,7 +26598,7 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "160d1ba13ce5af49f3a8e4fb3c06a2cd9a2cefc54708beb4cadb66ac393747c4",
+      "sha256": "6791eb28099176f2f95cfeb38ed023d43c23f53da9d5ee44e7123a1fb2728301",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -26647,16 +26662,31 @@
         {
           "name": "installClientStaticPlan/installClientStaticPlan",
           "parameters": [
-            "request"
+            "request",
+            "deliver"
           ],
           "async": true
+        },
+        {
+          "name": "installClientStaticPlan/installClientStaticPlan/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientStaticPlan/installClientStaticPlan/retainOriginalPlanEgress",
+          "parameters": [
+            "assertCurrent"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "installClientStaticPlan",
-            "installClientStaticPlan/installClientStaticPlan"
+            "installClientStaticPlan/installClientStaticPlan",
+            "installClientStaticPlan/installClientStaticPlan/assertCurrent/assertCurrent",
+            "installClientStaticPlan/installClientStaticPlan/retainOriginalPlanEgress"
           ],
           "exports": [
             "installClientStaticPlan"
@@ -26836,6 +26866,10 @@
               {
                 "path": "adapters/host-node/client-interactive-plan.test.mjs",
                 "anchor": "test('installed static service reads its held original and never re-enters raw preparation or compilation'"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
               }
             ]
           }
@@ -28930,7 +28964,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -29725,7 +29759,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -32186,10 +32220,6 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "if (version !== currentJournalVersion) fail('UnknownClientRequestJournalFormat');"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "fail('SqliteSchemaPreparationUnavailable');"
               }
             ],
@@ -34507,7 +34537,7 @@
     {
       "module": "adapters/host-node/client-request-journal-attempts.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6d5fa5c38ca3e5aafdd1d5bded8fdf8c31ee7fa0303d15cdbfcd880cc0af27cc",
+      "sha256": "5f6754668038aedf039ff8e689dc5b909911685fffdec683e4aedea986f04060",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -34767,6 +34797,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-attempts.mts",
                 "anchor": "canonicalValueJson(outcome.cancelRef) !== canonicalValueJson(cancelRef) ||"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "outcome.revision > row.revision ||"
               }
             ],
             "ownership": [
@@ -34791,6 +34825,14 @@
               {
                 "path": "adapters/host-node/client-request-journal-attempts.mts",
                 "anchor": "const pending = transact('cancel_admission', 'ClientCancellationUnknown',"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "AND revision = ? AND cancellation_requested = 0"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "if (!Number.isSafeInteger(revision)) fail"
               }
             ],
             "failure": [
@@ -35084,7 +35126,7 @@
     {
       "module": "adapters/host-node/client-request-journal-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2fb60da6f30d33e74f239bf2bcccf20916c50414c330c8f1736ec5ac1dcad4c9",
+      "sha256": "0e5f5190adf5c3e63dff6c67d1deeb1941a7caac52da2093ddc21c8a710edc0e",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -35543,13 +35585,6 @@
             "database",
             "ref",
             "maxRunDefinitionWireBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "requireCurrentJournalVersion",
-          "parameters": [
-            "version"
           ],
           "async": false
         },
@@ -36390,7 +36425,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -36422,11 +36457,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -36907,8 +36942,7 @@
         },
         {
           "operations": [
-            "inspectJournalNativeStorage",
-            "requireCurrentJournalVersion"
+            "inspectJournalNativeStorage"
           ],
           "exports": [
             "inspectJournalNativeStorage"
@@ -36953,10 +36987,6 @@
               }
             ],
             "failure": [
-              {
-                "path": "adapters/host-node/client-request-journal-format.mts",
-                "anchor": "if (version !== currentJournalVersion) fail('UnknownClientRequestJournalFormat');"
-              },
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "fail('SqliteSchemaPreparationUnavailable');"
@@ -37751,7 +37781,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -37783,11 +37813,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -38553,7 +38583,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -38585,11 +38615,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -39304,15 +39334,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -39388,15 +39418,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -39474,15 +39504,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -39558,15 +39588,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -39642,15 +39672,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -46082,7 +46112,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -46746,7 +46776,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -58422,7 +58452,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "26ca35f53280616d9a8c9bec26288c41b824f3d6e436f3f1fbca4e0bd6875508",
+      "sha256": "a1bb8f7f559ced9e799338b71ef85bb21fb11637552c8a2a8eb9ba400153be8e",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -58486,6 +58516,14 @@
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "createNodeInProcessClientHost/init:perform/init:perform/deliverStaticPlan",
+          "parameters": [
+            "view",
+            "assertCurrent"
+          ],
+          "async": false
         },
         {
           "name": "createNodeInProcessClientHost/init:perform/init:perform/init:perform",
@@ -59656,7 +59694,8 @@
         },
         {
           "operations": [
-            "createNodeInProcessClientHost/init:perform/init:perform/init:perform#4"
+            "createNodeInProcessClientHost/init:perform/init:perform/init:perform#4",
+            "createNodeInProcessClientHost/init:perform/init:perform/deliverStaticPlan"
           ],
           "exports": [],
           "attributes": {
@@ -59718,6 +59757,10 @@
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
               }
             ]
           }
@@ -70424,7 +70467,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e9466c4cf1b0cc5072d7ccee0a83fe0e81c0d27bd189c34ea1264a7bd1eabeeb",
+      "sha256": "f53a3a69bed99a9befc096aabbcfdfaf48ee30284fca737ad1038734544a1e5f",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -70510,6 +70553,13 @@
         {
           "name": "installNodeContentRun/execute/execute/execute#4",
           "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/execute/execute/execute#5",
+          "parameters": [
             "value"
           ],
           "async": false
@@ -70533,6 +70583,13 @@
           "async": false
         },
         {
+          "name": "installNodeContentRun/execute/execute/sourceEvidence/sourceEvidence",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeContentRun/installedBinding/installedBinding",
           "parameters": [
             "plan"
@@ -70544,7 +70601,36 @@
           "parameters": [
             "preparedProgram",
             "plan",
-            "request"
+            "request",
+            "ordinarySource"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/args/args",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/args/args#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/args/args#3",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -70559,6 +70645,15 @@
         },
         {
           "name": "installNodeContentRun/installNodeContentRun#10",
+          "parameters": [
+            "preparedProgram",
+            "plan",
+            "sourceCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#11",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -70642,7 +70737,7 @@
           "parameters": [
             "preparedProgram",
             "plan",
-            "sourceCapacity"
+            "sourceCapacities"
           ],
           "async": false
         },
@@ -70687,7 +70782,9 @@
             "installNodeContentRun/installNodeContentRun#6",
             "installNodeContentRun/installNodeContentRun#7",
             "installNodeContentRun/installNodeContentRun#8",
-            "installNodeContentRun/run/run"
+            "installNodeContentRun/run/run",
+            "installNodeContentRun/execute/execute/execute#5",
+            "installNodeContentRun/execute/execute/sourceEvidence/sourceEvidence"
           ],
           "exports": [
             "installNodeContentRun"
@@ -70750,7 +70847,7 @@
               },
               {
                 "path": "adapters/host-node/installed-content-run.mts",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request, ordinarySource = false}"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -70762,7 +70859,7 @@
               },
               {
                 "path": "adapters/host-node/installed-content-run.mts",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request, ordinarySource = false}"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -71133,7 +71230,7 @@
                 "anchor": "test('generated family refences cancellation begun during the original matcher callback'"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -71381,7 +71478,12 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#10"
+            "installNodeContentRun/installNodeContentRun#10",
+            "installNodeContentRun/installNodeContentRun/args/args",
+            "installNodeContentRun/installNodeContentRun/args/args#2",
+            "installNodeContentRun/installNodeContentRun/args/args#3",
+            "installNodeContentRun/installNodeContentRun/installNodeContentRun",
+            "installNodeContentRun/installNodeContentRun#11"
           ],
           "exports": [],
           "attributes": {
@@ -72006,7 +72108,7 @@
               },
               {
                 "path": "adapters/host-node/installed-content-run.mts",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request, ordinarySource = false}"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -72018,7 +72120,7 @@
               },
               {
                 "path": "adapters/host-node/installed-content-run.mts",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request, ordinarySource = false}"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -72389,7 +72491,7 @@
                 "anchor": "test('generated family refences cancellation begun during the original matcher callback'"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -82759,7 +82861,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "5e5e58b15bdde6176d106ac9d99260672c74118c4ff55a0991d7d079b4e0f9da",
+      "sha256": "38a44e262ba1dc98ef88559eb0d07a34bc658d284a10067b11f5ad7445f087c2",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -82918,6 +83020,13 @@
           "name": "installPreparedProjectMockSources/adapter/init:readPages/init:readPages/physical/physical",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/bindManagedSerializationReadRun",
+          "parameters": [
+            "run"
           ],
           "async": false
         },
@@ -83458,7 +83567,8 @@
             "installPreparedProjectMockSources/prepareManagedRun",
             "installPreparedProjectMockSources/queryAliases/queryAliases",
             "installPreparedProjectMockSources/queryAliases/queryAliases/view/view",
-            "installPreparedProjectMockSources/releaseEffectSourceAliases"
+            "installPreparedProjectMockSources/releaseEffectSourceAliases",
+            "installPreparedProjectMockSources/bindManagedSerializationReadRun"
           ],
           "exports": [
             "installPreparedProjectMockSources"
@@ -95235,7 +95345,7 @@
                 "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -95379,7 +95489,7 @@
                 "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -121586,7 +121696,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -121679,7 +121789,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -122967,7 +123077,8 @@
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/wire/wire",
             "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation"
+            "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertOriginal/assertOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -123433,6 +123544,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback'"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
               }
             ]
           }
@@ -127047,7 +127162,7 @@
                 "anchor": "test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback'"
               },
               {
-                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mts",
                 "anchor": "// Actual imported installed static service"
               },
               {
@@ -127483,6 +127598,11 @@
             "debugEntryInstalled"
           ],
           "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertOriginal/assertOriginal",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/explanationPorts/originalExplanationPort",
@@ -128366,7 +128486,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6fa2dc51009717db92ffbcfa001e19c1d31a084f3fbd19e05548b9b9d5bd0947"
+      "sha256": "56611a0f3a7442851b67422b360b6d965189b15c7603dc22b88ab3016a9cc010"
     },
     {
       "module": "adapters/host-node/ordinary-source-model-materials.mjs",
@@ -130250,7 +130370,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary"
               },
               {
@@ -130416,7 +130536,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary"
               },
               {
@@ -130579,7 +130699,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary"
               },
               {
@@ -139579,7 +139699,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "6fa07674991613ea7eebd7487ab5b81f139fbfee042e878b931e7637dbe49268",
+      "sha256": "52a6104ea543397d3f9c490661c27d50315f39085e88800915fbc5761685bed9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -139659,7 +139779,15 @@
           "parameters": [
             "run",
             "publicationCapacity",
-            "assertCurrent"
+            "assertCurrent",
+            "assertRetained"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelPreparation/check/check",
+          "parameters": [
+            "retiring"
           ],
           "async": false
         },
@@ -139672,7 +139800,9 @@
         },
         {
           "name": "installedEffectModelPreparation/current/current",
-          "parameters": [],
+          "parameters": [
+            "retiring"
+          ],
           "async": false
         },
         {
@@ -139853,6 +139983,7 @@
             "installedEffectModelMemberPreparation/view/init:retain/init:retain",
             "installedEffectModelMemberPreparation/view/init:retire/init:retire",
             "installedEffectModelPreparation",
+            "installedEffectModelPreparation/check/check",
             "installedEffectModelPreparation/components/components",
             "installedEffectModelPreparation/current/current",
             "installedEffectModelPreparation/current/current/current",
@@ -139981,6 +140112,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
+                "anchor": "if (retiring) assertRetained();"
               }
             ],
             "synchronization": [
@@ -140181,6 +140316,10 @@
               {
                 "path": "adapters/host-node/keyed-initial-definition.test.mjs",
                 "anchor": "test('initial keyed preparation projects its same checked Definition after the original graph quote'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "sealed Effect ingress still retires each retained original Model Read exactly once"
               }
             ]
           }
@@ -147160,7 +147299,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -147348,7 +147487,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -150004,7 +150143,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
-      "sha256": "95ef820b9c3604eaa394a99197f4122f16686cfd8c33006e93a2533d6806a51f",
+      "sha256": "51571d6585190ceb6afae68a42df404ff2225ec34217471f0fc6ceb60f2b1282",
       "exports": [
         "createLocalResultReadWorkspace"
       ],
@@ -150346,6 +150485,10 @@
               {
                 "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
                 "anchor": "record durability"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "an execution refusal with no pending child returns the actual control Read"
               },
               {
                 "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
@@ -152286,7 +152429,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
               },
               {

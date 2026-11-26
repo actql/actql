@@ -96,7 +96,7 @@ class ReadOnlySpanTests(unittest.TestCase):
         originals = (
             ('client_cancellations', b'cancel-a', b'cancel-b'),
             ('client_cancel_originals', b'hash-a', b'hash-b'),
-            ('client_runs', b'run-a', b'run-b'),
+            ('client_runs', b'{"value":"run-a"}', b'{"value":"run-b"}'),
         )
         for namespace, earlier, later in originals:
             self.assertEqual(len(earlier), len(later))

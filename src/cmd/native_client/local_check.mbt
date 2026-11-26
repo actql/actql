@@ -101,6 +101,11 @@ fn local_check_context(
   if account.account_id() != settings.account_id {
     stop("LocalCheckContextUnavailable")
   }
+  if command_preparation_invocation.val is Some(owner) &&
+    configuration is Some(configuration) &&
+    capture is Some(capture) {
+    owner.prepare_declared_file_sources(configuration, capture)
+  }
   let key = crypto
     .random_bytes(32)
     .unwrap_or_else(() => stop("LocalCheckContextUnavailable"))
@@ -113,7 +118,9 @@ fn local_check_context(
     configuration_body,
     environment_name,
     environment_body,
-    environment: local_command_project_environment(environment),
+    environment: local_command_project_environment(
+      environment, capture, settings,
+    ),
     audience: settings.principal,
     connection: settings.connection,
   }

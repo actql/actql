@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
+import {fundedClientPreparation, fundedModelMaterialFixture} from './funded-client-preparation.fixture.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {readInstalledModelExecution, readInstalledModelDependencies} from './installed-model.mjs';
 import {canonical, identity, program, input, output, prompt, task, execution,
@@ -11,18 +12,28 @@ import {canonical, identity, program, input, output, prompt, task, execution,
 
 const base = JSON.parse(readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url)));
 const payloadWire = '{"format":"actql.openai_chat_prompt/0.1","instructions":"Original é\\r\\n"}';
-function prepare() {
+async function prepare(t) {
   const installation = configuration(base);
   const environment = moon.clientProgramCheckEnvironment(installation.environmentWire,
     JSON.parse(installation.environmentWire).evidence_bundle_cid,
     false, false, true, false, false, false, false);
   assert.ok(environment, 'The actual Common environment must admit the original Task');
-  const prepared = installNodeClientProgramPreparation({moon, environment})({
+  const prepare = await fundedClientPreparation(t, {moon, environment});
+  const prepared = await prepare({
     kind: 'program', input: program, parameters: null,
   });
-  const selected = readInstalledModelExecution(moon, prepared, installation);
+  const fund = fundedModelMaterialFixture(moon, prepared);
+  const selected = readInstalledModelExecution(moon, prepared, installation, undefined, fund);
   assert.equal(selected.step, 2);
-  return {installation, prepared, execution: selected.execution};
+  return {installation, prepared, execution: selected.execution, fund};
+}
+
+function retainConfiguration(installation) {
+  for (const entries of [installation.executionContracts, installation.dependencyBodies]) {
+    for (const entry of entries) Object.freeze(entry);
+    Object.freeze(entries);
+  }
+  return Object.freeze(installation);
 }
 function provider(connector = 'models/fixture') {
   // Actual async registration has no invocation callback at all. The static
@@ -51,9 +62,10 @@ test('first M1 originals retain the exact input and independently fixed canonica
   assert.equal(task.data_handling.allowed_regions[0], 'fixture-region');
 });
 
-test('first M1 actual Common admits the same Program Task prompt and asynchronous provider with invoke zero', () => {
-  const selected = prepare();
-  const dependencies = readInstalledModelDependencies(moon, selected.execution, selected.installation);
+test('first M1 actual Common admits the same Program Task prompt and asynchronous provider with invoke zero', async t => {
+  const selected = await prepare(t);
+  const dependencies = readInstalledModelDependencies(moon, selected.execution, selected.installation,
+    selected.fund, selected.prepared);
   const physical = provider();
   let validations = 0;
   const admitted = checked(moon.clientProgramAdmitModelProvider(physical.value,
@@ -68,8 +80,8 @@ test('first M1 actual Common admits the same Program Task prompt and asynchronou
   assert.equal(validations, 1);
 });
 
-test('first M1 actual dependency reader refuses missing and changed prompt originals before provider admission', () => {
-  const selected = prepare();
+test('first M1 actual dependency reader refuses missing and changed prompt originals before provider admission', async t => {
+  const selected = await prepare(t);
   for (const change of ['missing', 'changed', 'extra']) {
     const installation = structuredClone(selected.installation);
     if (change === 'missing') installation.dependencyBodies.shift();
@@ -79,16 +91,18 @@ test('first M1 actual dependency reader refuses missing and changed prompt origi
       else body.payload.extra = true;
       installation.dependencyBodies[0].bodyWire = canonical(body);
     }
-    assert.throws(() => readInstalledModelDependencies(moon, selected.execution, installation),
+    assert.throws(() => readInstalledModelDependencies(moon, selected.execution,
+      retainConfiguration(installation), selected.fund, selected.prepared),
       error => error.code === 'MoonBitHostFailure' &&
         moon.clientProgramInferModelDependencyIssueKind(error.cause) ===
           (change === 'missing' ? 'missing_body' : 'identity_mismatch'));
   }
 });
 
-test('first M1 actual provider admission refuses foreign connector and rejected interpretation with invoke zero', () => {
-  const selected = prepare();
-  const dependencies = readInstalledModelDependencies(moon, selected.execution, selected.installation);
+test('first M1 actual provider admission refuses foreign connector and rejected interpretation with invoke zero', async t => {
+  const selected = await prepare(t);
+  const dependencies = readInstalledModelDependencies(moon, selected.execution, selected.installation,
+    selected.fund, selected.prepared);
   for (const [connector, accept, expected] of [
     ['models/foreign', true, 'foreign_provider'],
     ['models/fixture', false, 'unsupported_prompt'],
@@ -101,8 +115,8 @@ test('first M1 actual provider admission refuses foreign connector and rejected 
   }
 });
 
-test('first M1 actual execution reader refuses foreign Task binding and changed self CID', () => {
-  const selected = prepare();
+test('first M1 actual execution reader refuses foreign Task binding and changed self CID', async t => {
+  const selected = await prepare(t);
   for (const change of ['foreign_task', 'changed_cid']) {
     const installation = structuredClone(selected.installation);
     const entry = installation.executionContracts[0];
@@ -114,7 +128,8 @@ test('first M1 actual execution reader refuses foreign Task binding and changed 
       entry.cid = body.self_cid = identity(original);
     } else body.self_cid = `sha256:${'b'.repeat(64)}`;
     entry.bodyWire = canonical(body);
-    assert.throws(() => readInstalledModelExecution(moon, selected.prepared, installation),
+    assert.throws(() => readInstalledModelExecution(moon, selected.prepared,
+      retainConfiguration(installation), undefined, selected.fund),
       error => error.code === 'MoonBitHostFailure' &&
         moon.clientProgramInferModelExecutionIssueKind(error.cause) ===
           (change === 'foreign_task' ? 'reference_mismatch' : 'identity_mismatch'));

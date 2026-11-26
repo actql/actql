@@ -73,6 +73,27 @@ enum LocalComponentBinding {
 }
 
 ///|
+enum ResultArtifactSelection {
+  EffectResult(
+    Int,
+    @publication_host.ClientEffectLocalResultArtifact,
+    @publication_host.ClientEffectLocalManifest
+  )
+  WholeResult(
+    Int,
+    @publication_host.ClientWholeLocalResultArtifact,
+    @publication_host.ClientWholeLocalResultManifest
+  )
+}
+
+///|
+fn result_artifact_selection_index(value : ResultArtifactSelection) -> Int {
+  match value {
+    EffectResult(index, _, _) | WholeResult(index, _, _) => index
+  }
+}
+
+///|
 /// One physical owner composes existing bounded children. It is neither a
 /// Run state machine nor a retry engine. The installing Host supplies an
 /// admitted fixed request identity, provider and envelope before dispatch.
@@ -89,13 +110,7 @@ pub struct Execution {
   mut identity : @relation.CompletedRelationIdentityScan?
   mut identity_body : OriginalInferIdentityBody?
   mut call_scope : @publication_host.ClientInferCallScope?
-  result_artifacts : Array[
-    (
-      Int,
-      @publication_host.ClientEffectLocalResultArtifact,
-      @publication_host.ClientEffectLocalManifest,
-    ),
-  ]
+  result_artifacts : Array[ResultArtifactSelection]
   mut saved_call_scope : @publication_host.ClientInferSavedCallScope?
   mut model : @model.ModelExecution?
   mut capture : @model.ModelCaptureBundle?
@@ -936,6 +951,44 @@ pub fn bind_result_artifact_input(
   artifact : @publication_host.ClientEffectLocalResultArtifact,
   manifest : @publication_host.ClientEffectLocalManifest,
 ) -> Result[Unit, Issue] {
+  bind_original_result_artifact_input(
+    active,
+    EffectResult(import_index, artifact, manifest),
+  )
+}
+
+///|
+/// Bind the existing Whole producer before input progress. Scope issuance
+/// still needs the exact completed receiving Read and its Source originals.
+pub fn bind_whole_result_artifact_input(
+  active : Execution,
+  import_index : Int,
+  artifact : @publication_host.ClientWholeLocalResultArtifact,
+  manifest : @publication_host.ClientWholeLocalResultManifest,
+) -> Result[Unit, Issue] {
+  guard active.saved_call_scope is None &&
+    active.composed_sources is Some(sources) &&
+    @publication_host.client_infer_composed_whole_sources_original(
+      sources,
+      active.occurrence,
+    ) &&
+    @publication_host.client_whole_local_result_manifest_matches(
+      manifest, artifact,
+    ) else {
+    return Err(CallScope(@publication_host.ForeignInput))
+  }
+  bind_original_result_artifact_input(
+    active,
+    WholeResult(import_index, artifact, manifest),
+  )
+}
+
+///|
+fn bind_original_result_artifact_input(
+  active : Execution,
+  original : ResultArtifactSelection,
+) -> Result[Unit, Issue] {
+  let import_index = result_artifact_selection_index(original)
   guard !active.reclaimed &&
     !active.advancing &&
     !active.cancelled &&
@@ -946,10 +999,12 @@ pub fn bind_result_artifact_input(
     @publication_host.client_infer_occurrence_result_import_count(
       active.occurrence,
     ) &&
-    !active.result_artifacts.any(value => value.0 == import_index) else {
+    !active.result_artifacts.any(value => {
+      result_artifact_selection_index(value) == import_index
+    }) else {
     return Err(InvalidAdvance)
   }
-  active.result_artifacts.push((import_index, artifact, manifest))
+  active.result_artifacts.push(original)
   Ok(())
 }
 
@@ -1304,16 +1359,28 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
         return fail(active, InvalidAdvance)
       }
       let result_inputs = []
-      for (index, artifact, manifest) in active.result_artifacts {
-        match
-          @input.client_infer_completed_result_artifact_input(
-            active.input,
-            active.occurrence,
-            plan,
-            index,
-            artifact,
-            manifest,
-          ) {
+      for original in active.result_artifacts {
+        let input = match original {
+          EffectResult(index, artifact, manifest) =>
+            @input.client_infer_completed_result_artifact_input(
+              active.input,
+              active.occurrence,
+              plan,
+              index,
+              artifact,
+              manifest,
+            )
+          WholeResult(index, artifact, manifest) =>
+            @input.client_infer_completed_whole_result_artifact_input(
+              active.input,
+              active.occurrence,
+              plan,
+              index,
+              artifact,
+              manifest,
+            )
+        }
+        match input {
           Ok(value) => result_inputs.push(value)
           Err(issue) => return fail(active, CallScope(issue))
         }

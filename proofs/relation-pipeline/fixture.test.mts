@@ -1,0 +1,65 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { body, boundFixture, auditFixture, executionCommand } from './fixture.mjs';
+import type { ExecutionTarget } from './fixture.mjs';
+import type { ExecutionBoundary } from './execute.mjs';
+import { hash } from './inventory.mjs';
+function evidence(target: ExecutionTarget = 'js') {
+  const boundary: ExecutionBoundary = { version: 'actql-pipeline-execution-boundary/0.1', workspace: 'isolated-fixture',
+    root: '/fixture', role: 'normal', sourceDigest: hash('actual source'), toolchainDigest: hash('tools'),
+    environmentDigest: hash('environment'), fixtureDigest: hash(body), target, command: executionCommand(target) };
+  const buildIdentity = hash(JSON.stringify(boundary));
+  const fixture = boundFixture(boundary);
+  const run = { target, exit: 0, sourceDigest: boundary.sourceDigest, boundary,
+    command: executionCommand(target), buildIdentity, fixtureDigest: hash(fixture) };
+  const log = `ACTQL_PIPELINE_BUILD:${buildIdentity}\nTotal tests: 1, passed: 1, failed: 0\n`;
+  return { run, fixture, log };
+}
+for (const target of ['js', 'wasm', 'native'] as const) {
+  test(`both audit consumers can require the actual bound ${target} fixture`, () => {
+    const e = evidence(target);
+    auditFixture(e.run, Buffer.from(e.fixture), e.log, target);
+    assert.throws(() => auditFixture(e.run, body, e.log, target), /Archived compiled fixture differs/);
+    assert.throws(() => auditFixture(e.run, e.fixture, '', target), /Executed binary boundary differs/);
+    assert.throws(() => auditFixture(e.run, e.fixture, e.log.replace(e.run.buildIdentity, hash('stale binary')), target), /Executed binary boundary differs/);
+    assert.throws(() => auditFixture(e.run, e.fixture, e.log + e.log, target), /Executed binary boundary differs/);
+    assert.throws(() => auditFixture({ ...e.run, exit: 17 }, e.fixture, e.log, target), /Failed execution/);
+  });
+}
+test('first-use target substitution, stale source, command and boundary identity fail closed', () => {
+  const e = evidence('js');
+  assert.throws(() => auditFixture(e.run, e.fixture, e.log, 'native'), /Receipt target differs/);
+  for (const [key, value, expected] of [['target', 'native', /Compiled target boundary differs/],
+    ['sourceDigest', hash('other source'), /Compiled source boundary differs/],
+    ['command', executionCommand('native'), /Compiled command boundary differs/],
+    ['workspace', 'other-workspace', /Build boundary identity differs/]] as const) {
+    assert.throws(() => auditFixture({ ...e.run, boundary: { ...e.run.boundary, [key]: value } }, e.fixture, e.log, 'js'), expected);
+  }
+  assert.throws(() => auditFixture({ ...e.run, fixtureDigest: hash(body) }, e.fixture, e.log, 'js'), /Compiled fixture digest differs/);
+  assert.throws(() => auditFixture(e.run, e.fixture, e.log.replace('passed: 1', 'passed: 0'), 'js'), /Observation fixture did not pass/);
+});
+test('target-bound audit fixtures stay byte-identical across all three builds', () => {
+  assert.equal(evidence('js').fixture, evidence('wasm').fixture);
+  assert.equal(evidence('js').fixture, evidence('native').fixture);
+  assert.notEqual(evidence('js').run.buildIdentity, evidence('native').run.buildIdentity);
+});
+
+test('an explicit compiler job cap is bound into the diagnostic command and cannot pass the default audit', () => {
+  const e = evidence('js');
+  assert.deepEqual(executionCommand('js'), ['moon', 'test',
+    'src/query_integration/relation_pipeline_batch_wbtest.mbt', '--target', 'js', '--deny-warn']);
+  const command = executionCommand('js', 1);
+  assert.deepEqual(command.slice(-3), ['--jobs', '1', '--deny-warn']);
+  const boundary = {...e.run.boundary, command};
+  const identity = hash(JSON.stringify(boundary));
+  const fixture = boundFixture(boundary, {jobs: 1});
+  assert.match(fixture, new RegExp(`ACTQL_PIPELINE_BUILD:${identity}`));
+  assert.notEqual(fixture, e.fixture);
+  const run = {...e.run, boundary, command, buildIdentity: identity, fixtureDigest: hash(fixture)};
+  assert.throws(() => auditFixture(run, fixture, `ACTQL_PIPELINE_BUILD:${identity}\nTotal tests: 1, passed: 1, failed: 0\n`, 'js'),
+    /Unreviewed execution command/);
+  for (const jobs of [0, -1, 1.5, Infinity, NaN, '1', null]) {
+    assert.throws(() => executionCommand('js', jobs as number), /Invalid execution jobs/);
+    assert.throws(() => boundFixture(boundary, {jobs: jobs as number}), /Invalid execution jobs/);
+  }
+});

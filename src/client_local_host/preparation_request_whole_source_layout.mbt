@@ -34,8 +34,8 @@ fn request_whole_source_route_frontier_bytes(
       map_entries: 0L,
     })
     is Some(scan) &&
-    @execution.checked_preparation_add_product(12L, n, 18L) is Some(headers) &&
-    @execution.checked_preparation_add_product(8L, n, 34L) is Some(references) &&
+    @execution.checked_preparation_add_product(13L, n, 18L) is Some(headers) &&
+    @execution.checked_preparation_add_product(12L, n, 34L) is Some(references) &&
     @execution.checked_preparation_add_product(20L, n, 27L) is Some(words) &&
     @execution.compose_preparation_representation([
       vectors,
@@ -47,8 +47,8 @@ fn request_whole_source_route_frontier_bytes(
         owned_wire_bytes: 0L,
       },
       {
-        // Fixed grow/refusal/return products: H12/R8/W20, as in the
-        // existing Query-domain entry. Per input, count both Source record
+        // Fixed grow/refusal/return products: H12/R8/W20 plus the Native
+        // four-vector return (H1/R4). Per input, count both Source record
         // alternatives, Input target, route/Result/map and budget carriers
         // (H9/R15/W10); Native locator (H1/R6); and the four immutable
         // RowInput policy records (H4/R3/W15). Listing lookup retains its
@@ -74,9 +74,10 @@ fn request_whole_source_route_frontier_bytes(
   // are fixed controls; complete Query construction has its own later quote.
   guard cost is Some(base) &&
     @execution.preparation_representation_cost({
-      record_headers: 7L + 6L * n,
-      reference_slots: 10L + 12L * n,
-      scalar_words: 5L + 8L * n,
+      // Also hold the temporary locator tuple (H1/R2/W2) for each input.
+      record_headers: 7L + 7L * n,
+      reference_slots: 10L + 14L * n,
+      scalar_words: 5L + 10L * n,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })

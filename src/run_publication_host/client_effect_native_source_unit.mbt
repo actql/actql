@@ -54,7 +54,7 @@ pub fn issue_client_keyed_native_effect_source_unit(
     return Err(Relation(@publication.WrongRetention))
   }
   let invocation = match
-    issue_client_effect_local_invocation_body(
+    issue_client_local_unit_invocation(
       owner,
       unit,
       definition,
@@ -213,7 +213,7 @@ pub fn issue_client_whole_native_effect_source_unit(
     Err(issue) => return Err(Relation(issue))
   }
   let invocation = match
-    issue_client_effect_local_invocation_body(
+    issue_client_local_unit_invocation(
       owner,
       unit,
       definition,

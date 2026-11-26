@@ -12,6 +12,8 @@ pub fn[S, T, E] cleanup(Session[S, T, E]) -> Result[Bool, Issue]
 
 pub fn[S, T, E] cleanup_pending(Session[S, T, E]) -> Bool
 
+pub fn[S, T, E] confirm_requested_stop(Session[S, T, E], Token) -> Bool
+
 pub fn control() -> Control
 
 pub fn request_cancel(Control) -> Bool

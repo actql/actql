@@ -136,7 +136,7 @@ entire proof suite runs without those objects.
 
 ### Eight-part hosted evidence
 
-The full workflow uses the source-bound `proof-parts.mjs` plan with exactly eight
+The full workflow uses the source-bound plan authored in `proof-parts.mts` with exactly eight
 fresh producers. `L-C2` keeps the entire 28-case normal/boundary tuple on all
 three targets and the final 114-case corpus in the same checkout after boundary
 restoration. `L-C3` owns backing/model evidence and custody followed by
@@ -207,7 +207,7 @@ For another operation, retain those explicit arrays, register the operation's
 local premises/independent oracle/contract/argument reductions and connection
 obligations, then append its descriptor stage and select that stage as the
 current registry. Update the independently reviewed final corpus count in
-`proof-parts.mjs` to the actual complete union; preserve its three targets and
+`proof-parts.mts` to the actual complete union; preserve its three targets and
 all unrelated campaigns. Do not replace an old stage with a regenerated latest
 registry or retire inputs solely because the new random stream has coverage.
 Any changed generator, oracle, contract or descriptor still invalidates its

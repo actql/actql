@@ -1,3 +1,4 @@
+import {explorerCopy, type ExplorerLocale} from './i18n.mjs';
 import type * as Public from './read-model.js';
 import type {Client,Execution,RunReference} from '@actql/sdk';
 import type {WirePlanView,WireEffectfulStaticPlanView,WireExplanationFacts,
@@ -591,22 +592,23 @@ export function storySamplePorts(step: Pick<Step, 'ports'>) {
       outputs.length === 1 && port.port_ordinal === 0));
 }
 
-export function sampleCaptureCaption({strategy, sampled_items: sampled, total, completeness, truncation}: WireSampleCapture) {
+export function sampleCaptureCaption({strategy, sampled_items: sampled, total, completeness, truncation}: WireSampleCapture, locale?: ExplorerLocale) {
+  const words = explorerCopy(locale);
   const exactTotal = total.kind === 'exact' && total.unit === 'rows' ? total.value : undefined;
   if (exactTotal === sampled && completeness === 'complete' && truncation !== 'confirmed') {
-    return `All ${sampled} rows captured`;
+    return words.allRows(sampled);
   }
   const prefix = strategy === 'execution_prefix' && completeness !== 'complete' &&
     truncation !== 'not_truncated' && (completeness === 'partial' || truncation === 'confirmed');
   const belowTotal = exactTotal !== undefined &&
     (sampled.length < exactTotal.length || sampled.length === exactTotal.length && sampled < exactTotal);
-  if (prefix && belowTotal) return `First ${sampled} of ${exactTotal} rows captured`;
+  if (prefix && belowTotal) return words.firstOfRows(sampled, exactTotal);
   if (prefix && total.kind === 'unknown' && total.unit === 'rows') {
-    return `First ${sampled} rows captured · total unknown`;
+    return words.firstRows(sampled);
   }
-  const observation = belowTotal || exactTotal === sampled ? `${exactTotal} total rows` :
-    exactTotal === undefined ? 'Exact total rows not observed' : 'Reported total is below captured rows';
-  return `${sampled} rows captured · ${observation}`;
+  const observation = belowTotal || exactTotal === sampled ? words.totalRows(exactTotal) :
+    exactTotal === undefined ? words.captureNotObserved : words.captureInconsistent;
+  return words.observedRows(sampled, observation);
 }
 
 export function sampleCellPreview(text: string) {

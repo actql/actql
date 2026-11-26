@@ -1,4 +1,14 @@
 ///|
+let captured_run_read_slot_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: 1L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
 /// Complete the actual captured Plan on the existing Pure prepared capacity.
 /// The Run fields/manager borrow own its Plan dependency until actual cleanup.
 fn[I] complete_request_capture_preparation(
@@ -20,11 +30,45 @@ fn[I] complete_request_capture_preparation(
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
   }
+  // The retained Whole Plan counts input occurrences, while the original
+  // Run's base read array was priced per captured task. Several Whole inputs
+  // can feed one task. Fund just the extra slots before adopting the Run.
+  let extra_reads = Int::max(
+    0,
+    plan.whole_sources.length() -
+    @strategy.graph_captured_prefix(
+      @publication_host.prepared_client_graph(prepared),
+    ),
+  ).to_int64()
+  guard @execution.checked_preparation_add_product(
+      r, extra_reads, captured_run_read_slot_bytes,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      e, extra_reads, captured_run_read_slot_bytes,
+    )
+    is Some(execution) else {
+    return Err(Policy)
+  }
   owner.program_captured = Some(plan)
-  owner.program_body_attempted = true
   owner.phase = Selecting
+  if extra_reads > 0L {
+    match
+      @resources.reserve_working_preparation_phase(
+        capacity, input, retained, execution,
+      ) {
+      Err(issue) => {
+        owner.phase = ProgramBodyFailed
+        return Err(Capacity(issue))
+      }
+      Ok(_) => ()
+    }
+  }
+  // A refused grow leaves the capacity working. The Request must abort
+  // that owner after its borrowers return, as for other pre-completion errors.
+  owner.program_body_attempted = true
   let result = @resources.complete_preparation_capacity(
-    capacity, input, prepared, r, e,
+    capacity, input, prepared, retained, execution,
   )
   owner.phase = if result is Ok(_) {
     ProgramBodyReady

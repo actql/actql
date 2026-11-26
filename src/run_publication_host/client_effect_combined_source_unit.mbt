@@ -35,7 +35,7 @@ struct ClientEffectDirectSourcesPublication {
 }
 
 ///|
-priv struct ClientEffectSourceUnitContribution {
+priv struct ClientLocalSourceUnitContribution {
   slot : Int
   request : @encode.EncodedDocument
   request_cid : String
@@ -55,7 +55,7 @@ struct ClientEffectCombinedSourceUnit {
     @publication.RunEvidenceValue,
   )?
   invocation : ClientEffectLocalInvocation
-  contributions : Array[ClientEffectSourceUnitContribution]
+  contributions : Array[ClientLocalSourceUnitContribution]
   relations : Array[@publication.PublicationContract]
   scope : @publication.PublicationContract
   retention : @publication.PublicationContract
@@ -154,6 +154,88 @@ pub fn prepare_client_effect_source_unit(
 }
 
 ///|
+// The checked caller still owns the original capture and applicability of its
+// source policy. This single issuer retains the Request and builds the
+// retention, acquisition scope, ordering and Relation from that observation.
+fn prepare_client_local_source_unit_contribution(
+  slot : Int,
+  original : ClientDirectSourceOriginal,
+  input : @publication.RunEvidenceValue,
+  evidence : @publication.RunEvidenceValue,
+  identity : @query.CapturedSourceRelationIdentity,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientLocalSourceUnitContribution,
+  ClientEffectAcquiredEvidenceIssue,
+] {
+  let material = match original {
+    QuerySourceOriginal(requirement) => {
+      let material = @planning.query_requirement_material(requirement)
+      Ok(
+        (
+          @planning.query_material_request(material),
+          @planning.query_material_cids(material).0,
+        ),
+      )
+    }
+    WholeSourceOriginal(acquisition) =>
+      client_effect_whole_source_request_material(
+        acquisition, max_bytes, max_nodes, max_depth,
+      )
+  }
+  let (request, request_cid) = match material {
+    Ok(value) => value
+    Err(issue) => return Err(Invocation(issue))
+  }
+  let facts = match original {
+    QuerySourceOriginal(requirement) =>
+      @planning.query_requirement_source_evidence_facts(requirement)
+    WholeSourceOriginal(acquisition) =>
+      @planning.source_acquisition_evidence_facts(acquisition)
+  }
+  guard facts is Some(facts) else {
+    return Err(Invocation(ForeignSourceObservation))
+  }
+  let source_retention = match
+    @publication.issue_result_retention_for_data_policy(
+      retention,
+      facts.source_data_policy_cid,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Relation(@publication.Contract(issue)))
+  }
+  let (relation, ordering, scope) = match
+    @publication.issue_captured_source_input_relation(
+      input,
+      evidence,
+      request_cid,
+      @query.captured_source_relation_row_count(identity),
+      source_retention,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Relation(issue))
+  }
+  Ok({
+    slot,
+    request,
+    request_cid,
+    retention: source_retention,
+    relation,
+    ordering,
+    scope,
+  })
+}
+
+///|
 fn prepare_client_effect_source_unit_body(
   value : ClientEffectSourceUnitInputs,
   final_context : (
@@ -176,7 +258,7 @@ fn prepare_client_effect_source_unit_body(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let contributions : Array[ClientEffectSourceUnitContribution] = []
+  let contributions : Array[ClientLocalSourceUnitContribution] = []
   let scopes : Array[@publication.PublicationContract] = []
   let relations : Array[@publication.PublicationContract] = []
   let observations : Array[String] = []
@@ -184,69 +266,24 @@ fn prepare_client_effect_source_unit_body(
     if coordinate.0 != unit {
       continue
     }
-    let original = source.originals[slot]
-    let material = match original {
-      QuerySourceOriginal(requirement) => {
-        let material = @planning.query_requirement_material(requirement)
-        Ok(
-          (
-            @planning.query_material_request(material),
-            @planning.query_material_cids(material).0,
-          ),
-        )
-      }
-      WholeSourceOriginal(acquisition) =>
-        client_effect_whole_source_request_material(
-          acquisition, max_bytes, max_nodes, max_depth,
-        )
-    }
-    let (request, request_cid) = match material {
-      Ok(value) => value
-      Err(issue) => return Err(Invocation(issue))
-    }
-    let facts = match original {
-      QuerySourceOriginal(requirement) =>
-        @planning.query_requirement_source_evidence_facts(requirement)
-      WholeSourceOriginal(acquisition) =>
-        @planning.source_acquisition_evidence_facts(acquisition)
-    }
-    guard facts is Some(facts) else {
-      return Err(Invocation(ForeignSourceObservation))
-    }
-    let source_retention = match
-      @publication.issue_result_retention_for_data_policy(
-        retention,
-        facts.source_data_policy_cid,
-        max_bytes,
-        max_nodes,
-        max_depth,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(Relation(@publication.Contract(issue)))
-    }
-    let (relation, ordering, scope) = match
-      @publication.issue_captured_source_input_relation(
+    let part = match
+      prepare_client_local_source_unit_contribution(
+        slot,
+        source.originals[slot],
         source.inputs[slot],
         source.sources[slot],
-        request_cid,
-        @query.captured_source_relation_row_count(source.identities[slot]),
-        source_retention,
+        source.identities[slot],
+        retention,
         max_bytes,
         max_nodes,
         max_depth,
       ) {
       Ok(value) => value
-      Err(issue) => return Err(Relation(issue))
+      Err(issue) => return Err(issue)
     }
-    contributions.push({
-      slot,
-      request,
-      request_cid,
-      retention: source_retention,
-      relation,
-      ordering,
-      scope,
-    })
+    contributions.push(part)
+    let scope = part.scope
+    let relation = part.relation
     scopes.push(scope)
     observations.push(
       @publication.run_evidence_value_identity(source.sources[slot]),
@@ -281,7 +318,7 @@ fn prepare_client_effect_source_unit_body(
     )
   })
   let invocation = match
-    issue_client_effect_local_invocation_body(
+    issue_client_local_unit_invocation(
       owner,
       unit,
       definition,

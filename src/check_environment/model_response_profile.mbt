@@ -520,6 +520,12 @@ pub fn model_response_profile_identity(value : ModelResponseProfile) -> String {
 }
 
 ///|
+/// The Task bound by this admitted response profile.
+pub fn model_response_profile_task_cid(value : ModelResponseProfile) -> String {
+  value.task_cid
+}
+
+///|
 pub fn model_response_profile_limits(
   value : ModelResponseProfile,
 ) -> ModelResponseProfileLimits {

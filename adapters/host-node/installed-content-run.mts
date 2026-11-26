@@ -88,6 +88,7 @@ type Preparation = {
   failed: boolean;
   failure?: unknown;
   model?: ModelPreparation;
+  ordinarySource?: boolean;
   prefixLimits?: PrefixLimits;
   generationLimits?: GenerationLimits;
   outputLimits?: OutputLimits;
@@ -109,11 +110,13 @@ type KeyedPreparation = Omit<Preparation, 'plan'> & {
 type LedgerCapacity = Readonly<{capacity: unknown; transferBytes: bigint; executionBytes: bigint}>;
 type KeyedCapacity = LedgerCapacity & Readonly<{maxBytes: number; maxWork: number}>;
 type CaptureProof = Parameters<ReturnType<typeof import('../host-common/runtime-core.mjs').runtimeCore>['publicationControl']['bindCheckedClientSerializationCapture']>[3];
+type ManagedSource = Parameters<ReturnType<typeof import('../host-common/runtime-core.mjs').runtimeCore>['publicationControl']['bindCheckedClientSerializationManagedCaptures']>[4][number];
 type AcquiredContent = CaptureProof & Readonly<{
   ledger: CommonObject;
   captured: Readonly<{capture: Readonly<{source(): CommonObject; originalRowCapture(): unknown}>}>;
   keyedLookup?: CommonObject;
   keyedContent?: CapturedFrame;
+  managedSources?: readonly (ManagedSource & Readonly<{sourceEvidence: unknown}>)[];
   sourceEvidence?: unknown;
   keyedSourceEvidence?: unknown;
 }>;
@@ -150,6 +153,8 @@ type KeyedPreparationInputs = PreparationInputs & Readonly<{keyedAcquisition: un
 type KeyedCompilationInputs = Omit<KeyedPreparationInputs, 'plan'> & Readonly<{serializationGraph: PrepareGraph}>;
 type AcquiredLedgerInputs = Pick<PreparationInputs, 'preparedProgram' | 'plan'> &
   Readonly<{sourceCapacity: LedgerCapacity & {managedRun?: unknown}}>;
+type OrdinaryLedgerInputs = Pick<PreparationInputs, 'preparedProgram' | 'plan'> &
+  Readonly<{sourceCapacities: readonly (LedgerCapacity & {managedRun?: unknown; wholeInput?: boolean})[]}>;
 type KeyedLedgerInputs = Pick<PreparationInputs, 'preparedProgram' | 'plan'> & Readonly<{
   direct: LedgerCapacity; acquisition: unknown; capacity: KeyedCapacity; capturedContent?: boolean;
 }>;
@@ -162,7 +167,7 @@ type EffectSelection = Readonly<{
   preparation: ReturnType<typeof installEffectContentFamily>['preparation'];
 }>;
 type ContentRun = ((options: ExecuteOptions) => Promise<Generated | undefined>) & Readonly<{
-  prepareRun(options: PreparationInputs): void;
+  prepareRun(options: PreparationInputs & {ordinarySource?: boolean}): Managed | undefined;
   prepareModelRun(options: PreparationInputs & Readonly<{model: ModelPreparation}>): void;
   generate(options: ExecuteOptions): Promise<Generated | undefined>;
   prepareManagedKeyedCompilation(options: KeyedCompilationInputs): unknown;
@@ -173,6 +178,7 @@ type ContentRun = ((options: ExecuteOptions) => Promise<Generated | undefined>) 
   effectFamily(options: EffectOptions): ReturnType<typeof installEffectContentFamily>;
   prepareRecoveredCommandContent: ReturnType<typeof createContentRecoveryDispatch>;
   prepareAcquiredLedger(options: AcquiredLedgerInputs): CommonObject;
+  prepareOrdinaryAcquiredLedger(options: OrdinaryLedgerInputs): CommonObject;
   prepareKeyedLedger(options: KeyedLedgerInputs): CommonObject;
   recover: ReturnType<typeof createGeneratedContentRunRecovery>;
 }>;
@@ -183,6 +189,8 @@ type Publications = PublicationPlan['control'] & Complete['control'] &
     compiledSerializationPolicy(compiled: unknown): Readonly<{cid: string; wire: string}> | undefined;
     bindCheckedClientSerializationCapture(prepared: unknown, graph: PrepareGraph,
       captured: AcquiredContent['captured'], acquired: AcquiredContent): unknown;
+    bindCheckedClientSerializationManagedCaptures(run: unknown, prepared: unknown, selected: unknown, graph: PrepareGraph,
+      sources: readonly ManagedSource[], authority: string, started: string, completed: string): unknown;
     compiledSerializationGraph(compiled: unknown): PrepareGraph;
     checkedClientSerializationInputRows(compiled: unknown, graph: PrepareGraph): number | undefined;
     prepareCheckedClientEffectContentOriginal(prepared: unknown, compiled: unknown, compilation: unknown,
@@ -200,6 +208,8 @@ type Moon = PublicationPlan['moon'] & CaptureSetup['moon'] & Family['moon'] & Re
   clientProgramInstalledManagedRunPrepareLedger?(parent: unknown, prepared: unknown, request: unknown,
     capacities: readonly unknown[], transfers: readonly bigint[], executions: readonly bigint[],
     registry: Bodies['registry'], values: Bodies['values'], fragment: Bodies['fragment'], ordered: Bodies['ordered']): unknown;
+  clientProgramInstalledManagedWholeSourcesLedger?(parent: unknown, prepared: unknown, request: unknown,
+    capacities: readonly unknown[], transfers: readonly bigint[], executions: readonly bigint[]): unknown;
   clientProgramPrepareSerializationCapturedLedger(prepared: unknown, task: number, capacity: unknown,
     transferBytes: bigint, executionBytes: bigint, retainedBytes: bigint, executionSpace: bigint,
     registry: Bodies['registry'], values: Bodies['values'], fragment: Bodies['fragment'], ordered: Bodies['ordered']): CommonObject | undefined;
@@ -338,9 +348,12 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     const live = () => !retired && store.status().closed === false &&
       Date.parse(now()) < Date.parse(definition.valid_until) && authorize(principalId) === true;
     if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
-    const source = acquiredContent?.captured.capture.source();
+    const managedSources = acquiredContent?.managedSources;
+    const source = managedSources === undefined ? acquiredContent?.captured.capture.source() : undefined;
+    const sourceEvidence = managedSources?.map(item => item.sourceEvidence) ?? (acquiredContent === undefined ? []
+      : [acquiredContent.sourceEvidence, acquiredContent.keyedSourceEvidence].filter(Boolean));
     let ledger: CommonObject | undefined, managed: Managed | undefined, capacity: Capacity | undefined, selectedKeyed: unknown;
-    if (acquiredContent === undefined || intermediate) {
+    if (acquiredContent === undefined || intermediate || managedSources !== undefined) {
       const original = preparedRuns.get(preparedProgram);
       if (original === undefined || original.retired || original.plan !== plan || original.attempted ||
           original.failure !== undefined || original.managed === undefined || original.managed.closed) {
@@ -348,11 +361,13 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       }
       // Consume before fallible currentness or prefix construction. Failure
       // remains attached to this Run, never a new scalar-ledger fallback.
-      if (acquiredContent !== undefined && (original.model === undefined ||
-          original.acquiredLedger !== acquiredContent.ledger ||
-          typeof acquiredContent.captured?.capture?.originalRowCapture !== 'function' ||
-          typeof control.startRequestAcquiredPrefix !== 'function')) {
-        throw new TypeError('InstalledModelCapturedContentPreparationUnavailable');
+      if (acquiredContent !== undefined && (original.acquiredLedger !== acquiredContent.ledger ||
+          (managedSources !== undefined
+            ? !original.ordinarySource || intermediate || typeof control.startRequestWholePrefix !== 'function'
+            : original.model === undefined ||
+              typeof acquiredContent.captured?.capture?.originalRowCapture !== 'function' ||
+              typeof control.startRequestAcquiredPrefix !== 'function'))) {
+        throw new TypeError('InstalledCapturedContentPreparationUnavailable');
       }
       {
         if (original.generationLimits === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
@@ -496,16 +511,26 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     try {
       signal?.throwIfAborted();
       const capturedProof = acquiredContent === undefined ? undefined
-        : publications.bindCheckedClientSerializationCapture(preparedProgram,
-          plan.serializationGraph, acquiredContent.captured, acquiredContent);
+        : managedSources === undefined
+          ? publications.bindCheckedClientSerializationCapture(preparedProgram,
+            plan.serializationGraph, acquiredContent.captured, acquiredContent)
+          : publications.bindCheckedClientSerializationManagedCaptures(managed!.value, preparedProgram,
+            managed!.serialization, plan.serializationGraph, managedSources, authorityScopeCid,
+            acquiredContent.captureStartedAt, acquiredContent.captureCompletedAt);
       prefix = managed === undefined
         ? control.prefix(preparedProgram, task, step, bodies, prefixLimits, ledger, workspace,
           source, acquiredContent?.keyedLookup)
         : selectedKeyed === undefined
           ? acquiredContent === undefined
             ? control.startRequestPrefix(managed.value, preparedProgram, managed.serialization)
-            : control.startRequestAcquiredPrefix(managed.value, preparedProgram, managed.serialization,
-              acquiredContent.captured.capture.originalRowCapture())
+            : managedSources === undefined
+              ? control.startRequestAcquiredPrefix(managed.value, preparedProgram, managed.serialization,
+                acquiredContent.captured.capture.originalRowCapture())
+              : managedSources.length === 1 && managedSources[0].captured.inputKind !== 'whole-input' && managedSources[0].captured.requirement !== undefined
+                ? control.startRequestAcquiredPrefix(managed.value, preparedProgram, managed.serialization,
+                  managedSources[0].captured.capture!.originalRowCapture!())
+                : control.startRequestWholePrefix(managed.value, preparedProgram, managed.serialization,
+                  managedSources.map(item => item.captured.capture!.originalWholeInput!()))
           : control.startRequestKeyedPrefix(managed.value, preparedProgram, selectedKeyed,
             source, acquiredContent!.keyedLookup);
       await faultInjection?.('content_workspace_reserved', {capacity});
@@ -549,8 +574,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         return Object.freeze({generation,
           capturedContentRecovery,
           capturedContentBinding: acquiredContent?.keyedContent?.sourceBinding,
-          sourceEvidence: acquiredContent === undefined ? [] :
-            [acquiredContent.sourceEvidence, acquiredContent.keyedSourceEvidence].filter(Boolean),
+          sourceEvidence,
           recoveryBindings: retained!.bindings,
           // The Model fixed-input receipt authenticates this exact inventory
           // together with its original rows. It is not fresh generation proof.
@@ -561,8 +585,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       publication = serializationTaskPublicationPlan<Complete['results'][number]['retention']>({moon, control: publications,
         preparedProgram, admitted: plan, generation, authorityScopeCid,
         namespaceId, storeAuthorityCid, now, managedPublication: managed, assertCurrent: assertRunCurrent,
-        sourceEvidence: acquiredContent === undefined ? [] :
-          [acquiredContent.sourceEvidence, acquiredContent.keyedSourceEvidence].filter(Boolean)}) as Publication;
+        sourceEvidence}) as Publication;
       const execution = serializationPublicationExecution({moon, core, compiled: plan.compiled,
         preparedProgram, generation, contractLimits: localContractLimits, remainingWork, chargeWork});
       await publishCompletedEffectFreeRun({...publication, execution, store, control: publications, signal});
@@ -595,7 +618,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   // admission. This Ledger expresses managed limits; platform allocation is
   // the supplier, and no successful allocation, authority or physical ACK is
   // inferred from these numbers. Store/native children keep their own duties.
-  run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {
+  run.prepareRun = ({preparedProgram, plan, request, ordinarySource = false}: PreparationInputs & {ordinarySource?: boolean}) => {
     if (!preparedRunRequired || typeof assertRunCurrent !== 'function' ||
         typeof prepareSerializationManagedRun !== 'function' || typeof retainPreparation !== 'function' || request === undefined) {
       throw new TypeError('InstalledContentRunPreparationUnavailable');
@@ -603,18 +626,18 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     assertRunCurrent();
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
     if (plan.kind !== 'serialization' || plan.serializationGraph === undefined ||
-        moon.clientProgramAcquisitionCount(preparedProgram) !== 0) {
+        ordinarySource !== (moon.clientProgramAcquisitionCount(preparedProgram) > 0)) {
       throw new TypeError('InstalledContentRunPreparationUnsupported');
     }
     const prior = preparedRuns.get(preparedProgram);
     if (prior !== undefined) {
       if (prior.retired || prior.plan !== plan || prior.request !== request || prior.attempted) throw new TypeError('ForeignInstalledContentRun');
       if (prior.failed) throw prior.failure;
-      return;
+      return prior.managed;
     }
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
-    const original: Preparation = {prepared: preparedProgram, plan, request, attempted: false, capacity: undefined, managed: undefined,
+    const original: Preparation = {prepared: preparedProgram, plan, request, ordinarySource, attempted: false, capacity: undefined, managed: undefined,
       inputHolder: undefined, localPreparation: undefined, releaseSelection: undefined, contentControl: control,
       retired: false, failed: false, failure: undefined};
     preparedRuns.set(preparedProgram, original);
@@ -628,6 +651,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
           original.managed.serialization === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
       original.capacity = control.requestPrefixCapacity(original.managed.serialization);
       assertRunCurrent();
+      return original.managed;
     } catch (error) {if (!original.retired) {original.failed = true; original.failure = error;} throw error;}
   };
   // Intermediate Model generation uses the same Request/Run as its Model
@@ -775,6 +799,40 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     installedBinding, referenceLimits});
   // Resolve this before physical acquisition. The selected Source capacity is
   // opaque and requirement-bound in the common owner, never estimated from rows.
+  run.prepareOrdinaryAcquiredLedger = ({preparedProgram, plan, sourceCapacities}: OrdinaryLedgerInputs) => {
+    publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
+    const original = preparedRuns.get(preparedProgram), managed = original?.managed;
+    const query = sourceCapacities.length === 1 && sourceCapacities[0].wholeInput !== true;
+    const admit = query ? moon.clientProgramInstalledManagedRunPrepareLedger : moon.clientProgramInstalledManagedWholeSourcesLedger;
+    if (original === undefined || !original.ordinarySource || original.attempted ||
+        original.acquiredLedgerAttempted || original.plan !== plan || managed?.value === undefined ||
+        sourceCapacities.length !== moon.clientProgramAcquisitionCount(preparedProgram) ||
+        sourceCapacities.some(value => value.managedRun !== managed.value || (!query && value.wholeInput !== true)) ||
+        typeof admit !== 'function') throw new TypeError('InstalledContentRunPreparationUnavailable');
+    const runOwner = managed.value, request = original.request;
+    const requireCurrent = () => {
+      assertRunCurrent!();
+      if (preparedRuns.get(preparedProgram) !== original || original.retired || original.failed ||
+          managed.closed || managed.value !== runOwner || original.managed !== managed) {
+        throw new TypeError('ForeignInstalledContentRun');
+      }
+    };
+    original.acquiredLedgerAttempted = true;
+    try {
+      requireCurrent();
+      const args = [runOwner, preparedProgram, request, sourceCapacities.map(item => item.capacity),
+        sourceCapacities.map(item => item.transferBytes), sourceCapacities.map(item => item.executionBytes)] as const;
+      const ledger = checked(Reflect.apply(admit, moon,
+        query ? [...args, registry, values, fragment, ordered] : args)) as CommonObject;
+      requireCurrent();
+      original.acquiredLedger = ledger;
+      acquiredLedgers.set(ledger, plan.compiled);
+      return ledger;
+    } catch (cause) {
+      if (!original.retired) {original.failed = true; original.failure = cause;}
+      throw cause;
+    }
+  };
   run.prepareAcquiredLedger = ({preparedProgram, plan, sourceCapacity}:
     AcquiredLedgerInputs) => {
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);

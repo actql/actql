@@ -51,7 +51,7 @@ else:
         assert store.read(key).payload == body
         store._physical.begin_read()
         try:
-            assert store._physical._journal_schema() == 1
+            store._physical._journal_schema()
         finally:
             store._physical.finish_read()
     finally:
@@ -168,7 +168,6 @@ print('original physical phase complete', flush=True)
     def test_owned_journal_format_keeps_unique_definition_in_original_transaction(self):
         path, root, original = self.fixture()
         store = self.open(path / original.name, root, original)
-        self.assertEqual(store._connection.execute('PRAGMA user_version').fetchone(), (3,))
         expected = ("CREATE UNIQUE INDEX actql_client_run_definition_unique ON core_bytes("
                     "json_extract(json_extract(CAST(payload AS TEXT),'$.run_definition'),"
                     "'$.run_definition_cid')) WHERE key>='namespace:11:client_runs:' "
@@ -196,7 +195,7 @@ print('original physical phase complete', flush=True)
             database._journal_schema()
         database.begin_read()
         try:
-            self.assertEqual(database._journal_schema(), 1)
+            database._journal_schema()
             store._connection.execute('DROP INDEX actql_client_run_definition_unique')
             with self.assertRaises(ValueError):
                 database._journal_schema()
@@ -204,7 +203,7 @@ print('original physical phase complete', flush=True)
             database.finish_read()
         database.begin_read()
         try:
-            self.assertEqual(database._journal_schema(), 1)
+            database._journal_schema()
         finally:
             database.finish_read()
 
@@ -220,33 +219,75 @@ print('original physical phase complete', flush=True)
                     if colliding:
                         physical.execute('CREATE UNIQUE INDEX actql_client_run_definition_unique ON core_bytes(key)')
                     before = physical.execute('SELECT name, sql FROM sqlite_schema ORDER BY name').fetchall()
+                before_bytes = filename.read_bytes()
                 with self.assertRaisesRegex(LocalStorageError, 'physical storage format'):
                     LocalByteStore(filename, max_records=8, max_record_bytes=4096,
                                    max_payload_bytes=32768)
                 with sqlite3.connect(filename) as physical:
-                    self.assertEqual(physical.execute('PRAGMA user_version').fetchone(), (3,))
                     self.assertEqual(physical.execute('SELECT name, sql FROM sqlite_schema ORDER BY name').fetchall(), before)
+                self.assertEqual(filename.read_bytes(), before_bytes)
 
-    def test_raw_legacy_store_stays_format_two_and_is_never_migrated_on_observation(self):
-        with TemporaryDirectory(prefix='actql-legacy-journal-format-') as directory:
-            filename = Path(directory) / 'legacy.sqlite3'
-            store = LocalByteStore(filename, max_records=8, max_record_bytes=4096,
-                                   max_payload_bytes=32768)
-            self.addCleanup(store.close)
-            database = store._physical
-            database.begin_read()
+    def test_unsupported_wal_is_preserved_before_writable_sqlite_open(self):
+        with TemporaryDirectory(prefix='actql-retained-wal-') as directory:
+            root = Path(directory)
+            original = root / 'producer.sqlite3'
+            wal_name = '-wal'
+            shm_name = '-shm'
+            connection = sqlite3.connect(original)
             try:
-                self.assertEqual(database._journal_schema(), 0)
+                self.assertEqual(connection.execute('PRAGMA journal_mode=WAL').fetchone(), ('wal',))
+                connection.execute('CREATE TABLE foreign_rows (value TEXT)')
+                connection.commit()
+                connection.execute('PRAGMA wal_checkpoint(TRUNCATE)').fetchone()
+                connection.execute("INSERT INTO foreign_rows VALUES ('original committed row')")
+                connection.commit()
+                database = original.read_bytes()
+                self.assertEqual(database[18:20], b'\x02\x02')
+                wal = Path(str(original) + wal_name).read_bytes()
+                shm = Path(str(original) + shm_name).read_bytes()
+                self.assertGreater(len(wal), 32)
+                self.assertTrue(shm)
+                for sidecars in ((), ((wal_name, wal),), ((wal_name, wal), (shm_name, shm))):
+                    with self.subTest(sidecars=len(sidecars)):
+                        case = root / ('retained-' + str(len(sidecars)))
+                        case.mkdir(mode=0o700)
+                        target = case / 'original.sqlite3'
+                        for suffix, data in (('', database), *sidecars):
+                            member = case / (target.name + suffix)
+                            member.write_bytes(data)
+                            member.chmod(0o600)
+                        def snapshot():
+                            return {
+                                item.name: (item.stat().st_dev, item.stat().st_ino, item.read_bytes())
+                                for item in case.iterdir()
+                            }
+                        before = snapshot()
+                        with patch('actql_sdk._local_storage.sqlite3.connect',
+                                   side_effect=AssertionError('Unexpected SQLite open')):
+                            with self.assertRaisesRegex(LocalStorageError, 'Unknown Local physical storage format'):
+                                LocalByteStore(target, max_records=8, max_record_bytes=4096,
+                                               max_payload_bytes=32768)
+                        self.assertEqual(snapshot(), before)
             finally:
-                database.finish_read()
-            self.assertEqual(store._connection.execute('PRAGMA user_version').fetchone(), (2,))
-            self.assertIsNone(store._connection.execute(
-                "SELECT sql FROM sqlite_schema WHERE name='actql_client_run_definition_unique'").fetchone())
-            store.close()
-            reopened = LocalByteStore(filename, max_records=8, max_record_bytes=4096,
-                                      max_payload_bytes=32768)
-            self.addCleanup(reopened.close)
-            self.assertEqual(reopened._connection.execute('PRAGMA user_version').fetchone(), (2,))
+                connection.close()
+
+    def test_raw_constructor_and_reopen_use_the_same_indexed_catalog(self):
+        with TemporaryDirectory(prefix='actql-indexed-journal-') as directory:
+            filename = Path(directory) / 'original.sqlite3'
+            options = dict(max_records=8, max_record_bytes=4096, max_payload_bytes=32768)
+            with LocalByteStore(filename, **options) as store:
+                self.assertEqual(store.compare_exchange('opaque', None, b'original'), 0)
+                rows = store._connection.execute(
+                    "SELECT type, name, sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY name").fetchall()
+                self.assertEqual(len(rows), 3)
+                self.assertTrue(any(kind == 'index' and name == 'actql_client_run_definition_unique'
+                                    for kind, name, _ in rows))
+            before = filename.read_bytes()
+            with LocalByteStore(filename, **options) as reopened:
+                self.assertEqual(reopened.read('opaque').payload, b'original')
+                self.assertEqual(reopened._connection.execute(
+                    "SELECT type, name, sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY name").fetchall(), rows)
+            self.assertEqual(filename.read_bytes(), before)
 
     def test_original_catalog_scalar_port_borrows_only_current_reader(self):
         path, root, original = self.fixture()
@@ -287,11 +328,11 @@ print('original physical phase complete', flush=True)
         path, root, original = self.fixture()
         store = self.open(path / original.name, root, original)
         for change in ('CREATE TEMP VIEW core_bytes AS SELECT * FROM main.core_bytes',
-                       'PRAGMA main.user_version=4'):
+                       'PRAGMA main.application_id=4'):
             with self.subTest(change=change):
                 store._physical.begin_read()
                 try:
-                    self.assertEqual(store._physical._journal_schema(), 1)
+                    store._physical._journal_schema()
                     store._connection.execute(change)
                     with self.assertRaises(ValueError):
                         store._physical._journal_schema()
@@ -328,38 +369,34 @@ print('original physical phase complete', flush=True)
             with self.subTest(change=change):
                 store._physical.begin_read()
                 try:
-                    self.assertEqual(store._physical._journal_schema(), 1)
+                    store._physical._journal_schema()
                     store._connection.execute(change)
                     with self.assertRaises(ValueError):
                         store._physical._journal_schema()
                 finally:
                     store._physical.finish_read()
 
-    def test_missing_optional_index_expression_preserves_existing_legacy_format(self):
+    def test_missing_index_expression_refuses_before_fresh_catalog_or_durability_write(self):
         class NoJson(sqlite3.Connection):
             def execute(self, sql, *args, **kwargs):
                 if sql.startswith('SELECT json_extract('):
                     failure = sqlite3.OperationalError('no such function: json_extract')
                     failure.sqlite_errorcode = sqlite3.SQLITE_ERROR
                     raise failure
-                if sql.startswith('CREATE UNIQUE INDEX'):
-                    raise AssertionError('Unsupported expression reached schema mutation')
+                if sql.startswith(('CREATE ', 'PRAGMA application_id', 'PRAGMA main.journal_mode')):
+                    raise AssertionError('Unsupported expression reached a durable write')
                 return super().execute(sql, *args, **kwargs)
         path, root, original = self.fixture()
+        filename = path / original.name
         connect = sqlite3.connect
         with patch('actql_sdk._local_storage.sqlite3.connect',
                    side_effect=lambda *a, **k: connect(*a, **(k | {'factory': NoJson}))):
-            store = self.open(path / original.name, root, original)
-        self.assertEqual(store._connection.execute('PRAGMA user_version').fetchone(), (2,))
-        store._physical.begin_read()
-        try:
-            self.assertEqual(store._physical._journal_schema(), 0)
-        finally:
-            store._physical.finish_read()
-        self.assertEqual(store.compare_exchange('opaque', None, b'original'), 0)
-        self.assertEqual(store.read('opaque').payload, b'original')
+            with self.assertRaisesRegex(LocalStorageError, 'index expression is unavailable'):
+                self.open(filename, root, original)
+        self.assertTrue(original.store_claimed)
+        self.assertEqual(filename.read_bytes(), b'')
 
-    def test_unrelated_index_probe_error_is_not_legacy_fallback_or_retry(self):
+    def test_unrelated_index_probe_error_propagates_without_retry(self):
         class ProbeFailure(sqlite3.Connection):
             calls = 0
             failure = sqlite3.OperationalError('original metadata IO interrupted')
@@ -383,7 +420,7 @@ print('original physical phase complete', flush=True)
         self.assertTrue(original.store_claimed)
 
     def test_catalog_observation_uses_existing_query_budget_and_rejects_boolean_permission(self):
-        for returned in (True, False, -1, 2, None):
+        for returned in (True, False, -1, 0, 1, 2):
             with self.subTest(returned=returned):
                 path, root, original = self.fixture()
                 store = self.open(path / original.name, root, original)
@@ -405,7 +442,7 @@ print('original physical phase complete', flush=True)
         store.compare_exchange('catalog-fence', None, b'original')
         failure = []
         def inspect(reader):
-            self.assertEqual(reader.journal_schema(reader, lambda: None), 1)
+            self.assertIsNone(reader.journal_schema(reader, lambda: None))
             try:
                 reader.read('unrelated', 'row', lambda _: None)
             except LocalStorageError as error:
@@ -440,7 +477,7 @@ print('original physical phase complete', flush=True)
         path, root, value = self.fixture()
         self.assertTrue(root.close_writer(value))
         self.assertTrue(root.close())
-        with self.assertRaisesRegex(LocalStorageError, 'no initialization custody'):
+        with self.assertRaisesRegex(LocalStorageError, 'Unknown Local physical storage format'):
             LocalByteStore(path / value.name, max_records=8,
                 max_record_bytes=4096, max_payload_bytes=32768)
         self.assertEqual((path / value.name).read_bytes(), b'')

@@ -221,6 +221,8 @@ fn relation_work_issue(issue : @client.NativeClientSourceWorkIssue) -> String {
         MissingOutput => "MissingOutput"
       })
     LocalExport(_) => "LocalExport (original retained)"
+    WholeModelProducerExport(_) =>
+      "WholeModelProducerExport (original retained)"
     CaptureIdentity(_) => "CaptureIdentity (original retained)"
     AuthorizationDenied => "AuthorizationDenied"
     Normalization(_) => "unexpected export-only Normalization"
@@ -340,6 +342,8 @@ fn relation_return_work_label(
     RelationFile(Lookup(_)) => "Work.RelationFile.Lookup"
     LocalExecution(_) => "Work.LocalExecution; original custody retained"
     LocalExport(_) => "Work.LocalExport; original custody retained"
+    WholeModelProducerExport(_) =>
+      "Work.WholeModelProducerExport; original custody retained"
     CaptureIdentity(_) => "Work.CaptureIdentity; original custody retained"
     AuthorizationDenied => "Work.AuthorizationDenied; original custody retained"
     Normalization(_) => "Work.Normalization; original custody retained"

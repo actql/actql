@@ -180,7 +180,7 @@ class CollectorTests(unittest.TestCase):
             'import json,sysconfig;print(json.dumps(sysconfig.get_paths()))']))
         consumer=Path(paths['purelib'])
         packages=root/'packages';(packages/'wheels').mkdir(parents=True)
-        key='darwin-arm64' if sys.platform=='darwin' else 'linux-x64-gnu'
+        key='darwin-arm64' if sys.platform=='darwin' else 'linux-x64'
         cohort=dict(source_sha=SOURCE,platform=key,wheels=[])
         code = PRIORITY_PYTHON if priority else PYTHON
         if small_queries:

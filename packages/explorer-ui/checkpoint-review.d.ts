@@ -8,4 +8,4 @@ export function captureReviewReference(value:unknown):ReviewReference;
 export function validReviewObservation(value:unknown,reference:unknown):value is ReviewObservation;
 export function reviewText(value:ReviewObservation):Readonly<{kind:'utf8';text:string}|{kind:'binary';base64:string}>;
 export type CheckpointPanelProps=Readonly<{page:CheckpointPageModel|null;review:ReviewObservation|null;pending:boolean;
- canList:boolean;canRead:boolean;onList:()=>void;onRead:(reference:ReviewReference)=>void}>;
+ canList:boolean;canRead:boolean;locale?:'en'|'ja';onList:()=>void;onRead:(reference:ReviewReference)=>void}>;

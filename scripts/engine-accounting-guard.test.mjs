@@ -183,6 +183,49 @@ test('only the funded Cursor and its seal may construct same-package controls', 
   }
 });
 
+test('keyed dependency collectors cannot fall back to independent builder values and proofs', () => {
+  const owner = 'src/run_publication_host/client_keyed_declared_file_journal.mbt';
+  const method = 'prepare_declared_file_lookup_dependencies';
+  const make = body => new Map([[owner, `fn ${method}(lookup : ClientKeyedLookupInput) -> Unit { ${body} }`]]);
+  const selection = {inventory: [[owner, method]]};
+  const fallback = 'with_keyed_protocol_construction(lookup, 1, 8L, 32, 8, _ => Ok(keyed_protocol_built(value)), adopt)';
+  assert(resourceLifecycleProblems(make(fallback), selection)
+    .some(issue => issue.rule === 'missing-managed-construction'));
+  const mismatched = 'with_keyed_dependency_collection(lookup, 32, 8, _ => Ok(keyed_protocol_built(bodies)), adopt, observe)';
+  assert(resourceLifecycleProblems(make(mismatched), selection)
+    .some(issue => issue.rule === 'unsettled-builder-escape'));
+  for (const operation of ['with_keyed_dependency_collection', 'close_keyed_dependency_collection', 'complete_unmeasured_keyed_dependencies']) {
+    assert(problems(guardedConstruction(`let escape = ${operation}`))
+      .some(issue => issue.rule === 'private-serial-dependency-forgery'));
+  }
+});
+
+test('keyed dependency collectors use one owner-selected slot for both operations', () => {
+  const collectors = [
+    ['client_keyed_declared_file_journal', 'prepare_declared_file_lookup_dependencies', 'NativeDependencyCollection'],
+    ['client_effect_generic_keyed_dependency', 'prepare_client_effect_keyed_generic_dependencies', 'GenericDependencyCollection'],
+  ];
+  for (const [file, method, kind] of collectors) {
+    const owner = `src/run_publication_host/${file}.mbt`;
+    const check = body => resourceLifecycleProblems(new Map([[owner,
+      `fn ${method}(lookup : ClientKeyedLookupInput) -> Unit { ${body} }`,
+    ]]), {inventory: [[owner, method]]});
+    const managed = `with_keyed_dependency_collection(lookup, ${kind}, 32, 8, build)`;
+    assert.deepEqual(check(managed), []);
+    const paired = 'with_keyed_dependency_collection(lookup, 32, 8, build, bodies => { state.bodies = Some(bodies.copy()) }, () => Some(original))';
+    assert(check(paired).some(issue => issue.rule === 'unbound-dependency-collection-slot'));
+    assert(check(managed.replace(kind, 'callerChoice'))
+      .some(issue => issue.rule === 'unbound-dependency-collection-slot'));
+    assert(check(`${managed}; state.dependency_bodies = Some(original.copy())`)
+      .some(issue => issue.rule === 'unbound-dependency-collection-slot'));
+    for (const access of ['select_keyed_dependency_slot', 'adopt_keyed_dependency_slot',
+      'read_keyed_dependency_slot', 'settle_keyed_dependency_slot', 'GenericDependencySlot']) {
+      assert(check(`${managed}; let escape = ${access}`)
+        .some(issue => issue.rule === 'private-dependency-slot-escape'));
+    }
+  }
+});
+
 test('managed scan guard keeps private phase and builder references inside the original wrapper', () => {
   for (const body of [
     'let grow = grow_keyed_body_construction',

@@ -17,6 +17,8 @@ const nativePublicationReview = JSON.parse(readFileSync(new URL(
   '../../docs/reviews/2026-11-17-session-native-publication-constructor-selector-review.json', import.meta.url)));
 const nativeEffectfulPublicationReview = JSON.parse(readFileSync(new URL(
   '../../docs/reviews/2026-11-24-session-native-effectful-publication-selector-review.json', import.meta.url)));
+const generatedContentReview = JSON.parse(readFileSync(new URL(
+  '../../docs/reviews/2026-11-25-session-generated-content-test-import-review.json', import.meta.url)));
 const sqliteCapacityReview = JSON.parse(readFileSync(new URL(
   '../../docs/reviews/2026-11-19-session-sqlite-key-capacity-selector-review.json', import.meta.url)));
 const taskAuthorityReview = JSON.parse(currentTree.read(
@@ -85,8 +87,26 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
       }
     }
     if (path === 'src/platform_native/publication_store/moon.pkg') {
-      assert.equal(entry.revision, nativeEffectfulPublicationReview.source);
-      const current = selectedTree.read(path).toString();
+      const storeDescriptor = selectedTree.read(path).toString();
+      assert.equal(entry.revision, generatedContentReview.source);
+      assert.equal(hash(storeDescriptor), generatedContentReview.sha256);
+      assert.equal(Buffer.byteLength(storeDescriptor), generatedContentReview.bytes);
+      assert.equal(generatedContentReview.previousRevision, nativeEffectfulPublicationReview.source);
+      let current = storeDescriptor;
+      for (const {package: dependency, alias} of generatedContentReview.testImports) {
+        const line = `  "${dependency}" @${alias},\n`;
+        assert.equal(storeDescriptor.split(line).length, 2);
+        current = current.replace(line, '');
+        assert.equal(currentPackageConfigurationReviewFor(
+          request(path, hash(storeDescriptor.replace(line, line.replace(`@${alias}`, '@foreign'))))), null);
+      }
+      assert.equal(current, gitTree(root, nativeEffectfulPublicationReview.source).read(path).toString());
+      assert.equal(hash(current), nativeEffectfulPublicationReview.sha256);
+      assert.equal(hash(current), generatedContentReview.previousSha256);
+      assert.equal(Buffer.byteLength(current), generatedContentReview.previousBytes);
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(current))), null);
+      assert.deepEqual(packageImports(storeDescriptor).imports, [...new Set([...packageImports(current).imports,
+        ...generatedContentReview.testImports.map(entry => entry.package)])].sort());
       const preparationSelector = '    "effectful_preparation_native.mbt": [ "native" ],\n';
       assert.equal(current.split(preparationSelector).length, 2);
       const publication = current.replace(preparationSelector, '');
@@ -162,9 +182,15 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
       }
       assert.equal(reconstructed, prior, 'only the three reviewed Native custody selectors changed');
       assert.deepEqual(packageImports(introduced).imports, packageImports(prior).imports);
-      assert.equal(currentTree.read(path).toString(), current);
+      assert.equal(currentTree.read(path).toString(), storeDescriptor);
       assert.equal(currentPackageConfigurationReviewFor(request(path, hash(prior))), null);
       const selected = packageSourceInputs({tree: currentTree, packages: ['src/platform_native/publication_store'], target: 'js'});
+      for (const fixture of generatedContentReview.fixtures) {
+        assert.equal(hash(selectedTree.read(fixture.path)), fixture.sha256);
+        assert.equal(selectedTree.read(fixture.path).length, fixture.bytes);
+        assert.equal(selectedTree.entries.get(fixture.path)?.mode, fixture.mode);
+        assert(selected.paths.includes(fixture.path));
+      }
       for (const member of ['captured_content_custody_native.mbt', 'captured_content_custody_native_wbtest.mbt',
         'captured_content_custody_unsupported.mbt', 'captured_content_capacity.mbt',
         'captured_content_capacity_native.mbt', 'store_format_stub.c',
@@ -766,7 +792,7 @@ test('historical Store scalar successor preserves the exact delivery selector an
 });
 
 test('current Store publication preparation selector keeps mutation inputs closed and every source bound', () => {
-  const review = nativeEffectfulPublicationReview;
+  const review = nativeEffectfulPublicationReview, currentReview = generatedContentReview;
   const directory = 'src/platform_native/publication_store', path = review.path;
   const authored = gitTree(root, review.source);
   const body = authored.read(path).toString();
@@ -781,8 +807,8 @@ test('current Store publication preparation selector keeps mutation inputs close
   assert.equal(execFileSync('git', ['show', '-s', '--format=%P', review.source],
     {cwd: root, encoding: 'utf8'}).trim(), review.parent);
   assert.equal(gitTree(root, review.parent).read(path).toString(), previous);
-  assert.deepEqual(currentPackageConfigurations[path], {revision: review.source, digest: review.sha256,
-    rule: review.rule});
+  assert.deepEqual(currentPackageConfigurations[path], {revision: currentReview.source,
+    digest: currentReview.sha256, rule: currentReview.rule});
   assert.equal(authored.entries.get(path)?.mode, review.mode);
   assert.equal(currentTree.entries.get(path)?.mode, review.mode);
   assert.equal(Buffer.byteLength(body), review.bytes);
@@ -794,14 +820,16 @@ test('current Store publication preparation selector keeps mutation inputs close
     'Only the literal Native selector changes; existing imports, aliases, hooks and options remain exact');
   assert.deepEqual(packageImports(body).imports, packageImports(previous).imports);
   execFileSync('git', ['merge-base', '--is-ancestor', review.source, 'HEAD'], {cwd: root});
-  assert.equal(currentTree.read(path).toString(), body);
-  assert.deepEqual(currentPackageConfigurationReviewFor(request(path, review.sha256)), {
-    revision: review.source, target: 'js', toolchainDigest, moonRevision: packageConfigurationReview.moonRevision,
-    rule: review.rule,
+  const current = currentTree.read(path).toString();
+  assert.equal(hash(current), currentReview.sha256);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, review.sha256)), null);
+  assert.deepEqual(currentPackageConfigurationReviewFor(request(path, currentReview.sha256)), {
+    revision: currentReview.source, target: 'js', toolchainDigest, moonRevision: packageConfigurationReview.moonRevision,
+    rule: currentReview.rule,
   });
   const selected = packageSourceInputs({tree: currentTree, packages: [directory], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
-  assert.equal(selected.packageConfigurations.find(entry => entry.path === path)?.review.revision, review.source);
+  assert.equal(selected.packageConfigurations.find(entry => entry.path === path)?.review.revision, currentReview.source);
   const members = [...currentTree.entries.keys()].filter(member => member.startsWith(directory + '/') &&
     !member.slice(directory.length + 1).includes('/')).sort();
   const implementation = directory + '/' + review.addedSelector.file;
@@ -834,33 +862,33 @@ test('current Store publication preparation selector keeps mutation inputs close
   }
   const mutation = mutationSourceInputs(currentTree);
   assert.deepEqual(mutation.unresolved, []);
-  assert.equal(mutation.packageConfigurations.find(entry => entry.path === path)?.review.revision, review.source);
+  assert.equal(mutation.packageConfigurations.find(entry => entry.path === path)?.review.revision, currentReview.source);
   assert(!mutation.directories.some(entry => entry.path === 'src/**'), 'No unresolved fallback masks an open boundary');
   for (const member of members) assert(mutation.paths.includes(member));
 
   const scalarImport = '  "actql/actql/decode_scalar" @scalar,\n';
   const constructorSelector = '    "publication_construction_native.mbt": [ "native" ],\n';
-  for (const changed of [previous,
-    body.replace(selector, selector.replace('"native"', '"js"')),
-    body.replace(selector, selector.replace('"native"', '"wasm"')),
-    body.replace(constructorSelector, constructorSelector.replace('"native"', '"js"')),
-    body.replace(constructorSelector, constructorSelector.replace('"native"', '"wasm"')),
-    body.replace(selector, selector + '    "unreviewed_chunk_native_wbtest.mbt": [ "native" ],\n'),
-    body.replace(scalarImport, scalarImport.replace('@scalar', '@permission')),
-    body.replace(scalarImport, scalarImport.replace('decode_scalar', 'unreviewed_scalar')),
-    body.replace('"actql/actql/sha256"', '"actql/actql/string"'),
-    body.replace('"store_format_stub.c"', '"unreviewed_stub.c"'),
-    body.replace('"+js+wasm+native"', '"+js"'),
-    body + '\noptions(pre_build: {command: "unreviewed"})\n']) {
-    assert.notEqual(changed, body);
+  for (const changed of [previous, body,
+    current.replace(selector, selector.replace('"native"', '"js"')),
+    current.replace(selector, selector.replace('"native"', '"wasm"')),
+    current.replace(constructorSelector, constructorSelector.replace('"native"', '"js"')),
+    current.replace(constructorSelector, constructorSelector.replace('"native"', '"wasm"')),
+    current.replace(selector, selector + '    "unreviewed_chunk_native_wbtest.mbt": [ "native" ],\n'),
+    current.replace(scalarImport, scalarImport.replace('@scalar', '@permission')),
+    current.replace(scalarImport, scalarImport.replace('decode_scalar', 'unreviewed_scalar')),
+    current.replace('"actql/actql/sha256"', '"actql/actql/string"'),
+    current.replace('"store_format_stub.c"', '"unreviewed_stub.c"'),
+    current.replace('"+js+wasm+native"', '"+js"'),
+    current + '\noptions(pre_build: {command: "unreviewed"})\n']) {
+    assert.notEqual(changed, current);
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
     const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
     assert(packageSourceInputs({tree: altered, packages: [directory], target: 'js'})
       .unresolved.includes('Unreviewed package configuration: ' + path));
   }
   for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)},
-    {path: './' + path}, {path: 'src/unreviewed/moon.pkg'}, {digest: review.previousSha256}])
-    assert.equal(currentPackageConfigurationReviewFor({...request(path, review.sha256), ...delta}), null);
+    {path: './' + path}, {path: 'src/unreviewed/moon.pkg'}, {digest: review.sha256}, {digest: review.previousSha256}])
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, currentReview.sha256), ...delta}), null);
 });
 
 

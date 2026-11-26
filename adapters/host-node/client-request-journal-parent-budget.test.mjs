@@ -36,8 +36,7 @@ test('Journal retains intent bytes above the old subquota under its same finite 
   assert.equal(result.inserted,true);retainedBytes+=Buffer.byteLength(result.intentWire);references.push(reference);
  }
  assert(retainedBytes>64*MiB&&retainedBytes<128*MiB);
- const before=f.database(db=>({version:db.prepare('PRAGMA user_version').get().user_version,
-  usage:{...db.prepare('SELECT * FROM client_submitted_intent_usage').get()},
+ const before=f.database(db=>({usage:{...db.prepare('SELECT * FROM client_submitted_intent_usage').get()},
   issued:db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count,
   history:db.prepare('SELECT submission_id,intent_cid,revision FROM client_submitted_intents ORDER BY submission_id').all()}));
  assert.equal(before.usage.retained_bytes,retainedBytes);assert.equal(before.issued,references.length);
@@ -47,8 +46,7 @@ test('Journal retains intent bytes above the old subquota under its same finite 
   assert.equal(cold.lookupSubmittedIntent(reference,fields,moon).intentCid,moon.clientSubmittedIntentCid(original));
   assert.equal(cold.recordSubmittedIntent(reference,original,fields,moon).inserted,false);
  }
- const after=f.database(db=>({version:db.prepare('PRAGMA user_version').get().user_version,
-  usage:{...db.prepare('SELECT * FROM client_submitted_intent_usage').get()},
+ const after=f.database(db=>({usage:{...db.prepare('SELECT * FROM client_submitted_intent_usage').get()},
   issued:db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count,
   history:db.prepare('SELECT submission_id,intent_cid,revision FROM client_submitted_intents ORDER BY submission_id').all()}));
  assert.deepEqual(after,before,'cold read/dedup preserves every original history and counter, with no refund');

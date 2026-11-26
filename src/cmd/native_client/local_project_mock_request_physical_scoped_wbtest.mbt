@@ -1767,11 +1767,16 @@ fn native_pure_file_request_payload(
           // One caller publication-refusal closure also borrows this SAME
           // Work. Its logical reference debit is not a physical span grant.
           let publication_failure_borrow = 8L
+          let export_vectors = 6L * 16L + 32L * 8L + 4L * 8L
+          // Staged completion (H1/R1/W1) and the Work's Whole evidence slot (R1).
+          let staged_work = 16L + 2L * 8L + 8L
           assert_eq(
             @execution.execution_capacity_retained_bytes(quoted),
             203150L +
             single_source_tag +
             publication_failure_borrow +
+            export_vectors +
+            staged_work +
             (8L * 16L + 11L * 8L + 10L * 8L) +
             task_loop,
           )
@@ -1780,6 +1785,8 @@ fn native_pure_file_request_payload(
             203150L +
             single_source_tag +
             publication_failure_borrow +
+            export_vectors +
+            staged_work +
             (8L * 16L + 11L * 8L + 10L * 8L) +
             task_loop,
           )

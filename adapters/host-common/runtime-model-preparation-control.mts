@@ -172,6 +172,10 @@ type CommonModelPreparationBindings = Readonly<{
     compiled: unknown, definition: unknown, maxRows: number, maxWork: number, maxEntries: number,
     maxValueBytes: number, maxValueNodes: number, maxValueDepth: number, maxFrames: number,
     workspace: unknown): unknown;
+  clientProgramPrepareRequestWholeSerializationPlan(parent: unknown, input: unknown, request: unknown,
+    compiled: unknown, definition: unknown, maxRows: number, maxWork: number, maxEntries: number,
+    maxValueBytes: number, maxValueNodes: number, maxValueDepth: number, maxFrames: number,
+    workspace: unknown, sourcePlan: unknown): unknown;
   clientProgramRequestModelRecoveryLedger(parent: unknown, input: unknown, request: unknown,
     definition: unknown): unknown;
   clientProgramRequestModelRecoverySourceCoordinates(parent: unknown, input: unknown,
@@ -221,10 +225,17 @@ export function createModelPreparationControls(moon: CommonModelPreparationBindi
         'RunHostTaskCompilationRejected');
     },
     prepareCheckedClientRequestSerializationPlan(parent: unknown, input: unknown, request: unknown,
-      compiled: unknown, definition: unknown, limits: SerializationLimits, workspace: unknown) {
+      compiled: unknown, definition: unknown, limits: SerializationLimits, workspace: unknown, sourcePlan?: unknown) {
       const value = compiledRunTokens.get(compiled as object);
       if (value === undefined || (compiled as CompiledRunView).kind !== 'serialization') {
         throw new TypeError('Foreign Client compiled Content preparation');
+      }
+      if (sourcePlan !== undefined) {
+        const prepare = moon.clientProgramPrepareRequestWholeSerializationPlan;
+        if (typeof prepare !== 'function') throw new TypeError('Request acquired Content Plan unavailable');
+        return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition),
+          limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
+          limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, workspace, sourcePlan] satisfies Parameters<typeof prepare>));
       }
       const prepare = moon.clientProgramPrepareRequestSerializationPlan;
       if (typeof prepare !== 'function') throw new TypeError('Request Content Plan unavailable');

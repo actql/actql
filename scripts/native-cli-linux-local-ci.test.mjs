@@ -237,12 +237,14 @@ test('Mock workflows require a fresh runner and the successful exact producer co
     assert(mock.run.includes(argument), argument);
   assert.equal(mock.env?.TMPDIR, undefined, 'Use the existing formal collector filesystem context');
   assert(!mock.run.includes('--diagnostic'), 'The required profile must enforce all thirty samples');
-  for (const event of ['pull_request', 'push', 'workflow_dispatch', 'schedule']) {
+  const weeklyMockSchedule = '17 0 * * 1';
+  for (const [event, schedule] of [['pull_request'], ['workflow_dispatch'],
+    ...workflow.on.schedule.map(({cron}) => ['schedule', cron])]) {
     const selected = step => Function('github', 'return (' +
-      step.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '') + ');')({event_name: event});
-    assert.equal(selected(functional), event !== 'schedule');
-    assert.equal(selected(sharedFile), event !== 'schedule');
-    assert.equal(selected(mock), event === 'schedule');
+      step.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '') + ');')({event_name: event, event: {schedule}});
+    assert.equal(selected(functional), schedule !== weeklyMockSchedule);
+    assert.equal(selected(sharedFile), schedule !== weeklyMockSchedule);
+    assert.equal(selected(mock), schedule === weeklyMockSchedule);
   }
   assert.equal(mock['continue-on-error'], undefined);
   assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(mock));
@@ -392,7 +394,7 @@ test('CI downloads original hash-bounded archives and retains exact production a
   assert(!mockRetain.with.path.includes('mock-consumers/**'), 'Do not upload private project state or keys');
 });
 
-test('CI pinned component downloader keeps bounded reset retries and original refusals', () => {
+test('CI pinned component downloader keeps bounded reset and gateway retries and original refusals', () => {
   const command = job.steps.find(step => step.name === 'Retain exact official component archives').run;
   const inline = command.match(/^python3 - <<'PY'\n([\s\S]+)\nPY\n?$/u);
   assert(inline, 'Exercise the actual workflow caller, not a duplicate downloader');
@@ -401,7 +403,7 @@ test('CI pinned component downloader keeps bounded reset retries and original re
   assert.equal(result.error, undefined);
   assert.equal(result.signal, null);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /^Pinned component archive controls: 10\/10$/mu);
+  assert.match(result.stdout, /^Pinned component archive controls: 13\/13$/mu);
 });
 
 

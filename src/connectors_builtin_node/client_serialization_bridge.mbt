@@ -406,9 +406,49 @@ pub fn client_program_prepare_request_serialization_plan(
 }
 
 ///|
-/// Same Request Model compiler and Content input constructor; the seven existing prefix
+/// Same Request compiler and Content input constructor; the seven existing prefix
 /// configuration fields keep their original conversion. No bare Ledger or
 /// reconstructed graph crosses this entry.
+#export_name("clientProgramPrepareRequestWholeSerializationPlan")
+pub fn client_program_prepare_request_whole_serialization_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  max_rows : Int,
+  max_work : Int,
+  max_entries : Int,
+  max_value_bytes : Int,
+  max_value_nodes : Int,
+  max_value_depth : Int,
+  max_frames : Int,
+  workspace : @execution.ExecutionCapacity?,
+  whole_plan : @client_local_host.ClientInstalledManagedCapturePlan,
+) -> Result[
+  @client_local_host.ClientInstalledManagedSerializationPreparation,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  let (execution, measurement) = serialization_prefix_limits(
+    max_rows, max_work, max_entries, max_value_bytes, max_value_nodes, max_value_depth,
+    max_frames,
+  )
+  @client_local_host.prepare_request_serialization_plan(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    execution,
+    measurement,
+    workspace,
+    whole_plan=Some(whole_plan),
+  )
+}
+
+///|
 #export_name("clientProgramPrepareRequestModelSerializationPlan")
 pub fn client_program_prepare_request_model_serialization_plan(
   parent : @client_local_host.ClientRequestPreparation[
@@ -592,6 +632,22 @@ pub fn client_program_installed_managed_acquired_serialization_prefix_start(
 ] {
   @client_local_host.start_installed_managed_acquired_serialization_prefix(
     run, prepared, selected, capture,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedWholeSerializationPrefixStart")
+pub fn client_program_installed_managed_whole_serialization_prefix_start(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  selected : @client_local_host.ClientInstalledManagedSerializationPreparation,
+  captures : Array[@client_row_source_host.RowSourceCapture],
+) -> Result[
+  @client_local_host.ClientSerializationPrefix,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.start_installed_managed_whole_serialization_prefix(
+    run, prepared, selected, captures,
   )
 }
 
@@ -1499,6 +1555,107 @@ pub fn client_program_admit_serialization_whole_captured_input(
 }
 
 ///|
+#export_name("clientProgramAdmitManagedSerializationQueryCapturedInput")
+pub fn client_program_admit_managed_serialization_query_captured_input(
+  run : @client_local_host.ClientInstalledManagedRun,
+  owner : @publication_host.PreparedClientProgram,
+  selected : @client_local_host.ClientInstalledManagedSerializationPreparation,
+  graph : @publication_host.ClientSerializationPlanGraph,
+  capture : @client_row_source_host.RowSourceCapture,
+  identity : @query.CapturedSourceRelationIdentity,
+  logical : @publication.RunEvidenceValue,
+  source_wire : String,
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+) -> Result[
+  @publication_host.ClientSerializationCapturedInput,
+  @publication.RunEvidenceValueIssue,
+] {
+  guard @client_local_host.installed_managed_query_serialization_capture_ledger(
+      run, owner, selected, capture,
+    )
+    is Ok(ledger) &&
+    @client_row_source_host.row_capture_original_borrowed_requirement(
+      capture, ledger,
+    )
+    is Some(requirement) &&
+    @client_row_source_host.row_capture_source(capture) is Ok(source) else {
+    return Err(
+      @publication.RunEvidenceReferenceMismatch("content_query_source_owner"),
+    )
+  }
+  client_program_admit_serialization_captured_input(
+    owner,
+    graph,
+    source,
+    identity,
+    requirement,
+    logical,
+    source_wire,
+    authority_scope_cid,
+    started_at,
+    completed_at,
+    None,
+  )
+}
+
+///|
+/// Bind all physically admitted Whole reads to this Run, in checked input
+/// order. Neither an equal data packet nor a caller-supplied Ledger is enough.
+#export_name("clientProgramAdmitManagedSerializationWholeCapturedInputs")
+pub fn client_program_admit_managed_serialization_whole_captured_inputs(
+  run : @client_local_host.ClientInstalledManagedRun,
+  owner : @publication_host.PreparedClientProgram,
+  selected : @client_local_host.ClientInstalledManagedSerializationPreparation,
+  graph : @publication_host.ClientSerializationPlanGraph,
+  captures : Array[@client_row_source_host.RowSourceCapture],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  logical : Array[@publication.RunEvidenceValue],
+  source_wires : Array[String],
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+) -> Result[
+  @publication_host.ClientSerializationCapturedInput,
+  @publication.RunEvidenceValueIssue,
+] {
+  let mismatch = @publication.RunEvidenceReferenceMismatch(
+    "content_whole_source_owner",
+  )
+  guard captures.length() == identities.length() &&
+    captures.length() == logical.length() &&
+    captures.length() == source_wires.length() &&
+    @client_local_host.installed_managed_whole_serialization_capture_ledger(
+      run, owner, selected, captures,
+    )
+    is Ok(ledger) else {
+    return Err(mismatch)
+  }
+  let admitted : Array[@publication_host.ClientSerializationWholeCapture] = []
+  for index, wire in source_wires {
+    let evidence = match
+      @publication.admit_run_evidence_value(
+        "source_evidence", wire, 100000, 10000, 100,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    admitted.push({
+      capture: captures[index],
+      identity: identities[index],
+      logical: logical[index],
+      source_evidence: evidence,
+      started_at,
+      completed_at,
+    })
+  }
+  @publication_host.admit_client_serialization_whole_captured_inputs(
+    owner, graph, ledger, admitted, authority_scope_cid, 1000000,
+  )
+}
+
+///|
 /// Fixed template DATA enters the SAME Request before its checked demand read.
 /// No JSON body, execution authority or independent Resource crosses this port.
 #export_name("clientProgramPrepareRequestSerializationOutputDemand")
@@ -1600,5 +1757,86 @@ pub fn client_program_prepare_request_serialization_output_demand(
       output.payload_wire.max_columns,
       selected.identity_slots,
     ),
+  )
+}
+
+///|
+#export_name("clientProgramPrepareWholeSerializationSourceCapacity")
+pub fn client_program_prepare_whole_serialization_source_capacity(
+  prepared : @publication_host.PreparedClientProgram,
+  selection : @acquisition.SourceAcquisitionRoute,
+  declaration : @client_row_source_host.RowDeclaration,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  provider : @execution.ExecutionCapacity?,
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+  max_pages : Int,
+  serialization : @publication_host.ClientSerializationPlanGraph,
+) -> Result[
+  @client_local_host.ClientInstalledWholeSourceCapacity,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard selection is @acquisition.WholeInputRoute(original) else {
+    return Err(@client_local_host.Unsupported)
+  }
+  let limits = match
+    @client_local_host.installed_source_row_input_policy(
+      max_pages, max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @client_local_host.prepare_installed_whole_source_capacity(
+    prepared,
+    original,
+    declaration,
+    contracts,
+    limits,
+    provider,
+    serialization=Some(serialization),
+  )
+}
+
+///|
+/// The caller forwards the SAME opaque Option from the existing pre-module
+/// invocation getter. Core checks all originals; no JS tuple is constructed.
+#export_name("clientProgramPrepareInstalledManagedWholeSerializationSourcesPlan")
+pub fn client_program_prepare_installed_managed_whole_serialization_sources_plan(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  component : @publication_host.ClientSerializationPlanGraph,
+  sources : Array[@client_local_host.ClientInstalledWholeSourceCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_whole_serialization_sources_plan(
+    prepared, request, component, sources, transport_bytes, transport_execution_bytes,
+    installed_contracts,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareInstalledManagedQuerySerializationSourcePlan")
+pub fn client_program_prepare_installed_managed_query_serialization_source_plan(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  graph : @publication_host.ClientSerializationPlanGraph,
+  capacity : @client_local_host.ClientInstalledCaptureCapacity,
+  transfer : Int64,
+  scratch : Int64,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_query_serialization_source_plan(
+    prepared, request, graph, capacity, transfer, scratch, contracts,
   )
 }

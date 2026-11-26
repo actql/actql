@@ -654,9 +654,13 @@ export async function suspendCompletedEffectfulComputation({
   // Publication can select terminal release and then fail while releasing
   // its prepared handles. Continue that owner's exact selected operation;
   // a later cleanup visit must not change it back to capture retention.
-  if (completedResultOwners.get(storedResults)?.retainCapture === false) {
+  const owner = completedResultOwners.get(storedResults);
+  if (owner?.retainCapture === false) {
     return releaseCompletedResultOwner(storedResults, control, false);
   }
+  // The same acknowledged local return is complete. Current Store evidence
+  // is still required separately at apply, before any new physical attempt.
+  if (owner?.releaseComplete === true) return false;
   await confirmCompletedEffectfulApplySources({store, control,
     computation, preview});
   return releaseCompletedResultOwner(storedResults, control, true);

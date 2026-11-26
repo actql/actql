@@ -215,11 +215,11 @@ same-transaction retained count at the capacity decision. Name startup checks
 the exact schema/triggers and original counters without another global census;
 name use still checks issued/retained custody and authenticates its target.
 
-The Node Journal initializes these tables, triggers and singleton rows with
-private SQLite `user_version` 3 in the original fresh transaction. Reopen
-requires the current header, exact owned schema and its retained counters.
-It refuses v0, v1 and v2 before opening a writable original. The ordinary
-Local Host supplies its original same-root Store exclusion. With that
+The Node Journal initializes these tables, triggers and singleton rows in the
+original fresh transaction and then publishes the fixed namespace markers.
+Reopen checks the markers, exact owned schema and retained counters before
+opening a writable original. An unsupported layout is refused in place. The
+ordinary Local Host supplies its original same-root Store exclusion. With that
 exclusion and no retained WAL, immutable SQLite checks bounded metadata
 on the original read-only database without copying its bytes. Standalone
 inspection and inspection with a retained WAL use the isolated DB/WAL

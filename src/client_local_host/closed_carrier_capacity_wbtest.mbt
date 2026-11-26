@@ -208,7 +208,7 @@ test "captured Event suffix uses original record schemas without a closed Source
   let mut task_execution = 0L
   for task in 1..<@strategy.graph_task_count(capture.graph) {
     let envelope = @local_driver.local_dispatch_preparation_managed_task_capacity(
-      capture.configuration.dispatch,
+      capture.configuration.unwrap().dispatch,
       task,
     ).unwrap()
     task_retained += envelope.retained_bytes
@@ -365,7 +365,7 @@ test "two captured Sources retain every Event task under the original execution 
   let mut largest_task = 0L
   for task in 2..<@strategy.graph_task_count(capture.graph) {
     let envelope = @local_driver.local_dispatch_preparation_managed_task_capacity(
-      capture.configuration.dispatch,
+      capture.configuration.unwrap().dispatch,
       task,
     ).unwrap()
     all_tasks += envelope.execution_bytes
@@ -404,7 +404,7 @@ test "two captured Sources retain every Event task under the original execution 
   // Carrier views never construct the row wire importer at runtime.
   assert_eq(
     @local_driver.local_dispatch_preparation_transfer_bytes(
-      capture.configuration.dispatch,
+      capture.configuration.unwrap().dispatch,
     ),
     Some(7L * plan.imports.wire.max_bytes.to_int64()),
   )

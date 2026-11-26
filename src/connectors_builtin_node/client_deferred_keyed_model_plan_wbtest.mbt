@@ -637,27 +637,48 @@ test "Portable narrative renders the original deal-review Facts and Context in b
     logical_map=Some(map),
   )
   assert_true(
-    english.summary.contains("Read \"Opportunity\" from \"salesforce\""),
-  )
-  assert_true(english.summary.contains("from \"drive\""))
-  assert_true(english.summary.contains("\"name\""))
-  assert_true(english.summary.contains("\"resource\""))
-  assert_true(
     english.summary.contains(
-      "Match \"Opportunity\" from \"salesforce\" with \"files\" from \"drive\" on \"name\"",
+      "Read \"salesforce\".\"Opportunity\", \"drive\".\"files\", \"drive\".\"contents\",",
     ),
   )
-  guard english.summary.contains(
-    "the joined rows with \"contents\" from \"drive\" on the Source keys \"resource\", \"version\"",
-  ) else {
-    fail(english.summary)
-  }
-  assert_false(english.summary.contains("3 logical joins"))
-  assert_true(japanese.summary.contains("\"salesforce\" の \"Opportunity\""))
-  assert_true(japanese.summary.contains("\"name\""))
+  assert_true(
+    japanese.summary.contains(
+      "\"salesforce\" の \"Opportunity\"、\"drive\" の \"files\"、\"drive\" の \"contents\" を読み、",
+    ),
+  )
+  assert_true(english.summary.contains("ask \"model-task:deal-review.v1\","))
+  assert_true(
+    japanese.summary.contains(
+      "\"model-task:deal-review.v1\" に問い合わせ、",
+    ),
+  )
+  assert_true(english.summary.contains("return \"updates\", and "))
+  assert_true(
+    japanese.summary.contains("\"updates\" を結果として返し、"),
+  )
+  assert_true(
+    english.summary.contains(
+      "plan to update \"Opportunity\" in \"salesforce\".",
+    ),
+  )
+  assert_true(
+    japanese.summary.contains(
+      "\"salesforce\" の \"Opportunity\" を更新する計画。",
+    ),
+  )
   let joins = english.clauses.filter(clause => clause.kind == "join")
+  let japanese_joins = japanese.clauses.filter(clause => clause.kind == "join")
   assert_eq(joins.length(), 1)
+  assert_eq(japanese_joins.length(), 1)
+  assert_eq(joins[0].text, "Join inputs")
+  assert_eq(japanese_joins[0].text, "入力を結合する")
   assert_eq(joins[0].step_ids.length(), 3)
+  assert_eq(japanese_joins[0].step_ids, joins[0].step_ids)
+  // Checked key pairs stay in their original Step descriptions.
+  assert_false(english.summary.contains("\"name\""))
+  assert_false(english.summary.contains("\"resource\""))
+  assert_false(japanese.summary.contains("\"name\""))
+  assert_false(japanese.summary.contains("\"resource\""))
   assert_eq(english.context.length(), 6)
   assert_eq(japanese.context.length(), 6)
   assert_true(english.context[0].contains("\"salesforce\".\"Opportunity\""))
@@ -680,14 +701,33 @@ test "Portable narrative renders the original deal-review Facts and Context in b
   assert_true(english.context[5].contains("Current decision unknown"))
   assert_true(japanese.context[5].contains("現在の判断は不明"))
   assert_eq(english.steps.length(), japanese.steps.length())
-  assert_true(
+  guard english.steps.any(line => {
+      line.contains(
+        "Match \"Opportunity\" from \"salesforce\" with \"files\" from \"drive\" on \"name\"",
+      )
+    }) &&
     english.steps.any(line => {
-      line.contains("join on: left.\"name\" = right.\"name\"")
+      line.contains(
+        "the joined rows with \"contents\" from \"drive\" on the Source keys \"resource\", \"version\"",
+      )
+    }) else {
+    let diagnostic = StringBuilder()
+    for line in english.steps {
+      diagnostic.write_string(line)
+      diagnostic.write_char('\n')
+    }
+    fail(diagnostic.to_string())
+  }
+  assert_true(
+    japanese.steps.any(line => {
+      line.contains("内部結合") && line.contains("\"name\"")
     }),
   )
   assert_true(
-    english.steps.any(line => {
-      line.contains("right.\"resource\"") && line.contains("right.\"version\"")
+    japanese.steps.any(line => {
+      line.contains("読み取り元のキー") &&
+      line.contains("\"resource\"") &&
+      line.contains("\"version\"")
     }),
   )
   let repeated = @publication_host.render_client_explanation_narrative(

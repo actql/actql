@@ -27,12 +27,26 @@ type ProducedRun = {
   saved: WireRunExplanationContextView;
   targetDigest: string;
 };
-type BeforeReceipt = {browserRequests: string[]; checkedSources: number; checkedJoinSteps: number;
-  originalLogicalSteps: number; groupedGraphNodes: number; originalStageResultLinks: NonNullable<StaticExplanationReadModel['plan']['stageResultLinks']>};
-type RestoredReceipt = {producerPid: number; consumerPid: number; sameOriginal: true; browserRequests: string[]};
+const dealReviewHeading = {
+  en: 'Read salesforce.Opportunity, drive.files, drive.contents, join inputs, ask model-task:deal-review.v1, ' +
+    'filter on checks including review.value.changed, return updates, and plan to update Opportunity in salesforce.',
+  ja: 'salesforce の Opportunity、drive の files、drive の contents を読み、入力を結合し、' +
+    'model-task:deal-review.v1 に問い合わせ、review.value.changed などの条件で絞り込み、' +
+    'updates を結果として返し、salesforce の Opportunity を更新する計画。',
+};
 
-const [phase, project, evidence] = process.argv.slice(2);
+type Capture = {locale: 'en' | 'ja'; width: 1440 | 390; file: string};
+type BeforeReceipt = {browserRequests: string[]; checkedSources: number; checkedJoinSteps: number;
+  originalLogicalSteps: number; groupedGraphNodes: number;
+  originalStageResultLinks: NonNullable<StaticExplanationReadModel['plan']['stageResultLinks']>; queryClosed: Capture[]};
+type RestoredReceipt = {producerPid: number; consumerPid: number; sameOriginal: true; browserRequests: string[];
+  queryClosed?: Capture[]};
+
+const [phase, project, evidence, scenario] = process.argv.slice(2);
 assert(['before', 'produce', 'restore'].includes(phase) && project && evidence);
+assert(scenario === undefined || scenario === 'deal-review');
+const dealReview = scenario === 'deal-review';
+const programFile = dealReview ? 'deal-review.aql' : 'churn-risk.aql';
 const require = createRequire(import.meta.url), modules = resolve('node_modules') + sep;
 for (const name of ['@actql/node', '@actql/explorer/launcher',
   '@actql/local-node/observation', '@actql/local-node/_internal/explanation-narrative']) {
@@ -87,14 +101,16 @@ let gateway: Gateway | undefined, browser: Browser | undefined;
 try {
   if (phase === 'produce') {
     expectedTarget = await targetDigest();
-    const program = await readFile('churn-risk.aql', 'utf8');
+    const program = await readFile(programFile, 'utf8');
     const original = await client.startSource(program, {format: 'aql', stopBefore: 'commit'});
     assert.equal((await original.wait()).status, 'waiting_checkpoint');
     const saved = await original.explainContext();
     assert.deepEqual(saved.run_ref, original.ref);
     assert.equal(saved.explanation.state, 'projected');
     const {plan, facts, context} = saved.explanation.view;
-    assert.deepEqual(context.items.map(item => item.kind), ['source', 'source', 'model_task', 'result', 'effect_set']);
+    assert.deepEqual(context.items.map(item => item.kind), dealReview
+      ? ['source', 'source', 'source', 'model_task', 'result', 'effect_set']
+      : ['source', 'source', 'model_task', 'result', 'effect_set']);
     assert.equal(context.binding.logical_map_cid, plan.logical_map.self_cid);
     assert.equal(facts.logical_map_cid, plan.logical_map.self_cid);
     const explanation = (await original.explain()).explanation;
@@ -159,6 +175,17 @@ try {
         await page.locator('.connection-menu > summary').waitFor();
       };
       await connect('Connect to Local');
+      const captureClosedSteps = async (locale: Capture['locale'], width: Capture['width'], file: string) => {
+        await page.setViewportSize({width, height: width === 390 ? 844 : 1000});
+        const pane = page.locator('#query-pane');
+        if (await pane.count()) await page.getByRole('button', {name: /Hide query|クエリを隠す/u}).click();
+        await pane.waitFor({state: 'hidden'});
+        await page.evaluate(() => window.scrollTo(0, 0));
+        assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
+        assert.equal(await page.locator('html').getAttribute('lang'), locale);
+        await page.screenshot({path: join(evidence, file)});
+        return {locale, width, file};
+      };
       if (original === undefined) {
         await page.getByText('The launcher supplied the Plan. Edits here apply to a future Run.', {exact: true}).waitFor();
         assert.match(await page.getByRole('list', {name: 'Query text'}).innerText(), /SELECT 1 AS answer/u);
@@ -188,14 +215,18 @@ try {
         assert.equal(await staticSteps.locator('details.story-card[open]').count(), 1);
         assert.match(await staticSteps.innerText(), /Planned/u);
         const heading = page.getByRole('heading', {level: 1});
+        assert.equal(await heading.innerText(), dealReviewHeading.en);
         const checkedJoins = beforeRun.story.occurrences.filter(step => step.explanation.meaning.kind === 'join');
         assert(checkedJoins.some(({explanation: {meaning}}) =>
           meaning.kind === 'join' && meaning.keys.some(key => key.left === 'name' && key.right === 'name')));
         assert.deepEqual(beforeRun.story.narrative.clauses.find(clause => clause.kind === 'join')?.step_ids,
           checkedJoins.map(step => step.stepId));
-        const readOpportunity = staticSteps.locator('details.story-card').filter({
-          has: page.locator('summary > strong').filter({hasText: /Read Opportunity|Opportunity を読む/u}),
-        });
+        const readOpportunityCard = (japanese = false) =>
+          page.getByRole('region', {name: japanese ? '元のストーリー' : 'Original story', exact: true})
+            .locator('details.story-card').filter({
+              has: page.locator('summary > strong').filter({hasText: /Read Opportunity|Opportunity を読む/u}),
+            });
+        const readOpportunity = readOpportunityCard();
         const opportunity = beforeRun.context.find(({origin}) =>
           origin.kind === 'source' && origin.source_view.resource === 'Opportunity')?.origin;
         assert(opportunity?.kind === 'source');
@@ -232,14 +263,20 @@ try {
         await origin.getByText('Original step and ports', {exact: true}).click();
         await page.evaluate(() => window.scrollTo(0, 0));
         await page.screenshot({path: join(evidence, 'installed-deal-review-before-run.png')});
-        const graph = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
+        const queryClosed = [await captureClosedSteps('en', 1440, 'installed-deal-review-before-en-1440.png')];
+        const graph = page.locator('section.actql-explorer[data-workspace="true"]');
         const readGraph = async (narrow: boolean, japanese = false) => {
-          await readOpportunity.locator('summary').first().click();
-          await page.getByRole('button', {name: /Graph/}).click();
+          await readOpportunityCard(japanese).locator('summary').first().click();
+          await page.getByRole('button', {name: japanese ? /グラフ/u : /Graph/u}).click();
           assert.equal(await graph.getByRole('navigation', {name: 'Plan presentation'}).count(), 0);
           await graph.locator('.react-flow__node').first().waitFor({state: 'attached'});
           const nodes = graph.locator('.react-flow__node');
           assert.equal(await nodes.count(), 8);
+          await graph.getByText(japanese ? 'データの流れを表示します。実行順序は示しません。'
+            : 'Data flow, not execution order', {exact: true}).waitFor();
+          assert((await nodes.locator('.actql-explorer-node > p').allTextContents())
+            .includes(japanese ? '予定' : 'Planned'));
+          if (japanese) assert.doesNotMatch(await graph.innerText(), /\b(?:Planned|operation|Declared inputs|Result projection|input [0-9]+)\b/u);
           assert.equal(await graph.locator('.actql-explorer-flow-metadata').count(), 0);
           const declaredWrite = nodes.filter({has: page.locator('[data-effect-declaration="true"]')});
           assert.equal(await declaredWrite.count(), 1);
@@ -272,7 +309,7 @@ try {
                 edge.x < innerWidth && edge.right >= 0 && edge.y >= 0 && edge.y + 14 < innerHeight;
             }, {stepId: originalLink.producer.step_id, targetPort: originalLink.consumer.port_id});
           }
-          const selectedCard = page.getByRole('region', {name: 'Selected Step', exact: true});
+          const selectedCard = page.getByRole('region', {name: japanese ? '選択した工程' : 'Selected Step', exact: true});
           assert.match(await selectedCard.innerText(), /Opportunity/u);
           const advanced = selectedCard.locator('details.original-plan-advanced');
           assert.equal(await advanced.count(), 1);
@@ -281,50 +318,64 @@ try {
           assert.match(await advanced.innerText(), new RegExp(beforeRun.plan.logicalMapCid, 'u'));
           assert.doesNotMatch(await advanced.innerText(), /Controls, Samples and physical observations are unavailable/u);
           await advanced.locator('summary').click();
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.waitForFunction(() => window.scrollY === 0);
         };
         await readGraph(false);
         await page.screenshot({path: join(evidence, 'installed-deal-review-graph.png')});
         await page.getByRole('button', {name: 'Steps', exact: true}).click();
-        await page.setViewportSize({width: 390, height: 844});
-        assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
-        await page.getByRole('button', {name: /Hide query/}).click();
+        queryClosed.push(await captureClosedSteps('en', 390, 'installed-deal-review-narrow.png'));
         const headingBounds = await heading.boundingBox();
         assert(headingBounds && headingBounds.height < 192);
-        await page.screenshot({path: join(evidence, 'installed-deal-review-narrow.png')});
         await readGraph(true);
+        await page.screenshot({path: join(evidence, 'installed-deal-review-graph-en-390.png')});
         await page.getByRole('button', {name: 'Steps', exact: true}).click();
         await page.getByRole('button', {name: /Show query/}).click();
         await page.getByLabel('Query options').click();
         await page.locator('.query-options label').filter({hasText: /^Language/u}).locator('select').selectOption('ja');
-        await page.getByLabel('Query options').click();
-        await page.getByRole('button', {name: 'Explain', exact: true}).click();
-        await heading.filter({hasText: /review\.value\.changed などの条件で絞り込む/u}).waitFor();
-        await page.setViewportSize({width: 1440, height: 1000});
+        await page.getByLabel('クエリオプション').click();
+        await page.getByRole('button', {name: '説明', exact: true}).click();
+        await heading.filter({hasText: dealReviewHeading.ja}).waitFor();
+        assert.equal(await heading.innerText(), dealReviewHeading.ja);
+        await page.getByText('実行前 · 確認済みプラン', {exact: true}).waitFor();
+        const japaneseStory = page.getByRole('region', {name: '元のストーリー', exact: true});
+        const japaneseOrigin = japaneseStory.locator('details.story-card[open] .occurrence-origin summary').first();
+        assert((await japaneseOrigin.textContent())?.startsWith('元の工程とポート'));
+        await page.getByRole('button', {name: 'Run を開く', exact: true}).waitFor();
+        const kinds = await japaneseStory.locator('.step-label').allTextContents();
+        assert(kinds.some(label => label.includes('書き込み')));
+        assert(kinds.some(label => label.includes('モデル')));
+        assert(kinds.every(label => !/\b(?:Read|Combine|Compute|Ask model|Result|Write)\b/u.test(label)));
+        const states = await japaneseStory.locator('.step-state[data-state="Planned"]').allTextContents();
+        assert(states.length > 0 && states.every(state => state === '予定'));
+        queryClosed.push(await captureClosedSteps('ja', 1440, 'installed-deal-review-before-ja-1440.png'));
         await readGraph(false, true);
         await page.screenshot({path: join(evidence, 'installed-deal-review-graph-ja.png')});
-        await page.getByRole('button', {name: 'Steps', exact: true}).click();
-        await page.setViewportSize({width: 390, height: 844});
-        await page.getByRole('button', {name: /Hide query|クエリを隠す/u}).click();
-        assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
-        await page.screenshot({path: join(evidence, 'installed-deal-review-narrow-ja.png')});
+        await page.getByRole('button', {name: '工程', exact: true}).click();
+        queryClosed.push(await captureClosedSteps('ja', 390, 'installed-deal-review-narrow-ja.png'));
         await readGraph(true, true);
+        await page.screenshot({path: join(evidence, 'installed-deal-review-graph-ja-390.png')});
         assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/static-explanation',
           '/api/read/static-explanation']);
         receipt = {browserRequests: requests, checkedSources: 3, checkedJoinSteps: checkedJoins.length,
-          originalLogicalSteps: beforeRun.plan.nodes.length, groupedGraphNodes: 8, originalStageResultLinks: links};
+          originalLogicalSteps: beforeRun.plan.nodes.length, groupedGraphNodes: 8, originalStageResultLinks: links, queryClosed};
       } else {
         await page.getByLabel('Query options').click();
-        await page.getByLabel('Open query file').setInputFiles(join(project, 'churn-risk.aql'));
+        await page.getByLabel('Open query file').setInputFiles(join(project, programFile));
         await page.getByLabel('Query options').click();
         assert.equal(original.saved.explanation.state, 'projected');
         const {plan, facts, context} = original.saved.explanation.view;
-        const openOriginal = async (verifyOriginalBody: boolean) => {
+        const openOriginal = async (verifyOriginalBody: boolean, locale: Capture['locale'] = 'en') => {
           await page.getByRole('button', {name: 'Open Run', exact: true}).click();
           await page.locator('textarea[name="ref"]').fill(JSON.stringify(original.ref));
+          if (locale === 'ja') {
+            await page.getByText('Other original reads', {exact: true}).click();
+            await page.locator('.run-options select').selectOption(locale);
+          }
           const reply = page.waitForResponse(response =>
             response.url() === connected.origin + '/api/read/run-explanation-context');
           const status = page.waitForResponse(response => response.url() === connected.origin + '/api/read/run');
-          await page.getByRole('button', {name: 'Open Saved explanation', exact: true}).click();
+          await page.getByRole('button', {name: locale === 'ja' ? '保存済みの説明を開く' : 'Open Saved explanation', exact: true}).click();
           const response = await reply;
           await status;
           assert.equal(response.status(), 200);
@@ -337,16 +388,18 @@ try {
             assert.equal(data.plan.compiledPlanCid, plan.compiled_plan_cid);
             assert.equal(data.plan.logicalMapCid, plan.logical_map.self_cid);
             assert.equal(data.explanation.story.factsCid, facts.self_cid);
+            assert.equal(data.explanation.story.locale, locale);
             assert.deepEqual(data.explanation.context.map(item => item.origin), context.items);
           }
-          await page.getByRole('dialog', {name: 'Open Run'}).waitFor({state: 'hidden'});
+          await page.getByRole('dialog', {name: locale === 'ja' ? 'Run を開く' : 'Open Run'}).waitFor({state: 'hidden'});
           const heading = page.locator('.story-heading .eyebrow');
           assert((await heading.textContent())?.includes(original.ref.runDefinitionCid.slice(7, 19)));
         };
         await openOriginal(true);
         const story = page.getByRole('region', {name: 'Original story', exact: true});
         await story.waitFor();
-        assert.match((await story.textContent()) ?? '', /model-task:churn-risk\.v1/u);
+        const task = dealReview ? /model-task:deal-review\.v1/u : /model-task:churn-risk\.v1/u;
+        assert.match((await story.textContent()) ?? '', task);
         await page.getByText('Original query not retained in this read', {exact: true}).waitFor();
         assert.equal(await page.getByRole('list', {name: 'Query text'}).count(), 0);
         await page.getByText('Current status unavailable', {exact: true}).waitFor();
@@ -392,7 +445,7 @@ try {
         await connect('Reconnect');
         await openOriginal(false);
         await story.waitFor();
-        assert.match((await story.textContent()) ?? '', /model-task:churn-risk\.v1/u);
+        assert.match((await story.textContent()) ?? '', task);
         await page.getByText('Original query not retained in this read', {exact: true}).waitFor();
         assert.equal(await page.getByRole('list', {name: 'Query text'}).count(), 0);
         await page.setViewportSize({width: 390, height: 844});
@@ -403,8 +456,38 @@ try {
         await page.screenshot({path: join(evidence, 'installed-narrow.png')});
         assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/run-explanation-context', '/api/read/run',
           '/api/read/observation', '/api/session', '/api/read/launch', '/api/read/run-explanation-context', '/api/read/run']);
+        let queryClosed: Capture[] | undefined;
+        if (dealReview) {
+          const heading = page.getByRole('heading', {level: 1});
+          assert.equal(await heading.innerText(), dealReviewHeading.en);
+          assert.equal(await story.locator('details.story-card').count(), 8);
+          queryClosed = [
+            await captureClosedSteps('en', 1440, 'installed-deal-review-saved-en-1440.png'),
+            await captureClosedSteps('en', 390, 'installed-deal-review-saved-en-390.png'),
+          ];
+          const beforeLocaleChange = requests.length;
+          await openOriginal(true, 'ja');
+          assert.deepEqual(requests.slice(beforeLocaleChange), ['/api/read/run-explanation-context', '/api/read/run']);
+          await heading.filter({hasText: dealReviewHeading.ja}).waitFor();
+          assert.equal(await heading.innerText(), dealReviewHeading.ja);
+          const japaneseStory = page.getByRole('region', {name: '元のストーリー', exact: true});
+          assert.equal(await japaneseStory.locator('details.story-card').count(), 8);
+          await page.getByRole('button', {name: '状態を確認', exact: true}).waitFor();
+          await page.getByText('ターミナル', {exact: true}).waitFor();
+          const review = page.locator('.workspace-tools').filter({has: page.locator('.actql-checkpoint-review')});
+          if (await review.count()) {
+            assert.equal(await review.locator('summary').textContent(), 'チェックポイントのレビュー');
+            await review.locator('summary').click();
+            await review.getByRole('heading', {name: 'チェックポイントのレビュー', exact: true}).waitFor();
+            await review.locator('summary').click();
+          }
+          queryClosed.push(
+            await captureClosedSteps('ja', 1440, 'installed-deal-review-saved-ja-1440.png'),
+            await captureClosedSteps('ja', 390, 'installed-deal-review-saved-ja-390.png'),
+          );
+        }
         receipt = {producerPid: original.producerPid, consumerPid: process.pid, sameOriginal: true,
-          browserRequests: requests};
+          browserRequests: requests, queryClosed};
       }
       assert.deepEqual(errors, []);
       assert.deepEqual(foreign, []);
@@ -427,7 +510,9 @@ let workReceipt: {attempts: Marker[]} | {newBusinessAttempts: number};
 if (phase === 'produce') {
   assert('ref' in receipt);
   const {runDefinitionCid} = receipt.ref;
-  assert.equal(markers.filter(item => item.operation === 'source').length, 2);
+  const sourceAttempts = markers.filter(item => item.operation === 'source').length;
+  if (dealReview) assert(sourceAttempts > 0, 'Original deal-review must witness Source work');
+  else assert.equal(sourceAttempts, 2);
   assert(markers.every(item => item.run === runDefinitionCid));
   assert(markers.some(item => item.operation === 'infer'), 'Original Run must witness an Infer start');
   assert(markers.some(item => item.operation === 'effect'), 'Original Run must witness an Effect application');

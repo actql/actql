@@ -57,6 +57,7 @@ type ProjectObservation = {
 
 type RunReport = {
   collection: CollectionRecord[]; projectFiles: ProjectRecord[];
+  acquiredSerialization: {complete: boolean; wallNs?: number};
   cases: WorkflowCase[]; compositions: WorkflowCase[];
   account: NonNullable<Parameters<typeof runPackedAccountControls>[0]['report']['account']>;
   model: Parameters<typeof runPackedModelControls>[0]['records'];
@@ -487,6 +488,36 @@ async function runReadmeCases({prepared, root, repository, command, report, fail
   }
 }
 
+// Gate the public SDK path on the same package cohort as the other installed
+// tests. The fixture starts the cold reader in a separate process.
+async function runAcquiredSerializationConsumer({prepared, root, repository, command, report}: ConsumerOptions) {
+  const application = join(root, 'acquired-serialization');
+  const entry = 'scripts/fixtures/ordinary-acquired-serialize-regression.mjs';
+  for (const path of [entry, 'scripts/fixtures/salesforce-approval/mock-project.mjs',
+    'scripts/fixtures/record-approval/mock-project.mjs',
+    'adapters/host-node/fixtures/work-observation.fixture.mjs']) {
+    await mkdir(dirname(join(application, path)), {recursive: true});
+    await copyFile(join(repository, path), join(application, path));
+  }
+  const home = join(application, 'home');
+  await mkdir(home);
+  const alias = join(application, 'node_modules');
+  await symlink(join(prepared.consumer, 'node_modules'), alias, 'dir');
+  try {
+    const env: NodeJS.ProcessEnv = {...process.env, HOME: home};
+    delete env.ACTQL_PACKED_CLIENT_PACKAGES;
+    const result = await command(process.execPath, [join(application, entry)], {
+      cwd: application, name: 'acquired-serialization', timeout: 90_000, env,
+    });
+    report.acquiredSerialization.wallNs = result.wallNs;
+    assert(result.code === 0 && !result.timedOut && !result.overflow,
+      'Installed Source SERIALIZE regression: ' + result.stderr);
+    report.acquiredSerialization.complete = true;
+  } finally {
+    await unlink(alias);
+  }
+}
+
 export async function runPackedReadmeWorkflows(root: string) {
   assert(isAbsolute(root), 'Require a fresh absolute consumer output directory');
   const retained = process.env.ACTQL_PACKED_CLIENT_PACKAGES;
@@ -508,7 +539,7 @@ export async function runPackedReadmeWorkflows(root: string) {
     collection: ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved', 'large-row-capture', 'large-row-saved'].map((phase): CollectionRecord => ({phase: phase as CollectionPhase, completed: false, status: 'unexecuted',
       unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close'
         : phase === 'large-row-saved' ? 'Requires both original large Results, SQL removal and FIRST close' : 'Requires verified normal packages'})),
-    fileInventory: {cases: []},
+    fileInventory: {cases: []}, acquiredSerialization: {complete: false},
     dependencyBoundaries: {cases: [], complete: false},
     account: {completed: false, status: 'unexecuted', unexecutedReason: 'Requires verified normal packages'},
     model: packedModelControlPhases.map(phase => ({phase, completed: false, status: 'unexecuted',
@@ -546,10 +577,13 @@ export async function runPackedReadmeWorkflows(root: string) {
     try {
       await runProjectFileJoinConsumer({prepared, root, repository, command, report, cleanup});
     } catch (error) {failures.push(error);}
+    try {
+      await runAcquiredSerializationConsumer({prepared, root, repository, command, report, cleanup});
+    } catch (error) {failures.push(error);}
     await runReadmeCases({prepared, root, repository, command, report, failures});
     await runReadmeCases({prepared, root, repository, command, report, failures, cases: report.compositions});
     await runMockEffectControls({prepared, root, repository, command, records: report.controls, failures});
-    report.complete = failures.length === 0 && report.account.completed &&
+    report.complete = failures.length === 0 && report.account.completed && report.acquiredSerialization.complete &&
       report.dependencyBoundaries.complete &&
       report.fileInventory.cases.length === 6 &&
       report.fileInventory.cases.every((row, index) => row.completed && row.status === 'passed' &&

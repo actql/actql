@@ -70,3 +70,47 @@ test "explicit Source stays completion-free and the Source audit work is exact" 
   assert_eq(text, "$.stages[0].inputs[\"remote\"].view".length().to_int64())
   assert_true(extent.record_headers > 0L)
 }
+
+///|
+test "revisited Source originals reuse one completion entry under the same work limit" {
+  let owner = checked_direct_program_fixture()
+  let original = owner.units[0].source_execution[0]
+  let inventory = local_program_common_normalization_inventory(owner, 10000).unwrap()
+  let work = local_common_normalization_inventory_work(inventory)
+  let visits = 24
+  let units = owner.units.copy()
+  // This reuses the checked owner's actual Source execution, as a shared
+  // producer does when several consumers visit the same retained occurrence.
+  units[0] = { ..units[0], source_execution: Array::make(visits, original), }
+  let shared = { ..owner, units, }
+  // Each later visit needs at most the execution entry and one nominal
+  // comparison. The old reconstruction cannot fit this independent bound.
+  let upper = work + 2 * (visits - 1)
+  let reused = local_program_common_normalization_inventory(shared, upper).unwrap()
+  let exact = local_common_normalization_inventory_work(reused)
+  assert_true(exact <= upper)
+  assert_true(
+    local_program_common_normalization_inventory(shared, exact) is Ok(_),
+  )
+  assert_eq(local_common_normalization_entry_count(reused), 1)
+  assert_eq(
+    local_common_normalization_entry_at(reused, 0),
+    local_common_normalization_entry_at(inventory, 0),
+  )
+  assert_true(
+    local_program_common_normalization_inventory(shared, exact - 1)
+    is Err(BudgetExceeded),
+  )
+  let other = checked_direct_program_fixture().units[0].source_execution[0]
+  let foreign = {
+    ..original,
+    subject: { ..original.subject, source: other.subject.source, },
+  }
+  let units = owner.units.copy()
+  units[0] = { ..units[0], source_execution: [original, foreign], }
+  let substituted = { ..owner, units, }
+  assert_true(
+    local_program_common_normalization_inventory(substituted, 10000)
+    is Err(ForeignOriginal),
+  )
+}

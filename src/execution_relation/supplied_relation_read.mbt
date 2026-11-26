@@ -123,6 +123,19 @@ pub fn supplied_relation_read_row_count(value : SuppliedRelationRead) -> Int {
 }
 
 ///|
+/// Read the node usage already measured at original capture. This returns
+/// neither the rows nor a retention grant.
+pub fn supplied_relation_read_value_usage(
+  value : SuppliedRelationRead,
+) -> ValueUsage? {
+  if supplied_relation_read_available(value) {
+    Some(captured_usage(value.rows))
+  } else {
+    None
+  }
+}
+
+///|
 pub fn supplied_relation_read_cell(
   value : SuppliedRelationRead,
   row : Int,

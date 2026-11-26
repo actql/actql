@@ -11,7 +11,8 @@ import {runNodeProcessBenchmark} from './benchmark-node-process-operations.mjs';
 import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {jsonDigest, digest} from './health-monitor-report.mjs';
-import {assessLatency, assessNativeOperations} from './operation-performance.mjs';
+import {assessLatency, assessNativeOperations, assessPythonOrdinaryLatency} from './operation-performance.mjs';
+import {pythonReleaseLatencyApplies, pythonReleaseLatencyProfile} from './python-release-latency-policy.mjs';
 
 // Observe the interpreter that the existing ordinary collector will execute,
 // rather than substituting the controller's optional --python interpreter.
@@ -129,7 +130,8 @@ export async function releaseNativeOperations({options, repository, root, source
 
 export async function releaseArtifacts({options, repository, source, command, onArtifact, onMetric}) {
   let ready = true;
-  const platformKey = { 'darwin-arm64': 'darwin-arm64', 'linux-x64': 'linux-x64-gnu' }[platform() + '-' + arch()];
+  const pythonPlatform = `${platform()}-${arch()}`;
+  const nativePlatform = { 'darwin-arm64': 'darwin-arm64', 'linux-x64': 'linux-x64-gnu' }[pythonPlatform];
   for (const adapter of ['native', 'python']) {
     if (!options[adapter + 'Manifest'] || !options[adapter + 'Consumer']) {
       ready = false;
@@ -138,7 +140,7 @@ export async function releaseArtifacts({options, repository, source, command, on
       continue;
     }
     const selected = JSON.parse(await readFile(options[adapter + 'Manifest']));
-    if (!platformKey || (adapter === 'native' ? !selected.platforms?.[platformKey] : selected.platform !== platformKey)) {
+    if (!nativePlatform || (adapter === 'native' ? !selected.platforms?.[nativePlatform] : selected.platform !== pythonPlatform)) {
       ready = false;
       await onMetric({id: adapter + '-platform-artifacts', target: adapter, kind: 'size', required: true,
         status: 'incomplete', reason: 'Required ordinary artifacts absent for the actual selected OS/architecture'});
@@ -155,8 +157,8 @@ export async function releaseArtifacts({options, repository, source, command, on
       const installed = JSON.parse(result.stdout);
       assert.equal(installed.sourceSha, source.sha);
       assert.equal(installed.cohortSha256, digest(await readFile(path)));
-      assert.equal(installed.platform, platformKey);
-      assert.deepEqual(Object.keys(installed.packages).sort(), ['actql', '@actql/cli-' + platformKey].sort());
+      assert.equal(installed.platform, nativePlatform);
+      assert.deepEqual(Object.keys(installed.packages).sort(), ['actql', '@actql/cli-' + nativePlatform].sort());
       for (const row of Object.values(installed.packages)) {
         assert(Number.isSafeInteger(row.installedBytes) && row.installedBytes > 0);
         assert(Number.isSafeInteger(row.payloads) && row.payloads > 0);
@@ -224,7 +226,7 @@ export async function releaseArtifacts({options, repository, source, command, on
   return ready;
 }
 
-export async function releaseMeasurements({options, prepared, repository, root, source, command, onMetric}) {
+export async function releaseMeasurements({options, prepared, repository, root, source, command, onMetric, onPythonMetric = onMetric}) {
   const env = {platform: platform(), arch: arch(), osRelease: release(), node: process.version,
     cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
   if (!options.nodeControls) {
@@ -272,14 +274,23 @@ export async function releaseMeasurements({options, prepared, repository, root, 
       await onMetric({id: operation, target: adapter, kind: 'latency', required: true, status: 'incomplete', reason: 'Matching ordinary Python venv absent'}); continue;
     }
     const output = join(root, `formal-${adapter}-${operation}`);
+    const evidence = join(output, 'measurements.json');
     const interpreter = adapter === 'python' ? join(options.pythonVenv, 'bin/python') : options.python ?? 'python3';
     await command(interpreter, ['-I', '-B', join(repository, 'scripts/benchmark-ordinary-processes.py'),
       '--adapter', adapter, '--manifest', options[adapter + 'Manifest'], '--consumer', options[adapter + 'Consumer'],
       '--source', source.sha, '--output', output, '--operation', operation, '--mode', 'final',
       '--load', options.load ?? 'concurrent', ...(adapter === 'python' ? ['--venv', options.pythonVenv] : [])],
     {cwd: repository, name: `formal-${adapter}-${operation}`, timeout: 0});
-    const raw = JSON.parse(await readFile(join(output, 'measurements.json')));
-    if (adapter === 'python') assertPythonCollectorRuntime(raw, pythonRuntime);
+    const evidenceBytes = await readFile(evidence);
+    const raw = JSON.parse(evidenceBytes);
+    const originalPythonCohort = await readFile(options.pythonManifest);
+    const originalManifest = JSON.parse(originalPythonCohort.toString('utf8'));
+    const releaseProfile = pythonReleaseLatencyApplies(originalManifest.package_version);
+    assert.equal(raw.sourceSha, source.sha, 'Foreign Python collector source');
+    assert.equal(raw.cohortSha256, digest(originalPythonCohort), 'Foreign Python collector cohort');
+    assert.equal(raw.executionPath, 'python-sdk', 'Expected the ordinary Python SDK collector');
+    assert.equal(raw.protocol?.operation, operation, 'Foreign Python collector operation');
+    assertPythonCollectorRuntime(raw, pythonRuntime);
     if (adapter === 'python' && pythonControls) {
       assert.equal(pythonControls.sourceSha, source.sha);
       assert.equal(pythonControls.cohortSha256, digest(await readFile(options.pythonManifest)));
@@ -291,15 +302,23 @@ export async function releaseMeasurements({options, prepared, repository, root, 
           resultStorageMatch: pythonControls.resultStorageMatches?.[operation]});
       }
     }
-    raw.assessments = raw.latency.map(series => assessLatency(series, adapter === 'python' ? pythonControls?.comparison : undefined));
+    raw.assessments = raw.latency.map(series => {
+      assert.equal(series.operation, operation, 'Foreign Python Health series');
+      const assess = releaseProfile ? assessPythonOrdinaryLatency : assessLatency;
+      return assess(series, pythonControls?.comparison);
+    });
     const assessmentPath = join(output, 'health-assessments.json');
     await writeFile(assessmentPath, JSON.stringify({sourceSha: source.sha, assessments: raw.assessments,
+      ...(releaseProfile ? {latencyProfile: pythonReleaseLatencyProfile} : {}), cohortSha256: raw.cohortSha256,
       ...(adapter === 'python' ? {pythonRuntime} : {}),
       controlsSha256: adapter === 'python' && options.pythonControls ? digest(await readFile(options.pythonControls)) : null}, null, 2), {flag: 'wx'});
     const verdict = formalCollectorVerdict(raw);
-    for (const series of raw.latency) await onMetric({id: operation, target: adapter, kind: 'latency', required: true,
+    const emitMetric = releaseProfile ? onPythonMetric : onMetric;
+    const originalEvidence = {cohortSha256: raw.cohortSha256, evidenceSha256: digest(evidenceBytes)};
+    for (const series of raw.latency) await emitMetric({id: operation, target: adapter, kind: 'latency', required: true,
       unit: 'ms', temperature: operation.startsWith('warm-') ? 'warm' : 'cold', requiredSamples: operation.startsWith('warm-') ? 100 : 30,
-      fixtureSha256: series.fixtureSha256, samples: series.samples, evidence: join(output, 'measurements.json'),
-      formalAssessments: assessmentPath, ...verdict});
+      fixtureSha256: series.fixtureSha256, samples: series.samples, evidence,
+      formalAssessments: assessmentPath, ...(releaseProfile ? {evidenceSha256: originalEvidence.evidenceSha256} : {}),
+      ...verdict}, originalEvidence);
   }
 }

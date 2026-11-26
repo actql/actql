@@ -5,10 +5,11 @@ name: CI
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
-  push:
-    branches: [main]
   schedule:
-    - cron: '23 3 * * 1'
+    - cron: '17 6,12,18 * * *'
+    - cron: '17 0 * * 0,2-6'
+    # The Monday 00:17 UTC slot includes the weekly formal Mock campaign.
+    - cron: '17 0 * * 1'
   workflow_dispatch:
     inputs:
       packed_query_evidence_probe:
@@ -79,9 +80,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || inputs.native_shared_remote_linux && 'linux-shared-remote' || 'normal' }}
-  # Keep the active main integration; GitHub retains only the latest pending run.
-  # Branch and performance groups cannot cancel normal main integration.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || inputs.native_shared_remote_linux && 'linux-shared-remote' || github.event_name == 'schedule' && 'schedule' || 'normal' }}
+  # Keep active main integration runs. Scheduled and manual runs queue separately.
   cancel-in-progress: ${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}
 
 # Public repository validation uses only read permissions. Private/unknown
@@ -1506,6 +1506,7 @@ jobs:
           command -v lsof
           npm ci --prefix packages/provider-ai-sdk --ignore-scripts
           node scripts/local-checks.mjs test node --timeout-seconds 180 --kill-grace-seconds 5 -- adapters/host-node/normal-openai-http.actual.test.mjs
+          node scripts/local-checks.mjs test node --timeout-seconds 180 --kill-grace-seconds 5 -- adapters/host-node/infer-original-http-common.test.mjs
       - name: Test bounded retained storage and process lifecycle
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/local-node/managed-output-custody.test.mjs adapters/host-common/run-publication-preflight-capacity.test.mjs adapters/host-common/publication-global-capacity.test.mjs adapters/store-local/files.test.mjs adapters/store-local/shared-read.test.mjs adapters/store-local/delegated-file.test.mjs adapters/store-local/direct-file.test.mjs adapters/store-local/managed-manifest.test.mjs adapters/store-local/managed-representations.test.mjs adapters/store-local/managed-memory-transfer.test.mjs adapters/store-local/publication-store.test.mjs adapters/store-local/physical-retirement-owner.test.mjs adapters/store-local/publication-commit-owner.test.mjs adapters/store-local/process-service.test.mjs adapters/store-local/process-client.test.mjs adapters/store-local/row-frames.test.mjs adapters/store-local/representations.test.mjs adapters/local-node/retained-input.test.mjs adapters/local-node/retained-output.test.mjs adapters/local-node/carrier-snapshot.test.mjs adapters/local-node/strategy-bundle.test.mjs adapters/local-node/finalization-diagnostic.test.mjs adapters/host-common/execution-sites.test.mjs adapters/host-common/managed-site-transfer.test.mjs adapters/host-common/managed-failure.test.mjs adapters/host-node/client-dispatch-original-failure.test.mjs adapters/host-node/dispatch-failure-observation.test.mjs adapters/host-node/client-original-plan-control.test.mjs adapters/host-common/publication-contract-control.fixture.test.mjs adapters/host-node/managed-identity-policy.test.mjs adapters/host-node/process-frames.test.mjs adapters/host-node/process-channel.test.mjs adapters/host-node/host-service.test.mjs adapters/host-node/completion-custody.test.mjs adapters/store-local/publication-capacity.test.mjs adapters/store-local/prepared-custody-queue.test.mjs
@@ -1753,10 +1754,10 @@ jobs:
             ${{ runner.temp }}/client-readme-packed/dependency-boundary/*/*.source-progress.json
           if-no-files-found: error
           retention-days: 7
-  # Require the existing push-only monitor result; its timing warnings remain nonblocking.
+  # Require the scheduled monitor result; its timing warnings remain nonblocking.
   health-quick:
     needs: [select-targets, client-packages]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && needs.select-targets.result == 'success' && needs.select-targets.outputs.profile != 'documentation' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && needs.select-targets.result == 'success' && needs.select-targets.outputs.profile == 'full' && github.event_name == 'schedule' && github.ref == 'refs/heads/main' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     uses: ./.github/workflows/health-monitor.yml
     permissions:
       contents: read
@@ -1767,7 +1768,7 @@ jobs:
       package-artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
   # Reuse the normal producer; this small trend lane is not the release matrix.
   main-performance:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && ((github.event_name == 'push' && github.ref == 'refs/heads/main' && needs['select-targets'].outputs.profile != 'documentation') || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs['select-targets'].outputs.profile == 'full')) }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs['select-targets'].outputs.profile == 'full' && ((github.event_name == 'schedule' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)) }}
     needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -2673,13 +2674,15 @@ jobs:
                           data = response.read(original['bytes'] + 1)
                       break
                   except (urllib.error.URLError, ConnectionResetError, TimeoutError) as error:
+                      http_error = isinstance(error, urllib.error.HTTPError)
                       reason = error.reason if isinstance(error, urllib.error.URLError) else error
+                      transient = error.code in (502, 503) if http_error else isinstance(reason, (ConnectionResetError, TimeoutError))
                       delay = attempt + 1
-                      if (isinstance(error, urllib.error.HTTPError)
-                              or not isinstance(reason, (ConnectionResetError, TimeoutError))
-                              or attempt == 2 or delay >= deadline - time.monotonic()):
+                      if not transient or attempt == 2 or delay >= deadline - time.monotonic():
                           error.add_note(f"Original component archive: {destination.name} ({original['url']})")
                           raise
+                      if http_error:
+                          error.close()
                       last_failure = error
                       time.sleep(delay)
               assert len(data) == original['bytes'] and hashlib.sha256(data).hexdigest() == original['sha256']
@@ -2871,17 +2874,17 @@ jobs:
             > "$RUNNER_TEMP/native-cli-linux-local/approval/source.json"
       - name: Require both complete installed Mock workflows and ordinary maximum smoke
         id: functional_profile
-        if: github.event_name != 'schedule'
+        if: github.event.schedule != '17 0 * * 1'
         timeout-minutes: 5
         run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
       - name: Require installed Native Mock updates across one shared file
         id: shared_file_mock
-        if: github.event_name != 'schedule'
+        if: github.event.schedule != '17 0 * * 1'
         timeout-minutes: 5
         run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release" --shared-file-mock
       - name: Require thirty complete approvals per original Mock workflow on the weekly schedule
         id: approval_profile
-        if: github.event_name == 'schedule'
+        if: github.event.schedule == '17 0 * * 1'
         run: |
           node scripts/test-native-approval-performance.mjs \
             --normal "$RUNNER_TEMP/native-cli-linux-local/release" \
@@ -3175,6 +3178,9 @@ jobs:
             }
           '
   check:
+    # A successful (or skipped) job under the required name can satisfy branch
+    # protection. Never publish Draft-only evidence under that name.
+    name: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == true && 'draft-preparation' || 'check' }}
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && !inputs.native_shared_remote_linux }}
     needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native-cli-linux-local-installed, native-cli-linux-local-mock, native, spec, session-evidence, session-controls, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]
@@ -3517,10 +3523,22 @@ jobs:
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - name: Install existing scoped component producer dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
-      - name: Install isolated network tools
+      - name: Ensure isolated network tools are available
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes iproute2 iptables curl
+          network_tools_available() {
+            local tool path
+            for tool in ip iptables curl; do
+              path="$(type -P "$tool")" && test -f "$path" && test -x "$path" || return 1
+            done
+          }
+
+          if ! network_tools_available; then
+            sudo timeout --kill-after=5s 120s bash -ec '
+              apt-get update
+              apt-get install --yes iproute2 iptables curl
+            '
+            network_tools_available
+          fi
       - name: Select the original pinned Noble static Crypto inputs
         timeout-minutes: 5
         run: |

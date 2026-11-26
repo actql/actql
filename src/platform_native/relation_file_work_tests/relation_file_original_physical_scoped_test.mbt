@@ -258,6 +258,9 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
   // The publication-refusal closure borrows the SAME Work once. This is one
   // central-tariff reference slot, not physical backing or a larger policy.
   let publication_failure_borrow = 8L
+  let export_vectors = 6L * 16L + 32L * 8L + 4L * 8L
+  // Staged completion (H1/R1/W1) and the Work's Whole evidence slot (R1).
+  let staged_work = 16L + 2L * 8L + 8L
   for
     (
       page,
@@ -333,11 +336,19 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
     ).unwrap()
     assert_eq(
       @execution.execution_capacity_retained_bytes(work),
-      work_without_source_tag + single_source_tag + publication_failure_borrow,
+      work_without_source_tag +
+      single_source_tag +
+      publication_failure_borrow +
+      export_vectors +
+      staged_work,
     )
     assert_eq(
       @execution.execution_capacity_execution_bytes(work),
-      work_without_source_tag + single_source_tag + publication_failure_borrow,
+      work_without_source_tag +
+      single_source_tag +
+      publication_failure_borrow +
+      export_vectors +
+      staged_work,
     )
     assert_eq(@execution.execution_capacity_retained_bytes(read), read_bytes)
     assert_eq(@execution.execution_capacity_execution_bytes(read), read_bytes)
@@ -916,7 +927,7 @@ fn relation_original_run(
           .return_business_to_original_read()
           .relation_original_value("active Work return for scope refusal")
           assert_true(
-            work.prepare_result_export(export_limits)
+            work.prepare_result_exports(export_limits)
             is Err(@client.OriginalRunNotCurrent),
           )
           assert_false(work.close())
@@ -934,10 +945,11 @@ fn relation_original_run(
           .enter_business_from_original_read()
           .relation_original_value("same Work business reentry")
           let exported = work
-            .prepare_result_export(export_limits)
+            .prepare_result_exports(export_limits)
             .relation_original_value("actual final output export")
-          assert_true(relation_original_export_matches(exported))
-          exported.cancel()
+          assert_eq(exported.length(), 1)
+          assert_true(relation_original_export_matches(exported[0]))
+          exported[0].cancel()
           assert_eq(
             original_entry.usage().attempts,
             @strategy.graph_task_count(@host.prepared_client_graph(prepared)),
@@ -1035,7 +1047,7 @@ fn relation_original_run(
       // products. Their refusal Results are preowned inert entry fields.
       if escaped_work.val is Some(work) {
         assert_true(
-          work.prepare_result_export(export_limits)
+          work.prepare_result_exports(export_limits)
           is Err(@client.OriginalRunNotCurrent),
         )
         assert_false(work.close())

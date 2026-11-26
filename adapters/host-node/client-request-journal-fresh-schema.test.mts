@@ -94,62 +94,35 @@ function retainOriginalRun(database: DatabaseSync) {
   database.exec('UPDATE client_submission_custody SET issued_count=1 WHERE singleton=1');
 }
 
-for (const version of [0, 1, 2]) {
-  test(`existing Journal v${version} refuses before opening the writable original`, async () => {
-    const {scratch, directory} = await fixture();
-    openClientRequestJournal(directory).close();
-    inspectDatabase(directory, database => {
-      retainOriginalRun(database);
-      // Old private v1/v2 counters used the smaller per-table byte bound.
-      for (const table of ['client_submitted_intent_usage', 'client_submission_restart_usage']) {
-        const triggers = database.prepare('SELECT name,sql FROM sqlite_schema WHERE tbl_name=? AND type=?')
-          .all(table.includes('intent') ? 'client_submitted_intents' : 'client_submission_restarts', 'trigger')
-          .filter(row => (row.name as string).startsWith(table + '_'));
-        assert.equal(triggers.length, 3);
-        for (const {name} of triggers) database.exec(`DROP TRIGGER ${name}`);
-        database.exec(`DROP TABLE ${table}`);
-        if (version > 0) {
-          database.exec(`CREATE TABLE ${table} (
-            singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
-            retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991),
-            retained_bytes INTEGER NOT NULL CHECK (retained_bytes >= 0 AND retained_bytes <= 67108864),
-            revision INTEGER NOT NULL CHECK (revision >= 0 AND revision <= 9007199254740991)
-          ) STRICT; INSERT INTO ${table} VALUES (1, 0, 0, 0);`);
-          for (const {sql} of triggers) database.exec(sql as string);
-        }
-      }
-      if (version < 2) {
-        for (const table of ['client_request_row_usage', 'client_cancellation_row_usage']) {
-          for (const suffix of ['insert', 'delete']) database.exec(`DROP TRIGGER ${table}_${suffix}`);
-          database.exec(`DROP TABLE ${table}`);
-        }
-      }
-      database.exec(`PRAGMA user_version = ${version}`);
-    });
-    const before = retainedDirectory(directory);
-    const originalOpen = DatabaseSync.prototype.open;
-    const originalFile = join(fs.realpathSync(directory), 'client-requests.sqlite3');
-    let writableOriginalOpens = 0;
-    DatabaseSync.prototype.open = function (...args) {
-      const opened = Reflect.apply(originalOpen, this, args);
-      if (this.location('main') === originalFile) writableOriginalOpens++;
-      return opened;
-    };
-    try {
-      assert.throws(() => openClientRequestJournal(directory, selectedSchema), {code: 'LegacyClientRequestJournalFormat'});
-    } finally {
-      DatabaseSync.prototype.open = originalOpen;
-    }
-    assert.equal(writableOriginalOpens, 0);
-    assert.deepEqual(retainedDirectory(directory), before);
-    inspectDatabase(directory, database => {
-      assert.equal(database.prepare('PRAGMA user_version').get()!.user_version, version);
-      assert.equal(database.prepare('SELECT caller_request_id FROM client_requests').get()!.caller_request_id,
-        'retained-original');
-    });
-    scratch.passed();
+test('existing Journal with an unsupported schema refuses before opening the writable original', async () => {
+  const {scratch, directory} = await fixture();
+  openClientRequestJournal(directory).close();
+  inspectDatabase(directory, database => {
+    retainOriginalRun(database);
+    database.exec('DROP TABLE client_keyed_lookup_originals');
   });
-}
+  const before = retainedDirectory(directory);
+  const originalOpen = DatabaseSync.prototype.open;
+  const originalFile = join(fs.realpathSync(directory), 'client-requests.sqlite3');
+  let originalOpens = 0;
+  DatabaseSync.prototype.open = function (...args) {
+    const opened = Reflect.apply(originalOpen, this, args);
+    if (this.location('main') === originalFile) originalOpens++;
+    return opened;
+  };
+  try {
+    assert.throws(() => openClientRequestJournal(directory, selectedSchema), {code: 'UnknownClientRequestJournalFormat'});
+  } finally {
+    DatabaseSync.prototype.open = originalOpen;
+  }
+  assert.equal(originalOpens, 0);
+  assert.deepEqual(retainedDirectory(directory), before);
+  inspectDatabase(directory, database => {
+    assert.equal(database.prepare('SELECT caller_request_id FROM client_requests').get()!.caller_request_id,
+      'retained-original');
+  });
+  scratch.passed();
+});
 
 test('owned Journal reopens a current original without a database or WAL copy', async () => {
   const {scratch, directory} = await fixture();
@@ -184,18 +157,17 @@ test('owned Journal reopens a current original without a database or WAL copy', 
   scratch.passed();
 });
 
-test('owned Journal refuses the v2 SQLite version in its retained WAL before opening the original', async () => {
+test('owned Journal refuses the unsupported schema in its retained WAL before opening the original', async () => {
   const {scratch, directory} = await fixture();
   const owner = await prepareLocalPublicationStoreOwnership(join(scratch.path, 'publication'));
   openClientRequestJournal(directory, {}, owner).close();
   const original = new DatabaseSync(join(directory, 'client-requests.sqlite3'));
   try {
-    assert.equal(databaseBytes(directory).readUInt32BE(60), 3);
-    original.exec('PRAGMA wal_autocheckpoint=0; PRAGMA user_version=2');
+    original.exec('PRAGMA wal_autocheckpoint=0; DROP TABLE client_keyed_lookup_originals');
     assert.ok(fs.statSync(join(directory, 'client-requests.sqlite3-wal')).size > 0);
     assert.ok(fs.statSync(join(directory, 'client-requests.sqlite3-shm')).size > 0);
-    assert.equal(databaseBytes(directory).readUInt32BE(60), 3);
-    assert.equal(original.prepare('PRAGMA user_version').get()!.user_version, 2);
+    assert.equal(original.prepare(
+      "SELECT name FROM sqlite_schema WHERE name='client_keyed_lookup_originals'").get(), undefined);
     const before = retainedDirectory(directory);
     const originalOpen = DatabaseSync.prototype.open;
     const originalFile = join(fs.realpathSync(directory), 'client-requests.sqlite3');
@@ -206,7 +178,7 @@ test('owned Journal refuses the v2 SQLite version in its retained WAL before ope
       return opened;
     };
     try {
-      assert.throws(() => openClientRequestJournal(directory, selectedSchema, owner), {code: 'LegacyClientRequestJournalFormat'});
+      assert.throws(() => openClientRequestJournal(directory, selectedSchema, owner), {code: 'UnknownClientRequestJournalFormat'});
     } finally { DatabaseSync.prototype.open = originalOpen; }
     assert.equal(originalOpens, 0);
     assert.deepEqual(retainedDirectory(directory), before);
@@ -217,7 +189,7 @@ test('owned Journal refuses the v2 SQLite version in its retained WAL before ope
   scratch.passed();
 });
 
-test('owned Journal does not recreate missing SHM while refusing a retained v2 WAL', async () => {
+test('owned Journal does not recreate missing SHM while refusing a retained WAL with an unsupported schema', async () => {
   const {scratch, directory} = await fixture();
   const owner = await prepareLocalPublicationStoreOwnership(join(scratch.path, 'publication'));
   try {
@@ -226,7 +198,7 @@ test('owned Journal does not recreate missing SHM while refusing a retained v2 W
     const child = spawnSync(process.execPath, ['--input-type=module', '-e', `
       import {DatabaseSync} from 'node:sqlite';
       const original = new DatabaseSync(process.argv[1]);
-      original.exec('PRAGMA wal_autocheckpoint=0; PRAGMA user_version=2');
+      original.exec('PRAGMA wal_autocheckpoint=0; DROP TABLE client_keyed_lookup_originals');
       // Exit with the original committed SQLite WAL separate from the DB.
       process.exit(0);
     `, databasePath], {encoding: 'utf8', timeout: 10000});
@@ -235,7 +207,7 @@ test('owned Journal does not recreate missing SHM while refusing a retained v2 W
     assert.ok(fs.statSync(databasePath + '-wal').size > 0);
     fs.unlinkSync(databasePath + '-shm');
     const before = retainedDirectory(directory);
-    assert.throws(() => openClientRequestJournal(directory, selectedSchema, owner), {code: 'LegacyClientRequestJournalFormat'});
+    assert.throws(() => openClientRequestJournal(directory, selectedSchema, owner), {code: 'UnknownClientRequestJournalFormat'});
     assert.deepEqual(retainedDirectory(directory), before);
   } finally {
     assert.equal((await closePreparedLocalPublicationStoreOwnership(owner)).pending, false);
@@ -243,7 +215,7 @@ test('owned Journal does not recreate missing SHM while refusing a retained v2 W
   scratch.passed();
 });
 
-test('Journal rejects current header with a missing original lookup or a foreign trigger definition', async () => {
+test('Journal rejects the current marker with a missing original lookup or a foreign trigger definition', async () => {
   for (const table of ['client_keyed_lookup_originals', 'client_cancellation_row_usage_insert']) {
     const {scratch, directory} = await fixture();
     openClientRequestJournal(directory).close();
@@ -253,7 +225,6 @@ test('Journal rejects current header with a missing original lookup or a foreign
       else database.exec(`DROP TRIGGER client_cancellation_row_usage_insert;
         CREATE TRIGGER client_cancellation_row_usage_insert AFTER INSERT ON client_cancellation_operations
           BEGIN SELECT 1; END;`);
-      assert.equal(database.prepare('PRAGMA user_version').get()!.user_version, 3);
     });
     const before = retainedDirectory(directory);
     assert.throws(() => openClientRequestJournal(directory), {code: 'UnknownClientRequestJournalFormat'});
@@ -315,15 +286,14 @@ for(const stage of ['before-commit','after-commit','partial-markers','after-dire
     assert.equal(child.status,73,child.stderr);
     const before=databaseBytes(directory),entries=fs.readdirSync(directory).sort();
     const committed=stage==='after-directory-ack' ? inspectDatabase(directory,database=>({
-      schema:schema(database),version:database.prepare('PRAGMA user_version').get()!.user_version,
+      schema:schema(database),
       tables:schema(database).filter(row=>row.type==='table').map(({name})=>({name,
         rows:database.prepare(`SELECT * FROM "${(name as string).replaceAll('"','""')}"`).all()})),
     })) : undefined;
     let journal: CloseableJournal | undefined;
     try {
       if(stage==='after-directory-ack')journal=openClientRequestJournal(directory);
-      else assert.throws(()=>{journal=openClientRequestJournal(directory);},{code:
-        stage==='partial-markers'?'UnknownClientRequestJournalFormat':'LegacyClientRequestJournalFormat'});
+      else assert.throws(()=>{journal=openClientRequestJournal(directory);},{code:'UnknownClientRequestJournalFormat'});
     } finally {journal?.close();}
     if(stage!=='after-directory-ack'){
       assert.equal(digest(databaseBytes(directory)),digest(before));
@@ -332,7 +302,7 @@ for(const stage of ['before-commit','after-commit','partial-markers','after-dire
       // A completed directory ACK permits reopening the exact committed
       // schema and rows. SQLite may checkpoint its physical WAL on reopen.
       assert.deepEqual(inspectDatabase(directory,database=>({
-        schema:schema(database),version:database.prepare('PRAGMA user_version').get()!.user_version,
+        schema:schema(database),
         tables:schema(database).filter(row=>row.type==='table').map(({name})=>({name,
           rows:database.prepare(`SELECT * FROM "${(name as string).replaceAll('"','""')}"`).all()})),
       })),committed);

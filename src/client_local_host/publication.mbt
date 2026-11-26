@@ -15,6 +15,7 @@ pub(all) enum LocalValuesResultExportIssue {
   Bridge(@execution.ManagedProducerBridgeIssue)
   Export(@publication_host.PublicationOutputExportIssue)
   Transformation(@publication_host.CapturedClientResultTransformationIssue)
+  Preparation(ClientClosedValuesPreparationIssue)
 }
 
 ///|
@@ -29,6 +30,7 @@ pub fn LocalValuesExecution::prepare_result_export(
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
   publication? : ClientProgramPublication? = None,
+  fund_additional_bridge? : Bool = false,
 ) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue] {
   if !self.available.val {
     return Err(MissingOutput)
@@ -46,13 +48,51 @@ pub fn LocalValuesExecution::prepare_result_export(
   guard self.publication_original_for_task(task) is Some((operations, managed)) else {
     return Err(MissingOutput)
   }
+  let copy_quote : (
+    ClientProgramPublication,
+    Ref[ClientClosedValuesPreparationIssue?],
+  )? = if fund_additional_bridge {
+    guard publication is Some(original) else {
+      return Err(Preparation(ForeignOriginal))
+    }
+    Some((original, Ref(None)))
+  } else {
+    None
+  }
+  // This bridge can overlap an earlier completed Result bridge. Charge its
+  // actual copied prefix to the existing publication borrower before decoding;
+  // only the decoder workspace is a serial peak.
+  let reserve_row_copy = match copy_quote {
+    None => None
+    Some((owner, failure)) =>
+      Some((retained, decoder) => {
+        match reserve_publication_constructor(owner, retained, decoder) {
+          Ok(_) => true
+          Err(issue) => {
+            failure.val = Some(issue)
+            false
+          }
+        }
+      })
+  }
   let (bridge, output) = match
-    self.prepare_publication_bridge_for_original(
-      operations, managed, row_limits, bridge_max_entries, bridge_max_name_bytes,
+    prepare_publication_bridge_for_original(
+      self.available,
+      operations,
+      managed,
+      row_limits,
+      bridge_max_entries,
+      bridge_max_name_bytes,
       limits,
+      reserve_row_copy~,
     ) {
     Ok(value) => value
-    Err(MissingOutput) => return Err(MissingOutput)
+    Err(MissingOutput) => {
+      if copy_quote is Some((_, failure)) && failure.val is Some(issue) {
+        return Err(Preparation(issue))
+      }
+      return Err(MissingOutput)
+    }
     Err(Bridge(issue)) => return Err(Bridge(issue))
   }
   let stream = match publication {
@@ -163,7 +203,8 @@ pub fn LocalValuesExecution::prepare_captured_result_export(
       .map(stream => { stream, bridge: None, closed: false, })
   }
   let (bridge, output) = match
-    self.prepare_publication_bridge_for_original(
+    prepare_publication_bridge_for_original(
+      self.available,
       operations,
       managed,
       row_limits,
@@ -358,8 +399,8 @@ fn reserve_publication_bridge_row_copy(
 // Conversion keeps the selected operations and SAME managed completion
 // together across material/row callbacks. No second task lookup can replace
 // that generation. An optional Host funding boundary precedes row decoding.
-fn LocalValuesExecution::prepare_publication_bridge_for_original(
-  self : LocalValuesExecution,
+fn prepare_publication_bridge_for_original(
+  available : Ref[Bool],
   operations : @local_driver.LocalManagedDispatchOperations[Int],
   completed : @execution.ManagedCompletedOutput[Int],
   row_limits : @execution.RetainedRowDecodeLimits,
@@ -372,7 +413,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
   (@execution.ManagedPublicationBridge[Int], @execution.CompletedOutput),
   LocalValuesPublicationBridgeIssue,
 ] {
-  if !self.available.val {
+  if !available.val {
     return Err(MissingOutput)
   }
   guard (operations.material)() is Some(material) else {
@@ -405,7 +446,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
         )
         is Some(start) &&
         reserve(start, 0L) &&
-        self.available.val else {
+        available.val else {
         return Err(MissingOutput)
       }
       Some((imports, reserve))
@@ -472,7 +513,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
     }
     // The Host's storage callback can reenter retirement. Keep this cheap
     // execution fence in addition to the bridge's original material checks.
-    if !self.available.val {
+    if !available.val {
       @execution.close_managed_publication_bridge(bridge)
       return Err(MissingOutput)
     }

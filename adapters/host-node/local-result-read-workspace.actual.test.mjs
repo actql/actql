@@ -10,6 +10,7 @@ import {createHash} from 'node:crypto';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
+import {CapturedRunExecutionError} from './entry.mjs';
 import {createLocalResultReadWorkspace} from './local-result-read-workspace.mjs';
 import {createLocalResultAuthorization} from './local-result-authorization.mjs';
 import {sourceReadAccountConfiguration} from './local-account-config.mjs';
@@ -125,6 +126,30 @@ test('equal Result DATA has distinct concurrent READ parents and failed physical
   assert.deepEqual(await o.workspace.closeAll(), {pending: false});
   assert.deepEqual(o.reserved(o.parents[1]), [0n, 0n]);
   assert.equal(retries, 1, 'already acknowledged original cleanup is not repeated');
+});
+
+test('an execution refusal with no pending child returns the actual control Read', async () => {
+  const o = owner(), request = Object.freeze({operation: 'resume-run'});
+  o.workspace.begin(request);
+  o.workspace.metadata(request, 4096);
+  const primary = Object.assign(new Error('Original restore Work limit'), {code: 'MoonBitHostFailure'});
+  const refusal = new CapturedRunExecutionError({failure: primary});
+  assert.equal(refusal.primaryFailure, primary);
+  assert.equal(refusal.cleanupPending, false);
+  assert.equal(Object.getOwnPropertyDescriptor(refusal, 'cleanupHandle')?.value, undefined);
+  o.workspace.close(request, refusal);
+  assert.deepEqual(await o.workspace.closeAll(), {pending: false});
+  assert.deepEqual(o.reserved(o.parents[0]), [0n, 0n]);
+});
+
+test('an execution refusal with missing required cleanup retains the actual control Read', async () => {
+  const o = owner(), request = Object.freeze({operation: 'resume-run'});
+  o.workspace.begin(request);
+  o.workspace.metadata(request, 4096);
+  const refusal = new CapturedRunExecutionError({failure: {cleanupPending: true}});
+  o.workspace.close(request, refusal);
+  assert.deepEqual(await o.workspace.closeAll(), {pending: true});
+  assert(o.reserved(o.parents[0]).every(bytes => bytes > 0n));
 });
 
 test('actual READ capacity refusal precedes output without an unfunded fallback', async () => {

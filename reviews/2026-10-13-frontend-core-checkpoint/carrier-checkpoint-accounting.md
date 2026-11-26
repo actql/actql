@@ -33,10 +33,9 @@ the existing typed GraphIssue on an unexpected rejection.
 
 The separate Graph Plan assertion used historical AoA CID
 `sha256:08826f64b2224dc908b42b6fbb94b1c1e989c6e8f64185d36c108028ff4e0b45`.
-Its current expected CID is independently hashed from sorted-key normative
-`spec/contracts/actql-aoa.json` (52,055 ASCII bytes), using Node crypto and no
-compiler/runtime APIs. The independent Node test fixes both this preimage byte
-count and CID. It is not an expectation copied from the compiled plan. Old Git
+At that checkpoint, the expected CID was independently hashed from the sorted
+keys of `spec/contracts/actql-aoa.json` (52,055 ASCII bytes), using Node crypto.
+The review's Node test fixed both that preimage byte count and CID. It is not an expectation copied from the compiled plan. Old Git
 source and original failed receipts retain the previous assertion unchanged.
 
 `run-QqowxR` retained 13/23 passes. The typed diagnostic overlay, original
@@ -46,7 +45,9 @@ actual terminal/Owner/lock closure is separately retained. `run-tCxxfx` executed
 zero cases due to the diagnostic helper initially using Show rather than Debug.
 Final clean-source results are recorded separately; these failures are not PASS.
 
-Run `node reviews/2026-10-13-frontend-core-checkpoint/carrier-prepared-checks.mjs`
-with the pinned toolchain: existing nonzero wrapper, 60s / TERM5, non-Heavy.
+The checkpoint used a one-time local recipe with the pinned toolchain and a
+60-second bound. The five Carrier and Graph Plan fixtures remain in the regular
+MoonBit suite, and current schema checks use the current contract.
+[Original review recipe](https://github.com/actql/actql/blob/2239f00fbab09c03b31484bc15c64065d8064ec3/reviews/2026-10-13-frontend-core-checkpoint/carrier-prepared-checks.mjs)
 Installed public E2E, full Core, Heavy, Native/Wasm execution, package/provider
 campaign and Hosted CI: **0**. Other original frontend checkpoint cases remain open.

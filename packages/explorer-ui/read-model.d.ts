@@ -112,5 +112,5 @@ export function expectedStoryPortColumns(
   step: ExplanationStoryModel['occurrences'][number], port: Step['ports'][number] | undefined,
 ): readonly string[] | undefined;
 export function storySamplePorts(step: Pick<Step, 'ports'>): readonly Step['ports'][number][];
-export function sampleCaptureCaption(capture: WireSampleCapture): string;
+export function sampleCaptureCaption(capture: WireSampleCapture, locale?: 'en' | 'ja'): string;
 export function sampleCellPreview(text: string): string;

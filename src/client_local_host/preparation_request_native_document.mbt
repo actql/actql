@@ -467,6 +467,14 @@ pub fn[I] request_prepared_static_plan_view(
       return Err(Preparation(ForeignOriginal))
     }
     Effect
+  } else if owner.phase == ProgramPlanReserved &&
+    owner.compiled_program is Some(_) &&
+    !owner.program_body_attempted {
+    // Node retains the original inventory borrow during this metadata read.
+    guard owner.input is Some(original) && physical_equal(original, input) else {
+      return Err(Preparation(ForeignOriginal))
+    }
+    Pure
   } else {
     match request_prepared_computation_kind(owner, input) {
       Err(issue) => return Err(Preparation(issue))
@@ -519,9 +527,8 @@ pub fn[I] request_prepared_static_plan_view(
       match kind {
         Pure => {
           let prepared = owner.compiled_program.unwrap()
-          if @publication_host.prepared_client_acquisition_count(prepared) != 0 {
-            return Err(Preparation(Policy))
-          }
+          // Only compile the checked task graph. Acquisitions are described
+          // by the Plan and do not construct a module or start a Source.
           let compiled = match
             @publication_host.issue_prepared_client_task_compilation(
               prepared,

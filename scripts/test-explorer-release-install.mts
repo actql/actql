@@ -22,11 +22,12 @@ type ConsumerPackage = {version?: string; bin?: unknown; dependencies?: Record<s
 const [input, selection, evidenceInput] = process.argv.slice(2);
 const savedContext = selection === '--saved-context';
 const beforeRun = selection === '--before-run';
+const dealReview = selection === '--deal-review';
 const stop = selection === '--stop';
-const interactive = savedContext || beforeRun;
+const interactive = savedContext || beforeRun || dealReview;
 const hasEvidenceDirectory = interactive || stop;
 assert(input && (process.argv.length === 3 || hasEvidenceDirectory && evidenceInput && process.argv.length === 5),
-  'usage: test-explorer-release-install.mjs <Explorer-RC-directory> [--saved-context|--before-run|--stop <evidence-directory>]');
+  'usage: test-explorer-release-install.mjs <Explorer-RC-directory> [--saved-context|--before-run|--deal-review|--stop <evidence-directory>]');
 const directory = resolve(input);
 const evidence = evidenceInput === undefined ? directory : resolve(evidenceInput);
 const harness = hasEvidenceDirectory ? checkoutState(fileURLToPath(new URL('../', import.meta.url))) : undefined;
@@ -36,7 +37,9 @@ if (harness) {
 }
 const manifest = await verifyPackageRelease(directory);
 assert.equal(manifest.cohort.version, 'actql-explorer-release-cohort/0.1');
-if (stop) assert.equal(manifest.sourceSha, harness!.revision, 'Stop acceptance requires an exact source package cohort');
+if (stop || dealReview) {
+  assert.equal(manifest.sourceSha, harness!.revision, 'Acceptance requires an exact source package cohort');
+}
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-explorer-install-',
   label: 'standalone Explorer fixed package installation'});
 const consumer = scratch.path, registry = await openReleaseTestRegistry([{directory, manifest}]);
@@ -95,8 +98,9 @@ try {
     const project = scaffoldProject(join(consumer, 'project'), savedContext ? 'churn-risk-mock' : 'deal-review-mock');
     const fixture = join(consumer, 'saved-context.mjs');
     await copyFile(new URL('./fixtures/packed-explorer-saved-context.mjs', import.meta.url), fixture);
-    for (const phase of savedContext ? ['produce', 'restore'] : ['before']) {
-      results.push(await run(process.execPath, [fixture, phase, project.directory, evidence]));
+    const phases = dealReview ? ['before', 'produce', 'restore'] : savedContext ? ['produce', 'restore'] : ['before'];
+    for (const phase of phases) {
+      results.push(await run(process.execPath, [fixture, phase, project.directory, evidence, ...(dealReview ? ['deal-review'] : [])]));
     }
   } else {
     results.push(await run(join(consumer, 'node_modules/.bin/actql-explorer'), ['--help']));

@@ -334,3 +334,26 @@ test "Request Whole domain does not revive its original after current loss" {
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "static JOIN Plan describes the original Sources without preparing a Run" {
+  let (parent, input, prepared, _) = request_whole_source_fixture()
+  assert_eq(@publication_host.prepared_client_acquisition_count(prepared), 2)
+  let before = parent.phase
+  let wire = request_prepared_static_plan_view(
+    parent,
+    input,
+    request_program_module_manifests(),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  assert_true(wire.contains("actql-plan-view/0.1"), msg=wire)
+  assert_true(wire.contains("\"compiled_plan_cid\""), msg=wire)
+  assert_true(!wire.contains("\"run_ref\""), msg=wire)
+  assert_true(parent.phase == before)
+  assert_true(parent.submitted_intent is None)
+  assert_true(!parent.program_body_attempted)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

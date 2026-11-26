@@ -1,0 +1,19 @@
+// Producer-time identities: lossless compact timestamp/PID encoding keeps the
+// actual scientific label intact while fitting the unchanged USTAR name field.
+import assert from 'node:assert/strict';
+import {partIds, logicalMutationNamesByPart} from './proof-parts.mjs';
+export const receiptSuffixes: readonly string[] = Object.freeze(['.json', '.inputs.json', '.fixture.mbt', '.log']);
+export function invocationIdentity(part: string = '', now: number = Date.now(), pid: number = process.pid): string {
+  assert(part === '' || partIds.includes(part) || Object.hasOwn(logicalMutationNamesByPart, part), 'Unknown pipeline part');
+  assert(Number.isSafeInteger(now) && now >= 0 && Number.isSafeInteger(pid) && pid > 0, 'Invalid invocation identity');
+  return part ? `${part}-${now.toString(36)}-${pid.toString(36)}` : `${now}-${pid}`;
+}
+export function receiptBasename(invocation: string, serial: number, label: string, target: string): string {
+  assert(/^[A-Za-z0-9-]+$/u.test(invocation));
+  assert(Number.isSafeInteger(serial) && serial >= 0 && serial <= 99999, 'Invalid receipt serial');
+  assert(/^[A-Za-z0-9_-]+$/u.test(label), 'Invalid receipt label');
+  assert(['js', 'wasm', 'native'].includes(target), 'Invalid receipt target');
+  const name = `${invocation}-${String(serial).padStart(4, '0')}-${label}-${target}`;
+  assert(receiptSuffixes.every(suffix => Buffer.byteLength(name + suffix) <= 100), 'Receipt basename exceeds USTAR name field');
+  return name;
+}

@@ -41,11 +41,12 @@ struct NativeClientRelationFileWork {
   source : NativeRelationFileSources
   run : @strategy.CapturedDAG
   source_usage : @resources.LedgerUsage
-  execution : @local.LocalValuesExecution
+  mut execution : @local.LocalValuesExecution?
   plan : NativeRelationFileExecutionPlan
   entry : NativeClientRelationFileWorkEntry
-  mut output_bridge : @local.LocalValuesResultExport?
+  mut output_bridges : Array[@local.LocalValuesResultExport]?
   capture_times : (String, String)?
+  mut whole_evidence : NativeRelationFileWholeEvidence?
   mut publication_original : (
     Array[@publication.RunEvidenceValue],
     Array[@publication.RunEvidenceValue],
@@ -291,7 +292,7 @@ fn open_original_relation_file_work_selected(
     max_rounds <= 0 ||
     @host.prepared_client_acquisition_count(prepared) != 1 ||
     @strategy.graph_captured_prefix(@host.prepared_client_graph(prepared)) != 1 ||
-    @strategy.graph_result_count(@host.prepared_client_graph(prepared)) != 1 ||
+    @strategy.graph_result_count(@host.prepared_client_graph(prepared)) <= 0 ||
     @strategy.graph_program_has_effects(@host.prepared_client_graph(prepared)) ||
     @host.client_compiled_run_has_infers(compiled) {
     return Err(unstarted(Configuration))
@@ -667,11 +668,12 @@ fn open_original_relation_file_work_selected(
     source: Single(source),
     run,
     source_usage,
-    execution: computed,
+    execution: Some(computed),
     plan,
     entry,
-    output_bridge: None,
+    output_bridges: None,
     capture_times,
+    whole_evidence: None,
     publication_original: None,
     publication: None,
     identity_scan: None,
@@ -754,14 +756,16 @@ fn NativeClientRelationFileWork::require_bound_source_current(
 pub fn NativeClientRelationFileWork::close(
   self : NativeClientRelationFileWork,
 ) -> Bool {
+  self.close_children() && self.entry.arena.finish_business_cleanup()
+}
+
+///|
+fn NativeClientRelationFileWork::close_children(self : Self) -> Bool {
   if !self.entry.arena.matches_business_scope(true) {
     return false
   }
   self.stopping = true
-  if self.publication_growing {
-    return false
-  }
-  if !values_original_cleanup_entered(Some(self.access.base)) {
+  if self.publication_growing || !self.access.base.cleanup_entered() {
     return false
   }
   self.close_export()
@@ -771,15 +775,34 @@ pub fn NativeClientRelationFileWork::close(
     }
     self.identity_scan = None
   }
+  self.whole_evidence = None
   self.publication_original = None
   self.publication = None
   self.publication_basis = None
   self.publication_identity_issue = None
-  self.execution.close() &&
+  let ports_closed = match self.execution {
+    Some(execution) => execution.close()
+    None =>
+      match self.access.source {
+        ManagedRelationFiles(owner, _) =>
+          @local.retire_installed_query_capture_ports(
+            owner,
+            self.prepared,
+            self.start.request,
+          )
+        ManagedWholeRelationFiles(owner, _) =>
+          @local.retire_installed_whole_source_ports(
+            owner,
+            self.prepared,
+            self.start.request,
+          )
+        _ => false
+      }
+  }
+  ports_closed &&
   (match self.source {
     Single(source) => source.close() is Ok(true)
     Managed(sources, reads) =>
       close_managed_relation_file_sources(sources, reads)
-  }) &&
-  self.entry.arena.finish_business_cleanup()
+  })
 }

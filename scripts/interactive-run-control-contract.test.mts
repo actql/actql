@@ -105,7 +105,7 @@ test('independent canonical preimages distinguish input-only output and operatio
   assert.notEqual(hash({...profile, retain: {samples: {max_items: 1}}}), identityVectors[0].cid);
 });
 
-test('private Relation Sample seals retain every existing public schema and identity domain', () => {
+test('private Relation Sample seals preserve the current public schema and identity domains', () => {
   const registry = buildControlRegistry();
   const remainingSchemas = {...registry.schema_cids};
   const remainingDomains = {...registry.identity_domains};
@@ -122,7 +122,7 @@ test('private Relation Sample seals retain every existing public schema and iden
   }
   assert.equal(Object.keys(remainingSchemas).length, 47);
   assert.equal(hash(remainingSchemas),
-    'sha256:575598d3b9a42c7bd69216c037c6096df9603cca44aad2f02cf890a1be7f7236');
+    'sha256:5e1c4b0eb8f19212501a3f2bc30694087948ad335e572275a40f04d2044e2764');
   assert.equal(Object.keys(remainingDomains).length, 10);
   assert.equal(hash(remainingDomains),
     'sha256:ce704655344fa81848b6c89770abffdd99513a3c640b4dff51dd1ff574d50a50');

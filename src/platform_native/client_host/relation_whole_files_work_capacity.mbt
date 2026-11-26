@@ -12,6 +12,18 @@ let native_whole_files_entry_geometry_bytes : Int64 = @execution.preparation_rep
 ).unwrap()
 
 ///|
+// Original Model settings, retained Source vector wrapper, the one pending
+// result cell, configuration callback and failure holder before data sizing.
+let native_whole_model_start_control_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 10L,
+    reference_slots: 19L,
+    scalar_words: 8L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
 /// Complete Whole-input control peak on the SAME prepared Work. Every
 /// Source has its own already-quoted physical capture/provider debt. This
 /// recipe adds the Native vectors, per-slot typed handoffs, partial-open
@@ -19,6 +31,7 @@ let native_whole_files_entry_geometry_bytes : Int64 = @execution.preparation_rep
 pub fn native_relation_whole_files_work_control_capacity(
   sources : Array[NativeRelationFileWholeSource],
   graph : @strategy.CheckedDAG,
+  model? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
   let count = sources.length()
   if count <= 0 {
@@ -53,7 +66,17 @@ pub fn native_relation_whole_files_work_control_capacity(
     is Some(wrappers) else {
     return None
   }
-  let mut retained = fixed
+  let mut retained = if model {
+    guard @execution.checked_preparation_add_product(
+        fixed, native_whole_model_start_control_bytes, 1L,
+      )
+      is Some(value) else {
+      return None
+    }
+    value
+  } else {
+    fixed
+  }
   for input in sources {
     guard @row_file.native_relation_file_caller_preparation_inventory(
         input.selection,
@@ -100,8 +123,13 @@ pub fn native_relation_whole_files_work_control_capacity(
 pub fn native_relation_whole_files_entry_read_capacity(
   sources : Array[NativeRelationFileWholeSource],
   graph : @strategy.CheckedDAG,
+  model? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
-  guard native_relation_whole_files_work_control_capacity(sources, graph)
+  guard native_relation_whole_files_work_control_capacity(
+      sources,
+      graph,
+      model~,
+    )
     is Some(work) &&
     native_relation_whole_file_preback_read_capacity() is Some(backing) &&
     @execution.checked_preparation_add_product(

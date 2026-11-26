@@ -2357,7 +2357,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-interactive-read-public.test.mjs",
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
                 "anchor": "test("
               },
               {
@@ -2531,7 +2531,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-interactive-read-public.test.mjs",
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
                 "anchor": "test("
               },
               {
@@ -7297,7 +7297,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -7511,11 +7511,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
               },
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explainContext reads one original projection"
               }
             ]
@@ -15742,11 +15742,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
               },
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explainContext reads one original projection"
               }
             ]
@@ -16393,7 +16393,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -17301,7 +17301,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -20252,7 +20252,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]

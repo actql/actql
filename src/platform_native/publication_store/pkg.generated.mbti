@@ -30,14 +30,21 @@ pub fn open_store(@sqlite.Library, String, String, Int64, Int64, Int64) -> Resul
 
 pub fn open_store_with_custody(@sqlite.Library, String, String, Int64, Int64, Int64, diagnostic_ceiling? : Int?) -> Result[Store, NativePublicationStoreOpenError]
 
+pub fn start_native_generated_content_output(@run_publication.ContentByteEncoder) -> Result[NativeGeneratedContentOutput, NativePublicationStoreIssue]
+
 // Errors
 
 // Types and methods
 type CapturedContentCustody
+pub fn CapturedContentCustody::abandon_unpublished_generated(Self) -> Result[Bool, NativePublicationStoreIssue]
 pub fn CapturedContentCustody::confirm(Self, Int) -> Result[Unit, NativePublicationStoreIssue]
 pub fn CapturedContentCustody::matches_confirmed(Self, @run_publication.CapturedContentReference) -> Bool
+pub fn CapturedContentCustody::matches_generated_confirmed(Self, @run_publication.GeneratedContentReference) -> Bool
+pub fn CapturedContentCustody::matches_generated_selection(Self, Store, @run_publication.GeneratedContentReference, String) -> Bool
 pub fn CapturedContentCustody::matches_lookup_raw_confirmed(Self, @run_publication.PublicationContract) -> Bool
+pub fn CapturedContentCustody::matches_saved_generated_confirmed(Self, @run_publication.StoredGeneratedContentReference) -> Bool
 pub fn CapturedContentCustody::persist(Self, Bytes) -> Result[Unit, NativePublicationStoreIssue]
+pub fn CapturedContentCustody::persist_generated_output(Self, NativeGeneratedContentOutput) -> Result[Unit, NativePublicationStoreIssue]
 pub fn CapturedContentCustody::restore(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn CapturedContentCustody::retained_inventory(Self) -> @execution_relation.PreparationRepresentationUnits?
 pub fn CapturedContentCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
@@ -116,6 +123,9 @@ pub struct NativeEffectCatalogResponse {
   status : Int
   body : Bytes
 }
+
+type NativeGeneratedContentOutput
+pub fn NativeGeneratedContentOutput::advance(Self, Int) -> (Result[Bool, @run_publication.ContentSerializationIssue], Int)
 
 pub struct NativeLocalPreparationRawObservation {
   use_cid : String
@@ -290,6 +300,7 @@ pub fn Store::commit_publication(Self, @run_publication.PublicationContract, @ru
 pub fn Store::custody_location(Self) -> Result[(String, UInt64, UInt64), NativePublicationStoreIssue]
 pub fn Store::effect_capture_restore_construction(Self, @run_publication.PublicationContract, String) -> Result[(EffectCaptureReadExtent, PrivateEvidenceCustodyConstruction), NativePublicationStoreIssue]
 pub fn Store::effect_checkpoint_restore_construction(Self, @checkpoint_runtime.SealedCheckpoint) -> Result[(@sqlite.NativeJournalHeader, PrivateEvidenceCustodyConstruction), NativePublicationStoreIssue]
+pub fn Store::generated_content_custody_construction_inventory(Self, Int, @run_publication.GeneratedContentReference) -> @execution_relation.PreparationRepresentationUnits?
 pub fn Store::inspect_committed_publication(Self, String, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract?, NativePublicationStoreIssue]
 pub fn Store::inspect_payload(Self, String) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
 pub fn Store::inspect_prepared_effectful_publication(Self, String, String, String, Int, Int, Int) -> Result[NativePreparedFilePublication?, NativePublicationStoreIssue]
@@ -311,12 +322,14 @@ pub fn Store::prepare_effect_catalog_custody(Self, @catalog.CatalogObservation, 
 pub fn Store::prepare_effect_checkpoint_custody(Self, @checkpoint_runtime.SealedCheckpoint, String, String, @signature.Library, Bytes) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_preview_custody(Self, @run_publication.EffectPreviewIdentity, String, String, String, @signature.Library, Bytes, Int, Int, Int) -> Result[EffectPreviewCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]
+pub fn Store::prepare_generated_content_custody(Self, @run_publication.GeneratedContentReference, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_local_preparation_raw_observation(Self, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialUse, @http_client.Client, @signature.Library, Bytes) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_lookup_raw_custody(Self, @run_publication.PublicationContract, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_model_evidence_custody(Self, @run_publication.PublicationContract, String, String, String, @run_publication.RunEvidenceValue, @signature.Library, Bytes) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_model_raw_evidence_custody(Self, @run_publication.BoundModelRawResponse, Bytes, @signature.Library, Bytes, retain? : (ModelEvidenceCustody) -> Unit) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_run_observation_construction(Self, @sqlite.NativeStoreOperationOriginal, Int64, Int64, Int64) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::prepare_run_observation_constructor_scaffold(Self, @sqlite.NativeStoreOperationOriginal) -> Result[Unit, NativePublicationStoreIssue]
+pub fn Store::prepare_saved_generated_content_custody(Self, @run_publication.StoredGeneratedContentReference, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
 pub fn Store::private_evidence_custody_construction(Self, String) -> PrivateEvidenceCustodyConstruction?
 pub fn Store::read_publication_contract(Self, String, String) -> Result[@run_publication.PublicationContract, NativePublicationStoreIssue]
 pub fn Store::read_result_schema(Self, String) -> Result[String, NativePublicationStoreIssue]
@@ -336,6 +349,7 @@ pub fn Store::restore_model_evidence_custody(Self, @run_publication.PublicationC
 pub fn Store::retain_prepared_file_publication(Self, NativePreparedFilePublication, Int, Int, Int) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::retained_data_current(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::retry_pending_result_delivery_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
+pub fn Store::saved_generated_content_custody_construction_inventory(Self, Int, @run_publication.StoredGeneratedContentReference) -> @execution_relation.PreparationRepresentationUnits?
 
 // Type aliases
 

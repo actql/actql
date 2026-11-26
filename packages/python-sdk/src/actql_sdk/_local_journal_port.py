@@ -91,13 +91,11 @@ class _JournalCallbacks:
                 raise ValueError('Original Local Journal schema reader is unavailable')
             observe = getattr(reader, 'journal_schema', None)
             if observe is None:
-                # An older private supplier keeps the complete original path.
-                # A failed observation never falls through to this branch.
-                return 0 if self.check_current() == 0 else -41
+                raise ValueError('Original Local Journal catalog observation is unavailable')
             value = observe(reader, self.current)
-            if self.reader is not reader or type(value) is not int or value not in (0, 1):
+            if self.reader is not reader or value is not None:
                 raise ValueError('Invalid original Journal schema observation')
-            return value
+            return 1
         except BaseException as error:
             return self._fail(error)
 

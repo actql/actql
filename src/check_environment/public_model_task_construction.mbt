@@ -17,24 +17,40 @@ pub fn public_model_task_document_construction_extent(
     @scalar.admit_utf8_length(wire, limits.bodies.max_bytes) is Ok(bytes) else {
     return None
   }
+  let yaml = format == "yaml"
   let mut lines = 1
+  let mut previous_slash = false
+  let mut yaml_escape_expansion = 0L
   for index in 0..<wire.length() {
     let unit = wire.code_unit_at(index).to_int()
     if unit == 10 || unit == 13 {
       lines += 1
     }
+    if yaml && previous_slash && (unit == 76 || unit == 80) {
+      yaml_escape_expansion += 1L
+    }
+    previous_slash = unit == 92
   }
   let b = Int::max(1, bytes)
   let n = limits.bodies.max_nodes
   let d = limits.bodies.max_depth
-  let source = if format == "yaml" {
+  let source = if yaml {
     @source.yaml_literal_construction_extent(b, n, d, lines)
   } else {
     @source.json_literal_construction_extent(b, n, d)
   }
+  // The contract reader normalizes one decoded string at a time. The YAML
+  // scanner's two-byte \L and \P escapes can produce three UTF-8 bytes each.
+  // Quoting every possible pair also covers literals without another parse.
+  // Other escapes and restricted folding fit within the original document.
+  // The schema writer can introduce fixed keywords of at most eight bytes.
+  let selected_text = Int64::min(
+    limits.contracts.max_text_bytes.to_int64(),
+    Int64::max(bytes.to_int64() + yaml_escape_expansion, 8L),
+  ).to_int()
   guard source is Some(source) &&
     model_task_decode_construction(n, d) is Some(decode) &&
-    model_task_contract_construction(limits) is Some(contract) else {
+    model_task_contract_construction(limits, selected_text) is Some(contract) else {
     return None
   }
   // PublicModelTaskDeclaration1H8R3W; two contract holders2H8R6W;
@@ -96,6 +112,7 @@ fn model_task_decode_construction(
 ///|
 fn model_task_contract_construction(
   limits : ModelTaskLimits,
+  selected_text : Int,
 ) -> RegistryConstructionExtent? {
   let n = limits.bodies.max_nodes
   let d = limits.bodies.max_depth
@@ -106,7 +123,7 @@ fn model_task_contract_construction(
     model_task_contract_read_bounds(
       c,
       limits.contracts.max_depth,
-      limits.contracts.max_text_bytes,
+      selected_text,
     )
     is Some(checked) &&
     @encode.text_writer_construction_inventory(b, n, d) is Some(writer) &&

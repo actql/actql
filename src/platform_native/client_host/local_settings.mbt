@@ -30,21 +30,37 @@ priv struct NativeLocalConfigurationSelection {
 // selector partitions the same inventory using the two admitted locator files.
 fn local_adoption_configuration_count_supported(
   names : Array[String],
-  model : NativeLocalModelConfigurationSelection?,
+  models : Array[NativeLocalModelConfigurationSelection]?,
 ) -> Bool {
   let host = names.contains("host.json")
-  let allowed = if model is Some(_) {
-    Int::min(
-      @host.client_local_model_configuration_file_limit(),
-      names.length() - (if host { 1 } else { 0 }),
-    )
-  } else {
-    0
+  let allowed = match models {
+    None => 0
+    Some(models) => {
+      if models.is_empty() ||
+        models.length() > @host.client_local_model_configuration_limit() {
+        return false
+      }
+      for index, model in models {
+        if model.provider_id != models[0].provider_id {
+          return false
+        }
+        for prior in 0..<index {
+          if models[prior].files.setting == model.files.setting {
+            return false
+          }
+        }
+      }
+      Int::min(
+        @host.client_local_model_configuration_file_limit(models.length()),
+        names.length() - (if host { 1 } else { 0 }),
+      )
+    }
   }
   @host.client_local_configuration_file_count_supported(
     names.length(),
     host,
     allowed,
+    models.map(values => values.length()).unwrap_or(0),
   )
 }
 
@@ -109,12 +125,10 @@ fn read_model_configuration_selection(
   model : NativeLocalModelConfigurationSelection,
   crypto : @crypto.Library,
   prepare : (@authorization.AccountConfigurationConstruction) -> Bool,
-) -> Result[
-  (Int, NativeLocalSelectedFile, NativeLocalSelectedFile?),
-  NativeLocalAdoptionIssue,
-] {
+  loaded : Array[NativeLocalSelectedFile],
+) -> Result[Array[String], NativeLocalAdoptionIssue] {
   let selected = Array(
-    capacity=@host.client_local_model_configuration_file_limit(),
+    capacity=@host.client_local_model_configuration_file_limit(1),
   )
   for
     file in [
@@ -133,11 +147,12 @@ fn read_model_configuration_selection(
     }
   }
   let setting = match
-    read_native_local_configuration_file(
+    read_model_configuration_locator(
       source,
       model.files.setting,
       crypto,
-      Some(prepare),
+      prepare,
+      loaded,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -163,54 +178,59 @@ fn read_model_configuration_selection(
     return Err(InvalidInput)
   }
   selected.push(original.provider_file)
-  let policy = match model.policy {
-    None => None
-    Some(name) => {
-      let file = match
-        read_native_local_configuration_file(
-          source,
-          name,
-          crypto,
-          Some(prepare),
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      if !prepare_model_configuration_locators(file, model.limits, prepare) {
-        return Err(ConfigurationLimit)
-      }
-      guard native_model_http_run_policy_selection(file.body, model.limits)
-        is Some(policy) else {
+  if model.policy is Some(name) {
+    let file = match
+      read_model_configuration_locator(source, name, crypto, prepare, loaded) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if !prepare_model_configuration_locators(file, model.limits, prepare) {
+      return Err(ConfigurationLimit)
+    }
+    guard native_model_http_run_policy_selection(file.body, model.limits)
+      is Some(policy) else {
+      return Err(InvalidInput)
+    }
+    for name in [policy.retention, policy.metadata, policy.clock, policy.data] {
+      if name == "host.json" || !names.contains(name) {
         return Err(InvalidInput)
       }
-      for name in [policy.retention, policy.metadata, policy.clock, policy.data] {
-        if name == "host.json" || !names.contains(name) {
-          return Err(InvalidInput)
-        }
-        if !selected.contains(name) {
-          selected.push(name)
-        }
+      if !selected.contains(name) {
+        selected.push(name)
       }
-      Some(file)
     }
   }
-  let distinct = selected.length()
-  guard @host.client_local_configuration_file_count_supported(
-    names.length(),
-    names.contains("host.json"),
-    distinct,
-  ) else {
-    return Err(ConfigurationLimit)
+  Ok(selected)
+}
+
+///|
+// The same retained locator body rejoins the final configuration inventory.
+// A shared policy is selected twice by name but read from disk once.
+fn read_model_configuration_locator(
+  source : @filesystem.Root,
+  name : String,
+  crypto : @crypto.Library,
+  prepare : (@authorization.AccountConfigurationConstruction) -> Bool,
+  loaded : Array[NativeLocalSelectedFile],
+) -> Result[NativeLocalSelectedFile, NativeLocalAdoptionIssue] {
+  if loaded.iter().find_first(file => file.name == name) is Some(file) {
+    return Ok(file)
   }
-  Ok((distinct, setting, policy))
+  read_native_local_configuration_file(source, name, crypto, Some(prepare)).map(file => {
+      loaded.push(file)
+      file
+    },
+  )
 }
 
 ///|
 fn quote_model_configuration_inventory(
   count : Int,
+  bindings : Int,
   prepare : (@authorization.AccountConfigurationConstruction) -> Bool,
 ) -> Bool {
   let slots = count.to_int64()
+  let models = bindings.to_int64()
   // Sorted names, the retained exact file vector and its manifest projection
   // coexist. The two preloaded locators rejoin the same vector. CIDs and
   // generation records are retained by this existing adoption receiver.
@@ -225,9 +245,12 @@ fn quote_model_configuration_inventory(
     retained,
     execution: {
       ..retained,
-      record_headers: retained.record_headers + 34L + 2L * slots,
-      reference_slots: retained.reference_slots + 90L + 8L * slots,
-      scalar_words: retained.scalar_words + 36L + 6L * slots,
+      record_headers: retained.record_headers + 40L + 4L * models + 2L * slots,
+      reference_slots: retained.reference_slots +
+      96L +
+      16L * models +
+      8L * slots,
+      scalar_words: retained.scalar_words + 40L + 4L * models + 6L * slots,
       owned_utf16_units: retained.owned_utf16_units + 136L,
     },
   })
@@ -237,9 +260,12 @@ fn quote_model_configuration_inventory(
 fn quote_model_configuration_manifest(
   count : Int,
   model_files : Int,
+  model_bindings : Int,
   prepare : (@authorization.AccountConfigurationConstruction) -> Bool,
 ) -> Bool {
-  guard @host.client_local_configuration_selection_limits(model_files)
+  guard @host.client_local_configuration_selection_limits(
+      model_files, model_bindings,
+    )
     is Some((bytes, nodes, depth)) &&
     @encode.text_writer_construction_inventory(bytes, nodes, depth)
     is Some(writer) else {
@@ -277,23 +303,27 @@ fn select_native_local_configuration(
   custody? : NativeLocalAdoptionOpenFailure? = None,
   root_opening? : NativeLocalAdoptionRootOpening = LegacyPrivateRoots,
   operator_host? : NativeLocalOperatorHostOriginal? = None,
-  model_configuration? : NativeLocalModelConfigurationSelection? = None,
+  model_configurations? : Array[NativeLocalModelConfigurationSelection]? = None,
   construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[NativeLocalConfigurationSelection, NativeLocalAdoptionIssue] {
-  if !local_adoption_configuration_count_supported(names, model_configuration) {
+  if !local_adoption_configuration_count_supported(names, model_configurations) {
     return Err(ConfigurationLimit)
   }
   if operator_host is Some(_) && !names.contains("host.json") {
     return Err(InvalidInput)
   }
-  let file_construction = if model_configuration is Some(_) {
+  let file_construction = if model_configurations is Some(_) {
     construction
   } else {
     None
   }
-  if model_configuration is Some(_) {
+  if model_configurations is Some(models) {
     guard file_construction is Some(prepare) &&
-      quote_model_configuration_inventory(names.length(), prepare) else {
+      quote_model_configuration_inventory(
+        names.length(),
+        models.length(),
+        prepare,
+      ) else {
       return Err(ConfigurationLimit)
     }
   }
@@ -306,25 +336,50 @@ fn select_native_local_configuration(
       return Err(InvalidInput)
     }
   }
-  let (model_files, setting, policy) = match
-    (model_configuration, file_construction) {
-    (None, _) => (0, None, None)
-    (Some(model), Some(prepare)) =>
-      match
-        read_model_configuration_selection(
-          source, names, account_name, model, crypto, prepare,
-        ) {
-        Ok((count, setting, policy)) => (count, Some(setting), policy)
-        Err(issue) => return Err(issue)
+  let loaded = model_configurations.map(models => {
+    Array(capacity=2 * models.length())
+  })
+  let model_files = match (model_configurations, loaded, file_construction) {
+    (None, None, _) => 0
+    (Some(models), Some(loaded), Some(prepare)) => {
+      let selected = Array(
+        capacity=Int::min(
+          names.length(),
+          @host.client_local_model_configuration_file_limit(models.length()),
+        ),
+      )
+      for model in models {
+        match
+          read_model_configuration_selection(
+            source, names, account_name, model, crypto, prepare, loaded,
+          ) {
+          Err(issue) => return Err(issue)
+          Ok(files) =>
+            for file in files {
+              if !selected.contains(file) {
+                selected.push(file)
+              }
+            }
+        }
       }
+      if !@host.client_local_configuration_file_count_supported(
+          names.length(),
+          names.contains("host.json"),
+          selected.length(),
+          models.length(),
+        ) {
+        return Err(ConfigurationLimit)
+      }
+      selected.length()
+    }
     _ => return Err(ConfigurationLimit)
   }
   let files = Array(capacity=names.length())
   for name in names {
-    let file : NativeLocalSelectedFile = if setting is Some(value) &&
-      value.name == name {
-      value
-    } else if policy is Some(value) && value.name == name {
+    let file : NativeLocalSelectedFile = if loaded.bind(files => {
+        files.iter().find_first(file => file.name == name)
+      })
+      is Some(value) {
       value
     } else if name == "host.json" && operator_host is Some(original) {
       match original.check_current() {
@@ -374,8 +429,16 @@ fn select_native_local_configuration(
       Some({ path, root, ownership, })
     }
   }
+  let model_bindings = model_configurations
+    .map(values => values.length())
+    .unwrap_or(0)
   if file_construction is Some(prepare) &&
-    !quote_model_configuration_manifest(files.length(), model_files, prepare) {
+    !quote_model_configuration_manifest(
+      files.length(),
+      model_files,
+      model_bindings,
+      prepare,
+    ) {
     return Err(ConfigurationLimit)
   }
   let original_files : Array[@host.ClientLocalOriginalConfigurationFile] = files.map(file => {
@@ -396,6 +459,7 @@ fn select_native_local_configuration(
       original_files,
       original_managed,
       model_files~,
+      model_bindings~,
     ) {
     Ok(body) => body
     Err(@host.ConfigurationLimit) => return Err(ConfigurationLimit)
@@ -423,7 +487,7 @@ fn select_native_local_configuration(
     manifest,
     manifest_cid,
     operator_host,
-    model_provider: model_configuration.map(selected => selected.provider_id),
+    model_provider: model_configurations.map(models => models[0].provider_id),
   })
 }
 

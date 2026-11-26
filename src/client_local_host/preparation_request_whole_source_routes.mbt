@@ -8,6 +8,7 @@ fn[I] reserve_request_whole_source_routes(
   input : I,
   request : @publication_host.ClientRequestIdentity,
   select_query? : Bool = false,
+  phase? : ClientRequestPreparationPhase = ProgramPlanReserved,
 ) -> Result[
   (
     @publication_host.ClientDirectAcquisitionOccurrences,
@@ -15,7 +16,7 @@ fn[I] reserve_request_whole_source_routes(
   ),
   ClientRequestProgramPlanIssue,
 ] {
-  guard owner.phase == ProgramPlanReserved &&
+  guard owner.phase == phase &&
     owner.input is Some(original) &&
     physical_equal(original, input) &&
     owner.program_capacity is Some(_) &&
@@ -62,7 +63,12 @@ fn[I] reserve_request_whole_source_routes(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  let direct = match installed_direct_occurrences_owned(Pure(prepared)) {
+  let direct = match
+    (if phase == ModelPlanReserved {
+      request_model_direct_occurrences_owned(owner, input)
+    } else {
+      installed_direct_occurrences_owned(Pure(prepared))
+    }) {
     Err(issue) => return Err(Installed(issue))
     Ok(value) => value
   }

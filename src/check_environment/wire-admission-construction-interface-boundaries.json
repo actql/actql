@@ -302,7 +302,7 @@
     },
     {
       "module": "src/run_publication_host/client_environment.mbt",
-      "sha256": "d1c5c671cdc80bbfbfd39a91ea6f3305bb1677d06e9fcf6e1894215080ad894c",
+      "sha256": "ec1050e228db887d4275858623995cc6bff0476c3d450a7a9f00adbe5fcdfd3a",
       "operations": [
         {
           "name": "admit_client_check_environment",
@@ -319,6 +319,14 @@
         {
           "name": "admit_client_check_environment_wire",
           "declaration": "admit_client_check_environment_wire ( body : String , evidence_bundle_cid : String , ) - > @ environment . WireEnvironment ?"
+        },
+        {
+          "name": "admit_local_relation_check_environment",
+          "declaration": "admit_local_relation_check_environment ( body : String , evidence_bundle_cid : String , ) - > @ checked . CheckEnvironment ?"
+        },
+        {
+          "name": "admit_local_relation_check_environment_from_wire",
+          "declaration": "admit_local_relation_check_environment_from_wire ( wire : @ environment . WireEnvironment , ) - > @ checked . CheckEnvironment ?"
         }
       ],
       "exports": [],
@@ -331,7 +339,9 @@
             "<module>",
             "admit_client_check_environment",
             "admit_client_check_environment_from_wire",
-            "admit_client_check_environment_wire"
+            "admit_client_check_environment_wire",
+            "admit_local_relation_check_environment",
+            "admit_local_relation_check_environment_from_wire"
           ],
           "exports": [],
           "attributes": {
@@ -393,6 +403,14 @@
               {
                 "path": "src/check_environment/wire-admission-construction-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_host_wasm/client_check_wbtest.mbt",
+                "anchor": "test \"Python Local Check selects text-time from the original installed policy\""
+              },
+              {
+                "path": "src/run_publication_host/client_environment_final_wire_wbtest.mbt",
+                "anchor": "test \"funded Local Model environment keeps the admitted wire and installed policy\""
               }
             ]
           }
@@ -974,12 +992,12 @@
     },
     {
       "module": "src/check_environment/public_model_task_construction.mbt",
-      "sha256": "01461e83d6c2acb48f20b802913710f1245a439d5dc8b054cb36bf3ce5c1dc90",
+      "sha256": "6bbaa4097846d541c25d1ccce4c031a6f7bac15d006cceaca6948cefdb5b3c22",
       "exports": [],
       "operations": [
         {
           "name": "model_task_contract_construction",
-          "declaration": "model_task_contract_construction ( limits : ModelTaskLimits , ) - > RegistryConstructionExtent ?"
+          "declaration": "model_task_contract_construction ( limits : ModelTaskLimits , selected_text : Int , ) - > RegistryConstructionExtent ?"
         },
         {
           "name": "model_task_contract_read_bounds",

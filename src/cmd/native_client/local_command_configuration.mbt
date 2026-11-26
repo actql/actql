@@ -10,6 +10,48 @@ priv struct LocalCommandConfiguration {
   environment_body : Bytes
   environment : @checked.CheckEnvironment?
   run_original : LocalCommandRunInstallationOriginal?
+  declared_file_source : LocalCommandDeclaredFileSourceOriginal?
+}
+
+///|
+// The one parsed File selection remains tied to the exact retained Host
+// member. This value does not hold a payload Reader or an Account decision.
+priv struct LocalCommandDeclaredFileSourceOriginal {
+  name : String
+  body : Bytes
+  material : (
+    @run_host.ClientProjectConnections,
+    @run_host.ClientProjectCatalog,
+    String,
+  )
+}
+
+///|
+fn LocalCommandDeclaredFileSourceOriginal::select(
+  self : Self,
+  file : String,
+  body : Bytes,
+) -> (
+  @run_host.ClientProjectConnections,
+  @run_host.ClientProjectCatalog,
+  String,
+)? {
+  if file == self.name && body == self.body {
+    Some(self.material)
+  } else {
+    None
+  }
+}
+
+///|
+fn LocalCommandConfiguration::declared_file_source_current(
+  self : Self,
+  capture : @local_host.NativeLocalJournalCapture,
+) -> Bool {
+  guard self.declared_file_source is Some(original) else { return true }
+  self.settings.source_file == Some(original.name) &&
+  capture.selected_configuration_in_original_read(original.name) is Ok(body) &&
+  original.select(original.name, body) is Some(_)
 }
 
 ///|
@@ -68,21 +110,7 @@ fn local_admitted_check_environment(
 ) -> @checked.CheckEnvironment? {
   // Count actual Environment admissions, not uses of the typed result.
   native_timing_count(21)
-  guard @run_host.admit_client_check_environment_wire(environment, evidence)
-    is Some(wire) &&
-    @decode.open_object(@compiler_environment.host_policy(wire)) is Ok(policy) else {
-    return None
-  }
-  // Native links the complete Common text-time evaluator. Select its checker
-  // profile only with a policy on this original wire. The normal checker
-  // still validates the policy, operands, pattern and per-expression bounds.
-  let text_time = @decode.lookup(policy, "text_time_evaluation") is Some(_)
-  @run_host.admit_client_check_environment_from_wire_with_numeric_profile_cid(
-    wire,
-    { text_time, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    @numeric.cid(@numeric.builtin_profile()),
-  )
+  @run_host.admit_local_relation_check_environment(environment, evidence)
 }
 
 ///|

@@ -85,6 +85,93 @@ test "Native configured inventory admits thirty-three selected Source estimates 
 }
 
 ///|
+fn declared_file_source_fixture(source : Map[String, Json]) -> String {
+  Json::object({
+    "version": Json::string("actql-config/0.1"),
+    "native": Json::object({ "source": Json::object(source) }),
+  }).stringify()
+}
+
+///|
+test "Native adopts protected File declarations without opening the payload" {
+  let connections = "{\"version\":\"actql-connectors/0.1\",\"connections\":{\"shared\":{\"connector\":\"file\"}}}"
+  let catalog = "{\"connections\":{\"shared\":{\"files\":{}}}}"
+  let path = "/operator-selected/data/original.json"
+  let source : Map[String, Json] = {
+    "kind": Json::string("declared_file"),
+    "connections": Json::string(connections),
+    "catalog": Json::string(catalog),
+    "data_file": Json::string(path),
+  }
+  let wire = declared_file_source_fixture(source)
+  let body = @utf8.encode(wire)
+  let original : LocalCommandDeclaredFileSourceOriginal = {
+    name: "source.json",
+    body,
+    material: local_prepare_source_installation(wire).unwrap(),
+  }
+  let (admitted_connections, admitted_catalog, admitted_path) = original
+    .select("source.json", @utf8.encode(wire))
+    .unwrap()
+  assert_eq(admitted_connections.original_wire(), connections)
+  assert_eq(admitted_catalog.original_wire(), catalog)
+  assert_eq(admitted_path, path)
+  assert_true(original.select("foreign-source.json", body) is None)
+  assert_true(original.select("source.json", @utf8.encode(wire + " ")) is None)
+  let resident_refusal = try {
+    ignore(local_source_installation(wire))
+    "unexpected acceptance"
+  } catch {
+    ClientStop(issue) => issue
+  }
+  assert_eq(resident_refusal, "LocalDeclaredFileSourceBindingRequired")
+  for
+    (field, changed, expected) in [
+      (
+        "kind",
+        Json::string("mock"),
+        "InvalidLocalDeclaredFileSourceInstallation",
+      ),
+      ("kind", Json::null(), "InvalidLocalDeclaredFileSourceInstallation"),
+      (
+        "catalog",
+        Json::string("{\"unsupported\":true}"),
+        "InvalidLocalDeclaredFileSourceInstallation",
+      ),
+      (
+        "data_file",
+        Json::string("/other/../data"),
+        "InvalidLocalSourceLocation",
+      ),
+      ("data_file", Json::string("data.json"), "InvalidLocalSourceLocation"),
+      ("data_file", Json::string("/other/"), "InvalidLocalSourceLocation"),
+      ("data_file", Json::string("/other//data"), "InvalidLocalSourceLocation"),
+      (
+        "data_file",
+        Json::string("/other\u{0000}/data"),
+        "InvalidLocalSourceLocation",
+      ),
+      (
+        "extra",
+        Json::boolean(true),
+        "InvalidLocalDeclaredFileSourceInstallation",
+      ),
+    ] {
+    let foreign = source.copy()
+    foreign[field] = changed
+    let refused = try {
+      ignore(
+        local_prepare_source_installation(declared_file_source_fixture(foreign)),
+      )
+      "unexpected acceptance"
+    } catch {
+      ClientStop(issue) => issue
+    }
+    assert_eq(refused, expected)
+  }
+}
+
+///|
 test "Native configured inventory preserves nine explicit installation originals and supplied policy" {
   let names = Array::makei(9, index => {
     "\"original-" + index.to_string() + ".json\""

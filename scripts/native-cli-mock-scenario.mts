@@ -28,7 +28,8 @@ type ScenarioOptions<Command extends CommandRecord> = {root: string; template: k
   launcherTimings?: LauncherTimings};
 // Parsed fixture and receipt views are interpreted by the existing assertions.
 type Checkpoint = {checkpoint_id: string; checkpoint_cid: string};
-type RunState = {version: string; status: string; run_id: string; checkpoint: Checkpoint};
+type RunState = {version: string; status: string; run_id: string; checkpoint: Checkpoint;
+  result_availability?: Readonly<Record<string, unknown>>};
 type SourceRow = {id: string; [field: string]: unknown};
 type TargetData = {salesforce: Record<string, {rows: SourceRow[]}>};
 type PreviewRow = {state: string; value: Record<string, unknown>};
@@ -416,6 +417,75 @@ export function runNativeSharedFileMockScenario<Command extends CommandRecord>(
   const changes: readonly SharedMockChange[] = fixture.changes.map(change => ({...change, kind: 'update'}));
   return runNativeSharedFileMutation({project: join(root, 'native-shared-file-mock'),
     fixture, changes, decision: 'approve', run, launcherTimings});
+}
+
+export async function runNativeFileNamedResults<Command extends CommandRecord>(
+  {root, run, launcherTimings = 'optional'}: Omit<ScenarioOptions<Command>, 'template'>,
+) {
+  const project = join(root, 'native-file-named-results'), fixture = threeWriteMockProject();
+  // One authored File Project, one original Run, two independently expected
+  // Result occurrences. The second Result consumes the first step's relation.
+  const program = "FROM salesforce.accounts |> SELECT id, value |> ORDER BY id |> RESULT original |> WHERE id = 'a2' |> RESULT selected\n";
+  const programPath = join(project, 'two-results.aql');
+  const file = join(project, 'mock/data.json');
+  const configuration = join(project, 'actql.config.json'), stateDirectory = join(project, '.actql');
+  const {commands, invoke} = nativeMockScenarioCommands({project, run, launcherTimings,
+    rows: 0, work: {modelRows: 0}, requireFirstClose: true});
+  await mkdir(project, {mode: 0o700});
+  for (const [name, body] of Object.entries(fixture.files)) {
+    const path = join(project, name);
+    await mkdir(dirname(path), {recursive: true, mode: 0o700});
+    await writeFile(path, body, {flag: 'wx', mode: 0o600});
+  }
+  await writeFile(programPath, program, {flag: 'wx', mode: 0o600});
+  const before = await targetSnapshot(file);
+  assert.equal(before.bytes, fixture.before);
+  await invoke('file-results-adoption', projectInitialAdoptionArguments({configuration, stateDirectory}));
+  function assertNoFreshRun(record: CommandRecord) {
+    const {native} = nativeLauncherEnvelope(record.stderr, launcherTimings);
+    const prefix = 'ACTQL_NATIVE_PHASE ';
+    const phases = native.split('\n').filter(line => line.startsWith(prefix))
+      .map(line => JSON.parse(line.slice(prefix.length)) as {tag: number; begins: number});
+    assert(phases.every(value => ![2, 3, 4].includes(value.tag) || value.begins === 0),
+      'Cold Named Result must not restart preparation, execution or publication');
+  }
+  const names = ['original', 'selected'] as const;
+  function requireOriginalNames(state: RunState) {
+    assert.deepEqual(Object.keys(state.result_availability ?? {}).sort(), names,
+      'Run must enumerate both original Result names');
+  }
+  const started = await invoke('file-results-run', ['run', 'two-results.aql', '--format', 'aql', '--json']);
+  const state = runState(started, 'succeeded');
+  requireOriginalNames(state);
+  const runId = state.run_id;
+  const expected = {
+    original: [{id: 'a-control', value: 'keep-account'}, {id: 'a1', value: 'A-old'}, {id: 'a2', value: 'A2-old'}],
+    selected: [{id: 'a2', value: 'A2-old'}],
+  };
+  const read = (name: typeof names[number], phase: string) =>
+    invoke(phase, ['result', runId, '--result', name, '--format', 'jsonl']);
+  const live = new Map<string, string>();
+  for (const name of names) {
+    const record = await read(name, 'file-results-result');
+    assertNoFreshRun(record);
+    assert.deepEqual(record.stdout.trim().split('\n').map(line => JSON.parse(line)), expected[name]);
+    live.set(name, record.stdout);
+  }
+  await unlink(programPath);
+  const saved = await invoke('file-results-saved-status', ['status', runId, '--json']);
+  assertNoFreshRun(saved);
+  requireOriginalNames(runState(saved, 'succeeded', runId));
+  for (const name of names) {
+    const record = await read(name, 'file-results-saved-result');
+    assertNoFreshRun(record);
+    assert.equal(record.stdout, live.get(name), 'Cold Result retains the original committed bytes');
+  }
+  const after = await targetSnapshot(file);
+  assert.deepEqual(after, before, 'Read and cold Saved must retain the original physical file');
+  await assert.rejects(lstat(file + '.actql-write.lock'), {code: 'ENOENT'});
+  return {runId, names, commands, beforeSha256: before.sha256, afterSha256: after.sha256,
+    resultRows: Object.fromEntries(names.map(name => [name, expected[name].length])),
+    sourceSha256: createHash('sha256').update(program).digest('hex'), firstCloseObserved: true};
 }
 
 type SharedMockChange = Readonly<{kind: 'update' | 'delete'; resource: string; id: string; after?: string}>

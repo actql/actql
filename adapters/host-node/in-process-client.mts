@@ -45,6 +45,7 @@ type HostAttempt<Operation extends ClientHostOperation> = Operation extends 'sub
 type Handler<Operation extends ClientHostOperation> = (request: HostBody<Operation> & HostAttempt<Operation>) => unknown;
 type CheckHandler = Handler<'check'> & NonNullable<Parameters<typeof projectClientCheckUnavailable>[0]>;
 type ExplanationConsumer = (view: unknown) => unknown;
+type ReplyConsumer = (view: unknown, assertCurrent: () => void) => unknown;
 type HandlerPorts = Readonly<{
   negotiate: Handler<'connect'>;
   prepareSubmit?: Handler<'submit'>;
@@ -68,7 +69,7 @@ type HandlerPorts = Readonly<{
   inspectResource?: Handler<'resource-inspect'>;
   peekResource?: Handler<'resource-peek'>;
   check?: CheckHandler;
-  plan?: Handler<'plan'>;
+  plan?: (request: HostBody<'plan'>, consume: ReplyConsumer) => unknown;
   inspectRun?: (request: HostBody<'inspect-run'>, consume: ExplanationConsumer) => unknown;
   runPlan?: Handler<'run-plan'>;
   runSample?: (request: HostBody<'run-sample'>, consume: ExplanationConsumer) => unknown;
@@ -78,7 +79,7 @@ type HandlerPorts = Readonly<{
   runExplanationContext?: (request: HostBody<'run-explanation-context'>, consume: ExplanationConsumer) => unknown;
   staticEffectExplanation?: (request: HostBody<'static-explanation'>, consume: ExplanationConsumer) => unknown;
 }>;
-type DispatchedHandler = (request: Readonly<Record<string, unknown>>, consume?: ExplanationConsumer) => unknown;
+type DispatchedHandler = (request: Readonly<Record<string, unknown>>, consume?: ReplyConsumer) => unknown;
 type RunState = Parameters<typeof observeClientRunState>;
 type ResultService = Parameters<typeof authorizedLocalResultFrames>[0];
 type ResultObservation = ReturnType<NonNullable<ReturnType<typeof installHostObservation>>['captureCurrentOperation']>;
@@ -109,7 +110,7 @@ type HostInstallation = HandlerPorts & Readonly<{
   captureResultOperation?: () => ResultObservation;
 }>;
 
-export type {DispatchedHandler, ExplanationConsumer, Handler, HandlerPorts, HostInstallation, RoutedBody};
+export type {DispatchedHandler, ExplanationConsumer, Handler, HandlerPorts, HostInstallation, ReplyConsumer, RoutedBody};
 
 const localErrors = new WeakSet<ClientError>();
 // Only packets captured here before deferred service construction carry this
@@ -287,7 +288,7 @@ export function createNodeInProcessClientHost({
         // caller packet or replace the prepared Program/permission.
         return await performInstalledRequest(operation,admittedBody as WireClientBody,signal);
       }
-      const invoke = async (handler: HandlerPorts[keyof HandlerPorts], preparedProgram?: unknown, consume?: ExplanationConsumer) => {
+      const invoke = async (handler: HandlerPorts[keyof HandlerPorts], preparedProgram?: unknown, consume?: ReplyConsumer) => {
         if (typeof handler !== 'function') fail('ClientOperationUnavailable');
         const original = own(admittedBody, Object.freeze({principalId, connection,
           ...Object.fromEntries(Object.entries(admittedBody).filter(([key]) =>
@@ -359,9 +360,11 @@ export function createNodeInProcessClientHost({
         return state;
       }
       if (operation === 'plan') {
-        const view = await invoke(plan);
-        if (!validWirePlanViewShape(view) && !validWireEffectfulStaticPlanViewShape(view)) fail('InvalidClientHostPlanView');
-        return view;
+        return await invoke(plan, undefined, function deliverStaticPlan(view, assertCurrent) {
+          if (!validWirePlanViewShape(view) && !validWireEffectfulStaticPlanViewShape(view)) fail('InvalidClientHostPlanView');
+          assertCurrent();
+          return view;
+        });
       }
       if (operation === 'run-plan') {
         const view = await invoke(runPlan);

@@ -5,7 +5,7 @@ import {setImmediate as turn} from 'node:timers/promises';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {openFundedClientPreparation, fundedModelMaterialFixture} from './funded-client-preparation.fixture.mjs';
 import {readInstalledModelExecution,readInstalledModelDependencies} from './installed-model.mjs';
 import {prepareAdmittedOpenAIChatRequest} from '../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs';
 import {pollSdkPreparation,sdkPreparedRequest,cleanupSdkPreparation,cancelSdkPreparation}
@@ -16,7 +16,6 @@ import {canonical,identity,configuration,program,task,prompt,output,instructions
 const cid=letter=>`sha256:${letter.repeat(64)}`;
 const base=JSON.parse(readFileSync(new URL('../../spec/local-check-environment.json',import.meta.url)));
 const aoa=JSON.parse(readFileSync(new URL('../../spec/contracts/actql-aoa.json',import.meta.url)));
-const registry=canonical(JSON.parse(readFileSync(new URL(`../../${aoa.pipeline_registry_file}`,import.meta.url))));
 const values=canonical(aoa.execution_contracts['REL.values']);
 const fragment=canonical(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
 const ordered=canonical(aoa.execution_contracts['REL.derive.ordered']);
@@ -24,14 +23,17 @@ const control=runtimeCore(moon).publicationControl;
 const quantities=Object.freeze({limits:Object.freeze({tokens:33n,costUnits:0n,durationMs:500n}),
   perAttempt:Object.freeze({tokens:33n,costUnits:0n,durationMs:500n})});
 
-function openOriginal() {
+async function openOriginal(t) {
   const installed=configuration(base);
   const environment=moon.clientProgramCheckEnvironment(installed.environmentWire,
     JSON.parse(installed.environmentWire).evidence_bundle_cid,false,false,true,false,false,false,false);
   assert.ok(environment);
-  const prepared=installNodeClientProgramPreparation({moon,environment})({kind:'program',input:program,parameters:null});
-  const {execution}=readInstalledModelExecution(moon,prepared,installed);
-  const dependencies=readInstalledModelDependencies(moon,execution,installed);
+  const funded=await openFundedClientPreparation({moon,environment,sequenceContracts:{values,fragment,ordered}});
+  t.after(funded.close);
+  const prepared=await funded.prepare({kind:'program',input:program,parameters:null});
+  const fund=fundedModelMaterialFixture(moon,prepared);
+  const {execution}=readInstalledModelExecution(moon,prepared,installed,undefined,fund);
+  const dependencies=readInstalledModelDependencies(moon,execution,installed,fund,prepared);
   const provider=moon.clientProgramInstallAsyncModelProvider('models/fixture');
   assert.ok(provider);
   const admitted=checked(moon.clientProgramAdmitModelProvider(provider,execution,dependencies,
@@ -71,7 +73,7 @@ function openOriginal() {
   const read=control.prepareCheckedClientInferNodeReadLayout(compiled,definition,graph,scope,selection);
   const consumer=control.claimCheckedClientInferNodePreparationLayout(compiled,definition,graph,read,selection);
   const active=control.startCheckedClientInferOriginalPreparation(compiled,definition,prepared,2,graph,
-    registry,values,provider,consumer,7000n,3000n,100n,5n,fragment,ordered);
+    funded.installedContracts,values,provider,consumer,7000n,3000n,100n,5n,fragment,ordered);
   checked(moon.clientProgramRequireInferCallEntry(active));
   checked(moon.clientProgramBindInferQuantityCapacity(active,33n,0n,500n,33n,0n,500n));
   checked(moon.clientProgramBindInferEgress(active,checked(moon.clientProgramAdmitInferEgress(prepared,2,execution,
@@ -106,7 +108,7 @@ test(`first M1 actual original Core request ${rejectProjection?'bounded refusal'
   let physical=0;
   globalThis.fetch=()=>{physical++;assert.fail('No ambient transport');};
   t.after(()=>{globalThis.fetch=ambient;});
-  const original=openOriginal();
+  const original=await openOriginal(t);
   let request,handle,preflights=0,cleanupAllowed=false,cleanupCalls=0;
   checked(moon.clientProgramBindInferPhysicalPreflight(original.active,current=>{
     preflights++;

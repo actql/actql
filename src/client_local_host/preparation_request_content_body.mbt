@@ -69,8 +69,8 @@ pub fn[I] borrow_request_content_plan_input(
 }
 
 ///|
-/// Compile the existing source-free terminal serialization purpose on this
-/// Request. The same checked component, contracts, artifact and work receipt
+/// Compile source-free or original Whole-source terminal serialization on
+/// this Request. The same checked component, contracts, artifact and work receipt
 /// survive a declined grow. The caller retains its Content construction borrow
 /// and funds the complete component/output frame before this constructor.
 pub fn[I] prepare_request_serialization_compilation(
@@ -156,7 +156,13 @@ fn[I] prepare_request_serialization_compilation_owned(
   }
   match keyed {
     None => {
-      guard @publication_host.prepared_client_acquisition_count(prepared) == 0 &&
+      guard (
+          @publication_host.prepared_client_acquisition_count(prepared) == 0 ||
+          @publication_host.client_serialization_plan_direct_occurrences(
+            component, prepared,
+          )
+          is Some(_)
+        ) &&
         @publication_host.prepared_client_composed_infer_occurrences(prepared)
         is Some(infers) &&
         infers.is_empty() &&
@@ -373,6 +379,7 @@ pub fn[I] prepare_request_serialization_plan(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   workspace : @execution.ExecutionCapacity?,
+  whole_plan? : ClientInstalledManagedCapturePlan? = None,
 ) -> Result[
   ClientInstalledManagedSerializationPreparation,
   ClientInstalledManagedRunIssue,
@@ -388,6 +395,8 @@ pub fn[I] prepare_request_serialization_plan(
     workspace,
     None,
     None,
+    None,
+    whole_plan~,
   )
 }
 
@@ -423,6 +432,7 @@ pub fn[I] prepare_request_model_serialization_plan(
     workspace,
     Some(graph),
     query_time,
+    None,
   )
 }
 
@@ -438,6 +448,8 @@ fn[I] prepare_request_serialization_plan_owned(
   workspace : @execution.ExecutionCapacity?,
   model : @publication_host.ClientInferPlanGraph?,
   query_time : @publication_host.ClientQueryTimePreparation?,
+  terminal_output : ClientSerializationOutputDemand?,
+  whole_plan? : ClientInstalledManagedCapturePlan? = None,
 ) -> Result[
   ClientInstalledManagedSerializationPreparation,
   ClientInstalledManagedRunIssue,
@@ -472,8 +484,25 @@ fn[I] prepare_request_serialization_plan_owned(
     }
     _ => return Err(ForeignOriginal)
   }
-  // The selected record owns ten original references; its LedgerLimits owns
-  // six scalar words. Plan/Request/compiler link carriers were admitted at
+  let source_holdings = match whole_plan {
+    None => 0
+    Some(plan) => {
+      guard physical_equal(plan.prepared, prepared) &&
+        physical_equal(plan.request, request) &&
+        plan.serialization is Some(original) &&
+        physical_equal(original, component) else {
+        return Err(ForeignOriginal)
+      }
+      let count = plan.whole_sources.length() + plan.captures.length()
+      guard count == 1 || count == 2 else { return Err(ForeignOriginal) }
+      count
+    }
+  }
+  // The selected record owns eleven original references; its LedgerLimits
+  // owns six scalar words. Terminal selection also pays for its optional
+  // demand link and the borrowed triple returned at prefix entry. The demand
+  // and its limits were already funded before projection. Plan/Request/compiler
+  // link carriers were admitted at
   // the Content input borrow. Compiler, sequence/provider and output backing
   // are separate domains: do not count them as supplied by this fixed packet.
   // Reuse the existing sequential construction quote slot. The completed
@@ -483,13 +512,15 @@ fn[I] prepare_request_serialization_plan_owned(
     guard @execution.preparation_representation_cost({
         record_headers: if model is Some(_) {
           5L
+        } else if terminal_output is Some(_) {
+          4L
         } else {
           2L
         },
-        reference_slots: if model is Some(_) {
-          14L
+        reference_slots: if model is Some(_) || terminal_output is Some(_) {
+          15L
         } else {
-          10L
+          11L
         },
         scalar_words: if model is Some(_) {
           9L
@@ -516,6 +547,36 @@ fn[I] prepare_request_serialization_plan_owned(
         bytes
       }
     }
+    let bytes = if source_holdings == 0 {
+      bytes
+    } else {
+      // Each original captured Source owns one live holding. Grow the same
+      // unbound preparation census while allocation is still closed; later
+      // evidence authenticates the exact tokens registered in this census.
+      guard @resources.preparation_inventory_initial_control_slots(
+          request_preparation_borrow_limit, source_holdings, 0,
+        )
+        is Some((headers, references, words)) else {
+        return Err(InsufficientCapacity)
+      }
+      let (original_headers, original_references, original_words) = request_preparation_inventory_slots
+      let growth = @resources.preparation_inventory_growth_entry_construction()
+      guard @execution.preparation_representation_cost({
+          record_headers: headers - original_headers + growth.record_headers,
+          reference_slots: references -
+          original_references +
+          growth.reference_slots,
+          scalar_words: words - original_words + growth.scalar_words,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        })
+        is Some(census) &&
+        @execution.checked_preparation_add_product(bytes, census, 1L)
+        is Some(total) else {
+        return Err(InsufficientCapacity)
+      }
+      total
+    }
     let (r, e) = match
       @resources.preparation_capacity_working_extents(capacity, input) {
       Err(issue) => return Err(Preparation(issue))
@@ -529,9 +590,13 @@ fn[I] prepare_request_serialization_plan_owned(
   }
   let (r, e) = owner.program_domain_quote.unwrap()
   owner.phase = Selecting
-  let grown = @resources.reserve_working_preparation_phase(
-    capacity, input, r, e,
-  )
+  let grown = if source_holdings == 0 {
+    @resources.reserve_working_preparation_phase(capacity, input, r, e)
+  } else {
+    @resources.grow_preparation_capacity_inventory(
+      capacity, input, r, e, request_preparation_borrow_limit, source_holdings, 0,
+    )
+  }
   if grown is Err(issue) {
     if owner.phase == Selecting {
       owner.phase = previous
@@ -591,8 +656,10 @@ fn[I] prepare_request_serialization_plan_owned(
       execution,
       measurement,
       workspace,
+      terminal_output,
       model~,
       query_time~,
+      whole_plan~,
     ) {
     Err(issue) => {
       // A foreign tuple is refused before prefix construction. Once the
@@ -618,7 +685,64 @@ fn[I] prepare_request_serialization_plan_owned(
 }
 
 ///|
-/// Complete only the source-free preparation selected by this SAME Request.
+/// Price the terminal Content output and the retained prefix on the original
+/// Request before either can enter physical execution. The output demand uses
+/// the existing checked component, so authored generation guards can only
+/// tighten the installed profile. Prefix execution preserves its own row limit.
+pub fn[I] prepare_request_terminal_serialization_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[
+  ClientInstalledManagedSerializationPreparation,
+  ClientInstalledManagedRunIssue,
+] {
+  guard @publication_host.client_compiled_run_serialization(compiled)
+    is Some(component) &&
+    owner.compiled_program is Some(prepared) &&
+    physical_equal(component.owner, prepared) &&
+    @publication_host.validate_client_run_binding(
+      request, prepared, compiled, definition,
+    )
+    is Ok(_) else {
+    return Err(ForeignOriginal)
+  }
+  let demand = match
+    prepare_request_serialization_output_limits(
+      owner,
+      input,
+      compiled,
+      component,
+      component.max_rows,
+      () => Some(client_terminal_serialization_workspace_limits()),
+      terminal=true,
+    ) {
+    Ok(demand) => demand
+    Err(Policy) => return Err(InsufficientCapacity)
+    Err(Capacity(issue)) => return Err(Preparation(issue))
+    Err(_) => return Err(ForeignOriginal)
+  }
+  let (_, execution, measurement) = client_local_execution_limits()
+  prepare_request_serialization_plan_owned(
+    owner,
+    input,
+    request,
+    compiled,
+    definition,
+    execution,
+    measurement,
+    Some(demand.capacity),
+    None,
+    None,
+    Some(demand),
+  )
+}
+
+///|
+/// Complete the serialization selected by this SAME Request. When present,
+/// its Whole Source inventory stays on the same preparation through adoption.
 /// Keyed Content keeps its own typed entry, with neither purpose cast to Pure.
 pub fn[I] complete_request_serialization_preparation(
   owner : ClientRequestPreparation[I],
@@ -636,6 +760,19 @@ pub fn[I] complete_request_serialization_preparation(
     owner.program_content_request is Some(request) &&
     physical_equal(request, selected.request) &&
     !owner.program_body_attempted else {
+    return Err(ForeignOriginal)
+  }
+  if selected.whole_plan is Some(captured) {
+    guard physical_equal(captured.prepared, prepared) &&
+      physical_equal(captured.request, request) &&
+      (match owner.program_captured {
+        None => true
+        Some(original) => physical_equal(original, captured)
+      }) else {
+      return Err(ForeignOriginal)
+    }
+    owner.program_captured = Some(captured)
+  } else if owner.program_captured is Some(_) {
     return Err(ForeignOriginal)
   }
   let (r, e) = match
@@ -686,14 +823,28 @@ pub fn[I] begin_request_content_managed_run(
         selected.limits,
       )
     SerializationContent(selected) =>
-      begin_preparation_owned_installed_serialization_run_original(
-        owner.initial,
-        input,
-        capacity,
-        prepared,
-        request,
-        selected,
-      )
+      match (selected.whole_plan, owner.program_captured) {
+        (None, None) =>
+          begin_preparation_owned_installed_serialization_run_original(
+            owner.initial,
+            input,
+            capacity,
+            prepared,
+            request,
+            selected,
+          )
+        (Some(plan), Some(captured)) if physical_equal(plan, captured) =>
+          adopt_preparation_owned_whole_serialization(
+            owner.initial,
+            input,
+            capacity,
+            prepared,
+            request,
+            selected,
+            plan,
+          )
+        _ => Err(ForeignOriginal)
+      }
     NoContent => Err(ForeignOriginal)
   }
   match result {

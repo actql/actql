@@ -81,6 +81,10 @@ test "original composed entry retains one consumer through actual rows and input
     }
     assert_true(physical_equal(retained, consumer))
     assert_true(physical_equal(active.run_binding.unwrap().compiled, compiled))
+    // Matching Run and Plan alone cannot provide the missing Whole tuple.
+    assert_false(
+      original_whole_model_journal_matches(active, plan, compiled, definition),
+    )
     assert_eq(@resources.ledger_usage(ledger), before)
     assert_eq(active.work, 0L)
     for _ in 0..<5000 {

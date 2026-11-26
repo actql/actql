@@ -849,6 +849,9 @@ FROM support.cases
 |> EFFECT STORE s3.objects SET (key = 'exports/' || name, content = content);
 ```
 
+After a join, `SERIALIZE` encodes the joined Relation, not each input
+separately. Its ordering applies to the joined rows.
+
 **Errors** `query_syntax_invalid` (missing order clause or `OPTIONS`),
 `operation_parameter_invalid` (unknown or duplicate option, non-literal
 value, missing `header`/`null_marker` for CSV).

@@ -44,10 +44,10 @@ import {
   "actql/actql/lowering_relation" @test_lower,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/physical_cost" @cost,
+  "actql/actql/capacity_policy",
   "actql/actql/source_frontend" @frontend,
   "actql/actql/sourceview_resolution" @sourceviews,
   "actql/actql/program_check" @checked,
-  "actql/actql/numeric_reduction" @numeric,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/check_environment" @compiler_environment,
   "actql/actql/model_execution" @model,
@@ -73,6 +73,7 @@ import {
 import {
   "actql/actql/publication_payload" @test_payload,
   "actql/actql/infer_typing" @test_infer,
+  "actql/actql/numeric_reduction" @numeric,
 } for "wbtest"
 
 options(

@@ -176,10 +176,10 @@ fn native_model_http_execution_construction(
   @execution.PreparationRepresentationUnits,
 )? {
   // The selected files, execution, three dependencies and their small policy
-  // arrays/options stay live through the return of the composite contract.
+  // arrays/options stay live through the return with the occurrence binding.
   let mut retained : @execution.PreparationRepresentationUnits = {
     record_headers: 24L,
-    reference_slots: 43L,
+    reference_slots: 44L,
     scalar_words: 36L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,

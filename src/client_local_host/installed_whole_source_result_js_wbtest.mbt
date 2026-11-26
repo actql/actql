@@ -12,6 +12,7 @@ fn whole_source_result_publication_fixture(
   source_free_refusal? : Bool = false,
   native_identity? : Bool = false,
   native_retention? : Bool = false,
+  producer_result? : Bool = false,
 ) -> Unit raise {
   let declaration = if numeric_case {
     let catalogue = @row_source_host.prepare_mock_churn_risk_catalogue({
@@ -31,6 +32,10 @@ fn whole_source_result_publication_fixture(
   }
   let document = if numeric_case {
     "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d"
+  } else if producer_result {
+    (
+      #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}},{"id":"final","inputs":{"prior":{"result":{"stage":"read","result":"out"}}},"steps":[{"from":"prior","select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"final","result":"out"}}}}
+    )
   } else if filtered_rows {
     (
       #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 1","as":"eligible"},{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
@@ -44,6 +49,14 @@ fn whole_source_result_publication_fixture(
       #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
     )
   }
+  let backed = if producer_result {
+    Some(backed_request_fixture())
+  } else {
+    None
+  }
+  let backed_frame = backed.map(value => {
+    @resources.backed_preparation_original_frame(value.2, value.4).unwrap()
+  })
   let (parent, prepared, input) = if numeric_case {
     // Same shipped profile selected by the actual Native default entrance;
     // this existing fixed CID also pins the original numeric task fixtures.
@@ -105,6 +118,7 @@ fn whole_source_result_publication_fixture(
     let (parent, child, _, input) = registration_parent_fixture(
       text=document,
       environment=Some(pure_provider_environment(declaration)),
+      original_parent=backed.map(value => (value.3, value.4)),
     )
     guard finish_program_check_preparation(child).unwrap()
       is @checked.Checked(_) else {
@@ -285,6 +299,18 @@ fn whole_source_result_publication_fixture(
     }
   }
   let owner = begin_request_capture_managed_run(parent, request).unwrap()
+  if producer_result {
+    let ledger = owner.ledger.unwrap()
+    let admission = installed_managed_preparation_admission_original(
+      owner, prepared, request,
+    ).unwrap()
+    let (retained, executing) = @resources.prepared_run_native_capacity(
+      admission, prepared, ledger,
+    ).unwrap()
+    @resources.reserve_prepared_run_native_work_capacity(
+      admission, prepared, ledger, retained, executing,
+    ).unwrap()
+  }
   if native_geometry {
     let before = @resources.ledger_usage(owner.ledger.unwrap())
     let (physical, rows, entries, evidence_entries) = installed_managed_capture_publication_geometry_original(
@@ -635,6 +661,13 @@ fn whole_source_result_publication_fixture(
   } else {
     Some(reserve_program_publication(owner, prepared).unwrap())
   }
+  let prepared_tasks = []
+  let producer_export = Ref(None)
+  let unit_results = Ref(None)
+  let producer_cut = Ref("not-entered")
+  let refused_bookings = Ref(0)
+  let successful_bookings = Ref(0)
+  let driven = []
   if native_execution {
     let foreign = { ..owner, }
     let callbacks = Ref(0)
@@ -643,7 +676,17 @@ fn whole_source_result_publication_fixture(
       true
     }
     let copied = execute_installed_whole_source_values_guarded(
-      foreign, prepared, request, host, 64, 10000, check,
+      foreign,
+      prepared,
+      request,
+      host,
+      64,
+      10000,
+      check,
+      drive_task=Some((index, _) => {
+        driven.push(index)
+        Err(Fenced)
+      }),
     )
     assert_true(
       copied is Err(original) &&
@@ -660,6 +703,7 @@ fn whole_source_result_publication_fixture(
       local_values_execution_failure_issue(original) is UnsupportedGraph,
     )
     assert_eq(callbacks.val, 0)
+    assert_true(driven.is_empty())
     assert_eq(@strategy.next_captured_task(dag), Some(0))
   }
   let execution = match
@@ -672,6 +716,133 @@ fn whole_source_result_publication_fixture(
         64,
         10000,
         () => true,
+        prepare_task=Some((index, original) => {
+          guard local_whole_task_preparation_matches(original, dag, index) &&
+            !local_whole_task_preparation_matches(original, dag, index + 1) &&
+            !driven.contains(index) else {
+            return Err(Fenced)
+          }
+          prepared_tasks.push(index)
+          if producer_result && index == 1 {
+            producer_cut.val = "pin"
+            guard @strategy.pin_captured_completed_unit_results(dag, 0, 1, 2)
+              is Ok(results) else {
+              return Err(MissingOutput)
+            }
+            unit_results.val = Some(results)
+            producer_cut.val = "refused-booking"
+            guard prepare_local_whole_unit_result_export(
+                original,
+                owner,
+                prepared,
+                request,
+                0,
+                results,
+                0,
+                64,
+                1000,
+                capacity => {
+                  if book_whole_fixture_producer_capacity(
+                      owner,
+                      prepared,
+                      request,
+                      capacity,
+                      one_short=true,
+                    ) {
+                    refused_bookings.val += 1
+                  }
+                  false
+                },
+              )
+              is Err(Capacity) else {
+              return Err(MissingOutput)
+            }
+            producer_cut.val = "booked-export"
+            let outcome = prepare_local_whole_unit_result_export(
+              original,
+              owner,
+              prepared,
+              request,
+              0,
+              results,
+              0,
+              64,
+              1000,
+              capacity => {
+                if !book_whole_fixture_producer_capacity(
+                    owner,
+                    prepared,
+                    request,
+                    capacity,
+                    one_short=false,
+                  ) {
+                  producer_cut.val = "physical-grow-refused"
+                  return false
+                }
+                successful_bookings.val += 1
+                true
+              },
+            )
+            let opened = match outcome {
+              Ok(value) => value
+              Err(issue) => {
+                if producer_cut.val == "booked-export" {
+                  producer_cut.val = match issue {
+                    ForeignOriginal => "foreign-original"
+                    Capacity => "capacity"
+                    Bridge(Completion(issue)) =>
+                      "bridge.completion." + @debug.to_string(issue)
+                    Bridge(Admission(_)) => "bridge.admission"
+                    Bridge(Wire(InputLimit)) => "bridge.wire.input-limit"
+                    Bridge(Wire(ShapeLimit)) => "bridge.wire.shape-limit"
+                    Bridge(Wire(InvalidLimits)) => "bridge.wire.invalid-limits"
+                    Bridge(Wire(InvalidShape)) => "bridge.wire.invalid-shape"
+                    Bridge(Wire(InvalidJson)) => "bridge.wire.invalid-json"
+                    Bridge(Wire(Decode(issue))) =>
+                      "bridge.wire.decode." + @debug.to_string(issue)
+                    Bridge(Wire(Value(_, issue))) =>
+                      "bridge.wire.value." + @debug.to_string(issue)
+                    Bridge(Wire(Presence(_))) => "bridge.wire.presence"
+                    Bridge(_) => "bridge.other"
+                    Export(Admission(issue)) =>
+                      "export.admission." + @debug.to_string(issue)
+                    Export(ResultView(Limit)) => "export.view.limit"
+                    Export(ResultView(ForeignOccurrence)) =>
+                      "export.view.foreign"
+                    Export(ResultView(_)) => "export.view.other"
+                    Export(Wire(InvalidLimits)) => "export.wire.invalid-limits"
+                    Export(Wire(_)) => "export.wire.other"
+                    Export(Schema(_)) => "export.schema"
+                    Export(NotFinished) => "export.not-finished"
+                    Export(_) => "export.other"
+                    Handoff(_) => "handoff"
+                  }
+                }
+                return Err(MissingOutput)
+              }
+            }
+            producer_export.val = Some(opened)
+            producer_cut.val = "stage"
+            guard opened.handoff() is Some(handoff) &&
+              @strategy.retain_captured_completed_unit_result_input(
+                handoff, 0, 1000, 20000,
+              )
+              is Ok(_) else {
+              return Err(MissingOutput)
+            }
+          }
+          Ok(())
+        }),
+        drive_task=Some((index, operations) => {
+          if prepared_tasks.last() != Some(index) {
+            return Err(Fenced)
+          }
+          if producer_result && index == 1 && !operations.inputs.is_empty() {
+            return Err(MissingOutput)
+          }
+          driven.push(index)
+          (operations.execute)().map_err(issue => Driver(issue))
+        }),
       )
     } else {
       execute_source_free_values_guarded(host, 64, 10000, () => true)
@@ -724,8 +895,30 @@ fn whole_source_result_publication_fixture(
         Estimate(_) => "Estimate"
         MissingOutput => "MissingOutput"
       }
-      fail("whole result execution: " + label)
+      fail("whole result execution: " + label + " (" + producer_cut.val + ")")
     }
+  }
+  if producer_result {
+    assert_eq(refused_bookings.val, 1)
+    assert_eq(successful_bookings.val, 1)
+    let opened = producer_export.val.unwrap()
+    assert_true(opened.handoff() is Some(_))
+    opened.close()
+    assert_true(opened.handoff() is None)
+    assert_true(
+      @strategy.release_captured_completed_unit_results(
+        unit_results.val.unwrap(),
+      ),
+    )
+  }
+  if native_execution {
+    assert_eq(
+      driven,
+      Array::makei(
+        @strategy.graph_task_count(@strategy.captured_dag_graph(dag)),
+        index => index,
+      ),
+    )
   }
   if numeric_case {
     // Match the original ordinary observer's independent JSON value oracle;
@@ -848,6 +1041,9 @@ fn whole_source_result_publication_fixture(
       wire.to_string(),
       if filtered_rows {
         "[{\"id\":2}]"
+      } else if producer_result {
+        // The second Unit imports the first's original ordered occurrence.
+        "[{\"id\":2},{\"id\":1}]"
       } else {
         "[{\"id\":1},{\"id\":2}]"
       },
@@ -930,22 +1126,26 @@ fn whole_source_result_publication_fixture(
     Err(_) => fail("original Native Source retention: another refusal")
   }
 
-  let snapshot = begin_program_snapshot(publication, stream).unwrap()
-  let mut snapshot_done = false
-  for _ in 0..<10000 {
-    let (done, work) = advance_program_snapshot(snapshot, 64).unwrap()
-    assert_true(work <= 64)
-    if done {
-      snapshot_done = true
-      break
+  // The backed Native fixture has already observed its output through
+  // the physical export above. This snapshot is the Node retained-input path.
+  if !producer_result {
+    let snapshot = begin_program_snapshot(publication, stream).unwrap()
+    let mut snapshot_done = false
+    for _ in 0..<10000 {
+      let (done, work) = advance_program_snapshot(snapshot, 64).unwrap()
+      assert_true(work <= 64)
+      if done {
+        snapshot_done = true
+        break
+      }
     }
+    assert_true(snapshot_done)
+    let retained_result = finish_program_snapshot(snapshot).unwrap()
+    assert_true(
+      physical_equal(publication.completed_snapshots[0], retained_result),
+    )
+    assert_true(finish_program_snapshot(snapshot) is Err(ForeignOriginal))
   }
-  assert_true(snapshot_done)
-  let retained_result = finish_program_snapshot(snapshot).unwrap()
-  assert_true(
-    physical_equal(publication.completed_snapshots[0], retained_result),
-  )
-  assert_true(finish_program_snapshot(snapshot) is Err(ForeignOriginal))
   stream.cancel()
   @execution.close_managed_publication_bridge(bridge)
   assert_true(execution.close())
@@ -965,6 +1165,13 @@ fn whole_source_result_publication_fixture(
   assert_true(retired)
   assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
   @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  if backed is Some((_, access, _, _, _)) {
+    assert_true(
+      retire_installed_managed_run(owner) is Err(Resource(Unavailable)),
+    )
+    @resources.report_imported_child_ledger(backed_frame.unwrap()).unwrap()
+    @resources.retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
+  }
   retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
@@ -1035,6 +1242,68 @@ test "original Whole input cannot enter Source-free task execution or spend anot
     native_geometry=true,
     numeric_case=true,
     source_free_refusal=true,
+  )
+}
+
+///|
+// Exercise the actual same-body resize with the fixture's explicit backed
+// region. The held blocker leaves exactly one retained byte short.
+fn book_whole_fixture_producer_capacity(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacity : @execution.ExecutionCapacity,
+  one_short~ : Bool,
+) -> Bool {
+  let quote_r = @execution.execution_capacity_retained_bytes(capacity)
+  let quote_e = @execution.execution_capacity_execution_bytes(capacity)
+  guard installed_managed_preparation_admission_original(
+      owner, prepared, request,
+    )
+    is Some(admission) &&
+    owner.ledger is Some(ledger) &&
+    @resources.prepared_run_native_capacity(admission, prepared, ledger)
+    is Ok((r, e)) &&
+    @execution.checked_preparation_add_product(r, quote_r, 1L) is Some(target_r) &&
+    @execution.checked_preparation_add_product(e, quote_e, 1L) is Some(target_e) else {
+    return false
+  }
+  let before = @resources.ledger_usage(ledger)
+  if one_short {
+    let available = @resources.ledger_limits(ledger).retained_bytes -
+      before.held_bytes -
+      before.reserved_retention_bytes
+    guard available >= quote_r &&
+      @resources.reserve_capacity(ledger, available - quote_r + 1L, 0L)
+      is Ok(blocker) else {
+      return false
+    }
+    let full = @resources.ledger_usage(ledger)
+    let result = @resources.grow_prepared_run_native_work_capacity(
+      admission, prepared, ledger, target_r, target_e,
+    )
+    let unchanged = @resources.ledger_usage(ledger) == full
+    let retired = @resources.settle_capacity(ledger, blocker) is Ok(_)
+    return result is Err(Resource(RetentionLimit)) && unchanged && retired
+  }
+  guard @resources.grow_prepared_run_native_work_capacity(
+      admission, prepared, ledger, target_r, target_e,
+    )
+    is Ok(_) &&
+    @resources.prepared_run_native_capacity(admission, prepared, ledger)
+    is Ok((reserved_r, reserved_e)) else {
+    return false
+  }
+  reserved_r == target_r && reserved_e == target_e
+}
+
+///|
+test "installed Whole receiver consumes one funded original producer Result before dispatch" {
+  whole_source_result_publication_fixture(
+    false,
+    native_geometry=true,
+    native_execution=true,
+    producer_result=true,
   )
 }
 

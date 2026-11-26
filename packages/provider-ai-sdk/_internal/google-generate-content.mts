@@ -58,7 +58,5 @@ export function readReportedResponse(body: unknown) {
   const finish = Array.isArray(reported.candidates) && reported.candidates.length === 1
     ? reported.candidates[0]?.finishReason : undefined;
   const blocked = reported.promptFeedback?.blockReason;
-  return {model: reported.modelVersion, requestId: reported.responseId, finishReason: finish ?? blocked,
-    outcome: finish === 'SAFETY' || typeof blocked === 'string' && blocked !== 'BLOCK_REASON_UNSPECIFIED'
-      ? 'refusal' : undefined};
+  return {model: reported.modelVersion, requestId: reported.responseId, finishReason: finish ?? blocked};
 }

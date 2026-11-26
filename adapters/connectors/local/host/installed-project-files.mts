@@ -67,6 +67,7 @@ type ProfileView = Readonly<{realizationKey: 'installed-multi-acquired'; environ
   connectorBindings: RowSource['connectorBindings']; queryAliases: readonly RetainedAlias[];
   admitsSource(ref: string): boolean;
   prepareManagedRun(facts: PrepareRun): unknown;
+  bindManagedSerializationReadRun(run: HostRun): void;
   prepareManagedContentRun(prepared: unknown, request: unknown, recipe: Recipe, graph: unknown,
     preparation: ContentPreparation): HostRun | undefined;
   managedContentLedger(prepared: unknown, request: unknown, recipe: Recipe, direct: Direct,
@@ -229,6 +230,27 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     if(prior===undefined)sharedRuns.set(prepared as object,{prepared,request,value,effectful:false,reads:new Map()});
     current();
     return value;
+  }
+  function bindManagedSerializationReadRun(this: ProfileView, hostRun: HostRun) {
+    current();
+    if (this !== profile || typeof hostRun?.prepared !== 'object' || hostRun.prepared === null ||
+        hostRun.request === undefined || hostRun.value === undefined || hostRun.selectedKeyed !== undefined) {
+      fail('ForeignLocalFilesContentPreparation');
+    }
+    // The Host has already adopted the Content Run with its ordinary Source
+    // inventory. Register only that exact parent; never call prepareRun again.
+    const prepared = hostRun.prepared, request = hostRun.request, value = hostRun.value;
+    checked(moon.clientProgramInstalledManagedRunCheck(value, prepared, request));
+    current();
+    const prior = sharedRuns.get(prepared);
+    if (prior !== undefined) {
+      if (prior.hostRun !== hostRun || prior.value !== value || prior.request !== request || prior.retired || prior.failed)
+        fail('ForeignLocalFilesContentPreparation');
+      return;
+    }
+    if (hostRun.prepared !== prepared || hostRun.request !== request || hostRun.value !== value)
+      fail('ForeignLocalFilesContentPreparation');
+    sharedRuns.set(prepared, {prepared, request, value, hostRun, effectful: false, reads: new Map()});
   }
   function releaseContentAliases(this: Run,managed: HostRun | undefined,inputHolder: unknown){
     const run=this;if(run.retired===true)return;
@@ -729,7 +751,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       connectorBindings:Object.freeze(sources.flatMap(source=>source.connectorBindings)),
       queryAliases:Object.freeze(sources.flatMap(source=>source.queryAliases)),
       admitsSource:(ref: string)=>sources.some(source=>source.admitsSource(ref)),
-      prepareManagedRun:prepareRun,
+      prepareManagedRun:prepareRun, bindManagedSerializationReadRun,
       prepareManagedContentRun:prepareContentRun,managedContentLedger:contentLedger,close});
     return profile;
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:{close}});}

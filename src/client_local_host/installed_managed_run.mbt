@@ -978,6 +978,7 @@ fn new_installed_managed_run_owned(
   preparation : ClientInstalledManagedRunOriginal,
   request : @publication_host.ClientRequestIdentity,
   ledger : @resources.Ledger,
+  captured? : ClientInstalledManagedCapturePlan? = None,
 ) -> ClientInstalledManagedRun {
   let value : ClientInstalledManagedRun = {
     original: None,
@@ -985,9 +986,12 @@ fn new_installed_managed_run_owned(
     request,
     ledger: Some(ledger),
     reads: Array::make(
-      match preparation {
-        PlannedEffectManaged(_, plan) => plan.whole_sources.length()
-        PureManaged(_, prepared) | PreparationContentManaged(_, prepared) =>
+      match (preparation, captured) {
+        (PlannedEffectManaged(_, plan), _) => plan.whole_sources.length()
+        (PureManaged(_, _), Some(plan)) if !plan.whole_sources.is_empty() =>
+          plan.whole_sources.length()
+        (PureManaged(_, prepared), _)
+        | (PreparationContentManaged(_, prepared), _) =>
           @strategy.graph_captured_prefix(
             @publication_host.prepared_client_graph(prepared),
           )
@@ -1002,7 +1006,7 @@ fn new_installed_managed_run_owned(
     effect_operation_closing: false,
     effect_operation_controls: None,
     source_free_preparation: None,
-    captured_preparation: None,
+    captured_preparation: captured,
     preparation_retirement: None,
     source_free_captured: None,
     source_free_opening: false,
