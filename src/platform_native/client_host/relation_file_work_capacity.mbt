@@ -72,8 +72,10 @@ fn relation_file_work_control_bytes() -> Int64? {
   @execution.preparation_representation_cost({
     // The existing source field now retains its closed Single/Managed tag:
     // H1/R1/W1, without another physical Source owner.
+    // The completion Some (H1/R1/S1) overlaps the Work and its Whole evidence slot (R1).
     record_headers: 6L +
     2L +
+    1L +
     1L +
     5L +
     3L +
@@ -102,6 +104,7 @@ fn relation_file_work_control_bytes() -> Int64? {
     6L,
     reference_slots: 32L +
     19L +
+    2L +
     8L +
     7L +
     11L +
@@ -127,6 +130,7 @@ fn relation_file_work_control_bytes() -> Int64? {
     1L,
     scalar_words: 4L +
     3L +
+    1L +
     13L +
     4L +
     2L +

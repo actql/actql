@@ -108,10 +108,11 @@ fn request_query_acquisition_constructor_bytes(
     @execution.preparation_representation_cost({
       // Fixed quote/grow/refusal/return products. Per Source: declared-source,
       // capability/candidate/choice, evidence context and limits, capacity and
-      // Host locator products. Borrowed schema/Program/Provider are not copied.
-      record_headers: 12L + 64L * count.to_int64(),
-      reference_slots: 8L + 128L * count.to_int64(),
-      scalar_words: 20L + 128L * count.to_int64(),
+      // Host locator products, including the selected row tuple H1/R2/W2.
+      // Borrowed schema/Program/Provider are not copied.
+      record_headers: 12L + 65L * count.to_int64(),
+      reference_slots: 8L + 130L * count.to_int64(),
+      scalar_words: 20L + 130L * count.to_int64(),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })

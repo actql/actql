@@ -104,6 +104,66 @@ test "Model observation binds both sources even with no call slots" {
     )
     is Err(_),
   )
+  let invocation = issue_model_run_invocation(
+    template,
+    observation,
+    [],
+    4096,
+    128,
+    16,
+  ).unwrap()
+  let interval = Some((first.started_at, second.completed_at))
+  assert_true(
+    model_invocation_matches(
+      template,
+      observation,
+      invocation,
+      [artifact_cid],
+      policy,
+      source_evidence=[first.source, second.source],
+      capture_interval=interval,
+    ),
+  )
+  for
+    sources in [
+      [first.source],
+      [second.source, first.source],
+      [first.source, artifact],
+    ] {
+    assert_false(
+      model_invocation_matches(
+        template,
+        observation,
+        invocation,
+        [artifact_cid],
+        policy,
+        source_evidence=sources,
+        capture_interval=interval,
+      ),
+    )
+  }
+  assert_false(
+    model_invocation_matches(
+      template,
+      observation,
+      invocation,
+      [artifact_cid],
+      policy,
+      source_evidence=[first.source, second.source],
+      capture_interval=Some((first.started_at, first.completed_at)),
+    ),
+  )
+  assert_false(
+    model_invocation_matches(
+      template,
+      observation,
+      invocation,
+      [artifact_cid, artifact_cid],
+      policy,
+      source_evidence=[first.source, second.source],
+      capture_interval=interval,
+    ),
+  )
   let short = model_inventory_value(
     "observation_set",
     observation.identity,

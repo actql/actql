@@ -1,7 +1,7 @@
 ///|
 /// Host/Connector observations, not author-supplied permission. This initial
-/// owner combines these with the checked effective input policy for acquired
-/// inputs. Provider observations cannot lower the source classification.
+/// owner combines these with the policy of the checked receiving input.
+/// Provider observations cannot lower the source classification.
 pub(all) struct ClientInferEgressObservation {
   classification : @environment.DataClassification
   region : String
@@ -58,7 +58,6 @@ pub fn admit_prepared_client_infer_egress(
     { owner, task: 0, stage: 0, step, preparation: prefix, },
     execution,
     observe,
-    client_acquired_infer_prefix_owner(owner, 0, step) is Some(_),
   )
 }
 
@@ -74,12 +73,7 @@ pub fn admit_client_infer_occurrence_egress(
   if !client_infer_occurrence_matches(occurrence, occurrence.owner) {
     return Err(ForeignOwner)
   }
-  admit_client_infer_egress_for_occurrence(
-    occurrence,
-    execution,
-    observe,
-    @strategy.graph_captured_prefix(occurrence.owner.graph) > 0,
-  )
+  admit_client_infer_egress_for_occurrence(occurrence, execution, observe)
 }
 
 ///|
@@ -87,7 +81,6 @@ fn admit_client_infer_egress_for_occurrence(
   occurrence : ClientInferOccurrence,
   execution : @environment.ModelExecutionContract,
   observe : () -> ClientInferEgressObservation?,
-  acquired : Bool,
 ) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue] {
   let owner = occurrence.owner
   let step = occurrence.step
@@ -114,29 +107,26 @@ fn admit_client_infer_egress_for_occurrence(
       }
     None => observed.classification
   }
-  if acquired {
-    let policy = @checked.prepare_infer_input_source_policy(
-      @strategy.graph_program(owner.graph),
-      occurrence.stage,
-      step,
-      1000000,
-      1000000,
-      100000,
-      100,
-    ) catch {
-      _ => return Err(InputPolicyUnavailable)
-    }
-    guard policy is Some(policy) else { return Err(UnknownClassification) }
-    let input_classification = @checked.publication_policy_classification(
-      policy,
-    )
-    if input_classification == @environment.Unknown {
+  let policy = @checked.prepare_infer_input_policy(
+    @strategy.graph_program(owner.graph),
+    occurrence.stage,
+    step,
+    1000000,
+    1000000,
+    100000,
+    100,
+  ) catch {
+    _ => return Err(InputPolicyUnavailable)
+  }
+  match policy {
+    None | Some(@checked.CheckedSources(@environment.Unknown)) =>
       return Err(UnknownClassification)
-    }
-    if infer_classification_rank(input_classification) >
-      infer_classification_rank(classification) {
-      classification = input_classification
-    }
+    Some(@checked.ClosedLocal) => ()
+    Some(@checked.CheckedSources(input)) =>
+      if infer_classification_rank(input) >
+        infer_classification_rank(classification) {
+        classification = input
+      }
   }
   let task = @environment.model_execution_task(execution)
   if !@environment.model_task_accepts_classification(task, classification) {

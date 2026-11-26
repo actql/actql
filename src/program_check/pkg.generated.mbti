@@ -25,6 +25,7 @@ import {
   "actql/actql/program_source_builder",
   "actql/actql/relation_evidence",
   "actql/actql/relation_nest",
+  "actql/actql/relation_results",
   "actql/actql/relation_typing",
   "actql/actql/source_value",
   "actql/actql/sourceview_input",
@@ -732,11 +733,13 @@ pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironm
 
 pub fn prepare_effect_computation_input(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int, source_catalog? : PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ParsedCheckInput, EffectComputationIssue]
 
-pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
+pub fn prepare_infer_input_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> CheckedInferInputPolicy? raise UnitBuildFailure
 
 pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) -> InferItemLimit raise UnitBuildFailure
 
 pub fn prepare_keyed_acquisition_source_policies(CheckedProgram, KeyedExecution, Int, Int, Int, Int) -> KeyedAcquisitionSourcePolicies raise UnitBuildFailure
+
+pub fn prepare_local_result_source_policy(CheckedProgram, Int, @relation_results.ResultPort, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
 pub fn prepare_parsed_carriers_input(ParsedCheckRegistry) -> Result[ParsedCarriersInput, ParsedCheckPreludeIssue]
 
@@ -1317,6 +1320,11 @@ pub(all) enum CheckScope {
   TemplateOnly
   BoundInput
 } derive(Eq, @debug.Debug)
+
+pub(all) enum CheckedInferInputPolicy {
+  ClosedLocal
+  CheckedSources(@check_environment.DataClassification)
+}
 
 type CheckedLocalCatalogSelection
 

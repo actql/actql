@@ -172,7 +172,9 @@ test "normalized response profile refuses limits and incompatible Decision witho
 ///|
 test "normalized response profile enters the existing full Task and installation binding checker" {
   let original = profile_projection_original()
-  let (task_wire, _, _, _) = normalized_public_model_task_materials(original)
+  let (task_wire, task_cid, _, _) = normalized_public_model_task_materials(
+    original,
+  )
   // The existing Environment/Task reader independently admits the emitted
   // Task. No hand-assembled Task token substitutes for that consuming owner.
   let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
@@ -201,6 +203,27 @@ test "normalized response profile enters the existing full Task and installation
     declaration_limits().bodies,
     100000,
   ).unwrap()
+  assert_eq(model_response_profile_task_cid(profile), task_cid)
+  assert_true(model_response_profile_task_cid(template) != task_cid)
+  assert_true(
+    normalized_public_model_task_matches_response_profile(
+      original,
+      profile,
+      original.resolved.model,
+    ),
+  )
+  assert_false(
+    normalized_public_model_task_matches_response_profile(
+      original, profile, "foreign-selector",
+    ),
+  )
+  assert_false(
+    normalized_public_model_task_matches_response_profile(
+      original,
+      template,
+      original.resolved.model,
+    ),
+  )
   assert_true(
     check_model_response_profile_binding(
       profile,

@@ -10,6 +10,7 @@ pub fn NativeClientRelationFileWork::prepare_result_exports(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  guard self.execution is Some(execution) else { return Err(Configuration) }
   let count = @strategy.graph_result_count(
     @strategy.captured_dag_graph(self.run),
   )
@@ -39,7 +40,7 @@ pub fn NativeClientRelationFileWork::prepare_result_exports(
   self.output_bridges = Some(bridges)
   for index in 0..<count {
     let bridge = match
-      self.execution.prepare_result_export(
+      execution.prepare_result_export(
         index,
         row_limits,
         bridge_entries,

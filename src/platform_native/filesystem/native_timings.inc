@@ -48,6 +48,8 @@ static actql_acceptance_event actql_acceptance_events[ACTQL_ACCEPTANCE_EVENTS];
 static _Atomic unsigned actql_acceptance_count;
 static _Atomic bool actql_acceptance_invalid;
 static bool actql_acceptance_selected;
+static bool actql_model_confirmation_selected;
+static _Atomic unsigned actql_model_confirmation_count[2];
 typedef struct { int32_t tag; uint64_t start, child_ns, sql_start, current_start; } actql_timing_frame;
 static _Thread_local actql_timing_frame actql_timing_stack[ACTQL_TIMING_STACK];
 static _Thread_local uint32_t actql_timing_depth;
@@ -217,7 +219,9 @@ static bool actql_timing_enabled(void) {
       const char *value = getenv("ACTQL_NATIVE_TIMINGS");
       bool enabled = value && strcmp(value, "1") == 0;
       const char *acceptance = getenv("ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS");
-      actql_acceptance_selected = enabled && acceptance && strcmp(acceptance, "1") == 0;
+      actql_model_confirmation_selected = enabled && acceptance && strcmp(acceptance, "model-confirmations") == 0;
+      actql_acceptance_selected = actql_model_confirmation_selected ||
+        (enabled && acceptance && strcmp(acceptance, "1") == 0);
       actql_timing_process = getpid();
       if (enabled && (!actql_timing_now(&actql_timing_origin) || atexit(actql_timing_report) != 0))
         enabled = false;
@@ -233,6 +237,38 @@ int32_t actql_native_acceptance_enabled(void) {
   bool enabled = actql_timing_enabled() && actql_acceptance_selected && getpid() == actql_timing_process;
   errno = saved_errno;
   return enabled;
+}
+/* Only the confirmed accounting record and acknowledged Raw descriptor use
+ * this probe. Their closed schemas contain identifiers and scalar facts. */
+void actql_native_model_confirmation_observation(int32_t kind, const uint16_t *wire, int32_t length) {
+  int saved_errno = errno;
+  if (actql_native_acceptance_enabled() && actql_model_confirmation_selected) {
+    if (kind < 0 || kind > 1) {
+      actql_native_acceptance_incomplete();
+      errno = saved_errno;
+      return;
+    }
+    char body[1200];
+    /* The closed Raw descriptor has 17 fields and up to 1093 ASCII units
+     * for this 64 KiB response profile, including its ten CIDs. */
+    int32_t maximum = kind == 0 ? 1024 : 1120;
+    const char *marker = kind == 0 ? "ACTQL_NATIVE_MODEL_ACCOUNTING" : "ACTQL_NATIVE_MODEL_RAW_RECEIPT";
+    int prefix = snprintf(body, sizeof(body), "%s {\"pid\":%ld,\"evidence\":", marker, (long)actql_timing_process);
+    bool valid = atomic_fetch_add_explicit(&actql_model_confirmation_count[kind], 1, memory_order_relaxed) < 2 &&
+      prefix > 0 && prefix <= 72 && wire && length >= 2 && length <= maximum && wire[0] == '{' && wire[length - 1] == '}';
+    for (int i = 0; valid && i < length; i++) {
+      valid = wire[i] >= 32 && wire[i] <= 126;
+      body[prefix + i] = (char)wire[i];
+    }
+    if (valid) {
+      body[prefix + length] = '}';
+      body[prefix + length + 1] = '\n';
+      actql_timing_emit(body, (size_t)(prefix + length + 2));
+    } else {
+      actql_native_acceptance_incomplete();
+    }
+  }
+  errno = saved_errno;
 }
 /* A borrowed lexical File Work/Ledger scope, never a registered Resource or
  * managed root. Only numeric copies leave this scope. Reentry/foreign events

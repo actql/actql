@@ -52,16 +52,13 @@ fn client_local_result_envelope(
       return None
     }
     remaining -= projected
-    // Each projected field pays the full projection search, one matched
-    // reference and at most C source columns. Each order term pays one
-    // reference plus C columns. UTF-16 traversal is separately resumable.
-    let mapping = width.to_int64() *
-      (projected.to_int64() + 1L + columns.to_int64()) +
-      terms.to_int64() * (1L + columns.to_int64())
-    if mapping > 2147483647L {
+    guard client_local_result_port_mapping_work(
+        width, columns, projected, terms,
+      )
+      is Some(mapping) else {
       return None
     }
-    mapping_work = Int::max(mapping_work, mapping.to_int())
+    mapping_work = Int::max(mapping_work, mapping)
     fields = Int::max(fields, Int::max(width, columns))
     order_terms += terms
   }
@@ -86,6 +83,35 @@ fn client_local_result_envelope(
       Int::max(row_slots, field_slots.to_int()),
     ),
   })
+}
+
+///|
+// A projection search, one matched reference and at most C source columns
+// per field. Order terms pay one reference plus C columns. Spelling remains
+// separately resumable under the export's existing quantum.
+fn client_local_result_port_mapping_work(
+  fields : Int,
+  columns : Int,
+  projected : Int,
+  terms : Int,
+) -> Int? {
+  let columns = columns.to_int64()
+  guard @execution.checked_preparation_add_product(
+      0L,
+      terms.to_int64(),
+      1L + columns,
+    )
+    is Some(order) &&
+    @execution.checked_preparation_add_product(
+      order,
+      fields.to_int64(),
+      projected.to_int64() + 1L + columns,
+    )
+    is Some(mapping) &&
+    mapping <= 2147483647L else {
+    return None
+  }
+  Some(mapping.to_int())
 }
 
 ///|

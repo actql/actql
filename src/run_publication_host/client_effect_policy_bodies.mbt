@@ -424,7 +424,7 @@ pub fn client_compiled_run_publication_policy_bodies(
   if value.compilation is Effects(_) {
     return Err(ForeignBody)
   }
-  if prepared_client_acquisition_count(value.owner) != 0 {
+  if prepared_client_has_checked_sources(value.owner) {
     return prepared_client_publication_policy_bodies(
       value.owner,
       max_bytes,

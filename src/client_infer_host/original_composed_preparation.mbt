@@ -76,6 +76,30 @@ pub fn start_original_composed(
 }
 
 ///|
+/// Observe the same opened Whole Model on its original composed Run. The
+/// constructor already validated the complete Source tuple before claiming
+/// the Read. This immutable comparison is safe inside the Journal cut.
+pub fn original_whole_model_journal_matches(
+  active : Execution,
+  plan : @publication_host.ClientInferPlanGraph,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  !active.reclaimed &&
+  active.original_preparation is Some({ read: Claimed(_), .. }) &&
+  active.run_binding is Some(binding) &&
+  physical_equal(binding.compiled, compiled) &&
+  physical_equal(binding.definition, definition) &&
+  active.plan is Some(original_plan) &&
+  physical_equal(original_plan, plan) &&
+  active.composed_sources is Some(sources) &&
+  @publication_host.client_infer_composed_whole_sources_original(
+    sources,
+    active.occurrence,
+  )
+}
+
+///|
 /// Restore authenticated input on the same already funded read consumer.
 /// The saved call scope remains its original Run binding; it is not a new
 /// dispatch grant, a replacement Ledger or permission to resend a call.

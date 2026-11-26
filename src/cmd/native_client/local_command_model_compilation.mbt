@@ -11,11 +11,46 @@ priv struct LocalCommandModelCompilation {
 }
 
 ///|
+fn LocalCommandPreparationOriginal::read_model_http_configurations(
+  self : Self,
+  capture : @local_host.NativeLocalJournalCapture,
+  installations : Array[LocalModelHttpInstallationSettings],
+  limits : @compiler_environment.ModelTaskLimits,
+) -> Array[@local_host.NativeModelHttpConfiguration] raise ClientStop {
+  let slots = installations.length().to_int64()
+  let retained = local_host_metadata_price(
+    local_host_metadata_units(2L, slots + 1L, 3L, 0L),
+  )
+  local_host_metadata_prepare(retained, retained)
+  installations.map(selected => {
+    match
+      capture.read_model_http_configuration_in_original_read(
+        selected.files,
+        selected.provider_id,
+        selected.response_profile_cid,
+        limits,
+        execution_file=selected.execution_file,
+        policy_file=selected.policy_file,
+      ) {
+      Ok(value) => value
+      Err(Original(failure) as issue) => {
+        self.retain_primary(CommandBusinessModelHttp(issue))
+        stop(local_host_issue(failure))
+      }
+      Err(issue) => {
+        self.retain_primary(CommandBusinessModelHttp(issue))
+        stop("LocalModelHttpInstallationRefused")
+      }
+    }
+  })
+}
+
+///|
 fn LocalCommandPreparationOriginal::prepare_model_compilation(
   self : Self,
   capture : @local_host.NativeLocalJournalCapture,
   prepared : @run_host.PreparedClientProgram,
-  installation : LocalModelHttpInstallationSettings,
+  installations : Array[LocalModelHttpInstallationSettings],
   runtime : LocalPackagedRuntime,
 ) -> LocalCommandModelCompilation? raise ClientStop {
   let count = @run_host.prepared_client_composed_infer_count(prepared).unwrap_or_else(() => {
@@ -63,33 +98,63 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
   })
   let contracts = runtime.installed_contracts
   let limits = local_project_mock_task_limits()
-  let configuration = match
-    capture.read_model_http_configuration_in_original_read(
-      installation.files,
-      installation.provider_id,
-      installation.response_profile_cid,
-      limits,
-      execution_file=installation.execution_file,
-      policy_file=installation.policy_file,
-    ) {
-    Ok(value) => value
-    Err(issue) => {
-      self.retain_primary(CommandBusinessModelHttp(issue))
-      stop("LocalModelHttpInstallationRefused")
-    }
+  let configurations = match
+    self.project.bind(project => project.portable_model) {
+    Some(model) =>
+      model.configurations.unwrap_or_else(() => {
+        stop("LocalProjectBindingsUnavailable")
+      })
+    None => self.read_model_http_configurations(capture, installations, limits)
   }
   let compilation_limits = @run_host.client_standard_pure_compilation_limits()
+  let has_source = @run_host.prepared_client_has_checked_sources(prepared)
   let mut selected = None
+  // Keep one first execution original per selected configuration. A
+  // repeated occurrence can borrow only through that configuration's exact
+  // same-Program and execution-contract check.
+  let slots = configurations.length().to_int64()
+  let retained = local_host_metadata_price(
+    local_host_metadata_units(2L + slots, 2L * slots + 2L, 2L, 0L),
+  )
+  local_host_metadata_prepare(retained, retained)
+  let original_executions : Array[@local_host.NativeModelHttpExecution?] = Array::make(
+    configurations.length(),
+    None,
+  )
   for index, occurrence in occurrences {
+    guard @run_host.client_infer_occurrence_model_task_cid(occurrence)
+      is Some(task_cid) else {
+      stop("LocalOriginalModelUnavailable")
+    }
+    let mut binding = None
+    for position, candidate in configurations {
+      if candidate.task_cid() == task_cid {
+        if binding is Some(_) {
+          self.retain_primary(CommandBusinessModelHttp(ForeignOriginal))
+          stop("LocalModelHttpInstallationRefused")
+        }
+        binding = Some(position)
+      }
+    }
+    let binding = binding.unwrap_or_else(() => {
+      self.retain_primary(CommandBusinessModelHttp(ForeignOriginal))
+      stop("LocalModelHttpInstallationRefused")
+    })
     let execution = match
       capture.prepare_model_http_execution_in_original_read(
-        configuration, occurrence, limits,
+        configurations[binding],
+        occurrence,
+        limits,
+        original=original_executions[binding],
       ) {
       Ok(value) => value
       Err(issue) => {
         self.retain_primary(CommandBusinessModelHttp(issue))
         stop("LocalModelHttpExecutionRefused")
       }
+    }
+    if original_executions[binding] is None {
+      original_executions[binding] = Some(execution)
     }
     let installed = match
       capture.admit_model_http_installation_in_original_read(
@@ -116,7 +181,14 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
           manifests=native_request_manifests,
           compilation_limits~,
           caller_material=Some(
-            native_model_compilation_storage(if index == 0 { count } else { 0 }),
+            native_model_compilation_storage(
+              if index == 0 {
+                count
+              } else {
+                0
+              },
+              has_source,
+            ),
           ),
         ) {
         Ok(graph) => graph
@@ -199,6 +271,7 @@ fn LocalCommandBusinessPreparation::configured_model_compilation(
 // returns. Each member separately funds the real Common bounds selection.
 fn native_model_compilation_storage(
   count : Int,
+  has_source : Bool,
 ) -> @execution.PreparationRepresentationUnits raise ClientStop {
   let bounds = @infer.prepared_composed_bounds_construction()
   if count == 0 {
@@ -226,14 +299,23 @@ fn native_model_compilation_storage(
       // and simultaneous extent pair. The Work vector and the simultaneous
       // publication constructor's original execution vector are funded above.
       // The task driver and physical cleanup callbacks coexist with one
-      // synchronous Read-side action and its returned result.
+      // synchronous Read-side action and its returned result. Whole File
+      // adds the evidence receiver/map callbacks and retained Scope reference.
       // The publication handoff also retains its selected leader, the
       // Result Context builder's Read callback (compiled, definition,
       // publisher, installation, policy and inputs), and its scope return
       // result alongside the same issued pair and arrays.
-      record_headers: 28L + 11L * count.to_int64(),
-      reference_slots: 70L + 24L * count.to_int64(),
-      scalar_words: 16L + 6L * count.to_int64(),
+      // Selected module case and optional requirements are live through Plan
+      // selection. File selection also has a module/source pair and case.
+      record_headers: 32L +
+      11L * count.to_int64() +
+      (if has_source { 5L } else { 0L }),
+      reference_slots: 75L +
+      24L * count.to_int64() +
+      (if has_source { 8L } else { 0L }),
+      scalar_words: 19L +
+      6L * count.to_int64() +
+      (if has_source { 2L } else { 0L }),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     },

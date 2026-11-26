@@ -9,6 +9,7 @@ import {
   "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/execution_authorization" @authorization,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/physical_strategy" @strategy_view,
   "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/execution_query" @query,
   "actql/actql/physical_resources" @resources,
@@ -67,7 +68,9 @@ import {
 } for "test"
 
 import {
-  "actql/actql/physical_strategy" @strategy_view,
+  "actql/actql/connector_sdk" @connector,
+  "actql/actql/connectors/local/driver" @local_driver,
+  "actql/actql/physical_host_dispatch" @host_driver,
   "actql/actql/capacity_law",
   "moonbitlang/core/debug",
   "actql/actql/bounded_execution" @bounded,

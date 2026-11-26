@@ -54,7 +54,7 @@ pub(all) enum NativeLocalAdoptionCaptureIssue {
 /// Preparation performs no I/O and supplies no capacity or current authority.
 struct NativeLocalAdoptionCapture {
   input : NativeLocalExistingAdoptionInput
-  model_configuration : NativeLocalModelConfigurationSelection?
+  model_configurations : Array[NativeLocalModelConfigurationSelection]?
   crypto : @crypto.Library
   root_opening : NativeLocalAdoptionRootOpening
   existing_only : Bool
@@ -78,25 +78,25 @@ fn prepare_local_existing_adoption_capture(
   crypto : @crypto.Library,
   root_opening : NativeLocalAdoptionRootOpening,
   existing_only? : Bool = true,
-  model_configuration? : NativeLocalModelConfigurationSelection? = None,
+  model_configurations? : Array[NativeLocalModelConfigurationSelection]? = None,
   construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue] {
   // Reuse the existing configuration limit before copying caller-owned DATA.
   // Selection, ordering and all physical validation remain in Adoption itself.
   if !local_adoption_configuration_count_supported(
       input.configuration_files,
-      model_configuration,
+      model_configurations,
     ) {
     return Err(ConfigurationLimit)
   }
-  if model_configuration is Some(_) {
+  if model_configurations is Some(models) {
     guard construction is Some(prepare) else { return Err(ConfigurationLimit) }
     let slots = input.configuration_files.length().to_int64()
     // Snapshot array, input record, selected Model reference and bounded
     // capture controls before copying the selected names.
     let inventory : @authorization.AccountConfigurationConstructionUnits = {
-      record_headers: 8L,
-      reference_slots: slots + 24L,
+      record_headers: 11L,
+      reference_slots: slots + 26L + models.length().to_int64(),
       scalar_words: 6L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
@@ -111,7 +111,7 @@ fn prepare_local_existing_adoption_capture(
   }
   Ok({
     input: snapshot,
-    model_configuration,
+    model_configurations: model_configurations.map(models => models.copy()),
     crypto,
     root_opening,
     existing_only,
@@ -140,14 +140,14 @@ pub fn prepare_native_local_existing_adoption_capture_in_current_read_context(
   input : NativeLocalExistingAdoptionInput,
   crypto : @crypto.Library,
   diagnostic_ceiling : Int,
-  model_configuration? : NativeLocalModelConfigurationSelection? = None,
+  model_configurations? : Array[NativeLocalModelConfigurationSelection]? = None,
   construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue] {
   prepare_local_existing_adoption_capture(
     input,
     crypto,
     CurrentOriginalReadRoots(diagnostic_ceiling),
-    model_configuration~,
+    model_configurations~,
     construction~,
   )
 }
@@ -160,14 +160,14 @@ pub fn prepare_native_local_initial_adoption_capture_in_current_read_context(
   input : NativeLocalExistingAdoptionInput,
   crypto : @crypto.Library,
   diagnostic_ceiling : Int,
-  model_configuration? : NativeLocalModelConfigurationSelection? = None,
+  model_configurations? : Array[NativeLocalModelConfigurationSelection]? = None,
   construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue] {
   prepare_local_existing_adoption_capture(
     input,
     crypto,
     CurrentOriginalReadRoots(diagnostic_ceiling),
-    model_configuration~,
+    model_configurations~,
     construction~,
     existing_only=false,
   )
@@ -222,7 +222,7 @@ pub fn NativeLocalAdoptionCapture::open(
         self.input.account_id,
         self.crypto,
         configuration_files=self.input.configuration_files,
-        model_configuration=self.model_configuration,
+        model_configurations=self.model_configurations,
         managed_root_path=self.input.managed_root_path,
         existing_only=self.existing_only,
         custody=Some(self.original),

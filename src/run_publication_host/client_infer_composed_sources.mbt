@@ -594,6 +594,120 @@ pub fn client_infer_composed_sources_matches(
 }
 
 ///|
+/// Bind the same admitted Whole observations at the sibling's own checked
+/// receiving ports. Every physical capture and observation is borrowed; the
+/// returned occurrence owns only its port links. No Source is read again.
+pub fn bind_client_infer_composed_whole_sibling(
+  original : ClientInferComposedSources,
+  occurrence : ClientInferOccurrence,
+) -> Result[ClientInferComposedSources, ClientInferCallScopeIssue] {
+  guard client_infer_composed_whole_sources_original(
+      original,
+      original.occurrence,
+    ) &&
+    physical_equal(original.occurrence.owner, occurrence.owner) &&
+    client_infer_occurrence_matches(occurrence, occurrence.owner) &&
+    client_infer_occurrence_coordinates(original.occurrence) !=
+    client_infer_occurrence_coordinates(occurrence) else {
+    return Err(ForeignInput)
+  }
+  let program = @strategy.graph_program(occurrence.owner.graph)
+  let inputs : Array[ClientInferSourceInput] = Array(
+    capacity=original.inputs.length(),
+  )
+  for input in original.inputs {
+    guard model_effect_source_port_name(
+        program,
+        occurrence.stage,
+        input.original,
+      )
+      is Some(name) else {
+      return Err(ForeignInput)
+    }
+    for previous in inputs {
+      if previous.name == name &&
+        !model_effect_originals_share_result_port(
+          program,
+          occurrence.stage,
+          name,
+          previous.original,
+          input.original,
+        ) {
+        return Err(ForeignInput)
+      }
+    }
+    inputs.push(if name == input.name { input } else { { ..input, name, } })
+  }
+  Ok({ occurrence, inputs, keyed: None, })
+}
+
+///|
+// Observe a previously admitted Whole-only tuple for this exact occurrence.
+// This does not reselect acquisition, borrow custody or prove Source current.
+pub fn client_infer_composed_whole_sources_original(
+  value : ClientInferComposedSources,
+  occurrence : ClientInferOccurrence,
+) -> Bool {
+  if !physical_equal(value.occurrence.owner, occurrence.owner) ||
+    !physical_equal(value.occurrence.preparation, occurrence.preparation) ||
+    value.occurrence.task != occurrence.task ||
+    value.occurrence.stage != occurrence.stage ||
+    value.occurrence.step != occurrence.step ||
+    value.keyed is Some(_) ||
+    value.inputs.is_empty() {
+    return false
+  }
+  for input in value.inputs {
+    if input.original is Query(_) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Recheck the admitted Whole Source observations against the original reads
+/// supplied to the selected physical Run. This is provenance, separate from
+/// the installed caller's Run, Request and current-authority fence.
+pub fn client_infer_composed_whole_sources_match_run(
+  value : ClientInferComposedSources,
+  run : @strategy.CapturedDAG,
+  after_completion? : Bool = false,
+) -> Bool {
+  let original = value.occurrence.owner.graph
+  if !client_infer_composed_whole_sources_original(value, value.occurrence) ||
+    !@strategy.source_inputs_dag_matches_original(
+      @strategy.captured_dag_graph(run),
+      original,
+    ) {
+    return false
+  }
+  for input in value.inputs {
+    guard input.original is Whole(acquisition) &&
+      @acquisition.source_acquisition_input(acquisition)
+      is @pipeline.Input(port) else {
+      return false
+    }
+    let unit = @acquisition.declaration(
+        @acquisition.mode_input(
+          @acquisition.source_acquisition_mode(acquisition),
+        ),
+      ).stage_index
+    guard @strategy.graph_stage_operation_task(original, unit, 0) is Some(task) &&
+      @strategy.captured_source_input_original_matches(
+        run,
+        task,
+        port,
+        input.source,
+        after_completion~,
+      ) else {
+      return false
+    }
+  }
+  true
+}
+
+///|
 pub fn client_infer_composed_source_observations(
   value : ClientInferComposedSources,
 ) -> Array[@publication.ModelSourceObservation] {

@@ -172,7 +172,9 @@ pub fn NativeLocalHostConnection::prepare_original_managed_whole_relation_files_
     return Some(Err(relation_file_work_failure(OriginalRunNotCurrent)))
   }
   guard native_relation_whole_files_work_control_capacity(
-      inputs, physical_graph,
+      inputs,
+      physical_graph,
+      model=@host.client_compiled_run_has_infers(compiled),
     )
     is Some(capacity) else {
     return Some(Err(relation_file_work_failure(FileWorkControlQuote)))

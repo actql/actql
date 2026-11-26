@@ -4,7 +4,7 @@
     {
       "module": "src/run_publication_host/client_project_admission_construction.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c40bdae58117bd354f9ab90c3f14aa9862128dc0a86ac99cdacf973f4beebec4",
+      "sha256": "25b79afda1a162c92535ee019c9002d88352e571a0eb884f1400ac94a2e48389",
       "role": "common-semantics",
       "owner": "Existing Common original project metadata admission and SourceInitialization construction owners",
       "exports": [],
@@ -15,7 +15,7 @@
         },
         {
           "name": "client_project_admission_geometry",
-          "declaration": "client_project_admission_geometry ( wire : String ) - > ( Int , Int , Int ) ?"
+          "declaration": "client_project_admission_geometry ( wire : String , max_bytes : Int , max_nodes : Int , ) - > ( Int , Int , Int ) ?"
         },
         {
           "name": "client_project_catalog_admission_construction_inventory",

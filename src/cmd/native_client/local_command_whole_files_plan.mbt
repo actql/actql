@@ -1,8 +1,8 @@
 ///|
-// Borrow the listing already installed for this Project and checked resource.
-// The Project retains the issuer; the existing Work retains the physical Read.
+// The declaration owner retains the issuer. The eventual Work retains the
+// physical Read and cannot select a listing once its issuer has retired.
 fn local_command_file_listing(
-  original : LocalProjectMockDeclarations,
+  listings : Array[LocalProjectMockFileSource]?,
   connector : String,
   resource : String,
 ) -> (
@@ -10,11 +10,7 @@ fn local_command_file_listing(
   @row_file.NativeRelationFileListingProvider,
   LocalProjectMockFileBinding,
 )? {
-  guard !original.closing &&
-    !original.retired &&
-    original.file_sources is Some(sources) else {
-    return None
-  }
+  guard listings is Some(sources) else { return None }
   for source in sources {
     let declaration = source._retained_original
     if declaration._retained_connection == connector &&
@@ -39,12 +35,73 @@ fn[I] prepare_local_native_whole_files_request_module(
   input : I,
   prepared : @run_host.PreparedClientProgram,
   request : @run_host.ClientRequestIdentity,
-  original : LocalProjectMockDeclarations,
+  declarations : Array[LocalProjectMockSourceDeclaration],
+  listings : Array[LocalProjectMockFileSource]?,
   contracts : @local_values.ClientInstalledSequenceContracts,
   assets : @run_host.ClientLocalProductAssets,
   direct : @run_host.ClientDirectAcquisitionOccurrences,
   originals : Array[@sourceviews.SourceAcquisition],
 ) -> LocalCommandFileSources raise ClientStop {
+  let (sources, capacities, transport, executing) = local_native_whole_file_inputs(
+    control, prepared, declarations, listings, contracts, direct, originals,
+  )
+  let plan = local_command_query_preparation_result(
+    control,
+    @local_values.prepare_installed_managed_whole_sources_plan(
+      prepared,
+      request,
+      capacities,
+      transport,
+      executing,
+      contracts,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+      retained_output=false,
+      provider_factory=native_request_provider_factory,
+      runtime_admission=true,
+    ).map_err(issue => CommandBusinessQueryCapture(issue)),
+    "LocalSourceWholePlanUnavailable",
+  )
+  let limits = local_command_query_preparation_result(
+    control,
+    @local_values.request_program_compilation_limits(parent, input).map_err(issue => {
+      CommandBusinessQueryPlan(issue)
+    }),
+    "LocalCompilerLimitsUnavailable",
+  )
+  local_command_query_preparation_result(
+    control,
+    @local_values.prepare_request_capture_module_body(
+      parent,
+      input,
+      plan,
+      manifests=native_request_manifests,
+      compilation_limits=limits,
+      provider_factory=native_request_provider_factory,
+    ).map_err(issue => CommandBusinessQueryPlan(issue)),
+    "LocalModulePreparationUnavailable",
+  )
+  WholeSet(sources)
+}
+
+///|
+// Both File plans use the original Request's quoted Source vectors and the
+// same Project locators. The caller owns their one later Plan constructor.
+fn local_native_whole_file_inputs(
+  control : LocalCommandPreparationOriginal,
+  prepared : @run_host.PreparedClientProgram,
+  declarations : Array[LocalProjectMockSourceDeclaration],
+  listings : Array[LocalProjectMockFileSource]?,
+  contracts : @local_values.ClientInstalledSequenceContracts,
+  direct : @run_host.ClientDirectAcquisitionOccurrences,
+  originals : Array[@sourceviews.SourceAcquisition],
+) -> (
+  Array[@local_host.NativeRelationFileWholeSource],
+  Array[@local_values.ClientInstalledWholeSourceCapacity],
+  Array[Int64],
+  Array[Int64],
+) raise ClientStop {
   let sources : Array[@local_host.NativeRelationFileWholeSource] = []
   let capacities : Array[@local_values.ClientInstalledWholeSourceCapacity] = []
   let transport : Array[Int64] = []
@@ -67,7 +124,7 @@ fn[I] prepare_local_native_whole_files_request_module(
       )
       is Some(_) {
       guard local_command_file_listing(
-          original,
+          listings,
           target.connector,
           target.resource,
         )
@@ -83,7 +140,7 @@ fn[I] prepare_local_native_whole_files_request_module(
       )
     } else {
       let (declaration, row) = local_command_file_row(
-        original,
+        declarations,
         target.connector,
         target.resource,
       )
@@ -124,42 +181,5 @@ fn[I] prepare_local_native_whole_files_request_module(
     transport.push(page.max_bytes.to_int64())
     executing.push(page.max_bytes.to_int64())
   }
-  let plan = local_command_query_preparation_result(
-    control,
-    @local_values.prepare_installed_managed_whole_sources_plan(
-      prepared,
-      request,
-      capacities,
-      transport,
-      executing,
-      contracts,
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-      retained_output=false,
-      provider_factory=native_request_provider_factory,
-      runtime_admission=true,
-    ).map_err(issue => CommandBusinessQueryCapture(issue)),
-    "LocalSourceWholePlanUnavailable",
-  )
-  let limits = local_command_query_preparation_result(
-    control,
-    @local_values.request_program_compilation_limits(parent, input).map_err(issue => {
-      CommandBusinessQueryPlan(issue)
-    }),
-    "LocalCompilerLimitsUnavailable",
-  )
-  local_command_query_preparation_result(
-    control,
-    @local_values.prepare_request_capture_module_body(
-      parent,
-      input,
-      plan,
-      manifests=native_request_manifests,
-      compilation_limits=limits,
-      provider_factory=native_request_provider_factory,
-    ).map_err(issue => CommandBusinessQueryPlan(issue)),
-    "LocalModulePreparationUnavailable",
-  )
-  WholeSet(sources)
+  (sources, capacities, transport, executing)
 }
