@@ -10,11 +10,22 @@ export type {Client, Execution, Result, Reader, RunReference,
   DeliveryAttemptLookup, ResultPromise, ResultReference, DynamicRow,
   QueryOptions, QueryParameters, StandardSchemaV1} from '@actql/sdk';
 
-type InstalledModelSdkImage = Readonly<{path: string; cid: `sha256:${string}`}>;
+type InstalledModelSdkImage = Readonly<{
+  packageName: string; version: string; path: string; cid: `sha256:${string}`;
+}>;
+type InstalledModelSdkPackageImage = Readonly<{
+  name: string;
+  version: string;
+  images: readonly Readonly<{path: string; bytes: number; sha256: string}>[];
+  dependencies: readonly Readonly<{name: string; package: number}>[];
+}>;
 export type InstalledModelSdkRegistration = Readonly<{
   adapter: InstalledModelSdkImage;
-  sdk: InstalledModelSdkImage & Readonly<{packageName: string; version: string; exportName: string}>;
+  sdk: InstalledModelSdkImage & Readonly<{exportName: string}>;
   lock: InstalledModelSdkImage;
+  /** Host-approved file facts for an externally installed adapter and its dependencies.
+   * Entry zero describes the adapter. Dependency indices refer to this same frozen array. */
+  packageImages?: readonly InstalledModelSdkPackageImage[];
   route: Readonly<{providerId: string; selector: string; modelId: string; apiMode: string; endpoint: string}>;
   providerOptions: Readonly<Record<string, string | boolean | number>>;
   /** Nonsecret reference and header, checked against the verified adapter. */

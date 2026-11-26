@@ -59,11 +59,9 @@ type VerifiedSdk = VerifiedImage & Readonly<{
   providerOptions: unknown;
   credential?: Readonly<{reference: unknown; header: unknown}>;
 }>;
-type SdkFile = Readonly<{path: unknown; cid: unknown}>;
 type SdkAdapter = Readonly<{createLanguageModel?: unknown; verifyRequest?: unknown; sdkProvider?: unknown;
   readReportedUsage?: unknown; readReportedResponse?: unknown; optionNamespace?: unknown;
   optionSchema?: unknown; credentialBinding?: unknown}>;
-type ImageRead = NonNullable<ReturnType<typeof packageCustody.readVerifiedSdkImage>>;
 type Credentials = Readonly<{transport: object; profile: object}>;
 type Registration = Readonly<{route: VerifiedSdk['route']; providerOptions: object;
   credential?: Credentials; sdkPackage: string; sdkVersion: string; sdkArtifactCid: unknown;
@@ -224,10 +222,10 @@ export async function installConfiguredModelProviders({moon, register, project,
             preparedSdkIds ??= new Set();
             if (preparedSdkIds.has(providerId)) fail(invalidSdkInstallation);
             preparedSdkIds.add(providerId);
-            originalSdkRecord(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions'], ['credential']);
+            originalSdkRecord(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions'], ['credential', 'packageImages']);
             if (Object.hasOwn(original, 'credential')) originalSdkRecord(original.credential, ['reference', 'header']);
-            originalSdkRecord(original.adapter, ['path', 'cid']);
-            originalSdkRecord(original.lock, ['path', 'cid']);
+            originalSdkRecord(original.adapter, ['path', 'cid', 'packageName', 'version']);
+            originalSdkRecord(original.lock, ['path', 'cid', 'packageName', 'version']);
             originalSdkRecord(original.sdk, ['path', 'cid', 'packageName', 'version', 'exportName']);
             originalSdkRecord(original.route, ['providerId', 'selector', 'modelId', 'apiMode', 'endpoint']);
             const {route, sdk} = original;
@@ -249,18 +247,11 @@ export async function installConfiguredModelProviders({moon, register, project,
             // Borrow module originals only from the package custody already
             // held by this Host. A registration cannot supply a loader, a
             // namespace, a file URL or an independent package search.
-            const read = (name: unknown, file: SdkFile, kind: string): ImageRead => {
-              const image = packageCustody.readVerifiedSdkImage(sdkImageCustody, name, file.path, file.cid, kind);
-              check();
-              requireOriginal();
-              return image;
-            };
-            const adapterName = '@actql/provider-ai-sdk';
-            read(adapterName, original.lock, 'lock');
-            const sdkImage = read(original.sdk.packageName, original.sdk, 'module');
-            if (sdkImage.version !== original.sdk.version) fail(invalidSdkInstallation);
-            const sdk = sdkImage.namespace as Readonly<Record<string, unknown>>;
-            const adapter = read(adapterName, original.adapter, 'module').namespace as SdkAdapter;
+            const selected = packageCustody.readVerifiedSdkImages(sdkImageCustody, original);
+            check();
+            requireOriginal();
+            const sdk = selected.sdk as Readonly<Record<string, unknown>>;
+            const adapter = selected.adapter as SdkAdapter;
             sdkImageCustody!.assertCurrent();
             const factory = sdk[original.sdk.exportName];
             const {createLanguageModel, verifyRequest, sdkProvider, readReportedUsage, readReportedResponse} = adapter;

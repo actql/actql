@@ -1,9 +1,11 @@
 // Optional plugin acceptance on the same normal artifact, never a new producer.
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {mkdir, copyFile, readFile, writeFile} from 'node:fs/promises';
 import {isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState} from './packed-client-packages.mjs';
+import {registeredExternalPackageImages} from './initial-control-package-images.mjs';
 import {prepareHealthPackages, execute} from './health-monitor-adapters.mjs';
 import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './node-benchmark-evidence.mjs';
 import {publicConsumerEnvironment, publicInstallCommand, releaseConsumerDestination,
@@ -22,10 +24,12 @@ type PhaseRecord = {
   pid?: number; actual?: Observation; consumer?: string; failure?: ReturnType<typeof nodeBenchmarkFailure>;
 };
 type Prepared = Awaited<ReturnType<typeof prepareHealthPackages>> | Awaited<ReturnType<typeof installRelease>>;
+type ExternalPreparation = {archive: string; sha256: string; packageImages: ReturnType<typeof registeredExternalPackageImages>};
 type Report = {
   source: string; phases: PhaseRecord[]; complete: boolean;
   preparations: (Omit<Prepared, 'publicPayload'> & {case: string;
-    publicPayload?: Awaited<ReturnType<typeof verifyPublicConsumer>>})[];
+    publicPayload?: Awaited<ReturnType<typeof verifyPublicConsumer>>;
+    external?: ExternalPreparation})[];
   failures?: ReturnType<typeof nodeBenchmarkFailure>[]; cleanup?: ReturnType<typeof nodeBenchmarkFailure>[];
 };
 
@@ -35,6 +39,8 @@ const registeredProviderCases = Object.freeze([
 export const registeredSafetyAcceptanceCases = Object.freeze([
   'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist',
 ]);
+const externalCase = 'registered-external';
+const externalAdapter = '@actql-acceptance/external-openai-adapter';
 const registeredTerminalFailures = Object.freeze({
   'registered-length': 'truncated', 'registered-refusal': 'refusal',
   'registered-openai-filter': 'safety_rejected', 'registered-google-recitation': 'safety_rejected',
@@ -69,6 +75,23 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     return;
   }
   assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
+  if (caseId === externalCase) {
+    assert.equal(value.registeredSdk, true);
+    for (const name of ['externalAdapterCid', 'externalLockCid', 'originalRunDefinitionCid']) {
+      assert.match(value[name] as string, /^sha256:[0-9a-f]{64}$/u);
+    }
+    if (phase === 'cold') {
+      assert.notEqual(pid, originalPid);
+      assert.equal(value.originalSavedFirst, true);
+      for (const name of ['calls', 'projectTlsConnects', 'egressChecks', 'originalModelStarts']) assert.equal(value[name], 0);
+    } else {
+      for (const name of ['tasks', 'requests', 'calls', 'projectTlsConnects', 'originalModelStarts', 'usageCaptures']) {
+        assert.equal(value[name], 1);
+      }
+      assert.equal(value.usageMode, 'reported');
+    }
+    return;
+  }
   if (Object.hasOwn(registeredTerminalFailures, caseId)) {
     assert.equal(value.terminalFailure, registeredTerminalFailures[caseId as keyof typeof registeredTerminalFailures]);
     assert.equal(value.registeredSdk, true);
@@ -171,7 +194,7 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
     ['usage-reported', 'cold'], ['usage-zero'], ['usage-absent'],
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : [...available,
-    ...registeredProviderCases.map(id => [id, 'cold']),
+    ...[...registeredProviderCases, externalCase].map(id => [id, 'cold']),
     ...Object.keys(registeredTerminalFailures).map(id => [id, 'cold']),
     ...registeredRefusalCases.map(id => [id])].filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
@@ -187,15 +210,43 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
     const id = phases[0], caseRoot = join(casesRoot, id), caseRaw = join(raw, id);
     await mkdir(caseRoot); await mkdir(caseRaw);
     // Every preparation retains its own exclusive install-node.* diagnostics.
-    const run: Command = (cmd, args, options) => command(cmd, args, {...options, raw: caseRaw});
+    let externalArchive: string | undefined;
+    const run: Command = (cmd, args, options) => command(cmd,
+      externalArchive !== undefined && options?.name === 'install-node' ? [...args, externalArchive] : args,
+      {...options, raw: caseRaw});
     try {
-      const prepared = releaseSelected === undefined ? await prepareHealthPackages({repository, root: caseRoot,
+      const fixture = join(repository, 'scripts/fixtures/external-model-adapter');
+      if (id === externalCase) {
+        assert(releaseSelected === undefined, 'The fixture package uses the exact retained ordinary cohort');
+        await run('npm', ['pack', '--pack-destination', caseRoot, '--ignore-scripts', '--json'],
+          {cwd: fixture, name: 'pack-external-adapter', timeout: 60_000});
+        externalArchive = join(caseRoot, 'actql-acceptance-external-openai-adapter-1.0.0.tgz');
+      }
+      const prepared: Prepared = releaseSelected === undefined ? await prepareHealthPackages({repository, root: caseRoot,
         source: {sha: source.revision, dirty: false}, retained: software,
         optionalProvider: join(software, 'optional-provider'), command: run, normalLifecycle: true})
         : await installRelease(caseRoot, software, releaseSelected.manifest, releaseSelected.manifestPath, run, publicRegistry);
       preparedCases.push(prepared);
+      const external: ExternalPreparation | undefined = externalArchive === undefined ? undefined : {
+        archive: externalArchive,
+        sha256: createHash('sha256').update(await readFile(externalArchive)).digest('hex'),
+        packageImages: registeredExternalPackageImages(prepared.consumer, externalAdapter),
+      };
+      if (external !== undefined) {
+        assert.equal(external.packageImages[0].name, externalAdapter);
+        for (const file of ['package.json', 'index.mjs', 'npm-shrinkwrap.json']) {
+          const held: {sha256: string; bytes: number} | undefined =
+            external.packageImages[0].images.find(image => image.path === file);
+          const bytes = await readFile(join(fixture, file));
+          assert.equal(held?.sha256, createHash('sha256').update(bytes).digest('hex'));
+          assert.equal(held?.bytes, bytes.length);
+        }
+        await writeFile(join(prepared.consumer, 'external-package-images.fixture.json'),
+          JSON.stringify(external.packageImages) + '\n', {flag: 'wx'});
+      }
       report.preparations.push({case: id, consumer: prepared.consumer,
         manifestPath: prepared.manifestPath, manifest: prepared.manifest,
+        ...(external === undefined ? {} : {external}),
         ...(publicRegistry && 'publicPayload' in prepared ? {publicPayload: prepared.publicPayload} : {})});
       await copyFile(join(repository, 'scripts/fixtures/normal-openai-installed.fixture.mjs'),
         join(prepared.consumer, 'fixture.mjs'));
@@ -216,7 +267,17 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
           const value = JSON.parse(actual.stdout.trim()) as Observation;
           Object.assign(record, {pid: actual.pid, actual: value, consumer: prepared.consumer});
           checkPackedProviderObservation({caseId: id, phase, pid: actual.pid, originalPid, observation: value});
-          if (id === 'registered-mixed' || id === 'registered-mistral' ||
+          if (id === externalCase) {
+            for (const [field, path] of [['externalAdapterCid', 'index.mjs'], ['externalLockCid', 'npm-shrinkwrap.json']]) {
+              assert.equal(value[field], 'sha256:' + external!.packageImages[0].images.find(image => image.path === path)?.sha256);
+            }
+            if (phase !== 'cold') {
+              const usage = JSON.parse(await readFile(join(prepared.consumer, 'usage-original.json'), 'utf8'));
+              assert.match(usage.raw_response_artifact_cid, /^sha256:[0-9a-f]{64}$/u);
+              assert.equal(usage.input_tokens, 2); assert.equal(usage.output_tokens, 3);
+            }
+          }
+          if (id === 'registered-mixed' || id === 'registered-mistral' || id === externalCase ||
               Object.hasOwn(registeredTerminalFailures, id)) {
             if (phase === 'cold') assert.equal(value.originalRunDefinitionCid, originalRunDefinitionCid);
             else originalRunDefinitionCid = value.originalRunDefinitionCid;
@@ -226,6 +287,10 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
         } catch (failure) {
           record.status = 'failed'; record.failure = nodeBenchmarkFailure(failure); throw failure;
         }
+      }
+      if (external !== undefined) {
+        assert.deepEqual(registeredExternalPackageImages(prepared.consumer, externalAdapter), external.packageImages);
+        assert.equal(createHash('sha256').update(await readFile(external.archive)).digest('hex'), external.sha256);
       }
     } catch (failure) {failures.push(failure);}
   }
@@ -285,11 +350,12 @@ async function installRelease(root: string, release: string, manifest: ReleaseMa
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [root, selection, ...extra] = process.argv.slice(2);
-  assert(root !== undefined && [undefined, '--registered-only', '--registered-safety-only'].includes(selection)
+  assert(root !== undefined && [undefined, '--registered-only', '--registered-safety-only', '--registered-external-only'].includes(selection)
     && extra.length === 0,
-  'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT [--registered-only | --registered-safety-only]');
+  'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT [--registered-only | --registered-safety-only | --registered-external-only]');
   const cases = selection === '--registered-only' ? registeredProviderAcceptanceCases
-    : selection === '--registered-safety-only' ? registeredSafetyAcceptanceCases : undefined;
+    : selection === '--registered-safety-only' ? registeredSafetyAcceptanceCases
+    : selection === '--registered-external-only' ? [externalCase] : undefined;
   process.exitCode = await runLocalCheck({root: fileURLToPath(new URL('../', import.meta.url)),
     heavy: false, timeoutSeconds: 300, graceSeconds: 5,
     steps: [{name: 'Original normal provider, usage and timeout consumers', command: process.execPath,

@@ -303,6 +303,39 @@ test('selected dependency graph uses the actual resolved original package Source
   assert.equal(result.status, 0, result.stderr);
 });
 
+test('an import uses the named dependency edge of its own captured package', t => {
+  const f = fixture(t, [
+    'import {readResource} from "fixture-owner";',
+    'export {readResource};',
+    'export const readUnselected = () => import("@fixture/resource/value");',
+    'export function assertInitialControlHostPreparation(){};',
+  ].join('\n'));
+  function install(name: string, main: string, exports: string | Record<string, string>, dependencies = {}) {
+    const directory = join(f.root, 'node_modules', name);
+    mkdirSync(directory, {recursive: true});
+    const files = {'package.json': Buffer.from(JSON.stringify({name, version: '1.0.0', exports, dependencies})),
+      'index.mjs': Buffer.from(main)};
+    for (const [path, bytes] of Object.entries(files)) writeFileSync(join(directory, path), bytes);
+    return Object.entries(files).map(([path, bytes]) => fact(path, bytes));
+  }
+  const owner = install('fixture-owner', 'export const readResource = () => import("@fixture/resource/value");',
+    './index.mjs', {'@fixture/resource': '1.0.0'});
+  const resource = install('@fixture/resource', 'export const value = "declared-resource";',
+    {'.': './index.mjs', './value': './index.mjs'});
+  const result = f.run([
+    'import assert from "node:assert/strict";',
+    'assert.equal((await originalHostNamespace.readResource()).value,"declared-resource");',
+    'await assert.rejects(originalHostNamespace.readUnselected(),{code:"UncapturedInitialControlDependency"});',
+    'packageImageCustody.assertCurrent();',
+  ].join('\n'), '', '', inventory => {
+    inventory.dependencies = [{name:'fixture-owner', package:0}];
+    inventory.packages = [{name:'fixture-owner', version:'1.0.0', images:owner,
+      dependencies:[{name:'@fixture/resource', package:1}]},
+    {name:'@fixture/resource', version:'1.0.0', images:resource, dependencies:[]}];
+  });
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('a package identity mismatch refuses even when its captured files match the DATA facts', t => {
   const f = fixture(t), directory = join(f.root, 'node_modules/selected-dependency');
   mkdirSync(directory, {recursive: true});
@@ -358,5 +391,68 @@ test('optional SDK custody follows the actual consumer resolution rather than a 
       inventory.packages = [{name: '@actql/provider-ai-sdk', version: '1.0.0',
         images: Object.entries(sdk).map(([path, bytes]) => fact(path, bytes)), dependencies: []}];
     });
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('ordinary external adapters share only the exact installed dependency under their own locks', t => {
+  const f = fixture(t);
+  function install(name: string, sources: Record<string, string>) {
+    const directory = join(f.directory, 'node_modules', name);
+    mkdirSync(directory, {recursive: true});
+    return Object.entries(sources).map(([path, source]) => {
+      const bytes = Buffer.from(source);
+      writeFileSync(join(directory, path), bytes);
+      return fact(path, bytes);
+    });
+  }
+  const sdkName = 'external-language-model';
+  const sdk = install(sdkName, {
+    'package.json': JSON.stringify({name: sdkName, version: '1.0.0', exports: './index.mjs'}),
+    'index.mjs': 'export function build() {return "same physical SDK";}',
+  });
+  const selected = ['independent-adapter-one', 'independent-adapter-two', 'adapter-with-wrong-lock'].map((name, index) => {
+    const images = install(name, {
+      'package.json': JSON.stringify({name, version: '1.0.0', exports: './index.mjs',
+        dependencies: {[sdkName]: '1.0.0'}}),
+      'npm-shrinkwrap.json': JSON.stringify({lockfileVersion: 3, packages: {
+        '': {name, version: '1.0.0'}, ['node_modules/' + sdkName]: {version: index === 2 ? '2.0.0' : '1.0.0'},
+      }}),
+      'index.mjs': 'import {build} from "external-language-model";' +
+        'globalThis.externalAdapterStarts=(globalThis.externalAdapterStarts??0)+1; export const factory = build;',
+    });
+    const image = (source: ImageFact, packageName: string) => ({path: source.path, packageName,
+      version: '1.0.0', cid: 'sha256:' + source.sha256});
+    return {adapter: image(images[2], name), lock: image(images[1], name), sdk: image(sdk[1], sdkName),
+      packageImages: [{name, version: '1.0.0', images, dependencies: [{name: sdkName, package: 1}]},
+        {name: sdkName, version: '1.0.0', images: sdk, dependencies: []}]};
+  });
+  const entry = join(f.directory, 'ordinary-entry.mjs');
+  writeFileSync(entry, [
+    'import assert from "node:assert/strict";',
+    'import {createRequire} from "node:module";',
+    'const custody=createRequire(import.meta.url)(' + JSON.stringify(custody) + ');',
+    'function freeze(value){if(value !== null && typeof value === "object"){for(const member of Object.values(value))freeze(member);Object.freeze(value);}return value;}',
+    'const inventory=freeze(' + JSON.stringify(f.inventory) + ');',
+    'const registrations=freeze(' + JSON.stringify(selected) + ');',
+    'const bad=freeze({...registrations[0],lock:{...registrations[0].lock,cid:"sha256:"+"0".repeat(64)}});',
+    'const open=choices=>custody.captureOrdinaryInitialControlPackageCustody(inventory,' + JSON.stringify(f.root) +
+      ',process.argv[1],undefined,choices);',
+    'assert.throws(()=>open([bad]),{code:"InvalidInstalledModelSdkInstallation"});',
+    'assert.throws(()=>open([registrations[2]]),{code:"InvalidInstalledModelSdkInstallation"});',
+    'assert.equal(globalThis.externalAdapterStarts,undefined);',
+    'const selected=open(registrations.slice(0,2));',
+    'assert.equal(globalThis.externalAdapterStarts,undefined);',
+    'const a=custody.readVerifiedSdkImages(selected,registrations[0]);',
+    'const b=custody.readVerifiedSdkImages(selected,registrations[1]);',
+    'assert.equal(a.sdk,b.sdk);',
+    'assert.equal(a.adapter.factory,b.adapter.factory);',
+    'assert.notEqual(a.adapter,b.adapter);',
+    'assert.equal(globalThis.externalAdapterStarts,2);',
+    'assert.equal(a.sdk.build(),"same physical SDK");',
+    'selected.initializeHostNamespace(); selected.assertCurrent();',
+  ].join('\n'));
+  const result = spawnSync(process.execPath, [entry], {cwd: f.directory, env: {PATH: process.env.PATH},
+    encoding: 'utf8', timeout: 30000});
+  assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
 });

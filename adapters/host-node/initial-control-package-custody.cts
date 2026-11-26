@@ -1,18 +1,27 @@
 'use strict';
 
 type ImageSource = ReturnType<typeof import('./initial-control-image-source.cjs').captureInitialControlImageSource>;
+type ImageDependency = Readonly<{name: string; root: string}>;
 type ImageGroup = Readonly<{
   root: string;
+  name: string;
   images: readonly Readonly<{path: string; captured: ImageSource}>[];
   version: unknown;
+  dependencies: readonly ImageDependency[];
 }>;
-type ImageFact = Readonly<{path: unknown; cid: unknown}>;
+type ImageFact = Readonly<{packageName: unknown; version: unknown; path: unknown; cid: unknown}>;
+type ExternalPackage = Readonly<{
+  name: string; version: string;
+  images: readonly Readonly<{path: string; bytes: number; sha256: string}>[];
+  dependencies: readonly Readonly<{name: string; package: number}>[];
+}>;
 type SdkImageRegistration = Readonly<{
   adapter: ImageFact;
   lock: ImageFact;
-  sdk: ImageFact & Readonly<{packageName: unknown; version: unknown}>;
+  sdk: ImageFact;
+  packageImages?: readonly ExternalPackage[];
 }>;
-type SdkImage = Readonly<{namespace: unknown; cid: unknown; packageName: unknown; version: unknown}>;
+type VerifiedSdkImages = Readonly<{adapter: unknown; sdk: unknown}>;
 type ImageCustody = ReturnType<typeof capturePackageCustody>;
 type SelectedSdkInstallation = Readonly<{
   verifiedSdkInstallations: ReadonlyMap<string, SdkImageRegistration>;
@@ -49,7 +58,7 @@ const parse = JSON.parse, NativeMap = Map, NativeSet = Set, NativeError = Error;
 const mapGet = Map.prototype.get, mapSet = Map.prototype.set, mapHas = Map.prototype.has;
 const setHas = Set.prototype.has, setAdd = Set.prototype.add;
 const sdkImages = new WeakMap<ImageCustody,
-  (packageName: unknown, path: unknown, cid: unknown, kind: unknown) => SdkImage>();
+  (registration: SdkImageRegistration) => VerifiedSdkImages>();
 const sdkImageGet = WeakMap.prototype.get, sdkImageSet = WeakMap.prototype.set;
 const invalidSdkRegistration = 'InvalidInstalledModelSdkInstallation';
 const fail: (code: string) => never = code => { const cause = new NativeError(code) as NodeJS.ErrnoException; cause.code = code; throw cause; };
@@ -102,10 +111,12 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
       hostModule !== 'adapters/host-node/embedded-local.mjs' ||
       localPublicModule !== 'index.mjs' ||
       hostValidator !== 'assertInitialControlHostPreparation') fail('InvalidInitialControlPackageImage');
-  const groups: ImageGroup[] = [], actualPackages: string[] = [], roots = new NativeMap<string, number>(),
-    mainSources = new NativeMap<string, ImageSource>();
+  const groups: ImageGroup[] = [], actualPackages: string[] = [], groupDependencies = new NativeMap<string, ImageDependency[]>(),
+    mainSources = new NativeMap<string, ImageSource>(), capturedGroups = new NativeMap<string, ImageGroup>(),
+    manifests = new NativeMap<string, unknown>();
   function captureGroup(directory: string, facts: unknown, expectedName: string, expectedVersion: unknown,
-    expectedReleaseVersion: unknown, expectedRepresentation?: ImageSource['representation']) {
+    expectedReleaseVersion: unknown, expectedRepresentation?: ImageSource['representation'], external = false) {
+    if (apply(mapHas, groupDependencies, [directory])) fail('InitialControlPackageImageChanged');
     if (!array(facts) || facts.length === 0) fail('InvalidInitialControlPackageImage');
     const selected: ImageGroup['images'][number][] = [], names = new NativeSet<string>();
     let manifest: unknown, representation: ImageSource['representation'];
@@ -118,7 +129,11 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
           expectedReleaseVersion === undefined || own(release, 'version') !== expectedReleaseVersion)) {
         fail('InvalidInitialControlPackageImage');
       }
-      const captured = captureInitialControlImageSource(join(directory, path), fact);
+      const filename = join(directory, path);
+      if (external && (path.split('/').includes('node_modules') || realpathSync(filename) !== filename)) {
+        fail('InitialControlPackageImageChanged');
+      }
+      const captured = captureInitialControlImageSource(filename, fact);
       selected[selected.length] = freeze({path, captured});
       if (directory === root) apply(mapSet, mainSources, [path, captured]);
       if (path === 'package.json') {
@@ -133,12 +148,18 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
           representation !== expectedRepresentation) {
       fail('InitialControlPackageImageChanged');
     }
-    groups[groups.length] = freeze({root: directory, images: freeze(selected), version: optionalField(manifest, 'version')});
+    const dependencies: ImageDependency[] = [];
+    apply(mapSet, groupDependencies, [directory, dependencies]);
+    const group = freeze({root: directory, name: expectedName, images: freeze(selected),
+      version: optionalField(manifest, 'version'), dependencies});
+    groups[groups.length] = group;
+    apply(mapSet, capturedGroups, [directory, group]);
+    apply(mapSet, manifests, [directory, manifest]);
     return {manifest, representation};
   }
   const local = captureGroup(root, images, '@actql/local-node', optionalField(inventory, 'localVersion'),
     optionalField(inventory, 'localReleaseVersion'));
-  function resolvePackage(name: string, from: string) {
+  function resolvePackage(name: string, from: string, missing?: true): string | undefined {
     const originalRequire = createRequire(join(from, 'package.json'));
     let entry;
     try { entry = originalRequire.resolve(name); }
@@ -153,6 +174,7 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
         const candidate = join(paths[index], name);
         if (existsSync(join(candidate, 'package.json'))) return realpathSync(candidate);
       }
+      if (missing) return undefined;
       throw cause;
     }
     let directory = dirname(realpathSync(entry));
@@ -163,48 +185,89 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
       directory = parent;
     }
   }
-  function captureDependency(binding: unknown, from: string) {
+  function bindEdge(importer: string, name: string, root: string, append: boolean) {
+    const edges = apply(mapGet, groupDependencies, [importer]) as ImageDependency[];
+    const previous = edges.find(edge => edge.name === name);
+    if (previous === undefined && append) edges[edges.length] = freeze({name, root});
+    else if (previous?.root !== root) fail('InitialControlPackageImageChanged');
+  }
+  function sharesCapturedImages(held: ImageGroup, facts: readonly unknown[]) {
+    if (held.images.length !== facts.length) return false;
+    const directories = new NativeMap<string, ImageSource>();
+    for (const image of held.images) apply(mapSet, directories, [image.path, image.captured]);
+    return facts.every(fact => {
+      const captured = apply(mapGet, directories, [own(fact, 'path')]) as ImageSource | undefined;
+      return captured !== undefined && captured.bytes === own(fact, 'bytes') && captured.sha256 === own(fact, 'sha256');
+    });
+  }
+  function captureDependency(binding: unknown, from: string, importer: string | undefined,
+    graph = packages, actual = actualPackages, external = false, append = true): string {
     const name = own(binding, 'name'), index = own(binding, 'package');
-    if (typeof name !== 'string' || !integer(index) || index < 0 || index >= packages.length) {
+    if (typeof name !== 'string' || !integer(index) || index < 0 || index >= graph.length) {
       fail('InvalidInitialControlPackageImage');
     }
-    const selected = packages[index];
+    const selected = graph[index];
     if (own(selected, 'name') !== name) fail('InvalidInitialControlPackageImage');
     const directory = resolvePackage(name, from);
-    const previous = actualPackages[index];
+    if (directory === undefined) fail('InitialControlPackageImageChanged');
+    if (importer !== undefined) bindEdge(importer, name, directory, append);
+    const previous = actual[index];
     if (previous !== undefined) {
       if (previous !== directory) fail('InitialControlPackageImageChanged');
-      return;
+      return directory;
     }
-    if (apply(mapHas, roots, [directory])) fail('InitialControlPackageImageChanged');
-    actualPackages[index] = directory;
-    apply(mapSet, roots, [directory, index]);
-    captureGroup(directory, own(selected, 'images'), name, own(selected, 'version'),
-      optionalField(selected, 'releaseVersion'), local.representation);
-    const next = own(selected, 'dependencies');
-    if (!array(next)) fail('InvalidInitialControlPackageImage');
-    for (let item = 0; item < next.length; item++) captureDependency(next[item], directory);
+    actual[index] = directory;
+    const facts = own(selected, 'images'), next = own(selected, 'dependencies');
+    if (!array(next) || !array(facts)) fail('InvalidInitialControlPackageImage');
+    const held = apply(mapGet, capturedGroups, [directory]) as ImageGroup | undefined;
+    if (held === undefined) {
+      captureGroup(directory, facts, name, own(selected, 'version'),
+        optionalField(selected, 'releaseVersion'), local.representation, external);
+    } else if (!external || held.name !== name || held.version !== own(selected, 'version') ||
+        held.dependencies.length !== next.length || !sharesCapturedImages(held, facts)) {
+      fail('InitialControlPackageImageChanged');
+    }
+    for (let item = 0; item < next.length; item++) captureDependency(next[item], directory, directory, graph, actual, external, held === undefined);
+    return directory;
   }
-  for (let index = 0; index < dependencies.length; index++) captureDependency(dependencies[index], root);
+  for (let index = 0; index < dependencies.length; index++) captureDependency(dependencies[index], root, root);
   const optional = own(inventory, 'optionalSdk'), optionalCoverage = own(inventory, 'optionalSdkCoverage');
-  const sdkPackages = new NativeMap<string, string>();
+  const sdkAdapterRoots = new NativeMap<string, string>();
+  const sdkRegistrations = initialSdkRegistrations === undefined ? undefined : [...initialSdkRegistrations];
+  const requiresBundled = sdkRegistrations === undefined ||
+    sdkRegistrations.some(registration => registration.adapter.packageName === sdkPackage);
+  const selectedConsumer = () => {
+    if (typeof consumerEntry !== 'string' || !isAbsolute(consumerEntry)) fail('InvalidInitialControlPackageImage');
+    return dirname(consumerEntry);
+  };
+  let bundled = false;
   if (optionalCoverage === 'prepared') {
-    if (typeof consumerEntry !== 'string' || !isAbsolute(consumerEntry)) {
-      fail('InvalidInitialControlPackageImage');
-    }
-    // The actual startup resolves its optional SDK from that SAME consumer
-    // entry, not from Local's potentially different nested dependency slot.
-    captureDependency({name: '@actql/provider-ai-sdk', package: optional}, dirname(consumerEntry));
-    apply(mapSet, sdkPackages, ['@actql/provider-ai-sdk', actualPackages[optional as number]]);
-    // captureDependency has admitted this index and recursively checked its dependency array.
-    for (const dependency of own(packages[optional as number], 'dependencies') as readonly unknown[]) {
-      apply(mapSet, sdkPackages, [own(dependency, 'name'), actualPackages[own(dependency, 'package') as number]]);
+    const consumer = selectedConsumer();
+    // The existing public registration port also owns the stock transport
+    // and its parsers. Keep that exact closure when present, even when the
+    // application selects an independently installed adapter.
+    bundled = requiresBundled || resolvePackage(sdkPackage, consumer, true) !== undefined;
+    if (bundled) {
+      const directory = captureDependency({name: sdkPackage, package: optional}, consumer, undefined);
+      apply(mapSet, sdkAdapterRoots, [sdkPackage, directory]);
     }
   } else if (optional !== null || optionalCoverage !== 'absent' && optionalCoverage !== 'unprepared') {
     fail('InvalidInitialControlPackageImage');
   }
   let nodeRoot: string | undefined;
-  const unselectedPublicPackages = new NativeSet<number>();
+  const unselectedPackages = new NativeSet<number>();
+  function markUnselected(binding: unknown) {
+    const name = own(binding, 'name');
+    const index = own(binding, 'package');
+    if (!integer(index) || index < 0 || index >= packages.length ||
+        own(packages[index], 'name') !== name) fail('InvalidInitialControlPackageImage');
+    if (apply(setHas, unselectedPackages, [index])) return;
+    apply(setAdd, unselectedPackages, [index]);
+    const children = own(packages[index], 'dependencies');
+    if (!array(children)) fail('InvalidInitialControlPackageImage');
+    for (let item = 0; item < children.length; item++) markUnselected(children[item]);
+  }
+  if (!bundled && optionalCoverage === 'prepared') markUnselected({name: sdkPackage, package: optional});
   if (publicNodeCoverage === 'prepared') {
     if (own(publicNode, 'name') !== '@actql/node') fail('InvalidInitialControlPackageImage');
     const next = own(publicNode, 'dependencies');
@@ -228,31 +291,24 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
         if (from !== nodeRoot || own(binding, 'local') !== true || resolvePackage(name, from) !== root) {
           fail('InitialControlPackageImageChanged');
         }
+        const edges = apply(mapGet, groupDependencies, [from]) as ImageDependency[];
+        edges[edges.length] = freeze({name, root});
         localBound = true;
         return;
       }
-      captureDependency(binding, from);
+      captureDependency(binding, from, from);
     }
     // For Local-only delivery the optional parent facade is not acquired.
     // Its graph may contain additional Source facts, never usable coverage of
     // an unloaded Node facade. Validate their reachability without loading it.
-    function markUnselected(binding: unknown) {
-      const name = own(binding, 'name');
-      if (name === '@actql/local-node') {
+    function markPublicDependency(binding: unknown) {
+      if (own(binding, 'name') === '@actql/local-node') {
         if (own(binding, 'local') !== true) fail('InvalidInitialControlPackageImage');
-        localBound = true; return;
-      }
-      const index = own(binding, 'package');
-      if (!integer(index) || index < 0 || index >= packages.length ||
-          own(packages[index], 'name') !== name) fail('InvalidInitialControlPackageImage');
-      if (apply(setHas, unselectedPublicPackages, [index])) return;
-      apply(setAdd, unselectedPublicPackages, [index]);
-      const children = own(packages[index], 'dependencies');
-      if (!array(children)) fail('InvalidInitialControlPackageImage');
-      for (let item = 0; item < children.length; item++) markUnselected(children[item]);
+        localBound = true;
+      } else markUnselected(binding);
     }
     for (let index = 0; index < next.length; index++) {
-      if (nodeRoot === undefined) markUnselected(next[index]);
+      if (nodeRoot === undefined) markPublicDependency(next[index]);
       else publicDependency(next[index], nodeRoot);
     }
     if (!localBound) fail('InvalidInitialControlPackageImage');
@@ -261,40 +317,114 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
   }
   if (publicPreloadEntry !== undefined && nodeRoot === undefined) fail('InitialControlPublicNodeUnavailable');
   for (let index = 0; index < packages.length; index++) {
-    if (actualPackages[index] === undefined && !apply(setHas, unselectedPublicPackages, [index])) {
+    if (actualPackages[index] === undefined && !apply(setHas, unselectedPackages, [index])) {
       fail('InvalidInitialControlPackageImage');
     }
   }
   if (!apply(mapHas, mainSources, [hostModule]) || !apply(mapHas, mainSources, [localPublicModule])) {
     fail('InvalidInitialControlPackageImage');
   }
-  function selectSdkImage(packageName: unknown, path: unknown, cid: unknown, kind: unknown, refusal?: string) {
-    if (typeof packageName !== 'string' || !concrete(path) ||
-        typeof cid !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(cid) ||
-        kind !== 'module' && kind !== 'lock' || kind === 'lock' && packageName !== '@actql/provider-ai-sdk') {
+  const externalGraphs = new NativeMap<string, readonly ExternalPackage[]>();
+  for (const registration of sdkRegistrations ?? []) {
+    const {packageImages, adapter} = registration;
+    if (packageImages === undefined) continue;
+    const first = packageImages[0];
+    if (first === undefined || first.name !== adapter.packageName || first.version !== adapter.version || first.name === sdkPackage) {
+      fail(invalidSdkRegistration);
+    }
+    const previous = apply(mapGet, externalGraphs, [first.name]);
+    if (previous !== undefined) {
+      if (previous !== packageImages) fail(invalidSdkRegistration);
+      continue;
+    }
+    const actual: string[] = [];
+    const directory = captureDependency({name: first.name, package: 0}, selectedConsumer(), undefined, packageImages, actual, true);
+    if (packageImages.some((_, index) => actual[index] === undefined)) fail(invalidSdkRegistration);
+    validateExternalLock(registration, packageImages, actual);
+    apply(mapSet, externalGraphs, [first.name, packageImages]);
+    apply(mapSet, sdkAdapterRoots, [first.name, directory]);
+  }
+  function validateExternalLock(registration: SdkImageRegistration, graph: readonly ExternalPackage[], actual: readonly string[]) {
+    const {lock} = registration;
+    const adapterGroup = apply(mapGet, capturedGroups, [actual[0]]) as ImageGroup;
+    const original = adapterGroup.images.find(image => image.path === 'npm-shrinkwrap.json');
+    if (lock.packageName !== graph[0].name || lock.version !== graph[0].version ||
+        original === undefined || lock.path !== original.path || lock.cid !== 'sha256:' + original.captured.sha256) fail(invalidSdkRegistration);
+    const body: unknown = parse(original.captured.source), records = own(body, 'packages');
+    const declared = own(records, '');
+    if (own(body, 'lockfileVersion') !== 3 || own(declared, 'name') !== graph[0].name ||
+        own(declared, 'version') !== graph[0].version) fail(invalidSdkRegistration);
+    const checked = new NativeMap<string, number>();
+    function verify(index: number, slot: string) {
+      const previous = apply(mapGet, checked, [slot]);
+      if (previous !== undefined) {
+        if (previous !== index) fail(invalidSdkRegistration);
+        return;
+      }
+      if (checked.size >= graph.length) fail(invalidSdkRegistration);
+      apply(mapSet, checked, [slot, index]);
+      const selected = graph[index];
+      const manifest = apply(mapGet, manifests, [actual[index]]);
+      const required = {...optionalField(manifest, 'dependencies') as object,
+        ...optionalField(manifest, 'peerDependencies') as object};
+      const optional = (optionalField(manifest, 'optionalDependencies') ?? {}) as object;
+      const optionalPeer = optionalField(manifest, 'peerDependenciesMeta') as Record<string, {optional?: boolean}> | undefined;
+      const record = own(records, slot), name = optionalField(record, 'name');
+      if (name !== undefined && name !== selected.name || own(record, 'version') !== selected.version ||
+          Object.keys(required).some(name => !hasOwn(optional, name) && optionalPeer?.[name]?.optional !== true &&
+            !selected.dependencies.some(edge => edge.name === name))) fail(invalidSdkRegistration);
+      const names = new NativeSet<string>();
+      for (const edge of selected.dependencies) {
+        if ((!hasOwn(required, edge.name) && !hasOwn(optional, edge.name)) || apply(setHas, names, [edge.name])) fail(invalidSdkRegistration);
+        apply(setAdd, names, [edge.name]);
+        let parent = slot;
+        for (;;) {
+          const target = parent ? parent + '/node_modules/' + edge.name : 'node_modules/' + edge.name;
+          if (hasOwn(records as object, target)) {
+            verify(edge.package, target);
+            break;
+          }
+          if (parent === '') fail(invalidSdkRegistration);
+          const cut = parent.lastIndexOf('/node_modules/');
+          parent = cut < 0 ? '' : parent.slice(0, cut);
+        }
+      }
+    }
+    verify(0, '');
+  }
+  function selectSdkImages(registration: SdkImageRegistration, refusal?: string) {
+    const {adapter, sdk, lock} = registration;
+    const adapterRoot = apply(mapGet, sdkAdapterRoots, [adapter.packageName]) as string | undefined;
+    if (adapterRoot === undefined || apply(mapGet, externalGraphs, [adapter.packageName]) !== registration.packageImages ||
+        lock.packageName !== adapter.packageName ||
+        lock.version !== adapter.version || lock.path !== 'npm-shrinkwrap.json') {
       fail(refusal ?? 'InitialControlSdkImageUnavailable');
     }
-    const directory = apply(mapGet, sdkPackages, [packageName]) as string | undefined;
-    if (directory === undefined) fail(refusal ?? 'InitialControlSdkImageUnavailable');
-    const group = groups.find(value => value.root === directory)!;
-    const image = group.images.find(value => value.path === path);
-    if (image === undefined || 'sha256:' + image.captured.sha256 !== cid ||
-        kind === 'lock' && path !== 'npm-shrinkwrap.json') fail(refusal ?? 'InitialControlPackageImageChanged');
-    return {directory, group, image};
+    const adapterGroup = groups.find(value => value.root === adapterRoot)!;
+    const sdkEdge = adapterGroup.dependencies.find(edge => edge.name === sdk.packageName);
+    if (sdkEdge === undefined) fail(refusal ?? 'InitialControlSdkImageUnavailable');
+    const sdkGroup = groups.find(value => value.root === sdkEdge.root)!;
+    function select(group: ImageGroup, fact: ImageFact) {
+      if (!concrete(fact.path) || typeof fact.cid !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(fact.cid) ||
+          fact.version !== group.version) fail(refusal ?? 'InitialControlPackageImageChanged');
+      const image = group.images.find(value => value.path === fact.path);
+      if (image === undefined || 'sha256:' + image.captured.sha256 !== fact.cid) {
+        fail(refusal ?? 'InitialControlPackageImageChanged');
+      }
+      return {filename: join(group.root, image.path), sha256: image.captured.sha256};
+    }
+    select(adapterGroup, lock);
+    return {adapter: select(adapterGroup, adapter), sdk: select(sdkGroup, sdk)};
   }
   let requiredModules: string[] | undefined;
-  if (initialSdkRegistrations !== undefined) {
+  if (sdkRegistrations !== undefined) {
     requiredModules = [];
-    for (const {adapter, lock, sdk} of initialSdkRegistrations) {
-      const select = (name: unknown, original: ImageFact, kind: 'module' | 'lock') =>
-        selectSdkImage(name, original.path, original.cid, kind, invalidSdkRegistration);
-      select(sdkPackage, lock, 'lock');
-      const sdkImage = select(sdk.packageName, sdk, 'module');
-      if (sdkImage.group.version !== sdk.version) fail(invalidSdkRegistration);
-      const adapterImage = select(sdkPackage, adapter, 'module');
-      requiredModules.push(join(sdkImage.directory, sdk.path as string), join(adapterImage.directory, adapter.path as string));
+    for (const registration of sdkRegistrations) {
+      const {adapter, sdk} = selectSdkImages(registration, invalidSdkRegistration);
+      requiredModules.push(sdk.filename, adapter.filename);
     }
   }
+  manifests.clear();
   const loader = ordinary ? installOrdinaryInitialControlImageLoader(groups, requiredModules) :
     installInitialControlImageLoader(groups);
   const originalRequire = createRequire(join(root, 'package.json'));
@@ -304,20 +434,22 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
     if (apply(preloading!, module, []) !== !ordinary) fail('InitialControlPackageCustodyUnavailable');
     loader.assertCurrent();
     if (initialized) return namespace;
-    if (selectedSdk && ordinary) {
+    if ((selectedSdk || requiredModules !== undefined && bundled) && ordinary) {
       // Compile the fixed optional package entrance with the same selected
       // modules. Its CommonJS dependencies must land before the cache seal.
-      const directory = apply(mapGet, sdkPackages, ['@actql/provider-ai-sdk']) as string;
+      const directory = apply(mapGet, sdkAdapterRoots, ['@actql/provider-ai-sdk']) as string;
       const group = groups.find(value => value.root === directory)!;
       const entry = group.images.find(value => value.path === 'index.mjs');
       if (entry === undefined) fail('InitialControlSdkImageUnavailable');
       loader.loadSelectedModule(join(directory, entry.path), entry.captured.sha256);
     }
-    if (requiredModules !== undefined) {
+    if (requiredModules !== undefined && bundled) {
       // The pinned Undici HTTP/1 transport loads these two parser variants
       // lazily. Give both their original verified Source before closing the
       // CommonJS cache, without establishing a socket or invoking an SDK.
-      const directory = apply(mapGet, sdkPackages, ['undici']) as string | undefined;
+      const adapterRoot = apply(mapGet, sdkAdapterRoots, ['@actql/provider-ai-sdk']) as string | undefined;
+      const adapterGroup = groups.find(value => value.root === adapterRoot);
+      const directory = adapterGroup?.dependencies.find(edge => edge.name === 'undici')?.root;
       const transport = groups.find(value => value.root === directory);
       for (const path of ['lib/llhttp/llhttp-wasm.js', 'lib/llhttp/llhttp_simd-wasm.js']) {
         const parser = transport?.images.find(value => value.path === path);
@@ -339,7 +471,8 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
     // ESM graph. Their fixed prefix belongs to its separate ordinary bootstrap
     // responsibility; covered Host/dependencies are delivered by this loader.
     const localNamespace = ordinary ? undefined : originalRequire(join(root, localPublicModule as string));
-    const nodeNamespace = ordinary || nodeRoot === undefined ? undefined : originalRequire(join(nodeRoot, 'index.mjs'));
+    const nodeNamespace = ordinary || nodeRoot === undefined ? undefined :
+      createRequire(join(nodeRoot, 'package.json'))(join(nodeRoot, 'index.mjs'));
     publicNamespaces = freeze({local: localNamespace, node: nodeNamespace});
     loader.captureLoadedModules();
     namespace = loaded;
@@ -355,27 +488,28 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
     if (typeof path !== 'string') fail('InitialControlPackageCustodyUnavailable');
     return (apply(mapGet, mainSources, [path]) as ImageSource | undefined)?.source;
   }
-  function readSdkImage(packageName: unknown, path: unknown, cid: unknown, kind: unknown): SdkImage {
+  function readSdkImages(registration: SdkImageRegistration): VerifiedSdkImages {
     loader.assertCurrent();
-    const {directory, group, image} = selectSdkImage(packageName, path, cid, kind);
-    const namespace = kind === 'module' ? loader.loadSelectedModule(join(directory, path as string), image.captured.sha256) : undefined;
-    if (!initialized && namespace !== undefined) selectedSdk = true;
+    const {adapter, sdk} = selectSdkImages(registration);
+    const namespaces = freeze({sdk: loader.loadSelectedModule(sdk.filename, sdk.sha256),
+      adapter: loader.loadSelectedModule(adapter.filename, adapter.sha256)});
+    if (!initialized && registration.adapter.packageName === sdkPackage) selectedSdk = true;
     loader.assertCurrent();
-    return freeze({namespace, cid, packageName, version: group.version});
+    return namespaces;
   }
   // Held Sources, module/namespace records, loader hooks and caches remain the
   // original process/module lifetime, including escaped Strings. This table
   // issues no scope and has no synthetic close/GC/capacity acknowledgement.
   const custody = freeze({initializeHostNamespace, assertCurrent, readAsset});
-  apply(sdkImageSet, sdkImages, [custody, readSdkImage]);
+  apply(sdkImageSet, sdkImages, [custody, readSdkImages]);
   return custody;
 }
 
-function readVerifiedSdkImage(custody: unknown, packageName: unknown, path: unknown, cid: unknown, kind: unknown) {
+function readVerifiedSdkImages(custody: unknown, registration: SdkImageRegistration) {
   const read = apply(sdkImageGet, sdkImages, [custody]) as
-    ((name: unknown, source: unknown, digest: unknown, kind: unknown) => SdkImage) | undefined;
+    ((original: SdkImageRegistration) => VerifiedSdkImages) | undefined;
   if (read === undefined) fail('InitialControlSdkImageUnavailable');
-  return read(packageName, path, cid, kind);
+  return read(registration);
 }
 
 const sdkPackage = '@actql/provider-ai-sdk';
@@ -398,22 +532,71 @@ function prepareOrdinaryModelSdkInstallation(source: unknown) {
           return !field?.enumerable || !Object.hasOwn(field, 'value');
         })) fail(invalidSdkRegistration);
   };
+  function frozenList(value: unknown, maximum: number): readonly unknown[] {
+    if (!array(value) || nodeTypes.isProxy(value) || !Object.isFrozen(value) ||
+        Object.getPrototypeOf(value) !== Array.prototype || value.length > maximum ||
+        Reflect.ownKeys(value).length !== value.length + 1) fail(invalidSdkRegistration);
+    for (let index = 0; index < value.length; index++) {
+      const member = descriptor(value, index);
+      if (!member?.enumerable || !hasOwn(member, 'value')) fail(invalidSdkRegistration);
+    }
+    return value;
+  }
+  const closures = new Map<unknown, unknown>();
+  const externalPackages: ExternalPackage[] = [];
   const previous = ordinarySdkPreparations.get(source);
   if (previous !== undefined) {
     previous.sdkImageCustody.assertCurrent();
     return;
   }
+  // The same recipe funds caller DATA and combined installed Sources.
+  const envelope = declareOrdinaryInitialControlPhaseEnvelope(getHeapStatistics().heap_size_limit);
+  const {limits} = envelope;
+  let remainingImages = limits.imageFiles, remainingEdges = limits.dependencyEdges;
   const registrations = new Map<string, SdkImageRegistration>();
   for (let index = 0; index < source.length; index++) {
     const field = Object.getOwnPropertyDescriptor(source, index);
     if (field === undefined || !Object.hasOwn(field, 'value')) fail(invalidSdkRegistration);
     const original: unknown = field.value;
-    data(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions'], ['credential']);
+    data(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions'], ['credential', 'packageImages']);
     if (Object.hasOwn(original, 'credential')) data(original.credential, ['reference', 'header']);
-    data(original.adapter, ['path', 'cid']);
+    data(original.adapter, ['path', 'cid', 'packageName', 'version']);
     data(original.sdk, ['path', 'cid', 'packageName', 'version', 'exportName']);
-    data(original.lock, ['path', 'cid']);
+    data(original.lock, ['path', 'cid', 'packageName', 'version']);
     data(original.route, ['providerId', 'selector', 'modelId', 'apiMode', 'endpoint']);
+    if (Object.hasOwn(original, 'packageImages')) {
+      const adapterName = original.adapter.packageName, graph = original.packageImages;
+      const admitted = closures.get(adapterName);
+      if (admitted === undefined) {
+        const selected = frozenList(graph, limits.packages - externalPackages.length);
+        if (selected.length === 0 || adapterName === sdkPackage) fail(invalidSdkRegistration);
+        for (const item of selected) {
+          data(item, ['name', 'version', 'images', 'dependencies']);
+          if (typeof item.name !== 'string' || !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u.test(item.name) ||
+              item.name.length > 214 || typeof item.version !== 'string' || item.version.length === 0 ||
+              item.version.length > 256) fail(invalidSdkRegistration);
+          const paths = new Set();
+          for (const image of frozenList(item.images, remainingImages)) {
+            data(image, ['path', 'bytes', 'sha256']);
+            if (!concrete(image.path) || image.path.length > limits.pathCodeUnits || paths.has(image.path) ||
+                !integer(image.bytes) || image.bytes < 0 || typeof image.sha256 !== 'string' ||
+                !/^[a-f0-9]{64}$/u.test(image.sha256)) fail(invalidSdkRegistration);
+            paths.add(image.path);
+            remainingImages--;
+          }
+          const names = new Set();
+          for (const edge of frozenList(item.dependencies, remainingEdges)) {
+            data(edge, ['name', 'package']);
+            if (typeof edge.name !== 'string' || names.has(edge.name) || !integer(edge.package) ||
+                edge.package < 0 || edge.package >= selected.length) fail(invalidSdkRegistration);
+            names.add(edge.name);
+            remainingEdges--;
+          }
+          externalPackages.push(item as ExternalPackage);
+        }
+        closures.set(adapterName, graph);
+      } else if (admitted !== graph) fail(invalidSdkRegistration);
+    } else if (original.adapter.packageName !== sdkPackage) fail(invalidSdkRegistration);
     const id = original.route.providerId;
     if (typeof id !== 'string' || id.length === 0 || id.length > 256 || registrations.has(id)) {
       fail(invalidSdkRegistration);
@@ -430,14 +613,16 @@ function prepareOrdinaryModelSdkInstallation(source: unknown) {
       // Adopt the existing installed-image envelope before borrowing any bytes
       // or compiling the selected module. The original package owns this
       // cache for the process lifetime, including after Host close.
-      const envelope = declareOrdinaryInitialControlPhaseEnvelope(getHeapStatistics().heap_size_limit);
       const {imageInventory} = require('./initial-control-package-original.cjs') as
         {imageInventory?: Readonly<{optionalSdkCoverage?: unknown}>};
-      if (imageInventory?.optionalSdkCoverage !== 'prepared') fail('InitialControlSdkImageUnavailable');
+      if (imageInventory === undefined || [...registrations.values()].some(original =>
+          original.adapter.packageName === sdkPackage) && imageInventory.optionalSdkCoverage !== 'prepared') {
+        fail('InitialControlSdkImageUnavailable');
+      }
       const runtime = Object.freeze({node: process.versions.node, v8: process.versions.v8,
         openssl: process.versions.openssl, platform: process.platform, arch: process.arch,
         eager: false, libraries: Object.freeze({...process.versions})});
-      inspectOrdinaryInitialControlPhaseEnvelope(imageInventory, envelope, runtime);
+      inspectOrdinaryInitialControlPhaseEnvelope(imageInventory, envelope, runtime, externalPackages);
       const root = join(__dirname, '../..');
       const {declareHostJournalServiceRecipe} = require('./host-journal-service-recipe.cjs') as typeof import('./host-journal-service-recipe.cjs');
       const {loadOrdinaryLocalFilesNative} = require('./host-journal-native-image.cjs') as typeof import('./host-journal-native-image.cjs');
@@ -449,13 +634,8 @@ function prepareOrdinaryModelSdkInstallation(source: unknown) {
       ordinarySdkImages = captureOrdinaryInitialControlPackageCustody(imageInventory, root, process.argv[1],
         undefined, registrations.values());
     }
-    const read = (packageName: unknown, selected: ImageFact, kind: 'module' | 'lock') =>
-      readVerifiedSdkImage(ordinarySdkImages, packageName, selected.path, selected.cid, kind);
     for (const original of registrations.values()) {
-      read(sdkPackage, original.lock, 'lock');
-      const sdk = read(original.sdk.packageName, original.sdk, 'module');
-      if (sdk.version !== original.sdk.version) fail(invalidSdkRegistration);
-      read(sdkPackage, original.adapter, 'module');
+      readVerifiedSdkImages(ordinarySdkImages, original);
     }
     // This closes first selections. Subsequent Hosts may borrow these same
     // namespaces, and a newly requested module fails before registration.
@@ -495,7 +675,7 @@ function ordinaryLocalFilesNative() {
 }
 
 const exported = module.exports = {captureInitialControlPackageCustody, captureOrdinaryInitialControlPackageCustody,
-  readVerifiedSdkImage, prepareOrdinaryModelSdkInstallation, ordinaryModelSdkInstallation,
+  readVerifiedSdkImages, prepareOrdinaryModelSdkInstallation, ordinaryModelSdkInstallation,
   ordinaryLocalFilesNative};
 freeze(module.exports);
 export = exported;

@@ -18,7 +18,7 @@ const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
   'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header', 'registered-anthropic',
-  'registered-google', 'registered-mixed', 'registered-mistral', 'registered-length', 'registered-refusal',
+  'registered-google', 'registered-mixed', 'registered-mistral', 'registered-external', 'registered-length', 'registered-refusal',
   'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist'].includes(phase));
 const fresh = phase !== 'cold';
 const missingKey = phase === 'missing-key';
@@ -45,7 +45,7 @@ const {workflowWorkObservation} = await import('./work-observation.fixture.mjs')
 // Local authored fixture configuration only. A cold process must use the same
 // selected physical inputs; absence is not a reason to guess another profile.
 const alternative = {'registered-anthropic': 'anthropic', 'registered-google': 'google',
-  'registered-mixed': 'mixed', 'registered-mistral': 'mistral',
+  'registered-mixed': 'mixed', 'registered-mistral': 'mistral', 'registered-external': 'external',
   'registered-google-recitation': 'google', 'registered-google-blocklist': 'google'}[phase];
 const safetyFinish = {'registered-openai-filter': 'content_filter', 'registered-google-recitation': 'RECITATION',
   'registered-google-blocklist': 'BLOCKLIST'}[phase];
@@ -63,8 +63,9 @@ const selection = fresh ? {
   ...(terminalFailure === undefined ? {} : {terminalFailure}),
   ...(safetyFinish === undefined ? {} : {safetyFinish}),
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
-assert([undefined, 'anthropic', 'google', 'mixed', 'mistral'].includes(selection.provider));
+assert([undefined, 'anthropic', 'google', 'mixed', 'mistral', 'external'].includes(selection.provider));
 const mixed = selection.provider === 'mixed';
+const external = selection.provider === 'external';
 const mistral = selection.provider === 'mistral';
 const failedAnswer = selection.terminalFailure;
 const selectedSafetyFinish = selection.safetyFinish;
@@ -74,7 +75,7 @@ if (failedAnswer === 'safety_rejected') {
     ? ['RECITATION', 'BLOCKLIST'].includes(selectedSafetyFinish)
     : selection.provider === undefined && selectedSafetyFinish === 'content_filter');
 } else assert.equal(selectedSafetyFinish, undefined);
-const trackOriginal = mixed || mistral || failedAnswer !== undefined;
+const trackOriginal = mixed || mistral || external || failedAnswer !== undefined;
 const work = workflowWorkObservation({createObservation: createHostObservationConnection, trackOriginal});
 const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 assert.deepEqual(Object.keys(selection).sort(),
@@ -93,7 +94,7 @@ if (project) assert.deepEqual(selection, {usage: mixed || failedAnswer !== undef
   ...(failedAnswer === undefined ? {} : {terminalFailure: failedAnswer}),
   ...(selectedSafetyFinish === undefined ? {} : {safetyFinish: selectedSafetyFinish})});
 if (failedAnswer !== undefined) assert(registered && (selectedSafetyFinish !== undefined || selection.provider === undefined));
-const providerName = mixed ? 'openai' : selection.provider ?? 'openai';
+const providerName = mixed || external ? 'openai' : selection.provider ?? 'openai';
 const routeFixtures = {
   openai: {officialHost: 'api.openai.com', credentialReference: 'OPENAI_API_KEY',
     credentialHeader: 'authorization', credentialPrefix: 'Bearer ', requestPath: '/v1/chat/completions',
@@ -123,19 +124,34 @@ const routesByHost = new Map(routes.map(original => [original.officialHost, orig
 const fixtureCredential = project ? 'actql-synthetic-project-credential' : 'not-an-external-secret';
 const credentialValue = original => mixed ? fixtureCredential + '-' + original.name : fixtureCredential;
 let modelSdkRegistrations;
+const independentAdapter = '@actql-acceptance/external-openai-adapter';
+function frozenPackageImages(value) {
+  for (const member of Object.values(value)) {
+    if (member !== null && typeof member === 'object') frozenPackageImages(member);
+  }
+  return Object.freeze(value);
+}
 if (registered) {
+  const adapterModule = external ? import.meta.resolve(independentAdapter) : providerModule;
+  if (external) assert.equal(realpathSync(fileURLToPath(adapterModule)), resolve(modules, independentAdapter, 'index.mjs'));
+  const packageImages = external ? frozenPackageImages(JSON.parse(await readFile('external-package-images.fixture.json', 'utf8'))) : undefined;
+  const adapterManifest = JSON.parse(await readFile(new URL('package.json', adapterModule), 'utf8'));
+  assert.equal(adapterManifest.name, external ? independentAdapter : '@actql/provider-ai-sdk');
+  const adapterPackage = {packageName: adapterManifest.name, version: adapterManifest.version};
   const originals = [];
   for (const original of routes) {
     const packageName = '@ai-sdk/' + original.name;
-    const sdkEntry = createRequire(new URL(providerModule)).resolve(packageName);
+    const sdkEntry = createRequire(new URL(adapterModule)).resolve(packageName);
     assert.equal(sdkEntry, realpathSync(sdkEntry));
     assert(sdkEntry.startsWith(modules + '/') && sdkEntry.endsWith('/' + packageName + '/dist/index.js'));
     const image = async (path, file) => Object.freeze({path,
       cid: 'sha256:' + createHash('sha256').update(await readFile(file)).digest('hex')});
-    const {path, version, exportName, apiMode, options} = original;
+    const {version, exportName, apiMode, options} = original;
+    const path = external ? 'index.mjs' : original.path;
     originals.push(Object.freeze({
-      adapter: await image(path, new URL(path, providerModule)),
-      lock: await image('npm-shrinkwrap.json', new URL('npm-shrinkwrap.json', providerModule)),
+      adapter: Object.freeze({...await image(path, new URL(path, adapterModule)), ...adapterPackage}),
+      lock: Object.freeze({...await image('npm-shrinkwrap.json', new URL('npm-shrinkwrap.json', adapterModule)), ...adapterPackage}),
+      ...(packageImages === undefined ? {} : {packageImages}),
       sdk: Object.freeze({...await image('dist/index.js', sdkEntry), packageName, version, exportName}),
       route: Object.freeze({providerId: original.providerId, modelId: original.resolvedModelId, selector: original.selector,
         apiMode, endpoint: 'https://' + original.officialHost + original.requestPath}),
@@ -672,6 +688,8 @@ console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedF
     originalRunDefinitionCid: originalRef.runDefinitionCid} : {}),
   ...(project ? {projectTlsConnects, projectCredential: true} : {}),
   ...(usageMode === 'reported' || failedAnswer !== undefined ? {maxCalls: Number(maxCalls)} : {}),
+  ...(external ? {externalAdapterCid: modelSdkRegistrations[0].adapter.cid,
+    externalLockCid: modelSdkRegistrations[0].lock.cid} : {}),
   ...(failedAnswer === undefined ? {} : {terminalFailure: failedAnswer}),
   ...(phase === 'cold' ? {egressChecks,
     ...(timeoutMode === undefined ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
