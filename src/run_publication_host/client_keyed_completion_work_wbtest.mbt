@@ -25,14 +25,14 @@ fn keyed_completion_content() -> String {
 }
 
 ///|
-test "generic captured 101 Ref lookup completes dependency closure within the original work bound" {
-  let resources = Array::makei(101, index => {
+fn exercise_generic_keyed_dependency_collection(count : Int) -> Unit raise {
+  let resources = Array::makei(count, index => {
     let cid = "sha256:" +
       @sha.text_hex("component-file:" + index.to_string()).unwrap()
     keyed_work_resource().replace(old="sha256:" + "d".repeat(64), new=cid)
   })
   let listing = "[" +
-    Array::makei(101, row => {
+    Array::makei(count, row => {
       "{\"path\":\"file-" +
       row.to_string() +
       ".txt\",\"resource\":" +
@@ -44,7 +44,7 @@ test "generic captured 101 Ref lookup completes dependency closure within the or
     "]"
   let (lookup, cleanup, declaration) = keyed_work_original_fixture(
     listing,
-    101,
+    count,
     1000000,
     completion=true,
     resources=Some(resources),
@@ -87,7 +87,7 @@ test "generic captured 101 Ref lookup completes dependency closure within the or
       max_depth: 32,
     },
   }
-  for row in 0..<101 {
+  for row in 0..<count {
     let request = keyed_work_request(lookup, row)
     assert_eq(find_client_keyed_lookup_response(lookup, request).unwrap(), -1)
     let selected = @row_host.prepare_keyed_row_acquisition(
@@ -176,6 +176,9 @@ test "generic captured 101 Ref lookup completes dependency closure within the or
     "KEYED_COMPLETION work_before=\{before} work_after=\{client_keyed_lookup_input_work(lookup)} input_work=\{input_work} identity_work=\{lookup.identity_work} input_bound=1000000 stage=\{stage}",
   )
   result.unwrap() |> ignore
+  let state = parent.generic.unwrap()
+  assert_true(physical_equal(state.lookup, lookup))
+  assert_true(state.bodies is Some(bodies) && !bodies.is_empty())
   assert_true(input_work <= 1000000L)
   assert_true(lookup.identity_work <= 1000000L)
   for child in children {
@@ -183,8 +186,19 @@ test "generic captured 101 Ref lookup completes dependency closure within the or
   }
   children.clear()
   assert_true(cleanup())
+  assert_true(state.bodies is None)
   let usage = @resources.ledger_usage(lookup.ledger)
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.reserved_execution_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
+}
+
+///|
+test "generic captured 101 Ref lookup completes dependency closure within the original work bound" {
+  exercise_generic_keyed_dependency_collection(101)
+}
+
+///|
+test "generic captured single Ref lookup settles its genuine unmeasured collection" {
+  exercise_generic_keyed_dependency_collection(1)
 }

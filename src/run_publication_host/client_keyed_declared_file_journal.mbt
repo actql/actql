@@ -707,10 +707,9 @@ fn prepare_declared_file_lookup_dependencies(
   }
   // Callback/Result/Map/Array controls and bounded measuring-writer frames.
   // Per-member controls, spare slots, text and parser/workspace follow below.
-  with_keyed_protocol_construction(
+  with_keyed_dependency_collection(
     lookup,
-    1,
-    64L + 2L * max_depth.to_int64(),
+    NativeDependencyCollection,
     max_nodes,
     max_depth,
     fn(phase) {
@@ -788,22 +787,9 @@ fn prepare_declared_file_lookup_dependencies(
         Ok(value) => value
         Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
       }
-      cursor
-      .seal(lookup, bodies)
-      .map(dependencies => keyed_protocol_built(bodies, dependencies~))
+      cursor.seal(lookup, bodies)
     },
-    bodies => {
-      guard !lookup.closed &&
-        lookup.left.lookup_issue is None &&
-        lookup.native_completion is Some(same) &&
-        physical_equal(same, completed) &&
-        state.dependency_bodies is None else {
-        return Err(Assembly("retired_declared_file_dependency_entry"))
-      }
-      state.dependency_bodies = Some(bodies)
-      Ok(())
-    },
-  ).map(_ => ())
+  )
 }
 
 ///|
