@@ -2115,7 +2115,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a02dd6ec4ab046d289c3a272b7781e82d8eba883579feec0eefa8bbb118e314f",
+      "sha256": "7da1daf34e05a2a8cc20c6428c5feb5a8809651c4c23f92248d5c5313a3a7ce5",
       "exports": [
         "createLanguageModel",
         "credentialBinding",

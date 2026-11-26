@@ -32,15 +32,20 @@ type Report = {
 const registeredProviderCases = Object.freeze([
   'registered-project', 'registered-anthropic', 'registered-google', 'registered-mixed', 'registered-mistral',
 ]);
+export const registeredSafetyAcceptanceCases = Object.freeze([
+  'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist',
+]);
 const registeredTerminalFailures = Object.freeze({
   'registered-length': 'truncated', 'registered-refusal': 'refusal',
+  'registered-openai-filter': 'safety_rejected', 'registered-google-recitation': 'safety_rejected',
+  'registered-google-blocklist': 'safety_rejected',
 });
 const registeredRefusalCases = Object.freeze([
   'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header',
 ]);
 export const registeredProviderAcceptanceCases = Object.freeze([
-  ...registeredProviderCases, ...Object.keys(registeredTerminalFailures), ...registeredRefusalCases,
+  ...registeredProviderCases, 'registered-length', 'registered-refusal', ...registeredRefusalCases,
 ]);
 
 // Assertions over the original child report only; this issues no Run authority
@@ -280,9 +285,11 @@ async function installRelease(root: string, release: string, manifest: ReleaseMa
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [root, selection, ...extra] = process.argv.slice(2);
-  assert(root !== undefined && (selection === undefined || selection === '--registered-only') && extra.length === 0,
-    'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT [--registered-only]');
-  const cases = selection === '--registered-only' ? registeredProviderAcceptanceCases : undefined;
+  assert(root !== undefined && [undefined, '--registered-only', '--registered-safety-only'].includes(selection)
+    && extra.length === 0,
+  'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT [--registered-only | --registered-safety-only]');
+  const cases = selection === '--registered-only' ? registeredProviderAcceptanceCases
+    : selection === '--registered-safety-only' ? registeredSafetyAcceptanceCases : undefined;
   process.exitCode = await runLocalCheck({root: fileURLToPath(new URL('../', import.meta.url)),
     heavy: false, timeoutSeconds: 300, graceSeconds: 5,
     steps: [{name: 'Original normal provider, usage and timeout consumers', command: process.execPath,
