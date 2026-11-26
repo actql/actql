@@ -3883,3 +3883,13 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/connector-addition-source.test.d.mts
 /scripts/connector-addition-wire-dependency.test.mjs
 /scripts/connector-addition-wire-dependency.test.d.mts
+/scripts/release-registry-observation.mjs
+/scripts/release-registry-observation.d.mts
+/scripts/release-set-verification.mjs
+/scripts/release-set-verification.d.mts
+/scripts/release-public-install.mjs
+/scripts/release-public-install.d.mts
+/scripts/test-packed-provider-ai-sdk.mjs
+/scripts/test-packed-provider-ai-sdk.d.mts
+/scripts/test-package-release-install.mjs
+/scripts/test-package-release-install.d.mts
