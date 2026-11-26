@@ -107,7 +107,16 @@ function requireSealedContract(value, version, identity) {
 export function requireNativeJoinedDelivery({report, runReceipt, payload, path, rows, policyCid, custody}) {
   assert.equal(report.version, 'actql-cli-run-response/0.1');
   assert.equal(report.run.run_id, custody.runId);
-  assert.equal(report.run.result_availability.answer.state, 'available');
+  assert.equal(report.run.status, 'succeeded');
+  // The RunRead projection re-observes the stored Run after delivery. It
+  // has no fresh availability observation for answer. Prove this delivery
+  // separately using the original receipts and the actual bytes below.
+  assert.equal(report.run.result_available, false);
+  assert.equal(typeof report.run.updated_at, 'string');
+  assert.deepEqual(report.run.result_availability, {answer: {
+    state: 'unknown', reason: 'verification_pending', observed_at: report.run.updated_at,
+  }});
+  assert.deepEqual(report.run.next_action, {kind: 'refresh_availability', results: ['answer']});
   assert.equal(report.delivery_status, 'delivered');
   assert.equal(report.deliveries.length, 1);
   const [delivery] = report.deliveries;

@@ -91,8 +91,11 @@ function deliveryFixture() {
     invocation_cid: invocation, result_artifact_cid: artifact.result_artifact_cid,
     result_manifest_cid: manifest.result_manifest_cid, result_name: 'answer',
     delivered_byte_count: payload.length, delivered_sha256: hash(payload)}, 'result_delivery_receipt_cid');
+  const now = '2026-11-26T04:59:44.607Z';
   const report = {version: 'actql-cli-run-response/0.1', delivery_status: 'delivered',
-    run: {run_id: runId, result_availability: {answer: {state: 'available'}}},
+    run: {run_id: runId, status: 'succeeded', updated_at: now, result_available: false,
+      next_action: {kind: 'refresh_availability', results: ['answer']},
+      result_availability: {answer: {state: 'unknown', reason: 'verification_pending', observed_at: now}}},
     deliveries: [{run_id: runId, status: 'delivered', receipt,
       request: {result: 'answer', result_cid: artifact.result_artifact_cid, format: 'jsonl', path}}]};
   const custody = {definition, runId, observed: modelEvidence.map(evidenceCid =>
@@ -100,12 +103,28 @@ function deliveryFixture() {
   return {report, runReceipt, payload, path, rows, policyCid, custody};
 }
 
-test('Native JOIN delivery matches the original Run receipt, actual file and typed rows', () => {
+test('Native JOIN delivery verifies the typed file independently of the saved Run availability projection', () => {
   const fixture = deliveryFixture();
   const result = requireNativeJoinedDelivery(fixture);
   assert.equal(result.bytes, fixture.payload.length);
   assert.equal(result.sha256, hash(fixture.payload));
   assert.equal(result.runReceiptCid, fixture.runReceipt.receipt_identity_cid);
+});
+
+test('Native JOIN delivery refuses unsupported availability or unconfirmed delivery', () => {
+  const fixture = deliveryFixture();
+  const {report} = fixture;
+  const {run, deliveries: [delivery]} = report;
+  for (const observation of [
+    {run: {...run, result_available: true}},
+    {run: {...run, result_availability: {answer: {...run.result_availability.answer, reason: 'retention_expired'}}}},
+    {run: {...run, next_action: {...run.next_action, results: ['foreign']}}},
+    {delivery_status: 'pending'},
+    {deliveries: [{...delivery, status: 'pending'}]},
+  ]) {
+    assert.throws(() => requireNativeJoinedDelivery({...fixture, report: {...report, ...observation}}),
+      {code: 'ERR_ASSERTION'});
+  }
 });
 
 test('Native JOIN delivery refuses foreign originals and matching-size changes', () => {
