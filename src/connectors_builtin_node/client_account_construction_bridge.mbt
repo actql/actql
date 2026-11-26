@@ -167,6 +167,20 @@ pub fn client_program_advance_relation_sample_debug_entry(
 }
 
 ///|
+#export_name("clientProgramRelationSampleDebugEntryStep")
+pub fn client_program_relation_sample_debug_entry_step(
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  owner : @client_local_host.ClientInstalledManagedRun,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> String {
+  @client_local_host.installed_relation_sample_debug_entry_step(
+    profile,
+    owner,
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+  )
+}
+
+///|
 #export_name("clientProgramRelationSampleDebugEntryRunnable")
 pub fn client_program_relation_sample_debug_entry_runnable(
   profile : @client_local_host.ClientCheckedRelationSampleProfile,

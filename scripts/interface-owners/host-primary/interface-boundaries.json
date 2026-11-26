@@ -3792,6 +3792,14 @@
           "async": false
         },
         {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:reopenEntry/init:reopenEntry",
+          "parameters": [
+            "parked",
+            "currentOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask",
           "parameters": [
             "commandWire",
@@ -5329,6 +5337,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:reopenEntry/init:reopenEntry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "reopenEntry(parked: RetainedDebugEntry['park']"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "return holdPause(parked, original.signal);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "projected?.stepId !== parked.entryStep.stepId"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "const original = live;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "currentOriginal() !== true || !journal.debugPauseCurrent"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "throw new Error('ClientRunDebugEntryOriginalUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "entry.abort.signal.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "retainedDebugEntry = undefined;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "const projected = projectEntryStep(original);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "a detached Local SDK process attaches and steps the retained unstarted Debug entry"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -5356,7 +5432,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "dfe3acbd0d4ec392cf4d1ca14a14f3d1213df7624687b4824a5c8b540206c38a",
+      "sha256": "4045640d5f5d85a8e66e3fa6e790d9a71e56691482af3ed4353de1619e9b6ebf",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -14645,7 +14721,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "const admissionFailures = new WeakMap<EmbeddedSubmission, Parameters<PreparedAdmissionFailure['set']>[1]>();"
+                "anchor": "const admissionFailures = new WeakMap<PreparationAdmission, Parameters<PreparedAdmissionFailure['set']>[1]>();"
               }
             ],
             "inputsOutputs": [
@@ -14941,7 +15017,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/client-run-inspect.mts",
-                "anchor": "readWorkspace!.metadata(request, 2 * (2112 + 6 * names))"
+                "anchor": "readWorkspace!.metadata(request, parkBytes)"
               }
             ],
             "extension": [
@@ -15038,7 +15114,6 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#11",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#2",
@@ -15076,7 +15151,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "resumeOriginal: interactiveDispatch.resumeDebugTask"
+                "anchor": "resumeOriginal(ref, actor, wire) {"
               }
             ],
             "failure": [
@@ -18364,6 +18439,78 @@
               {
                 "path": "adapters/host-node/logical-task-observation.test.mjs",
                 "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/init:observeDebugPause/init:observeDebugPause",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/init:resumeOriginal/init:resumeOriginal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/physical/physical",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const reopenDebugEntry = async"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "interactiveJournal.restoreUnstartedDebugEntry(ref, wire,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "held.plan.runDefinition.wire !== accepted.runDefinition.wire"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const submission = localPreparationCustody.attach(request,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "await Promise.race([ready.promise, physical.then(() => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "if (reopeningDebugEntries.has(ref.runDefinitionCid)) throw clientOperationError('ClientRunDebugEntryRevisionConflict');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "actor.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "{current: actor.authorize, reserve: actor.reserveOriginal}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const park = interactiveJournal.observeUnstartedDebugEntry(original, authorize);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "a detached Local SDK process attaches and steps the retained unstarted Debug entry"
               }
             ]
           }
@@ -28008,6 +28155,17 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/init:observeDebugPause/init:observeDebugPause",
+          "parameters": [
+            "request",
+            "authorize",
+            "resume",
+            "original",
+            "reserveOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun",
           "parameters": [
             "request",
@@ -28027,15 +28185,6 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#3",
           "parameters": [
             "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#4",
-          "parameters": [
-            "request",
-            "authorize",
-            "canResume"
           ],
           "async": false
         },
@@ -28076,6 +28225,15 @@
             "expectedRevision",
             "actual",
             "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/init:resumeOriginal/init:resumeOriginal",
+          "parameters": [
+            "ref",
+            "actor",
+            "wire"
           ],
           "async": false
         },
@@ -28536,6 +28694,21 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#4",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/physical/physical",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry#2",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/init:onUnsupportedSelection/init:onUnsupportedSelection",
@@ -31465,7 +31638,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "73020edd101de983811aaa748f92be890059ebba25a2d477098da563534a82f5"
+      "sha256": "adc9d0d4e074a7f283f49cf23c3d82f01e444144d78ad598809df9ee97fa313b"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

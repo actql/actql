@@ -82,6 +82,7 @@ type RequestScope = Readonly<{namespaceId: unknown}>;
 type SampleRequestScope = RequestScope & Readonly<{
   sampleRunRef?: WireRunRef;
   reserveSampleRead?: (bytes: number, previousBytes?: number) => unknown;
+  assertOriginalExtent?: () => void;
 }>;
 type StopRequestControl = RequestControl & Parameters<SubmissionRows['retainedIntentOriginal']>[1] & Readonly<{
   clientSubmittedIntentRequestsCommitStop(intent: unknown): unknown;
@@ -132,7 +133,14 @@ type DebugTaskOriginal = SqlRow & DebugOriginalCommon & Readonly<{
 }>;
 type DebugReceiptSelection = Readonly<{runDefinition: RunDefinition; logicalMapCid: string; reserve: Reserve}>;
 type DebugReceiptIssue = Omit<DebugReceiptSelection, 'reserve'> & Readonly<{limits: DebugLimits}>;
-type DebugEntryParked = Readonly<{kind: 'parked'; revision: number; expiresAt: number; pausedAt: number}>;
+type DebugEntryStep = Readonly<{logicalMapCid: string; stepId: string}>;
+type DebugEntryParked = Readonly<{kind: 'parked'; revision: number; expiresAt: number; pausedAt: number;
+  entryStep?: DebugEntryStep}>;
+type DebugEntryObservation = DebugEntryParked | Readonly<{kind: 'unavailable'}>;
+type DebugEntryReadScope = Readonly<{current: Current; reserve: Reserve}>;
+type DebugEntryRequestControl = StopRequestControl & Required<Pick<StopRequestControl, 'clientSubmittedIntentRequestsDebug'>>;
+type UnstartedDebugOriginal = Readonly<{park: DebugEntryParked; entryStep: DebugEntryStep; profile: string;
+  identity: unknown; intent: unknown; assertCurrent(): true; accepted: RunFrame & {lookupExpiresAt: string}}>;
 type DebugTaskPosition = Readonly<{stepId: string; nextStepId: string | null; committedGeneration: number}>;
 type DebugTaskParked = DebugEntryParked & DebugTaskPosition & Readonly<{controlRevision: number}>;
 type DebugEntryAccepted = Readonly<{kind: 'resume_accepted'; revision: number; commandCid: string;
@@ -175,6 +183,11 @@ const debugEntryTable = `CREATE TABLE client_debug_entry_parks (
   CHECK (resume_accepted_at >= paused_at AND resume_accepted_at < expires_at),
   CHECK ((resume_wire IS NULL AND resume_revision IS NULL) OR
     (resume_wire IS NOT NULL AND resume_revision IS NOT NULL AND resume_revision = parked_revision + 1))
+) STRICT`;
+const debugEntryStepTable = `CREATE TABLE client_debug_entry_steps (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_debug_entry_parks(run_definition_cid) ON DELETE CASCADE,
+  logical_map_cid TEXT NOT NULL CHECK (length(CAST(logical_map_cid AS BLOB)) = 71),
+  step_id TEXT NOT NULL CHECK (length(CAST(step_id AS BLOB)) = 71)
 ) STRICT`;
 const debugTaskPauseTable = `CREATE TABLE client_debug_task_pauses (
   run_definition_cid TEXT NOT NULL REFERENCES client_debug_entry_parks(run_definition_cid) ON DELETE CASCADE,
@@ -554,6 +567,160 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
   }
 
   let liveDebugEntry: JournalStatement | undefined, liveDebugTask: JournalStatement | undefined;
+  let retainedDebugEntry: JournalStatement | undefined;
+  const readUnstartedDebugPark = (ref: WireRunRef, revision: number) => {
+    if (!hasDebugEntryStorage()) return undefined;
+    retainedDebugEntry ??= database.prepare(`SELECT
+      CASE WHEN length(CAST(r.caller_request_id AS BLOB)) <= 1024 THEN r.caller_request_id END AS request_id,
+      CASE WHEN length(CAST(p.submitted_intent_cid AS BLOB)) = 71 THEN p.submitted_intent_cid END AS intent_cid,
+      p.parked_revision, p.paused_at, p.expires_at,
+      p.expires_at > max(?, e.observed_at) AS fresh
+      FROM client_debug_entry_parks p JOIN client_requests r USING (run_definition_cid)
+      JOIN client_submission_epoch_authority e ON e.singleton = 1
+      WHERE r.namespace_id = ? AND r.authority_scope_cid = ? AND r.run_definition_cid = ?
+      AND r.revision = ? AND r.revision = p.parked_revision AND r.dispatch_reserved = 1
+      AND r.physical_start_reserved = 0 AND r.pre_dispatch_failure_confirmed = 0
+      AND r.cancellation_requested = 0 AND r.physical_close_confirmed = 0
+      AND r.observed_terminal_outcome IS NULL AND p.resume_wire IS NULL
+      AND p.resume_revision IS NULL AND p.resume_accepted_at IS NULL`);
+    return retainedDebugEntry.get(epochClock(undefined, false).observed_at,
+      ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid, revision);
+  };
+  const sameUnstartedDebugPark = (park: SqlRow, latest: SqlRow | undefined): latest is SqlRow => latest !== undefined &&
+    Object.keys(park).every(key => key === 'fresh' || park[key] === latest[key]);
+  let debugEntryStepSchema: JournalStatement | undefined, selectDebugEntryStep: JournalStatement | undefined;
+  const hasDebugEntryStepStorage = () => {
+    debugEntryStepSchema ??= database.prepare(`SELECT substr(sql, 1, ?) AS sql FROM sqlite_schema
+      WHERE type = 'table' AND name = 'client_debug_entry_steps'`);
+    const row = debugEntryStepSchema.get(debugEntryStepTable.length + 1);
+    if (row !== undefined && row.sql !== debugEntryStepTable) fail('UnknownClientRequestJournalFormat');
+    return row !== undefined;
+  };
+  const readDebugEntryStep = (ref: WireRunRef): DebugEntryStep | undefined => {
+    if (!hasDebugEntryStepStorage()) return undefined;
+    selectDebugEntryStep ??= database.prepare(`SELECT
+      CASE WHEN length(CAST(logical_map_cid AS BLOB)) = 71 THEN logical_map_cid END AS logicalMapCid,
+      CASE WHEN length(CAST(step_id AS BLOB)) = 71 THEN step_id END AS stepId
+      FROM client_debug_entry_steps WHERE run_definition_cid = ?`);
+    const step = selectDebugEntryStep.get(ref.runDefinitionCid);
+    if (step === undefined) return undefined;
+    if (!cid(step.logicalMapCid) || !cid(step.stepId)) fail('ClientRunDebugEntryCorrupt');
+    return Object.freeze({logicalMapCid: step.logicalMapCid, stepId: step.stepId});
+  };
+  const sameDebugEntryStep = (left: DebugEntryStep | undefined, right: DebugEntryStep | undefined) =>
+    left?.stepId === right?.stepId && left?.logicalMapCid === right?.logicalMapCid;
+  const sameDebugOriginalRow = (original: SqlRow, latest: SqlRow | undefined) => latest !== undefined &&
+    Object.keys(original).every(key => key === 'state_revision' ||
+      key === 'state_observation_key' || original[key] === latest[key]);
+
+  function observeUnstartedDebugEntry(frame: RunFrame, current: Current): DebugEntryObservation | undefined {
+    ensureOpen();
+    const retained = runStateFrames.get(frame);
+    if (retained === undefined) fail('ForeignRunStateObservation');
+    requireDebugEntryAuthority(current);
+    const intent = frame.runAdmissionEvidence?.submittedIntentCid;
+    if (frame.physicalStartReserved !== false || !frame.dispatchReserved ||
+        frame.preDispatchFailureConfirmed || frame.cancellationRequested ||
+        frame.physicalCloseConfirmed || frame.observedTerminalOutcome !== null ||
+        !cid(intent) || database.isTransaction) return undefined;
+    const {ref} = frame;
+    const read = () => readUnstartedDebugPark(ref, frame.revision);
+    const park = read();
+    const entryStep = park === undefined ? undefined : readDebugEntryStep(ref);
+    requireDebugEntryAuthority(current);
+    if (park === undefined) return undefined;
+    const latest = database.isTransaction ? undefined : read();
+    const latestStep = latest === undefined ? undefined : readDebugEntryStep(ref);
+    requireDebugEntryAuthority(current);
+    if (!sameUnstartedDebugPark(park, latest) || latest.fresh !== 1 ||
+        !sameDebugEntryStep(entryStep, latestStep)) return Object.freeze({kind: 'unavailable'});
+    const publication = retained.publicationControl as DefinitionControl & Partial<Pick<PublicationControl, 'runDefinitionLifetime'>>;
+    if (typeof publication.runDefinitionLifetime !== 'function') fail('ClientRunDebugEntryOriginalUnavailable');
+    const lifetime = publication.runDefinitionLifetime(frame.runDefinition, ref.runDefinitionCid);
+    const {parked_revision: revision, paused_at: pausedAt, expires_at: expiresAt} = park;
+    if (park.intent_cid !== intent || park.request_id !== frame.requestId ||
+        !integer(pausedAt) || !integer(expiresAt) || !validDebugPauseTime(park) ||
+        !integer(revision) || revision < 1 || revision > 2147483645 ||
+        !instant(retained.row.lookup_expires_at) ||
+        !(expiresAt <= Math.min(Date.parse(retained.row.lookup_expires_at), Date.parse(lifetime.validUntil)))) {
+      fail('ClientRunDebugEntryCorrupt');
+    }
+    return Object.freeze({kind: 'parked', revision, expiresAt, pausedAt,
+      ...(entryStep === undefined ? {} : {entryStep})});
+  }
+
+  function readUnstartedDebugOriginal(ref: WireRunRef, revision: number, {current, reserve}: DebugEntryReadScope,
+    requestControl: DebugEntryRequestControl, publicationControl: DefinitionControl,
+    observedFrame?: RunFrame): UnstartedDebugOriginal | undefined {
+    ensureOpen();
+    requireDebugEntryAuthority(current);
+    if (typeof reserve !== 'function') fail('ClientRunDebugEntryInvalidSelection');
+    const readPark = () => readUnstartedDebugPark(ref, revision);
+    const parked = database.isTransaction ? undefined : readPark();
+    if (parked === undefined) fail('ClientRunDebugEntryRevisionConflict');
+    if (parked.fresh !== 1) fail('ClientRunDebugEntryExpired');
+    const {request_id: requestId, intent_cid: intentCid} = parked;
+    if (!text(requestId) || !cid(intentCid)) fail('ClientRunDebugEntryCorrupt');
+    const entryStep = readDebugEntryStep(ref);
+    if (entryStep === undefined) {
+      if (observedFrame !== undefined) return undefined;
+      fail('ClientRunDebugEntryOriginalUnavailable');
+    }
+    const fields = {requestId, authorityScopeCid: ref.authorityScopeCid};
+    const extent = () => sampleOriginalStoredBytes(ref.namespaceId, fields, ref.runDefinitionCid);
+    const measured = extent();
+    if (observedFrame !== undefined && measured.phase === null) return undefined;
+    // The retained original and repeat admission overlap the ready input
+    // and command snapshot until the selected original dispatch owns them.
+    const bytes = 4096 + 2 * measured.stored_bytes;
+    if (bytes > 2147483647) fail('ClientRunDebugEntryOriginalUnavailable');
+    const reserved = reserve(bytes);
+    if (reserved !== undefined) {
+      if (typeof (reserved as {then?: unknown} | null)?.then === 'function') void Promise.resolve(reserved).catch(() => {});
+      fail('ClientRunDebugEntryInvalidSelection');
+    }
+    const assertOriginalExtent = () => {
+      const next = extent();
+      if (next.phase !== measured.phase || next.original_bytes !== measured.original_bytes ||
+          next.stored_bytes > measured.stored_bytes) fail('ClientRunDebugEntryOriginalUnavailable');
+    };
+    const assertSelected = () => {
+      requireDebugEntryAuthority(current);
+      const latest = database.isTransaction ? undefined : readPark();
+      if (!sameUnstartedDebugPark(parked, latest) || !sameDebugEntryStep(entryStep, readDebugEntryStep(ref))) {
+        fail('ClientRunDebugEntryRevisionConflict');
+      }
+      if (latest.fresh !== 1) fail('ClientRunDebugEntryExpired');
+      assertOriginalExtent();
+    };
+    assertSelected();
+    const row = readRunDefinitionRow(ref, requestControl);
+    if (row === undefined) fail('ClientRunDebugEntryRevisionConflict');
+    if (observedFrame !== undefined && !sameDebugOriginalRow(retainRunStateFrame(observedFrame, ref).row, row)) {
+      fail('ClientRunDebugEntryRevisionConflict');
+    }
+    const frame = observedFrame ?? admitRunDefinitionRow(row, requestControl, publicationControl);
+    const park = observeUnstartedDebugEntry(frame, current);
+    const profile = frame.runAdmissionEvidence?.debugEntryProfileWire;
+    if (park?.kind === 'unavailable') fail('ClientRunDebugEntryExpired');
+    if (park?.kind !== 'parked' || typeof profile !== 'string' ||
+        !instant(row.lookup_expires_at)) fail('ClientRunDebugEntryOriginalUnavailable');
+    const identity = retainedIdentity(row as Parameters<typeof retainedIdentity>[0], requestControl);
+    const input = journal.originalSubmittedIntent(identity,
+      {namespaceId: ref.namespaceId, assertOriginalExtent}, requestControl, publicationControl);
+    if (input === undefined || requestControl.clientSubmittedIntentRequestsDebug(input.intent) !== true ||
+        requestControl.clientSubmittedIntentCid(input.intent) !== intentCid) fail('ClientRunDebugEntryOriginalUnavailable');
+    const assertCurrent = (): true => {
+      assertSelected();
+      if (!sameDebugOriginalRow(row, readRunDefinitionRow(ref, requestControl))) fail('ClientRunDebugEntryRevisionConflict');
+      input.assertCurrent();
+      assertSelected();
+      return true;
+    };
+    assertCurrent();
+    return Object.freeze({park, entryStep, profile, identity, intent: input.intent, assertCurrent,
+      accepted: Object.freeze({...frame, lookupExpiresAt: row.lookup_expires_at})});
+  }
   let debugTaskPauseSchema: JournalStatement | undefined, latestDebugTaskPause: JournalStatement | undefined;
   let debugTaskPauseByOperation: JournalStatement | undefined;
   const hasDebugTaskPauseStorage = () => {
@@ -1170,10 +1337,11 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
     // It grants neither current authorization nor a physical/resume claim.
     // Historical unselected Runs remain readable without a new reference;
     // missing selected custody cannot be repaired from current caller options.
-    originalSubmittedIntent(identity: unknown, {namespaceId, sampleRunRef, reserveSampleRead}: SampleRequestScope,
+    originalSubmittedIntent(identity: unknown, {namespaceId, sampleRunRef, reserveSampleRead, assertOriginalExtent}: SampleRequestScope,
       requestControl: StopRequestControl, publicationControl: RelationSampleControl) {
       ensureOpen();
       if (!text(namespaceId) ||
+          assertOriginalExtent !== undefined && typeof assertOriginalExtent !== 'function' ||
           typeof requestControl?.clientSubmittedIntentRequestsCommitStop !== 'function' ||
           sampleRunRef !== undefined && (typeof requestControl.clientSubmittedIntentRequestsDebug !== 'function' ||
             typeof reserveSampleRead !== 'function')) {
@@ -1218,6 +1386,7 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
               fail('ClientRunSampleOriginalCapacity');
             }
           }
+          assertOriginalExtent?.();
           assertJournalSubmissionCustody(requestUsage, submissionIssued);
           assertJournalIntentCustody(intentUsage, intentIssued, intentRetired, inspectionBytes);
           const run = lookupRecord({namespaceId, authorityScopeCid: fields.authorityScopeCid,
@@ -1281,7 +1450,11 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
           throw error;
         }
       };
-      const original = transaction.run(readOriginal);
+      // Selected cold Inspect/Resume authenticates committed rows within the
+      // measured extent without reserving a SQLite writer.
+      const selectOriginal = () => assertOriginalExtent === undefined
+        ? transaction.run(readOriginal) : transaction.read(readOriginal);
+      const original = selectOriginal();
       if (original === undefined) return undefined;
       const checkOriginal = (current: ReturnType<typeof readOriginal>) => {
         if (current === undefined || current.intentCid !== original.intentCid ||
@@ -1297,7 +1470,7 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
         assertCurrent() {
           try {
             ensureOpen();
-            checkOriginal(transaction.run(readOriginal));
+            checkOriginal(selectOriginal());
           } catch (error) {
             previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;
             throw error;
@@ -1440,13 +1613,14 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
     reservePhysicalStart: startPhysical,
     persistOriginalKeyedLookupActivation,
     persistOriginalKeyedLookupPage,
-    parkDebugEntry(identity: unknown, {ref, expectedRevision, expiresAt, current}: Readonly<{
-      ref: WireRunRef; expectedRevision: number; expiresAt: number; current: Current}>,
-      requestControl: StopRequestControl & Required<Pick<StopRequestControl, 'clientSubmittedIntentRequestsDebug'>>,
+    parkDebugEntry(identity: unknown, {ref, expectedRevision, expiresAt, current, entryStep}: Readonly<{
+      ref: WireRunRef; expectedRevision: number; expiresAt: number; current: Current; entryStep?: DebugEntryStep}>,
+      requestControl: DebugEntryRequestControl,
       publicationControl: DefinitionControl) {
       ensureOpen();
       if (!validDebugEntryRef(ref) || !Number.isInteger(expectedRevision) || expectedRevision < 0 ||
-          !Number.isSafeInteger(expiresAt) || expiresAt <= 0 || typeof current !== 'function') {
+          !Number.isSafeInteger(expiresAt) || expiresAt <= 0 || typeof current !== 'function' ||
+          entryStep !== undefined && (!cid(entryStep?.logicalMapCid) || !cid(entryStep?.stepId))) {
         fail('ClientRunDebugEntryInvalidSelection');
       }
       requireDebugEntryAuthority(current);
@@ -1462,8 +1636,10 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
         if (row === undefined) fail('ClientRunDebugEntryOriginalUnavailable');
         const definition = retainedRunDefinition(row as SqlRow & Parameters<typeof retainedRunDefinition>[0],
           publicationControl, maxRunDefinitionWireBytes);
-        if (row.caller_request_id !== fields.requestId || typeof row.run_admission_evidence_json !== 'string' ||
-            JSON.parse(row.run_admission_evidence_json)?.submittedIntentCid !== intent ||
+        const evidence: {submittedIntentCid?: unknown; debugEntryProfileWire?: unknown} | null =
+          typeof row.run_admission_evidence_json === 'string' ? JSON.parse(row.run_admission_evidence_json) : null;
+        if (row.caller_request_id !== fields.requestId || evidence?.submittedIntentCid !== intent ||
+            entryStep !== undefined && typeof evidence?.debugEntryProfileWire !== 'string' ||
             typeof row.lookup_expires_at !== 'string') fail('ClientRunDebugEntryOriginalUnavailable');
         const validUntil = Math.min(Date.parse(row.lookup_expires_at), Date.parse(JSON.parse(definition.wire).valid_until));
         if (!Number.isSafeInteger(validUntil) || expiresAt > validUntil) fail('ClientRunDebugEntryInvalidSelection');
@@ -1473,7 +1649,8 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
               entry.expires_at !== expiresAt || row.revision !== entry.parked_revision ||
               entry.resume_wire !== null || row.dispatch_reserved !== 1 || row.physical_start_reserved !== 0 ||
               row.pre_dispatch_failure_confirmed !== 0 || row.cancellation_requested !== 0 ||
-              row.physical_close_confirmed !== 0 || row.observed_terminal_outcome !== null) {
+              row.physical_close_confirmed !== 0 || row.observed_terminal_outcome !== null ||
+              !sameDebugEntryStep(entryStep, readDebugEntryStep(ref))) {
             fail('ClientRunDebugEntryRevisionConflict');
           }
           const observedAt = epochClock().observed_at;
@@ -1494,6 +1671,14 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
         database.prepare(`INSERT INTO client_debug_entry_parks
           (run_definition_cid, submitted_intent_cid, parked_revision, expires_at, paused_at) VALUES (?, ?, ?, ?, ?)`)
           .run(ref.runDefinitionCid, intent, expectedRevision + 1, expiresAt, pausedAt);
+        if (entryStep !== undefined) {
+          if (primarySchemaSqlSupport !== undefined && !primarySchemaSqlSupport.includes(debugEntryStepTable)) {
+            fail('ClientRunDebugEntryOriginalUnavailable');
+          }
+          if (!hasDebugEntryStepStorage()) database.exec(debugEntryStepTable);
+          database.prepare(`INSERT INTO client_debug_entry_steps (run_definition_cid, logical_map_cid, step_id)
+            VALUES (?, ?, ?)`).run(ref.runDefinitionCid, entryStep.logicalMapCid, entryStep.stepId);
+        }
         requireDebugEntryAuthority(current);
         return Object.freeze({kind: 'parked', revision: expectedRevision + 1, expiresAt, pausedAt});
       });
@@ -1672,6 +1857,31 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
       if (handoff !== undefined) capture(handoff);
       return result;
     },
+    // Only the exact retained input and policy can reach the existing CAS.
+    restoreUnstartedDebugEntry(ref: WireRunRef, commandWire: string, scope: DebugEntryReadScope,
+      requestControl: DebugEntryRequestControl, publicationControl: DefinitionControl & DebugCommandControl) {
+      ensureOpen();
+      requireDebugEntryAuthority(scope.current);
+      if (!validDebugEntryRef(ref)) fail('ClientRunDebugEntryInvalidSelection');
+      const {expected_control_revision: revision} = readDebugEntryCommand(commandWire, ref, publicationControl);
+      const restored = readUnstartedDebugOriginal(ref, revision, scope, requestControl, publicationControl);
+      if (restored === undefined) fail('ClientRunDebugEntryOriginalUnavailable');
+      return restored;
+    },
+    admitUnstartedDebugEntry(frame: RunFrame, scope: DebugEntryReadScope) {
+      ensureOpen();
+      const original = retainRunStateFrame(frame, frame.ref);
+      requireDebugEntryAuthority(scope.current);
+      if (frame.runAdmissionEvidence?.debugEntryProfileWire === undefined) return undefined;
+      const requestControl = original.requestControl as Partial<DebugEntryRequestControl>;
+      if (typeof requestControl.clientSubmittedIntentRequestsDebug !== 'function') {
+        fail('ClientRunDebugEntryOriginalUnavailable');
+      }
+      return readUnstartedDebugOriginal(frame.ref, frame.revision, scope,
+        requestControl as DebugEntryRequestControl, original.publicationControl, frame)?.entryStep;
+    },
+    // Reopen may observe the original entry before any physical claim.
+    observeUnstartedDebugEntry,
     // Only the exact still-unconsumed park can back an actionable live view.
     // Select scalars without opening the stored command or changing the clock.
     debugPauseCurrent(ref: WireRunRef, {parked, startRevision, current, requireEntryDeadline = false}: DebugPauseInput) {

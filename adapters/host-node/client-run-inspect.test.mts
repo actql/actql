@@ -156,10 +156,13 @@ test('Run Inspect sends funded scalars to Common and rechecks the same original 
   let active = false, probes = 0, consumed = 0, changePark = false;
   let resumeAllowed = true, revokeAfterProjection = false;
   const out = view(), selected = request();
+  const retained = Object.freeze({runDefinition: Object.freeze({}), runAdmissionEvidence: {prepared: 'p', authorization: 'a'}});
+  const charges: number[] = [];
+  const parkBytes = 2 * (2112 + 6 * (ref.namespaceId.length + legacyState.run_id.length));
   const paused = {...view(), logical_map_cid: cid('8'), run_state: {...fixturePaused, control_revision: 17}};
   const inspect = installClientRunInspect({authorize: () => true, authorizeCurrent: () => true,
     authorizeResume: () => resumeAllowed,
-    lookupOriginal: () => ({runDefinition: {}, runAdmissionEvidence: {prepared: 'p', authorization: 'a'}}),
+    lookupOriginal: () => retained,
     observeOwners: async () => ({owners: [{owner: 'run', kind: 'observed', snapshot: {value: legacyState}}],
       revisionVector: [{owner: {kind: 'run', scopeCid: ref.authorityScopeCid, streamCid: ref.runDefinitionCid},
         snapshotCid: cid('7')}]}),
@@ -176,17 +179,25 @@ test('Run Inspect sends funded scalars to Common and rechecks the same original 
       if (revokeAfterProjection) resumeAllowed = false;
       return JSON.stringify({...paused, available_operations: available});
     }},
-    observeDebugPause(request, current, canResume) {
+    observeDebugPause(request, current, canResume, original, reserveOriginal) {
       assert.deepEqual(request.ref, ref); assert.equal(current(), true);
+      assert.equal(original, retained);
       probes++;
-      if (probes === 12 && changePark) return undefined;
-      return Object.freeze({...park, ...(canResume === undefined ? {} : {resumeAvailable: canResume()})});
+      if (changePark && probes === 12) return undefined;
+      if (canResume === undefined) {
+        assert.equal(reserveOriginal, undefined);
+        return Object.freeze({...park});
+      }
+      const resumeAvailable = canResume();
+      assert(reserveOriginal);
+      if (resumeAvailable) assert.equal(reserveOriginal(1024), undefined);
+      return Object.freeze({...park, resumeAvailable});
     },
     readWorkspace: {
       begin(request) {assert.equal(request, selected); assert(!active); active = true;},
       metadata(request, bytes) {
         assert.equal(request, selected); assert(active);
-        assert.equal(bytes, 2 * (2112 + 6 * (ref.namespaceId.length + legacyState.run_id.length)));
+        charges.push(bytes);
       },
       close(request, error) {assert.equal(request, selected); assert(active); active = false; workspace.failure = error;},
     },
@@ -194,6 +205,7 @@ test('Run Inspect sends funded scalars to Common and rechecks the same original 
   const read = () => inspect(selected, value => {assert(active); consumed++; return value;});
   assert.deepEqual(await read(), {...paused, available_operations: ['inspect', 'resume']});
   assert.equal(probes, 3);
+  assert.deepEqual(charges, [parkBytes, parkBytes + 1024, parkBytes + 1024]);
   assert.equal(closeFailure(), undefined);
   resumeAllowed = false;
   assert.deepEqual(await read(), {...paused, available_operations: ['inspect']});
@@ -208,6 +220,7 @@ test('Run Inspect sends funded scalars to Common and rechecks the same original 
   assert.equal(failure.code, 'ClientOperationUnavailable');
   assert.equal(consumed, 2);
   assert.equal(active, false);
+  changePark = false;
   park = {revision: 17, runRef: park.runRef, pausedAt: park.pausedAt, expiresAt: park.expiresAt};
   assert.deepEqual(await inspect(selected, consumeView), out);
 });

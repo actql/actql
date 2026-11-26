@@ -246,7 +246,7 @@ test "Core owner control pause during actual work parks after its output and ter
 }
 
 ///|
-test "Core owner control prepays one update per original completion or refuses before state construction" {
+test "Core owner control prepays entry readiness and original completions before state construction" {
   // Configuration has its own existing charged work. Measure that unchanged
   // baseline independently. The three original tasks each have a boundary
   // check, control update, two initial words, and two commit writes.
@@ -258,11 +258,23 @@ test "Core owner control prepays one update per original completion or refuses b
     ),
     witness_root,
   ).unwrap()
+  let graph = @strategy.captured_dag_graph(local_compute_run(witness))
+  // Each of the two Stage Result transfers contributes a data edge and a
+  // control edge in seed → compute → finish. Each task budgets one
+  // readiness check and a visit to each of those four edges.
+  assert_eq(@strategy.graph_task_count(graph), 3)
+  assert_eq(@strategy.graph_data_count(graph), 2)
+  assert_eq(@strategy.graph_control_count(graph), 2)
+  let control_work = 3 * (6 + 1 + 2 + 2)
   prepare_local_compute_task_boundaries(witness).unwrap() |> ignore
   let baseline = @resources.ledger_usage(witness_root).planning_work
   @strategy.stop_captured_dag(local_compute_run(witness))
   @strategy.refresh_captured_retention(local_compute_run(witness))
-  for (work, succeeds) in [(baseline + 17, false), (baseline + 18, true)] {
+  for
+    (work, succeeds) in [
+      (baseline + control_work - 1, false),
+      (baseline + control_work, true),
+    ] {
     let root = @resources.create_ledger({
       planning_work: work,
       attempts: 10,
@@ -283,10 +295,20 @@ test "Core owner control prepays one update per original completion or refuses b
     if !succeeds {
       assert_eq(result, Err(@strategy.Resource(@resources.PlanningLimit)))
     }
+    let run = local_compute_run(host)
+    let hooks = @strategy.captured_task_boundary_hooks(run).unwrap()
+    assert_eq(
+      @strategy.captured_task_control_entry_task(run, hooks),
+      if succeeds {
+        Some(0)
+      } else {
+        None
+      },
+    )
     assert_eq(
       @resources.ledger_usage(root).planning_work,
       if succeeds {
-        baseline + 18
+        baseline + control_work
       } else {
         baseline
       },
