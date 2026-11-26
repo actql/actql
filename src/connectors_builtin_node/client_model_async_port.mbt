@@ -332,7 +332,7 @@ pub fn client_program_model_structured_request_plan(
           ("stop", Some(body)) => Ok(body)
           ("length", _) => Err(Truncated)
           ("refusal", _) => Err(Refusal)
-          ("safety", _) => Err(SafetyRejected)
+          ("safety" | "content-filter", _) => Err(SafetyRejected)
           _ => Err(SchemaInvalid)
         }
         {

@@ -18,7 +18,8 @@ const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
   'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header', 'registered-anthropic',
-  'registered-google', 'registered-mixed', 'registered-mistral', 'registered-length', 'registered-refusal'].includes(phase));
+  'registered-google', 'registered-mixed', 'registered-mistral', 'registered-length', 'registered-refusal',
+  'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist'].includes(phase));
 const fresh = phase !== 'cold';
 const missingKey = phase === 'missing-key';
 const credentialMismatch = phase.startsWith('registered-credential-');
@@ -44,8 +45,12 @@ const {workflowWorkObservation} = await import('./work-observation.fixture.mjs')
 // Local authored fixture configuration only. A cold process must use the same
 // selected physical inputs; absence is not a reason to guess another profile.
 const alternative = {'registered-anthropic': 'anthropic', 'registered-google': 'google',
-  'registered-mixed': 'mixed', 'registered-mistral': 'mistral'}[phase];
-const terminalFailure = {'registered-length': 'truncated', 'registered-refusal': 'refusal'}[phase];
+  'registered-mixed': 'mixed', 'registered-mistral': 'mistral',
+  'registered-google-recitation': 'google', 'registered-google-blocklist': 'google'}[phase];
+const safetyFinish = {'registered-openai-filter': 'content_filter', 'registered-google-recitation': 'RECITATION',
+  'registered-google-blocklist': 'BLOCKLIST'}[phase];
+const terminalFailure = safetyFinish === undefined
+  ? {'registered-length': 'truncated', 'registered-refusal': 'refusal'}[phase] : 'safety_rejected';
 const selection = fresh ? {
   usage: phase === 'registered-mixed' || terminalFailure !== undefined
     ? null : phase === 'project-key' || phase.startsWith('registered-') ? 'reported'
@@ -56,17 +61,25 @@ const selection = fresh ? {
   registered: phase.startsWith('registered-'),
   ...(alternative === undefined ? {} : {provider: alternative}),
   ...(terminalFailure === undefined ? {} : {terminalFailure}),
+  ...(safetyFinish === undefined ? {} : {safetyFinish}),
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
 assert([undefined, 'anthropic', 'google', 'mixed', 'mistral'].includes(selection.provider));
 const mixed = selection.provider === 'mixed';
 const mistral = selection.provider === 'mistral';
 const failedAnswer = selection.terminalFailure;
-assert([undefined, 'truncated', 'refusal'].includes(failedAnswer));
+const selectedSafetyFinish = selection.safetyFinish;
+assert([undefined, 'truncated', 'refusal', 'safety_rejected'].includes(failedAnswer));
+if (failedAnswer === 'safety_rejected') {
+  assert(selection.provider === 'google'
+    ? ['RECITATION', 'BLOCKLIST'].includes(selectedSafetyFinish)
+    : selection.provider === undefined && selectedSafetyFinish === 'content_filter');
+} else assert.equal(selectedSafetyFinish, undefined);
 const trackOriginal = mixed || mistral || failedAnswer !== undefined;
 const work = workflowWorkObservation({createObservation: createHostObservationConnection, trackOriginal});
 const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 assert.deepEqual(Object.keys(selection).sort(),
   ['project', ...(selection.provider === undefined ? [] : ['provider']), 'rateLimit', 'registered',
+    ...(selectedSafetyFinish === undefined ? [] : ['safetyFinish']),
     ...(failedAnswer === undefined ? [] : ['terminalFailure']), 'timeout', 'usage']);
 assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
 assert([null, 'headers', 'body', 'call'].includes(selection.timeout));
@@ -77,8 +90,9 @@ const registered = selection.registered === true;
 if (project) assert.deepEqual(selection, {usage: mixed || failedAnswer !== undefined ? null : 'reported',
   timeout: null, rateLimit: false, project: true, registered,
   ...(selection.provider === undefined ? {} : {provider: selection.provider}),
-  ...(failedAnswer === undefined ? {} : {terminalFailure: failedAnswer})});
-if (failedAnswer !== undefined) assert(registered && selection.provider === undefined);
+  ...(failedAnswer === undefined ? {} : {terminalFailure: failedAnswer}),
+  ...(selectedSafetyFinish === undefined ? {} : {safetyFinish: selectedSafetyFinish})});
+if (failedAnswer !== undefined) assert(registered && (selectedSafetyFinish !== undefined || selection.provider === undefined));
 const providerName = mixed ? 'openai' : selection.provider ?? 'openai';
 const routeFixtures = {
   openai: {officialHost: 'api.openai.com', credentialReference: 'OPENAI_API_KEY',
@@ -302,6 +316,16 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
     return;
   }
 
+  if (google && selectedSafetyFinish !== undefined) {
+    const original = {modelVersion: 'fixture-google-reported-model', responseId: 'installed-' + calls};
+    if (selectedSafetyFinish === 'BLOCKLIST') {
+      response.end(JSON.stringify({...original, promptFeedback: {blockReason: selectedSafetyFinish}}));
+    } else {
+      response.end(JSON.stringify({...original, candidates: [{index: 0, finishReason: selectedSafetyFinish}],
+        usageMetadata: {promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0}}));
+    }
+    return;
+  }
   if (google) {
     response.end(JSON.stringify({modelVersion: resolvedModelId, candidates: [{index: 0, finishReason: 'STOP',
       content: {role: 'model', parts: [{text: JSON.stringify(value)}]}}],
@@ -309,12 +333,12 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
     return;
   }
   if (failedAnswer !== undefined) {
-    const message = failedAnswer === 'refusal'
-      ? {role: 'assistant', content: null, refusal: 'Controlled refusal'}
-      : {role: 'assistant', content: JSON.stringify(value)};
+    const message = failedAnswer === 'truncated' ? {role: 'assistant', content: JSON.stringify(value)}
+      : {role: 'assistant', content: null, refusal: failedAnswer === 'refusal' ? 'Controlled refusal' : null};
+    const finishReason = selectedSafetyFinish ?? (failedAnswer === 'truncated' ? 'length' : 'stop');
+    const usage = failedAnswer === 'refusal' ? {prompt_tokens: 0} : {prompt_tokens: 5, completion_tokens: 7};
     response.end(JSON.stringify({id: 'installed-' + calls, model: 'fixture-reported-model',
-      choices: [{index: 0, message, finish_reason: failedAnswer === 'truncated' ? 'length' : 'stop'}],
-      usage: failedAnswer === 'truncated' ? {prompt_tokens: 5, completion_tokens: 7} : {prompt_tokens: 0}}));
+      choices: [{index: 0, message, finish_reason: finishReason}], usage}));
     return;
   }
   response.end(JSON.stringify(anthropic ? {id: 'installed-' + calls, type: 'message', role: 'assistant',
