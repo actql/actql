@@ -29,8 +29,10 @@ started, and never the Program's meaning, limits or what needs approval.
 
 ## Reading `explain`
 
-`explain` prints the plan without reading business data, calling a model or
-creating a Run:
+`explain` inspects a plan without reading business data, calling a model or
+creating a Run. The example below illustrates the placement and pushdown
+information a Host can make available; it is not a transcript of the current
+Native Local renderer.
 
 ```text
 $ actql explain churn-risk.aql
@@ -106,10 +108,19 @@ reads the model's answer, so it can only run after `INFER`, and its engine,
 like the join's, is chosen during the Run. `host:local` is fixed here because
 the project runs on a Local Host; on a remote Host or ActQL Cloud the Site can
 be deferred too. With [Catalog statistics](#estimates-limits-and-actual-figures)
-the plan shows estimates and a `proposed` engine instead.
+a Host may be able to report estimates and a `proposed` engine instead.
 
 `explain` uses the same parameters, connections and Host configuration as
-`run`. `--json` returns the same explanation as data (`actql-explanation/0.1`).
+`run`. In Native Local mode, `actql explain <program> --json` returns
+`actql-plan-view/0.1` for a computation or
+`actql-effectful-static-plan-view/0.1` for an Effectful Program.
+`actql explain --run <run> --json` returns `actql-run-plan-view/0.1` when
+the Run retained a Plan, with its original `run_ref` and `plan_view`. The
+saved compiler Plan is not a record of actual runtime placement. For a
+structural Explanation on an installed Native Local Host, use
+`actql explain <program> --explanation-json` instead of `--json`. It returns
+`actql-static-explanation/0.1`, which contains a compiler Plan and
+structural Explanation Facts, not observed rows or actual provider work.
 
 ## How pushdown is decided
 

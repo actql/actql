@@ -20,7 +20,8 @@ test "CLI argument errors include useful command-specific help" {
       ("check", "Program syntax: json, yaml, aql, or sql"),
       ("explain", "Saved Run ID to explain"),
       ("sql", "--format controls Result rows"),
-      ("result", "Result row format: table, json, jsonl, or csv"),
+      ("result", "Result row format: json, jsonl, or csv"),
+      ("result", "requires --output or --deliver"),
       ("status", "Watch the Run for state changes"),
     ] {
     let help = try {

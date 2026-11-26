@@ -113,6 +113,7 @@
   ],
   "exclude": [
     "scripts/templates/checkpoint-answer-construction.mts",
+    "scripts/templates/update-target-data-codec.mts",
     "**/*.typecheck.mts",
     "**/*.d.mts",
     "**/*.d.cts"

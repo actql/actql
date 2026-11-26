@@ -3877,3 +3877,13 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/worktree-inventory.d.mts
 /scripts/worktree-inventory.test.mjs
 /scripts/worktree-inventory.test.d.mts
+/scripts/check-connector-addition.mjs
+/scripts/check-connector-addition.d.mts
+/scripts/connector-addition-source.mjs
+/scripts/connector-addition-source.d.mts
+/scripts/connector-addition-wire-dependency.mjs
+/scripts/connector-addition-wire-dependency.d.mts
+/scripts/connector-addition-source.test.mjs
+/scripts/connector-addition-source.test.d.mts
+/scripts/connector-addition-wire-dependency.test.mjs
+/scripts/connector-addition-wire-dependency.test.d.mts

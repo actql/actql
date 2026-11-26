@@ -7306,9 +7306,14 @@ Before and after projection, the original working debit is reconciled at its
 unchanged extent through the parent-current check. The same owner fences reentry.
 
 Missing runtime methods or unsupported carrier construction return explicit
-operation unavailability. The current Node connection supplies source-free Pure
-and checked Effect computation with its installed original Model metadata; this implementation boundary does not make other authored Programs
-invalid or establish their target coverage. A declined original construction
+operation unavailability. The Node connection supplies source-free Pure,
+checked task-graph Plans for Pure queries with acquired Sources, and checked
+Effect computation with its installed original Model metadata. An acquired Pure
+Plan rechecks the original connection and the same immediate Account metadata
+read decision used by structural Explain, before projection and before delivery.
+The metadata read adds no deferred authorization and acquires no Source rows.
+This implementation boundary does not make other authored Programs invalid or
+establish their target coverage. A declined original construction
 admission cannot select a raw compiler fallback. Current loss and primary/read
 or cleanup failures remain failures, with their original owner and retry duty.
 
