@@ -192,34 +192,41 @@ test('normal Model Host HTTP retains its single prepared Common and required SDK
   assert.equal(gate.if,"${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
   assert.equal(gate['continue-on-error'],undefined);
   assert.equal(steps.filter(step=>step.run?.includes('moon build')&&step.run.includes('src/connectors_builtin_node')).length,1);
-  const args=gate.run.trim().split('\n').at(-1).trim().split(/\s+/u);
-  assert.deepEqual(args.slice(0,4),['node','scripts/local-checks.mjs','test','node']);
-  for (const file of files) assert.equal(args.filter(value=>value===file).length,1,file);
-  assert(!args.includes('--test-name-pattern'),'The actual file includes every required case without a partial selector');
-  const timeout=Number(args[args.indexOf('--timeout-seconds')+1]);
-  const grace=Number(args[args.indexOf('--kill-grace-seconds')+1]);
-  assert(Number.isSafeInteger(timeout)&&timeout>0);
-  assert(Number.isSafeInteger(grace)&&grace>=0);
-  assert(timeout+grace<=jobs.host['timeout-minutes']*60,
-    'The supervised child stays within the enclosing Host job budget');
+  const commands=gate.run.trim().split('\n').slice(-files.length);
+  let budget=0;
+  for (const [index,file] of files.entries()) {
+    const args=commands[index].trim().split(/\s+/u);
+    assert.deepEqual(args.slice(0,4),['node','scripts/local-checks.mjs','test','node']);
+    assert.deepEqual(args.slice(args.indexOf('--')+1),[file]);
+    assert(!args.includes('--test-name-pattern'),'The actual file includes every required case without a partial selector');
+    const timeout=Number(args[args.indexOf('--timeout-seconds')+1]);
+    const grace=Number(args[args.indexOf('--kill-grace-seconds')+1]);
+    assert(Number.isSafeInteger(timeout)&&timeout>0);
+    assert(Number.isSafeInteger(grace)&&grace>=0);
+    budget+=timeout+grace;
+  }
+  assert(budget<=jobs.host['timeout-minutes']*60,
+    'The independently supervised children stay within the enclosing Host job budget');
   const directory=mkdtempSync(join(tmpdir(),'actql-normal-model-ci-')),bin=join(directory,'bin');
   t.after(()=>rmSync(directory,{recursive:true,force:true}));mkdirSync(bin);
   const calls=join(directory,'calls');
   writeFileSync(join(bin,'npm'),'#!/bin/sh\nprintf "npm:%s\\n" "$*" >> "$ACTQL_CI_CALLS"\nexit "$ACTQL_CI_NPM_STATUS"\n',{mode:0o755});
-  writeFileSync(join(bin,'node'),'#!/bin/sh\nprintf "node:%s\\n" "$*" >> "$ACTQL_CI_CALLS"\n',{mode:0o755});
-  for(const [lsof,status] of [[false,0],[true,73],[true,0]]) {
+  writeFileSync(join(bin,'node'),'#!/bin/sh\nprintf "node:%s\\n" "$*" >> "$ACTQL_CI_CALLS"\nexit "$ACTQL_CI_NODE_STATUS"\n',{mode:0o755});
+  for(const [lsof,status,nodeStatus] of [[false,0,0],[true,73,0],[true,0,74],[true,0,0]]) {
     if(lsof)writeFileSync(join(bin,'lsof'),'#!/bin/sh\nexit 0\n',{mode:0o755});
     writeFileSync(calls,'');
     const result=spawnSync('/bin/bash',['-eo','pipefail','-c',gate.run],{cwd:root,
-      env:{...process.env,PATH:bin,ACTQL_CI_CALLS:calls,ACTQL_CI_NPM_STATUS:String(status)},
+      env:{...process.env,PATH:bin,ACTQL_CI_CALLS:calls,
+        ACTQL_CI_NPM_STATUS:String(status),ACTQL_CI_NODE_STATUS:String(nodeStatus)},
       encoding:'utf8',timeout:3000});
     assert.equal(result.error,undefined);assert.equal(result.signal,null);
-    assert.equal(result.status,lsof?status:1);
+    assert.equal(result.status,lsof?(status || nodeStatus):1);
     const recorded=readFileSync(calls,'utf8').trim().split('\n').filter(Boolean);
     assert.equal(recorded.filter(value=>value.startsWith('npm:')).length,lsof?1:0);
-    assert.equal(recorded.filter(value=>value.startsWith('node:')).length,lsof&&status===0?1:0);
+    const nodeCalls=recorded.filter(value=>value.startsWith('node:'));
+    const expectedFiles=!lsof||status!==0 ? [] : nodeStatus===0 ? files : files.slice(0,1);
     if(lsof)assert.equal(recorded[0],'npm:ci --prefix packages/provider-ai-sdk --ignore-scripts');
-    if(lsof&&status===0) for (const file of files) assert(recorded[1].includes(file),file);
+    assert.deepEqual(nodeCalls.map(call=>call.trim().split(/\s+/u).at(-1)),expectedFiles);
   }
 });
 
