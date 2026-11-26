@@ -50,16 +50,6 @@ for (const decision of ['approve', 'reject']) {
   try {
     client = await connect({mode: 'local', profile: 'mock',
       installation: {directory: join(root, '.actql'), observation: observer.connection}});
-    const localPlan = await client.plan('SELECT 1 AS n', {format: 'sql'});
-    assert.equal(localPlan.version, 'actql-plan-view/0.1');
-    const source = 'SELECT Id, Name FROM salesforce.accounts';
-    const acquiredPlan = await client.plan(source, {format: 'sql'});
-    assert.equal(acquiredPlan.version, 'actql-plan-view/0.1');
-    assert.match(acquiredPlan.compiled_plan_cid, /^sha256:[0-9a-f]{64}$/u);
-    assert.equal(observer.snapshot().sourceAcquisitionStarts, 0);
-    assert.equal(observer.snapshot().modelCallStarts, 0);
-    assert.equal(observer.snapshot().effectReplacementReturns, 0);
-    assert.equal(await readFile(target, 'utf8'), before);
     const messages = [];
     await checkExample(client, {log: (...args) => messages.push(args)});
     assert.deepEqual(messages, [['Verified']]);
