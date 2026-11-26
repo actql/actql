@@ -969,12 +969,14 @@ fn journal_existing_original_work(
       1L,
     )
     receiver.fail_normal_return = true
-    guard database.transaction_step(@sqlite.Commit) is Err(failure) else {
+    let observed = database.observe_transaction_step(@sqlite.Commit)
+    guard observed.result is Err(failure) else {
       fail("expected refusal after the original SQLite COMMIT")
     }
     assert_true(failure.step is @sqlite.Commit)
     assert_true(failure.reply is @sqlite.SqlConfirmed)
     assert_true(failure.issue is @sqlite.OperationRoutingAfter(None, 33))
+    assert_true(observed.state is Some(Ok(@sqlite.NoActiveSqliteTransaction)))
     assert_eq(receiver.sql_entries, 5)
     assert_true(receiver.return_ack_pending)
     assert_eq(original.primary_code(), 33)
@@ -990,11 +992,13 @@ fn journal_existing_original_work(
   )
   if fail_commit_return {
     assert_true(original.enter_store() is Err(_))
-    guard database.transaction_step(@sqlite.BeginImmediate) is Err(refused) else {
+    let next = database.observe_transaction_step(@sqlite.BeginImmediate)
+    guard next.result is Err(refused) else {
       fail("expected the original operation to block another transaction")
     }
     assert_true(refused.reply is @sqlite.SqlNotIssued)
     assert_true(refused.issue is @sqlite.OperationRoutingBefore(_))
+    assert_true(next.state is None)
   }
   assert_eq(receiver.sql_entries, entries)
   // A returned Read flight does not retire the still-open original Database.

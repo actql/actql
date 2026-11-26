@@ -200,7 +200,10 @@ test "closed Reviewer snapshot does not consume the next actual COMMIT failure" 
   ).unwrap()
   assert_eq(snapshot.artifact, artifact)
   assert_eq(snapshot.state.status, @publication.WaitingCheckpoint)
-  assert_true(host.journal.transaction(() => Ok(())) is Err(TransactionUnknown))
+  assert_true(
+    host.journal.transaction(() => Ok(())) is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, false),
+  )
   assert_true(host.journal.fenced)
   host.database.rollback().unwrap()
   host.journal.operation_active = false
@@ -222,7 +225,8 @@ test "invalidated closed Reviewer record still requires the original transaction
       artifact.checkpoint.run_definition_cid().unwrap(),
       artifact.checkpoint_cid,
     )
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, false),
   )
   assert_true(host.journal.fenced)
   host.database.rollback().unwrap()

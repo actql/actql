@@ -15,7 +15,12 @@ fn initialize_native_local_client_custody(
   }
   match client_journal_transaction_operation(database, JournalBegin, reads) {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(failure) => {
+      if failure.requires_reconciliation() {
+        fence_client_journal_transactions(database, reads)
+      }
+      return Err(JournalStepFailed(failure, None))
+    }
   }
   let result = initialize_native_local_client_rows(
     database, crypto, adoption, settings, initial_signing, bootstrap,
@@ -33,18 +38,18 @@ fn initialize_native_local_client_custody(
       match
         client_journal_transaction_operation(database, JournalCommit, reads) {
         Ok(_) => Ok(())
-        Err(_) => {
+        Err(failure) => {
           fence_client_journal_transactions(database, reads)
-          Err(TransactionUnknown)
+          Err(JournalStepFailed(failure, None))
         }
       }
     Err(issue) =>
       match
         client_journal_transaction_operation(database, JournalRollback, reads) {
         Ok(_) => Err(issue)
-        Err(_) => {
+        Err(failure) => {
           fence_client_journal_transactions(database, reads)
-          Err(TransactionUnknown)
+          Err(JournalStepFailed(failure, Some(issue)))
         }
       }
   }

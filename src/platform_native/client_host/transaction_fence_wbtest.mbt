@@ -34,7 +34,8 @@ test "Native epoch commit uncertainty fences the existing Run adapter and rewrap
     }
     assert_true(
       authority.issue_epoch("sha256:" + "a".repeat(64), true, 1000.0)
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(database.transaction_fenced())
     assert_true(journal.lookup(request, true) is Err(Fenced))
@@ -86,7 +87,9 @@ test "Native Run commit uncertainty fences epoch operations without erasing the 
       client_test_fail_commit(database, 1)
     }
     assert_true(
-      journal.reserve_dispatch(request, true) is Err(TransactionUnknown),
+      journal.reserve_dispatch(request, true)
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(
       authority.issue_epoch("sha256:" + "a".repeat(64), true, 1000.0)

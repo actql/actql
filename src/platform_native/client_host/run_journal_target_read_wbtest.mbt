@@ -427,8 +427,8 @@ test "lost control COMMIT retires emitted facts and cannot issue another start" 
     ..ordinary,
     transaction: operation => {
       if operation is JournalCommit {
-        database.commit().unwrap()
-        Err(@sqlite.Busy)
+        client_test_fail_commit_reply(database, 1)
+        operation.observe(database)
       } else {
         (ordinary.transaction)(operation)
       }
@@ -441,7 +441,8 @@ test "lost control COMMIT retires emitted facts and cannot issue another start" 
       true,
       operations=Some(operations),
     )
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_true(journal.admitted_record is None)
   assert_true(journal.operation_run_identity is None)

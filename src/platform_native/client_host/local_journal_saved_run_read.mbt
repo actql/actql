@@ -217,8 +217,8 @@ pub fn NativeLocalJournalCapture::lookup_original_checkpoint_by_id_in_original_r
       capture=Some(self),
     )
     match result {
-      Err(TransactionUnknown) => Err(Journal(TransactionUnknown))
-      Err(Epoch(TransactionUnknown)) => Err(Journal(Epoch(TransactionUnknown)))
+      Err(issue) if issue.requires_transaction_reconciliation() =>
+        Err(Journal(issue))
       _ => Ok(result)
     }
   })

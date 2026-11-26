@@ -266,6 +266,7 @@ fn relation_return_adoption_label(
     Journal(_) => "Adoption.Journal; original custody retained"
     Fenced => "Adoption.Fenced; original custody retained"
     TransactionUnknown => "Adoption.TransactionUnknown"
+    JournalStepFailed(_, _) => "Adoption.JournalStepFailed"
     DatabasePending(_, _) =>
       "Adoption.DatabasePending; original custody retained"
     Inspection(_) => "Adoption.Inspection; original custody retained"

@@ -389,7 +389,8 @@ test "lost candidate COMMIT return preserves full original wire without another 
         prepared=Some(proof),
       )
     })
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   let crypto = host.epoch.crypto
   physical.close_checked().unwrap()

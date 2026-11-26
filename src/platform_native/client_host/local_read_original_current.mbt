@@ -39,13 +39,10 @@ fn[T] read_binding_with_material_in_original_read(
     let result = call(host, material, operations)
     output.val = Some(result)
     match result {
-      Err(
-        Journal(TransactionUnknown | Epoch(TransactionUnknown))
-        | SubmittedResult(
-          Journal(TransactionUnknown | Epoch(TransactionUnknown))
-        )
-        | OriginalRead(_, TransactionUnknown)
-      ) => Err(Journal(TransactionUnknown))
+      Err(Journal(issue) | SubmittedResult(Journal(issue))) if issue.requires_transaction_reconciliation() =>
+        Err(Journal(issue))
+      Err(OriginalRead(_, issue)) if issue.requires_transaction_reconciliation() =>
+        Err(issue)
       _ => Ok(())
     }
   })

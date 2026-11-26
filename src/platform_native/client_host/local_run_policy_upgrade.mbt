@@ -867,7 +867,6 @@ fn local_policy_upgrade_custody_issue(
     Journal(issue) => issue
     Epoch(issue) => Epoch(issue)
     Fenced => Fenced
-    TransactionUnknown => TransactionUnknown
     _ => CustodyLost
   }
 }

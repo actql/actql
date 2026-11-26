@@ -9,7 +9,7 @@ test "submission diagnostic tags keep physical cause separate from transaction u
         ),
       ),
     ),
-    @local_host.TransactionUnknown,
+    test_original_routed_commit_issue(),
   )
   let fields : Map[Int, Int64] = Map([])
   local_submission_failure_tags(issue, (tag, value) => fields[tag] = value)
@@ -29,7 +29,7 @@ test "submission diagnostic tags cannot carry SQL payloads or arbitrary error te
   local_submission_failure_tags(
     @local_host.InstallationReadTransactionFailure(
       @local_host.Physical(@local_sqlite.Physical("private-SQL-and-path-one")),
-      @local_host.TransactionUnknown,
+      test_original_routed_commit_issue(),
     ),
     (tag, value) => one[tag] = value,
   )
@@ -38,7 +38,7 @@ test "submission diagnostic tags cannot carry SQL payloads or arbitrary error te
       @local_host.Physical(
         @local_sqlite.Physical("different-private-id-and-input"),
       ),
-      @local_host.TransactionUnknown,
+      test_original_routed_commit_issue(),
     ),
     (tag, value) => two[tag] = value,
   )
@@ -61,7 +61,7 @@ test "submission diagnostic tags preserve Core funding refusal and plain Unknown
           ),
         ),
       ),
-      @local_host.TransactionUnknown,
+      test_original_routed_commit_issue(),
     ),
     (tag, value) => fields[tag] = value,
   )
@@ -69,7 +69,7 @@ test "submission diagnostic tags preserve Core funding refusal and plain Unknown
   assert_eq(fields.get(13), Some(17L))
   fields.clear()
   local_submission_failure_tags(
-    @local_host.Journal(@local_host.TransactionUnknown),
+    @local_host.Journal(test_original_routed_commit_issue()),
     (tag, value) => fields[tag] = value,
   )
   assert_eq(fields.get(9), Some(6L))
@@ -120,4 +120,16 @@ test "Journal diagnostic projection never includes physical message content" {
   }
   assert_eq(one, two)
   assert_eq(one.get(15), Some(12L))
+}
+
+///|
+fn test_original_routed_commit_issue() -> @local_host.NativeClientRunJournalIssue {
+  @local_host.JournalStepFailed(
+    @local_host.ScopeStep(
+      @local_sqlite.Commit,
+      @local_host.OriginalResourceScopePending,
+      None,
+    ),
+    None,
+  )
 }

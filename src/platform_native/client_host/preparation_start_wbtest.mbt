@@ -89,7 +89,10 @@ test "Native preparation first-start denies token on final authority loss or unk
       journal, request, allowed, definition, current,
     )
     if unknown {
-      assert_true(result is Err(Journal(TransactionUnknown)))
+      assert_true(
+        result is Err(Journal(JournalStepFailed(step, None))) &&
+        journal_test_original_commit_failure(step, true),
+      )
     } else {
       assert_true(result is Err(AuthorizationDenied))
       assert_true(

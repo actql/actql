@@ -554,7 +554,8 @@ test "invalidated Checkpoint metadata retains actual COMMIT failure and original
       1003.0,
       operations=Some(failed),
     )
-    is Err(Journal(TransactionUnknown)),
+    is Err(Journal(JournalStepFailed(step, None))) &&
+    journal_test_original_commit_failure(step, false),
   )
   assert_eq(calls.filter(value => value == "begin").length(), 1)
   assert_true(host.journal.fenced)

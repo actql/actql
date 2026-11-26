@@ -127,6 +127,8 @@ fn relation_initial_open_adoption_issue(
     Journal(_) => "unexpected during initial open: Journal"
     Fenced => "unexpected during initial open: Fenced"
     TransactionUnknown => "unexpected during initial open: TransactionUnknown"
+    JournalStepFailed(_, _) =>
+      "unexpected during initial open: JournalStepFailed"
     DatabasePending(_, _) => "unexpected during initial open: DatabasePending"
     Inspection(_) => "unexpected during initial open: Inspection"
     InstallationReadTransactionFailure(_, _) =>

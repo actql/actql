@@ -94,7 +94,8 @@ test "lost commit reply preserves fence and autocommit without proving any Run o
   database.begin_immediate().unwrap()
   database.insert("original", "input", b"saved\x00\xff").unwrap() |> ignore
   state_test_lose_commit_reply(database, 1)
-  match database.transaction_step(Commit) {
+  let observed = database.observe_transaction_step(Commit)
+  match observed.result {
     Err(failure) => {
       assert_true(failure.step == Commit)
       assert_true(failure.reply == SqlReplyLost)
@@ -102,6 +103,7 @@ test "lost commit reply preserves fence and autocommit without proving any Run o
     }
     Ok(_) => abort("expected lost COMMIT reply")
   }
+  assert_true(observed.state is Some(Ok(NoActiveSqliteTransaction)))
   database.fence_transactions()
   assert_true(database.transaction_fenced())
   assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
@@ -122,6 +124,28 @@ test "lost commit reply preserves fence and autocommit without proving any Run o
     .unwrap()
   assert_eq(retained.read("original", "input").unwrap().revision, 0L)
   assert_eq(retained.read("original", "input").unwrap().body, b"saved\x00\xff")
+  retained.close_checked().unwrap()
+  root.close().unwrap()
+}
+
+///|
+test "confirmed COMMIT retains an unavailable state observation separately" {
+  let (library, root, path) = existing_database_fixture()
+  let selected = path + "/state-confirmed-observation-unavailable.sqlite3"
+  let database = library.open_database_with_custody(selected, 1024L).unwrap()
+  let began = database.observe_transaction_step(BeginImmediate)
+  assert_true(began.result is Ok(_))
+  assert_true(began.state is Some(Ok(ActiveSqliteTransaction)))
+  database.insert("original", "input", b"saved").unwrap() |> ignore
+  state_test_fail_inspection(database, 1)
+  let committed = database.observe_transaction_step(Commit)
+  assert_true(committed.result is Ok(_))
+  assert_true(committed.state is Some(Err(Physical(_))))
+  database.close_checked().unwrap()
+  let retained = library
+    .open_existing_database_with_custody(selected, 1024L)
+    .unwrap()
+  assert_eq(retained.read("original", "input").unwrap().body, b"saved")
   retained.close_checked().unwrap()
   root.close().unwrap()
 }

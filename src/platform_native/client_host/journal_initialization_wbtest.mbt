@@ -11,9 +11,9 @@ fn initialize_native_client_run_journal(
     Err(issue) => return Err(Physical(issue))
   }
   if owned {
-    match database.begin_immediate() {
+    match client_journal_transaction_operation(database, JournalBegin, None) {
       Ok(_) => ()
-      Err(issue) => return Err(Physical(issue))
+      Err(failure) => return Err(JournalStepFailed(failure, None))
     }
   }
   let result : Result[Unit, NativeClientRunJournalIssue] = match
@@ -26,19 +26,21 @@ fn initialize_native_client_run_journal(
   }
   match result {
     Ok(_) =>
-      match database.commit() {
+      match
+        client_journal_transaction_operation(database, JournalCommit, None) {
         Ok(_) => Ok(())
-        Err(_) => {
+        Err(failure) => {
           database.fence_transactions()
-          Err(TransactionUnknown)
+          Err(JournalStepFailed(failure, None))
         }
       }
     Err(issue) =>
-      match database.rollback() {
+      match
+        client_journal_transaction_operation(database, JournalRollback, None) {
         Ok(_) => Err(issue)
-        Err(_) => {
+        Err(failure) => {
           database.fence_transactions()
-          Err(TransactionUnknown)
+          Err(JournalStepFailed(failure, Some(issue)))
         }
       }
   }

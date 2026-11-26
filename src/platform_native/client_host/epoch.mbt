@@ -25,10 +25,20 @@ pub(all) enum NativeClientEpochIssue {
   Unverifiable
   ScopeMismatch
   Fenced
-  TransactionUnknown
+  JournalStepFailed(NativeClientJournalStepFailure, NativeClientEpochIssue?)
   Physical(@sqlite.NativeSqliteIssue)
   Crypto(@crypto.NativeSignatureIssue)
   Identity(@scope.SubmissionIdentityIssue)
+}
+
+///|
+pub fn NativeClientEpochIssue::requires_transaction_reconciliation(
+  self : Self,
+) -> Bool {
+  match self {
+    JournalStepFailed(step, _) => step.requires_reconciliation()
+    _ => false
+  }
 }
 
 ///|
@@ -203,26 +213,33 @@ fn initialize_native_client_epoch_authority(
   if database.transaction_fenced() {
     return Err(Fenced)
   }
-  match database.begin_immediate() {
+  match client_journal_transaction_operation(database, JournalBegin, None) {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(failure) => {
+      if failure.requires_reconciliation() {
+        database.fence_transactions()
+      }
+      return Err(JournalStepFailed(failure, None))
+    }
   }
   let result = initialize_native_client_epoch_in_transaction(database, crypto)
   match result {
     Ok(_) =>
-      match database.commit() {
+      match
+        client_journal_transaction_operation(database, JournalCommit, None) {
         Ok(_) => Ok(())
-        Err(_) => {
+        Err(failure) => {
           database.fence_transactions()
-          Err(TransactionUnknown)
+          Err(JournalStepFailed(failure, None))
         }
       }
     Err(issue) =>
-      match database.rollback() {
+      match
+        client_journal_transaction_operation(database, JournalRollback, None) {
         Ok(_) => Err(issue)
-        Err(_) => {
+        Err(failure) => {
           database.fence_transactions()
-          Err(TransactionUnknown)
+          Err(JournalStepFailed(failure, Some(issue)))
         }
       }
   }
@@ -450,7 +467,13 @@ fn NativeClientEpochAuthority::clock(
   match
     client_journal_transaction_operation(self.database, JournalBegin, reads) {
     Ok(_) => ()
-    Err(issue) => return Err(self.fail_operation(Physical(issue)))
+    Err(failure) => {
+      if failure.requires_reconciliation() {
+        self.fenced = true
+        fence_client_journal_transactions(self.database, reads)
+      }
+      return Err(self.fail_operation(JournalStepFailed(failure, None)))
+    }
   }
   let result = self.clock_in_current_transaction(now, operations)
   match result {
@@ -469,10 +492,10 @@ fn NativeClientEpochAuthority::clock(
           }
           Ok((key, clock))
         }
-        Err(_) => {
+        Err(failure) => {
           self.fenced = true
           fence_client_journal_transactions(self.database, reads)
-          Err(self.fail_operation(TransactionUnknown))
+          Err(self.fail_operation(JournalStepFailed(failure, None)))
         }
       }
     Err(issue) =>
@@ -483,10 +506,10 @@ fn NativeClientEpochAuthority::clock(
           reads,
         ) {
         Ok(_) => Err(self.fail_operation(issue))
-        Err(_) => {
+        Err(failure) => {
           self.fenced = true
           fence_client_journal_transactions(self.database, reads)
-          Err(self.fail_operation(TransactionUnknown))
+          Err(self.fail_operation(JournalStepFailed(failure, Some(issue))))
         }
       }
   }

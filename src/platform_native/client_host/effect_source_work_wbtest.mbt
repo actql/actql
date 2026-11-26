@@ -287,7 +287,10 @@ test "Native original Effect physical claim distinguishes precommit and lost com
         true
       },
     )
-    assert_true(outcome is Err(Journal(TransactionUnknown)))
+    assert_true(
+      outcome is Err(Journal(JournalStepFailed(step, None))) &&
+      journal_test_original_commit_failure(step, reply_lost),
+    )
     assert_eq(callbacks, 3)
     assert_true(database.transaction_fenced())
     if !reply_lost {
