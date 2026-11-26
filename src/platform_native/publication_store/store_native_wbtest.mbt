@@ -206,6 +206,21 @@ test "native publication capacity rejects before payload allocation" {
     8L,
   )
   let first = store.begin_payload(first_request).unwrap()
+  let first_key = record_key(first_request)
+  let original_row = store.database
+    .read("publication_payload", first_key)
+    .unwrap()
+  let allocation_namespace = @payload.publication_payload_allocation_namespace()
+  let original_allocation = store.database
+    .read(allocation_namespace, first_key)
+    .unwrap()
+  let original_capacity = store.database
+    .read_capacity("publication_payload", first_key)
+    .unwrap()
+  assert_eq(original_capacity.reserved_bytes, 8L)
+  assert_eq(original_capacity.reserved_objects, 1L)
+  let allocation_events = []
+  store.observe_allocation(event => allocation_events.push(event))
   let second_request = native_payload_request(
     authority,
     "capacity-b-" + @env.now().to_string(),
@@ -215,6 +230,39 @@ test "native publication capacity rejects before payload allocation" {
     store.begin_payload(second_request)
     is Err(Database(@sqlite.CapacityExceeded)),
   )
+  let rejected_key = record_key(second_request)
+  assert_true(
+    store.database.read("publication_payload", rejected_key)
+    is Err(@sqlite.NotFound),
+  )
+  assert_true(
+    store.database.read_capacity("publication_payload", rejected_key)
+    is Err(@sqlite.NotFound),
+  )
+  assert_true(
+    store.database.read(allocation_namespace, rejected_key)
+    is Err(@sqlite.NotFound),
+  )
+  assert_true(allocation_events.is_empty())
+  let retained_row = store.database
+    .read("publication_payload", first_key)
+    .unwrap()
+  assert_eq(retained_row.revision, original_row.revision)
+  assert_eq(retained_row.body, original_row.body)
+  let retained_allocation = store.database
+    .read(allocation_namespace, first_key)
+    .unwrap()
+  assert_eq(retained_allocation.revision, original_allocation.revision)
+  assert_eq(retained_allocation.body, original_allocation.body)
+  let retained_capacity = store.database
+    .read_capacity("publication_payload", first_key)
+    .unwrap()
+  assert_eq(retained_capacity.reserved_bytes, original_capacity.reserved_bytes)
+  assert_eq(
+    retained_capacity.reserved_objects,
+    original_capacity.reserved_objects,
+  )
+  first.append(b"original").unwrap()
   first.cancel().unwrap()
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_true(store.close().unwrap())
