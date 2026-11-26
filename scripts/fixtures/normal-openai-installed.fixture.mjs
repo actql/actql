@@ -19,7 +19,7 @@ const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
   'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header', 'registered-anthropic',
-  'registered-google', 'registered-mixed', 'registered-mistral', 'registered-external', 'registered-external-double', 'registered-length', 'registered-refusal',
+  'registered-google', 'registered-mixed', 'registered-mistral', 'registered-openai-responses', 'registered-external', 'registered-external-double', 'registered-length', 'registered-refusal',
   'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist', 'registered-capabilities', 'changed-route'].includes(phase));
 const changedRoute = phase === 'changed-route';
 const fresh = phase !== 'cold' && !changedRoute;
@@ -49,6 +49,7 @@ const {workflowWorkObservation} = await import('./work-observation.fixture.mjs')
 // selected physical inputs; absence is not a reason to guess another profile.
 const alternative = {'registered-anthropic': 'anthropic', 'registered-google': 'google',
   'registered-mixed': 'mixed', 'registered-mistral': 'mistral', 'registered-external': 'external', 'registered-external-double': 'external',
+  'registered-openai-responses': 'responses',
   'registered-google-recitation': 'google', 'registered-google-blocklist': 'google'}[phase];
 const safetyFinish = {'registered-openai-filter': 'content_filter', 'registered-google-recitation': 'RECITATION',
   'registered-google-blocklist': 'BLOCKLIST'}[phase];
@@ -68,7 +69,7 @@ const selection = fresh ? {
   ...(terminalFailure === undefined ? {} : {terminalFailure}),
   ...(safetyFinish === undefined ? {} : {safetyFinish}),
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
-assert([undefined, 'anthropic', 'google', 'mixed', 'mistral', 'external'].includes(selection.provider));
+assert([undefined, 'anthropic', 'google', 'mixed', 'mistral', 'responses', 'external'].includes(selection.provider));
 const mixed = selection.provider === 'mixed';
 const capabilities = selection.capabilities === true;
 if (changedRoute) assert(capabilities);
@@ -84,7 +85,8 @@ if (failedAnswer === 'safety_rejected') {
     ? ['RECITATION', 'BLOCKLIST'].includes(selectedSafetyFinish)
     : selection.provider === undefined && selectedSafetyFinish === 'content_filter');
 } else assert.equal(selectedSafetyFinish, undefined);
-const trackOriginal = capabilities || mixed || mistral || external || failedAnswer !== undefined;
+const responses = selection.provider === 'responses';
+const trackOriginal = capabilities || mixed || mistral || responses || external || failedAnswer !== undefined;
 const work = workflowWorkObservation({createObservation: createHostObservationConnection, trackOriginal});
 const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 assert.deepEqual(Object.keys(selection).sort(),
@@ -111,6 +113,10 @@ const routeFixtures = {
     credentialHeader: 'authorization', credentialPrefix: 'Bearer ', requestPath: '/v1/chat/completions',
     resolvedModelId: 'fixture-chat', path: '_internal/openai-chat.mjs', version: '4.0.91',
     exportName: 'createOpenAI', apiMode: 'chat_completions', options: {store: false, strictJsonSchema: true}},
+  responses: {officialHost: 'api.openai.com', credentialReference: 'OPENAI_API_KEY',
+    credentialHeader: 'authorization', credentialPrefix: 'Bearer ', requestPath: '/v1/responses',
+    resolvedModelId: 'gpt-4.1-mini', path: '_internal/openai-responses.mjs', version: '4.0.91',
+    exportName: 'createOpenAI', apiMode: 'responses', options: {store: false, strictJsonSchema: true}},
   anthropic: {officialHost: 'api.anthropic.com', credentialReference: 'ANTHROPIC_API_KEY',
     credentialHeader: 'x-api-key', credentialPrefix: '', requestPath: '/v1/messages',
     resolvedModelId: 'claude-sonnet-4-6', path: '_internal/anthropic-messages.mjs', version: '4.0.107',
@@ -125,7 +131,7 @@ const routeFixtures = {
     resolvedModelId: 'mistral-small-2603', path: '_internal/mistral-chat.mjs', version: '4.0.89',
     exportName: 'createMistral', apiMode: 'chat_completions', options: {strictJsonSchema: true}},
 };
-const route = (name, providerId, index) => ({...routeFixtures[name], name, providerId, index,
+const route = (name, providerId, index) => ({...routeFixtures[name], name: name === 'responses' ? 'openai' : name, providerId, index,
   selector: name === 'anthropic' && mixed ? 'fixture-messages' : 'fixture-chat'});
 const routes = [route(providerName, 'models/http', 0)];
 if (mixed) routes.push(route('anthropic', 'models/messages', 1));
@@ -326,6 +332,17 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
     assert.equal(body.messages[1].content.length, 1);
     assert.equal(body.messages[1].content[0].type, 'text');
     promptText = body.messages[1].content[0].text;
+  } else if (responses) {
+    assert.equal(body.store, false);
+    assert.equal(body.tools, undefined);
+    assert.equal(body.previous_response_id, undefined);
+    assert.equal(body.text.format.type, 'json_schema');
+    assert.equal(body.text.format.strict, true);
+    schema = body.text.format.schema;
+    assert.equal(schema.properties.answer.type, 'boolean');
+    promptText = body.input[1].content[0].text;
+    assert.deepEqual(body.input, [{role: 'system', content: 'Return the exact boolean.'},
+      {role: 'user', content: [{type: 'input_text', text: promptText}]}]);
   } else {
     if (registered) assert.equal(body.store, false, 'The selected SDK options must reach the actual request');
     schema = body.response_format.json_schema.schema;
@@ -338,6 +355,14 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   if (timeoutMode === 'headers') return; // Actual request received; no response headers.
   response.setHeader('content-type', 'application/json');
   response.setHeader('x-request-id', 'installed-' + calls);
+
+  if (responses) {
+    response.end(JSON.stringify({id: 'installed-' + calls, model: resolvedModelId, status: 'completed',
+      output: [{type: 'message', id: 'message-' + calls, role: 'assistant',
+        content: [{type: 'output_text', text: JSON.stringify(value), annotations: []}]}],
+      usage: {input_tokens: 2, output_tokens: 3, total_tokens: 5}}));
+    return;
+  }
   if (selection.rateLimit) {
     response.statusCode = 429;
     response.end('{"error":{"code":"rate_limit"}}');

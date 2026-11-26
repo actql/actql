@@ -80,10 +80,10 @@ export function normalProviderDiagnostics({phase, work, write}) {
       calls++;
       if (requests.length === 2) {note(Error('NormalDiagnosticRequestLimit'));return;}
       const method = typeof request.method === 'string' && /^[A-Z]{1,16}$/u.test(request.method) ? request.method : '<unexpected>';
-      // A single selected fixture endpoint. Never copy headers/body/query or
+      // Allow only known fixture endpoints. Never copy headers/body/query or
       // disclose an arbitrary unexpected URL supplied by a different caller.
-      const path = request.url?.split('?')[0] === '/v1/chat/completions' ? '/v1/chat/completions' : '<unexpected>';
-      requests.push({method, path});
+      const path = request.url?.split('?')[0];
+      requests.push({method, path: path === '/v1/chat/completions' || path === '/v1/responses' ? path : '<unexpected>'});
     },
     async terminal(index, value) {
       if (![0, 1].includes(index) || terminals.some(entry => entry.index === index)) {

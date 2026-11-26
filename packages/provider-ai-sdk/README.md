@@ -64,13 +64,21 @@ For Mistral, select `@ai-sdk/mistral` `4.0.89` and its `createMistral` export
 in the trusted Host registration, with the bundled `_internal/mistral-chat.mjs`
 adapter. Set the resolved model to `mistral-small-2603`, the API mode to
 `chat_completions` and `providerOptions` to
-`{mistral: {strictJsonSchema: true}}`. The Host uses the credential reference
+`{strictJsonSchema: true}`. The Host uses the credential reference
 `MISTRAL_API_KEY` as a bearer credential for
 `https://api.mistral.ai/v1/chat/completions`. The accepted profile is
 serial text with a strict JSON Schema response and no reasoning override.
 Controlled HTTPS tests on installed Node 22 and 24 exercised one request,
 typed output and a cold Saved read with zero sends. Live Mistral
 qualification is pending for this profile.
+
+For OpenAI Responses, select `@ai-sdk/openai` `4.0.91` and its
+`createOpenAI` export with the bundled `_internal/openai-responses.mjs`
+adapter. Register `gpt-4.1-mini` with API mode `responses`, endpoint
+`https://api.openai.com/v1/responses`, and flat `providerOptions`
+`{store: false, strictJsonSchema: true}`. The Host uses the
+`OPENAI_API_KEY` credential reference. This profile accepts a single
+structured text response with a strict JSON Schema.
 
 ## Configure a Host from project Tasks
 

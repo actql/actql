@@ -403,7 +403,8 @@ async function prepareSdkProviderTasks(context: ConfigurationContext, selected: 
   const physicalLimits = config.physicalLimits;
   const select = () => ({original,
     owned: selected.tasks.filter(task => task.providerId === config.providerId),
-    profiles: new Map<string, {profile: unknown; selectedSdk: RegisteredSdk | undefined; endpoint: string}>(), raw: undefined as Awaited<ReturnType<ConfigurationContext['prepareRawPolicies']>> | undefined});
+    profiles: new Map<string, {profile: unknown; selectedSdk: RegisteredSdk | undefined; endpoint: string;
+      codecId: string}>(), raw: undefined as Awaited<ReturnType<ConfigurationContext['prepareRawPolicies']>> | undefined});
   // The Host caps its Task list. Fund this extra per-Provider index under the
   // initial configuration owner while later Providers prepare their Tasks.
   const prepared = batch ? await context.prepareConfiguration(select) : select();
@@ -417,22 +418,24 @@ async function prepareSdkProviderTasks(context: ConfigurationContext, selected: 
       refuse('InstalledModelResolvedConfigurationMismatch');
     }
     const taskEndpoint = selectedSdk?.route.endpoint ?? endpoint;
+    const taskCodec = selectedSdk?.sdkProvider === 'openai.responses' && selectedSdk.route.apiMode === 'responses'
+      ? 'actql/openai-responses-envelope' : codecId;
     const profile = await selected.responseProfileFor(task.name, () => JSON.stringify({
       version: 'actql-model-response-profile/0.1', adapter: {builder_id: builderId, builder_revision: '1',
-        codec_id: codecId, codec_revision: '1', build_artifact_cid: builderCid,
+        codec_id: taskCodec, codec_revision: '1', build_artifact_cid: builderCid,
         port_abi: 'model-physical-port/1', sdk: {package: sdk.package_name, version: sdk.version,
           interface: sdk.interface, lock_artifact_cid: lockCid}},
       operation: {endpoint: taskEndpoint, method: 'POST', streaming: false},
       // Unbound template DATA is never installed or used for a Request.
       // The same normalized Core Task supplies all three final identities.
       task: {contract_cid: unboundCid, kind: 'structured_generate', input_schema_cid: unboundCid, output_schema_cid: unboundCid},
-      completion: {validator_id: codecId, validator_revision: '1',
+      completion: {validator_id: taskCodec, validator_revision: '1',
         validator_artifact_cid: runtimeCid, basis: 'generation_finish', transport_eof: true,
         endpoint_envelope: true, output_contract: true}, probability: null,
       observations: ['provider_request_id', 'provider_reported_model_id', 'finish_reason',
         'input_tokens', 'output_tokens', 'provider_metadata'], limits: physicalLimits, controls,
     }));
-    profiles.set(task.taskCid, {profile: profile.profile, selectedSdk, endpoint: taskEndpoint});
+    profiles.set(task.taskCid, {profile: profile.profile, selectedSdk, endpoint: taskEndpoint, codecId: taskCodec});
     await selected.executionOriginalsFor(task.name, {maxAttempts: config.budget.maxCalls,
       maxCostUnits: config.budget.maxCostUnits, maxDurationMs: config.budget.maxDurationMs,
       maxWireBytes: config.maxWireBytes,
@@ -442,7 +445,7 @@ async function prepareSdkProviderTasks(context: ConfigurationContext, selected: 
 }
 
 function createSdkProviderEntry(moon: Runtime, selected: SelectedTasks, {original, owned, profiles, raw}: PreparedProviderTasks) {
-  const {config, runtimeCid, builderCid, layoutCid, apiKey, builderId, codecId, sdk, projectMode} = original;
+  const {config, runtimeCid, builderCid, layoutCid, apiKey, builderId, sdk, projectMode} = original;
   const physicalLimits = config.physicalLimits;
   const bindingOriginals = selected.bindingOriginalsFor(config.providerId);
   const now = Date.now(), at = (ms: number) => new Date(ms).toISOString();
@@ -457,7 +460,7 @@ function createSdkProviderEntry(moon: Runtime, selected: SelectedTasks, {origina
   // Keep the adapter's complete declared live holding/workspace in
   // addition to every prepared row; neither minimum can replace the other.
   const entries = owned.map(task => {
-    const {profile, selectedSdk, endpoint} = profiles.get(task.taskCid)!;
+    const {profile, selectedSdk, endpoint, codecId} = profiles.get(task.taskCid)!;
     const installation = Object.freeze({builder_id: builderId, builder_revision: '1',
       codec_id: codecId, codec_revision: '1', build_artifact_cid: builderCid, sdk,
       endpoint, http_method: 'POST', streaming: false,

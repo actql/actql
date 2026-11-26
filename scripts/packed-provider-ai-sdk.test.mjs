@@ -426,7 +426,8 @@ test('optional diagnostic selection retains nested inventories and bounded usage
 test('existing producer and README jobs retain required and optional original inputs', async () => {
   assert.deepEqual(registeredProviderAcceptanceCases, [
     'registered-project', 'registered-anthropic', 'registered-google', 'registered-mixed',
-    'registered-mistral', 'registered-length', 'registered-refusal', 'registered-too-late', 'registered-invalid',
+    'registered-mistral', 'registered-openai-responses',
+    'registered-length', 'registered-refusal', 'registered-too-late', 'registered-invalid',
     'registered-credential-reference', 'registered-credential-header',
   ]);
   const ci = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));

@@ -33,8 +33,10 @@ type Report = {
   failures?: ReturnType<typeof nodeBenchmarkFailure>[]; cleanup?: ReturnType<typeof nodeBenchmarkFailure>[];
 };
 
+const registeredResponsesCase = 'registered-openai-responses';
 const registeredProviderCases = Object.freeze([
   'registered-project', 'registered-anthropic', 'registered-google', 'registered-mixed', 'registered-mistral',
+  registeredResponsesCase,
 ]);
 export const registeredSafetyAcceptanceCases = Object.freeze([
   'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist',
@@ -188,7 +190,7 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     assert.equal(value.maxCalls, 1);
   }
   if (registered) assert.equal(value.registeredSdk, true);
-  if (caseId === 'registered-mistral') {
+  if (caseId === 'registered-mistral' || caseId === registeredResponsesCase) {
     assert.equal(value.originalModelStarts, phase === 'cold' ? 0 : 1);
     assert.match(value.originalRunDefinitionCid as string, /^sha256:[0-9a-f]{64}$/u);
   }
@@ -334,13 +336,14 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
             for (const [field, path] of [['externalAdapterCid', adapterPath], ['externalLockCid', 'npm-shrinkwrap.json']]) {
               assert.equal(value[field], 'sha256:' + external!.packageImages[0].images.find(image => image.path === path)?.sha256);
             }
-            if (id === externalCase && phase !== 'cold') {
-              const usage = JSON.parse(await readFile(join(prepared.consumer, 'usage-original.json'), 'utf8'));
-              assert.match(usage.raw_response_artifact_cid, /^sha256:[0-9a-f]{64}$/u);
-              assert.equal(usage.input_tokens, 2); assert.equal(usage.output_tokens, 3);
-            }
           }
-          if (id === 'registered-mixed' || id === 'registered-mistral' || externalCases.includes(id) ||
+          if ((id === externalCase || id === registeredResponsesCase) && phase !== 'cold') {
+            const usage = JSON.parse(await readFile(join(prepared.consumer, 'usage-original.json'), 'utf8'));
+            assert.match(usage.raw_response_artifact_cid, /^sha256:[0-9a-f]{64}$/u);
+            assert.equal(usage.input_tokens, 2); assert.equal(usage.output_tokens, 3);
+          }
+          if (id === 'registered-mixed' || id === 'registered-mistral' || id === registeredResponsesCase ||
+              externalCases.includes(id) ||
               id === registeredCapabilityCase || Object.hasOwn(registeredTerminalFailures, id)) {
             if (phase === id) originalRunDefinitionCid = value.originalRunDefinitionCid;
             else assert.equal(value.originalRunDefinitionCid, originalRunDefinitionCid);
@@ -418,12 +421,13 @@ async function installRelease(root: string, release: string, manifest: ReleaseMa
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [root, selection, ...extra] = process.argv.slice(2);
   assert(root !== undefined && [undefined, '--registered-only', '--registered-safety-only', '--registered-external-only',
-    '--registered-capabilities-only'].includes(selection)
+    '--registered-capabilities-only', '--registered-responses-only'].includes(selection)
     && extra.length === 0,
-  'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT [--registered-only | --registered-safety-only | --registered-external-only | --registered-capabilities-only]');
+  'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT [--registered-only | --registered-safety-only | --registered-external-only | --registered-capabilities-only | --registered-responses-only]');
   const cases = selection === '--registered-only' ? registeredProviderAcceptanceCases
     : selection === '--registered-safety-only' ? registeredSafetyAcceptanceCases
     : selection === '--registered-external-only' ? externalCases
+    : selection === '--registered-responses-only' ? [registeredResponsesCase]
     : selection === '--registered-capabilities-only' ? [registeredCapabilityCase] : undefined;
   process.exitCode = await runLocalCheck({root: fileURLToPath(new URL('../', import.meta.url)),
     heavy: false, timeoutSeconds: 300, graceSeconds: 5,
