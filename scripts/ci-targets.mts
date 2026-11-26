@@ -430,8 +430,9 @@ export function validateSelection(value: unknown): Selection {
   }
   return selection;
 }
-export function verifyGate(plan: CiPlan, needs: GateResults, {event, sourceRevision, draft = null}:
-  {event?: string; sourceRevision?: string; draft?: boolean | null}) {
+type GateContext = {event?: string; sourceRevision?: string; draft?: boolean | null};
+
+function verifySelectedJobs(plan: CiPlan, needs: GateResults, {event, sourceRevision}: GateContext) {
   assert.deepEqual(Object.keys(plan ?? {}).sort(), ['selection', 'sourceRevision'], 'Invalid plan envelope');
   assert(sha.test(sourceRevision!) && plan.sourceRevision === sourceRevision, 'Selection belongs to another checkout');
   const selection = validateSelection(plan.selection);
@@ -452,10 +453,23 @@ export function verifyGate(plan: CiPlan, needs: GateResults, {event, sourceRevis
     }
     lines.push(`${required ? 'PASS' : 'NOT APPLICABLE'} ${name}: ${required ? 'required job completed' : selection.reason}`);
   }
-  assert(draft !== true && !selection.profile.startsWith('draft'),
+  return {selection, lines};
+}
+
+export function verifyGate(plan: CiPlan, needs: GateResults, context: GateContext) {
+  const {selection, lines} = verifySelectedJobs(plan, needs, context);
+  assert(context.draft !== true && !selection.profile.startsWith('draft'),
     'Draft preparation is not merge verification: awaiting ready_for_review to execute normal required coverage');
   return lines;
 }
+
+function verifyDraftPreparation(plan: CiPlan, needs: GateResults, context: GateContext) {
+  const {selection, lines} = verifySelectedJobs(plan, needs, context);
+  assert(context.event === 'pull_request' && context.draft === true && selection.profile.startsWith('draft'),
+    'Draft preparation requires the current Draft PR selection');
+  return ['Draft preparation passed. Required merge verification runs when the PR is marked Ready.', ...lines];
+}
+
 export function readChanges(payload: GitHubEvent | null, git: GitRead = args => execFileSync('git', args,
   {encoding: 'utf8', maxBuffer: 32 * 1024 * 1024}), {baseRevision = null}: {baseRevision?: string | null} = {}) {
   const base = baseRevision ?? payload?.pull_request?.base?.sha;
@@ -549,11 +563,14 @@ export function readPushChanges(payload: GitHubEvent, testedRevision: string, gi
 }
 async function main() {
   if (process.argv[2] === 'gate') {
-    const lines = verifyGate(readCiInput('CI_PLAN') as CiPlan, readCiInput('RESULTS') as GateResults,
-      {event: process.env.GITHUB_EVENT_NAME, sourceRevision: process.env.GITHUB_SHA,
-        draft: pullRequestDraft(process.env.GITHUB_EVENT_NAME,
-          process.env.GITHUB_EVENT_NAME === 'pull_request'
-            ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH!, 'utf8')) : null)});
+    const event = process.env.GITHUB_EVENT_NAME;
+    const draft = pullRequestDraft(event, event === 'pull_request'
+      ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH!, 'utf8')) : null);
+    // Match the job's display name so a Draft result cannot publish the
+    // required Ready/main check. Both modes validate the exact tested selection.
+    const verify = draft === true ? verifyDraftPreparation : verifyGate;
+    const lines = verify(readCiInput('CI_PLAN') as CiPlan, readCiInput('RESULTS') as GateResults,
+      {event, sourceRevision: process.env.GITHUB_SHA, draft});
     console.log(lines.join('\n'));
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
     return;
