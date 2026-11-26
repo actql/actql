@@ -126,14 +126,16 @@ export function installedDeclarationEmits(repository: string, source: string, me
 // Runtime paths remain package identities. For emitted members, derive the
 // expected bytes from the selected Git source and the same compiler options
 // as preparation. The working .mjs or .cjs is never an input to this derivation.
-function installedOriginalBytes(repository: string, source: string, selected: readonly string[]) {
+export function installedOriginalInputs(repository: string, source: string, selected: readonly string[]) {
   const {git, blob} = originalGitInputs(repository, source);
+  const inputs = new Set(selected);
   const runtimeEmit = /\.[cm]js$/u;
-  const runtimePaths = [...new Set(selected.filter(path => runtimeEmit.test(path)))];
+  const runtimePaths = [...inputs].filter(path => runtimeEmit.test(path));
   const authoredPath = (path: string) => path.slice(0, -2) + 'ts';
   let tracked: Set<string> | undefined, config: ts.ParsedCommandLine | undefined, included: Set<string> | undefined;
   return (path: string) => {
-    try { return blob(path); }
+    assert(inputs.has(path) && inside(path), 'Unselected installed original input');
+    try { return {author: path, bytes: blob(path)}; }
     catch (error) {
       if (!runtimeEmit.test(path) || (error as {status?: number}).status !== 128) throw error;
       tracked ??= new Set(git(['--literal-pathspecs', 'ls-tree', '-r', '--name-only', '-z',
@@ -151,7 +153,7 @@ function installedOriginalBytes(repository: string, source: string, selected: re
     });
     assert(!emitted.diagnostics?.some(item => item.category === ts.DiagnosticCategory.Error),
       `Cannot derive installed TypeScript runtime bytes: ${authored}`);
-    return Buffer.from(emitted.outputText);
+    return {author: authored, bytes: Buffer.from(emitted.outputText)};
   };
 }
 
@@ -183,11 +185,11 @@ export function installedInterfaceCorrespondence({repository, directory, source,
     {source, base: source, paths: selected, all: true,
       commands}).modules : [];
   const bySource = new Map(original.map(module => [module.module, module]));
-  const originalBytes = installedOriginalBytes(repository, source, selected);
+  const originalInput = installedOriginalInputs(repository, source, selected);
   const actual = installed.modules.map(module => {
     const binding = byMember.get(module.module)!, input = bySource.get(binding.source);
     assert(input, `Missing original authored interface: ${binding.source}`);
-    const bytes = originalBytes(binding.source);
+    const {bytes} = originalInput(binding.source);
     if (checkedSource) assert.equal(input.sha256, digest(bytes),
       `Changed checked original source interface: ${binding.source}`);
     const expected = binding.transform === 'local-node-public-imports'
