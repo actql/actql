@@ -701,6 +701,7 @@ type EmbeddedHostPreparation = Readonly<{
     limits: EffectCaptureOptions['contractLimits'], current: EffectCaptureOptions['assertCurrent'],
     retain: EffectCaptureOptions['retain']) => EffectCaptureView;
   effectManagedPlanRun: (runtime: PreparationRuntime, prepared: object, request: unknown) => EffectPlanRun;
+  assertRetainedEffectManagedPlanRun: (run: EffectPlanRun, prepared: object, request: unknown) => void;
   retainManagedContentPreparation: (runtime: PreparationRuntime, prepared: object, contentPreparation: RetainedContentSelection) => void;
   prepareManagedSerializationOutputDemand: (runtime: PreparationRuntime, prepared: object,
     compiled: OutputDemandArgs[1], selection: OutputDemandArgs[2], generation: OutputDemandArgs[3],
@@ -5727,7 +5728,8 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
                         runDefinition: managedEffect.modelRunDefinition as NonNullable<EffectComputationInput['originalModelPlan']>['runDefinition']},
                       originalPreparation: installedEffectModelPreparation(managedEffect,
                         () => preparation.modelPublicationCapacity(facts.prepared),
-                        () => preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity)) as (ReturnType<typeof installedEffectModelPreparation> & NonNullable<EffectComputationInput['originalPreparation']>),
+                        () => preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity),
+                        () => preparation.assertRetainedEffectManagedPlanRun(managedEffect, facts.prepared, facts.identity)) as (ReturnType<typeof installedEffectModelPreparation> & NonNullable<EffectComputationInput['originalPreparation']>),
                     }),
                     computeConfigurations: {local: localSnapshotConfiguration},
                     withComputePauseHandler: (configurations, handlePause, beforePrepare) => ({
@@ -8828,6 +8830,16 @@ async function openPreparedInstalledHost(options: unknown, initialEntry?: HostEn
         ? assertManagedComputeInstallationCurrent : assertSourceManagedInstallationCurrent)(manager, originals);
       return readInstalledEffectManagedPlanRun({runs: record.computeRuns, liveRuns: record.computeLiveRuns,
         runtime, prepared, request, assertCurrent: current, checked});
+    },
+    assertRetainedEffectManagedPlanRun(run: EffectPlanRun, prepared: object, request: unknown) {
+      // The original Model Read stops during drain, after ingress is sealed.
+      // Assert only retained ownership here. Work still uses effectManagedPlanRun.
+      assertRetainedSourceManagedHost(originals);
+      if (record.computeRuns?.get(prepared) !== run || !record.computeLiveRuns?.has(run) ||
+          run.closed || run.runtime !== moon || run.prepared !== prepared || run.request !== request ||
+          run.manager !== (sourceManaged ?? computeManaged)) {
+        throw clientOperationError('ForeignInstalledEffectManagedRun');
+      }
     },
     retainManagedContentPreparation(runtime: PreparationRuntime, prepared: object,
         contentPreparation: RetainedContentSelection) {

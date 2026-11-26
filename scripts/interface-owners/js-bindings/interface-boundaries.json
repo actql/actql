@@ -59946,6 +59946,8 @@
         },
         {
           "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
+            "openPreparedInstalledHost/preparation/init:assertRetainedEffectManagedPlanRun/init:assertRetainedEffectManagedPlanRun",
             "openPreparedInstalledHost/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun"
           ],
           "exports": [],
@@ -59988,6 +59990,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "assertRetainedEffectManagedPlanRun(run: EffectPlanRun, prepared: object, request: unknown)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "() => preparation.assertRetainedEffectManagedPlanRun(managedEffect, facts.prepared, facts.identity)"
               }
             ],
             "synchronization": [
@@ -60048,6 +60058,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "effectManagedPlanRun(runtime, prepared, request)"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "sealed Effect ingress still retires each retained original Model Read exactly once"
               }
             ]
           }
@@ -68436,7 +68450,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#6",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#7",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/records/records",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
@@ -71346,8 +71360,8 @@
             "openInstalledHost/closeHostRequestJournal",
             "openInstalledHost/hostJournalExclusion",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:requestIdentityFor/init:requestIdentityFor",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#6",
             "openInstalledHost/retireModelPreparationReferences",
             "openPreparedInstalledHost/initialControl/init:close/init:close",
             "openPreparedInstalledHost/preparation/init:admitRootFormat/init:admitRootFormat",
@@ -73052,6 +73066,11 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
           "parameters": [
             "configurations",
             "handlePause",
@@ -73060,7 +73079,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#6",
           "parameters": [
             "event",
             "detail"
@@ -73068,7 +73087,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#6",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#7",
           "parameters": [
             "execution"
           ],
@@ -74888,6 +74907,15 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:assertResultPublicationCurrent/init:assertResultPublicationCurrent",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:assertRetainedEffectManagedPlanRun/init:assertRetainedEffectManagedPlanRun",
+          "parameters": [
+            "run",
+            "prepared",
+            "request"
+          ],
           "async": false
         },
         {
@@ -76732,7 +76760,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "5f9609423d4fb89e27226cf1c79f0be54ca23a238da81e610cc32ab0abeae297"
+      "sha256": "80361d76843a0aba6abcb432589215879d0e7f7b8543b589e57d7eb512bc7a43"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

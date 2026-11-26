@@ -139294,7 +139294,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "6fa07674991613ea7eebd7487ab5b81f139fbfee042e878b931e7637dbe49268",
+      "sha256": "52a6104ea543397d3f9c490661c27d50315f39085e88800915fbc5761685bed9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -139374,7 +139374,15 @@
           "parameters": [
             "run",
             "publicationCapacity",
-            "assertCurrent"
+            "assertCurrent",
+            "assertRetained"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelPreparation/check/check",
+          "parameters": [
+            "retiring"
           ],
           "async": false
         },
@@ -139387,7 +139395,9 @@
         },
         {
           "name": "installedEffectModelPreparation/current/current",
-          "parameters": [],
+          "parameters": [
+            "retiring"
+          ],
           "async": false
         },
         {
@@ -139568,6 +139578,7 @@
             "installedEffectModelMemberPreparation/view/init:retain/init:retain",
             "installedEffectModelMemberPreparation/view/init:retire/init:retire",
             "installedEffectModelPreparation",
+            "installedEffectModelPreparation/check/check",
             "installedEffectModelPreparation/components/components",
             "installedEffectModelPreparation/current/current",
             "installedEffectModelPreparation/current/current/current",
@@ -139696,6 +139707,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
+                "anchor": "if (retiring) assertRetained();"
               }
             ],
             "synchronization": [
@@ -139896,6 +139911,10 @@
               {
                 "path": "adapters/host-node/keyed-initial-definition.test.mjs",
                 "anchor": "test('initial keyed preparation projects its same checked Definition after the original graph quote'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "sealed Effect ingress still retires each retained original Model Read exactly once"
               }
             ]
           }
