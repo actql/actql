@@ -321,7 +321,7 @@
     },
     {
       "module": "adapters/host-node/update-target-data.generated.mjs",
-      "sha256": "5f8b9ccc4bc276a8afe23a0935388f20932b5ba4db2df8d9fe5e9fafcf9139b3",
+      "sha256": "14c8febe6a012cd343e8e866020b1ffbe196f9571caf24820b2bf1459802ccec",
       "exports": [
         "encodeUpdateTargetData",
         "encodeUpdateTargetOriginalData"
@@ -359,8 +359,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/update-target-data.generated.mjs",
-                "anchor": "export function encodeUpdateTargetData(value) {"
+                "path": "scripts/templates/update-target-data-codec.mts",
+                "anchor": "export function encodeUpdateTargetData(value: unknown): string {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -373,8 +373,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/update-target-data.generated.mjs",
-                "anchor": "export function encodeUpdateTargetData(value) {"
+                "path": "scripts/templates/update-target-data-codec.mts",
+                "anchor": "export function encodeUpdateTargetData(value: unknown): string {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -401,8 +401,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/update-target-data.generated.mjs",
-                "anchor": "export function encodeUpdateTargetData(value) {"
+                "path": "scripts/templates/update-target-data-codec.mts",
+                "anchor": "export function encodeUpdateTargetData(value: unknown): string {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -415,8 +415,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/update-target-data.generated.mjs",
-                "anchor": "export function encodeUpdateTargetData(value) {"
+                "path": "scripts/templates/update-target-data-codec.mts",
+                "anchor": "export function encodeUpdateTargetData(value: unknown): string {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -429,8 +429,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/update-target-data.generated.mjs",
-                "anchor": "export function encodeUpdateTargetData(value) {"
+                "path": "scripts/templates/update-target-data-codec.mts",
+                "anchor": "export function encodeUpdateTargetData(value: unknown): string {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -443,8 +443,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/update-target-data.generated.mjs",
-                "anchor": "export function encodeUpdateTargetData(value) {"
+                "path": "scripts/templates/update-target-data-codec.mts",
+                "anchor": "export function encodeUpdateTargetData(value: unknown): string {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -457,8 +457,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/update-target-data.generated.mjs",
-                "anchor": "export function encodeUpdateTargetData(value) {"
+                "path": "scripts/templates/update-target-data-codec.mts",
+                "anchor": "export function encodeUpdateTargetData(value: unknown): string {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -471,8 +471,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/update-target-data.generated.mjs",
-                "anchor": "export function encodeUpdateTargetData(value) {"
+                "path": "scripts/templates/update-target-data-codec.mts",
+                "anchor": "export function encodeUpdateTargetData(value: unknown): string {"
               },
               {
                 "path": "docs/design/connector-layout.md",
