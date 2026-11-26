@@ -128,7 +128,24 @@ fn mapping_permission_valid_kind(value : String) -> Bool {
 
 ///|
 fn mapping_permission_valid_selector(value : String) -> Bool {
-  ["none", "id", "match", "ids", "external_id", "where", "key"].contains(value)
+  [
+    "none", "id", "match", "ids", "external_id", "where", "key", "match_tuple", "key_tuple",
+  ].contains(value)
+}
+
+///|
+fn mapping_permission_identity_supports(
+  shape : MappingContractShape,
+  kind : String,
+  selector : String,
+) -> Bool {
+  if shape.primary_tuple is Some(_) {
+    mapping_tuple_rule(kind, selector)
+  } else if shape.primary_identity is Some(_) {
+    selector != "match_tuple" && selector != "key_tuple"
+  } else {
+    kind == "create" && selector == "none"
+  }
 }
 
 ///|
@@ -214,7 +231,8 @@ fn mapping_permission_rules(
     let kind = mapping_permission_rule_text(entry, "effect_kind", index)
     let selector = mapping_permission_rule_text(entry, "selector_class", index)
     if !mapping_permission_valid_kind(kind) ||
-      !mapping_permission_valid_selector(selector) {
+      !mapping_permission_valid_selector(selector) ||
+      !mapping_permission_identity_supports(shape, kind, selector) {
       raise MappingPermissionStop(InvalidRule(index))
     }
     let fields = match @decode.lookup(entry, "write_fields") {
@@ -262,9 +280,8 @@ pub fn mapping_supports_operation(
   let remaining = Ref(max_work)
   try {
     let (_, rules) = mapping_permission_rules(shape, None, remaining)
-    let supported = (
-        shape.primary_identity is Some(_) ||
-        (effect_kind == "create" && selector_class == "none")
+    let supported = mapping_permission_identity_supports(
+        shape, effect_kind, selector_class,
       ) &&
       rules.any(rule => {
         rule.effect_kind == effect_kind && rule.selector_class == selector_class
@@ -293,8 +310,7 @@ pub fn select_mapping_permissions(
     !mapping_permission_valid_selector(selector_class) {
     return Err(InvalidRequest)
   }
-  if shape.primary_identity is None &&
-    (effect_kind != "create" || selector_class != "none") {
+  if !mapping_permission_identity_supports(shape, effect_kind, selector_class) {
     return Err(InvalidRequest)
   }
   let remaining = Ref(max_work)

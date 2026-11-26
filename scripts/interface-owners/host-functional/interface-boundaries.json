@@ -82718,7 +82718,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "38a44e262ba1dc98ef88559eb0d07a34bc658d284a10067b11f5ad7445f087c2",
+      "sha256": "558565bfbd13f82437a790c505f94566f84c37b5a7267ee65c95ad6aca6f6152",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -83382,7 +83382,7 @@
             "extension": [
               {
                 "path": "adapters/local-node/installed-project-mock.mts",
-                "anchor": "let sources: Catalog['sources'] | undefined = catalog.sources;"
+                "anchor": "let sources: View['sources'] | undefined = catalog.sources;"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -84477,7 +84477,7 @@
             "extension": [
               {
                 "path": "adapters/local-node/installed-project-mock.mts",
-                "anchor": "let sources: Catalog['sources'] | undefined = catalog.sources;"
+                "anchor": "let sources: View['sources'] | undefined = catalog.sources;"
               }
             ],
             "verification": [
@@ -129977,7 +129977,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-mock-account.mjs",
-      "sha256": "17a883347a33a8669a0d028716105247e8282d2462cc912d1a4ba07b87fae8bd",
+      "sha256": "5db8451c2c663398820dfaca2b24ad1cae3d95cf5c3527a4a91e2ccf4f0bc641",
       "exports": [
         "initializeOrdinaryMockAccount",
         "prepareOrdinaryMockAccountSubjects"
@@ -130090,6 +130090,13 @@
             "projectDirectory",
             "configurationWire",
             "requestRealization"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryMockAccountSubjects/includesTargets/includesTargets",
+          "parameters": [
+            "target"
           ],
           "async": false
         },
@@ -130494,7 +130501,8 @@
             "prepareOrdinaryMockAccountSubjects/sources/sources/sources",
             "prepareOrdinaryMockAccountSubjects/subject/subject",
             "prepareOrdinaryMockAccountSubjects/tasks/tasks",
-            "prepareOrdinaryMockAccountSubjects/prepareOrdinaryMockAccountSubjects#2"
+            "prepareOrdinaryMockAccountSubjects/prepareOrdinaryMockAccountSubjects#2",
+            "prepareOrdinaryMockAccountSubjects/includesTargets/includesTargets"
           ],
           "exports": [
             "prepareOrdinaryMockAccountSubjects"
@@ -130546,6 +130554,10 @@
               {
                 "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "const maximum = 1024 * 1024;"
+              },
+              {
+                "path": "adapters/host-node/ordinary-mock-account.mts",
+                "anchor": "const includesTargets = bundle.writables.length > 1 || bundle.writables.some(target =>"
               }
             ],
             "extension": [
@@ -131274,13 +131286,14 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d640b805dabc5f12fcf2413331105f84872a6a2233a5446bf3c82c1336fd401a",
+      "sha256": "71028c81dd6565815ef440434207891d101dbd8d85b878f45232949317c3b479",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
         "mockFileEffectPlanRecipe",
         "mockFileRowFootprint",
-        "observeInstalledMockEffectResources"
+        "observeInstalledMockEffectResources",
+        "prepareMockFileRequestRecord"
       ],
       "operations": [
         {
@@ -131306,6 +131319,21 @@
             "bytes",
             "target",
             "includeTarget"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileRowCodec/admit/admit/admit",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileRowCodec/findOrdered/findOrdered",
+          "parameters": [
+            "document",
+            "target"
           ],
           "async": false
         },
@@ -131417,6 +131445,15 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed/orderedCapacity/orderedCapacity",
+          "parameters": [
+            "size",
+            "keyUnits",
+            "mappedUnits"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed/targets/targets",
           "parameters": [
             "target"
@@ -131458,6 +131495,20 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectMockEffects/ordered/ordered",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/ordered/ordered/ordered",
+          "parameters": [
+            "model"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockEffects/resourceMethods/resourceMethods",
           "parameters": [
             "name"
@@ -131486,7 +131537,8 @@
             "bundle",
             "operation",
             "targetReadOperation",
-            "insertion"
+            "insertion",
+            "ordered"
           ],
           "async": false
         },
@@ -131519,35 +131571,6 @@
             "bindingCid",
             "target",
             "selectors"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockFileRowFootprint/mockFileRowFootprint",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockFileRowFootprint/mockFileRowFootprint#2",
-          "parameters": [
-            "identity"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockRowEffectDriver/changes/changes",
-          "parameters": [
-            "value",
-            "target"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockRowEffectDriver/changes/changes/changes",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -131909,6 +131932,39 @@
           "async": false
         },
         {
+          "name": "prepareMockFileRequestRecord",
+          "parameters": [
+            "bindingCid",
+            "target",
+            "record",
+            "preview"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareMockFileRequestRecord/prepareMockFileRequestRecord",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareMockFileRequestRecord/prepareMockFileRequestRecord#2",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameFileSelector/sameFileSelector",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "snapshot/snapshot/freeze/freeze",
           "parameters": [
             "entry"
@@ -131939,7 +131995,8 @@
         "../host-node/installed-host-cleanup.mjs",
         "../host-node/installed-row-effect.mjs",
         "../host-node/mock-file-target.mjs",
-        "node:crypto"
+        "node:crypto",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -131965,8 +132022,6 @@
             "mockFileEffectPlanRecipe",
             "mockFileEffectPlanRecipe/projections/projections",
             "mockFileRowFootprint",
-            "mockFileRowFootprint/mockFileRowFootprint",
-            "mockFileRowFootprint/mockFileRowFootprint#2",
             "mockRowEffectDriver/consume",
             "mockRowEffectDriver/describe",
             "mockRowEffectDriver/describe/describe",
@@ -132015,14 +132070,21 @@
             "mockRowEffectDriver/requestChild/init:retainedOutputWire/init:retainedOutputWire",
             "mockRowEffectDriver/requestChild/release/release",
             "mockRowEffectDriver/requestChild/requestChild",
-            "mockRowEffectDriver/supportedKinds/supportedKinds/supportedKinds"
+            "mockRowEffectDriver/supportedKinds/supportedKinds/supportedKinds",
+            "prepareMockFileRequestRecord",
+            "createMockFileRowCodec/admit/admit/admit",
+            "createMockFileRowCodec/findOrdered/findOrdered",
+            "prepareMockFileRequestRecord/prepareMockFileRequestRecord",
+            "prepareMockFileRequestRecord/prepareMockFileRequestRecord#2",
+            "sameFileSelector/sameFileSelector"
           ],
           "exports": [
             "createMockFileRowCodec",
             "installPreparedProjectMockEffects",
             "mockFileEffectPlanRecipe",
             "mockFileRowFootprint",
-            "observeInstalledMockEffectResources"
+            "observeInstalledMockEffectResources",
+            "prepareMockFileRequestRecord"
           ],
           "attributes": {
             "responsibility": [
@@ -132199,6 +132261,14 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
+              },
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction.test.mts",
+                "anchor": "test('Mock exact footprints hash the checked original tuple and distinguish adjacent Int64 values'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock retains the funded ordered layout of each original File resource"
               }
             ]
           }
@@ -132373,8 +132443,6 @@
         },
         {
           "operations": [
-            "mockRowEffectDriver/changes/changes",
-            "mockRowEffectDriver/changes/changes/changes",
             "snapshot/snapshot/freeze/freeze"
           ],
           "exports": [],
@@ -132458,7 +132526,10 @@
             "mockRowEffectDriver/issue/issue",
             "mockRowEffectDriver/memberCurrent/target/target",
             "installPreparedProjectMockEffects/create/create",
-            "installPreparedProjectMockEffects/installed/installed/constructed/constructed/insertion/insertion"
+            "installPreparedProjectMockEffects/installed/installed/constructed/constructed/insertion/insertion",
+            "installPreparedProjectMockEffects/installed/installed/constructed/constructed/orderedCapacity/orderedCapacity",
+            "installPreparedProjectMockEffects/ordered/ordered",
+            "installPreparedProjectMockEffects/ordered/ordered/ordered"
           ],
           "exports": [],
           "attributes": {
@@ -132536,6 +132607,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock admits the closed file CREATE mapping beside an original UPDATE"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock retains the funded ordered layout of each original File resource"
               }
             ]
           }
@@ -142186,7 +142261,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-context-construction.mjs",
-      "sha256": "ef356795501ae8755f6c0e3163762313259e83916923f6cc3466a9220385b953",
+      "sha256": "f42d079f5f394409bbbe48940e6906b103d23b1ee153a4f2bcb5f4b3ade8ede5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",

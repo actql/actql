@@ -126,6 +126,14 @@ function withResourceTarget(existing, resourceRef) {
   return target;
 }
 
+const fileTupleIdentity = {type: 'array', minItems: 2, items: {type: 'string'}};
+function withRowIdentity(existing, resourceRef) {
+  const identity = withResourceTarget(existing, resourceRef);
+  identity.oneOf = identity.oneOf.filter(branch => branch.type !== 'array');
+  identity.oneOf.splice(identity.oneOf.length - 1, 0, clone(fileTupleIdentity));
+  return identity;
+}
+
 export function effectPreviewSchema(existing, resourceRef = referenceSchemas.resource_ref) {
   const preview = clone(existing);
   const member = preview.properties.effects.items;
@@ -146,7 +154,7 @@ export function effectPreviewSchema(existing, resourceRef = referenceSchemas.res
   member.properties.target = withResourceTarget(member.properties.target, resourceRef);
   // A Command keeps the checked ResourceRef, not a row scalar or a hash-only
   // approximation. Shape admission does not issue it or authorize its use.
-  member.properties.changes.items.properties.target_row_identity = withResourceTarget(
+  member.properties.changes.items.properties.target_row_identity = withRowIdentity(
     member.properties.changes.items.properties.target_row_identity, resourceRef);
   member.properties.source_table_input = {type: 'string', minLength: 1};
   const sources = ['source_result', 'source_table_input', 'result_artifact_cid'];
@@ -170,8 +178,8 @@ export function effectReviewProjectionSchema(existing, preview, resourceRef) {
   const review = clone(existing);
   const row = review.properties.displayed_rows.items;
   const member = preview.properties.effects.items;
-  row.properties.target_row_identity = withResourceTarget(
-    row.properties.target_row_identity, resourceRef);
+  row.properties.target_row_identity = clone(
+    member.properties.changes.items.properties.target_row_identity);
   for (const name of ['preview_strength', 'target_guard', 'intended_changes']) {
     row.properties[name] = clone(name === 'preview_strength'
       ? member.properties[name] : member.properties.changes.items.properties[name]);
@@ -320,7 +328,8 @@ export function effectRowOutcomeReceiptSchema(outcome) {
   local.required.push('response_kind', 'local_operation_receipt_cid');
   local.properties.response_kind = {const: 'local_operation'};
   local.properties.local_operation_receipt_cid = clone(cid);
-  const {applied, conflict} = localUpdateOutcomes(outcome);
+  const {conflict} = localUpdateOutcomes(outcome);
+  const applied = clone(outcome.oneOf.find(branch => branch.properties?.state?.const === 'applied'));
   local.properties.typed_outcome = {oneOf: [applied, conflict]};
   return {oneOf: [http, local]};
 }

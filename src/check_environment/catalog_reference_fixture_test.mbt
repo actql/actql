@@ -60,6 +60,8 @@ fn reference_fixture(
   acquisition_kind? : String = "scan",
   acquisition_authority? : String = "read_metadata",
   view_count? : Int = 1,
+  mappings? : Array[String] = [],
+  manifest? : String? = None,
 ) -> CatalogContents raise {
   let kinds = [
     "request_schema", "carrier_schema", "carrier_facts", "pushdown", "checkpoint",
@@ -217,7 +219,14 @@ fn reference_fixture(
   }
   match
     check_catalog_contents(
-      catalog_environment(catalogs, contracts, views~, commands=[command]),
+      catalog_environment(
+        catalogs,
+        contracts,
+        views~,
+        commands=[command],
+        mappings~,
+        manifest~,
+      ),
       caps(),
     ) {
     Ok(v) => v

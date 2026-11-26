@@ -1886,7 +1886,7 @@ pub struct EffectPreviewIdentity {
   row_intended_change_states : Array[Array[String]]
   row_intended_value_wires : Array[Array[String]]
   row_guard_version_cids : Array[Array[String]]
-  row_nonrow_states : Array[Array[Bool]]
+  row_transitions : Array[Array[Byte]]
   ordered_row_correlation_wires : Array[Array[String]]
   ordered_row_intended_change_states : Array[Array[String]]
   ordered_row_intended_value_wires : Array[Array[String]]

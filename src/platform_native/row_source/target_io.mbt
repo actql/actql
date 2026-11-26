@@ -11,9 +11,11 @@ priv enum NativeRelationTargetIOPhase {
 }
 
 ///|
-priv enum NativeRelationFileTargetMutation {
+/// Checked-operation DATA supplied by the existing Host.
+pub(all) enum NativeRelationFileTargetMutation {
   ObserveTarget
   ObserveDeleteTarget
+  ObserveOptionalTarget
   UpdateTarget(String, String, String)
   DeleteTarget(String, String)
   InsertTarget(String, String)
@@ -38,6 +40,7 @@ struct NativeRelationFileTargetIO {
   writable : Array[String]
   identity : String
   mutation : NativeRelationFileTargetMutation
+  ordered_key : @rows.RelationDocumentPreparedKey?
   mut before_response : ((Int) -> Bool)?
   mut phase : NativeRelationTargetIOPhase
   mut advancing : Bool
@@ -96,6 +99,12 @@ pub fn NativeRelationFileReplacementAck::selection(
 ///|
 pub fn NativeRelationFileReplacementAck::identity(self : Self) -> String {
   self.identity
+}
+
+///|
+/// The physical child retains the prepared key of the exact file provider.
+pub fn NativeRelationFileReplacementAck::has_ordered_key(self : Self) -> Bool {
+  self.provider.has_ordered_key()
 }
 
 ///|
@@ -169,6 +178,7 @@ fn native_relation_file_target_io_capacity_original(
       @rows.relation_document_prepared_contract(provider.prepared_contract),
       prepared_contract=Some(provider.prepared_contract),
       writable_fields~,
+      ordered_projection=provider.has_ordered_key(),
     )
     is Some(document) &&
     @local.installed_file_effect_constructor_capacity(
@@ -232,7 +242,17 @@ fn native_relation_file_target_io_capacity_original(
     is Some(extra) else {
     return None
   }
-  @execution.add_execution_capacity(construction, extra)
+  let capacity = @execution.add_execution_capacity(construction, extra)
+  if provider.ordered_key is Some(key) {
+    guard capacity is Some(capacity) &&
+      ordered_target_key_capacity(key, limits.page.max_bytes)
+      is Some((tuple, _)) else {
+      return None
+    }
+    @execution.add_execution_capacity(capacity, tuple)
+  } else {
+    capacity
+  }
 }
 
 ///|
@@ -384,17 +404,25 @@ fn prepare_native_relation_file_target_io_original(
   predecessor? : NativeRelationFileReplacementAck? = None,
   before_response? : ((Int) -> Bool)? = None,
   staged_update? : Bool = false,
+  ordered_key? : @rows.RelationDocumentPreparedKey? = None,
 ) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
+  let matching_key = match (provider.ordered_key, ordered_key) {
+    (None, None) => true
+    (Some(expected), Some(selected)) => physical_equal(expected, selected)
+    _ => false
+  }
+  guard matching_key else { return Err(ForeignOriginal) }
   let fieldless = mutation is ObserveDeleteTarget ||
     mutation is DeleteTarget(_, _) ||
     mutation is InsertTarget(_, _)
   if !file_capture_text(identity, provider.limits.page.max_bytes) ||
     writable.is_empty() != fieldless ||
-    writable.length() > provider.limits.page.max_nodes {
+    writable.length() > provider.limits.page.max_nodes ||
+    (mutation is ObserveOptionalTarget && ordered_key is None) {
     return Err(InvalidInput)
   }
   match mutation {
-    ObserveTarget | ObserveDeleteTarget => ()
+    ObserveTarget | ObserveDeleteTarget | ObserveOptionalTarget => ()
     UpdateTarget(version, changes, staging) =>
       if !file_capture_text(changes, provider.limits.page.max_bytes) ||
         !native_relation_file_target_write_names(provider, version, staging) {
@@ -430,6 +458,7 @@ fn prepare_native_relation_file_target_io_original(
     writable: writable.copy(),
     identity,
     mutation,
+    ordered_key,
     before_response,
     phase: TargetPrepared,
     advancing: false,
@@ -626,8 +655,17 @@ fn NativeRelationFileTargetIO::project(
   // stay with this same child until its actual consumer and cleanup return.
   self.backing = Some(backing)
   if self.mutation is InsertTarget(mapped_wire, _) {
-    self.replacement = Some(
-      file_require(
+    let replacement = match self.ordered_key {
+      Some(key) =>
+        @rows.prepare_relation_target_insert_with_key(
+          backing,
+          key,
+          selected.items_path,
+          selected.key_path,
+          self.identity,
+          mapped_wire,
+        )
+      None =>
         @rows.prepare_relation_target_insert(
           backing,
           provider.prepared_contract,
@@ -635,33 +673,73 @@ fn NativeRelationFileTargetIO::project(
           selected.key_path,
           self.identity,
           mapped_wire,
-        ).map_err(issue => Document(issue)),
-      ),
+        )
+    }
+    self.replacement = Some(
+      file_require(replacement.map_err(issue => Document(issue))),
     )
     self.phase = TargetWriting
     return
   }
-  let projected = @rows.project_relation_target_document(
-    backing,
-    provider.declaration,
-    selected.resource,
-    selected.items_path,
-    selected.key_path,
-    selected.primary_identity,
-    self.writable,
-    prepared_contract=Some(provider.prepared_contract),
-  )
-  let document = match projected {
-    Ok(value) => value
-    Err(issue) => raise FileCaptureStop(Document(issue))
+  let row = match self.ordered_key {
+    Some(key) => {
+      let original = file_require(
+        @rows.project_relation_target_document_with_key(
+          backing,
+          provider.declaration,
+          selected.resource,
+          selected.items_path,
+          selected.key_path,
+          self.writable,
+          key,
+        ).map_err(issue => Document(issue)),
+      )
+      self.document = Some(@rows.relation_ordered_target_document(original))
+      let tuple = file_require(
+        @rows.admit_relation_target_key_wire(original, self.identity).map_err(issue => {
+          Document(issue)
+        }),
+      )
+      match
+        file_require(
+          @rows.find_relation_target_with_key(
+            original,
+            provider.declaration,
+            tuple,
+          ).map_err(issue => Document(issue)),
+        ) {
+        Some(row) => row
+        None if self.mutation is ObserveOptionalTarget => {
+          self.phase = TargetReady
+          return
+        }
+        None => raise FileCaptureStop(Document(InvalidPage))
+      }
+    }
+    None => {
+      let document = file_require(
+        @rows.project_relation_target_document(
+          backing,
+          provider.declaration,
+          selected.resource,
+          selected.items_path,
+          selected.key_path,
+          selected.primary_identity,
+          self.writable,
+          prepared_contract=Some(provider.prepared_contract),
+        ).map_err(issue => Document(issue)),
+      )
+      self.document = Some(document)
+      file_require(
+        @rows.observe_relation_target(
+          document,
+          provider.declaration,
+          self.identity,
+        ).map_err(issue => Document(issue)),
+      )
+    }
   }
-  self.document = Some(document)
-  let row = file_require(
-    @rows.observe_relation_target(document, provider.declaration, self.identity).map_err(issue => {
-        Document(issue)
-      },
-    ),
-  )
+  let document = self.document.unwrap()
   self.row = Some(row)
   guard @rows.relation_target_before(row) is Some(before) &&
     @rows.relation_target_version(row) is Some(version) else {
@@ -669,7 +747,8 @@ fn NativeRelationFileTargetIO::project(
   }
   self.observed_row = Some((before, version))
   match self.mutation {
-    ObserveTarget | ObserveDeleteTarget => self.phase = TargetReady
+    ObserveTarget | ObserveDeleteTarget | ObserveOptionalTarget =>
+      self.phase = TargetReady
     UpdateTarget(expected, changes, _) => {
       let output = file_require(
         @rows.prepare_relation_target_update(
@@ -711,7 +790,8 @@ fn NativeRelationFileTargetIO::write(self : Self) -> Unit raise FileCaptureStop 
     DeleteTarget(version, staging) => (version, "", staging, TargetDeleted)
     InsertTarget(mapped_wire, staging) =>
       ("", mapped_wire, staging, TargetInserted)
-    ObserveTarget | ObserveDeleteTarget => raise FileCaptureStop(Unavailable)
+    ObserveTarget | ObserveDeleteTarget | ObserveOptionalTarget =>
+      raise FileCaptureStop(Unavailable)
   }
   let root = self.root.unwrap()
   let output = self.replacement.unwrap()
@@ -815,6 +895,19 @@ pub fn NativeRelationFileTargetIO::snapshot(self : Self) -> (String, String)? {
 }
 
 ///|
+/// Original complete absence for UPSERT Preview. Unfinished, invalid or
+/// retired observations return false.
+pub fn NativeRelationFileTargetIO::target_absent(self : Self) -> Bool {
+  self.same() &&
+  self.phase is TargetReady &&
+  self.issue is None &&
+  self.mutation is ObserveOptionalTarget &&
+  self.observed_row is None &&
+  self.root is Some(root) &&
+  root.require_current_original_read() is Ok(_)
+}
+
+///|
 /// Preserve the same immutable physical ACK before retiring this child. The
 /// receiving Host must retain/back it before close; it cannot infer success
 /// from replacement_attempted, submitted bytes, current contents or cleanup.
@@ -838,7 +931,7 @@ pub fn NativeRelationFileTargetIO::check_update(
 ) -> Result[Unit, NativeRelationFileIssue] {
   guard self.same() &&
     self.phase is TargetReady &&
-    self.mutation is ObserveTarget &&
+    (self.mutation is ObserveTarget || self.mutation is ObserveOptionalTarget) &&
     self.issue is None &&
     self.root is Some(root) &&
     self.document is Some(document) &&
@@ -956,10 +1049,11 @@ pub fn native_relation_file_target_read_io_capacity(
   provider : NativeRelationFilePreparedProvider,
   writable_fields : Int,
   response_bytes? : Int? = None,
+  ordered_wire_utf16? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
   guard writable_fields > 0 else { return None }
   native_relation_file_target_read_io_capacity_original(
-    provider, writable_fields, response_bytes,
+    provider, writable_fields, response_bytes, ordered_wire_utf16,
   )
 }
 
@@ -968,9 +1062,10 @@ pub fn native_relation_file_target_read_io_capacity(
 pub fn native_relation_file_delete_target_read_io_capacity(
   provider : NativeRelationFilePreparedProvider,
   response_bytes? : Int? = None,
+  ordered_wire_utf16? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
   native_relation_file_target_read_io_capacity_original(
-    provider, 0, response_bytes,
+    provider, 0, response_bytes, ordered_wire_utf16,
   )
 }
 
@@ -979,11 +1074,27 @@ fn native_relation_file_target_read_io_capacity_original(
   provider : NativeRelationFilePreparedProvider,
   writable_fields : Int,
   response_bytes : Int?,
+  ordered_wire_utf16 : Int?,
 ) -> @execution.ExecutionCapacity? {
   let limits = provider.limits
+  let project_ordered = provider.has_ordered_key() &&
+    (response_bytes != Some(0) || ordered_wire_utf16 is Some(_))
   let contract = @rows.relation_document_prepared_contract(
     provider.prepared_contract,
   )
+  let observation_page = if provider.has_ordered_key() &&
+    response_bytes is Some(bytes) {
+    {
+      ..limits.page,
+      max_bytes: native_ordered_target_before_wire_bound(
+        contract,
+        limits.page.max_bytes,
+        bytes,
+      ),
+    }
+  } else {
+    limits.page
+  }
   guard writable_fields <= limits.page.max_nodes &&
     file_capture_provider_capacity(
       provider.selection,
@@ -992,17 +1103,68 @@ fn native_relation_file_target_read_io_capacity_original(
       prepared_contract=Some(provider.prepared_contract),
       response_bytes~,
       writable_fields~,
+      ordered_projection=project_ordered,
+      // The staged Target opens its Reader and allocates both file-sized
+      // representations only after the original size callback admits them.
+      // Chunk, Root/Reader and diagnostics retain the same fixed quote.
+      measured_transport_bytes=response_bytes,
+      measured_projection=if project_ordered {
+        response_bytes.bind(bytes => {
+          native_ordered_target_measured_projection(
+            contract,
+            limits.page,
+            bytes,
+          )
+        })
+      } else {
+        None
+      },
     )
     is Some(document) &&
-    file_capture_metadata_capacity(
+    native_relation_file_target_read_fixed_capacity(provider, contract)
+    is Some(fixed) &&
+    native_relation_target_observation_capacity(
+      provider,
+      writable_fields,
+      page=Some(observation_page),
+    )
+    is Some(observation) &&
+    @execution.checked_preparation_add_product(fixed, observation, 1L)
+    is Some(extra) &&
+    @execution.execution_capacity(extra, extra) is Some(extra) else {
+    return None
+  }
+  let ordinary = @execution.add_execution_capacity(document, extra)
+  if project_ordered && provider.ordered_key is Some(key) {
+    guard ordinary is Some(ordinary) &&
+      @rows.relation_target_key_wire_workspace_inventory(
+        key,
+        ordered_wire_utf16.unwrap_or(limits.page.max_bytes),
+      )
+      is Some(units) &&
+      @execution.preparation_representation_cost(units) is Some(bytes) &&
+      @execution.execution_capacity(bytes, bytes) is Some(tuple) else {
+      return None
+    }
+    @execution.add_execution_capacity(ordinary, tuple)
+  } else {
+    ordinary
+  }
+}
+
+///|
+fn native_relation_file_target_read_fixed_capacity(
+  provider : NativeRelationFilePreparedProvider,
+  contract : @contract.Contract,
+) -> Int64? {
+  let limits = provider.limits
+  guard file_capture_metadata_capacity(
       provider.selection,
       limits,
       prepared_provider=Some(provider),
       response_quote_nodes=file_capture_text_contract_nodes(contract),
     )
     is Some(controls) &&
-    native_relation_target_observation_capacity(provider, writable_fields)
-    is Some(observation) &&
     native_relation_file_caller_preparation_inventory(
       provider.selection,
       limits,
@@ -1024,14 +1186,203 @@ fn native_relation_file_target_read_io_capacity_original(
     ])
     is Some(frontier) &&
     @execution.preparation_representation_cost(frontier) is Some(frontier) &&
-    @execution.checked_preparation_add_product(controls, observation, 1L)
-    is Some(extra) &&
-    @execution.checked_preparation_add_product(extra, frontier, 1L)
-    is Some(extra) &&
-    @execution.execution_capacity(extra, extra) is Some(extra) else {
+    @execution.checked_preparation_add_product(controls, frontier, 1L)
+    is Some(total) else {
     return None
   }
-  @execution.add_execution_capacity(document, extra)
+  Some(total)
+}
+
+///|
+// The staged read starts with only the child, its Root/Observation, and the
+// bounded selector check. The original size callback funds the Reader and all
+// document, typed projection, and observation writer storage before they run.
+pub fn native_ordered_target_capture_initial_capacity(
+  provider : NativeRelationFilePreparedProvider,
+  writable_fields : Int,
+) -> @execution.ExecutionCapacity? {
+  let limits = provider.limits
+  let contract = @rows.relation_document_prepared_contract(
+    provider.prepared_contract,
+  )
+  guard writable_fields >= 0 &&
+    writable_fields <= limits.page.max_nodes &&
+    native_ordered_target_selector_limits(provider) is Some(selector) &&
+    @source.json_construction_extent(
+      selector.max_input_bytes,
+      selector.max_nodes,
+      selector.max_depth,
+      normalize_keys=true,
+    )
+    is Some(units) &&
+    @execution.preparation_representation_cost({
+      record_headers: units.record_headers,
+      reference_slots: units.reference_slots,
+      scalar_words: units.scalar_words,
+      owned_utf16_units: units.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    })
+    is Some(selector_bytes) &&
+    @files.native_filesystem_read_layout() is Some(layout) &&
+    file_capture_transport_capacity(
+      provider.selection,
+      limits,
+      layout,
+      measured_transport_bytes=Some(0),
+    )
+    is Some(transport) &&
+    native_relation_file_target_read_fixed_capacity(provider, contract)
+    is Some(controls) &&
+    @execution.preparation_array_representation(
+      1L,
+      writable_fields.to_int64(),
+      false,
+    )
+    is Some(writable) &&
+    @execution.preparation_representation_cost(writable) is Some(writable) &&
+    @execution.checked_preparation_add_product(controls, transport, 1L)
+    is Some(fixed) &&
+    @execution.checked_preparation_add_product(fixed, writable, 1L)
+    is Some(fixed) &&
+    @execution.checked_preparation_add_product(fixed, selector_bytes, 1L)
+    is Some(total) else {
+    return None
+  }
+  @execution.execution_capacity(total, total)
+}
+
+///|
+fn native_ordered_target_selector_limits(
+  provider : NativeRelationFilePreparedProvider,
+) -> @source.ParseLimits? {
+  let page = provider.limits.page
+  let contract = @rows.relation_document_prepared_contract(
+    provider.prepared_contract,
+  )
+  guard provider.ordered_key is Some(_) &&
+    contract.shape is @contract.Object(fields) &&
+    page.max_depth >= 2 else {
+    return None
+  }
+  let width = @contract.field_count(fields)
+  let nodes = if width >= page.max_nodes { page.max_nodes } else { width + 1 }
+  Some({ max_input_bytes: page.max_bytes, max_nodes: nodes, max_depth: 2, })
+}
+
+///|
+/// Check the shape of the already captured selector before any physical Root
+/// is opened. Canonical typed selection remains on the original document.
+pub fn native_ordered_target_capture_selector_valid(
+  provider : NativeRelationFilePreparedProvider,
+  selector : String,
+) -> Bool {
+  guard native_ordered_target_selector_limits(provider) is Some(limits) else {
+    return false
+  }
+  @source.parse_json(selector, limits) is Ok({ value: @source.Array(_), .. })
+}
+
+///|
+// Raw spans and decoded Text are bounded by the observed bytes. A Signed64
+// cell can expand when emitted in decimal and quoted (up to 22 bytes), so
+// allow that many per original input byte, independently of NFC expansion.
+// A flat closed projection introduces no nested nodes. Keep enough quote
+// nodes for the declared field frontier even on an empty/malformed body.
+fn native_ordered_target_measured_projection(
+  contract : @contract.Contract,
+  limits : @rows.RowPageLimits,
+  response_bytes : Int,
+) -> @rows.RowPageLimits? {
+  guard !contract.nullable &&
+    contract.shape is @contract.Object(fields) &&
+    response_bytes >= 0 &&
+    response_bytes <= limits.max_bytes else {
+    return None
+  }
+  let width = @contract.field_count(fields)
+  let mut signed64 = false
+  for index in 0..<width {
+    let field = @contract.field_at(fields, index).unwrap().contract
+    if field.nullable {
+      return None
+    }
+    match field.shape {
+      @contract.Text(_) => ()
+      @contract.Signed64 => signed64 = true
+      _ => return None
+    }
+  }
+  guard signed64 &&
+    @canonical.nfc_lf_retained_output_units(response_bytes.to_int64())
+    is Some(normalized) &&
+    @execution.checked_preparation_add_product(
+      response_bytes.to_int64(),
+      normalized,
+      6L,
+    )
+    is Some(text) &&
+    @execution.checked_preparation_add_product(
+      text,
+      response_bytes.to_int64(),
+      22L,
+    )
+    is Some(total) else {
+    return None
+  }
+  Some({
+    ..limits,
+    max_bytes: Int64::min(limits.max_bytes.to_int64(), Int64::max(1L, total)).to_int(),
+    max_nodes: Int::min(
+      limits.max_nodes,
+      Int::max(width, Int::max(1, response_bytes)),
+    ),
+  })
+}
+
+///|
+// The ready Target emits one checked row. For flat Text/Int64, the original
+// file size bounds all decoded text before normalization. Int64 is emitted as
+// a quoted exact decimal, independently of the physical token spelling.
+// This bounds the Before text buffer only; the document and write check keep
+// their own inventories, and the actual writer retains all policy limits.
+fn native_ordered_target_before_wire_bound(
+  contract : @contract.Contract,
+  max_bytes : Int,
+  response_bytes : Int,
+) -> Int {
+  guard !contract.nullable &&
+    contract.shape is @contract.Object(fields) &&
+    @canonical.nfc_lf_retained_output_units(response_bytes.to_int64())
+    is Some(normalized) else {
+    return max_bytes
+  }
+  let width = @contract.field_count(fields)
+  // Braces; two key quotes, colon and at most one comma per field; keys
+  // may need six output bytes per UTF16 unit (bounded by their UTF8 bytes).
+  // Field count is Int, so at most 26 bytes per field cannot overflow Int64.
+  let mut bytes = 2L
+  for index in 0..<width {
+    let value = @contract.field_at(fields, index).unwrap().contract
+    if value.nullable {
+      return max_bytes
+    }
+    bytes += match value.shape {
+      @contract.Text(_) => 6L
+      @contract.Signed64 => 26L
+      _ => return max_bytes
+    }
+  }
+  guard @execution.checked_preparation_add_product(
+      bytes,
+      @contract.field_name_bytes(fields).to_int64(),
+      6L,
+    )
+    is Some(with_keys) &&
+    @execution.checked_preparation_add_product(with_keys, normalized, 6L)
+    is Some(total) else {
+    return max_bytes
+  }
+  Int64::min(max_bytes.to_int64(), total).to_int()
 }
 
 ///|

@@ -23,10 +23,9 @@ test "checked Effect plan projects one source row with bounded work" {
   let projected = project_effect_plan_row(terminal, row, 3, 1, 6).unwrap()
   assert_true(physical_equal(effect_plan_row_terminal(projected), terminal))
   assert_eq(effect_plan_row_source_index(projected), 3)
-  assert_eq(
-    @json.stringify_value(effect_plan_row_selector(projected), 32, 4, 2),
-    "7",
-  )
+  let writer = @encode.writer(32, 4, 2)
+  emit_effect_plan_row_selector(projected, writer)
+  assert_eq(@encode.finish(writer), "7")
   assert_eq(effect_plan_row_field_count(projected), 1)
   let (name, value) = effect_plan_row_field_at(projected, 0).unwrap()
   assert_eq(name, "Name")

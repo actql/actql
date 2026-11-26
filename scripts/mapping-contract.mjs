@@ -12,7 +12,7 @@ const valueSource = {
 };
 
 export function mappingContractBody() {
-  return {
+  const mapping = {
     schema:{
       type:'object',additionalProperties:false,
       required:[
@@ -91,6 +91,38 @@ export function mappingContractBody() {
         target_ref:{type:'string',pattern:'^connector://'},
         collection_identity:{type:'object',minProperties:1},
         boundary_topology:{const:'connector_connection'},
+      },
+    },
+  };
+  const legacy = mapping.schema;
+  const permissions = legacy.properties.permission_rules;
+  const rule = permissions.items;
+  return {
+    ...mapping,
+    tuple_schema:{
+      type:legacy.type,
+      additionalProperties:legacy.additionalProperties,
+      required:legacy.required,
+      properties:{
+        ...legacy.properties,
+        schema:{const:'actql.mapping_contract/0.2'},
+        primary_identity:{type:'object',additionalProperties:false,required:['kind','fields'],
+          properties:{kind:{const:'tuple'},fields:{...names,minItems:2}}},
+        permission_rules:{
+          ...permissions,
+          items:{
+            ...rule,
+            properties:{
+              ...rule.properties,
+              effect_kind:{enum:['update','delete','upsert']},
+              selector_class:{enum:['match_tuple','key_tuple']},
+            },
+            if:{properties:{effect_kind:{const:'upsert'}}},
+            then:{properties:{selector_class:{const:'key_tuple'}}},
+            else:{properties:{selector_class:{const:'match_tuple'}}},
+          },
+        },
+        store_command:false,
       },
     },
   };

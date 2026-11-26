@@ -46,7 +46,8 @@ type Catalog = Readonly<{
   views: readonly Readonly<{resource: string}>[];
 }>;
 type SubjectTarget = Readonly<{connection: string; resource: string; mappingCid: string;
-  itemsPath: readonly string[]; keyPath: readonly string[]; primaryIdentity: string}>;
+  itemsPath: readonly string[]; keyPath: readonly string[];
+  primaryIdentity: string | Readonly<{kind: 'tuple'; fields: readonly string[]}>}>;
 type SubjectBundle = Readonly<{
   sources: readonly Readonly<{catalogue: Catalog; wire: string}>[];
   writables: readonly Readonly<{
@@ -130,11 +131,20 @@ export function prepareOrdinaryMockAccountSubjects(frame: Frame, bundle: Subject
     }
   }
   for (const entry of originalTasks) units += BigInt(entry.taskCid.length);
+  const includesTargets = bundle.writables.length > 1 || bundle.writables.some(target =>
+    typeof target.physical.primaryIdentity !== 'string');
   for (const target of bundle.writables) {
     units += BigInt(128 + target.source.catalogue.connection.length + target.write.resource.length);
     nodes += 24n + 2n * BigInt(target.physical.itemsPath.length + target.physical.keyPath.length);
-    if (bundle.writables.length > 1) {
-      units += BigInt(71 + target.physical.primaryIdentity.length);
+    if (includesTargets) {
+      const primary = target.physical.primaryIdentity;
+      units += 71n;
+      if (typeof primary === 'string') units += BigInt(primary.length);
+      else {
+        units += 32n;
+        nodes += 6n + 2n * BigInt(primary.fields.length);
+        for (const name of primary.fields) units += BigInt(name.length);
+      }
       for (const part of target.physical.itemsPath) units += BigInt(part.length);
       for (const part of target.physical.keyPath) units += BigInt(part.length);
     }
@@ -163,7 +173,7 @@ export function prepareOrdinaryMockAccountSubjects(frame: Frame, bundle: Subject
     sources: bundle.sources.map(entry => ({connection: entry.catalogue.connection,
       registration: entry.catalogue.registration, declarationCid: hashOriginal(entry.wire)})),
     modelTasks: tasks, requestRealization};
-  if (bundle.writables.length > 1) subject.targets = bundle.writables.map(target => {
+  if (includesTargets) subject.targets = bundle.writables.map(target => {
     if (typeof target.mapping?.mappingCid !== 'string') fail('InstalledMockMappingUnavailable');
     return {connection: target.source.catalogue.connection, resource: target.write.resource,
       mappingCid: target.mapping.mappingCid, itemsPath: target.physical.itemsPath,

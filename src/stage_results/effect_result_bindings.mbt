@@ -60,6 +60,7 @@ pub struct EffectResultBinding {
 pub(all) enum EffectResultFieldRole {
   EffectSelector
   EffectUpsertKey
+  EffectTupleSelector(String)
   EffectCommandTarget
   EffectCommandIdentifier
   EffectValue(String)
@@ -286,6 +287,32 @@ pub fn bind_effect_results(
     if result is Some(definition) {
       let body = @decode.open_object(@syntax.effect_header_body(header)).unwrap()
       let kind = @syntax.effect_header_kind(header)
+      let tuple = if kind == "upsert" {
+        @decode.lookup(body, "key_tuple")
+      } else {
+        @decode.lookup(body, "match_tuple")
+      }
+      if tuple is Some(tuple) {
+        let count = @decode.array_length(tuple).unwrap()
+        remaining = match binding_charge(header, remaining, count) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        for index in 0..<count {
+          let pair = @decode.open_object(
+            @decode.element_at(tuple, index).unwrap(),
+          ).unwrap()
+          let target = @decode.text(
+            @decode.lookup(pair, "target_field").unwrap(),
+          ).unwrap()
+          let name = @decode.text(@decode.lookup(pair, "result_field").unwrap()).unwrap()
+          match binding_field(header, definition, name) {
+            Ok(field) =>
+              fields.push({ role: EffectTupleSelector(target), field, })
+            Err(issue) => return Err(issue)
+          }
+        }
+      }
       let mut direct : @decode.Cursor? = None
       let mut direct_role = EffectSelector
       if kind == "update" || kind == "delete" {

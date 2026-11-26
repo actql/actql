@@ -114,12 +114,19 @@ test "Native saved file create request uses the assigned key without a before im
     key +
     "\",\"value\":{\"Name\":\"日😀\"}}"
   let bytes = @utf8.encode(expected).length()
-  let result = native_local_effect_file_create_request_wire(
-    "binding", "mapping", key, value, bytes, 8, 3,
+  let result = native_local_effect_file_insert_request_wire(
+    "binding",
+    "mapping",
+    key,
+    value,
+    bytes,
+    8,
+    3,
+    ordered_target=None,
   )
   assert_eq(result.unwrap(), expected)
   assert_true(
-    native_local_effect_file_create_request_wire(
+    native_local_effect_file_insert_request_wire(
       "binding",
       "mapping",
       key,
@@ -127,9 +134,46 @@ test "Native saved file create request uses the assigned key without a before im
       bytes - 1,
       8,
       3,
+      ordered_target=None,
     )
     is Err(_),
   )
+}
+
+///|
+test "Native ordered file insert request keeps a bounded typed array without a before image" {
+  let key = @canonical.from_json(
+    ["west", "9223372036854775807"],
+    16,
+    4,
+    256,
+    data_keys=true,
+  )
+  let value = @canonical.from_json(
+    { "Name": "日" },
+    16,
+    4,
+    256,
+    data_keys=true,
+  )
+  let expected =
+    #|{"binding":"binding","mapping":"mapping","target":["west","9223372036854775807"],"value":{"Name":"日"}}
+  let bytes = @utf8.encode(expected).length()
+  let request = (limit, target) => {
+    native_local_effect_file_insert_request_wire(
+      "binding",
+      "mapping",
+      "",
+      value,
+      limit,
+      16,
+      4,
+      ordered_target=Some(target),
+    )
+  }
+  assert_eq(request(bytes, key).unwrap(), expected)
+  assert_true(request(bytes - 1, key) is Err(_))
+  assert_true(request(bytes, value) is Err(_))
 }
 
 ///|

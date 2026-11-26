@@ -339,8 +339,8 @@ fn[I] prepare_request_static_effect_check(
       // finite Mapping/static limits remain unchanged; no unavailable binding
       // work is fabricated from a maximum, and no LowerAndGraph work is run.
       let result = match
-        @environment.check_mapping_contract_shapes(
-          @checked.effect_computation_environment(candidate),
+        @checked.check_effect_computation_mappings(
+          candidate,
           limits.mapping,
           limits.max_mapping_work,
         ) {

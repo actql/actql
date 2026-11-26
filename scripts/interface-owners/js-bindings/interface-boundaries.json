@@ -97094,7 +97094,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-construction.mjs",
-      "sha256": "2769a87d8a2a614ccb1dc3ed14cd28b7f7f3ae0de252603997dd4201899e013b",
+      "sha256": "c1228df1136a3d4a56afc90100cfa624e446e044b9ed4b2b253376641b745488",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
@@ -97170,21 +97170,7 @@
           "async": false
         },
         {
-          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect/createInstalledRowEffect",
-          "parameters": [
-            "kind"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect#2",
-          "parameters": [
-            "rule"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect#3",
           "parameters": [
             "item"
           ],
@@ -97194,6 +97180,20 @@
           "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/installed/installed",
           "parameters": [
             "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/installed/installed/installed",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/installed/installed/installed/installed",
+          "parameters": [
+            "kind"
           ],
           "async": false
         },
@@ -97291,8 +97291,8 @@
             "createInstalledRowEffectConstruction/installedRowEffectDescriptors/installedRowEffectDescriptors",
             "createInstalledRowEffectConstruction/installedRowEffectUnit",
             "createInstalledRowEffectConstruction/installedRowEffectUnit/units/units",
-            "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect/createInstalledRowEffect",
-            "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect#3"
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/installed/installed/installed/installed",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/installed/installed/installed"
           ],
           "exports": [
             "createInstalledRowEffectConstruction"
@@ -117218,7 +117218,7 @@
       "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "267de0f2b88016f357e44aebd229f96fc829eee2960368cc00f25d07320f334b",
+      "sha256": "b62070d9a10397e6c882cf106829e531b7fedd6aa58073a19ebfd212b8a1fea4",
       "contracts": [
         {
           "operations": [
@@ -117258,7 +117258,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-source-mapping.mts",
-                "anchor": "sourcesJson === undefined ? JSON.stringify(sources) : sourcesJson"
+                "anchor": "sourcesJson === undefined ? JSON.stringify(selected ? {operation, sources} : sources) : sourcesJson"
               }
             ],
             "ownership": [
@@ -117302,7 +117302,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/installed-row-source-mapping.mts",
-                "anchor": "const prepare = operation === 'update'"
+                "anchor": "const prepare = selected ?"
               }
             ],
             "verification": [

@@ -311,7 +311,11 @@ fn target_io_fixture_physical(kind : Int) -> Unit raise {
     1 => target_io_fixture_cancel_work(directory)
     2 => target_io_fixture_sync_work(directory)
     4 | 5 | 6 => target_io_fixture_lineage_work(directory, kind)
-    7 => target_io_fixture_insert_work(directory)
+    7 => {
+      target_io_fixture_insert_work(directory)
+      target_io_fixture_ordered_before_work(directory)
+      target_io_fixture_ordered_insert_work(directory)
+    }
     _ => target_io_fixture_funding_work(directory)
   }
   arena.leave_domain_retained_execution(execution).unwrap()
@@ -692,6 +696,331 @@ fn target_io_fixture_insert_work(directory : String) -> Unit raise {
   target_io_fixture_run(reopened)
   assert_eq(reopened.snapshot().unwrap().0, "{\"id\":\"third\",\"value\":3}")
   assert_true(reopened.close().unwrap())
+}
+
+///|
+fn target_io_fixture_ordered_declaration(
+  label_nullable : Bool,
+) -> @rows.RowDeclaration {
+  @rows.restore_relation_row_declaration(
+    "ordered",
+    "fixture",
+    "fixture/0.1",
+    @rows.project_relation_declaration_input(
+      {
+        "views": [
+          {
+            "resource": "records",
+            "resource_kind": "record",
+            "schema": {
+              "site": { "type": "string", "nullable": false },
+              "serial": { "type": "int64", "nullable": false },
+              "label": { "type": "string", "nullable": label_nullable },
+            },
+            "facts": {
+              "relation_keys": { "candidate_keys": [["site", "serial"]] },
+            },
+          },
+        ],
+      },
+      65536,
+      8192,
+      32,
+    ).unwrap(),
+    None,
+  ).unwrap()
+}
+
+///|
+fn target_io_fixture_ordered_before_work(directory : String) -> Unit raise {
+  let target = prepare_native_relation_file_provider(
+    target_io_fixture_ordered_declaration(false),
+    {
+      directory,
+      name: "target-ordered-before.json",
+      resource: "records",
+      items_path: ["items"],
+      key_path: Some(["keys"]),
+      primary_identity: "site",
+    },
+    {
+      page: { max_bytes: 65536, max_nodes: 128, max_depth: 8, max_rows: 4, },
+      max_work: 1000000,
+      chunk_bytes: 32,
+      diagnostic_ceiling: 256,
+    },
+    ordered_fields=Some(["site", "serial"]),
+  ).unwrap()
+  let contract = @rows.relation_document_prepared_contract(
+    target.prepared_contract,
+  )
+  let initial = native_ordered_target_capture_initial_capacity(target, 1).unwrap()
+  let initial_bytes = @execution.execution_capacity_execution_bytes(initial)
+  let legacy = native_relation_file_target_read_io_capacity(
+    target,
+    1,
+    response_bytes=Some(0),
+  ).unwrap()
+  assert_true(
+    initial_bytes < @execution.execution_capacity_execution_bytes(legacy),
+  )
+  let physical_bytes = 167
+  let before_bound = native_ordered_target_before_wire_bound(
+    contract,
+    target.limits.page.max_bytes,
+    physical_bytes,
+  )
+  assert_eq(before_bound, 4138)
+  // U+0344 expands in NFC. The original typed Text emission preserves it;
+  // neither the quote nor verification replaces that spelling in Before.
+  assert_eq(
+    @canonical.normalize_nfc_lf("\u{0344}").unwrap(),
+    "\u{0308}\u{0301}",
+  )
+  for
+    (key, expected_before, expected_version) in [
+      (
+        "[\"west\",\"-9223372036854775808\"]", "{\"label\":\"\u{0344}\\n\\\"\\\\😀\",\"serial\":\"-9223372036854775808\",\"site\":\"west\"}",
+        "sha256:ec5812890f6d2fc41f42abafde54bfd4e736376ed90fcf4d4618eb678da6ce58",
+      ),
+      (
+        "[\"east\",\"9223372036854775807\"]", "{\"label\":\"plain\",\"serial\":\"9223372036854775807\",\"site\":\"east\"}",
+        "sha256:f6f0b644bb748811cdbf0aff84be6bba17bc07b667295a6abe838613b643847e",
+      ),
+    ] {
+    let quote = bytes => {
+      let (value, _) = native_relation_file_ordered_target_construction(
+        target,
+        1,
+        key,
+        ObserveTarget,
+        Some(bytes),
+      ).unwrap()
+      @execution.execution_capacity_execution_bytes(value)
+    }
+    let exact = Int64::max(initial_bytes, quote(physical_bytes))
+    let observed = Ref(0)
+    let open = budget => {
+      assert_true(native_ordered_target_capture_selector_valid(target, key))
+      prepare_native_relation_file_ordered_target_io(
+        target,
+        ["label"],
+        key,
+        ObserveTarget,
+        bytes => {
+          observed.val += 1
+          bytes == physical_bytes &&
+          Int64::max(initial_bytes, quote(bytes)) <= budget
+        },
+      ).unwrap()
+    }
+    let unopened = open(exact)
+    assert_true(unopened.root is None && unopened.observation is None)
+    assert_true(unopened.close().unwrap())
+    assert_eq(observed.val, 0)
+    let short = open(exact - 1L)
+    assert_true(short.advance() is Err(Capacity))
+    assert_eq(observed.val, 1)
+    assert_eq(short.byte_counts(), (0L, 0L))
+    assert_true(short.reader is None && short.buffer is None)
+    assert_eq(short.snapshot(), None)
+    assert_true(short.close().unwrap())
+    assert_true(short.root is None && short.observation is None)
+    let child = open(exact)
+    target_io_fixture_run(child)
+    assert_eq(observed.val, 2)
+    let (before, version) = child.snapshot().unwrap()
+    assert_true(@utf8.encode(before).length() <= before_bound)
+    assert_eq((before, version), (expected_before, expected_version))
+    // Replacement DATA can grow beyond the received file even for this
+    // closed schema. Its existing validation and limits are independent.
+    let expanded = "{\"label\":\"" + "x".repeat(512) + "\"}"
+    child.check_update(expanded).unwrap()
+    assert_true(
+      child.check_update("{\"serial\":\"9223372036854775806\"}")
+      is Err(Document(_)),
+    )
+    assert_eq(child.byte_counts(), (physical_bytes.to_int64(), 0L))
+    assert_true(child.replacement_acknowledgment() is None)
+    assert_true(child.close().unwrap())
+  }
+}
+
+///|
+fn target_io_fixture_ordered_insert_work(directory : String) -> Unit raise {
+  let declaration = target_io_fixture_ordered_declaration(true)
+  let target = prepare_native_relation_file_provider(
+    declaration,
+    {
+      directory,
+      name: "target-ordered.json",
+      resource: "records",
+      items_path: ["items"],
+      key_path: Some(["keys"]),
+      primary_identity: "site",
+    },
+    {
+      page: { max_bytes: 4096, max_nodes: 128, max_depth: 8, max_rows: 4, },
+      max_work: 1000000,
+      chunk_bytes: 32,
+      diagnostic_ceiling: 256,
+    },
+    ordered_fields=Some(["site", "serial"]),
+  ).unwrap()
+  let key = "[\"west\",\"9223372036854775807\"]"
+  let original = " {\"keys\":[\"site\",\"serial\"],\"items\":[{\"site\":\"west\",\"serial\":9223372036854775806,\"label\":\"keep\"},{\"site\":\"east\",\"serial\":9223372036854775807,\"label\":null}],\"control\":[\"untouched\"]}\n"
+  assert_eq(
+    native_ordered_target_before_wire_bound(
+      @rows.relation_document_prepared_contract(target.prepared_contract),
+      target.limits.page.max_bytes,
+      original.length(),
+    ),
+    target.limits.page.max_bytes,
+  )
+  let expected = " {\"keys\":[\"site\",\"serial\"],\"items\":[{\"site\":\"west\",\"serial\":9223372036854775806,\"label\":\"keep\"},{\"site\":\"east\",\"serial\":9223372036854775807,\"label\":null},{\"label\":\"new\",\"serial\":9223372036854775807,\"site\":\"west\"}],\"control\":[\"untouched\"]}\n"
+  let open = (mutation : NativeRelationFileTargetMutation) => {
+    let writable = match mutation {
+      InsertTarget(_, _) | DeleteTarget(_, _) | ObserveDeleteTarget => []
+      _ => ["label"]
+    }
+    let (initial, _) = native_relation_file_ordered_target_construction(
+      target,
+      writable.length(),
+      key,
+      mutation,
+      None,
+    ).unwrap()
+    prepare_native_relation_file_ordered_target_io(
+      target,
+      writable,
+      key,
+      mutation,
+      bytes => {
+        guard native_relation_file_ordered_target_construction(
+            target,
+            writable.length(),
+            key,
+            mutation,
+            Some(bytes),
+          )
+          is Some((actual, _)) else {
+          return false
+        }
+        @execution.execution_capacity_execution_bytes(actual) >
+        @execution.execution_capacity_execution_bytes(initial)
+      },
+    ).unwrap()
+  }
+  let observed = open(ObserveOptionalTarget)
+  assert_false(observed.target_absent())
+  target_io_fixture_run(observed)
+  assert_true(observed.target_absent())
+  assert_eq(observed.snapshot(), None)
+  assert_eq(observed.byte_counts(), (original.length().to_int64(), 0L))
+  assert_true(observed.close().unwrap())
+  assert_false(observed.target_absent())
+
+  let mapped = "{\"label\":\"new\"}"
+  let insert = open(InsertTarget(mapped, "target-ordered-insert"))
+  target_io_fixture_run(insert)
+  let ack = insert.replacement_acknowledgment().unwrap()
+  assert_true(ack.is_insert())
+  assert_eq(ack.identity(), key)
+  assert_eq(ack.changes_wire(), mapped)
+  assert_eq(ack.replacement(), @utf8.encode(expected))
+  assert_true(insert.close().unwrap())
+  assert_true(
+    insert.root is None && insert.lock is None && insert.writer is None,
+  )
+
+  // The independently re-opened file now contains the approved tuple. A
+  // second insert must refuse under the same original lock before replacement.
+  let duplicate = open(InsertTarget(mapped, "target-ordered-duplicate"))
+  let mut stopped = false
+  for _ in 0..<100 {
+    match duplicate.advance() {
+      Ok(false) => ()
+      Err(Document(@rows.InvalidPage)) => {
+        stopped = true
+        break
+      }
+      _ => fail("existing ordered key did not refuse before replacement")
+    }
+  }
+  assert_true(stopped)
+  assert_eq(duplicate.byte_counts(), (expected.length().to_int64(), 0L))
+  assert_true(duplicate.replacement_acknowledgment() is None)
+  assert_true(duplicate.close().unwrap())
+  let reopened = open(ObserveOptionalTarget)
+  target_io_fixture_run(reopened)
+  assert_false(reopened.target_absent())
+  let (before_update, before_version) = reopened.snapshot().unwrap()
+  assert_eq(
+    before_update, "{\"label\":\"new\",\"serial\":\"9223372036854775807\",\"site\":\"west\"}",
+  )
+  let changes = "{\"label\":\"updated\"}"
+  reopened.check_update(changes).unwrap()
+  assert_eq(reopened.byte_counts().1, 0L)
+  assert_true(reopened.close().unwrap())
+
+  let update = open(
+    UpdateTarget(before_version, changes, "target-ordered-update"),
+  )
+  target_io_fixture_run(update)
+  let updated = update.replacement_acknowledgment().unwrap()
+  assert_eq(updated.identity(), key)
+  assert_true(updated.has_ordered_key())
+  assert_eq(updated.expected_version(), before_version)
+  assert_false(updated.is_delete())
+  assert_false(updated.is_insert())
+  assert_eq(updated.changes_wire(), changes)
+  let expected_update = expected.replace(
+    old="\"label\":\"new\"",
+    new="\"label\":\"updated\"",
+  )
+  assert_eq(updated.replacement(), @utf8.encode(expected_update))
+  assert_true(update.close().unwrap())
+
+  let stale = open(DeleteTarget(before_version, "target-ordered-stale-delete"))
+  let mut stale_refused = false
+  for _ in 0..<100 {
+    match stale.advance() {
+      Ok(false) => ()
+      Err(Document(@rows.ForeignSource)) => {
+        stale_refused = true
+        break
+      }
+      _ => fail("stale ordered target version did not refuse before deletion")
+    }
+  }
+  assert_true(stale_refused)
+  assert_eq(stale.byte_counts(), (expected_update.length().to_int64(), 0L))
+  assert_false(stale.replacement_attempted)
+  assert_true(stale.close().unwrap())
+
+  let read_delete = open(ObserveDeleteTarget)
+  target_io_fixture_run(read_delete)
+  let (before_delete, delete_version) = read_delete.snapshot().unwrap()
+  assert_eq(
+    before_delete, "{\"label\":\"updated\",\"serial\":\"9223372036854775807\",\"site\":\"west\"}",
+  )
+  assert_true(delete_version != before_version)
+  assert_true(read_delete.close().unwrap())
+  let delete = open(DeleteTarget(delete_version, "target-ordered-delete"))
+  target_io_fixture_run(delete)
+  let deleted = delete.replacement_acknowledgment().unwrap()
+  assert_true(deleted.is_delete())
+  assert_true(deleted.has_ordered_key())
+  assert_eq(deleted.identity(), key)
+  assert_eq(deleted.expected_version(), delete_version)
+  assert_eq(deleted.replacement(), @utf8.encode(original))
+  assert_true(delete.close().unwrap())
+
+  let absent = open(ObserveOptionalTarget)
+  target_io_fixture_run(absent)
+  assert_true(absent.target_absent())
+  assert_eq(absent.byte_counts(), (original.length().to_int64(), 0L))
+  assert_true(absent.close().unwrap())
 }
 
 ///|

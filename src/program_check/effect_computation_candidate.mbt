@@ -271,6 +271,29 @@ pub fn effect_computation_catalog_references(
 }
 
 ///|
+/// Reuse the Carrier proof retained by this exact checked computation.
+/// Checking a tuple Mapping must not reopen or replace the Source Catalog.
+pub fn check_effect_computation_mappings(
+  candidate : EffectComputationCandidate,
+  limits : @environment.Limits,
+  max_work : Int,
+) -> Result[@environment.MappingContractShapes, @environment.MappingShapeIssue] {
+  let selected = checked_selected_policy(candidate.checked)
+  let reconciled = @context.policy_context(selected)
+  let carriers = @context.reconciled_sourceviews(reconciled).map(views => {
+    @environment.source_request_carriers(
+      @sourceviews.catalog(@sourceviews.pipeline_resolution(views)),
+    )
+  })
+  @environment.check_mapping_contract_shapes(
+    effect_computation_environment(candidate),
+    limits,
+    max_work,
+    carriers~,
+  )
+}
+
+///|
 /// The static Mapping/Command closure consumes and retains the exact checked
 /// computation owner. It still cannot authorize an Effect, Preview, apply,
 /// or Run.

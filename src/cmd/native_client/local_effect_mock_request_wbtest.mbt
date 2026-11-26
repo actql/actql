@@ -48,3 +48,91 @@ test "Native Mock request projection preserves explicit null and omitted fields 
     present, "{\"before\":{},\"binding\":\"binding\",\"mapping\":\"mapping\",\"target\":\"row\",\"value\":{\"field\":null},\"version\":\"version\"}",
   )
 }
+
+///|
+test "Native saved Mock outcomes retain the ordered file key as an array" {
+  let key = @canonical.from_json(
+    ["west", "9223372036854775807"],
+    64,
+    8,
+    4096,
+    data_keys=true,
+  )
+  let limits : @row_host.RowPageLimits = {
+    max_bytes: 4096,
+    max_nodes: 64,
+    max_depth: 8,
+    max_rows: 1,
+  }
+  let expected =
+    #|{"result":{"id":["west","9223372036854775807"]},"state":"applied"}
+  let identity = "[\"west\",\"9223372036854775807\"]"
+  assert_eq(
+    saved_effect_file_outcome_wire(identity, Some(key), limits),
+    Some(expected),
+  )
+  assert_eq(
+    saved_effect_file_outcome_wire(identity, Some(key), {
+      ..limits,
+      max_bytes: expected.length() - 1,
+    }),
+    None,
+  )
+  assert_eq(
+    saved_effect_file_outcome_wire("west", None, limits),
+    Some("{\"result\":{\"id\":\"west\"},\"state\":\"applied\"}"),
+  )
+}
+
+///|
+test "Native UPSERT request differentiates completed absence from the guarded original row" {
+  let identity : Json = ["west", "9223372036854775807"]
+  let value : Json = { "Name": "After" }
+  let absent = native_mock_effect_file_request_wire(
+    "binding",
+    "mapping",
+    identity,
+    value,
+    Json::null(),
+    "",
+    inserting=true,
+  ).unwrap()
+  assert_eq(
+    absent, "{\"binding\":\"binding\",\"mapping\":\"mapping\",\"target\":[\"west\",\"9223372036854775807\"],\"value\":{\"Name\":\"After\"}}",
+  )
+  let present = native_mock_effect_file_request_wire(
+    "binding",
+    "mapping",
+    identity,
+    value,
+    { "Name": "Before" },
+    "version",
+  ).unwrap()
+  assert_eq(
+    present, "{\"before\":{\"Name\":\"Before\"},\"binding\":\"binding\",\"mapping\":\"mapping\",\"target\":[\"west\",\"9223372036854775807\"],\"value\":{\"Name\":\"After\"},\"version\":\"version\"}",
+  )
+  assert_true(
+    native_mock_effect_file_request_wire(
+      "binding",
+      "mapping",
+      identity,
+      value,
+      Json::null(),
+      "version",
+      inserting=true,
+    )
+    is Err(_),
+  )
+  assert_true(
+    native_mock_effect_file_request_wire(
+      "binding",
+      "mapping",
+      Json::string("west"),
+      value,
+      Json::null(),
+      "",
+      inserting=true,
+    )
+    is Err(_),
+  )
+}

@@ -22,6 +22,11 @@ test('Effect review reuses the exact closed strength guard change and ResourceRe
   }
   assert.deepEqual(row.required,['effect_id','row_preview_cid','target_row_identity','before','after']);
   assert.deepEqual(row.properties.before,{});assert.deepEqual(row.properties.after,{});
+  const identity=member.properties.changes.items.properties.target_row_identity;
+  assert.deepEqual(row.properties.target_row_identity,identity);
+  assert.deepEqual(identity.oneOf.filter(branch=>branch.type==='array'),[
+    {type:'array',minItems:2,items:{type:'string'}},
+  ]);
   for(const scope of [member.properties.target,
     review.properties.displayed_scope.properties.effects.items.properties.target]){
     assert.equal(scope.oneOf.length,3,'only String, field selector and the closed ResourceRef');

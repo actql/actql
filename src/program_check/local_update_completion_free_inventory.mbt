@@ -25,11 +25,18 @@ fn audit_local_update_completion_free(
 }
 
 ///|
+priv enum LocalMappedWriteProfile {
+  UpdateOnly
+  ScalarFile
+  OrderedFile
+} derive(Eq)
+
+///|
 fn audit_local_mapped_write(
   computation : EffectComputationCandidate,
   effects : @results.EffectStaticCandidate,
   work : Int,
-  require_delete? : Bool = false,
+  profile? : LocalMappedWriteProfile = UpdateOnly,
 ) -> CompletionFreeAudit {
   let checked = computation.checked
   let headers = computation.headers
@@ -61,6 +68,7 @@ fn audit_local_mapped_write(
   let literal_count = @results.effect_mapping_literal_count(literals)
   let mut next_literal = 0
   let mut seen_delete = false
+  let ordered = profile == OrderedFile
   for index in 0..<member_count {
     let header = @syntax.effect_header_at(headers, index).unwrap()
     let rule = @results.effect_mapping_rule_at(rules, index).unwrap()
@@ -68,7 +76,11 @@ fn audit_local_mapped_write(
       @results.effect_mapping_rule_effect(rule),
     )
     let operation = @syntax.effect_header_kind(header)
-    if (operation != "update" && !(require_delete && operation == "delete")) ||
+    if (
+        operation != "update" &&
+        !(profile != UpdateOnly && operation == "delete") &&
+        !(ordered && operation == "upsert")
+      ) ||
       !@syntax.effect_header_contract_ref(header).has_prefix("mapping:") ||
       !physical_equal(
         binding,
@@ -85,26 +97,66 @@ fn audit_local_mapped_write(
     let (kind, selector, fields) = @environment.mapping_permission_rule(
       @results.effect_mapping_rule_selection(rule),
     )
-    if kind != operation || selector != "id" {
+    let selector_field = if ordered {
+      if operation == "upsert" {
+        "key_tuple"
+      } else {
+        "match_tuple"
+      }
+    } else {
+      "id"
+    }
+    let mapping = @results.effect_mapping_shape_contract(
+      @results.effect_mapping_rule_effect(rule),
+    )
+    let selector_count = if ordered {
+      @environment.mapping_shape_tuple_field_count(mapping)
+    } else {
+      1
+    }
+    if kind != operation ||
+      selector != selector_field ||
+      (ordered && selector_count < 2) {
       return ProfileNotInstalled
     }
-    // The field bindings and literal inventory come from this exact header.
+    // Checked Mapping rules already bind the tuple result field types and
+    // exact authored order. Walk the same original bindings within this audit.
     let body = @decode.open_object(@syntax.effect_header_body(header)).unwrap()
-    guard @decode.lookup(body, "id") is Some(_) else {
+    guard @decode.lookup(body, selector_field) is Some(_) else {
+      return ProfileNotInstalled
+    }
+    let binding_count = @results.effect_result_field_binding_count(binding)
+    if operation == "delete" {
+      // DELETE binds only its correlated identity. There are no changed
+      // fields, literals or values to normalize.
+      if !fields.is_empty() || binding_count != selector_count {
+        return ProfileNotInstalled
+      }
+      seen_delete = true
+    }
+    if binding_count > remaining {
+      return ProfileNotInstalled
+    }
+    remaining -= binding_count
+    let mut selectors = 0
+    let mut field_changes = 0
+    for field in 0..<binding_count {
+      match
+        @results.effect_result_field_binding_role(
+          @results.effect_result_field_binding_at(binding, field).unwrap(),
+        ) {
+        EffectSelector if !ordered => selectors += 1
+        EffectTupleSelector(name) if ordered &&
+          @environment.mapping_shape_tuple_field_at(mapping, selectors) ==
+          Some(name) => selectors += 1
+        EffectValue(_) if operation != "delete" => field_changes += 1
+        _ => return ProfileNotInstalled
+      }
+    }
+    if selectors != selector_count {
       return ProfileNotInstalled
     }
     if operation == "delete" {
-      // The original checked DELETE binds exactly one correlated identity.
-      // There is no Mapping write field, literal or value to normalize.
-      guard remaining > 0 &&
-        fields.is_empty() &&
-        @results.effect_result_field_binding_count(binding) == 1 &&
-        @results.effect_result_field_binding_role(
-          @results.effect_result_field_binding_at(binding, 0).unwrap(),
-        )
-        is EffectSelector else {
-        return ProfileNotInstalled
-      }
       if next_literal < literal_count &&
         physical_equal(
           @results.effect_mapping_literal_rule(
@@ -114,8 +166,6 @@ fn audit_local_mapped_write(
         ) {
         return ProfileNotInstalled
       }
-      remaining -= 1
-      seen_delete = true
       continue
     }
     guard @decode.lookup(body, "set") is Some(changes) &&
@@ -127,25 +177,6 @@ fn audit_local_mapped_write(
       return ProfileNotInstalled
     }
     remaining -= count
-    let mut selector_count = 0
-    let mut field_changes = 0
-    for field in 0..<@results.effect_result_field_binding_count(binding) {
-      if remaining <= 0 {
-        return ProfileNotInstalled
-      }
-      remaining -= 1
-      match
-        @results.effect_result_field_binding_role(
-          @results.effect_result_field_binding_at(binding, field).unwrap(),
-        ) {
-        EffectSelector => selector_count += 1
-        EffectValue(_) => field_changes += 1
-        _ => return ProfileNotInstalled
-      }
-    }
-    if selector_count != 1 {
-      return ProfileNotInstalled
-    }
     let mut literal_changes = 0
     // Static admission appends literals in rule order. Consume only this
     // member's contiguous entries without regrouping or resetting work.
@@ -180,7 +211,7 @@ fn audit_local_mapped_write(
       return ProfileNotInstalled
     }
   }
-  if next_literal != literal_count || (require_delete && !seen_delete) {
+  if next_literal != literal_count || (profile == ScalarFile && !seen_delete) {
     return ProfileNotInstalled
   }
   Complete(10000 - remaining)
@@ -273,7 +304,9 @@ fn audit_common_update_normalization_inventory(
   CompletionFreeInventoryIssue,
 ] {
   audit_common_mapped_write_normalization_inventory(
-    candidate, allow_source_completion, false,
+    candidate,
+    allow_source_completion,
+    UpdateOnly,
   ).map(fn(inventory) {
     let (computation, audited_work) = inventory
     if local_common_normalization_entry_count(computation) == 0 {
@@ -285,27 +318,38 @@ fn audit_common_update_normalization_inventory(
 }
 
 ///|
-/// Retains the checked UPDATE/DELETE member order, including at least one
-/// correlated DELETE, and the same original Source selection inventory.
+/// Retains the checked File mutation order and the same original Source
+/// selection inventory. The scalar profile requires a correlated DELETE.
 struct LocalCommonFileMutationNormalizationInventory {
   owner : EffectProgramStaticCandidate
   computation : LocalCommonNormalizationInventory
   audited_work : Int
+  ordered : Bool
 }
 
 ///|
 pub fn effect_program_common_file_mutation_normalization_inventory(
   candidate : EffectProgramStaticCandidate,
+  ordered? : Bool = false,
 ) -> Result[
   LocalCommonFileMutationNormalizationInventory,
   CompletionFreeInventoryIssue,
 ] {
-  audit_common_mapped_write_normalization_inventory(candidate, true, true).map(fn(
-    inventory,
-  ) {
-    let (computation, audited_work) = inventory
-    { owner: candidate, computation, audited_work, }
-  })
+  let profile = if ordered { OrderedFile } else { ScalarFile }
+  audit_common_mapped_write_normalization_inventory(candidate, true, profile).map(fn(
+      inventory,
+    ) {
+      let (computation, audited_work) = inventory
+      { owner: candidate, computation, audited_work, ordered, }
+    },
+  )
+}
+
+///|
+pub fn local_common_file_mutation_normalization_ordered(
+  inventory : LocalCommonFileMutationNormalizationInventory,
+) -> Bool {
+  inventory.ordered
 }
 
 ///|
@@ -332,7 +376,7 @@ pub fn local_common_file_mutation_normalization_inventory_matches(
 fn audit_common_mapped_write_normalization_inventory(
   candidate : EffectProgramStaticCandidate,
   allow_source_completion : Bool,
-  require_delete : Bool,
+  profile : LocalMappedWriteProfile,
 ) -> Result[
   (LocalCommonNormalizationInventory, Int),
   CompletionFreeInventoryIssue,
@@ -364,7 +408,7 @@ fn audit_common_mapped_write_normalization_inventory(
       candidate.computation,
       candidate.effects,
       work + count,
-      require_delete~,
+      profile~,
     ) {
     Complete(value) => value
     CompletionObserved => return Err(CompletionObserved)

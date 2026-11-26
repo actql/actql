@@ -134,6 +134,9 @@ fn prepare_client_effect_update_target_entries(
         mapping_ref,
         lookup_work,
         effect_kind=kind,
+        match_tuple=@decode.open_object(@syntax.effect_header_body(header))
+          is Ok(body) &&
+          @decode.lookup(body, "match_tuple") is Some(_),
       ) {
       Ok(value) => value
       // Existing explicit targets outside this positive publication retain

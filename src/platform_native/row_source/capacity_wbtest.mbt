@@ -53,6 +53,33 @@ test "Native transport quote rejects each invalid layout fact and overflow" {
     file_capture_transport_capacity(selected, limits, layout).unwrap(),
     2L,
   )
+  let before_receive = file_capture_transport_capacity(
+    selected,
+    limits,
+    layout,
+    measured_transport_bytes=Some(0),
+  ).unwrap()
+  let observed_receive = file_capture_transport_capacity(
+    selected,
+    limits,
+    layout,
+    measured_transport_bytes=Some(421),
+  ).unwrap()
+  assert_eq(observed_receive - before_receive, 842L)
+  assert_eq(
+    file_capture_transport_capacity(selected, limits, layout).unwrap() -
+    observed_receive,
+    2L * (8192L - 421L),
+  )
+  assert_eq(
+    file_capture_transport_capacity(
+      selected,
+      limits,
+      layout,
+      measured_transport_bytes=Some(8193),
+    ),
+    None,
+  )
   // Same independently declared logical fixture, with no physical owner or
   // source read. Use the selected diagnostic directory when one was provided;
   // /tmp is otherwise only finite quote DATA, never a fallback read authority.
@@ -96,6 +123,120 @@ test "relation file preflight quotes the same complete constructor overlap witho
   assert_eq(actual.transfer_bytes, limits.page.max_bytes.to_int64())
   assert_eq(actual.retained_bytes, expected.total_retained)
   assert_eq(actual.execution_bytes, expected.total_execution)
+}
+
+///|
+test "Native prepared File provider quotes its exact ordered projection" {
+  let declaration = @rows.restore_relation_row_declaration(
+    "ordered",
+    "fixture",
+    "fixture/0.1",
+    @rows.project_relation_declaration_input(
+      {
+        "views": [
+          {
+            "resource": "records",
+            "resource_kind": "record",
+            "schema": {
+              "site": { "type": "string", "nullable": false },
+              "serial": { "type": "int64", "nullable": false },
+            },
+            "facts": {
+              "relation_keys": { "candidate_keys": [["site", "serial"]] },
+            },
+          },
+        ],
+      },
+      65536,
+      8192,
+      32,
+    ).unwrap(),
+    None,
+  ).unwrap()
+  let limits = capture_fixture_limits()
+  let selection : NativeRelationFileSelection = {
+    directory: "/fixture",
+    name: "rows.json",
+    resource: "records",
+    items_path: ["items"],
+    key_path: Some(["keys"]),
+    primary_identity: "site",
+  }
+  let selected = prepare_native_relation_file_provider(
+    declaration,
+    selection,
+    limits,
+    response_measured=true,
+    ordered_fields=Some(["site", "serial"]),
+  ).unwrap()
+  assert_true(selected.ordered_key is Some(_))
+  let ordinary_geometry = file_capture_provider_capacity(
+    selection,
+    limits,
+    @rows.relation_document_prepared_contract(selected.prepared_contract),
+    prepared_contract=Some(selected.prepared_contract),
+    response_bytes=Some(1),
+  ).unwrap()
+  let wrapper = @execution.preparation_representation_cost({
+    record_headers: 1L,
+    reference_slots: 2L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  let capacity = selected.capacity()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(capacity),
+    @execution.execution_capacity_execution_bytes(ordinary_geometry) + wrapper,
+  )
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(capacity),
+    @execution.execution_capacity_retained_bytes(ordinary_geometry) + wrapper,
+  )
+  let key = "[\"west\",\"-9223372036854775808\"]"
+  let initial = native_ordered_target_capture_initial_capacity(selected, 0).unwrap()
+  let legacy = native_relation_file_delete_target_read_io_capacity(
+    selected,
+    response_bytes=Some(0),
+  ).unwrap()
+  let observed_empty = native_relation_file_delete_target_read_io_capacity(
+    selected,
+    response_bytes=Some(0),
+    ordered_wire_utf16=Some(key.length()),
+  ).unwrap()
+  let measured = native_relation_file_delete_target_read_io_capacity(
+    selected,
+    response_bytes=Some(96),
+    ordered_wire_utf16=Some(key.length()),
+  ).unwrap()
+  let maximum = native_relation_file_delete_target_read_io_capacity(selected).unwrap()
+  let execution = @execution.execution_capacity_execution_bytes
+  assert_true(execution(initial) < execution(legacy))
+  assert_true(execution(initial) < execution(maximum))
+  assert_true(execution(observed_empty) < execution(measured))
+  assert_true(execution(measured) < execution(maximum))
+  assert_true(native_ordered_target_capture_selector_valid(selected, key))
+  assert_false(
+    native_ordered_target_capture_selector_valid(selected, "\"west\""),
+  )
+  assert_false(native_ordered_target_capture_selector_valid(selected, "[[[]]]"))
+  assert_true(
+    !file_listing_fields_valid(selected, {
+      name: "site",
+      version: "site",
+      media_type: "site",
+      path: None,
+    }),
+  )
+  assert_true(
+    prepare_native_relation_file_provider(
+      declaration,
+      { ..selection, primary_identity: "serial", },
+      limits,
+      ordered_fields=Some(["serial", "site"]),
+    )
+    is Err(Mapping(_)),
+  )
 }
 
 ///|

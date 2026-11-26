@@ -1,4 +1,4 @@
-# Installed typed UPDATE Mapping continuation
+# Installed typed File write Mapping continuation
 
 - Responsibility: Common generates UPDATE Mapping DATA from the same retained
   full Relation declaration used by the ordinary installed Source/Effect owner.
@@ -53,6 +53,13 @@
   the profile's 64 lowercase hexadecimal characters. Every non-key storage
   field is required in the Mapping, while explicit `write_null` still requires
   a nullable field. The mapped values never include the physical key.
+  The ordered File form selects the complete published candidate key. The
+  original target supplies every component's Text or Int64 contract. UPDATE
+  and DELETE bind `match_tuple`, and UPSERT binds `key_tuple` and requires
+  every non-key storage field. The ordered resource identity binds the provider
+  namespace, exact target and typed schema, published key order and existing
+  connection topology. All three operations on the same target share that
+  identity. Original scalar mappings retain their existing canonical body.
 - Verification: `relation_update_mapping_wbtest.mbt` covers full-type constructor
   equivalence, null/omission rules, invalid closed facts and sibling checks.
   `client_relation_update_mapping_wbtest.mbt` checks actual bridge metadata and
@@ -61,4 +68,6 @@
   `update_mapping_construction_wbtest.mbt` uses the real Ledger and Mapping
   constructor for exact/retention-one-short/execution-one-short admission,
   equal-UTF16/different-UTF8 names and distinct retained sibling identities.
+  The same guarded quote is exercised with each ordered UPDATE, DELETE and
+  UPSERT Mapping against one original resource and its operation permission.
   These component cases do not establish installed default-profile funding.

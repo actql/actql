@@ -35,6 +35,21 @@ pub fn native_relation_file_target_insert_construction(
   observed_bytes : Int?,
   mapped_wire : String?,
 ) -> (@execution.ExecutionCapacity, Int64)? {
+  native_relation_file_target_insert_construction_original(
+    provider,
+    observed_bytes,
+    mapped_wire,
+    None,
+  )
+}
+
+///|
+fn native_relation_file_target_insert_construction_original(
+  provider : NativeRelationFilePreparedProvider,
+  observed_bytes : Int?,
+  mapped_wire : String?,
+  key : @rows.RelationDocumentPreparedKey?,
+) -> (@execution.ExecutionCapacity, Int64)? {
   let limits = provider.limits
   let response_bytes = observed_bytes.unwrap_or(0)
   guard response_bytes >= 0 &&
@@ -73,6 +88,7 @@ pub fn native_relation_file_target_insert_construction(
         contract,
         prepared_contract=Some(provider.prepared_contract),
         response_bytes=Some(response_bytes),
+        ordered_projection=key is Some(_) && response_bytes != 0,
       )
       is Some((extent, units)) else {
       return None
@@ -81,15 +97,24 @@ pub fn native_relation_file_target_insert_construction(
       // Empty input still reaches the bounded original document refusal.
       empty
     } else {
-      guard @rows.relation_target_insert_workspace_inventory(
-          provider.prepared_contract,
-          provider.selection.items_path.length(),
-          response_bytes,
-          mapped_wire.length(),
-        )
-        is Some(workspace) else {
-        return None
+      let path_depth = provider.selection.items_path.length()
+      let workspace = match key {
+        None =>
+          @rows.relation_target_insert_workspace_inventory(
+            provider.prepared_contract,
+            path_depth,
+            response_bytes,
+            mapped_wire.length(),
+          )
+        Some(key) =>
+          @rows.relation_target_ordered_insert_workspace_inventory(
+            key,
+            path_depth,
+            response_bytes,
+            mapped_wire.length(),
+          )
       }
+      guard workspace is Some(workspace) else { return None }
       workspace
     }
     (@execution.execution_capacity_execution_bytes(extent), units, insertion)
@@ -178,6 +203,7 @@ fn native_relation_file_target_write_construction(
       prepared_contract=Some(provider.prepared_contract),
       response_bytes=Some(response_bytes),
       writable_fields~,
+      ordered_projection=provider.has_ordered_key() && response_bytes != 0,
     )
     is Some((document, document_units)) else {
     return None

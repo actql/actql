@@ -77,6 +77,24 @@ pub fn prepare_relation_row_write_mapping(
   sources : Array[RowMappingSource],
   limits : RowDeclarationLimits,
 ) -> Result[RowMapping, RowMappingIssue] {
+  prepare_relation_row_write_mapping_original(
+    declaration, resource, primary_identity, spec, sources, limits,
+  )
+}
+
+///|
+fn prepare_relation_row_write_mapping_original(
+  declaration : RowDeclaration,
+  resource : String,
+  primary_identity : String,
+  spec : RowRelationWriteSpec,
+  sources : Array[RowMappingSource],
+  limits : RowDeclarationLimits,
+  tuple? : (FileMappingKind, Array[String])? = None,
+) -> Result[RowMapping, RowMappingIssue] {
+  let ordered = tuple.map(value => value.1)
+  let delete = tuple is Some((FileDelete, _))
+  let upsert = tuple is Some((FileUpsert, _))
   if limits.max_fields <= 0 ||
     sources.length() > limits.max_fields ||
     spec.writable_fields.length() > limits.max_fields ||
@@ -87,19 +105,31 @@ pub fn prepare_relation_row_write_mapping(
     !distinct(spec.required_fields) ||
     spec.writable_fields.contains(primary_identity) ||
     !spec.required_fields.all(name => spec.writable_fields.contains(name)) ||
-    (spec.kind == RelationUpdate && !spec.required_fields.is_empty()) {
+    (spec.kind == RelationUpdate && !upsert && !spec.required_fields.is_empty()) {
     return Err(InvalidSpecification)
   }
   let (resource_kind, schema) = match
-    mapping_original_relation(declaration, resource, primary_identity, limits) {
+    mapping_original_relation(
+      declaration,
+      resource,
+      primary_identity,
+      limits,
+      ordered_key=ordered,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   guard @schema.from_object(schema) is Ok(relation) else {
     return Err(InvalidSpecification)
   }
-  if sources.is_empty() {
+  if sources.is_empty() && !delete {
     return Err(EmptyWrite)
+  }
+  if ordered is Some(fields) {
+    if !relation_file_tuple_key_valid(relation, fields) ||
+      fields.any(field => spec.writable_fields.contains(field)) {
+      return Err(InvalidSpecification)
+    }
   }
   let mut remaining = limits.max_bytes
   if spec.kind is RelationKeyUpsert(native_identity~, update_permission~) {
@@ -125,7 +155,7 @@ pub fn prepare_relation_row_write_mapping(
   }
   let names = [
     resource,
-    primary_identity,
+    ..ordered.unwrap_or([primary_identity]),
     spec.permission,
     ..spec.writable_fields,
     ..spec.required_fields,
@@ -211,10 +241,17 @@ pub fn prepare_relation_row_write_mapping(
       ]),
     )
   })
-  let (kind, selector) = match spec.kind {
-    RelationCreate => ("create", "none")
-    RelationUpdate => ("update", "id")
-    RelationKeyUpsert(..) => ("upsert", "key")
+  let (kind, selector) = match tuple {
+    Some((FileUpdate, _)) => ("update", "match_tuple")
+    Some((FileDelete, _)) => ("delete", "match_tuple")
+    Some((FileUpsert, _)) => ("upsert", "key_tuple")
+    Some((FileCreate, _)) => return Err(InvalidSpecification)
+    None =>
+      match spec.kind {
+        RelationCreate => ("create", "none")
+        RelationUpdate => ("update", "id")
+        RelationKeyUpsert(..) => ("upsert", "key")
+      }
   }
   let permission = spec.permission
   let provider_identity = match spec.kind {
@@ -241,20 +278,24 @@ pub fn prepare_relation_row_write_mapping(
   let target_schema = @json.parse(schema_wire) catch {
     _ => return Err(InvalidSpecification)
   }
+  let target_ref = "connector://" + declaration.connector_id + "/" + resource
+  let primary = match ordered {
+    Some(fields) => file_tuple_identity_body(fields)
+    None => primary_identity.to_json()
+  }
   try {
+    let request_key = if ordered is Some(_) ||
+      spec.kind is RelationKeyUpsert(..) {
+      primary
+    } else {
+      Json::null()
+    }
     let request_cid = canonical_cid(
       object(
         [
           ("resource", resource.to_json()),
           ("kind", kind.to_json()),
-          (
-            "key",
-            if spec.kind is RelationKeyUpsert(..) {
-              primary_identity.to_json()
-            } else {
-              Json::null()
-            },
-          ),
+          ("key", request_key),
           ..if spec.kind is RelationKeyUpsert(..) {
             [("native_identity", provider_identity.to_json())]
           } else {
@@ -276,34 +317,53 @@ pub fn prepare_relation_row_write_mapping(
       "-" +
       request_cid[7:23].to_owned() +
       ".v1"
-    let identity = canonical_cid(
-      object([
-        ("version", "actql.resource_identity/0.1".to_json()),
-        ("provider_namespace", declaration.connector_registration.to_json()),
-        ("resource_kind", resource_kind.to_json()),
-        ("provider_id_field", provider_identity.to_json()),
-        ("output_field", provider_identity.to_json()),
-        ("boundary_topology", "connector_connection".to_json()),
-      ]),
-      limits,
-    )
+    let target_schema_identity = canonical_cid(target_schema, limits)
+    let identity = if ordered is Some(_) {
+      // The tuple Mapping binds the complete ordered identity and typed
+      // original target. A field of the tuple is never a scalar row identity.
+      canonical_cid(
+        object([
+          ("kind", "file_mock_tuple".to_json()),
+          ("provider_namespace", declaration.connector_registration.to_json()),
+          ("resource_kind", resource_kind.to_json()),
+          ("target_ref", target_ref.to_json()),
+          ("target_schema_identity", target_schema_identity.to_json()),
+          ("primary_identity", primary),
+          ("boundary_topology", "connector_connection".to_json()),
+        ]),
+        limits,
+      )
+    } else {
+      canonical_cid(
+        object([
+          ("version", "actql.resource_identity/0.1".to_json()),
+          ("provider_namespace", declaration.connector_registration.to_json()),
+          ("resource_kind", resource_kind.to_json()),
+          ("provider_id_field", provider_identity.to_json()),
+          ("output_field", provider_identity.to_json()),
+          ("boundary_topology", "connector_connection".to_json()),
+        ]),
+        limits,
+      )
+    }
     let (mapping, mapping_cid) = seal(
       [
-        ("schema", "actql.mapping_contract/0.1".to_json()),
+        (
+          "schema",
+          if ordered is Some(_) {
+            "actql.mapping_contract/0.2".to_json()
+          } else {
+            "actql.mapping_contract/0.1".to_json()
+          },
+        ),
         ("version", declaration.connector_version.to_json()),
         ("mapping_ref", mapping_ref.to_json()),
-        (
-          "target_ref",
-          ("connector://" + declaration.connector_id + "/" + resource).to_json(),
-        ),
+        ("target_ref", target_ref.to_json()),
         ("connector_manifest_cid", declaration.manifest_entry_cid.to_json()),
         ("resource_identity_cid", identity.to_json()),
         ("target_schema", target_schema),
-        (
-          "target_schema_identity",
-          canonical_cid(target_schema, limits).to_json(),
-        ),
-        ("primary_identity", primary_identity.to_json()),
+        ("target_schema_identity", target_schema_identity.to_json()),
+        ("primary_identity", primary),
         ("writable_fields", Json::array(written.map(name => name.to_json()))),
         ("required_fields", Json::array(required.map(name => name.to_json()))),
         ("conversions", Json::array([])),

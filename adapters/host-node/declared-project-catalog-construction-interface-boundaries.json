@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/declared-project-catalog-construction.mjs",
-      "sha256": "1f54fb730ce970e990a5ba16ba39f8299a3426b30832d5aa850e08fddfb5c42d",
+      "sha256": "6477040188d930f7d2922c7b7253d9c9113cee33c648c190213208f2c490c072",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed SourceInitialization material and original Source/Effect constructor owners; provider-neutral geometry DATA only",
@@ -79,7 +79,8 @@
             "entryWire",
             "declarationWire",
             "mappingWires",
-            "sourceCount"
+            "sourceCount",
+            "preparedKeyCount"
           ],
           "async": false
         },
@@ -294,7 +295,7 @@
               },
               {
                 "path": "adapters/host-node/declared-project-catalog-construction.mts",
-                "anchor": "const wireBytes = BigInt(maxRequestBytes) + 6n * pathUnits + 4n * pathItems + 128n;"
+                "anchor": "const wireBytes = BigInt(maxRequestBytes) + 6n * pathUnits + 4n * pathItems + 128n + orderedIdentity.wire;"
               }
             ],
             "identity": [

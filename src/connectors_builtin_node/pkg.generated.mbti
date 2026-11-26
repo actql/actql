@@ -4104,11 +4104,21 @@ pub fn client_program_relation_admit_target_document(@client_row_source_host.Row
 
 pub fn client_program_relation_document_usage(@client_row_source_host.RelationDocument) -> Array[Int64]?
 
+pub fn client_program_relation_file_key_metadata_capacity(@execution_relation.ExecutionCapacity, @client_row_source_host.RowDeclaration, String, Int, Int, Int, Int, Int) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]
+
+pub fn client_program_relation_find_ordered_target(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[Array[@client_row_source_host.RelationTargetRow], @client_row_source_host.RowSourceIssue]
+
 pub fn client_program_relation_insert_workspace_capacity(@client_row_source_host.RelationDocumentPreparedContract, Int, Int, Int) -> Result[@execution_relation.ExecutionCapacity, @client_row_source_host.RowSourceIssue]
 
 pub fn client_program_relation_observe_target(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.RelationTargetRow, @client_row_source_host.RowSourceIssue]
 
+pub fn client_program_relation_ordered_mutation_workspace_capacity(@client_row_source_host.RelationDocumentPreparedKey?, Int, Int, Int, Int?) -> Result[@execution_relation.ExecutionCapacity, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_prepare_file_key(@client_row_source_host.RowDeclaration, String, Array[String], Int, Int, Int, Int) -> Result[@client_row_source_host.RelationDocumentPreparedKey?, @client_row_source_host.RowMappingIssue]
+
 pub fn client_program_relation_prepare_insert_contract(@client_row_source_host.RowDeclaration, String, String, Int, Int, Int, Int) -> Result[@client_row_source_host.RelationDocumentPreparedContract, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_relation_prepare_ordered_target_insert(@client_row_source_host.RelationDocument, @client_row_source_host.RelationDocumentPreparedKey?, Array[String], Array[String], String, String) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
 
 pub fn client_program_relation_prepare_target_delete(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
 
@@ -4116,7 +4126,7 @@ pub fn client_program_relation_prepare_target_insert(@client_row_source_host.Rel
 
 pub fn client_program_relation_prepare_target_update(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
 
-pub fn client_program_relation_project_target_document(@client_row_source_host.RelationDocument, @client_row_source_host.RowDeclaration, String, Array[String], Array[String], String, Array[String]) -> Result[@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowSourceIssue]
+pub fn client_program_relation_project_target_document(@client_row_source_host.RelationDocument, @client_row_source_host.RowDeclaration, String, Array[String], Array[String], String?, @client_row_source_host.RelationDocumentPreparedKey?, Array[String]) -> Result[@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowSourceIssue]
 
 pub fn client_program_relation_restore_construction_capacity(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.ExecutionCapacity?
 

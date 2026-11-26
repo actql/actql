@@ -16,7 +16,8 @@ type ActualRuntime = Required<Parameters<typeof inspectDeclaredProjectCatalog>[0
   clientProgramRelationAdmitDocument(bytes: Uint8Array, maxBytes: number, maxNodes: number,
     maxDepth: number, maxRows: number, maxWork: number): unknown;
   clientProgramRelationProjectTargetDocument(document: unknown, declaration: unknown, resource: string,
-    itemsPath: readonly string[], keyPath: readonly string[], primaryIdentity: string, writableFields: readonly string[]): unknown;
+    itemsPath: readonly string[], keyPath: readonly string[], identity: string | undefined,
+    preparedKey: unknown, writableFields: readonly string[]): unknown;
   clientProgramRelationObserveTarget(document: unknown, declaration: unknown, identity: string): unknown;
   clientProgramRelationTargetBefore(row: unknown): string | undefined;
   clientProgramRelationTargetVersion(row: unknown): string | undefined;
@@ -190,6 +191,16 @@ test('actual catalog refuses missing duplicate and foreign resource bindings bef
   await f.rejects(catalog => {
     const writes = catalog.connections.salesforce.writes;
     writes.push({...writes[0], aliases: ['other.Account']});
+  });
+  await f.rejects(catalog => {
+    const entry = catalog.connections.salesforce;
+    const original = entry.writes[0], resource = 'AccountArchive';
+    const view = entry.views.find(view => view.resource === original.resource)!;
+    const binding = entry.data.find(binding => binding.resource === original.resource)!;
+    assert.ok(Array.isArray(binding.items_path));
+    entry.views.push({...structuredClone(view), resource});
+    entry.data.push({...structuredClone(binding), resource, items_path: [...binding.items_path, 'archive']});
+    entry.writes.push({...structuredClone(original), resource, aliases: ['salesforce.AccountArchive']});
   }, {code: 'OverlappingMockWritableCollections'});
   const files = await fixture(t, 'deal-review-mock');
   for (const mutate of [
@@ -233,8 +244,12 @@ test('actual catalog rejects invalid primary identities and malformed declared p
 
 test('actual Common rejects unknown writable columns and invalid declared schema types before fixture I/O', async t => {
   const f = await fixture(t);
-  for (const fields of [['missing'], ['id'], ['Churn_Risk__c', 'missing']]) {
-    await f.rejects(catalog => {catalog.connections.salesforce.writes[0].writable_fields = fields;}, commonRefusal);
+  for (const [fields, code] of [
+    [['missing'], 'RowSourceMappingFieldNotWritable'],
+    [['id'], 'RowSourceMappingInvalidSpecification'],
+    [['Churn_Risk__c', 'missing'], 'RowSourceMappingFieldNotWritable'],
+  ] as const) {
+    await f.rejects(catalog => {catalog.connections.salesforce.writes[0].writable_fields = fields;}, {code});
   }
   await f.rejects(catalog => {catalog.connections.salesforce.views[0].schema.Churn_Risk__c.type = 'invented';}, commonRefusal);
   for (const fields of [null, 'Churn_Risk__c', [], [false], ['Churn_Risk__c', 'Churn_Risk__c']]) {
@@ -243,6 +258,40 @@ test('actual Common rejects unknown writable columns and invalid declared schema
   for (const [field, value] of [['permission', false], ['observe_permission', ''], ['approval', 'none'], ['aliases', []]] as const) {
     await f.rejects(catalog => {(catalog.connections.salesforce.writes[0] as RecordInput)[field] = value;});
   }
+});
+
+test('actual Catalog selects Common Mapping for the complete ordered File key', async t => {
+  const f = await fixture(t);
+  const primary = {kind: 'tuple', fields: ['site', 'serial']};
+  const schema = {label: {type: 'string', nullable: false},
+    serial: {type: 'int64', nullable: false}, site: {type: 'string', nullable: false}};
+  const catalog = {connections: {salesforce: {
+    views: [{resource: 'Account', resource_kind: 'record', schema,
+      facts: {relation_keys: {candidate_keys: [[...primary.fields]]}}}],
+    query_aliases: [{name: 'salesforce.accounts', resource: 'Account'}],
+    data: [{resource: 'Account', items_path: ['salesforce', 'Account', 'rows'],
+      key_path: ['salesforce', 'Account', 'key'], primary_identity: structuredClone(primary)}],
+    writes: [{resource: 'Account', operation: 'upsert', primary_identity: structuredClone(primary),
+      writable_fields: ['label'], permission: 'fixture:account:upsert', observe_permission: 'fixture:account:observe',
+      approval: 'required', aliases: ['salesforce.Account']}],
+  }}};
+  const connections = {version: 'actql-connectors/0.1', connections: {salesforce: {connector: 'salesforce'}}};
+  const result = await f.load({catalog, connections});
+  const {mapping} = writableTarget(result);
+  assert.deepEqual(result.sources[0].physical[0].primaryIdentity, primary);
+  assert.equal(mapping.schema, 'actql.mapping_contract/0.2');
+  assert.deepEqual(mapping.primary_identity, primary);
+  assert.equal(mapping.target_schema.fields.serial.type, 'int64');
+  assert.deepEqual(mapping.permission_rules, [{
+    effect_kind: 'upsert', selector_class: 'key_tuple', write_fields: ['label'], permissions: ['fixture:account:upsert'],
+  }]);
+
+  const original = catalog.connections.salesforce;
+  original.writes[0].primary_identity.fields.reverse();
+  await assert.rejects(f.load({catalog, connections}), invalid);
+  original.data[0].primary_identity.fields.reverse();
+  await assert.rejects(f.load({catalog, connections}), {code: 'RowSourceMappingInvalidSpecification'});
+  assert.deepEqual(f.state.opens, [f.catalogPath]);
 });
 
 test('actual catalog admits explicit NULL only for selected nullable writable fields', async t => {
@@ -321,15 +370,17 @@ for (const template of templates) test(`actual ${template} model admits replacem
   const path = resolve(f.directory, f.configuration.mock.data);
   const initial = JSON.parse(f.files['mock/data.json']);
   const first = initial[source.catalogue.connection][physical.resource].rows[0];
+  assert(typeof physical.primaryIdentity === 'string');
   const identity = first[physical.primaryIdentity];
   const observeFile = async () => {
     const bytes = await readFile(path);
     const document = checked(moon.clientProgramRelationAdmitDocument(bytes, 1048576, 4096, 32, 100, 16777216));
     const rows = new Map();
     for (const owner of catalog.sources) for (const model of owner.physical) {
+      assert(typeof model.primaryIdentity === 'string');
       rows.set(model, checked(moon.clientProgramRelationProjectTargetDocument(document,
         model.declaration, model.resource, model.itemsPath, model.keyPath,
-        model.primaryIdentity, model.writableFields)));
+        model.primaryIdentity, undefined, model.writableFields)));
     }
     const row = checked(moon.clientProgramRelationObserveTarget(rows.get(physical), physical.declaration, identity));
     return {row, before: moon.clientProgramRelationTargetBefore(row), version: moon.clientProgramRelationTargetVersion(row)};

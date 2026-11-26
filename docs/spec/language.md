@@ -9681,6 +9681,7 @@ target identity, non-primary target match, or identity-type mismatch MUST fail
 before preview succeeds. ActQL performs no implicit string/number coercion for
 identity matching; any permitted conversion must be explicit in the resolved
 mapping contract.
+
 `where` is a non-empty array of [Predicates](#predicates) predicates combined by conjunction. Its
 `{field: name}` operands address fields of the target Resource under the
 resolved Mapping Contract; they do not refer to an input Relation or named
@@ -9690,11 +9691,24 @@ do not select it. Arbitrary scalar expressions are not selector operands.
 Literal `ids`, `external_id`, and `where` address the target directly and MUST
 NOT declare `from`. The compiler MUST NOT infer a selector.
 
+<!-- requirement-block: effects.tuple-match-required effects.tuple-upsert-key-required effects.tuple-complete-ordered-target-key -->
+With an ordered tuple Mapping, result-driven UPDATE and DELETE MUST specify
+`from: {result: name}` and `match_tuple`. UPSERT MUST specify the same
+`from` and `key_tuple`. Both selectors are ordered arrays of closed
+`{target_field, result_field}` objects. The target fields MUST enumerate
+the full original Mapping key in order, exactly once. The same Result field
+may be used for multiple components when it satisfies each corresponding
+checked target type. All components are required and non-null. Uniqueness is
+checked on the complete typed tuple. The resolved permission rule names
+the explicit tuple selector. Key fields are excluded from `set`. UPSERT
+uses the full bound tuple when inserting after a complete absence check.
+
 <!-- requirement-block: effects.the-runtime-must-correlate-those-two-fields-must-not-assume effects.the-runtime-must-correlate-those-two-fields-must-not-assume.second effects.the-runtime-must-correlate-those-two-fields-must-not-assume.third -->
 `create` and ordinary `store` consume `from: {result: name}` unless create uses an explicit
 object `payload`; Table `store` may instead consume its stage's closed private
-`from: {table_input: name}`. `upsert` requires `from: {result: name}`, an explicit
-result-side `key`, and a non-empty `set` map. The mapping contract supplies the
+`from: {table_input: name}`. With a scalar Mapping, `upsert` requires
+`from: {result: name}`, an explicit result-side `key`, and a non-empty `set`
+map. The mapping contract supplies the
 possibly differently named target-side single primary key. The runtime MUST
 correlate those two fields, MUST NOT assume they share a name, and MUST NOT copy
 the remaining result row into the target implicitly. `update` requires a

@@ -202,6 +202,133 @@ pub fn relation_document_mapping_construction_inventory(
 }
 
 ///|
+/// Fund the original mapping, one additional canonical carrier-facts check
+/// and the exact ordered index layout before preparing a composite file key.
+/// The authored names are borrowed. A later probe needs its own workspace.
+pub fn relation_document_key_metadata_construction_inventory(
+  limits : RowPageLimits,
+  key_fields : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  guard key_fields >= 2 &&
+    key_fields <= limits.max_nodes &&
+    relation_document_mapping_construction_inventory(limits) is Some(mapping) &&
+    relation_construction_writer_units(
+      limits.max_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    is Some(writer) &&
+    @encode.hash_writer_construction_inventory(
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    is Some(hash) &&
+    @shape.collection_construction_extent({
+      records: 3L,
+      record_references: 5L,
+      record_words: 2L,
+      reference_arrays: 0L,
+      reference_items: 0L,
+      scalar_arrays: 1L,
+      scalar_items: key_fields.to_int64(),
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(key) else {
+    return None
+  }
+  @execution.compose_preparation_representation([
+    mapping,
+    writer,
+    relation_construction_collection_units(key),
+    {
+      record_headers: hash.record_headers,
+      reference_slots: hash.reference_slots,
+      scalar_words: hash.scalar_words,
+      owned_utf16_units: hash.owned_utf16_units,
+      owned_wire_bytes: hash.owned_wire_bytes,
+    },
+  ])
+}
+
+///|
+/// Quote the selected original before constructing its prepared key. Completed
+/// parser, identity and writer frames contribute only to the working peak.
+pub fn relation_document_key_metadata_capacity(
+  declaration : RowDeclaration,
+  resource : String,
+  limits : RowPageLimits,
+  key_fields : Int,
+) -> @execution.ExecutionCapacity? {
+  guard relation_document_construction_limits_valid(limits) &&
+    declaration.views.search_by(view => view.resource == resource)
+    is Some(index) &&
+    declaration.view_bodies.get(index) is Some(view) &&
+    update_mapping_original_geometry(declaration, view) is Some(geometry) else {
+    return None
+  }
+  let bytes = Int::min(limits.max_bytes, geometry.bytes)
+  let nodes = Int::min(limits.max_nodes, geometry.nodes)
+  let depth = limits.max_depth
+  guard relation_document_key_metadata_construction_inventory(
+      { max_bytes: bytes, max_nodes: nodes, max_depth: depth, max_rows: 0, },
+      key_fields,
+    )
+    is Some(workspace) &&
+    @schema.unqualified_presence_retained_extent(nodes, 1) is Some(schema) &&
+    @shape.collection_construction_extent({
+      records: 6L,
+      record_references: 13L,
+      record_words: 9L,
+      reference_arrays: 2L,
+      reference_items: nodes.to_int64() + key_fields.to_int64(),
+      scalar_arrays: 1L,
+      scalar_items: key_fields.to_int64(),
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(layout) else {
+    return None
+  }
+  let parts = [
+    relation_construction_collection_units(schema),
+    relation_construction_collection_units(layout),
+    {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 4L * bytes.to_int64(),
+      owned_wire_bytes: 0L,
+    },
+  ]
+  for objects in [0, nodes] {
+    guard @contract.read_construction_inventory({
+        nodes,
+        objects,
+        arrays: nodes - objects,
+        fields: nodes - 1,
+        max_fields: nodes - 1,
+        max_array_items: nodes - 1,
+        max_selected_text_units: bytes,
+        outer_depth: depth,
+        work: nodes.to_int64(),
+      })
+      is Some(original) else {
+      return None
+    }
+    parts.push(relation_construction_collection_units(original.retained))
+  }
+  guard @execution.compose_preparation_representation(parts) is Some(retained) &&
+    @execution.preparation_representation_cost(retained) is Some(r) &&
+    @execution.compose_preparation_representation([retained, workspace])
+    is Some(peak) &&
+    @execution.preparation_representation_cost(peak) is Some(e) else {
+    return None
+  }
+  @execution.execution_capacity(r, e)
+}
+
+///|
 // Sum feasible pure-container and text-leaf endpoint geometries. These
 // overbound mixed trees without inventing an unsupported Value constructor.
 fn relation_document_typed_construction(
@@ -670,11 +797,178 @@ pub fn prepare_relation_document_contract(
 }
 
 ///|
+/// Select the exact ordered candidate from the original relation facts.
+/// This prepares only non-null Text and Signed64 file key metadata; it issues
+/// no Source grant, Mapping, or live uniqueness evidence.
+pub fn prepare_relation_document_key_contract(
+  declaration : RowDeclaration,
+  resource : String,
+  ordered_key : Array[String],
+  limits : RowPageLimits,
+) -> Result[RelationDocumentPreparedKey, RowMappingIssue] {
+  if !relation_document_construction_limits_valid(limits) ||
+    ordered_key.length() < 2 ||
+    ordered_key.length() > limits.max_nodes {
+    return Err(InvalidSpecification)
+  }
+  let mut name_bytes = limits.max_bytes
+  for name in ordered_key {
+    guard !name.is_empty() &&
+      @scalar.admit_utf8_length(name, name_bytes) is Ok(bytes) else {
+      return Err(InvalidSpecification)
+    }
+    name_bytes -= bytes
+  }
+  let primary_identity = ordered_key[0]
+  let contract = match
+    mapping_original_relation(
+      declaration,
+      resource,
+      primary_identity,
+      {
+        max_bytes: limits.max_bytes,
+        max_nodes: limits.max_nodes,
+        max_depth: limits.max_depth,
+        max_views: limits.max_nodes,
+        max_fields: limits.max_nodes,
+      },
+      ordered_key=Some(ordered_key),
+    ) {
+    Ok((_, value)) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @schema.from_object(contract) is Ok(schema) else {
+    return Err(InvalidSpecification)
+  }
+  let columns = @schema.fields(schema).map(@schema.field_reference_name)
+  let positions = Array::make(ordered_key.length(), -1)
+  for ordinal, name in ordered_key {
+    guard columns.search(name) is Some(position) &&
+      !positions.contains(position) else {
+      return Err(InvalidSpecification)
+    }
+    let identity = @schema.field_at(schema, position).unwrap().contract
+    if identity.nullable ||
+      !(identity.shape is @contract.Text(_) ||
+      identity.shape is @contract.Signed64) {
+      return Err(InvalidSpecification)
+    }
+    positions[ordinal] = position
+  }
+  Ok({
+    original: {
+      declaration,
+      resource,
+      primary_identity,
+      limits,
+      contract,
+      schema,
+      columns,
+      identity_index: positions[0],
+    },
+    positions,
+  })
+}
+
+///|
 /// Borrowed immutable quantity input, not a projection, resource or permission.
 pub fn relation_document_prepared_contract(
   original : RelationDocumentPreparedContract,
 ) -> @contract.Contract {
   original.contract
+}
+
+///|
+/// Borrow the same checked metadata for the physical owner's sizing phase.
+pub fn relation_document_key_prepared_contract(
+  original : RelationDocumentPreparedKey,
+) -> RelationDocumentPreparedContract {
+  original.original
+}
+
+///|
+/// Workspace for a canonical key probe after the original projection is
+/// funded. The original request wire is retained by the caller.
+pub fn relation_target_key_wire_workspace_inventory(
+  prepared : RelationDocumentPreparedKey,
+  key_wire_utf16 : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  let limits = prepared.original.limits
+  let width = prepared.positions.length()
+  guard width < limits.max_nodes &&
+    limits.max_depth >= 2 &&
+    key_wire_utf16 > 0 &&
+    key_wire_utf16 <= limits.max_bytes else {
+    return None
+  }
+  let nodes = width + 1
+  let bytes = Int64::min(
+    3L * key_wire_utf16.to_int64(),
+    limits.max_bytes.to_int64(),
+  ).to_int()
+  // Ordered File admits only Text and Int64. Their typed-wire admission
+  // uses the same scalar workspace at this bound, regardless of key order.
+  let scalar = @schema.field_at(prepared.original.schema, prepared.positions[0]).unwrap().contract
+  guard relation_document_raw_construction_inventory({
+      max_bytes: bytes,
+      max_nodes: nodes,
+      max_depth: 2,
+      max_rows: 1,
+    })
+    is Some(decoded) &&
+    @admitted.contract_value_phase_construction_inventory(
+      scalar,
+      {
+        nodes: 1,
+        arrays: 0,
+        array_items: 0,
+        objects: 0,
+        fields: 0,
+        texts: 1,
+        max_object_fields: 0,
+        max_key_utf16: 0,
+        max_text_utf16: key_wire_utf16,
+        total_utf16: key_wire_utf16.to_int64(),
+        work: 1L,
+      },
+      1L,
+      2,
+    )
+    is Some(value) &&
+    @execution.compose_preparation_representation([
+      relation_construction_collection_units(value.returned),
+      relation_construction_collection_units(value.temporary),
+      {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: value.returned_utf16_units +
+        value.temporary_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(entry) &&
+    relation_document_construction_scale(entry, width.to_int64())
+    is Some(values) &&
+    relation_construction_writer_units(bytes, nodes, 2) is Some(writer) &&
+    @execution.preparation_array_representation(1L, width.to_int64(), false)
+    is Some(tuple) else {
+    return None
+  }
+  @execution.compose_preparation_representation([
+    decoded,
+    values,
+    writer,
+    tuple,
+    { // Projection/key handles, bounded parser and returned result wrappers.
+      record_headers: 12L,
+      reference_slots: 18L,
+      scalar_words: 8L,
+      // Canonical checked Int64 components can produce decimal Text.
+      owned_utf16_units: 20L * width.to_int64(),
+      owned_wire_bytes: 0L,
+    },
+  ])
 }
 
 ///|
@@ -687,6 +981,37 @@ pub fn relation_target_insert_workspace_inventory(
   items_path_depth : Int,
   original_bytes : Int,
   row_wire_utf16 : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  relation_target_insert_workspace_inventory_with_width(
+    prepared, items_path_depth, original_bytes, row_wire_utf16, 1,
+  )
+}
+
+///|
+/// INSERT row and replacement workspace, in addition to the ordered key
+/// probe and original projection.
+pub fn relation_target_ordered_insert_workspace_inventory(
+  prepared : RelationDocumentPreparedKey,
+  items_path_depth : Int,
+  original_bytes : Int,
+  row_wire_utf16 : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  relation_target_insert_workspace_inventory_with_width(
+    prepared.original,
+    items_path_depth,
+    original_bytes,
+    row_wire_utf16,
+    prepared.positions.length(),
+  )
+}
+
+///|
+fn relation_target_insert_workspace_inventory_with_width(
+  prepared : RelationDocumentPreparedContract,
+  items_path_depth : Int,
+  original_bytes : Int,
+  row_wire_utf16 : Int,
+  key_fields : Int,
 ) -> @execution.PreparationRepresentationUnits? {
   let limits = prepared.limits
   guard relation_document_construction_limits_valid(limits) &&
@@ -714,8 +1039,8 @@ pub fn relation_target_insert_workspace_inventory(
     max_rows: 1,
   }
   let room = limits.max_bytes - original_bytes
-  // One additional Text node is emitted from the separately borrowed key.
-  let physical_nodes = if nodes < limits.max_nodes { nodes + 1 } else { nodes }
+  // Key nodes are emitted from the separately admitted identity.
+  let physical_nodes = nodes + Int::min(key_fields, limits.max_nodes - nodes)
   let output_depth = Int::min(
     input_depth,
     limits.max_depth - items_path_depth - 1,
@@ -760,7 +1085,11 @@ pub fn relation_target_insert_workspace_inventory(
       record_headers: 16L,
       reference_slots: 24L,
       scalar_words: 28L,
-      owned_utf16_units: 0L,
+      owned_utf16_units: if key_fields == 1 {
+        0L
+      } else {
+        20L * key_fields.to_int64()
+      },
       owned_wire_bytes: room.to_int64() + limits.max_bytes.to_int64(),
     },
   ])

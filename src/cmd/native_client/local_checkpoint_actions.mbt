@@ -611,6 +611,7 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
             max_nodes: local_project_mock_relation_wire_nodes,
             max_depth: local_project_mock_relation_wire_depth,
           },
+          ordered_key=row_binding.provider.has_ordered_key(),
         )
         .unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
       // Prepare every immutable response/target frame BEFORE the durable
@@ -636,16 +637,19 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
           stop("LocalOriginalEffectRequestUnavailable")
         }
       }
+      let target = @canonical.object_field(original_row, "target_row_identity")
       let selector = if descriptor.2 == "create" {
         // The restored key is the fixed ASCII digest derived from this same
         // Preview. Its content/occurrence remains the logical row identity.
         "\"" + identity + "\""
+      } else if row_binding.provider.has_ordered_key() {
+        // The approved ordered correlation is already a canonical tuple.
+        identity
       } else {
-        let target_value = @canonical.object_field(
-          original_row, "target_row_identity",
-        ).unwrap_or_else(() => stop("LocalOriginalEffectRowUnavailable"))
         @canonical.stringify_value(
-          target_value, local_project_mock_relation_wire_bytes, local_project_mock_relation_wire_nodes,
+          target.unwrap_or_else(() => stop("LocalOriginalEffectRowUnavailable")),
+          local_project_mock_relation_wire_bytes,
+          local_project_mock_relation_wire_nodes,
           local_project_mock_relation_wire_depth,
         ) catch {
           _ => stop("LocalOriginalEffectRowUnavailable")
@@ -664,7 +668,12 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
       ).unwrap_or_else(() => stop("LocalOriginalEffectTargetUnavailable"))
       let outcome_template = saved_effect_file_outcome_wire(
         identity,
-        row_binding.limits.page.max_bytes,
+        if row_binding.provider.has_ordered_key() {
+          target
+        } else {
+          None
+        },
+        row_binding.limits.page,
       ).unwrap_or_else(() => stop("LocalOriginalEffectOutcomeUnavailable"))
       // Retain before any later constructor or scope return can fail.
       let prepared_row : LocalNativeSavedEffectFileRow = {

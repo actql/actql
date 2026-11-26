@@ -55,6 +55,22 @@ fn client_effect_file_mutation_normalization_catalog_cid() -> String {
 }
 
 ///|
+fn client_effect_file_mutation_profile(
+  inventory : @checked.LocalCommonFileMutationNormalizationInventory,
+) -> (String, String) {
+  if @checked.local_common_file_mutation_normalization_ordered(inventory) {
+    (
+      "actql-local-common-ordered-file-mutation-normalization/0.1", "sha256:c223b3b669fb28ecb9d3e4f38d88642c93293d37623f775cc41aac79f4ba194b",
+    )
+  } else {
+    (
+      "actql-local-common-file-mutation-normalization/0.1",
+      client_effect_file_mutation_normalization_catalog_cid(),
+    )
+  }
+}
+
+///|
 /// Catalog selection follows the nominal inventory owned by the original
 /// preparation. A transported catalog field is not a profile selection.
 pub fn client_effect_normalization_catalog_cid(
@@ -88,11 +104,7 @@ fn client_effect_normalization_inventory_profile(
         "actql-local-common-update-source-normalization/0.1",
         client_effect_source_update_normalization_catalog_cid(),
       )
-    FileMutation(_) =>
-      (
-        "actql-local-common-file-mutation-normalization/0.1",
-        client_effect_file_mutation_normalization_catalog_cid(),
-      )
+    FileMutation(value) => client_effect_file_mutation_profile(value)
   }
 }
 
@@ -129,8 +141,10 @@ fn same_client_effect_normalization_profile(
     | (Some(MappedCreate(_)), Some(MappedCreate(_)))
     | (Some(LocalUpdate(_)), Some(LocalUpdate(_)))
     | (Some(CommonUpdate(_)), Some(CommonUpdate(_)))
-    | (Some(SourceCompletedUpdate(_)), Some(SourceCompletedUpdate(_)))
-    | (Some(FileMutation(_)), Some(FileMutation(_))) => true
+    | (Some(SourceCompletedUpdate(_)), Some(SourceCompletedUpdate(_))) => true
+    (Some(FileMutation(left)), Some(FileMutation(right))) =>
+      @checked.local_common_file_mutation_normalization_ordered(left) ==
+      @checked.local_common_file_mutation_normalization_ordered(right)
     _ => false
   }
 }
@@ -153,15 +167,24 @@ fn checked_client_effect_normalization_inventory(
     return Err(Inventory(ProfileNotInstalled))
   }
   if allow_file_mutation {
+    let mut deleting = false
+    let mut ordered = false
     for index in 0..<@syntax.effect_header_count(headers) {
       let checked_header = @syntax.effect_header_at(headers, index).unwrap()
-      if @syntax.effect_header_kind(checked_header) == "delete" {
-        return @checked.effect_program_common_file_mutation_normalization_inventory(
-            owner.candidate,
-          )
-          .map(fn(value) { FileMutation(value) })
-          .map_err(fn(issue) { Inventory(issue) })
-      }
+      deleting = deleting ||
+        @syntax.effect_header_kind(checked_header) == "delete"
+      let body = @decode.open_object(@syntax.effect_header_body(checked_header)).unwrap()
+      ordered = ordered ||
+        @decode.lookup(body, "match_tuple") is Some(_) ||
+        @decode.lookup(body, "key_tuple") is Some(_)
+    }
+    if deleting || ordered {
+      return @checked.effect_program_common_file_mutation_normalization_inventory(
+          owner.candidate,
+          ordered~,
+        )
+        .map(fn(value) { FileMutation(value) })
+        .map_err(fn(issue) { Inventory(issue) })
     }
   }
   match @syntax.effect_header_kind(header) {
@@ -451,7 +474,7 @@ fn client_effect_normalization_source_inventory(
           @checked.local_common_file_mutation_normalization_computation(
             inventory,
           ),
-          client_effect_file_mutation_normalization_catalog_cid(),
+          client_effect_file_mutation_profile(inventory).1,
         ),
       )
     _ => None

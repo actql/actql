@@ -61127,7 +61127,7 @@
     {
       "module": "src/client_local_preparation/client_check_program.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7db408b6c2f8a963bde8d03041faeb033f209c0623a0d513bf994c869be12b93",
+      "sha256": "4708b95e42f80ff3f2d7293d66df9bb7a54c314cba560e60c1a4e0286b5643c1",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -63589,7 +63589,7 @@
     },
     {
       "module": "src/client_source_publication/prepared_environment.mbt",
-      "sha256": "2c9c9a846478e9dec41c7e07e397dfec4a093ccb689c2e06fe6d963861708a73",
+      "sha256": "81f34a2be887e1f2ec2ef7bb6ec88a5566a30479064165720588aae605caa30b",
       "exports": [],
       "operations": [
         {
@@ -63661,6 +63661,10 @@
           "declaration": "publication_admission_mappings ( admission : PublicationEnvironmentAdmission , ) - > @ check_environment . MappingContractShapes raise PublicationStop"
         },
         {
+          "name": "publication_environment_admission",
+          "declaration": "publication_environment_admission ( environment : @ program_check . CheckEnvironment , ) - > PublicationEnvironmentAdmission"
+        },
+        {
           "name": "publication_read_catalog",
           "declaration": "publication_read_catalog ( environment : @ program_check . CheckEnvironment , limits : @ program_check . SourceCatalogLimits , contents_limits : @ check_environment . Limits ? , ) - > Result [ @ program_check . PreparedSourceCatalog , @ program_check . EnvironmentFailure , ]"
         }
@@ -63689,6 +63693,7 @@
             "publication_admission_catalog",
             "publication_admission_contents",
             "publication_admission_mappings",
+            "publication_environment_admission",
             "publication_read_catalog"
           ],
           "exports": [],
@@ -63879,7 +63884,7 @@
     },
     {
       "module": "src/client_source_publication/publication.mbt",
-      "sha256": "f77ce7682f5fc250cece19ba81b59c96f2da77916439a59de2b56d1dfb43afaa",
+      "sha256": "b2a6b2c2a8ecffa10bb80d297de432544e4d4dbe5a0c92f9e99966ae0dbf4f69",
       "exports": [],
       "operations": [
         {
@@ -75396,7 +75401,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "5fa1749f513ff0c463a0d27add9888ee38b29fabc30d326bd8da8953d379ebdb",
+      "sha256": "5a8db2ea85c437cd4a41b3cdbf24b04ff83e941292116442c5ef21b190aeabb4",
       "exports": [],
       "operations": [
         {
@@ -77537,7 +77542,7 @@
         },
         {
           "name": "client_row_source_prepare_mapping",
-          "declaration": "client_row_source_prepare_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , guarded : Bool , prepare : ( @ client_row_source_host . RowDeclaration , String , String , Array [ @ client_row_source_host . RowMappingSource ] , ) - > Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ] , ) - > String"
+          "declaration": "client_row_source_prepare_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , guarded : Bool , prepare : ( @ client_row_source_host . RowDeclaration , String , String , Array [ @ client_row_source_host . RowMappingSource ] , ) - > Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ] , select_guarded_operation ? : Bool"
         },
         {
           "name": "client_run_control_observation",
@@ -78563,6 +78568,10 @@
               {
                 "path": "adapters/local-node/declared-file-installation.test.mjs",
                 "anchor": "clientProgramRowSourcePrepareUpdateMapping(declaration, wire, resource, sources)"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_relation_update_mapping_wbtest.mbt",
+                "anchor": "installed guarded Mapping selects the original ordered UPDATE or File UPSERT"
               }
             ]
           }

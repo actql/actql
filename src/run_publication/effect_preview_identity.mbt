@@ -27,6 +27,16 @@ pub(all) enum EffectPreviewRelationSource {
 } derive(Eq, Debug)
 
 ///|
+// One scalar per row in the original Preview inventory, never serialized.
+let preview_row_not_applicable : Byte = 1
+
+///|
+let preview_row_absent_to_present : Byte = 2
+
+///|
+let preview_row_present_to_present : Byte = 3
+
+///|
 pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
@@ -51,7 +61,7 @@ pub struct EffectPreviewIdentity {
   row_intended_change_states : Array[Array[String]]
   row_intended_value_wires : Array[Array[String]]
   row_guard_version_cids : Array[Array[String]]
-  row_nonrow_states : Array[Array[Bool]]
+  row_transitions : Array[Array[Byte]]
   ordered_row_correlation_wires : Array[Array[String]]
   ordered_row_intended_change_states : Array[Array[String]]
   ordered_row_intended_value_wires : Array[Array[String]]
@@ -842,7 +852,7 @@ fn effect_member_row_inventory(
     Array[String],
     Array[String],
     Array[String],
-    Array[Bool],
+    Array[Byte],
   ),
   EffectPreviewIdentityIssue,
 ] {
@@ -906,7 +916,7 @@ fn effect_member_row_inventory(
   let intended_states : Array[String] = []
   let intended_values : Array[String] = []
   let guard_versions : Array[String] = []
-  let nonrow_states : Array[Bool] = []
+  let transitions : Array[Byte] = []
   for row_index in 0..<changes.length() {
     let change = changes[row_index]
     match
@@ -977,11 +987,22 @@ fn effect_member_row_inventory(
         guard_versions.push(guard_version)
         let before = @json.object_field(change, "before").unwrap()
         let after = @json.object_field(change, "after").unwrap()
-        nonrow_states.push(
-          @json.object_field(before, "state")
-          is Some(@json.String("not_applicable")) &&
-          @json.object_field(after, "state")
-          is Some(@json.String("not_applicable")),
+        transitions.push(
+          match
+            (
+              @json.object_field(before, "state"),
+              @json.object_field(after, "state"),
+            ) {
+            (
+              Some(@json.String("not_applicable")),
+              Some(@json.String("not_applicable")),
+            ) => preview_row_not_applicable
+            (Some(@json.String("absent")), Some(@json.String("present"))) =>
+              preview_row_absent_to_present
+            (Some(@json.String("present")), Some(@json.String("present"))) =>
+              preview_row_present_to_present
+            _ => 0
+          },
         )
       }
       _ => return Err(InvalidMember)
@@ -1006,7 +1027,7 @@ fn effect_member_row_inventory(
   Ok(
     (
       keys, rows, order, correlations, intended_states, intended_values, guard_versions,
-      nonrow_states,
+      transitions,
     ),
   )
 }
@@ -1212,7 +1233,7 @@ fn admit_effect_preview_identity_original(
   let row_intended_change_states : Array[Array[String]] = []
   let row_intended_value_wires : Array[Array[String]] = []
   let row_guard_version_cids : Array[Array[String]] = []
-  let row_nonrow_states : Array[Array[Bool]] = []
+  let row_transitions : Array[Array[Byte]] = []
   let ordered_row_correlation_wires : Array[Array[String]] = []
   let ordered_row_intended_change_states : Array[Array[String]] = []
   let ordered_row_intended_value_wires : Array[Array[String]] = []
@@ -1334,7 +1355,7 @@ fn admit_effect_preview_identity_original(
       member_intended_states,
       member_intended_values,
       member_guard_versions,
-      member_nonrow_states,
+      member_transitions,
     ) = match
       effect_member_row_inventory(
         preview, effect, index, max_wire_bytes, max_nodes, max_depth,
@@ -1371,7 +1392,7 @@ fn admit_effect_preview_identity_original(
     row_intended_change_states.push(member_intended_states)
     row_intended_value_wires.push(member_intended_values)
     row_guard_version_cids.push(member_guard_versions)
-    row_nonrow_states.push(member_nonrow_states)
+    row_transitions.push(member_transitions)
     ordered_row_correlation_wires.push(ordered_correlations)
     ordered_row_intended_change_states.push(ordered_intended_states)
     ordered_row_intended_value_wires.push(ordered_intended_values)
@@ -1469,7 +1490,7 @@ fn admit_effect_preview_identity_original(
     row_intended_change_states,
     row_intended_value_wires,
     row_guard_version_cids,
-    row_nonrow_states,
+    row_transitions,
     ordered_row_correlation_wires,
     ordered_row_intended_change_states,
     ordered_row_intended_value_wires,
@@ -1802,8 +1823,8 @@ pub fn effect_preview_row_states_not_applicable(
   member_index : Int,
   row_index : Int,
 ) -> Bool {
-  value.row_nonrow_states.get(member_index).bind(rows => rows.get(row_index)) ==
-  Some(true)
+  value.row_transitions.get(member_index).bind(rows => rows.get(row_index)) ==
+  Some(preview_row_not_applicable)
 }
 
 ///|

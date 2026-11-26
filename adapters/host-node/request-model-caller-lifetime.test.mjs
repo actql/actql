@@ -534,7 +534,7 @@ test('Mock Effect reader consumes the same planned original and retires physical
   const prepared = {}, request = {}, parent = {}, nativeRead = {}, declaration = {}, raw = {},
     row = {}, acquisition = {}, charge = {}, bytes = Buffer.from('original document'),
     document = {}, projection = {}, physical = {declaration, resource: 'source.users',
-      itemsPath: [], keyPath: ['id'], primaryIdentity: ['id'], writableFields: []};
+      itemsPath: [], keyPath: ['id'], primaryIdentity: 'id', writableFields: []};
   const run = {preparationKind: 'effect-plan', prepared, request, value: parent};
   const originalReads = new WeakMap(), effectReads = new Set();
   let reads = 0, closes = 0, retires = 0, pending = true;
@@ -547,10 +547,11 @@ test('Mock Effect reader consumes the same planned original and retires physical
       same([actualBytes, wire, nodes, depth, rows, retained], [bytes, 1048576, 4096, 32, 100, 16777216]);
       return document;
     },
-    clientProgramRelationProjectTargetDocument(original, selected, resource, items, key, identity, writable) {
-      same([original, selected, resource, items, key, identity, writable],
-        [document, declaration, physical.resource, physical.itemsPath, physical.keyPath,
-          physical.primaryIdentity, physical.writableFields]);
+    clientProgramRelationProjectTargetDocument(original, selected, resource, items, key, identity, preparedKey, writable) {
+      same([original, selected, resource, items, key, writable],
+        [document, declaration, physical.resource, physical.itemsPath, physical.keyPath, physical.writableFields]);
+      assert.equal(identity, physical.primaryIdentity);
+      assert.equal(preparedKey, undefined);
       return projection;
     },
     clientProgramRelationAcceptChargedDocument(r, c, a, selected, bound) {

@@ -41,8 +41,10 @@ type MappingInput = Readonly<{resource: string; mappingRef: string; mappingCid: 
 type CommandInput = Readonly<{resource: string; commandRef: string; commandCid: string; body: string}>;
 type StorePair = Readonly<{catalog_cid: string; command_ref: string; command_contract_cid: string}>;
 type MappingBody = Readonly<{
+  schema?: string;
   mapping_contract_cid: string; minimum_approval: 'required' | 'none'; target_ref: string; primary_identity?: unknown;
-  permission_rules?: readonly Readonly<{effect_kind: string; permissions?: readonly string[]}>[]; store_command?: StorePair;
+  permission_rules?: readonly Readonly<{effect_kind: string; selector_class?: string; permissions?: readonly string[]}>[];
+  store_command?: StorePair;
 }>;
 type CommandBody = Readonly<{
   command_id: string; contract_cid: string; connector_id: string;
@@ -209,7 +211,8 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
     if (managedTargetPlanRecipes !== undefined && (standard !== undefined || !Array.isArray(commands) || commands.length !== 0 ||
         suppliedRecipe !== undefined || suppliedRecipes !== undefined || planDefinition !== undefined ||
         managedPlanConstruction !== undefined || managedTargetPlanOriginals.get(managedTargetPlanRecipes) !== mappings ||
-        (owned as DefinitionDriver).kinds.length === 0 || !(owned as DefinitionDriver).kinds.every(kind => kind === 'create' || kind === 'update' || kind === 'delete') ||
+        (owned as DefinitionDriver).kinds.length === 0 || !(owned as DefinitionDriver).kinds.every(kind =>
+          kind === 'create' || kind === 'update' || kind === 'delete' || kind === 'upsert') ||
         owned.check !== undefined || owned.confirmResponse !== undefined)) reject('InvalidInstalledEffectPlanRecipe');
     if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined || suppliedRecipes !== undefined)) {
       reject('InvalidInstalledEffectDriverConstruction');
@@ -245,6 +248,19 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
           !['required', 'none'].includes(body.minimum_approval)) {
         reject('InvalidInstalledRowEffect');
       }
+      if (managedTargetPlanRecipes !== undefined) {
+        const plan = managedTargetPlanRecipes.byMapping[mapping.mappingCid];
+        const identity = body.primary_identity as {kind?: unknown} | null | undefined;
+        if (plan === undefined || !body.permission_rules?.some(rule =>
+          (owned as DefinitionDriver).kinds.some(kind => kind === rule.effect_kind) &&
+          rule.permissions?.includes(plan.writeOperation) &&
+          (plan.targetReadOperation === undefined) === (rule.effect_kind === 'create') &&
+          (rule.effect_kind !== 'upsert' || (connectorRegistration === 'declared_file' &&
+            body.schema === 'actql.mapping_contract/0.2' && identity?.kind === 'tuple' &&
+            rule.selector_class === 'key_tuple' && typeof plan.recipe.physicalWrite?.inputExtent === 'function')))) {
+          reject('InvalidInstalledEffectPlanRecipe');
+        }
+      }
       return Object.freeze({...mapping, target: body.target_ref,
         primaryIdentity: body.primary_identity,
         rules: Object.freeze(body.permission_rules ?? []),
@@ -252,15 +268,6 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
           storeCommand: Object.freeze({...body.store_command})}),
         approval: body.minimum_approval});
     }));
-    if (managedTargetPlanRecipes !== undefined) for (const mapping of installed) {
-      const plan = managedTargetPlanRecipes.byMapping[mapping.mappingCid];
-      if (plan === undefined || !mapping.rules.some(rule =>
-        (owned as DefinitionDriver).kinds.some(kind => kind === rule.effect_kind) &&
-        rule.permissions?.includes(plan.writeOperation) &&
-        (plan.targetReadOperation === undefined) === (rule.effect_kind === 'create'))) {
-        reject('InvalidInstalledEffectPlanRecipe');
-      }
-    }
     const installedCommands = Object.freeze((commands as readonly CommandInput[]).map(command => {
       const body = JSON.parse(command.body) as CommandBody;
       const {contract_cid: selfCid, ...preimage} = body;

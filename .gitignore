@@ -2248,6 +2248,8 @@ target/
 /scripts/connector-host-bundle-contract.d.mts
 /adapters/host-node/fixtures/mock-file-create.fixture.mjs
 /adapters/host-node/fixtures/mock-file-create.fixture.d.mts
+/adapters/host-node/fixtures/mock-ordered-file.fixture.mjs
+/adapters/host-node/fixtures/mock-ordered-file.fixture.d.mts
 /adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs
 /adapters/host-node/fixtures/mock-multiple-targets.fixture.d.mts
 /adapters/host-node/fixtures/mock-nullable-update.fixture.mjs

@@ -134,7 +134,7 @@ pub fn check_lookup_capacities(CatalogReferences, LookupCapacityLimits) -> Resul
 
 pub fn check_lookup_execution(WireEnvironment, LookupExecutionLimits) -> Result[LookupExecution, LookupExecutionIssue]
 
-pub fn check_mapping_contract_shapes(WireEnvironment, Limits, Int) -> Result[MappingContractShapes, MappingShapeIssue]
+pub fn check_mapping_contract_shapes(WireEnvironment, Limits, Int, carriers? : CarrierSchemas?) -> Result[MappingContractShapes, MappingShapeIssue]
 
 pub fn check_mapping_conversions(MappingContractShape, Int) -> Result[MappingConversions, MappingConversionIssue]
 
@@ -461,6 +461,10 @@ pub fn mapping_shape_required_fields(MappingContractShape) -> Array[String]
 pub fn mapping_shape_target(MappingContractShape) -> String
 
 pub fn mapping_shape_target_schema(MappingContractShape) -> @relation_schema.Schema
+
+pub fn mapping_shape_tuple_field_at(MappingContractShape, Int) -> String?
+
+pub fn mapping_shape_tuple_field_count(MappingContractShape) -> Int
 
 pub fn mapping_shape_work(MappingContractShapes) -> Int
 
@@ -1453,6 +1457,7 @@ pub struct MappingContractShape {
   primary_identity : String?
   writable_fields : Array[String]
   required_fields : Array[String]
+  // private fields
 }
 
 pub struct MappingContractShapes {

@@ -6,10 +6,30 @@ pub struct EffectPlanTerminal {
   source_result : String
   entity : String
   operation : String
-  selector : String
-  selector_field : String
+  priv selector : EffectPlanSelector
   field_map : Array[(String, String)]
   checked_changes : Int
+}
+
+///|
+priv enum EffectPlanSelector {
+  ScalarEffectSelector(String, String)
+  TupleEffectSelector(Int)
+}
+
+///|
+fn effect_plan_selector_width(selector : EffectPlanSelector) -> Int {
+  match selector {
+    ScalarEffectSelector(_, _) => 0
+    TupleEffectSelector(width) => width
+  }
+}
+
+///|
+fn effect_plan_result_binding(
+  terminal : EffectPlanTerminal,
+) -> EffectResultBinding {
+  effect_mapping_shape_effect(effect_mapping_rule_effect(terminal.rule))
 }
 
 ///|
@@ -161,16 +181,21 @@ pub fn prepare_effect_plan_terminal(
   }
   let body = @decode.open_object(@syntax.effect_header_body(header)).unwrap()
   let entity = @decode.text(@decode.lookup(body, "target").unwrap()).unwrap()
-  let (selector, selector_field) = if kind == "upsert" {
-    (
-      "byExternalId",
-      @decode.text(@decode.lookup(body, "key").unwrap()).unwrap(),
-    )
+  let mapping = effect_mapping_shape_contract(effect_mapping_rule_effect(rule))
+  let tuple_width = @environment.mapping_shape_tuple_field_count(mapping)
+  if tuple_width > max_fields {
+    return Err(FieldLimit)
+  }
+  let selector = if tuple_width > 0 {
+    // Result binding records the checked selector prefix before the SET fields.
+    TupleEffectSelector(tuple_width)
+  } else if kind == "upsert" && @decode.lookup(body, "key") is Some(key) {
+    ScalarEffectSelector("byExternalId", @decode.text(key).unwrap())
   } else if @decode.lookup(body, "id") is Some(field) {
-    ("byId", @decode.text(field).unwrap())
+    ScalarEffectSelector("byId", @decode.text(field).unwrap())
   } else if @decode.lookup(body, "match") is Some(pair) {
     let match_body = @decode.open_object(pair).unwrap()
-    (
+    ScalarEffectSelector(
       "byId",
       @decode.text(@decode.lookup(match_body, "result_field").unwrap()).unwrap(),
     )
@@ -181,7 +206,7 @@ pub fn prepare_effect_plan_terminal(
   if kind != "delete" {
     let changes = @decode.lookup(body, "set").unwrap()
     let count = @decode.object_length(changes).unwrap()
-    if count > max_fields {
+    if count > max_fields - tuple_width {
       return Err(FieldLimit)
     }
     for index in 0..<count {
@@ -200,7 +225,6 @@ pub fn prepare_effect_plan_terminal(
       entity,
       operation: kind,
       selector,
-      selector_field,
       field_map,
       checked_changes: if kind == "delete" {
         0
@@ -275,7 +299,8 @@ pub fn check_effect_preview_plan_inventory(
       Ok(None) => continue
       Err(_) => return Err(FieldLimit)
     }
-    remaining_fields -= terminal.checked_changes
+    remaining_fields -= terminal.checked_changes +
+      effect_plan_selector_width(terminal.selector)
     let id = @syntax.effect_header_id(header)
     let mut found = false
     for index in 0..<@publication.effect_preview_member_count(preview) {
@@ -377,9 +402,41 @@ pub fn emit_effect_plan_pipeline(
   @encode.key(out, "op")
   @encode.string_value(out, terminal.operation)
   @encode.key(out, "selector")
-  @encode.string_value(out, terminal.selector)
-  @encode.key(out, "selector_field")
-  @encode.string_value(out, terminal.selector_field)
+  match terminal.selector {
+    ScalarEffectSelector(kind, source) => {
+      @encode.string_value(out, kind)
+      @encode.key(out, "selector_field")
+      @encode.string_value(out, source)
+    }
+    TupleEffectSelector(width) => {
+      @encode.string_value(out, "byTuple")
+      @encode.key(out, "selector_tuple")
+      @encode.begin_array(out)
+      let binding = effect_plan_result_binding(terminal)
+      for index in 0..<width {
+        let component = binding.fields[index]
+        guard component.role is EffectTupleSelector(target) else {
+          raise @encode.InvalidStructure
+        }
+        @encode.begin_object(out)
+        @encode.key(out, "result_field")
+        @encode.string_value(out, @schema.field_reference_name(component.field))
+        @encode.key(out, "target_field")
+        @encode.string_value(out, target)
+        @encode.key(out, "value_type")
+        @encode.string_value(
+          out,
+          if @schema.field_contract(component.field).shape is @contract.Signed64 {
+            "int64"
+          } else {
+            "string"
+          },
+        )
+        @encode.end_object(out)
+      }
+      @encode.end_array(out)
+    }
+  }
   @encode.end_object(out)
   @encode.end_object(out)
   @encode.end_array(out)

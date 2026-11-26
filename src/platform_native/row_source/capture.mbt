@@ -107,7 +107,6 @@ struct NativeRelationFileCapture {
   mut acquisition : NativeRelationFileAcquisition?
   mut content : NativeRelationFileContent?
   mut response_provider : NativeRelationFilePreparedProvider?
-  mut prepared_contract : @rows.RelationDocumentPreparedContract?
   mut run : @rows.RowRun?
   mut responses : @rows.RowRunResponseBorrow?
   mut root : @files.Root?
@@ -763,9 +762,6 @@ fn prepare_native_relation_file_capture_original(
     acquisition: Some(original),
     content: content.map(input => native_relation_file_content(input)),
     response_provider: prepared_provider,
-    prepared_contract: prepared_provider.map(original => {
-      original.prepared_contract
-    }),
     run: None,
     responses: None,
     root: None,
@@ -1216,6 +1212,7 @@ fn NativeRelationFileCapture::admit_response(
           @rows.relation_document_prepared_contract(provider.prepared_contract),
           prepared_contract=Some(provider.prepared_contract),
           response_bytes=Some(bytes.length()),
+          ordered_projection=provider.ordered_key is Some(_),
         )
     }
     let capacity = capacity.unwrap_or_else(() => raise FileCaptureStop(Capacity))
@@ -1325,18 +1322,35 @@ fn NativeRelationFileCapture::admit_response(
     _ => ()
   }
   let selected = self.selection.unwrap()
-  let target = file_require(
-    @rows.project_relation_target_document(
-      self.document.unwrap(),
-      self.declaration.unwrap(),
-      selected.resource,
-      selected.items_path,
-      selected.key_path,
-      selected.primary_identity,
-      [],
-      prepared_contract=self.prepared_contract,
-    ).map_err(issue => Document(issue)),
-  )
+  let document = self.document.unwrap()
+  let declaration = self.declaration.unwrap()
+  let admitted = match
+    self.response_provider.bind(provider => provider.ordered_key) {
+    Some(key) =>
+      @rows.project_relation_target_document_with_key(
+        document,
+        declaration,
+        selected.resource,
+        selected.items_path,
+        selected.key_path,
+        [],
+        key,
+      ).map(@rows.relation_ordered_target_document)
+    None =>
+      @rows.project_relation_target_document(
+        document,
+        declaration,
+        selected.resource,
+        selected.items_path,
+        selected.key_path,
+        selected.primary_identity,
+        [],
+        prepared_contract=self.response_provider.map(provider => {
+          provider.prepared_contract
+        }),
+      )
+  }
+  let target = file_require(admitted.map_err(issue => Document(issue)))
   self.target = Some(target)
   let accepted = match self.acquisition.unwrap() {
     FileQueryAcquisition(acquisition)
@@ -1768,7 +1782,6 @@ pub fn NativeRelationFileCapture::close(
     self.charge = None
     self.responses = None
     self.response_provider = None
-    self.prepared_contract = None
     self.declaration = None
     self.acquisition = None
     self.selection = None

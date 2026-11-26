@@ -47,20 +47,11 @@ fn table_write_publication_from_root(
   if entries.is_empty() {
     return []
   }
-  let mappings = match admission {
-    Some(admission) => publication_admission_mappings(admission)
-    None =>
-      @check_environment.check_mapping_contract_shapes(
-        @program_check.checking_environment_wire(environment),
-        {
-          max_bytes: 1048576,
-          max_nodes: 16384,
-          max_depth: 32,
-          max_members: 32768,
-        },
-        1000000,
-      ).unwrap_or_else(() => raise PublicationStop(Publication))
-  }
+  let mappings = publication_admission_mappings(
+    admission.unwrap_or_else(() => {
+      publication_environment_admission(environment)
+    }),
+  )
   let bindings : Array[@query_program.TableWriteBinding] = []
   for entry in entries {
     let entry_object = @decode.closed_object(entry, [

@@ -451,6 +451,12 @@ test('signed-source-zero note preserves productions and the complete original id
   }
   retainedValues.schema.cid = machineCid(canonical);
   delete retainedValues.bytes;
+  // Only the new ordered-key Mapping schema was added to this part of the
+  // current environment. Keep the retained scalar Mapping comparison exact.
+  const mappings = retainedEnvironment.mapping_contract_bodies;
+  assert.equal(machineCid(mappings.tuple_schema),
+    'sha256:0818475a47a1545a7fc4c650859182060871790791b68fbd1d5790d9ade455da');
+  delete mappings.tuple_schema;
   assert.deepEqual(next[environmentPath], retainedEnvironment);
   for (const [name, previousVectors] of Object.entries(before.stage_vectors)) {
     const currentVectors = after.stage_vectors[name];

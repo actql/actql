@@ -225,8 +225,6 @@ pub fn effect_plan_row_field_only_construction_count(EffectPlanTerminal, EffectM
 
 pub fn effect_plan_row_intended_changes_wire(EffectPlanRow, EffectMappingLiterals, Int, Int, Int, Int, Int, before_encode? : ((Int, Int, Int) -> Bool)?) -> Result[String, EffectPlanChangeIssue]
 
-pub fn effect_plan_row_selector(EffectPlanRow) -> @canonical_json.CanonicalValue
-
 pub fn effect_plan_row_source_index(EffectPlanRow) -> Int
 
 pub fn effect_plan_row_terminal(EffectPlanRow) -> EffectPlanTerminal
@@ -284,6 +282,8 @@ pub fn effect_static_candidate_results(EffectStaticCandidate) -> EffectResultBin
 pub fn effect_static_candidate_work(EffectStaticCandidate) -> Int
 
 pub fn emit_effect_plan_pipeline(EffectPlanTerminal, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_effect_plan_row_selector(EffectPlanRow, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn export_at(ResultWiring, Int) -> ResultExport?
 
@@ -744,6 +744,7 @@ pub(all) enum EffectPlanCheckedRowIssue {
   InvalidLimits
   WorkLimit
   FieldLimit
+  UnsupportedSelector
   ForeignLiterals
   IncompleteChanges
   MissingSourceField(String)
@@ -775,8 +776,8 @@ pub(all) enum EffectPlanInventoryIssue {
 pub struct EffectPlanRow {
   terminal : EffectPlanTerminal
   source_row_index : Int
-  selector_value : @canonical_json.CanonicalValue
   fields : Array[(String, @canonical_json.CanonicalValue)]
+  // private fields
 }
 
 pub(all) enum EffectPlanRowIssue {
@@ -784,6 +785,7 @@ pub(all) enum EffectPlanRowIssue {
   InvalidRow
   WorkLimit
   MissingSelector
+  InvalidTupleComponent(String)
   MissingSourceField(String)
 } derive(Eq, @debug.Debug)
 
@@ -792,10 +794,9 @@ pub struct EffectPlanTerminal {
   source_result : String
   entity : String
   operation : String
-  selector : String
-  selector_field : String
   field_map : Array[(String, String)]
   checked_changes : Int
+  // private fields
 }
 
 pub(all) enum EffectPlanTerminalIssue {
@@ -875,6 +876,7 @@ pub struct EffectResultFieldBinding {
 pub(all) enum EffectResultFieldRole {
   EffectSelector
   EffectUpsertKey
+  EffectTupleSelector(String)
   EffectCommandTarget
   EffectCommandIdentifier
   EffectValue(String)
