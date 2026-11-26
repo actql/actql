@@ -114,6 +114,10 @@ target/
 /scripts/codex-local-checks-hook.d.mts
 /scripts/source-read-current-control.test.mjs
 /scripts/source-read-current-control.test.d.mts
+/scripts/test-node-client-package.mjs
+/scripts/test-node-client-package.d.mts
+/scripts/fixtures/grouped-query-programs.mjs
+/scripts/fixtures/grouped-query-programs.d.mts
 /scripts/test-native-core-linux-common.mjs
 /scripts/test-native-core-linux-common.d.mts
 /scripts/native-core-linux-common.test.mjs
