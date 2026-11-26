@@ -309,9 +309,9 @@ test('public static plan admits its original snapshot before options and returns
       assert.equal(admitted.has(parent), true);
       admitted.add(derived);
     },
-    plan(actual) {
+    plan(actual, deliver) {
       assert.equal(admitted.has(actual), true, 'The original must precede funded preparation');
-      events.push('plan'); return mockView();
+      events.push('plan'); return deliver(mockView(), () => {});
     }, submit() {assert.fail('Static reads create no Run');}});
   const client = await connectInProcess({mode: 'local', owner: 'local'},
     Object.freeze({...ingress, [sourcePreparationPort]: Object.freeze(preparation)}));
@@ -487,12 +487,12 @@ for (const mode of ['local', 'http-loopback']) {
         finally {held = false;}
       }});
     const operations = {authorizeConnection: () => true, negotiate: () => profile('local'),
-      plan(value) {
+      plan(value, deliver) {
         assert.equal(Object.hasOwn(value, 'requestId'), false);
         assert.equal(value.kind, 'aql'); reads++;
         const view = mockView();
         if (corrupt) view.logical_map.self_cid = cid('0');
-        return view;
+        return deliver(view, () => {});
       },
       staticEffectExplanation(value, consume) {
         if (foreign) {
@@ -579,3 +579,81 @@ test('installed static service reads its held original and never re-enters raw p
     async readOriginal() {current = false; return JSON.stringify(mockView());}});
   await assert.rejects(revoked(request), {code: 'ClientConnectionDenied'});
 });
+
+for (const mode of ['local', 'http-loopback']) {
+  test(`${mode}: acquired static Plan rechecks its same original at delivery`, async t => {
+    let client, server;
+    let account = true, originalCurrent = true, acquired = true, loss;
+    let acquiredChecks = 0, checkedPlans = 0, sourceStarts = 0, successfulPlanReplies = 0;
+    const selected = new WeakSet();
+    const unreachable = () => assert.fail('The installed original owns static preparation');
+    const prepare = Object.assign(unreachable, {assertOwned: unreachable, kindOf: unreachable});
+    const revoke = () => {
+      if (loss === 'account') account = false;
+      if (loss === 'original') originalCurrent = false;
+    };
+    const plan = installClientStaticPlan({moon: {clientProgramRequiresTaskCompilation: unreachable},
+      control: {readCheckedClientStaticPlan: unreachable}, prepare,
+      async authorize(actual) {
+        if (mode === 'local' && selected.has(actual)) queueMicrotask(revoke);
+        return true;
+      },
+      readOriginal(actual, retainAcquiredEgress) {
+        selected.add(actual);
+        checkedPlans++;
+        if (acquired) retainAcquiredEgress?.(() => {
+          acquiredChecks++;
+          assert.equal(selected.has(actual), true);
+          if (!account || !originalCurrent) {
+            const code = account ? 'ForeignInstalledSourceProducer' : 'ClientConnectionDenied';
+            throw Object.assign(new Error(code), {code});
+          }
+        });
+        return JSON.stringify(mockView());
+      },
+    });
+    const operations = {authorizeConnection: () => true, negotiate: () => profile('local'), plan,
+      submit() {sourceStarts++; assert.fail('Static Plan must not submit');}};
+    t.after(async () => {
+      await client?.close();
+      if (server) {
+        server.closeAllConnections();
+        await new Promise(resolve => server.close(resolve));
+      }
+    });
+    if (mode === 'local') {
+      client = await connectInProcess({mode: 'local', owner: 'local'},
+        createNodeInProcessClientHost({...operations, authenticate: () => 'plan-test', maxRowBytes: 1024}));
+    } else {
+      const handle = createClientHttpHandler({...operations, authenticate: () => 'plan-test', loopbackHttp: true,
+        prepareRequest: (operation, body) => ({body, bindRequest() {}, finish() {},
+          beforeReply() {if (operation === 'plan') revoke();}})});
+      server = createServer((request, response) => {
+        response.on('finish', () => {
+          if (request.url.endsWith('/plan') && response.statusCode === 200) successfulPlanReplies++;
+        });
+        void handle(request, response);
+      });
+      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+      client = await connect({mode: 'local', owner: 'local', token: 'fixture',
+        endpoint: `http://127.0.0.1:${server.address().port}/`});
+    }
+    const read = () => client.plan('SELECT 1 AS n', {format: 'sql'});
+    assert.deepEqual(await read(), mockView());
+    loss = 'account';
+    await assert.rejects(read(), {code: 'ClientConnectionDenied', status: 403});
+    assert.equal(acquiredChecks, 2);
+    loss = 'original';
+    account = true;
+    await assert.rejects(read());
+    assert.equal(acquiredChecks, 3);
+    if (server) assert.equal(successfulPlanReplies, 1);
+    loss = undefined;
+    account = false;
+    acquired = false;
+    assert.deepEqual(await read(), mockView());
+    assert.equal(acquiredChecks, 3);
+    assert.equal(checkedPlans, 4);
+    assert.equal(sourceStarts, 0);
+  });
+}

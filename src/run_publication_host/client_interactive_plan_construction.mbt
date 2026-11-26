@@ -185,6 +185,7 @@ fn interactive_geometry_view(
   w : @encode.Writer,
   map : (Int, Int, Int),
   inspect_installed : Bool,
+  debug_entry : Bool,
 ) -> Unit raise {
   @encode.begin_object(w)
   interactive_geometry_text(w, "version", "actql-plan-view/0.1")
@@ -205,6 +206,9 @@ fn interactive_geometry_view(
   @encode.begin_object(w)
   interactive_geometry_boolean(w, "static_plan", true)
   interactive_geometry_boolean(w, "inspect", inspect_installed)
+  if debug_entry {
+    interactive_geometry_boolean(w, "debug_entry", true)
+  }
   interactive_geometry_boolean(w, "durable_control", false)
   @encode.key(w, "sample_capture")
   @encode.begin_array(w)
@@ -231,6 +235,7 @@ pub fn measure_client_compiled_run_static_plan_view(
   max_nodes : Int,
   max_depth : Int,
   inspect_installed? : Bool = false,
+  debug_entry? : Bool = false,
   before_carrier_measurement? : ((@carrier.Carrier) -> Bool)? = None,
 ) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue] {
   if !client_compiled_run_matches(compiled, prepared) {
@@ -243,6 +248,7 @@ pub fn measure_client_compiled_run_static_plan_view(
     max_nodes,
     max_depth,
     inspect_installed~,
+    debug_entry~,
     before_carrier_measurement~,
   )
 }
@@ -258,6 +264,7 @@ pub fn measure_client_pure_compilation_static_plan_view(
   max_nodes : Int,
   max_depth : Int,
   inspect_installed? : Bool = false,
+  debug_entry? : Bool = false,
   before_carrier_measurement? : ((@carrier.Carrier) -> Bool)? = None,
 ) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue] {
   match client_pure_compilation_original_plan(prepared, compilation) {
@@ -270,6 +277,7 @@ pub fn measure_client_pure_compilation_static_plan_view(
     max_nodes,
     max_depth,
     inspect_installed,
+    debug_entry,
     before_carrier_measurement~,
   ).map_err(issue => Projection(issue))
 }
@@ -281,6 +289,7 @@ fn measure_client_static_plan_view(
   n : Int,
   d : Int,
   inspect_installed : Bool,
+  debug_entry : Bool,
   before_carrier_measurement? : ((@carrier.Carrier) -> Bool)? = None,
 ) -> Result[ClientStaticPlanViewConstruction, ClientInteractivePlanIssue] {
   if b <= 0 || n <= 0 || d <= 0 {
@@ -502,7 +511,9 @@ fn measure_client_static_plan_view(
     interactive_geometry_map(map_writer, steps_geometry, true)
     let map_sealed = @encode.finish_measurement_usage(map_writer)
     let view_writer = @encode.measuring_writer(b, n, d)
-    interactive_geometry_view(view_writer, map_sealed, inspect_installed)
+    interactive_geometry_view(
+      view_writer, map_sealed, inspect_installed, debug_entry,
+    )
     let view = @encode.finish_measurement_usage(view_writer)
     Ok({
       step_count: steps,

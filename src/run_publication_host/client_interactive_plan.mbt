@@ -179,8 +179,9 @@ fn issue_client_static_plan_view(
   max_nodes : Int,
   max_depth : Int,
   inspect_installed : Bool,
-  retained_original? : Ref[@canonical.CanonicalValue?]? = None,
+  retained_original? : Ref[@publication.RunEvidenceValue?]? = None,
   bounded_capture? : Bool = false,
+  debug_entry? : Bool = false,
 ) -> Result[String, ClientInteractivePlanIssue] {
   if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidReadLimits)
@@ -467,7 +468,9 @@ fn issue_client_static_plan_view(
       _ => return Err(Encoding)
     }
     try {
-      interactive_geometry_view(measured, geometry, inspect_installed)
+      interactive_geometry_view(
+        measured, geometry, inspect_installed, debug_entry,
+      )
       @encode.finish_measurement_usage(measured) |> ignore
     } catch {
       @encode.OutputLimit => return Err(ConstructionRefused)
@@ -488,6 +491,7 @@ fn issue_client_static_plan_view(
     "\"capabilities\":{\"static_plan\":true,\"inspect\":" +
     inspect_installed.to_string() +
     "," +
+    (if debug_entry { "\"debug_entry\":true," } else { "" }) +
     "\"durable_control\":false,\"sample_capture\":[]," +
     "\"full_intermediate_retention\":[],\"cost_guard\":false," +
     "\"execution_batch\":false,\"policy_revision_cid\":\"" +
@@ -510,7 +514,7 @@ fn issue_client_static_plan_view(
   // Optional internal first-capture output only. The old static-only entry
   // passes None and allocates no additional holder, tuple or root field.
   if retained_original is Some(retained) {
-    retained.val = Some(value)
+    retained.val = Some(map)
   }
   Ok(wire)
 }

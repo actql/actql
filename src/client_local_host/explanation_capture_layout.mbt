@@ -29,8 +29,9 @@ let explanation_capture_control_bytes : Int64 = {
     // Options, two geometry/failure cells, internal reservation callback and
     // final original Plan/Facts tuple. The returned constructor's same
     // fixed current/extent/sum controls also cover its sequential scratch cut;
-    // no extra stored fields or callback authority are introduced.
-    static_plan_quote_units(24L, 64L, 48L),
+    // The holder keeps one extra reference to its already funded sealed Map
+    // and the tree projection returns a temporary Some (H1/R2).
+    static_plan_quote_units(25L, 66L, 48L),
     // Two mandatory body/complete validator quotations and ONE shared full
     // parse/emitter/hash/text/sort codec quotation, not a raw byte multiplier.
     static_plan_quote_repeat(static_plan_validator_quote, 2L),

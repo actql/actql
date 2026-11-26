@@ -308,7 +308,11 @@ test "Core control capacity admits exact original state and rejects either one s
   prepare_local_compute_task_boundaries(witness).unwrap() |> ignore
   let base = @resources.ledger_usage(witness_root).reserved_retention_bytes
   assert_eq(control_prepare(witness), Ok(()))
-  let debit = @strategy.captured_task_control_construction_bytes()
+  let debit = @strategy.captured_task_control_construction_bytes(
+    @strategy.graph_task_count(
+      @strategy.captured_dag_graph(local_compute_run(witness)),
+    ),
+  )
   assert_eq(
     @resources.ledger_usage(witness_root).reserved_retention_bytes,
     base + debit,

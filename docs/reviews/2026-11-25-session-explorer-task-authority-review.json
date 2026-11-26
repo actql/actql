@@ -1,0 +1,46 @@
+{
+  "source": "38863112e9ab29b28da63de8807014ce84bfd870",
+  "head": "207548ec659716c0e8bb181a63e014fd024a0153",
+  "tree": "d8bc119b73b83f8f479365bfac16dda11095005a",
+  "previousRevision": "31565cea6491c91e510e760f924c7832dc8acff4",
+  "toolchain": {
+    "sha256": "8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a",
+    "bytes": 753,
+    "mode": "100644"
+  },
+  "configurations": [
+    {
+      "path": "src/client_local_host/moon.pkg",
+      "sha256": "89060694cfab16f512d11e282958f1bd663dcd152ab20c7b519de0739c16b2b3",
+      "bytes": 13207,
+      "mode": "100644",
+      "previous": {
+        "sha256": "69f0f83ea6b499104c1e5b501a6b7b47511e62d422d85cc9281fca18a375d63b",
+        "bytes": 13151,
+        "mode": "100644"
+      },
+      "addedImport": "  \"actql/actql/execution_authorization\" @authorization,\n"
+    },
+    {
+      "path": "src/physical_strategy_host/moon.pkg",
+      "sha256": "ae3a826d73c8fe1b62f16bd442324dc88719309bd469e9a92b80d6e87051ab2c",
+      "bytes": 1448,
+      "mode": "100644",
+      "previous": {
+        "sha256": "b0c2e131bd3f4410de2a224e453b9b8e169f95f648662cc65e468d895c4b73f1",
+        "bytes": 1317,
+        "mode": "100644"
+      },
+      "addedBlock": "\nimport {\n  \"moonbitlang/core/debug\",\n} for \"wbtest\"\n\noptions(\n  targets: { \"task_completion_current_js_wbtest.mbt\": [ \"js\" ] },\n)\n",
+      "fixture": {
+        "path": "src/physical_strategy_host/task_completion_current_js_wbtest.mbt",
+        "sha256": "53d3677f548434e96603c3d69cf886e958d4a7917461e1cab75ad95d1b0eee40",
+        "bytes": 30990,
+        "mode": "100644",
+        "targets": [
+          "js"
+        ]
+      }
+    }
+  ]
+}

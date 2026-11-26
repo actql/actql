@@ -861,7 +861,7 @@
     {
       "module": "packages/client-wire/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "73ceea2b4397b92cc49b9210a9dfc0fece0ef6276e84af036387a8779491bbf6",
+      "sha256": "cf8cf7e18a2113c1cf9728ba307a7a6dbd5f23a3c572a9dcbe86370ec4045bdb",
       "exports": [
         "*:./interactive-control.generated.js",
         "ClientHostOperation",
@@ -884,6 +884,7 @@
         "WireDeliveryAttempt",
         "WireDeliveryAttemptLookup",
         "WireDeliveryRecord",
+        "WireExplanationNarrative",
         "WireHeldRequest",
         "WireHostReleaseReceipt",
         "WireNamedSubmissionAttempt",
@@ -923,6 +924,7 @@
         "prepareClientHostRequest",
         "resourceLimits",
         "resultDescriptionLimits",
+        "resumeControlOperationRef",
         "runStateProtocol",
         "sameSubmissionRef",
         "snapshotCheckRequest",
@@ -939,6 +941,7 @@
         "validClientBody",
         "validClientConnection",
         "validClientProfile",
+        "validControlOperationLookup",
         "validDeliveryAttemptLookup",
         "validHeldRequest",
         "validNamedSubmissionAttempt",
@@ -994,6 +997,13 @@
             "retainSnapshot?: boolean"
           ],
           "result": "Readonly<{body: unknown; connection: WireConnection}> | undefined"
+        },
+        {
+          "name": "resumeControlOperationRef",
+          "parameters": [
+            "command: WireControlCommand"
+          ],
+          "result": "WireControlOperationRef"
         },
         {
           "name": "sameSubmissionRef",
@@ -1120,6 +1130,14 @@
             "selected: WireConnection"
           ],
           "result": "value is WireClientProfile"
+        },
+        {
+          "name": "validControlOperationLookup",
+          "parameters": [
+            "value: unknown",
+            "operationRef: WireControlOperationRef"
+          ],
+          "result": "value is WireControlOperationLookup"
         },
         {
           "name": "validDeliveryAttemptLookup",
@@ -2752,7 +2770,8 @@
           ],
           "exports": [
             "validClientBody",
-            "validStaticExplanationBinding"
+            "validStaticExplanationBinding",
+            "WireExplanationNarrative"
           ],
           "attributes": {
             "responsibility": [
@@ -2841,8 +2860,12 @@
                 "anchor": "jsWireVector"
               },
               {
-                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mts",
                 "anchor": "test('installed static SDK explains effect-free SQL, Source JOIN and Source INFER without starting a Run'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
               }
             ]
           }
@@ -5997,13 +6020,85 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "resumeControlOperationRef",
+            "validControlOperationLookup"
+          ],
+          "exports": [
+            "resumeControlOperationRef",
+            "validControlOperationLookup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "async lookupControlOperation(operationRef,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/client-wire/index.mts",
+                "anchor": "export function validControlOperationLookup(value: unknown, operationRef: WireControlOperationRef)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/client-wire/index.mts",
+                "anchor": "origin.command_cid === operationRef.command_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "await contentCid(receipt) !== receiptCid"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "requestLifetime!.beforeReply();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "fail('InvalidClientHostControlOperationLookup');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "withinResultDescriptionLimits(lookup, input)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"lookup-control-operation\": ["
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-plan-sdk.test.mts",
+                "anchor": "test('SDK lookup consumes the original control receipt through Local Host ingress'"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0c7d63fab69b23058e8aa49372887818554487dbad7c54d891640330b6583128",
+      "sha256": "83393d9127f5dcffcf7a40e3e05a3ebecff6b214baa06b5e03f8e3a1e6046895",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",
@@ -6018,6 +6113,7 @@
         "prepareClientHostRequest",
         "resourceLimits",
         "resultDescriptionLimits",
+        "resumeControlOperationRef",
         "runStateProtocol",
         "sameSubmissionRef",
         "snapshotCheckRequest",
@@ -6034,6 +6130,7 @@
         "validClientBody",
         "validClientConnection",
         "validClientProfile",
+        "validControlOperationLookup",
         "validDeliveryAttemptLookup",
         "validHeldRequest",
         "validNamedSubmissionAttempt",
@@ -6087,6 +6184,13 @@
             "operation",
             "original",
             "retainSnapshot"
+          ],
+          "async": false
+        },
+        {
+          "name": "resumeControlOperationRef/resumeControlOperationRef",
+          "parameters": [
+            "command"
           ],
           "async": false
         },
@@ -6274,6 +6378,14 @@
           "parameters": [
             "value",
             "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "validControlOperationLookup",
+          "parameters": [
+            "value",
+            "operationRef"
           ],
           "async": false
         },
@@ -9317,11 +9429,11 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
-                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mts",
                 "anchor": "test('installed static SDK explains effect-free SQL, Source JOIN and Source INFER without starting a Run'"
               }
             ]
@@ -10393,8 +10505,8 @@
           "operations": [
             "validResourcePeek",
             "validResourcePeek/validResourcePeek",
-            "validResourcePeek/validResourcePeek/validResourcePeek",
-            "validResourcePeek/validResourcePeek#2"
+            "validResourcePeek/validResourcePeek#2",
+            "validResourcePeek/validResourcePeek/validResourcePeek"
           ],
           "exports": [
             "validResourcePeek"
@@ -12311,13 +12423,85 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "resumeControlOperationRef/resumeControlOperationRef",
+            "validControlOperationLookup"
+          ],
+          "exports": [
+            "resumeControlOperationRef",
+            "validControlOperationLookup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "async lookupControlOperation(operationRef,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/client-wire/index.mts",
+                "anchor": "export function validControlOperationLookup(value: unknown, operationRef: WireControlOperationRef)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/client-wire/index.mts",
+                "anchor": "origin.command_cid === operationRef.command_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "await contentCid(receipt) !== receiptCid"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "requestLifetime!.beforeReply();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "fail('InvalidClientHostControlOperationLookup');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "withinResultDescriptionLimits(lookup, input)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"lookup-control-operation\": ["
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-plan-sdk.test.mts",
+                "anchor": "test('SDK lookup consumes the original control receipt through Local Host ingress'"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/client-wire/interactive-control.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "e50d28f5ef6a087d4c470ce1d64af5f2964350ac222a4e6ad146d7391e689416",
+      "sha256": "8e69178b5ae4f1e7f85cfee7686ee9c3a555e4617ea3f87c7162cf0303d65c8f",
       "exports": [
         "ControlJsonValue",
         "WireControlAdmission",
@@ -12767,11 +12951,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -12867,11 +13051,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -12967,11 +13151,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -13067,11 +13251,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -13167,11 +13351,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -13267,11 +13451,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -13379,11 +13563,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -13479,11 +13663,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -13579,11 +13763,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -13691,11 +13875,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -13791,11 +13975,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -13891,11 +14075,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -13991,11 +14175,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -14091,11 +14275,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -14191,11 +14375,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -14303,11 +14487,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -14403,11 +14587,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -14503,11 +14687,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -14603,11 +14787,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -14703,11 +14887,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -14803,11 +14987,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -14903,11 +15087,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -15003,11 +15187,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -15103,11 +15287,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -15203,11 +15387,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -15303,11 +15487,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -15403,11 +15587,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -15503,11 +15687,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -15615,11 +15799,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -15715,11 +15899,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -15815,11 +15999,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -15915,11 +16099,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -16015,11 +16199,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -16115,11 +16299,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -16215,11 +16399,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -16315,11 +16499,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -16463,11 +16647,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -16571,11 +16755,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -16655,7 +16839,7 @@
                 "anchor": "jsWireVector"
               },
               {
-                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "path": "scripts/interactive-run-control-contract.test.mts",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
               }
             ]
@@ -16679,11 +16863,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -16763,15 +16947,15 @@
                 "anchor": "jsWireVector"
               },
               {
-                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "path": "scripts/interactive-run-control-contract.test.mts",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
               },
               {
-                "path": "scripts/effectful-static-plan-contract.test.mjs",
+                "path": "scripts/effectful-static-plan-contract.test.mts",
                 "anchor": "test('Explanation Context admits structural declarations and refuses leaked or invented data', () => {"
               },
               {
-                "path": "scripts/effectful-static-plan-contract.test.mjs",
+                "path": "scripts/effectful-static-plan-contract.test.mts",
                 "anchor": "test('versioned static Explanation composes the existing closed schema families', () => {"
               }
             ]
@@ -16791,11 +16975,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -16875,7 +17059,7 @@
                 "anchor": "jsWireVector"
               },
               {
-                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "path": "scripts/interactive-run-control-contract.test.mts",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
               }
             ]
@@ -16895,11 +17079,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -16979,7 +17163,7 @@
                 "anchor": "jsWireVector"
               },
               {
-                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "path": "scripts/interactive-run-control-contract.test.mts",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
               }
             ]
@@ -16999,11 +17183,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -17083,7 +17267,7 @@
                 "anchor": "jsWireVector"
               },
               {
-                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "path": "scripts/interactive-run-control-contract.test.mts",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
               }
             ]
@@ -17103,11 +17287,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -17187,7 +17371,7 @@
                 "anchor": "jsWireVector"
               },
               {
-                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "path": "scripts/interactive-run-control-contract.test.mts",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
               }
             ]
@@ -17207,11 +17391,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -17291,7 +17475,7 @@
                 "anchor": "jsWireVector"
               },
               {
-                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "path": "scripts/interactive-run-control-contract.test.mts",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
               }
             ]
@@ -17314,11 +17498,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "path": "scripts/generate-interactive-run-control-wire.mts",
                 "anchor": "packages/client-wire/interactive-control.generated.d.ts"
               },
               {
@@ -17398,11 +17582,11 @@
                 "anchor": "jsWireVector"
               },
               {
-                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "path": "scripts/interactive-run-control-contract.test.mts",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
               },
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explainContext reads one original projection"
               }
             ]

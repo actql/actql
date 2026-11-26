@@ -14,6 +14,7 @@ import {
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/execution_authorization",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/logical_request_scope",
@@ -63,6 +64,8 @@ pub fn acknowledge_client_local_content_piece(ClientLocalContentStep, Int) -> Bo
 
 pub fn acknowledge_installed_original_explanation_capture(ClientOriginalExplanationCapture) -> Result[Unit, ClientOriginalExplanationCaptureIssue]
 
+pub fn acknowledge_installed_relation_sample_start(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, InstalledRelationSampleStartIssue]
+
 pub fn admit_installed_effect_captured_run(ClientInstalledEffectCaptureRecovery, String) -> Result[@run_publication.PreparedCapturedEffectRun, ClientInstalledManagedRunIssue]
 
 pub fn[I] admit_request_effect_captured_run(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String) -> Result[@run_publication.PreparedCapturedEffectRun, ClientRequestPreparationIssue]
@@ -82,6 +85,10 @@ pub fn advance_client_serialization_prefix(ClientSerializationPrefix, Int) -> Re
 pub fn advance_installed_effect_dependency_capture(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication.CapturedRunIssuancePreparation, Int) -> Result[Bool, ClientInstalledManagedRunIssue]
 
 pub fn advance_installed_effect_result_publication(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @physical_strategy_host.CapturedEffectRunDAG, @run_publication_host.CapturedClientResultTransformation, Int) -> Result[(Bool, Int), ClientInstalledEffectResultPublicationIssue]
+
+pub fn advance_installed_relation_sample_debug_entry(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, @execution_authorization.AdmittedAccountConfiguration, String, String, InstalledRelationSampleEntryCommand) -> Result[Unit, InstalledRelationSampleStartIssue]
+
+pub fn advance_installed_relation_sample_start_control(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, @execution_authorization.AdmittedAccountConfiguration, String, String, Bool) -> Result[Unit, InstalledRelationSampleStartIssue]
 
 pub fn advance_program_capture(ClientProgramCapture, Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
 
@@ -292,6 +299,10 @@ pub fn check_installed_keyed_source_read_ledger(ClientInstalledKeyedSourceRead, 
 pub fn check_installed_managed_keyed_content_preparation(ClientInstalledManagedKeyedPreparation, @run_publication_host.PreparedClientProgram) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn check_installed_managed_run(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[Unit, ClientInstalledManagedRunIssue]
+
+pub fn check_installed_relation_sample_profile(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, ClientLogicalObservation, @run_publication_host.ClientSubmissionReferenceRecord, InstalledRelationSampleProfileEvidence, Int, Int, Int) -> Result[ClientCheckedRelationSampleProfile, InstalledRelationSampleProfileIssue]
+
+pub fn check_installed_relation_sample_profile_journal_reference(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, ClientLogicalObservation, String, InstalledRelationSampleProfileEvidence, Int, Int, Int) -> Result[ClientCheckedRelationSampleProfile, InstalledRelationSampleProfileIssue]
 
 pub fn check_installed_source_read_current(ClientInstalledSourceRead) -> Result[Unit, ClientInstalledSourceReadIssue]
 
@@ -527,7 +538,7 @@ pub fn[I] continue_request_effect_preparation(ClientRequestPreparation[I], I) ->
 
 pub fn[I] continue_request_program_preparation(ClientRequestPreparation[I], I) -> Result[@run_publication_host.PreparedClientProgram, ClientRequestPreparationIssue]
 
-pub fn[I] discard_original_effect_run_explanation(ClientRequestEffectRunExplanation[I], @run_publication.PublicationContract, decline? : Bool) -> Result[Unit, ClientRequestStaticContextIssue]
+pub fn[I] discard_original_effect_run_explanation(ClientRequestEffectRunExplanation[I], @run_publication.PublicationContract, reclaim? : Bool) -> Result[Unit, ClientRequestStaticContextIssue]
 
 pub fn execute_captured_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @client_row_source_host.RowSourceCapture, ClientLocalRequirements, Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
@@ -809,6 +820,26 @@ pub fn installed_provider_row_capture_capacity_matches(ClientInstalledCaptureCap
 
 pub fn installed_record_effect_profile() -> Array[Int]
 
+pub fn installed_relation_sample_adoption_matches_profile(ClientCheckedRelationSampleProfile, String, String, String, String, String, String, Bool) -> Bool
+
+pub fn installed_relation_sample_debug_entry_runnable(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, Int) -> Result[Bool, InstalledRelationSampleStartIssue]
+
+pub fn installed_relation_sample_debug_next_input(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, Int, Int, Int, String, Int, Int) -> Result[(String, String, String, Int, Int)?, InstalledRelationSampleNextInputIssue]
+
+pub fn installed_relation_sample_debug_resume_allowed(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, @execution_authorization.AdmittedAccountConfiguration, String, String) -> Bool
+
+pub fn installed_relation_sample_debug_task_pause(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, Int) -> Result[(Int, String, String, Int), InstalledRelationSampleStartIssue]
+
+pub fn installed_relation_sample_driver_cleanup_pending(ClientCheckedRelationSampleProfile) -> Bool
+
+pub fn installed_relation_sample_driver_requirement(ClientCheckedRelationSampleProfile, Int) -> Bool?
+
+pub fn installed_relation_sample_prefix_original(ClientInstalledManagedRun, InstalledRelationSamplePrefix) -> (InstalledRelationSampleRetention, String, String, String, @encode_core.EncodedDocument, Int, Int, Int, Int64, Int)?
+
+pub fn installed_relation_sample_profile_start_original(ClientCheckedRelationSampleProfile) -> (String, String, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, String)
+
+pub fn installed_relation_sample_retention_for_output(ClientInstalledManagedRun, ClientCheckedRelationSampleProfile, String) -> Result[InstalledRelationSampleRetention?, InstalledRelationSampleProfileIssue]
+
 pub fn installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> ClientInstalledCaptureCapacity?
 
 pub fn installed_row_input_policy(Int, Int, Int, Int, Int) -> @client_row_source_host.RowInputLimits
@@ -866,6 +897,8 @@ pub fn issue_installed_effect_initial_retention(ClientInstalledManagedRun, @run_
 pub fn issue_installed_effect_keyed_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication_host.PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, @run_publication_host.ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientKeyedLookupInput, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ClientClosedValuesPreparationIssue]
 
 pub fn issue_installed_effect_multi_captured_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication_host.PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, @run_publication_host.ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ClientClosedValuesPreparationIssue]
+
+pub fn issue_installed_relation_sample_profile_journal_reference(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, ClientLogicalObservation, String, String, Int, Int, Int) -> Result[ClientCheckedRelationSampleProfile, InstalledRelationSampleProfileIssue]
 
 pub fn issue_program_captured_publication_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], @run_publication_host.ClientKeyedLookupObservation?, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ClientClosedValuesPreparationIssue]
 
@@ -1251,7 +1284,7 @@ pub fn[I] prepare_request_node_model_source_free_plan(ClientRequestPreparation[I
 
 pub fn[I] prepare_request_original_computation_check(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits) -> Result[Unit, ClientRequestTerminalIssue]
 
-pub fn[I] prepare_request_original_explanation(ClientRequestPreparation[I], I, Int, Int, Int) -> Result[ClientRequestOriginalExplanation[I]?, ClientOriginalExplanationCaptureIssue]
+pub fn[I] prepare_request_original_explanation(ClientRequestPreparation[I], I, Int, Int, Int, debug_entry_installed? : Bool) -> Result[ClientRequestOriginalExplanation[I]?, ClientOriginalExplanationCaptureIssue]
 
 pub fn[I] prepare_request_program_authoring_context(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientAuthoringContextPreparation, ClientRequestAuthoringIssue]
 
@@ -1441,7 +1474,7 @@ pub fn[I] request_model_recovery_usage_isolated(ClientRequestPreparation[I], I, 
 
 pub fn[I] request_native_static_plan_view(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, @run_publication_host.ClientCompilationManifests) -> Result[String, ClientRequestTerminalIssue]
 
-pub fn[I] request_original_static_plan_wire(ClientRequestOriginalExplanation[I]) -> Result[String, ClientOriginalExplanationCaptureIssue]
+pub fn[I] request_original_static_plan_wire(ClientRequestOriginalExplanation[I], inspect_installed? : Bool) -> Result[String, ClientOriginalExplanationCaptureIssue]
 
 pub fn request_policy_subject_output_inventory(@program_check.RequestPolicySubjectPreparation) -> @execution_relation.PreparationRepresentationUnits?
 
@@ -1463,9 +1496,9 @@ pub fn[I] request_prepared_static_effect_explanation_narrative(ClientRequestPrep
 
 pub fn[I] request_prepared_static_effect_explanation_wire(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticContextIssue]
 
-pub fn[I] request_prepared_static_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[ClientRequestStaticEffectExplanation, ClientRequestStaticContextIssue]
+pub fn[I] request_prepared_static_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph], debug_entry_installed? : Bool) -> Result[ClientRequestStaticEffectExplanation, ClientRequestStaticContextIssue]
 
-pub fn[I] request_prepared_static_plan_view(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestTerminalIssue]
+pub fn[I] request_prepared_static_plan_view(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, infers? : Array[@run_publication_host.ClientInferPlanGraph], inspect_installed? : Bool) -> Result[String, ClientRequestTerminalIssue]
 
 pub fn[I] request_prepared_static_pure_explanation_output(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, @run_publication_host.ClientExplanationLanguage?, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticContextIssue]
 
@@ -1505,6 +1538,8 @@ pub fn reserve_installed_effect_dependency_group(ClientInstalledManagedRun, @run
 
 pub fn reserve_installed_effect_model_unit_body(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, String, @encode_core.EncodingConstructionGeometry) -> Result[Unit, ClientInstalledManagedRunIssue]
 
+pub fn reserve_installed_relation_sample_start(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG, journal_bytes? : Int, debug_entry? : Bool, previous_journal_bytes? : Int) -> Result[Unit, InstalledRelationSampleStartIssue]
+
 pub fn[I, S] reserve_installed_source_construction(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
 
 pub fn reserve_program_publication(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[ClientProgramPublication, ClientClosedValuesPreparationIssue]
@@ -1543,6 +1578,8 @@ pub fn[I] reserve_request_query_time_invocation(ClientRequestPreparation[I], I, 
 
 pub fn[I] reserve_request_result_read(ClientRequestPreparation[I], I, Int, Int, Int, Int, Int) -> Result[Int, ClientRequestPreparationIssue]
 
+pub fn[I] reserve_request_result_read_construction(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I] reserve_request_result_read_metadata(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_retained_intent_source(ClientRequestPreparation[I], I) -> Result[@source_value.ParseLimits, ClientRequestPreparationIssue]
@@ -1565,9 +1602,13 @@ pub fn result_read_row_cost(Int, Int) -> Int64?
 
 pub fn result_read_schema_cost(Int, Int) -> Int64?
 
+pub fn resume_installed_relation_sample_debug_task(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, @execution_authorization.AdmittedAccountConfiguration, String, String, Int, Int, String, String, Int, Bool) -> Result[Unit, InstalledRelationSampleStartIssue]
+
 pub fn retain_accounted_client_source_capture_input(ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
 
 pub fn retain_accounted_client_source_capture_task(ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
+
+pub fn[T] retain_installed_committed_relation_sample(ClientInstalledManagedRun, ClientCheckedRelationSampleProfile, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.CompletedOutput?, @execution_relation.RelationSchemaIdentityLimits, Int, Int, () -> Bool) -> Result[InstalledRelationSamplePrefix?, InstalledRelationSamplePrefixIssue]
 
 pub fn retain_installed_effect_captured_input_inventory(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @physical_strategy_host.CapturedEffectInputs) -> Result[Unit, ClientInstalledManagedRunIssue]
 
@@ -1580,6 +1621,8 @@ pub fn retain_installed_effect_operation_construction(ClientInstalledManagedRun,
 pub fn retain_installed_effect_operation_controls_before_construction(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
 
 pub fn retain_installed_effect_recovered_input_inventory(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity) -> Result[Unit, ClientInstalledManagedRunIssue]
+
+pub fn[T] retain_installed_relation_sample_prefix(ClientInstalledManagedRun, ClientCheckedRelationSampleProfile, @run_publication_host.ClientLogicalTaskBoundary, @execution_relation.ManagedCompletedOutput[T], @execution_relation.CompletedOutput, @execution_relation.RelationSchemaIdentityLimits, Int, Int, () -> Bool) -> Result[InstalledRelationSamplePrefix?, InstalledRelationSamplePrefixIssue]
 
 pub fn[I] retain_request_result_metadata_contract(ClientRequestPreparation[I], I, Int, @run_publication.PublicationContract, Int) -> Result[Unit, ClientRequestPreparationIssue]
 
@@ -1618,6 +1661,8 @@ pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure)
 pub fn return_installed_logical_observation(ClientLogicalObservation) -> Result[Bool, ClientLogicalObservationIssue]
 
 pub fn return_installed_original_explanation_capture(ClientOriginalExplanationCapture) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
+
+pub fn return_installed_relation_sample_prefix(InstalledRelationSamplePrefix) -> Result[Unit, @physical_strategy_host.CapturedTaskBoundaryIssue]
 
 pub fn return_logical_observation_record(ClientLogicalObservationRecord) -> Unit
 
@@ -1745,6 +1790,12 @@ pub fn terminal_serialization_run_matches(ClientInstalledManagedRun, @run_public
 
 pub fn[I] try_capture_request_effect_run_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[ClientRequestEffectRunExplanation[I]?, ClientRequestStaticContextIssue]
 
+pub fn[T] with_installed_committed_relation_sample(ClientInstalledManagedRun, ClientCheckedRelationSampleProfile, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.CompletedOutput?, @execution_relation.RelationSchemaIdentityLimits, Int, Int, () -> Bool, (InstalledRelationSamplePrefix) -> Bool, (InstalledRelationSamplePrefix) -> Unit) -> Result[Bool, InstalledRelationSamplePrefixIssue]
+
+pub fn with_installed_relation_sample_adoption(ClientInstalledManagedRun, InstalledRelationSamplePrefix, () -> Bool, (InstalledRelationSampleAdoptionInput, () -> Bool) -> Result[Unit, InstalledRelationSampleAdoptionIssue]) -> Result[Unit, InstalledRelationSampleAdoptionIssue]
+
+pub fn with_installed_relation_sample_journal(ClientInstalledManagedRun, ClientCheckedRelationSampleProfile, InstalledRelationSamplePrefix, () -> Bool, (InstalledRelationSampleAdoptionInput, () -> Bool, Int) -> Bool) -> Result[Unit, InstalledRelationSampleAdoptionIssue]
+
 pub fn[T, E] with_program_commit_validation_view_in_read(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, (ClientProgramValidationReadDemand) -> Result[Unit, ClientProgramValidationIssue], (ClientProgramValidation, @run_publication.PublicationCommitPreparation) -> Result[T, E]) -> Result[Result[T, E]?, ClientProgramValidationIssue]
 
 pub fn yield_installed_effect_operation_construction_workspace(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
@@ -1846,6 +1897,8 @@ pub suberror ClientRequestTerminalIssue {
 type ClientAccountedSourceCapture
 
 type ClientBroadResidual
+
+type ClientCheckedRelationSampleProfile
 
 pub(all) enum ClientClosedValuesPreparationIssue {
   ForeignOriginal
@@ -2368,6 +2421,82 @@ pub(all) struct ClientWholeModelPublicationSources {
 }
 
 type ClosedValuesLexicalFacts derive(Eq, @debug.Debug)
+
+pub struct InstalledRelationSampleAdoptionInput {
+  source_generation : @run_publication.RunEvidenceValue
+  capture : @run_publication.RunEvidenceValue
+  emission : @run_publication.RunEvidenceValue
+  reference : @run_publication.RunEvidenceValue
+  relation : @encode_core.EncodedDocument
+}
+
+pub(all) enum InstalledRelationSampleAdoptionIssue {
+  SampleAdoptionOriginalUnavailable
+  SampleAdoptionAuthorityLost
+  SampleAdoptionLimits
+  SampleAdoptionCapacity(@physical_resources.LedgerIssue)
+  SampleAdoptionReturn(@physical_resources.LedgerIssue)
+  SampleAdoptionWork(@physical_resources.LedgerIssue)
+  SampleAdoptionEncoding(@encode_core.EncodeFailure)
+  SampleAdoptionEvidence(@run_publication.RunEvidenceValueIssue)
+  SampleAdoptionVisitorRefused
+}
+
+pub(all) enum InstalledRelationSampleEntryCommand {
+  PrepareEntry
+  ResumeEntryStep(Int)
+  ResumeEntryTerminal(Int)
+}
+
+pub(all) enum InstalledRelationSampleNextInputIssue {
+  NextInputForeignOriginal
+  NextInputStalePause
+  NextInputWorkLimit
+} derive(Eq, @debug.Debug)
+
+type InstalledRelationSamplePrefix
+
+pub(all) enum InstalledRelationSamplePrefixIssue {
+  SamplePrefixProfile(InstalledRelationSampleProfileIssue)
+  SamplePrefixLogical(@run_publication_host.ClientLogicalTaskBoundaryIssue)
+  SamplePrefixAuthorityLost
+  SamplePrefixLimits
+  SamplePrefixPhysical(@physical_strategy_host.CapturedRelationSamplePrefixIssue)
+  SamplePrefixVisitorRefused
+}
+
+pub(all) struct InstalledRelationSampleProfileEvidence {
+  intent : @run_publication.RunEvidenceValue
+  requested : @run_publication.RunEvidenceValue
+  effective : @run_publication.RunEvidenceValue
+  resolved : @run_publication.RunEvidenceValue
+  map : @run_publication.RunEvidenceValue
+  admission : @run_publication.RunEvidenceValue
+}
+
+pub(all) enum InstalledRelationSampleProfileIssue {
+  ForeignSampleProfile
+  SampleProfileBusy
+  SampleProfileLimits
+  SampleProfileNotSelected
+  SampleProfileCapacity(@physical_resources.PreparationCapacityIssue)
+  SampleProfileWork(@physical_resources.LedgerIssue)
+  SampleProfileBinding(@run_publication.RunEvidenceValueIssue)
+}
+
+pub(all) struct InstalledRelationSampleRetention {
+  limits : @run_publication.InteractiveRelationSampleLimits
+  control_admission_cid : String
+  resolved_profile_cid : String
+}
+
+pub(all) enum InstalledRelationSampleStartIssue {
+  ForeignSampleStart
+  SampleStartRequiresControl
+  SampleStartRun(ClientInstalledManagedRunIssue)
+  SampleStartCapacity(@physical_resources.PreparationCapacityIssue)
+  SampleStartControl(@physical_strategy_host.CapturedTaskControlIssue)
+}
 
 type LocalValuesEffectResultExport
 pub fn LocalValuesEffectResultExport::captured_export(Self) -> @physical_strategy_host.CapturedEffectLocalResultExport?

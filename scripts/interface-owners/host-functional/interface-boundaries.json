@@ -17,7 +17,7 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5539,
+    "operations": 5544,
     "exports": 1202,
     "explicitContractGroups": 550
   },
@@ -1787,7 +1787,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4ee939592974a0295e808265fdc5f7358e8f91234e1b3c3fb57914b93dcf3a3c",
+      "sha256": "d82c99592e3941ce5f5fd381592b33b92b3834cd8efc98c5f0aa41e64091029b",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2856,6 +2856,10 @@
               {
                 "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
                 "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "if (owner?.releaseComplete === true) return false;"
               }
             ],
             "synchronization": [
@@ -3076,6 +3080,10 @@
               {
                 "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
                 "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
+              },
+              {
+                "path": "adapters/host-node/table-durable-capture.test.mjs",
+                "anchor": "assert.equal(await suspendCompletedEffectfulComputation(suspension), false);"
               }
             ]
           }
@@ -7959,7 +7967,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -8147,7 +8155,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -15609,7 +15617,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "515644c03591dd72954aadb50dce01bfafd0e6f0b2ce7c4957e395daf11784d3",
+      "sha256": "bbb153532a14d8d7b33c9b1e0da318cb3854a4ad79d5e14343132e1f245078dc",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -15729,6 +15737,8 @@
             "observeCompletion",
             "observeTaskStart",
             "taskObservation",
+            "relationSample",
+            "taskControl",
             "beforeCompute",
             "retainPreflightCleanup",
             "preparationHolder"
@@ -15742,6 +15752,11 @@
             "entry",
             "index"
           ],
+          "async": true
+        },
+        {
+          "name": "runInstalledStrategy/awaitRunnable/awaitRunnable",
+          "parameters": [],
           "async": true
         },
         {
@@ -16366,6 +16381,110 @@
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "runInstalledStrategy/awaitRunnable/awaitRunnable"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/strategy.mts",
+                "anchor": "const awaitRunnable ="
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "let debugController: Entry['debugControl'];"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "acceptedRevision: parked.resume_revision, physicalStartRevision"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "const result = debugController.activate(acknowledgedDebugStart);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "prepareDebugEntryResume?.(setup, originalHeld.managedRun, authority)"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "if (command.self_cid !== selection.commandCid)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/strategy.mts",
+                "anchor": "await taskControl.waitForResume(setup, signal);"
+              },
+              {
+                "path": "adapters/host-node/entry.mts",
+                "anchor": "control: {signal, observer, taskObservation, beforePublication, relationSample, taskControl}"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "if (debugReceiver !== undefined) debugReceiver(debugStart!);"
+              },
+              {
+                "path": "adapters/host-common/strategy.mts",
+                "anchor": "phase = taskControl.phase(setup);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "throw new Error('ClientRunDebugEntryOriginalUnavailable');"
+              },
+              {
+                "path": "adapters/host-common/strategy.mts",
+                "anchor": "throw new StrategyHostError('InstalledTaskControllerNotRunnable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/strategy.mts",
+                "anchor": "signal.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "const current = () => !entry.abort.signal.aborted && hostConnection(authority) === true"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/strategy.mts",
+                "anchor": "const awaitRunnable = taskControl === undefined || signal === undefined ? undefined : async () => {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "!['step', 'terminal'].includes(acknowledgedDebugStart.until)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/strategy-usage.test.mts",
+                "anchor": "test('a controlled Driver waits at entry and after one Step"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "test('a lost physical-start ACK never delivers the Debug continuation"
+              },
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mts",
+                "anchor": "test('the Driver receives the exact acknowledged Debug interval"
               }
             ]
           }
@@ -23774,7 +23893,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -24289,7 +24408,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -24386,7 +24505,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "355a776bb7978affd92530a2751e554bcd70a563d30528aac0b4bbab892b2079",
+      "sha256": "37fc1b75612cf5c33386f914a6568ed81d2a3d081bbdeafd0d115f32fba7d372",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -24433,6 +24552,9 @@
             "runPlan",
             "runExplanation",
             "runExplanationContext",
+            "runSample",
+            "lookupControlOperation",
+            "resumeRun",
             "maxRequestBytes",
             "observe",
             "loopbackHttp",
@@ -24503,13 +24625,27 @@
         {
           "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#3",
           "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#4",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#5",
+          "parameters": [
             "resolve",
             "reject"
           ],
           "async": false
         },
         {
-          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#4",
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#6",
           "parameters": [
             "error"
           ],
@@ -24566,6 +24702,14 @@
           "parameters": [
             "resolve",
             "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/deliverStaticPlan",
+          "parameters": [
+            "view",
+            "assertCurrent"
           ],
           "async": false
         },
@@ -26166,7 +26310,8 @@
         },
         {
           "operations": [
-            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#7"
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#7",
+            "createClientHttpHandler/createClientHttpHandler/deliverStaticPlan"
           ],
           "exports": [],
           "attributes": {
@@ -26226,8 +26371,212 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#5"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reply = async (answer: WireRunSample) => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reserve: SampleReserve = bytes => {readWorkspace.metadata(request, bytes);};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#6"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              },
+              {
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "const inspectRead = operation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reply = async (answer: WireRunSample) => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reserve: SampleReserve = bytes => {readWorkspace.metadata(request, bytes);};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.test.mts",
+                "anchor": "Run Inspect enters its sink under the same synchronous current decision"
               }
             ]
           }
@@ -26249,7 +26598,7 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fba7c7c431743927823fa3540d7dbf8be9546f39193cc8cc2fed9c4945219442",
+      "sha256": "6791eb28099176f2f95cfeb38ed023d43c23f53da9d5ee44e7123a1fb2728301",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -26267,6 +26616,7 @@
           "parameters": [
             "authorize",
             "authorizeEgress",
+            "authorizeDebugEntry",
             "withOriginal"
           ],
           "async": false
@@ -26304,6 +26654,7 @@
             "control",
             "prepare",
             "authorize",
+            "authorizeDebugEntry",
             "readOriginal"
           ],
           "async": false
@@ -26311,16 +26662,31 @@
         {
           "name": "installClientStaticPlan/installClientStaticPlan",
           "parameters": [
-            "request"
+            "request",
+            "deliver"
           ],
           "async": true
+        },
+        {
+          "name": "installClientStaticPlan/installClientStaticPlan/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientStaticPlan/installClientStaticPlan/retainOriginalPlanEgress",
+          "parameters": [
+            "assertCurrent"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "installClientStaticPlan",
-            "installClientStaticPlan/installClientStaticPlan"
+            "installClientStaticPlan/installClientStaticPlan",
+            "installClientStaticPlan/installClientStaticPlan/assertCurrent/assertCurrent",
+            "installClientStaticPlan/installClientStaticPlan/retainOriginalPlanEgress"
           ],
           "exports": [
             "installClientStaticPlan"
@@ -26500,6 +26866,10 @@
               {
                 "path": "adapters/host-node/client-interactive-plan.test.mjs",
                 "anchor": "test('installed static service reads its held original and never re-enters raw preparation or compilation'"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
               }
             ]
           }
@@ -28594,7 +28964,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -29389,7 +29759,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -29746,7 +30116,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b9e36c1fa52290042cd8ee791480843676633e5a16a25706739f54f56e9713cd",
+      "sha256": "e0855637782797486534109efcfdc367d22d105c0fccb8c4143474322c124b3e",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29790,6 +30160,13 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/debugEntryTransaction/debugEntryTransaction/debugEntryTransaction",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/ensureOpen/ensureOpen",
           "parameters": [],
           "async": false
@@ -29799,6 +30176,43 @@
           "parameters": [
             "ref",
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/interactiveStart/init:persistSample/init:persistSample",
+          "parameters": [
+            "row",
+            "claim",
+            "revision"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/interactiveStart/init:sampleWriter/init:sampleWriter",
+          "parameters": [
+            "ref",
+            "claim",
+            "revision",
+            "publication"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/interactiveStart/init:selectDebug/init:selectDebug",
+          "parameters": [
+            "ref",
+            "revision",
+            "selection",
+            "publication"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/interactiveStart/init:takeSample/init:takeSample",
+          "parameters": [
+            "ticket",
+            "match"
           ],
           "async": false
         },
@@ -29813,6 +30227,44 @@
             "submission",
             "control"
           ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:acceptDebugEntryResume/init:acceptDebugEntryResume",
+          "parameters": [
+            "ref",
+            "commandWire",
+            "current",
+            "capture",
+            "receiptOriginal",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:acceptDebugEntryResume/init:acceptDebugEntryResume/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:acceptDebugTaskResume/init:acceptDebugTaskResume",
+          "parameters": [
+            "ref",
+            "commandWire",
+            "startRevision",
+            "stepId",
+            "nextStepId",
+            "committedGeneration",
+            "current",
+            "capture",
+            "receiptOriginal",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:acceptDebugTaskResume/init:acceptDebugTaskResume/result/result",
+          "parameters": [],
           "async": false
         },
         {
@@ -29894,6 +30346,17 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:debugPauseCurrent/init:debugPauseCurrent",
+          "parameters": [
+            "ref",
+            "parked",
+            "startRevision",
+            "current",
+            "requireEntryDeadline"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:installObservationProjection/init:installObservationProjection",
           "parameters": [
             "projection"
@@ -29905,6 +30368,41 @@
           "parameters": [
             "key",
             "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:lookupDebugEntry/init:lookupDebugEntry",
+          "parameters": [
+            "ref",
+            "current",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:lookupDebugEntry/init:lookupDebugEntry/init:lookupDebugEntry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:lookupDebugResume/init:lookupDebugResume",
+          "parameters": [
+            "ref",
+            "operationId",
+            "commandCid",
+            "acceptedFromRevision",
+            "current",
+            "reserve",
+            "reserveConstruction",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:lookupDebugResume/init:lookupDebugResume/init:lookupDebugResume",
+          "parameters": [
+            "key"
           ],
           "async": false
         },
@@ -29943,6 +30441,16 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:lookupRelationSampleAdoption/init:lookupRelationSampleAdoption",
+          "parameters": [
+            "ref",
+            "sampleRefCid",
+            "custody",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:lookupRunDefinition/init:lookupRunDefinition",
           "parameters": [
             "ref",
@@ -29962,6 +30470,15 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:lookupRunPlanOriginal/init:lookupRunPlanOriginal",
+          "parameters": [
+            "ref",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:originalExplanationContextLimit/init:originalExplanationContextLimit",
           "parameters": [],
           "async": false
@@ -29971,13 +30488,41 @@
           "parameters": [
             "identity",
             "namespaceId",
+            "sampleRunRef",
+            "reserveSampleRead",
             "requestControl",
             "publicationControl"
           ],
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/checkSampleProfile",
+          "parameters": [
+            "owner",
+            "definition",
+            "observation",
+            "records",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/checkSampleProfile/checkSampleProfile",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/checkSampleProfile/init:currentRow/init:currentRow",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/checkSampleProfile/init:reserveCurrentRow/init:reserveCurrentRow",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/originalView/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
         },
@@ -29991,6 +30536,50 @@
           "parameters": [
             "key"
           ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/reserveSampleOriginalExtent/reserveSampleOriginalExtent/reserveSampleOriginalExtent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:parkDebugEntry/init:parkDebugEntry",
+          "parameters": [
+            "identity",
+            "ref",
+            "expectedRevision",
+            "expiresAt",
+            "current",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:parkDebugEntry/init:parkDebugEntry/init:parkDebugEntry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:parkDebugTask/init:parkDebugTask",
+          "parameters": [
+            "ref",
+            "startRevision",
+            "expectedRevision",
+            "controlRevision",
+            "stepId",
+            "nextStepId",
+            "committedGeneration",
+            "expiresAt",
+            "current",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:parkDebugTask/init:parkDebugTask/init:parkDebugTask",
+          "parameters": [],
           "async": false
         },
         {
@@ -30013,6 +30602,28 @@
           "name": "openClientRequestJournal/journal/init:probeRunExplanationOriginal/init:probeRunExplanationOriginal",
           "parameters": [
             "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:readRetainedRelationSample/init:readRetainedRelationSample",
+          "parameters": [
+            "ref",
+            "selected",
+            "custody",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:readRetainedRelationSample/init:readRetainedRelationSample/init:readRetainedRelationSample",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:readRetainedRelationSample/init:readRetainedRelationSample/original/init:reserve/init:reserve",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -30084,6 +30695,16 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:retireRelationSamplePayload/init:retireRelationSamplePayload",
+          "parameters": [
+            "ref",
+            "sampleRefCid",
+            "custody",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:supportsOriginalExplanation/init:supportsOriginalExplanation",
           "parameters": [],
           "async": false
@@ -30108,6 +30729,14 @@
         },
         {
           "name": "openClientRequestJournal/openClientRequestJournal#3",
+          "parameters": [
+            "runDefinitionCid",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/openClientRequestJournal#4",
           "parameters": [],
           "async": false
         },
@@ -30127,11 +30756,43 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/reserveDebugReceipt/reserveDebugReceipt/reserveDebugReceipt",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/retainRunStateFrame/retainRunStateFrame",
           "parameters": [
             "frame",
             "selected"
           ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes/sampleOriginalStoredBytes",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes#2",
+          "parameters": [
+            "table",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sampleStorage/sampleStorage/sampleStorage",
+          "parameters": [],
           "async": false
         },
         {
@@ -30157,6 +30818,18 @@
             "ref"
           ],
           "async": false
+        },
+        {
+          "name": "requireDebugEntryAuthority",
+          "parameters": [
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireDebugEntryAuthority/requireDebugEntryAuthority",
+          "parameters": [],
+          "async": false
         }
       ],
       "contracts": [
@@ -30177,7 +30850,7 @@
             "openClientRequestJournal/journal/init:lookupOwnedDefinition/init:lookupOwnedDefinition",
             "openClientRequestJournal/journal/init:lookupRunDefinition/init:lookupRunDefinition",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
-            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/originalView/init:assertCurrent/init:assertCurrent",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal/readOriginal",
             "openClientRequestJournal/journal/init:prepareSubmittedIntent/init:prepareSubmittedIntent",
@@ -30898,7 +31571,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -30930,11 +31603,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -32216,7 +32889,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -32248,11 +32921,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -32384,15 +33057,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -32470,15 +33143,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -32554,15 +33227,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -32638,15 +33311,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -32722,15 +33395,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -32806,15 +33479,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -32826,7 +33499,8 @@
             "openClientRequestJournal/journal/init:readRunExplanationContextOriginal/init:readRunExplanationContextOriginal",
             "openClientRequestJournal/journal/init:supportsOriginalExplanationContext/init:supportsOriginalExplanationContext",
             "openClientRequestJournal/journal/init:originalExplanationContextLimit/init:originalExplanationContextLimit",
-            "openClientRequestJournal/openClientRequestJournal#3"
+            "openClientRequestJournal/openClientRequestJournal#3",
+            "openClientRequestJournal/journal/init:lookupRunPlanOriginal/init:lookupRunPlanOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -32868,13 +33542,13 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('Context and Template join the same committed Plan and Facts"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('failed Context insertion rolls back"
               }
             ],
@@ -32887,24 +33561,198 @@
                 "anchor": "extent.factsBytes + extent.contextBytes! + extent.invocationTemplateBytes! > maxRunDefinitionWireBytes"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('Context and Template enforce a paired aggregate extent"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('old Facts-only Runs never backfill Context"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('Context and Template join the same committed Plan and Facts"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('Context and Template enforce a paired aggregate extent"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
+                "anchor": "split Effect Plan uses the same two bounded records"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/interactiveStart/init:persistSample/init:persistSample",
+            "openClientRequestJournal/interactiveStart/init:sampleWriter/init:sampleWriter",
+            "openClientRequestJournal/interactiveStart/init:takeSample/init:takeSample",
+            "openClientRequestJournal/journal/init:lookupRelationSampleAdoption/init:lookupRelationSampleAdoption",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/checkSampleProfile",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/checkSampleProfile/checkSampleProfile",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/checkSampleProfile/init:currentRow/init:currentRow",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/checkSampleProfile/init:reserveCurrentRow/init:reserveCurrentRow",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/reserveSampleOriginalExtent/reserveSampleOriginalExtent/reserveSampleOriginalExtent",
+            "openClientRequestJournal/journal/init:readRetainedRelationSample/init:readRetainedRelationSample",
+            "openClientRequestJournal/journal/init:readRetainedRelationSample/init:readRetainedRelationSample/init:readRetainedRelationSample",
+            "openClientRequestJournal/journal/init:readRetainedRelationSample/init:readRetainedRelationSample/original/init:reserve/init:reserve",
+            "openClientRequestJournal/journal/init:retireRelationSamplePayload/init:retireRelationSamplePayload",
+            "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes",
+            "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes/sampleOriginalStoredBytes",
+            "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes#2",
+            "openClientRequestJournal/sampleStorage/sampleStorage/sampleStorage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "readRetainedRelationSample(ref: WireRunRef"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "type SampleNextCustody"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "producer.attemptSequence"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "sampleWriter(ref, claim, revision, publication)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "requirePause();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "fail('ClientRelationSampleInvalidOriginal')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "AND r.cancellation_requested = 0"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const quote = reserve(1024);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "retireRelationSamplePayload(ref: WireRunRef"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "Relation Sample adoption retains one exact prefix and stable receipt"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/debugEntryTransaction/debugEntryTransaction/debugEntryTransaction",
+            "openClientRequestJournal/interactiveStart/init:selectDebug/init:selectDebug",
+            "openClientRequestJournal/journal/init:acceptDebugEntryResume/init:acceptDebugEntryResume",
+            "openClientRequestJournal/journal/init:acceptDebugEntryResume/init:acceptDebugEntryResume/result/result",
+            "openClientRequestJournal/journal/init:acceptDebugTaskResume/init:acceptDebugTaskResume",
+            "openClientRequestJournal/journal/init:acceptDebugTaskResume/init:acceptDebugTaskResume/result/result",
+            "openClientRequestJournal/journal/init:debugPauseCurrent/init:debugPauseCurrent",
+            "openClientRequestJournal/journal/init:lookupDebugEntry/init:lookupDebugEntry",
+            "openClientRequestJournal/journal/init:lookupDebugEntry/init:lookupDebugEntry/init:lookupDebugEntry",
+            "openClientRequestJournal/journal/init:lookupDebugResume/init:lookupDebugResume",
+            "openClientRequestJournal/journal/init:lookupDebugResume/init:lookupDebugResume/init:lookupDebugResume",
+            "openClientRequestJournal/journal/init:parkDebugEntry/init:parkDebugEntry",
+            "openClientRequestJournal/journal/init:parkDebugEntry/init:parkDebugEntry/init:parkDebugEntry",
+            "openClientRequestJournal/journal/init:parkDebugTask/init:parkDebugTask",
+            "openClientRequestJournal/journal/init:parkDebugTask/init:parkDebugTask/init:parkDebugTask",
+            "openClientRequestJournal/openClientRequestJournal#4",
+            "openClientRequestJournal/reserveDebugReceipt/reserveDebugReceipt/reserveDebugReceipt",
+            "requireDebugEntryAuthority",
+            "requireDebugEntryAuthority/requireDebugEntryAuthority"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const debugEntryTransaction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "type DebugEntryResumeInput"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "command.self_cid !== selection.commandCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const selectedDebug = interactive.selectDebug"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const retained = debugResumeOriginal"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "fail('ClientRunDebugEntryLookupUnavailable')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "AND r.cancellation_requested = 0"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const commandBytes = 1024 + 2 * debugCommandLimits.maxWireBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const readDebugTaskCommand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "a retained Debug entry requires one exact resume across Journal reopen"
               }
             ]
           }
@@ -32916,6 +33764,7 @@
         "../host-common/observation.mjs",
         "../host-common/sqlite-transaction.mjs",
         "../store-local/prepared-publication-store-ownership.mjs",
+        "./client-relation-sample-adoption.mjs",
         "./client-request-journal-attempts.mjs",
         "./client-request-journal-facility.mjs",
         "./client-request-journal-format.mjs",
@@ -32924,6 +33773,7 @@
         "./client-request-journal-submission-originals.mjs",
         "./client-source-operation.mjs",
         "./host-journal-facility-fields.cjs",
+        "./local-account-config.mjs",
         "node:crypto",
         "node:fs",
         "node:path"
@@ -33554,7 +34404,7 @@
     {
       "module": "adapters/host-node/client-request-journal-attempts.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3e8ecf0eaaf5ffb9a9f7ef3e27e000e25f7e43a2c48e771b217874e53060a6ce",
+      "sha256": "5f6754668038aedf039ff8e689dc5b909911685fffdec683e4aedea986f04060",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -33635,7 +34485,8 @@
             "operation",
             "unknownCode",
             "known",
-            "action"
+            "action",
+            "readOnly"
           ],
           "async": false
         },
@@ -34142,7 +34993,7 @@
     {
       "module": "adapters/host-node/client-request-journal-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bfa4fa7b2cff2daba192d88af927555a0ce473965e835a009a3c9ece2739191b",
+      "sha256": "0e5f5190adf5c3e63dff6c67d1deeb1941a7caac52da2093ddc21c8a710edc0e",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -34160,6 +35011,8 @@
         "epochMarkerName",
         "explanationContextOriginalTable",
         "explanationOriginalTable",
+        "explanationPlanOriginalTable",
+        "explanationReadSelection",
         "hexKey",
         "initializeJournalPrimaryStorage",
         "initializeJournalSchema",
@@ -34197,7 +35050,8 @@
         "validEpochAuthority",
         "validJournalRowUsage",
         "validLocalExecutionOwnerReceipt",
-        "verifyJournalExplanationContext"
+        "verifyJournalExplanationContext",
+        "verifyJournalExplanationPlan"
       ],
       "operations": [
         {
@@ -34278,6 +35132,16 @@
           "parameters": [
             "name",
             "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "explanationReadSelection",
+          "parameters": [
+            "database",
+            "ensureOpen",
+            "ref",
+            "includeContext"
           ],
           "async": false
         },
@@ -34542,7 +35406,8 @@
             "ensureOpen",
             "ref",
             "maxRunDefinitionWireBytes",
-            "includeContext"
+            "includeContext",
+            "maxOriginalExplanationWireBytes"
           ],
           "async": false
         },
@@ -34561,7 +35426,8 @@
             "ref",
             "extent",
             "maxRunDefinitionWireBytes",
-            "includeContext"
+            "includeContext",
+            "maxOriginalExplanationWireBytes"
           ],
           "async": false
         },
@@ -34660,6 +35526,15 @@
         },
         {
           "name": "verifyJournalExplanationContext",
+          "parameters": [
+            "database",
+            "runDefinitionCid",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "verifyJournalExplanationPlan",
           "parameters": [
             "database",
             "runDefinitionCid",
@@ -35417,7 +36292,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -35449,11 +36324,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -36773,7 +37648,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -36805,11 +37680,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -37575,7 +38450,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -37607,11 +38482,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -38326,15 +39201,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -38410,15 +39285,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -38496,15 +39371,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -38580,15 +39455,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
@@ -38664,16 +39539,86 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "explanationReadSelection",
+            "verifyJournalExplanationPlan"
+          ],
+          "exports": [
+            "explanationPlanOriginalTable",
+            "explanationReadSelection",
+            "verifyJournalExplanationPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "export function explanationReadSelection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "export function verifyJournalExplanationPlan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "explanationPlanOriginalTable"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "readJournalExplanationOriginal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "const sql = explanationReadSelection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "inspectExplanationOriginalStorage"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous Journal selection constructs and checks the original read. The caller owns cancellation before delivery."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "explanationReadSelection(database, ensureOpen, ref, includeContext)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "inspectExplanationContextOriginalStorage"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
+                "anchor": "Context and Template enforce a paired aggregate extent and refuse changed rows inside the native SELECT"
               }
             ]
           }
@@ -38684,6 +39629,7 @@
         "../host-common/sqlite-format-inspection.mjs",
         "../host-common/sqlite-schema-resource-bounds.mjs",
         "../store-local/prepared-publication-store-ownership.mjs",
+        "./client-relation-sample-adoption.mjs",
         "./client-request-journal-records.mjs",
         "./client-request-journal-sql.mjs",
         "./client-source-operation.mjs",
@@ -38698,7 +39644,7 @@
     {
       "module": "adapters/host-node/client-request-journal-records.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "12d39d690f97f6359dbc007eb11931c609f9941ae7b080f249a3902c59d16927",
+      "sha256": "84dcfe20d3e758ced5d9f5f26ef3d97369649865116301f3e1ad3ffcb1a02420",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -39057,6 +40003,7 @@
             "readExplanationOriginal",
             "insertExplanationOriginal",
             "verifyExplanationContext",
+            "verifyExplanationPlan",
             "maxRecords",
             "maxRunDefinitionWireBytes",
             "maxOriginalExplanationWireBytes",
@@ -39137,6 +40084,7 @@
             "ownedOriginal",
             "captureOriginalLocalExecutionOwner",
             "validLocalExecutionOwnerReceipt",
+            "interactive",
             "maxRunDefinitionWireBytes"
           ],
           "async": false
@@ -39173,8 +40121,17 @@
             "currentAuthorization",
             "captureSourceOperation",
             "localExecutionOwner",
+            "captureSampleStart",
+            "debugResume",
             "requestControl",
             "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunStart/init:reservePhysicalStart/init:reservePhysicalStart/init:reservePhysicalStart",
+          "parameters": [
+            "claim"
           ],
           "async": false
         },
@@ -39512,7 +40469,8 @@
             "createJournalRunObservations/init:recordReconciliationState/init:recordReconciliationState",
             "createJournalRunObservations/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState",
             "createJournalRunObservations/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState#2",
-            "createJournalRunObservations"
+            "createJournalRunObservations",
+            "createJournalRunStart/init:reservePhysicalStart/init:reservePhysicalStart/init:reservePhysicalStart"
           ],
           "exports": [
             "admission",
@@ -40263,7 +41221,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -40295,11 +41253,11 @@
                 "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               },
               {
@@ -40387,7 +41345,7 @@
                 "anchor": "racing issuers return one atomic Run acceptance"
               },
               {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "path": "adapters/host-node/client-original-explanation-journal.test.mts",
                 "anchor": "associated explanation insertion failure rolls back the same first Run admission"
               },
               {
@@ -40397,6 +41355,10 @@
               {
                 "path": "adapters/host-node/client-keyed-lookup-journal.test.mts",
                 "anchor": "keyed page cannot adopt absent or substituted activation wire"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "a retained Debug entry requires one exact resume across Journal reopen"
               }
             ]
           }
@@ -42149,7 +43111,7 @@
     {
       "module": "adapters/host-node/client-run-inspect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "84c9f08816c2338115fa289a93165a2fe9f4fab71831c06e58007fba30d51fef",
+      "sha256": "d0aa690c2dad38677b657f0b578dbb678fb89a5cc8564921c719ade4be4db943",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -42160,18 +43122,32 @@
           "name": "installClientRunInspect",
           "parameters": [
             "authorize",
+            "authorizeCurrent",
             "observeOwners",
             "lookupOriginal",
-            "control"
+            "control",
+            "observeDebugPause",
+            "authorizeResume",
+            "readWorkspace"
           ],
           "async": false
         },
         {
           "name": "installClientRunInspect/installClientRunInspect",
           "parameters": [
-            "request"
+            "method"
           ],
-          "async": true
+          "async": false
+        },
+        {
+          "name": "installClientRunInspect/installClientRunInspect/canResume/canResume",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientRunInspect/installClientRunInspect/current/current",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "installClientRunInspect/installClientRunInspect/owner/owner",
@@ -42181,9 +43157,36 @@
           "async": false
         },
         {
+          "name": "installClientRunInspect/installClientRunInspect/project/project/project",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunInspect/installClientRunInspect/requireCurrent/requireCurrent/requireCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installClientRunInspect/installClientRunInspect/vector/vector",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunInspect/installClientRunInspect#2",
+          "parameters": [
+            "request",
+            "consume"
+          ],
+          "async": true
+        },
+        {
+          "name": "sameDebugPause/sameDebugPause/sameDebugPause",
+          "parameters": [
+            "key"
           ],
           "async": false
         }
@@ -42212,6 +43215,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
               }
             ],
             "inputsOutputs": [
@@ -42226,6 +43233,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Negotiated Interactive Run Control contracts"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
               }
             ],
             "identity": [
@@ -42268,6 +43279,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
               }
             ],
             "failure": [
@@ -42324,11 +43339,15 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Negotiated Interactive Run Control contracts"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-inspect.test.mjs",
+                "path": "adapters/host-node/client-run-inspect.test.mts",
                 "anchor": "test('Run Inspect request owns its original ref before asynchronous authorization', () => {"
               },
               {
@@ -42356,6 +43375,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
               }
             ],
             "inputsOutputs": [
@@ -42370,6 +43393,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Negotiated Interactive Run Control contracts"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
               }
             ],
             "identity": [
@@ -42412,6 +43439,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
               }
             ],
             "failure": [
@@ -42468,16 +43499,276 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Negotiated Interactive Run Control contracts"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-inspect.test.mjs",
+                "path": "adapters/host-node/client-run-inspect.test.mts",
                 "anchor": "test('Run Inspect request owns its original ref before asynchronous authorization', () => {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installClientRunInspect/installClientRunInspect/current/current",
+            "installClientRunInspect/installClientRunInspect/project/project/project",
+            "installClientRunInspect/installClientRunInspect/requireCurrent/requireCurrent/requireCurrent",
+            "installClientRunInspect/installClientRunInspect#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "# Negotiated Interactive Run Control boundaries"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Negotiated Interactive Run Control contracts"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "// Reuse authorized current-only Owner observations and retained original Run"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Negotiated Interactive Run Control contracts"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "src/run_publication/interactive_current_run_view.mbt",
+                "anchor": "actql-local-debug-park-boundary/0.1"
+              },
+              {
+                "path": "src/run_publication/interactive_current_run_view.mbt",
+                "anchor": "actql-local-debug-park-ttl-policy/0.1"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "// Reuse authorized current-only Owner observations and retained original Run"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "# Negotiated Interactive Run Control boundaries"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "const operation = Object.freeze({principalId: selected.principalId, indexKey: selected.ref, purpose: 'inspect' as const});"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "selected.ref, state, vector.snapshotCid!, selected, debugParkWire"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "# Negotiated Interactive Run Control boundaries"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "return await consume(view);"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "const live = observeDebugPause!(selected, current, canResume);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "throw new TypeError('InvalidClientRunInspectInstallation');"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Negotiated Interactive Run Control contracts"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "const {signal, ...data} = request;"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Negotiated Interactive Run Control contracts"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "if (!validRunRef(selected.ref) || !Number.isSafeInteger(selected.maxWireBytes) ||"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "# Negotiated Interactive Run Control boundaries"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "readWorkspace!.metadata(request, 2 * (2112 + 6 * names));"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<Definition, Prepared, Authorization, RunState>("
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "# Negotiated Interactive Run Control boundaries"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Negotiated Interactive Run Control contracts"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-inspect.test.mts",
+                "anchor": "test('Run Inspect request owns its original ref before asynchronous authorization', () => {"
+              },
+              {
+                "path": "src/run_publication/pkg.generated.mbti",
+                "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.test.mts",
+                "anchor": "Run Inspect enters its sink under the same synchronous current decision"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.test.mts",
+                "anchor": "Run Inspect sends funded scalars to Common"
+              },
+              {
+                "path": "src/run_publication/interactive_current_run_view_wbtest.mbt",
+                "anchor": "Common Inspect admits the original park and distinguishes TTL policy from expiry"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installClientRunInspect/installClientRunInspect/canResume/canResume",
+            "sameDebugPause/sameDebugPause/sameDebugPause"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const authorizeDebugResume ="
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "resume_available: capability.resumeAvailable"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "sameDebugPause(pause, capability)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "journal.debugPauseCurrent(original.authority.ref"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "if (!sameDebugPause(capability, live))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "if (capability === undefined || !sameDebugPause(pause, capability))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "waiting === wait && !hostClosing && !resuming && !wait.unresolved"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "readWorkspace!.metadata(request, 2 * (2112 + 6 * names))"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication/interactive_current_run_view.mbt",
+                "anchor": "park is Some(debug) && debug.resume_available"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-inspect.test.mts",
+                "anchor": "Run Inspect sends funded scalars to Common and rechecks the same original park before delivery"
               }
             ]
           }
@@ -42493,13 +43784,77 @@
     {
       "module": "adapters/host-node/client-run-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "812fb6012907bd728694e500f951696a4734d04519f9ec82335d129c0cdd21f1",
+      "sha256": "bdc94f176699a43194ffe92641027a729698e868d424f7348808646c0000cdca",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
-        "installClientRunPlan"
+        "installClientControlOperationLookup",
+        "installClientRunPlan",
+        "installClientRunSample"
       ],
       "operations": [
+        {
+          "name": "installClientControlOperationLookup",
+          "parameters": [
+            "authorize",
+            "lookupOriginal",
+            "readWorkspace",
+            "authorizeResume",
+            "resumeOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientControlOperationLookup/installClientControlOperationLookup",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientControlOperationLookup/installClientControlOperationLookup/authorizeCurrent/authorizeCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientControlOperationLookup/installClientControlOperationLookup/authorizeCurrent/authorizeCurrent/authorizeCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientControlOperationLookup/installClientControlOperationLookup/authorizeCurrent/authorizeCurrent/authorizeCurrent#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientControlOperationLookup/installClientControlOperationLookup/evidence/evidence",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientControlOperationLookup/installClientControlOperationLookup/reserveConstruction/reserveConstruction",
+          "parameters": [
+            "peak"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientControlOperationLookup/installClientControlOperationLookup#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientControlOperationLookup/installClientControlOperationLookup#3",
+          "parameters": [
+            "request",
+            "consume"
+          ],
+          "async": true
+        },
         {
           "name": "installClientRunPlan",
           "parameters": [
@@ -42515,6 +43870,115 @@
             "request"
           ],
           "async": true
+        },
+        {
+          "name": "installClientRunSample",
+          "parameters": [
+            "authorize",
+            "probeOriginal",
+            "lookupOriginal",
+            "readRetained",
+            "readNextRetained",
+            "observeNext",
+            "readWorkspace",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/installClientRunSample",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/installClientRunSample#2",
+          "parameters": [
+            "request",
+            "consume"
+          ],
+          "async": true
+        },
+        {
+          "name": "installClientRunSample/readOwned/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/readOwned/current/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/readOwned/disclose/disclose",
+          "parameters": [
+            "answer"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/readOwned/readOwned",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/readOwned/readOwned/originalPort/originalPort",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/readOwned/readOwned/originalStep/originalStep",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/readOwned/reply/reply",
+          "parameters": [
+            "answer"
+          ],
+          "async": true
+        },
+        {
+          "name": "installClientRunSample/readOwned/reserve/reserve",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "samplePortSelection/ports/ports",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "samplePortSelection/producerPort/producerPort",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "samplePortSelection/producerStep/producerStep",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "samplePortSelection/steps/steps",
+          "parameters": [
+            "step"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -42808,11 +44272,309 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installClientRunSample",
+            "installClientRunSample/installClientRunSample",
+            "installClientRunSample/installClientRunSample#2",
+            "installClientRunSample/readOwned/current/current",
+            "installClientRunSample/readOwned/current/current/current",
+            "installClientRunSample/readOwned/readOwned",
+            "samplePortSelection/ports/ports",
+            "samplePortSelection/producerPort/producerPort",
+            "samplePortSelection/producerStep/producerStep",
+            "samplePortSelection/steps/steps"
+          ],
+          "exports": [
+            "installClientRunSample"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunSample<Definition extends Readonly<{identity: string}>,"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunSample<Definition extends Readonly<{identity: string}>,"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reply = async (answer: WireRunSample) => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reserve: SampleReserve = bytes => {readWorkspace.metadata(request, bytes);};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installClientControlOperationLookup",
+            "installClientControlOperationLookup/installClientControlOperationLookup",
+            "installClientControlOperationLookup/installClientControlOperationLookup/authorizeCurrent/authorizeCurrent",
+            "installClientControlOperationLookup/installClientControlOperationLookup/authorizeCurrent/authorizeCurrent/authorizeCurrent",
+            "installClientControlOperationLookup/installClientControlOperationLookup/authorizeCurrent/authorizeCurrent/authorizeCurrent#2",
+            "installClientControlOperationLookup/installClientControlOperationLookup/evidence/evidence",
+            "installClientControlOperationLookup/installClientControlOperationLookup/reserveConstruction/reserveConstruction",
+            "installClientControlOperationLookup/installClientControlOperationLookup#2",
+            "installClientControlOperationLookup/installClientControlOperationLookup#3"
+          ],
+          "exports": [
+            "installClientControlOperationLookup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "function installClientControlOperationLookup("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const answer: WireControlOperationLookup = receipt === undefined"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "accepted_from_revision: acceptedFromRevision"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.begin(request);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "WITH task AS ("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "if (database.isTransaction) fail('ClientRunDebugEntryLookupUnavailable');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "RunObservationAccessDenied"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "reserve: bytes => readWorkspace.metadata(request, bytes)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "runExplanationContext, runSample, lookupControlOperation, resumeRun: lookupControlOperation, attach,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "control lookup reads the committed original while another WAL writer holds an update"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installClientRunSample/readOwned/disclose/disclose",
+            "installClientRunSample/readOwned/readOwned/originalPort/originalPort",
+            "installClientRunSample/readOwned/readOwned/originalStep/originalStep",
+            "installClientRunSample/readOwned/reply/reply",
+            "installClientRunSample/readOwned/reserve/reserve"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunSample<Definition extends Readonly<{identity: string}>,"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunSample<Definition extends Readonly<{identity: string}>,"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "producer.carrierContractCid !== port.carrier_contract_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reply = async (answer: WireRunSample) => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reserve: SampleReserve = bytes => {readWorkspace.metadata(request, bytes);};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "both permissions are required before probing Sample existence"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
-        "../../packages/client-wire/index.mjs"
+        "../../packages/client-wire/index.mjs",
+        "../../packages/sdk/host-port.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -44067,7 +45829,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -44731,7 +46493,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -52168,7 +53930,7 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "69ccdec53499e23438f0c8ae260ecef6263126d116739f9444da706d3f3a9934",
+      "sha256": "184916add03fb3de381ef998f342f04a76cb963ce9a88522c8577931fe8a6223",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -52260,7 +54022,9 @@
             "retainExecution",
             "taskObservation",
             "preparationHolder",
-            "beforePublication"
+            "beforePublication",
+            "relationSample",
+            "taskControl"
           ],
           "async": false
         },
@@ -54982,7 +56746,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "6695b96d9e8076ed1b72b1318d9d1d2a4b2e12c6ca60c60d0299feab587d5ea3",
+      "sha256": "e232b26a399ac368d4fca4dcc5d5b9fceafc5bd6d784a8783d06df6f23b0f0a6",
       "exports": [
         "commonjs:sql"
       ],
@@ -56405,7 +58169,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3405f8c52fdd2ef8f7b86fbb62713a2123e186f36b3173548ee592676cf9dea6",
+      "sha256": "a1bb8f7f559ced9e799338b71ef85bb21fb11637552c8a2a8eb9ba400153be8e",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -56450,6 +58214,9 @@
             "runPlan",
             "runExplanation",
             "runExplanationContext",
+            "runSample",
+            "lookupControlOperation",
+            "resumeRun",
             "maxRowBytes",
             "observe",
             "performInstalledRequest",
@@ -56468,12 +58235,34 @@
           "async": true
         },
         {
+          "name": "createNodeInProcessClientHost/init:perform/init:perform/deliverStaticPlan",
+          "parameters": [
+            "view",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
           "name": "createNodeInProcessClientHost/init:perform/init:perform/init:perform",
           "parameters": [],
           "async": false
         },
         {
           "name": "createNodeInProcessClientHost/init:perform/init:perform/init:perform/init:perform",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeInProcessClientHost/init:perform/init:perform/init:perform/init:perform#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeInProcessClientHost/init:perform/init:perform/init:perform/init:perform#3",
           "parameters": [
             "key"
           ],
@@ -57622,7 +59411,8 @@
         },
         {
           "operations": [
-            "createNodeInProcessClientHost/init:perform/init:perform/init:perform#4"
+            "createNodeInProcessClientHost/init:perform/init:perform/init:perform#4",
+            "createNodeInProcessClientHost/init:perform/init:perform/deliverStaticPlan"
           ],
           "exports": [],
           "attributes": {
@@ -57682,8 +59472,12 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
               }
             ]
           }
@@ -57988,6 +59782,206 @@
               {
                 "path": "adapters/host-node/client-submission.test.mjs",
                 "anchor": "test('public submission lookup preserves sanitized handler rejection when its signal also aborts'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createNodeInProcessClientHost/init:perform/init:perform/init:perform/init:perform#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reply = async (answer: WireRunSample) => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reserve: SampleReserve = bytes => {readWorkspace.metadata(request, bytes);};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createNodeInProcessClientHost/init:perform/init:perform/init:perform/init:perform#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "const inspectRead = operation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reply = async (answer: WireRunSample) => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reserve: SampleReserve = bytes => {readWorkspace.metadata(request, bytes);};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.test.mts",
+                "anchor": "Run Inspect enters its sink under the same synchronous current decision"
               }
             ]
           }
@@ -69093,7 +71087,7 @@
                 "anchor": "test('generated family refences cancellation begun during the original matcher callback'"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -70354,7 +72348,7 @@
                 "anchor": "test('generated family refences cancellation begun during the original matcher callback'"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -93208,7 +95202,7 @@
                 "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -93352,7 +95346,7 @@
                 "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
               },
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -119559,7 +121553,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -119652,7 +121646,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -120940,7 +122934,8 @@
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/wire/wire",
             "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation"
+            "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertOriginal/assertOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -121406,6 +123401,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback'"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
               }
             ]
           }
@@ -125020,7 +127019,7 @@
                 "anchor": "test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback'"
               },
               {
-                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mts",
                 "anchor": "// Actual imported installed static service"
               },
               {
@@ -125452,9 +127451,15 @@
             "staticModelInstallation",
             "staticFileReadDeclarations",
             "staticExplanation",
-            "maxWork"
+            "maxWork",
+            "debugEntryInstalled"
           ],
           "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertOriginal/assertOriginal",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/explanationPorts/originalExplanationPort",
@@ -126284,7 +128289,8 @@
             "maxWork",
             "visit",
             "modelInstallation",
-            "fileReadDeclarations"
+            "fileReadDeclarations",
+            "debugEntryInstalled"
           ],
           "async": true
         },
@@ -126337,7 +128343,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "d5c13be3634ae0ab693ddd1198c55ea649f3b9c90fcabf23ed4082be1b94a690"
+      "sha256": "56611a0f3a7442851b67422b360b6d965189b15c7603dc22b88ab3016a9cc010"
     },
     {
       "module": "adapters/host-node/ordinary-source-model-materials.mjs",
@@ -126702,7 +128708,7 @@
     {
       "module": "adapters/host-node/ordinary-source-request-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f3198e73bc33783e8a76e64bb839d0cb4b89fb906dc38c1efcd236ad69d6405a",
+      "sha256": "18f73a6e78bfd6d742c5033d98a5440118182d654e8a6ea950d44fb3abeacbaa",
       "role": "physical-io",
       "owner": "Existing Host/Resource/Store owner: Same Run Source/Compute managed limits and real file readers",
       "exports": [
@@ -126908,7 +128914,8 @@
             "producer",
             "contracts",
             "journal",
-            "staticPlan"
+            "staticPlan",
+            "debugEntryInstalled"
           ],
           "async": false
         }
@@ -128220,7 +130227,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary"
               },
               {
@@ -128386,7 +130393,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary"
               },
               {
@@ -128549,7 +130556,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary"
               },
               {
@@ -131489,11 +133496,12 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dada691e846f55732d60d323b0a703b1453e423bea4882249d76462868fbf99a",
+      "sha256": "837ad8d02a2a9cece879eb6d83123e02712fae2fdff215094995fea7c5766f9f",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
         "createLocalReadAuthorizations",
+        "createLocalReadConnectionAuthorization",
         "createLocalResultAuthorization"
       ],
       "operations": [
@@ -131516,7 +133524,16 @@
             "operation",
             "resource",
             "interactive",
-            "reobserve"
+            "reobserve",
+            "accessOperation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalReadAuthorizations/init:debugEntryImmediate/init:debugEntryImmediate",
+          "parameters": [
+            "actual",
+            "realization"
           ],
           "async": false
         },
@@ -131525,6 +133542,13 @@
           "parameters": [
             "facts",
             "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalReadAuthorizations/init:resumeImmediate/init:resumeImmediate",
+          "parameters": [
+            "facts"
           ],
           "async": false
         },
@@ -131553,11 +133577,44 @@
           "async": false
         },
         {
+          "name": "createLocalReadAuthorizations/init:sampleCaptureImmediate/init:sampleCaptureImmediate",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalReadAuthorizations/init:sampleReadImmediate/init:sampleReadImmediate",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
           "name": "createLocalReadAuthorizations/init:staticPlanImmediate/init:staticPlanImmediate",
           "parameters": [
             "actual"
           ],
           "async": false
+        },
+        {
+          "name": "createLocalReadConnectionAuthorization",
+          "parameters": [
+            "checkpointOperation",
+            "checkpointConnection",
+            "hostConnection",
+            "authorizeLocalRun",
+            "namespaceId",
+            "authorityScopeCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalReadConnectionAuthorization/createLocalReadConnectionAuthorization",
+          "parameters": [
+            "value"
+          ],
+          "async": true
         },
         {
           "name": "createLocalResultAuthorization",
@@ -131602,7 +133659,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/local-result-authorization.mts",
-                "anchor": "const scope: Scope = {connection, resource, operation: 'read'};"
+                "anchor": "const scope: Scope = {connection, resource, operation: accessOperation};"
               }
             ],
             "ownership": [
@@ -131655,10 +133712,13 @@
             "createLocalReadAuthorizations/authorize/authorize",
             "createLocalReadAuthorizations/init:result/init:result",
             "createLocalReadAuthorizations/init:run/init:run",
-            "createLocalReadAuthorizations/init:runCurrent/init:runCurrent"
+            "createLocalReadAuthorizations/init:runCurrent/init:runCurrent",
+            "createLocalReadConnectionAuthorization",
+            "createLocalReadConnectionAuthorization/createLocalReadConnectionAuthorization"
           ],
           "exports": [
-            "createLocalReadAuthorizations"
+            "createLocalReadAuthorizations",
+            "createLocalReadConnectionAuthorization"
           ],
           "attributes": {
             "responsibility": [
@@ -131673,6 +133733,10 @@
               {
                 "path": "docs/design/node-host-observability.md",
                 "anchor": "pure internal helpers, trusted reads and awaits do not advance callback state."
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "export function createLocalReadConnectionAuthorization("
               }
             ],
             "inputsOutputs": [
@@ -131699,7 +133763,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local.mts",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "return authorizeLocalRun({principalId: value.principalId,"
               }
             ],
@@ -131729,7 +133793,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-run-authorization.test.mjs",
+                "path": "adapters/host-node/local-run-authorization.test.mts",
                 "anchor": "test('actual Account keeps Run-read and named-Result-read distinct and current'"
               },
               {
@@ -131747,6 +133811,10 @@
               {
                 "path": "adapters/host-node/client-run-explanation.test.mjs",
                 "anchor": "test('Saved Context guards scalar read"
+              },
+              {
+                "path": "adapters/host-node/local-run-authorization.test.mts",
+                "anchor": "test('public Run observation entry requires its actual Account read exactly once'"
               }
             ]
           }
@@ -131772,7 +133840,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/local-result-authorization.mts",
-                "anchor": "const scope: Scope = {connection, resource, operation: 'read'};"
+                "anchor": "const scope: Scope = {connection, resource, operation: accessOperation};"
               }
             ],
             "ownership": [
@@ -131959,6 +134027,251 @@
               {
                 "path": "adapters/host-node/client-interactive-plan.test.mjs",
                 "anchor": "test('static Explanation checks the current Account run-read decision before projection and egress', async t => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalReadAuthorizations/init:sampleCaptureImmediate/init:sampleCaptureImmediate"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "Selected Node Driver entrance for the original Debug Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "operations = checked(startSample.call(moon, prepared.configuration, retained,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "profile.driver_outputs.get(task)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "owner = profile = undefined"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "on_relation_commit~"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "(sampleFailure as {outcome?: unknown} | undefined)?.outcome !== 'unknown'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "closeSampleAdoption(entry)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "profile getters remain live through Compute (H18/R42/W26)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "sampleCaptureImmediate(facts) === true"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mts",
+                "anchor": "publication may keep the port but the original is released"
+              },
+              {
+                "path": "adapters/host-node/local-run-authorization.test.mts",
+                "anchor": "Sample read never grants capture"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalReadAuthorizations/init:sampleReadImmediate/init:sampleReadImmediate",
+            "createLocalReadAuthorizations/init:resumeImmediate/init:resumeImmediate"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "sampleReadImmediate("
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "sampleReadImmediate("
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reply = async (answer: WireRunSample) => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reserve: SampleReserve = bytes => {readWorkspace.metadata(request, bytes);};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalReadAuthorizations/init:debugEntryImmediate/init:debugEntryImmediate"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "debugEntryImmediate({principalId: actual}"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const authorizeNewDebugEntry = (submission: Pick<EmbeddedSubmission, 'principalId' | 'connection'>)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "return authorize(facts, undefined, 'run', false, false, 'pause') === true &&"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "const account = observeInstalledAccount(moon, authorization);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "if (debug && retainedStart !== undefined) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "if (debug && !authorizeNewDebugEntry(submission)) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "throw clientOperationError('ClientConnectionDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "hostConnection(submission) && debugEntryImmediate(submission) === true && hostConnection(submission);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "if (debug && !authorizeNewDebugEntry(submission)) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "// A new Debug Run requires the original Account"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-run-authorization.test.mts",
+                "anchor": "actual Account keeps Run-read and named-Result-read distinct and current"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "installed Local SDK Debug steps one original and a cold process reads its Sample and receipt"
               }
             ]
           }
@@ -137243,7 +139556,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "6fa07674991613ea7eebd7487ab5b81f139fbfee042e878b931e7637dbe49268",
+      "sha256": "52a6104ea543397d3f9c490661c27d50315f39085e88800915fbc5761685bed9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -137323,7 +139636,15 @@
           "parameters": [
             "run",
             "publicationCapacity",
-            "assertCurrent"
+            "assertCurrent",
+            "assertRetained"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelPreparation/check/check",
+          "parameters": [
+            "retiring"
           ],
           "async": false
         },
@@ -137336,7 +139657,9 @@
         },
         {
           "name": "installedEffectModelPreparation/current/current",
-          "parameters": [],
+          "parameters": [
+            "retiring"
+          ],
           "async": false
         },
         {
@@ -137517,6 +139840,7 @@
             "installedEffectModelMemberPreparation/view/init:retain/init:retain",
             "installedEffectModelMemberPreparation/view/init:retire/init:retire",
             "installedEffectModelPreparation",
+            "installedEffectModelPreparation/check/check",
             "installedEffectModelPreparation/components/components",
             "installedEffectModelPreparation/current/current",
             "installedEffectModelPreparation/current/current/current",
@@ -137645,6 +139969,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
+                "anchor": "if (retiring) assertRetained();"
               }
             ],
             "synchronization": [
@@ -137845,6 +140173,10 @@
               {
                 "path": "adapters/host-node/keyed-initial-definition.test.mjs",
                 "anchor": "test('initial keyed preparation projects its same checked Definition after the original graph quote'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "sealed Effect ingress still retires each retained original Model Read exactly once"
               }
             ]
           }
@@ -144824,7 +147156,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -145012,7 +147344,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/managed-failure.test.mjs",
+                "path": "adapters/host-common/managed-failure.test.mts",
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
@@ -147668,7 +150000,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
-      "sha256": "8eb4c4283fc8474f2c2001e0ad3d48757672e0ef666c57a087094faa465a8cdd",
+      "sha256": "51571d6585190ceb6afae68a42df404ff2225ec34217471f0fc6ceb60f2b1282",
       "exports": [
         "createLocalResultReadWorkspace"
       ],
@@ -147745,6 +150077,14 @@
           "name": "createLocalResultReadWorkspace/init:closeAll/init:closeAll",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:construction/init:construction",
+          "parameters": [
+            "request",
+            "peak"
+          ],
+          "async": false
         },
         {
           "name": "createLocalResultReadWorkspace/init:explanationRequest/init:explanationRequest",
@@ -147893,7 +150233,8 @@
             "createLocalResultReadWorkspace/pending/pending",
             "createLocalResultReadWorkspace/pending/pending/pending",
             "createLocalResultReadWorkspace/retry",
-            "<module>"
+            "<module>",
+            "createLocalResultReadWorkspace/init:construction/init:construction"
           ],
           "exports": [
             "createLocalResultReadWorkspace"
@@ -148001,6 +150342,10 @@
               {
                 "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
                 "anchor": "record durability"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "an execution refusal with no pending child returns the actual control Read"
               },
               {
                 "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
@@ -148668,8 +151013,12 @@
                 "anchor": "structural workspace supplies exact original DATA to one captured Core constructor and preserves typed refusal"
               },
               {
-                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
-                "anchor": "test('installed Saved Context uses the retained original"
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mts",
+                "anchor": "installed Saved Context restores original ${name} Plan and Facts after Host close"
+              },
+              {
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mts",
+                "anchor": "test(`installed Saved Context restores original"
               }
             ]
           }
@@ -149937,7 +152286,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
               },
               {
@@ -150504,6 +152853,533 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/client-relation-sample-adoption.mjs",
+      "exports": [
+        "clientRelationSampleAdoptionStorage",
+        "inspectRelationSampleAdoptionStorage",
+        "inspectRelationSampleStartStorage",
+        "relationSampleAdoptionTable",
+        "relationSampleStartTable"
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "operations": [
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage",
+          "parameters": [
+            "database",
+            "ensureOpen",
+            "transact",
+            "now",
+            "maxRecords",
+            "maxWireBytes",
+            "createSupported"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/adopt/adopt/adopt",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:lookup/init:lookup",
+          "parameters": [
+            "ref",
+            "sampleRefCid",
+            "control",
+            "current",
+            "reserve"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:lookup/init:lookup/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:retire/init:retire",
+          "parameters": [
+            "ref",
+            "sampleRefCid",
+            "control",
+            "current",
+            "reserve"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:retire/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:writer/init:writer",
+          "parameters": [
+            "ref",
+            "original",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:writer/init:writer/init:writer",
+          "parameters": [
+            "ticket"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:writer/init:writer/init:writer/init:writer",
+          "parameters": [
+            "loan"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/probe/probe/probe",
+          "parameters": [
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained",
+          "parameters": [
+            "ref",
+            "selected",
+            "control",
+            "current",
+            "reserve",
+            "expectedProducer"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/amounts/amounts",
+          "parameters": [
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation",
+          "parameters": [
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation#2",
+          "parameters": [
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation#3",
+          "parameters": [
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/readRetained",
+          "parameters": [
+            "total",
+            "size"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/receipt/receipt",
+          "parameters": [
+            "ref",
+            "sampleRefCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectRelationSampleAdoptionStorage",
+          "parameters": [
+            "database"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectRelationSampleStartStorage",
+          "parameters": [
+            "database"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireAuthority/requireAuthority",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "reserveOriginal/reserveOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sampleFailure/sampleFailure",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        }
+      ],
+      "sha256": "532d321dedc1b464db10b4f5f55f27a200d2540f1dfcd81c44eb87a716782a3a",
+      "role": "physical-io",
+      "owner": "Existing Client Request Journal and original Relation Sample custody",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "clientRelationSampleAdoptionStorage",
+            "inspectRelationSampleAdoptionStorage",
+            "requireAuthority/requireAuthority",
+            "reserveOriginal/reserveOriginal",
+            "sampleFailure/sampleFailure",
+            "inspectRelationSampleStartStorage"
+          ],
+          "exports": [
+            "clientRelationSampleAdoptionStorage",
+            "inspectRelationSampleAdoptionStorage",
+            "relationSampleAdoptionTable",
+            "inspectRelationSampleStartStorage",
+            "relationSampleStartTable"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "The Request Journal owns this optional durable table"
+              },
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "export function inspectRelationSampleStartStorage(database: JournalSqlConnection)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "The Journal's private SQLite transaction owns the copy"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "source.producer_occurrence.start_revision !== String(start.start_revision)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "The writer carries scalars and the original accessors only."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "return transact('relation_sample_adoption'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "start.cancellation_requested !== 0"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "bytes + limits.maxWireBytes !== fundedBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "if (!createSupported)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "Relation Sample adoption retains one exact prefix and stable receipt under its original start"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const debugReceiver = debugSelection?.capture;"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "test('Relation Sample adoption retains one exact prefix and stable receipt under its original start'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "clientRelationSampleAdoptionStorage/adopt/adopt/adopt",
+            "clientRelationSampleAdoptionStorage/init:lookup/init:lookup",
+            "clientRelationSampleAdoptionStorage/init:lookup/init:lookup/result/result",
+            "clientRelationSampleAdoptionStorage/init:writer/init:writer",
+            "clientRelationSampleAdoptionStorage/init:writer/init:writer/init:writer",
+            "clientRelationSampleAdoptionStorage/init:writer/init:writer/init:writer/init:writer"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "One synchronous loan per exact checked profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const ticket = Object.freeze({});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "physical_equal(profile, original.profile)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "The Journal's private SQLite transaction owns the copy"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "An escaped ticket contains no bytes, funding or current grant"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "if !current()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "grow_capacity_reservation(ledger, reservation, total, total)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub fn client_program_with_relation_sample_journal("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "Relation Sample adoption refuses equal payloads from another scope and asynchronous loans"
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "test \"Relation Sample captures the exact installed Request and committed output\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "clientRelationSampleAdoptionStorage/init:retire/init:retire",
+            "clientRelationSampleAdoptionStorage/init:retire/init:retire/init:retire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "Host retention of the same original Sample"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "prior.has_payload === 0 || original.expiresAt > now()"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "const original = retainedReceipt(control, ref, sampleRefCid, limits, prior)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "UPDATE client_relation_sample_adoptions SET"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "return transact('relation_sample_retirement'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "Relation Sample retirement releases no observed slot on uncertain COMMIT"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "authority loss rolled back retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "Each MAX seeks"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "Receipts keep their original ordinal after payload retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "Relation Sample retirement leaves other rows and durable receipt limits intact"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "Relation Sample retirement releases no observed slot on uncertain COMMIT"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "cid/cid",
+            "clientRelationSampleAdoptionStorage/probe/probe/probe",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/amounts/amounts",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation#2",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation#3",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/readRetained",
+            "clientRelationSampleAdoptionStorage/receipt/receipt"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "The persisted receipt key selects only one Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "readRetainedRelationSample(ref: WireRunRef, selected: SampleReadSelection, custody: SampleNextCustody,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "reference.self_cid !== sampleRefCid || source.self_cid !== row.source_generation_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "transact('relation_sample_read'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "const expiredAtRead = expiry <= checkedAt;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "if (!expired && extent.relation_wire === null) fail('ClientRelationSampleInvalidOriginal')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "const observation = transact("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "reserveOriginal(reserve, amounts.reduce"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "Only the"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "cold Relation Sample read checks current access, bound evidence and the original receipt"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

@@ -18,6 +18,7 @@ struct ClientRequestOriginalExplanation[I] {
   bytes : Int
   nodes : Int
   depth : Int
+  debug_entry : Bool
 }
 
 ///|
@@ -47,7 +48,7 @@ let request_original_explanation_control_bytes : Int64 = request_original_explan
   @execution.preparation_representation_cost({
     record_headers: 8L,
     reference_slots: 22L,
-    scalar_words: 12L,
+    scalar_words: 13L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -123,6 +124,7 @@ fn[I] measure_request_original_explanation(
   bytes : Int,
   nodes : Int,
   depth : Int,
+  debug_entry : Bool,
 ) -> Result[(Int64, Int64), ClientOriginalExplanationCaptureIssue] {
   let entry = explanation_capture_entry_control_bytes
   guard client_static_plan_measurement_construction_bytes(depth)
@@ -150,6 +152,7 @@ fn[I] measure_request_original_explanation(
       bytes,
       nodes,
       depth,
+      debug_entry~,
       before_carrier_measurement=Some(original => {
         guard @publication_host.client_carrier_measurement_construction(
             original,
@@ -275,6 +278,7 @@ pub fn[I] prepare_request_original_explanation(
   bytes : Int,
   nodes : Int,
   depth : Int,
+  debug_entry_installed? : Bool = false,
 ) -> Result[
   ClientRequestOriginalExplanation[I]?,
   ClientOriginalExplanationCaptureIssue,
@@ -306,11 +310,24 @@ pub fn[I] prepare_request_original_explanation(
   let entry_result = @resources.reserve_working_preparation_phase(
     capacity, input, r, e,
   ).map_err(issue => ClientOriginalExplanationCaptureIssue::Capacity(issue))
+  // The Plan-only interface uses its admitted node limit for the optional
+  // bounded graph observation. Measure the flag before issuing the loan.
+  let debug_entry = if debug_entry_installed && entry_result is Ok(_) {
+    match static_debug_entry_probe(capacity, input, prepared, nodes, nodes) {
+      Err(issue) => {
+        owner.phase = ProgramPlanReserved
+        return Err(Capacity(issue))
+      }
+      Ok((eligible, _)) => eligible
+    }
+  } else {
+    false
+  }
   let result = match entry_result {
     Err(issue) => Err(issue)
     Ok(_) =>
       measure_request_original_explanation(
-        owner, input, prepared, artifact, base_r, base_e, bytes, nodes, depth,
+        owner, input, prepared, artifact, base_r, base_e, bytes, nodes, depth, debug_entry,
       )
   }
   let result = match result {
@@ -354,6 +371,7 @@ pub fn[I] prepare_request_original_explanation(
               bytes,
               nodes,
               depth,
+              debug_entry,
             }),
           )
       }
@@ -371,6 +389,7 @@ pub fn[I] prepare_request_original_explanation(
 /// The complete existing Plan/map/codec quotation remains held by this loan.
 pub fn[I] request_original_static_plan_wire(
   value : ClientRequestOriginalExplanation[I],
+  inspect_installed? : Bool = false,
 ) -> Result[String, ClientOriginalExplanationCaptureIssue] {
   guard value.original is Some((owner, input, prepared, artifact)) &&
     value.adopted is None &&
@@ -404,6 +423,8 @@ pub fn[I] request_original_static_plan_wire(
           value.bytes,
           value.nodes,
           value.depth,
+          inspect_installed~,
+          debug_entry=value.debug_entry,
         ) {
         Err(issue) => return Err(Plan(issue))
         Ok(value) => value

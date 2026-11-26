@@ -111,13 +111,27 @@ type SiteTask = Readonly<{
   siteCompletionReady?(): boolean;
 }>;
 type CompletionPermit = Readonly<{isAvailable(): boolean; assertAvailable(): undefined}>;
+export type RelationSampleControl = Readonly<{
+  owner: object | undefined;
+  profile: object | undefined;
+  maxWireBytes: number;
+  maxNodes: number;
+  maxDepth: number;
+  current(): boolean;
+  adopt(prefix: object): void;
+}>;
+type TaskControl = Readonly<{
+  phase(setup: object): unknown;
+  waitForResume(setup: object, signal: AbortSignal): Promise<unknown>;
+}>;
 type PhysicalSource = Pick<ManagedOutput, 'completed' | 'material' | 'withRows'>;
 type Contribution = Readonly<{
   registration: CommonObject;
   managedSelectionKey?: string;
   run(task: unknown, signal?: AbortSignal, permit?: CompletionPermit): Awaitable<DispatchResult | null | undefined>;
   prepareNext?(outputs: ReadonlyMap<number, ManagedOutput>): Awaitable<PreparedTask | null | undefined>;
-  runPrepared?(task: SiteTask, signal?: AbortSignal): Awaitable<DispatchResult | null | undefined>;
+  runPrepared?(task: SiteTask, signal?: AbortSignal, relationSample?: RelationSampleControl): Awaitable<DispatchResult | null | undefined>;
+  relationSample?: boolean;
   beforeNext?(physicalSource: (task: number) => PhysicalSource | undefined): Awaitable<unknown>;
   finish?(): Awaitable<unknown>;
 }>;
@@ -246,6 +260,8 @@ type StrategyOptions = Readonly<{
     observeCompletion?: (event: CompletionEvent) => Awaitable<unknown>;
     observeTaskStart?: (event: TaskStartEvent) => Awaitable<unknown>;
     taskObservation?: object;
+    relationSample?: RelationSampleControl;
+    taskControl?: TaskControl;
   }>;
   publication?: Readonly<{beforeCompute?: (event: PreflightEvent) => Awaitable<unknown>}>;
   cleanup?: Readonly<{retainPreflightCleanup?: RetainPreflightCleanup; preparationHolder?: unknown}>;
@@ -634,7 +650,7 @@ export async function runInstalledStrategy({
   setup,
   runtime: {core, contributions, sitePolicy, observeFailure,
     authorization = missingAuthorizationGate()},
-  control: {signal, observeCompletion, observeTaskStart, taskObservation} = {},
+  control: {signal, observeCompletion, observeTaskStart, taskObservation, relationSample, taskControl} = {},
   publication: {beforeCompute} = {},
   cleanup: {retainPreflightCleanup, preparationHolder} = {},
 }: StrategyOptions): Promise<InstalledExecution> {
@@ -646,6 +662,10 @@ export async function runInstalledStrategy({
   }
   if (observeTaskStart !== undefined && typeof observeTaskStart !== 'function') {
     throw new StrategyHostError('InvalidTaskStartObserver');
+  }
+  if (taskControl !== undefined && (typeof taskControl?.phase !== 'function' ||
+      typeof taskControl?.waitForResume !== 'function' || signal === undefined)) {
+    throw new StrategyHostError('InvalidInstalledTaskController');
   }
   if (authorization === null || typeof authorization !== 'object' ||
       typeof authorization.authorize !== 'function' ||
@@ -717,6 +737,7 @@ export async function runInstalledStrategy({
       run: entry.run,
       prepareNext: entry.prepareNext,
       runPrepared: entry.runPrepared,
+      relationSample: entry.relationSample,
       managedSelectionKey: entry.managedSelectionKey,
       beforeNext: entry.beforeNext,
       finish: entry.finish,
@@ -928,14 +949,28 @@ export async function runInstalledStrategy({
     return source === undefined || typeof source.withRows !== 'function' ? undefined
       : Object.freeze({completed: source.completed, material: source.material, withRows: source.withRows});
   };
+  // The original controller owns phase and wakes its own paused Driver on
+  // a command. Re-read the actual phase after the wake before selecting work.
+  const awaitRunnable = taskControl === undefined || signal === undefined ? undefined : async () => {
+    signal.throwIfAborted();
+    let phase = taskControl.phase(setup);
+    if (phase === 'paused') {
+      await taskControl.waitForResume(setup, signal);
+      signal.throwIfAborted();
+      phase = taskControl.phase(setup);
+    }
+    if (phase !== 'runnable') throw new StrategyHostError('InstalledTaskControllerNotRunnable');
+  };
   let firstTask = 1;
   try {
     const count = core.count(setup);
+    if (awaitRunnable !== undefined && !core.finished(setup)) await awaitRunnable();
     if (core.nextTask?.(setup) === 0) firstTask = 0;
     // Captured Acquisition starts at task one; a checked source-free root
     // starts at task zero and uses the same managed task lifecycle.
     for (let step = firstTask; step < count; step++) {
       signal?.throwIfAborted();
+      if (awaitRunnable !== undefined && step !== firstTask && !core.finished(setup)) await awaitRunnable();
       for (const entry of installed.values()) {
         signal?.throwIfAborted();
         await entry.beforeNext?.(managedPhysicalSource);
@@ -1029,6 +1064,9 @@ export async function runInstalledStrategy({
       const entry = managed ? managed.entry : installed.get(core.registration!(task));
       if (!entry || (managed && typeof entry.runPrepared !== 'function')) {
         throw new StrategyHostError('MissingStrategyImplementation');
+      }
+      if (relationSample !== undefined && (!managed || entry.relationSample !== true)) {
+        throw new StrategyHostError('ClientRunSampleDriverUnavailable');
       }
       signal?.throwIfAborted();
       if (managed && !core.selectManaged!(setup, index, managed.entry.registration)) {
@@ -1156,7 +1194,7 @@ export async function runInstalledStrategy({
       const taskStarted = performance.now();
       try {
         result = await (managed
-          ? entry.runPrepared!(siteTask as SiteTask, signal)
+          ? entry.runPrepared!(siteTask as SiteTask, signal, relationSample)
           : entry.run(task, signal, siteCompletionPermit));
         if (result?.status === 'waiting_checkpoint') {
           if (result.checkpoint == null) {

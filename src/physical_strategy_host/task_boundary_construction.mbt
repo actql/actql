@@ -93,3 +93,18 @@ let logical_boundary_observation_bytes : Int64 = captured_boundary_setup_bytes +
 pub fn captured_logical_observation_construction_bytes() -> Int64 {
   logical_boundary_observation_bytes
 }
+
+///|
+// Fixed peak on the existing boundary fork. The selected graph edge and
+// completion's existing payload are borrowed. Charge the pin, reader and
+// its original option, the graph/target/slot/phase probes, and simultaneous
+// shape, cell, and return result wrappers. Successive cell reads retain no
+// prior cell in the reader. The visitor funds any retained material.
+let captured_paused_materialized_dependency_bytes : Int64 = captured_boundary_read_bytes +
+  @execution.preparation_representation_cost({
+    record_headers: 24L,
+    reference_slots: 60L,
+    scalar_words: 32L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()

@@ -334,7 +334,8 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   // separate exclusive control group or another Request's free allowance.
   record_headers: 271L,
   reference_slots: 505L,
-  scalar_words: 561L,
+  // The adopted Run keeps one scalar high-water extent for its Sample start.
+  scalar_words: 562L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

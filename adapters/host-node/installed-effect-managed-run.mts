@@ -489,11 +489,16 @@ export function finishInstalledEffectModelScope(run: EffectScopeRetirement,
 // Borrow the SAME early Request Scope when Local supplies the actual captured
 // inputs. Its original read remains on this Run through failed construction;
 // no late Scope, admission, bounds selection or independent Model Root exists.
-export function installedEffectModelPreparation(run: Run, publicationCapacity: PublicationCapacity, assertCurrent: Current) {
-  if (run.modelMembers === undefined) return installedEffectModelMemberPreparation(run, run, publicationCapacity, assertCurrent);
+export function installedEffectModelPreparation(run: Run, publicationCapacity: PublicationCapacity,
+  assertCurrent: Current, assertRetained: () => void) {
+  const check = (retiring: boolean) => {
+    if (retiring) assertRetained();
+    else assertCurrent();
+  };
+  if (run.modelMembers === undefined) return installedEffectModelMemberPreparation(run, run, publicationCapacity, check);
   const members = run.modelMembers, scopes = run.modelScopes;
-  const current = () => {
-    assertCurrent();
+  const current = (retiring = false) => {
+    check(retiring);
     if (run.modelMembers !== members || run.modelScopes !== scopes || run.closed || run.modelScopeFinished ||
         !Array.isArray(scopes) || scopes.length !== members.length ||
         members.some((member, index) => member.modelScope !== scopes[index] || member.model !== run.model!.components![index] ||
@@ -505,7 +510,7 @@ export function installedEffectModelPreparation(run: Run, publicationCapacity: P
     component: member.modelComponent, ...installedEffectModelMemberPreparation(run, member, publicationCapacity, current)})));
   run.modelPreparation = Object.freeze({components,
     retain() {current(); for (const component of components) component.retain();},
-    retire() {current(); for (const component of components) if (component.retire() !== true) return false; return true;}});
+    retire() {current(true); for (const component of components) if (component.retire() !== true) return false; return true;}});
   const read = run.runtime.clientProgramInstalledEffectFundedModelSelectionCount;
   if (preparedEffectRuns.has(run) && run.preparationFunded && typeof read === 'function') {
     // checked is retained on the same installed record before its constructor.
@@ -516,11 +521,11 @@ export function installedEffectModelPreparation(run: Run, publicationCapacity: P
 }
 
 function installedEffectModelMemberPreparation(run: Run, member: ModelMember, publicationCapacity: PublicationCapacity,
-  assertCurrent: Current): MemberPreparation {
+  assertOriginal: (retiring: boolean) => void): MemberPreparation {
   const model = member.model, control = run.publicationControl, definition = run.modelRunDefinition,
     scope = member.modelScope, parent = run.value, demand = member.modelDemand;
-  const current = () => {
-    assertCurrent();
+  const current = (retiring = false) => {
+    assertOriginal(retiring);
     if (run.closed || member.model !== model || run.publicationControl !== control ||
         run.modelRunDefinition !== definition || member.modelScope !== scope || run.value !== parent ||
         member.modelDemand !== demand || run.modelScopeFinished || scope === undefined || control === undefined) {
@@ -586,7 +591,7 @@ function installedEffectModelMemberPreparation(run: Run, member: ModelMember, pu
       return prepareRead();
     },
     retire() {
-      current();
+      current(true);
       if (member.modelPreparationRetired) return true;
       retireNodeInferOriginalRead({control: control!, compiled: model!.compiled, runDefinition: definition,
         graph: model!.graph, scope, read: member.modelRead});

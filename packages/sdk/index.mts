@@ -95,7 +95,8 @@ import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, W
   WireResolveItem, WireResolveResult, WireRunRef,
   WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation, WireCheckFix,
   WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView, WireRunExplanationView,
-  WireRunExplanationContextView, WireStaticExplanationView} from
+  WireRunExplanationContextView, WireStaticExplanationView, WireRunSample, WireSampleSelector,
+  WireControlCommand, WireControlOperationRef, WireControlOperationLookup} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
@@ -535,6 +536,9 @@ export interface Execution {
   /** Read the original Saved Plan, Facts, and Context where it was retained. */
   explainContext(options?: {signal?: AbortSignal; maxWireBytes?: number;
     maxNodes?: number; maxDepth?: number}): Promise<WireRunExplanationContextView>;
+  /** Read a retained Sample. With nextRevision, select an exact input port of the current Next Step. */
+  sample(selector: WireSampleSelector, options?: Readonly<{signal?: AbortSignal; maxWireBytes?: number;
+    maxNodes?: number; maxDepth?: number; nextRevision?: number}>): Promise<WireRunSample>;
   /** Read-only Owner-local projection; omitted pending facts remain unknown. */
   inspect(options?: {signal?: AbortSignal; maxWireBytes?: number;
     maxNodes?: number; maxDepth?: number}): Promise<WireRunView>;
@@ -548,6 +552,16 @@ export interface Execution {
     expectedRevision?: number; attemptId?: string}): Promise<WireCancellationAttempt>;
   lookupCancellation(ref: CancellationReference,
     options?: {signal?: AbortSignal}): Promise<CancellationLookup>;
+  /** Prepare the exact command before sending it. Operation IDs are supplied by the caller. */
+  prepareResume(options: Readonly<{operationId: string; expectedRevision: number;
+    until: 'step' | 'terminal'}>): Promise<WireControlCommand>;
+  /** Send one sealed Resume for the observed pause on this Run. The command
+   * retains the exact reference for a later lookup if the response is lost. */
+  resume(command: WireControlCommand, options?: Readonly<{signal?: AbortSignal;
+    maxWireBytes?: number; maxNodes?: number; maxDepth?: number}>): Promise<WireControlOperationLookup>;
+  /** Recover the original control receipt through the same attached Run. */
+  lookupControlOperation(ref: WireControlOperationRef, options?: Readonly<{signal?: AbortSignal;
+    maxWireBytes?: number; maxNodes?: number; maxDepth?: number}>): Promise<WireControlOperationLookup>;
   reconcile(options?: {signal?: AbortSignal}): Promise<RunState>;
   result(name: string): Result;
 }
