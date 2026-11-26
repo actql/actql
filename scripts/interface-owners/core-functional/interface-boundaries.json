@@ -47819,7 +47819,7 @@
         },
         {
           "name": "new_installed_managed_run_owned",
-          "declaration": "new_installed_managed_run_owned ( preparation : ClientInstalledManagedRunOriginal , request : @ publication_host . ClientRequestIdentity , ledger : @ resources . Ledger , ) - > ClientInstalledManagedRun"
+          "declaration": "new_installed_managed_run_owned ( preparation : ClientInstalledManagedRunOriginal , request : @ publication_host . ClientRequestIdentity , ledger : @ resources . Ledger , captured ? : ClientInstalledManagedCapturePlan ?"
         },
         {
           "name": "open_installed_managed_source_free_host",
@@ -47870,7 +47870,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "a65cbbe304cdace87583fa1f6affbcc387c8afd38e92e2e6a247011a93363c0c"
+      "sha256": "e733fa10505b44b4266538772a6e4b6237037ede6536c9f4868a6a7be6a1141e"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
@@ -53223,7 +53223,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_capture_body.mbt",
-      "sha256": "9c7b8dc76837b92de5eb0a3e88120e4c287df56ac06452cf8d28390f1799c021",
+      "sha256": "b4cadb2872999a5c1f092597197a2f1a73a52bd8a2e4e9577161443b31d8772d",
       "exports": [],
       "operations": [
         {
@@ -94511,7 +94511,7 @@
     },
     {
       "module": "src/client_local_host/preparation_owned_run.mbt",
-      "sha256": "e6bbfb7cf7666e27a30e904899e41d945a1971082ef47a7585dcc02d1e4fb405",
+      "sha256": "fed6008f238f86949f6515842c96092bd9101facda6af3197bfca63ba6ce0c3f",
       "exports": [],
       "operations": [
         {
@@ -94591,6 +94591,10 @@
           "declaration": "[ P ] retire_preparation_owned_installed_run ( value : ClientInstalledManagedRun , original : ClientManagedPreparationRetirement [ P ] , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "installed_managed_preparation_admission_original",
+          "declaration": "installed_managed_preparation_admission_original ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > @ resources . PreparedRunAdmission [ @ publication_host . PreparedClientProgram ] ?"
+        },
+        {
           "name": "installed_preparation_payload_severed",
           "declaration": "installed_preparation_payload_severed ( value : ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , ) - > Bool"
         }
@@ -94619,6 +94623,7 @@
             "[I]check_preparation_owned_effect_limits",
             "[P]preparation_retirement_payload_severed",
             "[P]retire_preparation_owned_installed_run",
+            "installed_managed_preparation_admission_original",
             "installed_preparation_payload_severed",
             "[I,P]check_preparation_owned_body_limits",
             "[P]preparation_owned_run_limits_fit"
