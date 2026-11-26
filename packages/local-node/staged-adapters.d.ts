@@ -60,5 +60,38 @@ declare module '*/adapters/host-node/embedded-local.mjs' {
 }
 
 declare module '*_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js' {
+  // The clean TypeScript prepare runs before MoonBit emits this module. Use
+  // the same narrow runtime ports as the installed adapters and their tests.
+  type Representation = Parameters<typeof import('../../adapters/store-local/managed-physical-representation.mjs').managedPhysicalRepresentation>[5];
+  type FailureProgress = Parameters<typeof import('../../adapters/host-common/managed-failure.mjs').beginManagedFailureProgress>[0];
+  type CheckEnvironment = Parameters<typeof import('../../adapters/host-node/installed-check-environment.mjs').composeInstalledCheckEnvironment>[0];
+  type Initialization = Parameters<typeof import('../../adapters/local-node/request-preparation-adapter.mjs').openHostInitializationPreparation>[1];
+  type Account = Parameters<typeof import('../../adapters/host-node/account-construction.mjs').createAccountConstruction>[0];
+
+  export const physicalManifestAdmit: Representation['physicalManifestAdmit'];
+  export const physicalRepresentationContracts: Representation['physicalRepresentationContracts'];
+  export const strategyHostBeginManagedFailureProgress: FailureProgress['strategyHostBeginManagedFailureProgress'];
+  export const strategyHostManagedFailureAction: FailureProgress['strategyHostManagedFailureAction'];
+  export const strategyHostRecordManagedFailureAdditionalClosed: FailureProgress['strategyHostRecordManagedFailureAdditionalClosed'];
+  export const strategyHostRecordManagedFailureOperationsCloseAttempted: FailureProgress['strategyHostRecordManagedFailureOperationsCloseAttempted'];
+  export const strategyHostRecordManagedFailureOperationsClosed: FailureProgress['strategyHostRecordManagedFailureOperationsClosed'];
+  export const strategyHostRecordManagedFailureCleanupStopped: FailureProgress['strategyHostRecordManagedFailureCleanupStopped'];
+  export const strategyHostRecordManagedFailureExecutionSettled: FailureProgress['strategyHostRecordManagedFailureExecutionSettled'];
+  export const strategyHostRecordManagedFailureCleanupRefreshed: FailureProgress['strategyHostRecordManagedFailureCleanupRefreshed'];
+  export const clientProgramCheckEnvironment: CheckEnvironment['clientProgramCheckEnvironment'];
+
+  export const clientLocalResourcePolicyOriginal: Initialization['clientLocalResourcePolicyOriginal'];
+  export const clientLocalPreparationResourceLimits: Initialization['clientLocalPreparationResourceLimits'];
+  export const clientProgramPrepareLocalPreparationAdmission: Initialization['clientProgramPrepareLocalPreparationAdmission'];
+  export const clientProgramCleanupLocalPreparationAdmission: Initialization['clientProgramCleanupLocalPreparationAdmission'];
+  export const clientProgramBeginHostInitializationPreparation: Initialization['clientProgramBeginHostInitializationPreparation'];
+  export const clientProgramCloseHostInitializationPreparation: Initialization['clientProgramCloseHostInitializationPreparation'];
+  export const clientProgramAccountReadControlBytes: Account['moon']['clientProgramAccountReadControlBytes'];
+  export const clientProgramCloseAccountRead: Account['moon']['clientProgramCloseAccountRead'];
+  export const clientProgramPrepareAccountReadConstruction: Account['moon']['clientProgramPrepareAccountReadConstruction'];
+  export const clientProgramCompleteAccountReadConstruction: Account['moon']['clientProgramCompleteAccountReadConstruction'];
+  export const executionAuthorizationAdmitPrepared: Account['moon']['executionAuthorizationAdmitPrepared'];
+  export function clientProgramPrepareHostAccountRead(parent: unknown): ReturnType<Account['prepareRead']>;
+
   export function clientRenderStaticExplanationNarrative(wire: string, locale: string): unknown;
 }

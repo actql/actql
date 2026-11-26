@@ -128,6 +128,64 @@ Static observation and current Run provenance stay separate from those support
 facts. Capability flags and operation hints are not authorization tokens and
 do not replace current access checks or update the original policy identity.
 
+### Local Debug pause provenance
+
+Inspect can project a live Debug park only when the original Controller and
+Journal still agree on the unconsumed park and the observed Run revision
+matches it. The Plan CID comes from the admitted Run Definition and the
+Logical Map CID comes from the Controller's checked original profile. The Run
+read owns construction through delivery and rechecks the original park and
+current authority after construction.
+
+The Journal supplies closed scalar observations to the shared Common Run
+View projection. It attests the Local policy only for a selected entry
+deadline or a later park with the same deadline as that original entry. The
+projection validates the original reference, revision and deadline before
+encoding the view using the registered closed contract.
+
+Common seals two closed canonical preimages with the existing SHA-256
+canonical JSON rules. The boundary domain
+`actql-local-debug-park-boundary/0.1` has exactly `version`, `run_ref`,
+`compiled_plan_cid`, `logical_map_cid`, `revision` and `kind` for entry.
+For `kind: "logical_step"` it also includes the acknowledged `start_revision`,
+the original scheduler `control_revision`, the `committed_generation`,
+`completed_step_id` and `next_step_id` (null if unprojected). The public
+boundary shows the actual next Step when known. The retained completed Step
+is the boundary's provenance. The policy domain
+`actql-local-debug-park-ttl-policy/0.1` has exactly `version`,
+`entry_deadline` (selected within the original Run and lookup lease),
+`step_deadline` (inherit the entry deadline), `clock` (Journal epoch floor)
+and `expired` (at or after the deadline). This rule identity is stable across
+different observed absolute deadlines. The actual expiry remains
+`expires_at`. These identities provide observation provenance only.
+
+### Original local Debug resume receipt
+
+Common issues an accepted receipt from the registered Resume command, the
+same original Run and park that Inspect can project, and the Journal's
+winning revision and acceptance time. The command must name the parked
+revision. Acceptance advances it once, and the acceptance time must lie in
+the park's observed lifetime. The Journal must retain the receipt in the same
+transaction as command acceptance.
+
+The private `actql-local-debug-continuation-generation/0.1` preimage contains
+exactly `version`, `consumed_boundary_cid`, `paused_at` and `expires_at`.
+It identifies the parked continuation independently of a command. The
+`actql-local-debug-resume-fence/0.1` preimage contains exactly `version`,
+`operation_ref`, `continuation_generation_cid` and `accepted_revision`.
+It identifies the winning logical CAS. Both use the existing canonical JSON
+hash. The receipt is an immutable observation of command acceptance. Physical
+continuation and later outcomes require their own observations.
+
+The SDK prepares the sealed command from the attached Run, an observed
+revision, a caller-supplied operation ID, and a Step or terminal interval.
+The Local and HTTP transports send the same command through the funded
+`resume-run` operation. This route requires a live original controller and
+both current Run access and Resume permission. After known acceptance it
+delivers the exact retained receipt. An ambiguous COMMIT returns an unknown
+outcome. Use the original command reference for a separate read through
+`lookup-control-operation`.
+
 ## Existing-Owner connection inventory
 
 | Boundary | Existing authority or fact | Negotiated connection |
@@ -211,6 +269,15 @@ Events preserve occurrence identity and only available order/clock evidence.
 These are bounded projections, not full snapshots, continuations or formal
 Results. `forbidden` carries no source, count, shape or references; ambiguous
 input selection is `selection_required`, not a silently chosen port.
+
+An input Sample read may supply the observed `nextRevision` on the existing
+`run-sample` operation together with an exact Step ID and input port ID.
+The installed Host must check the same live pause and original receiving
+edge. The selected producer's own checked port, acknowledged start, consumed
+attempt and committed generation must match the retained Sample. The latest
+generation in the pause identifies the pause itself. Run-read and Sample-read
+are both required, independently of control rights. An ordinary read without
+`nextRevision` keeps its retained-Sample selection rules.
 
 Read-only PlanView/Inspect may be connected independently. Durable execution
 control, Sample capture, Cost Guards and other Host/runtime profiles require

@@ -1,3 +1,4 @@
+import type {WireExplanationNarrative, WireRunSample, WireSampleCapture} from '@actql/client-wire';
 import type {Client, RunReference, ResultDescription} from '@actql/sdk';
 import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireExplanationFacts, WireRunExplanationView,
   WireExplanationContext, WireStaticExplanationView, WireRunExplanationContextView} from '@actql/client-wire';
@@ -7,7 +8,7 @@ export const graphViewLimits: Readonly<{steps: 256; ports: 1024}>;
 type Step = WirePlanView['logical_map']['steps'][number];
 export type PlanReadModel = Readonly<{
   compiledPlanCid: string; logicalMapCid: string; programDefinitionCid: string;
-  observation: 'static'; providerIO: 0;
+  observation: 'static'; providerIO: 0; debugEntry?: true;
   effectful?: Readonly<{scope: 'computation_component'; parameterValuesCid: string;
     checkEnvironmentCid: string; unitId: string;
     members: WireEffectfulStaticPlanView['effect_set']['members'];
@@ -20,6 +21,7 @@ export type PlanReadModel = Readonly<{
     targetPortOrdinal: number}>[];
   inputs: readonly Readonly<{stepId: string; inputPortId: string;
     locator: Extract<Step['ports'][number]['source'], {kind: 'stage_input'}>}>[];
+  stageResultLinks?: WireExplanationContext['stage_result_links'];
   sourceOrigins: Readonly<{state: 'unavailable'; reason: 'not_in_projection'}>;
 }>;
 export function planReadModel(view: WirePlanView | WireEffectfulStaticPlanView): PlanReadModel;
@@ -40,18 +42,21 @@ export function planStoryModel(view: WirePlanView | WireEffectfulStaticPlanView,
   options?: {locale?: 'en' | 'ja'}): PlanStoryModel;
 export type ExplanationStoryModel = Omit<PlanStoryModel, 'occurrences'> & Readonly<{
   factsCid: string; parameterValuesCid: string;
+  narrative: Pick<WireExplanationNarrative, 'version' | 'summary' | 'clauses' | 'items'>;
   occurrences: readonly (PlanStoryModel['occurrences'][number] & Readonly<{
     explanation: Readonly<{state: 'projected' | 'not_projected'; text: string;
       meaning: WireExplanationFacts['steps'][number]['meaning']}>;
   }>)[];
 }>;
+type FactsPresentation = Readonly<{locale?: 'en' | 'ja';
+  render(facts: WireExplanationFacts, locale: 'en' | 'ja'): WireExplanationNarrative}>;
 export function explanationStoryModel(view: WirePlanView | WireEffectfulStaticPlanView,
-  facts: WireExplanationFacts, options?: {locale?: 'en' | 'ja'}): ExplanationStoryModel;
+  facts: WireExplanationFacts, presentation: FactsPresentation): ExplanationStoryModel;
 export type StaticExplanationReadModel = Readonly<{plan: PlanReadModel; story: ExplanationStoryModel;
   context: readonly Readonly<{origin: WireExplanationContext['items'][number]; text: string}>[]}>;
 type StaticExplanationPresentation = Readonly<{locale?: 'en' | 'ja';
   render(view: WireStaticExplanationView, locale: 'en' | 'ja'):
-    Readonly<{context: readonly string[]; steps: readonly string[]}>}>;
+    WireExplanationNarrative}>;
 export function staticExplanationReadModel(view: WireStaticExplanationView,
   presentation: StaticExplanationPresentation): StaticExplanationReadModel;
 export type ReadTicket = Readonly<{assertCurrent(): void}>;
@@ -77,7 +82,7 @@ export type OriginalRunPresentationReadModel = Readonly<{
 }> | Readonly<{runRef: RunReference; plan: null;
   explanation: Extract<WireRunExplanationView['explanation'], {state: 'not_projected'}>}>;
 export function readExistingRunPresentation(client: Pick<Client, 'attach'>,
-  ref: RunReference, options: {locale?: 'en' | 'ja'} | undefined,
+  ref: RunReference, presentation: FactsPresentation,
   ticket: ReadTicket): Promise<OriginalRunPresentationReadModel>;
 export type SavedExplanationReadModel = Readonly<{
   runRef: RunReference; plan: PlanReadModel;
@@ -95,3 +100,17 @@ export function readExistingRunStory(client: Pick<Client, 'attach'>,
   ticket: ReadTicket): Promise<OriginalRunStoryReadModel>;
 export function describeExistingResult(client: Pick<Client, 'attach'>,
   ref: RunReference, name: string, ticket: ReadTicket): Promise<ResultDescription>;
+
+export type SamplePortSelection = Readonly<{stepId: string; portId: string; role: 'input' | 'output';
+  compiledPlanCid: string; logicalMapCid: string; carrierContractCid: string; nextRevision?: number}>;
+export function validSamplePortSelection(value: unknown): value is SamplePortSelection;
+export function sampleMatchesPort(value: unknown, ref: RunReference, port: SamplePortSelection): value is WireRunSample;
+export function readExistingRunSample(client: Pick<Client, 'attach'>, ref: RunReference,
+  port: SamplePortSelection, ticket: ReadTicket): Promise<WireRunSample>;
+export function expectedStoryPortColumns(
+  steps: ReadonlyMap<string, ExplanationStoryModel['occurrences'][number]>,
+  step: ExplanationStoryModel['occurrences'][number], port: Step['ports'][number] | undefined,
+): readonly string[] | undefined;
+export function storySamplePorts(step: Pick<Step, 'ports'>): readonly Step['ports'][number][];
+export function sampleCaptureCaption(capture: WireSampleCapture, locale?: 'en' | 'ja'): string;
+export function sampleCellPreview(text: string): string;

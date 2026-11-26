@@ -63,7 +63,7 @@ test "stopping refuses an unused trusted Start but preserves original post-use a
   let before = ledger_usage(ledger)
   assert_eq(consume_reserved_attempt(ledger, unused), Err(ClosedReservation))
   assert_eq(ledger_usage(ledger), before)
-  assert_false(unused.attempt_started)
+  assert_eq(unused.attempt_sequence, 0)
   // The transport may report a prior use after stop. This is final accounting,
   // not another before-use admission or a reason to refund the original Start.
   charge_transfer(ledger, started, 1L).unwrap()

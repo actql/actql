@@ -12,10 +12,12 @@ type ExplanationRequest = WireClientBodyByOperation['run-explanation'] & Readonl
 }>;
 type ExplanationOriginal = Readonly<{
   definitionWire: string;
-  admissionEvidenceWire: string | undefined;
+  admissionEvidenceWire?: string;
   programDefinitionCid: string;
   parameterValuesCid: string;
-  factsWire: string | undefined;
+  factsWire?: string;
+  compiledPlanWire?: string;
+  planViewWire?: string;
   contextWire?: string;
   invocationTemplateWire?: string;
 }>;
@@ -94,7 +96,7 @@ export function installClientRunExplanation<Operation, Extent extends Readonly<{
     assertCurrentAccess(request, selected, operation);
     if (original === undefined) throw failure('RunObservationAccessDenied');
     const {definitionWire, admissionEvidenceWire, programDefinitionCid,
-      parameterValuesCid, factsWire} = original;
+      parameterValuesCid, factsWire, compiledPlanWire, planViewWire} = original;
     const contextWire = context ? original.contextWire : undefined;
     const templateWire = context ? original.invocationTemplateWire : undefined;
     const wire = Reflect.apply(render, readWorkspace, [request, original]);
@@ -126,6 +128,7 @@ export function installClientRunExplanation<Operation, Extent extends Readonly<{
         current.programDefinitionCid !== programDefinitionCid ||
         current.parameterValuesCid !== parameterValuesCid ||
         current.factsWire !== factsWire ||
+        current.compiledPlanWire !== compiledPlanWire || current.planViewWire !== planViewWire ||
         context && (current.contextWire !== contextWire ||
           current.invocationTemplateWire !== templateWire)) throw failure('RunExplanationEncodingRejected');
     // No await can separate synchronous installed Account observation from

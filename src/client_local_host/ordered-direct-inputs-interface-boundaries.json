@@ -400,7 +400,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "a65cbbe304cdace87583fa1f6affbcc387c8afd38e92e2e6a247011a93363c0c"
+      "sha256": "0d7e23fc55a2c915cd399ec590809b0316a16b445ab4b0eeb4d6902f41b2536f"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",

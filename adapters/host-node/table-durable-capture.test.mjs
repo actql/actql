@@ -37,7 +37,7 @@ import * as moon from './_build/js/release/build/connectors_builtin_node/connect
 import {runtimeCore} from './adapters/host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from './adapters/store-local/publication-store.mjs';
 import {recoverCompletedEffectfulComputation, prepareCompletedEffectfulPublication,
-  suspendCompletedEffectfulComputation} from './adapters/host-common/completed-run-publication.mjs';
+  confirmCompletedEffectfulApplySources, suspendCompletedEffectfulComputation} from './adapters/host-common/completed-run-publication.mjs';
 import {prepareRecoveredTableInput, readRecoveredTableInput}
   from './adapters/host-node/table-capture-recovery.mjs';
 import {admitIcebergStorageMapping}
@@ -140,14 +140,21 @@ const result = {captureCid: recovered.computation.capturedRun.identity,
 const firstHolding = control.capturedEffectSourceHoldingCid(inventory.effectSources[0]);
 let inspected = 0;
 const readsBeforeRelease = reads;
+const suspension = {execution: null, store, control, storedResults: recovered.storedResults,
+  computation: recovered.computation, preview: recovered.preview};
+const refusedProbe = new Error('OriginalEffectCaptureProbeRefused');
+let refusedProbes = 0;
+const refuseInspection = () => {refusedProbes++; throw refusedProbe;};
+interruptInspection = refuseInspection;
+await assert.rejects(suspendCompletedEffectfulComputation(suspension), error => error === refusedProbe);
+assert.equal(refusedProbes, 1);
+assert.equal(reads, readsBeforeRelease);
 interruptInspection = async holdingCid => {
   // The first visit is capture-custody confirmation, the second is the final
   // physical read's inspection. Release there must prevent consuming bytes.
   if (holdingCid !== firstHolding || ++inspected !== 2) return;
   interruptInspection = undefined;
-  await suspendCompletedEffectfulComputation({execution: null, store, control,
-    storedResults: recovered.storedResults, computation: recovered.computation,
-    preview: recovered.preview});
+  assert.equal(await suspendCompletedEffectfulComputation(suspension), true);
 };
 await assert.rejects(readRecoveredTableInput({prepared: table, maxBytes: 100000}),
   {code: 'InvalidCompletedEffectfulRunOwner'});
@@ -155,6 +162,19 @@ assert.equal(inspected, 2);
 assert.equal(reads, readsBeforeRelease);
 await assert.rejects(readRecoveredTableInput({prepared: table, maxBytes: 100000}),
   {code: 'InvalidCompletedEffectfulRunOwner'});
+// The first suspension already returned the original local owners. A
+// later return of those same owners must not acquire current Store evidence.
+// Fresh apply admission still needs that evidence under its own boundary.
+refusedProbes = 0;
+interruptInspection = refuseInspection;
+await assert.rejects(suspendCompletedEffectfulComputation({...suspension, preview: {...suspension.preview}}),
+  {code: 'InvalidCompletedEffectfulRunOwner'});
+assert.equal(await suspendCompletedEffectfulComputation(suspension), false);
+assert.equal(refusedProbes, 0);
+await assert.rejects(confirmCompletedEffectfulApplySources(suspension), error => error === refusedProbe);
+assert.equal(refusedProbes, 1);
+assert.equal(reads, readsBeforeRelease);
+interruptInspection = undefined;
 // Receipt projection remains immutable after release; it is not availability
 // or permission to resend this operation.
 assert.equal(control.tablePreviewCommitOutcome(table.tablePreview,

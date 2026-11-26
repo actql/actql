@@ -9,6 +9,8 @@ import {cid, structuralExplanationOriginalShape, text, type ExplanationOriginal}
 import {inspectSqliteSnapshot, inspectJournalDirectory} from '../host-common/sqlite-format-inspection.mjs';
 import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory} from './host-journal-directory.mjs';
 import {inspectClientSourceOperationStorage, snapshotClientSourceOperationLimits, sourceOperationTable} from './client-source-operation.mjs';
+import {inspectRelationSampleStartStorage, inspectRelationSampleAdoptionStorage}
+  from './client-relation-sample-adoption.mjs';
 import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 import {assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/prepared-publication-store-ownership.mjs';
 import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport}
@@ -675,6 +677,9 @@ export function inspectJournalNativeStorage(database: JournalSqlConnection,
   if (inspectExplanationContextOriginalStorage(database) && !explanation) {
     fail('UnknownClientRequestJournalFormat');
   }
+  inspectExplanationPlanOriginalStorage(database);
+  inspectRelationSampleStartStorage(database);
+  inspectRelationSampleAdoptionStorage(database);
 }
 
 // Classify before acquiring the writable original. SQLite may create SHM
@@ -958,21 +963,38 @@ export function initializeJournalSchema(database: JournalSqlConnection,
   }
 }
 
+// Context-bearing Effect runs retain the exact Plan under their structural
+// allowance. The first admission commits this companion with the other
+// facets. Ordinary Plan-only and Facts-only admissions keep their own shape.
+export const explanationPlanOriginalTable = `CREATE TABLE client_run_explanation_plan_originals (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_context_originals(run_definition_cid) ON DELETE CASCADE,
+  compiled_plan_wire TEXT NOT NULL,
+  plan_view_wire TEXT NOT NULL
+) STRICT`;
+function inspectExplanationPlanOriginalStorage(database: JournalSqlConnection) {
+  const row = database.prepare("SELECT substr(sql, 1, ?) AS sql FROM sqlite_master WHERE type = 'table' AND name = 'client_run_explanation_plan_originals'")
+    .get(explanationPlanOriginalTable.length + 1);
+  if (row !== undefined && row.sql !== explanationPlanOriginalTable) fail('UnknownClientRequestJournalFormat');
+  return row !== undefined;
+}
+
 // These are the scalar and text projections of the two exact SELECTs below.
 // Their existing binding, length and NULL checks still decide admission.
 type ExplanationExtent = Readonly<{
   definitionBytes: number; evidenceBytes: number; factsBytes: number; storedBytes: number;
-  contextBytes?: number; invocationTemplateBytes?: number;
+  contextBytes?: number; invocationTemplateBytes?: number; compiledPlanBytes?: number; planViewBytes?: number;
 }>;
 type ExplanationProbeRow = Readonly<{
   facts_present: number; facet_matches: number; bindings_bounded: number;
   definition_bytes: number; evidence_bytes: number; facts_bytes: number;
+  plan_present: number; plan_matches: number; compiled_plan_bytes: number; plan_view_bytes: number;
   context_present?: number; context_bytes?: number; context_hash_bytes?: number; invocation_template_bytes?: number;
 }>;
 type ExplanationOriginalRow = Readonly<{
   facts_present: number; facet_matches: number; evidence_present: number;
   definition_wire: string | null; evidence_wire: string | null;
   program_cid: string | null; parameters_cid: string | null; facts_wire: string | null;
+  plan_present: number; plan_matches: number; compiled_plan_wire: string | null; plan_view_wire: string | null;
   context_present?: number; context_wire: string | null; context_wire_sha256: string | null; invocation_template_wire: string | null;
 }>;
 
@@ -1007,62 +1029,84 @@ export function readJournalExplanationOriginal(database: JournalSqlConnection,
 // No accepted-row string (including binding CIDs) crosses this probe. The
 // same connection retains/prepares these fixed SQL statements under its
 // existing selected statement/SQL/operand ownership, not the read's codec.
-function explanationReadSelection(database: JournalSqlConnection,
+export function explanationReadSelection(database: JournalSqlConnection,
   ensureOpen: () => undefined, ref: WireRunRef, includeContext: boolean) {
   ensureOpen();
   if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid)) {
     fail('InvalidClientRunLookup');
   }
   const facet = inspectExplanationOriginalStorage(database);
-  const context = includeContext && inspectExplanationContextOriginalStorage(database);
+  const plan = inspectExplanationPlanOriginalStorage(database);
+  const context = inspectExplanationContextOriginalStorage(database);
+  if ((context && !facet) || (plan && !context)) fail('ClientRequestJournalCorrupt');
+  const contextPresent = context ? 'c.run_definition_cid IS NOT NULL' : '0';
+  const planPresent = plan ? 'p.run_definition_cid IS NOT NULL' : '0';
   const selected: {facet: boolean; from: string; facts: string; present: string; matches: string;
-    context?: string; contextHash?: string; template?: string; contextPresent?: string} = {facet, from: `FROM client_requests r${facet
-      ? ' LEFT JOIN client_run_explanation_originals f ON f.run_definition_cid = r.run_definition_cid' : ''}${context
-      ? ' LEFT JOIN client_run_explanation_context_originals c ON c.run_definition_cid = r.run_definition_cid' : ''}
-      WHERE r.namespace_id = ? AND r.authority_scope_cid = ? AND r.run_definition_cid = ?`,
+    plan: string; planMatches: string; compiledPlan: string; planView: string; context?: string; contextHash?: string;
+    template?: string; contextPresent?: string} = {facet, from: `FROM client_requests r${facet
+    ? ' LEFT JOIN client_run_explanation_originals f ON f.run_definition_cid = r.run_definition_cid' : ''}${context
+    ? ' LEFT JOIN client_run_explanation_context_originals c ON c.run_definition_cid = r.run_definition_cid' : ''}${plan
+    ? ' LEFT JOIN client_run_explanation_plan_originals p ON p.run_definition_cid = r.run_definition_cid' : ''}
+    WHERE r.namespace_id = ? AND r.authority_scope_cid = ? AND r.run_definition_cid = ?`,
   facts: facet ? 'f.facts_wire' : 'NULL',
   present: facet ? 'f.run_definition_cid IS NOT NULL' : '0',
-  matches: facet ? '(f.run_definition_cid IS NULL OR (f.namespace_id = r.namespace_id AND f.authority_scope_cid = r.authority_scope_cid))' : '1'};
+  matches: facet ? '(f.run_definition_cid IS NULL OR (f.namespace_id = r.namespace_id AND f.authority_scope_cid = r.authority_scope_cid))' : '1',
+  plan: planPresent,
+  planMatches: plan ? `((${planPresent}) = (${contextPresent}) AND (NOT (${planPresent}) OR f.run_definition_cid IS NOT NULL))`
+    : `(NOT (${contextPresent}))`,
+  compiledPlan: plan ? 'p.compiled_plan_wire' : 'NULL',
+  planView: plan ? 'p.plan_view_wire' : 'NULL'};
   if (includeContext) {
     selected.context = context ? 'c.context_wire' : 'NULL';
     selected.contextHash = context ? 'c.context_wire_sha256' : 'NULL';
     selected.template = context ? 'c.invocation_template_wire' : 'NULL';
-    selected.contextPresent = context ? 'c.run_definition_cid IS NOT NULL' : '0';
+    selected.contextPresent = contextPresent;
   }
   return selected;
 }
 export function probeJournalExplanation(database: JournalSqlConnection,
-  ensureOpen: () => undefined, ref: WireRunRef, maxRunDefinitionWireBytes: number, includeContext: boolean) {
+  ensureOpen: () => undefined, ref: WireRunRef, maxRunDefinitionWireBytes: number,
+  includeContext: boolean, maxOriginalExplanationWireBytes: number) {
   const sql = explanationReadSelection(database, ensureOpen, ref, includeContext);
   const row = database.prepare(`SELECT
-      ${sql.present} AS facts_present, ${sql.matches} AS facet_matches,
-      CASE WHEN typeof(r.run_definition_wire)='text' THEN length(CAST(r.run_definition_wire AS BLOB)) ELSE -1 END AS definition_bytes,
-      CASE WHEN r.run_admission_evidence_json IS NULL THEN 0 WHEN typeof(r.run_admission_evidence_json)='text'
-        THEN length(CAST(r.run_admission_evidence_json AS BLOB)) ELSE -1 END AS evidence_bytes,
-      CASE WHEN typeof(r.program_definition_cid)='text' AND length(CAST(r.program_definition_cid AS BLOB))=71
-        AND typeof(r.parameter_values_cid)='text' AND length(CAST(r.parameter_values_cid AS BLOB))=71 THEN 1 ELSE 0 END AS bindings_bounded,
-      CASE WHEN ${sql.present} THEN CASE WHEN typeof(${sql.facts})='text'
-        THEN length(CAST(${sql.facts} AS BLOB)) ELSE -1 END ELSE 0 END AS facts_bytes
-      ${includeContext ? `, ${sql.contextPresent} AS context_present,
-        CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.context})='text'
-          THEN length(CAST(${sql.context} AS BLOB)) ELSE -1 END ELSE 0 END AS context_bytes,
-        CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.contextHash})='text'
-          THEN length(CAST(${sql.contextHash} AS BLOB)) ELSE -1 END ELSE 0 END AS context_hash_bytes,
-        CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.template})='text'
-          THEN length(CAST(${sql.template} AS BLOB)) ELSE -1 END ELSE 0 END AS invocation_template_bytes` : ''}
-      ${sql.from}`).get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid) as ExplanationProbeRow | undefined;
+    ${sql.present} AS facts_present, ${sql.matches} AS facet_matches,
+    CASE WHEN typeof(r.run_definition_wire)='text' THEN length(CAST(r.run_definition_wire AS BLOB)) ELSE -1 END AS definition_bytes,
+    CASE WHEN r.run_admission_evidence_json IS NULL THEN 0 WHEN typeof(r.run_admission_evidence_json)='text'
+      THEN length(CAST(r.run_admission_evidence_json AS BLOB)) ELSE -1 END AS evidence_bytes,
+    CASE WHEN typeof(r.program_definition_cid)='text' AND length(CAST(r.program_definition_cid AS BLOB))=71
+      AND typeof(r.parameter_values_cid)='text' AND length(CAST(r.parameter_values_cid AS BLOB))=71 THEN 1 ELSE 0 END AS bindings_bounded,
+    CASE WHEN ${sql.present} THEN CASE WHEN typeof(${sql.facts})='text'
+      THEN length(CAST(${sql.facts} AS BLOB)) ELSE -1 END ELSE 0 END AS facts_bytes,
+    ${sql.plan} AS plan_present, ${sql.planMatches} AS plan_matches,
+    CASE WHEN ${sql.plan} THEN CASE WHEN typeof(${sql.compiledPlan})='text'
+      THEN length(CAST(${sql.compiledPlan} AS BLOB)) ELSE -1 END ELSE 0 END AS compiled_plan_bytes,
+    CASE WHEN ${sql.plan} THEN CASE WHEN typeof(${sql.planView})='text'
+      THEN length(CAST(${sql.planView} AS BLOB)) ELSE -1 END ELSE 0 END AS plan_view_bytes
+    ${includeContext ? `, ${sql.contextPresent} AS context_present,
+      CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.context})='text'
+        THEN length(CAST(${sql.context} AS BLOB)) ELSE -1 END ELSE 0 END AS context_bytes,
+      CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.contextHash})='text'
+        THEN length(CAST(${sql.contextHash} AS BLOB)) ELSE -1 END ELSE 0 END AS context_hash_bytes,
+      CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.template})='text'
+        THEN length(CAST(${sql.template} AS BLOB)) ELSE -1 END ELSE 0 END AS invocation_template_bytes` : ''}
+    ${sql.from}`).get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid) as ExplanationProbeRow | undefined;
   if (row === undefined) return undefined;
-  if (row.facet_matches !== 1 || row.bindings_bounded !== 1 ||
-      ![row.definition_bytes, row.evidence_bytes, row.facts_bytes].every(value =>
+  if (row.facet_matches !== 1 || row.bindings_bounded !== 1 || row.plan_matches !== 1 ||
+      ![row.definition_bytes, row.evidence_bytes, row.facts_bytes, row.compiled_plan_bytes, row.plan_view_bytes].every(value =>
         Number.isSafeInteger(value) && value >= 0 && value <= maxRunDefinitionWireBytes) ||
-      row.definition_bytes < 1 || row.facts_present === 1 && row.facts_bytes < 1) {
+      row.definition_bytes < 1 || row.facts_present === 1 && row.facts_bytes < 1 ||
+      row.plan_present === 1 && (row.compiled_plan_bytes < 1 || row.plan_view_bytes < 1 ||
+        row.facts_present !== 1)) {
     fail('ClientRequestJournalCorrupt');
   }
   const contextBytes = includeContext ? row.context_bytes! : 0;
   const invocationTemplateBytes = includeContext ? row.invocation_template_bytes! : 0;
+  const planBytes = row.compiled_plan_bytes + row.plan_view_bytes;
   if (!Number.isSafeInteger(contextBytes) || contextBytes < 0 ||
       !Number.isSafeInteger(invocationTemplateBytes) || invocationTemplateBytes < 0 ||
       row.facts_bytes + contextBytes + invocationTemplateBytes > maxRunDefinitionWireBytes ||
+      row.plan_present === 1 &&
+        row.facts_bytes + planBytes + contextBytes + invocationTemplateBytes > maxOriginalExplanationWireBytes ||
       row.context_present === 1 &&
         (contextBytes < 1 || row.context_hash_bytes !== 64 ||
           invocationTemplateBytes < 1 || row.facts_present !== 1)) {
@@ -1071,7 +1115,11 @@ export function probeJournalExplanation(database: JournalSqlConnection,
   const extent: {-readonly [Key in keyof ExplanationExtent]: ExplanationExtent[Key]} = {definitionBytes: row.definition_bytes, evidenceBytes: row.evidence_bytes,
     factsBytes: row.facts_bytes,
     storedBytes: row.definition_bytes + row.evidence_bytes + row.facts_bytes +
-      contextBytes + invocationTemplateBytes + (contextBytes > 0 ? 64 : 0) + 142};
+      contextBytes + invocationTemplateBytes + planBytes + (contextBytes > 0 ? 64 : 0) + 142};
+  if (row.plan_present === 1) {
+    extent.compiledPlanBytes = row.compiled_plan_bytes;
+    extent.planViewBytes = row.plan_view_bytes;
+  }
   if (includeContext) {
     extent.contextBytes = contextBytes;
     extent.invocationTemplateBytes = invocationTemplateBytes;
@@ -1079,14 +1127,19 @@ export function probeJournalExplanation(database: JournalSqlConnection,
   return Object.freeze(extent);
 }
 export function readJournalExplanation(database: JournalSqlConnection,
-  ensureOpen: () => undefined, ref: WireRunRef, extent: ExplanationExtent,
-  maxRunDefinitionWireBytes: number, includeContext: boolean) {
-  const bounds = [extent?.definitionBytes, extent?.evidenceBytes, extent?.factsBytes];
+  ensureOpen: () => undefined, ref: WireRunRef, extent: ExplanationExtent, maxRunDefinitionWireBytes: number,
+  includeContext: boolean, maxOriginalExplanationWireBytes: number) {
+  const compiledPlanBytes = extent?.compiledPlanBytes ?? 0, planViewBytes = extent?.planViewBytes ?? 0;
+  const planBytes = compiledPlanBytes + planViewBytes;
+  const bounds = [extent?.definitionBytes, extent?.evidenceBytes, extent?.factsBytes, compiledPlanBytes, planViewBytes];
   if (includeContext) bounds.push(extent?.contextBytes!, extent?.invocationTemplateBytes!);
   if (!bounds.every(value => Number.isSafeInteger(value) && value >= 0 && value <= maxRunDefinitionWireBytes) ||
       includeContext && (extent.factsBytes + extent.contextBytes! + extent.invocationTemplateBytes! > maxRunDefinitionWireBytes ||
-        (extent.contextBytes! === 0) !== (extent.invocationTemplateBytes! === 0) ||
+        (extent.contextBytes === 0) !== (extent.invocationTemplateBytes === 0) ||
         extent.contextBytes! > 0 && extent.factsBytes === 0) ||
+      (compiledPlanBytes === 0) !== (planViewBytes === 0) ||
+      planBytes > 0 && (extent.factsBytes === 0 ||
+        extent.factsBytes + planBytes + (includeContext ? extent.contextBytes! + extent.invocationTemplateBytes! : 0) > maxOriginalExplanationWireBytes) ||
       extent.definitionBytes < 1 || extent.storedBytes !== bounds.reduce((sum, value) => sum + value,
         142 + (includeContext && extent.contextBytes! > 0 ? 64 : 0))) {
     fail('InvalidClientRunExplanationExtent');
@@ -1096,34 +1149,41 @@ export function readJournalExplanation(database: JournalSqlConnection,
   // changed/corrupt row cannot return oversized text after a small probe;
   // NULL is an explicit rejected original, never truncated valid evidence.
   const statement = database.prepare(`SELECT ${sql.present} AS facts_present, ${sql.matches} AS facet_matches,
-      CASE WHEN typeof(r.run_definition_wire)='text' AND length(CAST(r.run_definition_wire AS BLOB)) BETWEEN 1 AND ?
-        THEN r.run_definition_wire ELSE NULL END AS definition_wire,
-      CASE WHEN r.run_admission_evidence_json IS NULL THEN NULL WHEN typeof(r.run_admission_evidence_json)='text'
-        AND length(CAST(r.run_admission_evidence_json AS BLOB)) BETWEEN 1 AND ? THEN r.run_admission_evidence_json ELSE NULL END AS evidence_wire,
-      r.run_admission_evidence_json IS NOT NULL AS evidence_present,
-      CASE WHEN typeof(r.program_definition_cid)='text' AND length(CAST(r.program_definition_cid AS BLOB))=71
-        THEN r.program_definition_cid ELSE NULL END AS program_cid,
-      CASE WHEN typeof(r.parameter_values_cid)='text' AND length(CAST(r.parameter_values_cid AS BLOB))=71
-        THEN r.parameter_values_cid ELSE NULL END AS parameters_cid,
-      CASE WHEN ${sql.present} AND typeof(${sql.facts})='text' AND length(CAST(${sql.facts} AS BLOB)) BETWEEN 1 AND ?
-        THEN ${sql.facts} ELSE NULL END AS facts_wire
-      ${includeContext ? `, ${sql.contextPresent} AS context_present,
-        CASE WHEN ${sql.contextPresent} AND typeof(${sql.context})='text'
-          AND length(CAST(${sql.context} AS BLOB)) = ? THEN ${sql.context} ELSE NULL END AS context_wire,
-        CASE WHEN ${sql.contextPresent} AND typeof(${sql.contextHash})='text'
-          AND length(CAST(${sql.contextHash} AS BLOB)) = 64 THEN ${sql.contextHash} ELSE NULL END AS context_wire_sha256,
-        CASE WHEN ${sql.contextPresent} AND typeof(${sql.template})='text'
-          AND length(CAST(${sql.template} AS BLOB)) = ? THEN ${sql.template} ELSE NULL END AS invocation_template_wire` : ''}
-      ${sql.from}`);
+    CASE WHEN typeof(r.run_definition_wire)='text' AND length(CAST(r.run_definition_wire AS BLOB)) BETWEEN 1 AND ?
+      THEN r.run_definition_wire ELSE NULL END AS definition_wire,
+    CASE WHEN r.run_admission_evidence_json IS NULL THEN NULL WHEN typeof(r.run_admission_evidence_json)='text'
+      AND length(CAST(r.run_admission_evidence_json AS BLOB)) BETWEEN 1 AND ? THEN r.run_admission_evidence_json ELSE NULL END AS evidence_wire,
+    r.run_admission_evidence_json IS NOT NULL AS evidence_present,
+    CASE WHEN typeof(r.program_definition_cid)='text' AND length(CAST(r.program_definition_cid AS BLOB))=71
+      THEN r.program_definition_cid ELSE NULL END AS program_cid,
+    CASE WHEN typeof(r.parameter_values_cid)='text' AND length(CAST(r.parameter_values_cid AS BLOB))=71
+      THEN r.parameter_values_cid ELSE NULL END AS parameters_cid,
+    CASE WHEN ${sql.present} AND typeof(${sql.facts})='text' AND length(CAST(${sql.facts} AS BLOB)) BETWEEN 1 AND ?
+      THEN ${sql.facts} ELSE NULL END AS facts_wire,
+    ${sql.plan} AS plan_present, ${sql.planMatches} AS plan_matches,
+    CASE WHEN ${sql.plan} AND typeof(${sql.compiledPlan})='text'
+      AND length(CAST(${sql.compiledPlan} AS BLOB)) = ? THEN ${sql.compiledPlan} ELSE NULL END AS compiled_plan_wire,
+    CASE WHEN ${sql.plan} AND typeof(${sql.planView})='text'
+      AND length(CAST(${sql.planView} AS BLOB)) = ? THEN ${sql.planView} ELSE NULL END AS plan_view_wire
+    ${includeContext ? `, ${sql.contextPresent} AS context_present,
+      CASE WHEN ${sql.contextPresent} AND typeof(${sql.context})='text'
+        AND length(CAST(${sql.context} AS BLOB)) = ? THEN ${sql.context} ELSE NULL END AS context_wire,
+      CASE WHEN ${sql.contextPresent} AND typeof(${sql.contextHash})='text'
+        AND length(CAST(${sql.contextHash} AS BLOB)) = 64 THEN ${sql.contextHash} ELSE NULL END AS context_wire_sha256,
+      CASE WHEN ${sql.contextPresent} AND typeof(${sql.template})='text'
+        AND length(CAST(${sql.template} AS BLOB)) = ? THEN ${sql.template} ELSE NULL END AS invocation_template_wire` : ''}
+    ${sql.from}`);
   const row = (includeContext
-    ? statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes,
+    ? statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes, compiledPlanBytes, planViewBytes,
       extent.contextBytes!, extent.invocationTemplateBytes!,
       ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid)
-    : statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes,
+    : statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes, compiledPlanBytes, planViewBytes,
       ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid)) as ExplanationOriginalRow | undefined;
   if (row === undefined) return undefined;
-  if (row.facet_matches !== 1 || row.definition_wire === null || !cid(row.program_cid) || !cid(row.parameters_cid) ||
+  if (row.facet_matches !== 1 || row.plan_matches !== 1 || row.definition_wire === null || !cid(row.program_cid) || !cid(row.parameters_cid) ||
       row.evidence_present === 1 && row.evidence_wire === null || row.facts_present === 1 && row.facts_wire === null ||
+      (row.plan_present === 1) !== (planBytes > 0) ||
+      row.plan_present === 1 && (row.compiled_plan_wire === null || row.plan_view_wire === null || row.facts_present !== 1) ||
       includeContext && ((row.context_present === 1) !== (extent.contextBytes! > 0) ||
         row.context_present === 1 && (row.context_wire === null ||
           typeof row.context_wire_sha256 !== 'string' || !/^[0-9a-f]{64}$/u.test(row.context_wire_sha256) ||
@@ -1134,11 +1194,15 @@ export function readJournalExplanation(database: JournalSqlConnection,
       createHash('sha256').update(ref.runDefinitionCid).update(row.context_wire!).digest('hex') !== row.context_wire_sha256) {
     fail('ClientRequestJournalCorrupt');
   }
-  const result: {definitionWire: string; admissionEvidenceWire: string | undefined;
-    programDefinitionCid: string; parameterValuesCid: string; factsWire: string | undefined;
-    contextWire?: string; invocationTemplateWire?: string} = {definitionWire: row.definition_wire, admissionEvidenceWire: row.evidence_wire ?? undefined,
+  const result: {definitionWire: string; admissionEvidenceWire?: string;
+    programDefinitionCid: string; parameterValuesCid: string; factsWire?: string;
+    contextWire?: string; invocationTemplateWire?: string; compiledPlanWire?: string; planViewWire?: string} = {definitionWire: row.definition_wire, admissionEvidenceWire: row.evidence_wire ?? undefined,
     programDefinitionCid: row.program_cid, parameterValuesCid: row.parameters_cid,
     factsWire: row.facts_present === 1 ? row.facts_wire! : undefined};
+  if (row.plan_present === 1) {
+    result.compiledPlanWire = row.compiled_plan_wire!;
+    result.planViewWire = row.plan_view_wire!;
+  }
   if (includeContext) {
     result.contextWire = row.context_present === 1 ? row.context_wire! : undefined;
     result.invocationTemplateWire = row.context_present === 1 ? row.invocation_template_wire! : undefined;
@@ -1159,6 +1223,12 @@ export function insertJournalExplanationOriginal(database: JournalSqlConnection,
         (run_definition_cid, context_wire, context_wire_sha256, invocation_template_wire) VALUES (?, ?, ?, ?)`)
       .run(ref.runDefinitionCid, original.contextWire, original.contextWireSha256!, original.invocationTemplateWire!);
   }
+  if (original.plan !== undefined) {
+    if (!inspectExplanationPlanOriginalStorage(database)) database.exec(explanationPlanOriginalTable);
+    database.prepare(`INSERT INTO client_run_explanation_plan_originals
+      (run_definition_cid, compiled_plan_wire, plan_view_wire) VALUES (?, ?, ?)`)
+      .run(ref.runDefinitionCid, original.plan.compiledPlanWire, original.plan.planViewWire);
+  }
 }
 
 // The existing acceptance transaction compares the companion in SQLite. A
@@ -1172,4 +1242,15 @@ export function verifyJournalExplanationContext(database: JournalSqlConnection,
     .get(original.contextWire!, original.contextWireSha256!, original.invocationTemplateWire!, runDefinitionCid);
   if (context === undefined) fail('ClientRequestExplanationEvidenceMissing');
   if (context.original_matches !== 1) fail('ClientRequestExplanationEvidenceMismatch');
+}
+
+// An idempotent acceptance may compare the exact original companion only.
+export function verifyJournalExplanationPlan(database: JournalSqlConnection,
+  runDefinitionCid: string, original: NonNullable<ExplanationOriginal['plan']>): void {
+  const stored = inspectExplanationPlanOriginalStorage(database) ?
+    database.prepare(`SELECT (compiled_plan_wire = ? AND plan_view_wire = ?) AS original_matches
+      FROM client_run_explanation_plan_originals WHERE run_definition_cid = ?`)
+      .get(original.compiledPlanWire, original.planViewWire, runDefinitionCid) : undefined;
+  if (stored === undefined) fail('ClientRequestPlanEvidenceMissing');
+  if (stored.original_matches !== 1) fail('ClientRequestPlanEvidenceMismatch');
 }

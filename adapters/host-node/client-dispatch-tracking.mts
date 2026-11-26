@@ -66,12 +66,13 @@ type DispatchTracking<Ref extends DispatchRef> = Readonly<{
   diagnosticErrorType: ErrorConstructor;
   diagnosticStackFormatter: unknown;
   observation?: Readonly<{retainOperation?(operation: Promise<unknown>): unknown}>;
+  beforeDrain?(entry: TrackedEntry<Ref>): void;
 }>;
 
 export function createClientDispatchTracking<Ref extends DispatchRef>({entries, keyOf, current,
   beforeDispatch, acquireSource, retainDispatchPrimaryFailure, settleCleanup, settleRetainedEntry,
   retire, credentialRefusalPending, diagnostic, diagnosticErrorType, diagnosticStackFormatter,
-  observation}: DispatchTracking<Ref>) {
+  observation, beforeDrain}: DispatchTracking<Ref>) {
   // The installed Effect Run owner supplies the already-admitted operation.
   // This is the same physical supervisor as ordinary dispatch, not another
   // Run-start or Effect retry engine. It never invokes run again during drain.
@@ -206,6 +207,7 @@ export function createClientDispatchTracking<Ref extends DispatchRef>({entries, 
     for (;;) {
       const running = [...entries.values()].filter(entry => !entry.settled);
       if (running.length === 0) break;
+      if (beforeDrain !== undefined) for (const entry of running) beforeDrain(entry);
       await Promise.allSettled(running.map(entry => entry.promise));
     }
     for (const entry of [...entries.values()]) {

@@ -57,7 +57,7 @@ test "original retained Events first dispatch coexists with its original explana
     parent, input, contracts, true,
   ).unwrap()
   let explanation = client_program_prepare_request_original_explanation(
-    parent, input, 1000000, 100000, 64,
+    parent, input, 1000000, 100000, 64, false,
   ).unwrap()
   client_program_prepare_request_program_module_body(
     parent,

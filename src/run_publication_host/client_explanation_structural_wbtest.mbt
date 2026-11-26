@@ -206,7 +206,6 @@ test "structural explanation leaves an unprojected predicate honest instead of r
 
 ///|
 test "structural Narrative renders checked singleton AND and OR in both languages" {
-  let context = parse_plan_identity_value("{\"items\":[]}", 20000, 2000, 32).unwrap()
   for operator in ["and", "or"] {
     let source = "{\"version\":\"actql/0.1\",\"id\":\"singleton-boolean\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"as\":\"source\",\"values\":{\"rows\":[{\"flag\":true}],\"schema\":{\"flag\":{\"type\":\"boolean\",\"nullable\":false}}}},{\"from\":\"source\",\"filter\":{\"" +
       operator +
@@ -238,23 +237,32 @@ test "structural Narrative renders checked singleton AND and OR in both language
       fail("original Boolean operator")
     }
     assert_eq(selected, operator)
-    let facts = parse_plan_identity_value(
-      "{\"steps\":[{\"meaning\":" + wire + "}]}",
+    let (original, _) = capture_client_static_pure_explanation_original(
+      prepared,
+      Tasks(compiled),
       20000,
       2000,
       32,
     ).unwrap()
-    let en = render_client_explanation_narrative(facts, context, English, 65536)
-    let ja = render_client_explanation_narrative(
-      facts,
-      context,
-      Japanese,
-      65536,
-    )
-    assert_eq(en.steps, ["Keep rows where: (fields.\"flag\":boolean)"])
-    assert_eq(ja.steps, [
+    let original_facts = seal_client_static_pure_explanation_facts(
+      original, 20000, 2000, 32,
+    ).unwrap()
+    let facts = @publication.parse_interactive_run_control_shape(
+      "explanation_facts",
+      @publication.run_evidence_value_json(original_facts),
+      20000,
+      2000,
+      32,
+    ).unwrap()
+    let en = render_client_explanation_narrative(facts, None, English, 65536)
+    let ja = render_client_explanation_narrative(facts, None, Japanese, 65536)
+    assert_eq(en.steps.length(), 2)
+    assert_eq(ja.steps.length(), 2)
+    assert_eq(en.steps[1], "Keep rows where: (fields.\"flag\":boolean)")
+    assert_eq(
+      ja.steps[1],
       "この条件を満たす行を残す: (fields.\"flag\":boolean)",
-    ])
+    )
   }
 }
 

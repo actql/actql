@@ -297,6 +297,176 @@ pub fn client_logical_task_boundary_output_port_id(
 }
 
 ///|
+/// The compiler appends the single output after all input ports. Borrow this
+/// one original Relation occurrence from the checked physical observation.
+pub fn client_logical_task_boundary_relation_output(
+  value : ClientLogicalTaskBoundary,
+  compiled : ClientCompiledRun,
+  prepared : PreparedClientProgram,
+  run : @strategy.CapturedDAG,
+  map_cid : String,
+) -> Result[(String, String, String)?, ClientLogicalTaskBoundaryIssue] {
+  guard value.original is Some(original) &&
+    physical_equal(original.run, run) &&
+    @canonical.object_field(original.facts.map, "self_cid")
+    is Some(@canonical.String(identity)) &&
+    identity == map_cid else {
+    return Err(ForeignOriginal)
+  }
+  if !client_logical_task_boundary_current(value, compiled, prepared) {
+    return Err(StaleBoundary)
+  }
+  client_logical_relation_output(original.step)
+}
+
+///|
+fn client_logical_relation_output(
+  step : @canonical.CanonicalValue,
+) -> Result[(String, String, String)?, ClientLogicalTaskBoundaryIssue] {
+  guard @canonical.object_field(step, "ports") is Some(@canonical.Array(ports)) &&
+    @canonical.array_at(ports, @canonical.array_count(ports) - 1) is Some(port) else {
+    return Err(MissingOriginalOccurrence)
+  }
+  try {
+    if explanation_original_text(port, "role") != "output" ||
+      explanation_original_ordinal(port, "port_ordinal") != 0 {
+      return Err(MissingOriginalOccurrence)
+    }
+    if explanation_original_text(port, "carrier") != "relation" {
+      return Ok(None)
+    }
+    let step_id = explanation_original_text(step, "step_id")
+    let port_id = explanation_original_text(port, "port_id")
+    let locator = explanation_original_field(port, "source")
+    if explanation_original_text(locator, "kind") != "logical_output" ||
+      explanation_original_text(locator, "step_id") != step_id ||
+      explanation_original_text(locator, "output_port_id") != port_id {
+      return Err(MissingOriginalOccurrence)
+    }
+    let contract = explanation_original_text(port, "carrier_contract_cid")
+    Ok(Some((step_id, port_id, contract)))
+  } catch {
+    issue => Err(Encoding(issue))
+  }
+}
+
+///|
+/// Bind selected Relation outputs to exact physical tasks once, using the
+/// checked compiler's original map. The caller funds the one bounded scan
+/// and retained index. Fused or unprojectable operations get no entry.
+pub fn index_client_logical_relation_sample_outputs(
+  original : ClientStructuralExplanationOriginal,
+  compiled : ClientCompiledRun,
+  prepared : PreparedClientProgram,
+  selection : @publication.InteractiveRelationSampleSelection,
+) -> Result[Map[Int, (String, String, String)], ClientLogicalTaskBoundaryIssue] {
+  guard explanation_original_matches(original, compiled, prepared) &&
+    @canonical.object_field(original.map, "steps")
+    is Some(@canonical.Array(steps)) else {
+    return Err(ForeignOriginal)
+  }
+  let graph = prepared.graph
+  let index : Map[Int, (String, String, String)] = Map([])
+  try {
+    for i in 0..<@canonical.array_count(steps) {
+      let step = @canonical.array_at(steps, i).unwrap()
+      let key = explanation_original_field(step, "key")
+      let occurrence = explanation_original_field(key, "occurrence")
+      if explanation_original_text(occurrence, "kind") != "operation" {
+        continue
+      }
+      let stage = explanation_original_ordinal(key, "stage_ordinal")
+      let ordinal = explanation_original_ordinal(
+        occurrence, "operation_ordinal",
+      )
+      guard @strategy.graph_stage_target_task(
+          graph,
+          stage,
+          @pipeline.Step(ordinal),
+        )
+        is Some(task) &&
+        @strategy.graph_stage_operation_task(graph, stage, ordinal) ==
+        Some(task) &&
+        @checked.unit_pipeline(@strategy.graph_program(graph), stage)
+        is Some(pipeline) else {
+        continue
+      }
+      let independent = match @strategy.graph_task_selected_step(graph, task) {
+        Some(selected) => selected == ordinal
+        None =>
+          ordinal == 0 &&
+          (
+            @strategy.graph_task_prefix_end(graph, task) == Some(0) ||
+            (
+              @strategy.graph_task_prefix_end(graph, task) is None &&
+              @pipeline.step_count(pipeline) == 1
+            )
+          )
+      }
+      if !independent {
+        continue
+      }
+      match client_logical_relation_output(step) {
+        Err(issue) => return Err(issue)
+        Ok(Some((_, port, _) as output)) =>
+          if @publication.interactive_relation_sample_output_limits(
+              selection, port,
+            )
+            is Some(_) {
+            if index.contains(task) {
+              return Err(MissingOriginalOccurrence)
+            }
+            index[task] = output
+          }
+        Ok(None) => ()
+      }
+    }
+    Ok(index)
+  } catch {
+    issue => Err(Encoding(issue))
+  }
+}
+
+///|
+/// The logical owner keeps its lower borrowed token private through capture.
+/// The independently leased prefix is returned to the same Run consumer.
+pub fn[T] capture_client_logical_managed_relation_sample_prefix(
+  value : ClientLogicalTaskBoundary,
+  compiled : ClientCompiledRun,
+  prepared : PreparedClientProgram,
+  run : @strategy.CapturedDAG,
+  completed : @execution.ManagedCompletedOutput[T],
+  original : @execution.CompletedOutput,
+  max_items : Int,
+  schema : @execution.RelationSchemaIdentityLimits,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  require_capture_current : () -> Bool,
+) -> Result[
+  @strategy.CapturedRelationSamplePrefix,
+  @strategy.CapturedRelationSamplePrefixIssue,
+] {
+  guard value.original is Some(bound) &&
+    physical_equal(bound.run, run) &&
+    client_logical_task_boundary_current(value, compiled, prepared) else {
+    return Err(@strategy.StaleOriginal)
+  }
+  @strategy.capture_captured_managed_relation_sample_prefix(
+    run,
+    bound.observed,
+    completed,
+    original,
+    max_items,
+    schema,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    require_capture_current,
+  )
+}
+
+///|
 /// Release this higher wrapper's independent original fork. Dispose its heavy
 /// context BEFORE the same lower Owner may acknowledge or autonomously retry
 /// settlement. Only that exact token remains reachable for pending cleanup.

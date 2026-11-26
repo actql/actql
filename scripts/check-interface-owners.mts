@@ -73,6 +73,7 @@ export async function checkInterfaceOwners(root: string, {manifests = [], author
   const checked = {qualification: 'required normal source/generation interface check; not artifact or runtime acceptance',
     result, modules: [...modules.values()], roots, pythonRoots, runtimeBindings: source.runtimeBindings,
     artifacts: source.artifacts, moon: source.moon, generated: vite.generated,
+    configuredOutputs: vite.sourceArtifacts,
     buildInputs: vite.buildInputs, freshness: freshness && {qualification: freshness.qualification, checked: freshness.checked},
     generatedQualification: freshness?.generated};
   checkedSources.set(checked, {root: realpathSync(root),

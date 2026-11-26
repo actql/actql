@@ -26464,6 +26464,165 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/assembled/init:acknowledgeClientRelationSampleStart/init:acknowledgeClientRelationSampleStart",
+            "publicationControl/assembled/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile",
+            "publicationControl/assembled/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesAdoption/init:matchesAdoption",
+            "publicationControl/assembled/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesStart/init:matchesStart",
+            "publicationControl/assembled/init:reserveClientRelationSampleStart/init:reserveClientRelationSampleStart",
+            "relationSampleJournalScope/init:visitAdoption/init:visitAdoption",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed/allowed",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result/result"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "function relationSampleJournalScope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "checkClientRelationSampleProfile(run: unknown"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "compiledRunTokens.get(candidate) === compiled"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mts",
+                "anchor": "return original.visitAdoption(ticket, loan => adopt"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "control.acknowledgeClientRelationSampleStart(sampleRun"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "throw new Error('ClientRelationSampleVisitMustBeSynchronous')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "const current = () => !entry.abort.signal.aborted && hostConnection(authority) === true"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "reserveClientRelationSampleStart(run: unknown"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "current, fundedBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "matchRelationSampleAdoption.call(moon, profile"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "one physical start commits the original Debug interval and Sample revision, with neither delivered on Unknown"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "Relation Sample adoption refuses equal payloads from another scope and asynchronous loans"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/assembled/init:issueLocalDebugResumeReceipt/init:issueLocalDebugResumeReceipt",
+            "publicationControl/assembled/init:localDebugResumeReceiptConstructionBytes/init:localDebugResumeReceiptConstructionBytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "issueLocalDebugResumeReceipt(runDefinition: unknown"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "moon.clientProgramIssueLocalDebugResumeReceipt("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "runDefinition?.identity !== ref.runDefinitionCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "return control.issueLocalDebugResumeReceipt("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const issueDebugReceipt ="
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "RunHostDebugResumeReceiptRejected"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "requireDebugEntryAuthority(current);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "reserve(control.localDebugResumeReceiptConstructionBytes(limits, issuing))"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "kind: later ? 'logical_step' : 'entry'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "public Resume returns the funded original receipt with one live handoff over Local and HTTP"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "a lost task Continue COMMIT never hands off, including on reopen and exact retry"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -26488,6 +26647,18 @@
           "name": "publicationControl/admissionToken/admissionToken",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/assembled/init:acknowledgeClientRelationSampleStart/init:acknowledgeClientRelationSampleStart",
+          "parameters": [
+            "run",
+            "request",
+            "executionOwner",
+            "definition",
+            "captured",
+            "revision"
           ],
           "async": false
         },
@@ -26843,6 +27014,35 @@
           "async": false
         },
         {
+          "name": "publicationControl/assembled/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile",
+          "parameters": [
+            "run",
+            "request",
+            "definition",
+            "observation",
+            "referenceWire",
+            "records",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/assembled/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesAdoption/init:matchesAdoption",
+          "parameters": [
+            "source",
+            "capture"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/assembled/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesStart/init:matchesStart",
+          "parameters": [
+            "program",
+            "candidate"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/assembled/init:checkedClientEffectInferInvocation/init:checkedClientEffectInferInvocation",
           "parameters": [
             "checkedEffect",
@@ -27131,6 +27331,18 @@
           "async": false
         },
         {
+          "name": "publicationControl/assembled/init:issueLocalDebugResumeReceipt/init:issueLocalDebugResumeReceipt",
+          "parameters": [
+            "runDefinition",
+            "command",
+            "parkWire",
+            "acceptedRevision",
+            "acceptedAt",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/assembled/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence",
           "parameters": [
             "model",
@@ -27267,6 +27479,14 @@
           "name": "publicationControl/assembled/init:keyedLookupPublicationEvidence/init:keyedLookupPublicationEvidence",
           "parameters": [
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/assembled/init:localDebugResumeReceiptConstructionBytes/init:localDebugResumeReceiptConstructionBytes",
+          "parameters": [
+            "limits",
+            "issuing"
           ],
           "async": false
         },
@@ -27532,6 +27752,20 @@
             "observeAccount",
             "observeAt",
             "delegated"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/assembled/init:reserveClientRelationSampleStart/init:reserveClientRelationSampleStart",
+          "parameters": [
+            "run",
+            "request",
+            "executionOwner",
+            "definition",
+            "setup",
+            "journalBytes",
+            "debugEntry",
+            "previousJournalBytes"
           ],
           "async": false
         },
@@ -27886,6 +28120,51 @@
           "async": false
         },
         {
+          "name": "relationSampleJournalScope/init:visitAdoption/init:visitAdoption",
+          "parameters": [
+            "ticket",
+            "consume"
+          ],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption",
+          "parameters": [
+            "prefix",
+            "requireCurrent",
+            "consume"
+          ],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result",
+          "parameters": [
+            "generation",
+            "capture",
+            "emission",
+            "reference",
+            "relation",
+            "current",
+            "fundedBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "runtimeCore",
           "parameters": [
             "moon"
@@ -27944,7 +28223,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "358498315779ee9cc8fc5343c1a63ea633cd4dae5fdf83b6d957c26175bff662"
+      "sha256": "2febfa920d25e09a9cf14192e1b2f49ac24db5380678c07be49d4e2470445ced"
     },
     {
       "module": "adapters/host-common/runtime-infer-admission-control.mjs",
@@ -30191,7 +30470,8 @@
             "ref",
             "state",
             "snapshotCid",
-            "limits"
+            "limits",
+            "debugParkWire"
           ],
           "async": false
         },
@@ -30219,7 +30499,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "aa9124a0b647bd73be1311d54a12ca529ba2e52d43acb611a61a67e5a14579e6"
+      "sha256": "09fbb9628d2e5109328f0250f98dd15f475ceaa57d99c609119361b020a18919"
     },
     {
       "module": "adapters/host-common/runtime-effect-publication-control.mjs",
@@ -46139,12 +46419,19 @@
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
         "installNodeClientDispatchOwner",
+        "installNodeRelationSampleDebugEntry",
+        "installNodeRelationSampleStart",
         "observeNodeRestoredLocalStop",
         "observeNodeRestoredModelStop",
         "observeNodeRunCancellation",
         "recordNodeRunPhysicalStop"
       ],
       "operations": [
+        {
+          "name": "DebugPauseHostClosing/constructor:constructor/constructor:constructor",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "installNodeClientDispatchOwner",
           "parameters": [
@@ -46176,6 +46463,9 @@
             "preparationCustody",
             "beforePublication",
             "authorizeLogicalObservation",
+            "authorizeSampleCapture",
+            "prepareSampleStart",
+            "prepareDebugEntryResume",
             "managedComputeRequired",
             "retainedRelationOutput",
             "runPublished"
@@ -46187,6 +46477,33 @@
           "parameters": [
             "ref"
           ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/checkSampleProfile",
+          "parameters": [
+            "entry",
+            "requested",
+            "ref",
+            "run",
+            "execution",
+            "definition",
+            "setup",
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/checkSampleProfile/original/init:reserveSampleRead/init:reserveSampleRead",
+          "parameters": [
+            "bytes",
+            "previousBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/controlledDebugTask/allowed/allowed",
+          "parameters": [],
           "async": false
         },
         {
@@ -46204,9 +46521,21 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/drain/drain",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/failureMessage/failureMessage",
           "parameters": [
             "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/init:beforeDrain/init:beforeDrain",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -46225,6 +46554,59 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/lookupDebugResume/lookupDebugResume",
+          "parameters": [
+            "ref",
+            "operationId",
+            "commandCid",
+            "acceptedFromRevision",
+            "principalId",
+            "connection",
+            "authorize",
+            "reserve",
+            "reserveConstruction"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/lookupDebugResume/lookupDebugResume/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/observeDebugInspect/observeDebugInspect",
+          "parameters": [
+            "ref",
+            "actor",
+            "authorizeResume"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/observeDebugInspect/observeDebugInspect/observed/observed",
+          "parameters": [
+            "owner",
+            "allowed"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/observeDebugTask/observeDebugTask",
+          "parameters": [
+            "ref",
+            "actor"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/observeDebugTask/observeDebugTask/observeDebugTask",
+          "parameters": [
+            "owner",
+            "allowed"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/observeStop",
           "parameters": [
             "entry"
@@ -46239,9 +46621,45 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/readDebugNextSample/readDebugNextSample",
+          "parameters": [
+            "ref",
+            "actor",
+            "selected",
+            "reserve",
+            "bindProducer"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/readDebugNextSample/readDebugNextSample/readDebugNextSample",
+          "parameters": [
+            "owner",
+            "allowed"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/resourceUsage/resourceUsage",
           "parameters": [
             "ledger"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/resumeDebugTask/resumeDebugTask",
+          "parameters": [
+            "ref",
+            "actor",
+            "commandWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/resumeDebugTask/resumeDebugTask/resumeDebugTask",
+          "parameters": [
+            "owner",
+            "allowed"
           ],
           "async": false
         },
@@ -46277,9 +46695,28 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/start/start/start/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/start/start/start/init:capture/init:capture",
           "parameters": [
+            "witness"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/init:capture/init:capture#2",
+          "parameters": [
             "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/init:captureRevision/init:captureRevision",
+          "parameters": [
+            "revision"
           ],
           "async": false
         },
@@ -46390,14 +46827,14 @@
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#15",
           "parameters": [
-            "source"
+            "operation"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#16",
           "parameters": [
-            "value"
+            "source"
           ],
           "async": false
         },
@@ -46410,7 +46847,9 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#18",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -46427,9 +46866,7 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#20",
-          "parameters": [
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -46455,6 +46892,13 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#24",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#25",
           "parameters": [
             "task"
           ],
@@ -46535,11 +46979,272 @@
           "async": true
         },
         {
+          "name": "installNodeRelationSampleDebugEntry",
+          "parameters": [
+            "moon",
+            "observeAccount",
+            "hostConnection",
+            "site",
+            "journal",
+            "control",
+            "now"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry",
+          "parameters": [
+            "setup",
+            "owner",
+            "authority",
+            "profile",
+            "signal",
+            "logicalMapCid",
+            "runDefinition"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/call/call",
+          "parameters": [
+            "original",
+            "command",
+            "revision"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/expireWaiting",
+          "parameters": [
+            "wait"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/holdPause/holdPause",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/holdPause/holdPause/wait/wait",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:activate/init:activate",
+          "parameters": [
+            "witness"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:beginDrain/init:beginDrain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:observePause/init:observePause",
+          "parameters": [
+            "authorize",
+            "inspect",
+            "authorizeResume"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:observePause/init:observePause/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:parkEntry/init:parkEntry",
+          "parameters": [
+            "identity",
+            "expectedRevision",
+            "expiresAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample",
+          "parameters": [
+            "selected",
+            "authorize",
+            "reserve",
+            "bindProducer"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/init:readNextSample",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/init:readNextSample#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask",
+          "parameters": [
+            "commandWire",
+            "authorize",
+            "reserve"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/init:capture/init:capture",
+          "parameters": [
+            "witness"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/init:capture/init:capture#2",
+          "parameters": [
+            "witness"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:waitForResume/init:waitForResume",
+          "parameters": [
+            "actual",
+            "waitSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/phase/phase",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleStart",
+          "parameters": [
+            "moon",
+            "observeAccount",
+            "hostConnection",
+            "site"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleStart/installNodeRelationSampleStart",
+          "parameters": [
+            "setup",
+            "owner",
+            "profile",
+            "authority"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleStart/installNodeRelationSampleStart/installNodeRelationSampleStart",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "invalidSampleStartReceiver/invalidSampleStartReceiver",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "retainDispatchPrimaryFailure",
           "parameters": [
             "entry",
             "result"
           ],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/driver/driver",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/driver/driver#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/driver/init:adopt/init:adopt",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/driver/init:current/init:current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/driver/init:current/init:current/init:current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:adopt/init:adopt",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:adopt/init:adopt/init:adopt",
+          "parameters": [
+            "ticket"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:arm/init:arm",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:captureAdoption/init:captureAdoption",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:requireWriter/init:requireWriter",
+          "parameters": [],
           "async": false
         }
       ],
@@ -48545,6 +49250,142 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "DebugPauseHostClosing/constructor:constructor/constructor:constructor",
+            "installNodeClientDispatchOwner/checkSampleProfile",
+            "installNodeClientDispatchOwner/checkSampleProfile/original/init:reserveSampleRead/init:reserveSampleRead",
+            "installNodeClientDispatchOwner/controlledDebugTask/allowed/allowed",
+            "installNodeClientDispatchOwner/drain/drain",
+            "installNodeClientDispatchOwner/init:beforeDrain/init:beforeDrain",
+            "installNodeClientDispatchOwner/lookupDebugResume/lookupDebugResume",
+            "installNodeClientDispatchOwner/lookupDebugResume/lookupDebugResume/current/current",
+            "installNodeClientDispatchOwner/observeDebugInspect/observeDebugInspect",
+            "installNodeClientDispatchOwner/observeDebugInspect/observeDebugInspect/observed/observed",
+            "installNodeClientDispatchOwner/observeDebugTask/observeDebugTask",
+            "installNodeClientDispatchOwner/observeDebugTask/observeDebugTask/observeDebugTask",
+            "installNodeClientDispatchOwner/readDebugNextSample/readDebugNextSample",
+            "installNodeClientDispatchOwner/readDebugNextSample/readDebugNextSample/readDebugNextSample",
+            "installNodeClientDispatchOwner/resumeDebugTask/resumeDebugTask",
+            "installNodeClientDispatchOwner/resumeDebugTask/resumeDebugTask/resumeDebugTask",
+            "installNodeClientDispatchOwner/start/start/start/current/current",
+            "installNodeClientDispatchOwner/start/start/start/init:capture/init:capture#2",
+            "installNodeClientDispatchOwner/start/start/start/init:captureRevision/init:captureRevision",
+            "installNodeClientDispatchOwner/start/start/start/start#25",
+            "installNodeRelationSampleDebugEntry",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/call/call",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/current/current",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/expireWaiting",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/holdPause/holdPause",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/holdPause/holdPause/wait/wait",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:activate/init:activate",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:beginDrain/init:beginDrain",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:close/init:close",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:observePause/init:observePause",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:observePause/init:observePause/allowed/allowed",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:parkEntry/init:parkEntry",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/allowed/allowed",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/init:readNextSample",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/init:readNextSample#2",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/allowed/allowed",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/init:capture/init:capture",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/init:capture/init:capture#2",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:waitForResume/init:waitForResume",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/phase/phase",
+            "installNodeRelationSampleStart",
+            "installNodeRelationSampleStart/installNodeRelationSampleStart",
+            "installNodeRelationSampleStart/installNodeRelationSampleStart/installNodeRelationSampleStart",
+            "invalidSampleStartReceiver/invalidSampleStartReceiver",
+            "selectedSampleAdoption/driver/driver",
+            "selectedSampleAdoption/driver/driver#2",
+            "selectedSampleAdoption/driver/init:adopt/init:adopt",
+            "selectedSampleAdoption/driver/init:current/init:current",
+            "selectedSampleAdoption/driver/init:current/init:current/init:current",
+            "selectedSampleAdoption/scope/init:adopt/init:adopt",
+            "selectedSampleAdoption/scope/init:adopt/init:adopt/init:adopt",
+            "selectedSampleAdoption/scope/init:arm/init:arm",
+            "selectedSampleAdoption/scope/init:captureAdoption/init:captureAdoption",
+            "selectedSampleAdoption/scope/init:close/init:close",
+            "selectedSampleAdoption/scope/init:requireWriter/init:requireWriter"
+          ],
+          "exports": [
+            "installNodeRelationSampleDebugEntry",
+            "installNodeRelationSampleStart"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "function installNodeRelationSampleDebugEntry"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "control.acknowledgeClientRelationSampleStart(sampleRun"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "definition.identity !== originalAdmission.runDefinition?.identity"
+              },
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "installed_relation_sample_start_matches("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "entry.pendingSetup !== setup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "await debugController.parkEntry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "ClientRunSampleStartOriginalUnavailable"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "const current = () => !entry.abort.signal.aborted"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "control.reserveClientRelationSampleStart(sampleRun"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "function selectedSampleAdoption"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mts",
+                "anchor": "Debug and Sample cannot advance on a missing, foreign or unacknowledged start"
+              },
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mts",
+                "anchor": "Host shutdown joins the original started Step through the later Debug park"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -48566,12 +49407,13 @@
         "./local-values-plan.mjs",
         "./logical-task-observation.mjs",
         "./ordinary-source-binding.mjs",
+        "node:events",
         "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "57a70773a1dc5c78bb7d7dcb259997cbb29b5e360491122c0b8bab90ae9f09e5",
+      "sha256": "48b962f75293a598caa1590899294e99efc58e0f1dddf0361c875e053e69fa01",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -48875,7 +49717,8 @@
             "diagnostic",
             "diagnosticErrorType",
             "diagnosticStackFormatter",
-            "observation"
+            "observation",
+            "beforeDrain"
           ],
           "async": false
         },
@@ -49090,7 +49933,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "edb2dfa891ec9c10dd65854b73c2161e9ce79c2dc93748e1739038124c8eddee",
+      "sha256": "9685a520973cb4f7177f98190dfa8bb7eb77b6c43336da185ad6ebc52e0fccdb",
       "rationale": "Internal tracking and drain keep the original Client Dispatch entry, physical cleanup, and stop observation under the existing owner."
     },
     {
@@ -49099,11 +49942,28 @@
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
+        "closeDebugControl",
+        "closeSampleAdoption",
         "createClientDispatchCleanup",
         "releaseDispatchPreparationHost",
-        "retainDispatchPreparationHost"
+        "retainDispatchPreparationHost",
+        "returnSampleProfileObservation"
       ],
       "operations": [
+        {
+          "name": "closeDebugControl",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "closeSampleAdoption",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
         {
           "name": "createClientDispatchCleanup",
           "parameters": [
@@ -49182,6 +50042,14 @@
             "prepared",
             "request",
             "hasCustody"
+          ],
+          "async": false
+        },
+        {
+          "name": "returnSampleProfileObservation",
+          "parameters": [
+            "entry",
+            "moon"
           ],
           "async": false
         }
@@ -49592,6 +50460,80 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "closeDebugControl",
+            "closeSampleAdoption",
+            "returnSampleProfileObservation"
+          ],
+          "exports": [
+            "closeDebugControl",
+            "closeSampleAdoption",
+            "returnSampleProfileObservation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function closeDebugControl"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function closeSampleAdoption"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "sampleProfileObservation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "returnSampleProfileObservation(entry, moon);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "closeDebugControl(entry);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "cleanupPending() !== false"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "closeSampleAdoption(entry);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "releaseDispatchPreparationHost"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function returnSampleProfileObservation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mts",
+                "anchor": "Host shutdown joins the original started Step through the later Debug park"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -49603,7 +50545,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current emitted syntax and existing physical dispatch ownership with the original settlement and retry ports.",
-      "sha256": "c737c42b1eb0652bd9ae4321dd30c7a79c38a2053e04db39f6928dfcee6d9f23"
+      "sha256": "db1cf509a48f886f3cae759705a1ad65067cb45071e5c109c63931c593793755"
     },
     {
       "module": "adapters/host-node/client-dispatch-stop.mjs",
@@ -57022,7 +57964,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -57040,314 +57982,6 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "bytesCid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "bytesCid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "bytesCid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "bytesCid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "bytesCid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mts",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "bytesCid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "bytesCid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mts",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "bytesCid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "fn valid_client_submitted_intent_limits("
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "bytesCid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "bytesCid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "cid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "cid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "cid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "cid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "cid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mts",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "cid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "cid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mts",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "cid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "fn valid_client_submitted_intent_limits("
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "cid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "cid"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -57502,7 +58136,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
@@ -57897,7 +58531,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -58443,7 +59077,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mts",
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
@@ -61166,7 +61800,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -61180,160 +61814,6 @@
               {
                 "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
                 "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "localStateRoot"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "localStateRoot"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "localStateRoot"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "localStateRoot"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "localStateRoot"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mts",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "localStateRoot"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "localStateRoot"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mts",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "localStateRoot"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "fn valid_client_submitted_intent_limits("
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "localStateRoot"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "localStateRoot"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }
@@ -61524,7 +62004,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -62011,7 +62491,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "return authorizeLocalRun({principalId: value.principalId,"
+                "anchor": "authorize: (request, operation) => hostConnection(request) && authorizeLocalRun(operation, operation),"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
@@ -62492,7 +62972,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -62544,7 +63024,7 @@
                 "anchor": "test('winning ordinary Local definition selects the same actual installation without a Mock Scope'"
               },
               {
-                "path": "adapters/host-node/local-run-authorization.test.mjs",
+                "path": "adapters/host-node/local-run-authorization.test.mts",
                 "anchor": "test('actual Account keeps Run-read and named-Result-read distinct and current'"
               },
               {
@@ -63413,7 +63893,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -64258,180 +64738,6 @@
           }
         },
         {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "The ordinary Local Mock Host retains its packaged finite signing policy and"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Content original alias retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Effect signing consumes the same live recovery"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "answer port selects an original Checkpoint from that Host; it neither exports"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "async function releaseLocalSigningRecovery(recovered: RecoveredEffect | undefined) {"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Content original alias retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Effect signing consumes the same live recovery"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "binds those originals to the same Store and private-key generation. A missing"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Content original alias retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Effect signing consumes the same live recovery"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign"
-              },
-              {
-                "path": "adapters/host-node/local-checkpoint-answer.mts",
-                "anchor": "localSigningRecoveries.add(recovered);"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Content original alias retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Effect signing consumes the same live recovery"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "and purpose-bound operation, then commits each exact preimage's one-use claim"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Content original alias retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Effect signing consumes the same live recovery"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "before native signing. A claimed or uncertain outcome cannot be replaced by a"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Content original alias retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Effect signing consumes the same live recovery"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "authority are checked before key observation and around asynchronous work."
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "for (const recovered of localSigningRecoveries) await releaseLocalSigningRecovery(recovered);"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Content original alias retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Effect signing consumes the same live recovery"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "The same Checkpoint Journal retains the original decision, clock sample, expiry"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "await suspendCompletedEffectfulComputation({store: store!, control, ...recovered!.computation});"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Content original alias retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Effect signing consumes the same live recovery"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "an Effect send permit: the existing signed Resolution admission and current"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Content original alias retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Effect signing consumes the same live recovery"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/local-checkpoint-answer.test.mjs",
-                "anchor": "test('original signature outcome loss stays claimed across a new coordinator without re-signing'"
-              },
-              {
-                "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
-                "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
-              },
-              {
-                "path": "adapters/host-node/local-checkpoint-recovery-custody.test.mjs",
-                "anchor": "test('failed recovery release stays with the same Host and retries without reacquisition or current authority'"
-              },
-              {
-                "path": "adapters/host-node/content-preparation-retirement.test.mjs",
-                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Effect signing consumes the same live recovery"
-              },
-              {
-                "path": "adapters/host-node/local-checkpoint-recovery-custody.test.mjs",
-                "anchor": "original signing consumer"
-              }
-            ]
-          }
-        },
-        {
           "operations": [
             "installedRemoteHttpTransport/init:close/init:close",
             "installedRemoteHttpTransport/init:handler/init:handler",
@@ -64588,161 +64894,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "plus"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "plus"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "plus"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "plus"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "plus"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mts",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "plus"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "plus"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mts",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "plus"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "fn valid_client_submitted_intent_limits("
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "plus"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "plus"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
@@ -64971,7 +65123,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
@@ -65129,7 +65281,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
@@ -65287,7 +65439,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
@@ -65444,324 +65596,8 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateSourceNamespace"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateSourceNamespace"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateSourceNamespace"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateSourceNamespace"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateSourceNamespace"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mts",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateSourceNamespace"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateSourceNamespace"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mts",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateSourceNamespace"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "fn valid_client_submitted_intent_limits("
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateSourceNamespace"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateSourceNamespace"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateValuesMaxRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateValuesMaxRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateValuesMaxRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateValuesMaxRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateValuesMaxRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mts",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateValuesMaxRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateValuesMaxRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mts",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateValuesMaxRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "fn valid_client_submitted_intent_limits("
-              },
-              {
-                "path": "src/client_local_host/resource_policy.mbt",
-                "anchor": "fn client_local_source_free_max_work("
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateValuesMaxRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "validateValuesMaxRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
-              },
-              {
-                "path": "adapters/host-node/request-program-module-body-callers.test.mjs",
-                "anchor": "test('selected source-free work context accepts finite own DATA and refuses accessors'"
               }
             ]
           }
@@ -67568,7 +67404,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -68057,7 +67893,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -68615,7 +68451,6 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/sourceCheckpoints/sourceCheckpoints",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/init:drain/init:drain",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
@@ -68861,6 +68696,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "debugEntryImmediate({principalId: actual}"
               }
             ],
             "inputsOutputs": [
@@ -68963,6 +68802,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const authorizeNewDebugEntry = (submission: Pick<EmbeddedSubmission, 'principalId' | 'connection'>)"
               }
             ],
             "identity": [
@@ -69089,6 +68932,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "Within one Local wait invocation, the next poll may borrow the last completed"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "return authorize(facts, undefined, 'run', false, false, 'pause') === true &&"
               }
             ],
             "ownership": [
@@ -69207,6 +69054,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "const account = observeInstalledAccount(moon, authorization);"
               }
             ],
             "synchronization": [
@@ -69256,7 +69107,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "return authorizeLocalRun({principalId: value.principalId,"
+                "anchor": "authorize: (request, operation) => hostConnection(request) && authorizeLocalRun(operation, operation),"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
@@ -69317,6 +69168,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "if (debug && retainedStart !== undefined) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "if (debug && !authorizeNewDebugEntry(submission)) {"
               }
             ],
             "failure": [
@@ -69419,6 +69278,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "throw clientOperationError('ClientConnectionDenied');"
               }
             ],
             "cancellation": [
@@ -69521,6 +69384,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "hostConnection(submission) && debugEntryImmediate(submission) === true && hostConnection(submission);"
               }
             ],
             "resources": [
@@ -69643,6 +69510,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "if (debug && !authorizeNewDebugEntry(submission)) {"
               }
             ],
             "extension": [
@@ -69749,6 +69620,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "// A new Debug Run requires the original Account"
               }
             ],
             "verification": [
@@ -69778,7 +69653,7 @@
               },
               {
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen",
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs"
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts"
               },
               {
                 "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'",
@@ -69830,7 +69705,7 @@
               },
               {
                 "anchor": "test('actual Account keeps Run-read and named-Result-read distinct and current'",
-                "path": "adapters/host-node/local-run-authorization.test.mjs"
+                "path": "adapters/host-node/local-run-authorization.test.mts"
               },
               {
                 "anchor": "test('settlement during the asynchronous pending observation is latched'",
@@ -69971,6 +69846,14 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "test('ordinary material inverse receives the same installed text-time and calendar selections'"
+              },
+              {
+                "path": "adapters/host-node/local-run-authorization.test.mts",
+                "anchor": "actual Account keeps Run-read and named-Result-read distinct and current"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "installed Local SDK Debug steps one original and a cold process reads its Sample and receipt"
               }
             ]
           }
@@ -71035,7 +70918,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -71055,7 +70938,7 @@
                 "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
               },
               {
-                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mts",
                 "anchor": "test('installed Saved Context uses the retained original"
               }
             ]
@@ -71063,486 +70946,8 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation#2"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "### Original INFER materials in the installed Host"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "originalInputs(prepared: object) {"
-              },
-              {
-                "path": "adapters/host-node/local-model-content-publication.mts",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### INFER original captured evidence"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
-              },
-              {
-                "path": "adapters/host-common/runtime-infer-admission-control.mts",
-                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mts",
-                "anchor": "const restoredInferRuns = new WeakSet<object>();"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mts",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "const current = journal!.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "const admitted = journal!.resolveDefinition(requested.requested,"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mts",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "fn valid_client_submitted_intent_limits("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "compilation and existing custody path."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
-              },
-              {
-                "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
-              },
-              {
-                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation#3"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "### Original INFER materials in the installed Host"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "originalInputs(prepared: object) {"
-              },
-              {
-                "path": "adapters/host-node/local-model-content-publication.mts",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### INFER original captured evidence"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
-              },
-              {
-                "path": "adapters/host-common/runtime-infer-admission-control.mts",
-                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mts",
-                "anchor": "const restoredInferRuns = new WeakSet<object>();"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mts",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "const current = journal!.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "const admitted = journal!.resolveDefinition(requested.requested,"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mts",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "fn valid_client_submitted_intent_limits("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "compilation and existing custody path."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
-              },
-              {
-                "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
-              },
-              {
-                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation#4"
           ],
           "exports": [],
@@ -71759,7 +71164,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -72717,6 +72122,227 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointConnection/checkpointConnection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#10",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#11",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#6"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const runSample = preparation !== undefined"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "readRetained: (ref, selected, custody)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const access = {principalId: request.principalId, indexKey: request.ref}"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "readWorkspace: preparation.resultReadWorkspace(moon)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "resumeOriginal: interactiveDispatch.resumeDebugTask"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "sampleReadImmediate(access) === true"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "authorizeCurrent: (request, operation) => hostConnection(request)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "readWorkspace: preparation.resultReadWorkspace(moon)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "lookupOriginal: interactiveDispatch.lookupDebugResume"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "installed Local SDK Debug steps one original and a cold process reads its Sample and receipt"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/authorizeStaticDebugEntry/authorizeStaticDebugEntry",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareDebugEntryResume/prepareDebugEntryResume"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "A checked static Plan MAY include `debug_entry: true`"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "const debug = Object.hasOwn(body, 'executionProfile')"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "plan.programDefinitionCid !== body.programDefinitionCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const authorizeStaticDebugEntry ="
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "const plan = await readStaticPlan({plan: client.plan.bind(client)}"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "if (client.plan === undefined) return {state: 'not_accepted'};"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/gateway.mts",
+                "anchor": "ticket.assertCurrent();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_static_pure_context.mbt",
+                "anchor": "client_debug_graph_quotation_control_bytes()"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "pub fn checked_task_control_entry_boundary_issue"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/gateway.test.mts",
+                "anchor": "Explorer starts Debug only from the current checked Plan for the same original input"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "installed Local SDK Debug steps one original and a cold process reads its Sample and receipt"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/authorizeDebugResume/authorizeDebugResume"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const authorizeDebugResume ="
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "resume_available: capability.resumeAvailable"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "sameDebugPause(pause, capability)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "journal.debugPauseCurrent(original.authority.ref"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "if (!sameDebugPause(capability, live))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "if (capability === undefined || !sameDebugPause(pause, capability))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mts",
+                "anchor": "waiting === wait && !hostClosing && !resuming && !wait.unresolved"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "readWorkspace!.metadata(request, 2 * (2112 + 6 * names))"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication/interactive_current_run_view.mbt",
+                "anchor": "park is Some(debug) && debug.resume_available"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-inspect.test.mts",
+                "anchor": "Run Inspect sends funded scalars to Common and rechecks the same original park before delivery"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -73169,9 +72795,23 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/authorizeDebugResume/authorizeDebugResume",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/authorizeObservation/authorizeObservation",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/authorizeStaticDebugEntry/authorizeStaticDebugEntry",
+          "parameters": [
+            "request"
           ],
           "async": false
         },
@@ -73223,6 +72863,13 @@
             "request"
           ],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointConnection/checkpointConnection",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations",
@@ -73537,13 +73184,6 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#2",
-          "parameters": [
-            "value"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#3",
           "parameters": [],
           "async": true
         },
@@ -73586,6 +73226,20 @@
           "parameters": [
             "access"
           ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#10",
+          "parameters": [
+            "actual",
+            "connection",
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#11",
+          "parameters": [],
           "async": false
         },
         {
@@ -73667,7 +73321,32 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun",
           "parameters": [
+            "request",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#2",
+          "parameters": [
+            "request",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#3",
+          "parameters": [
             "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#4",
+          "parameters": [
+            "request",
+            "authorize",
+            "canResume"
           ],
           "async": false
         },
@@ -73708,6 +73387,13 @@
             "expectedRevision",
             "actual",
             "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation",
+          "parameters": [
+            "request"
           ],
           "async": false
         },
@@ -73839,6 +73525,11 @@
           "parameters": [
             "component"
           ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareDebugEntryResume/prepareDebugEntryResume",
+          "parameters": [],
           "async": false
         },
         {
@@ -74470,6 +74161,56 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runPlan/runPlan",
           "parameters": [
             "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#2",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#3",
+          "parameters": [
+            "ref",
+            "extent"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#4",
+          "parameters": [
+            "ref",
+            "selected",
+            "custody"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#5",
+          "parameters": [
+            "request",
+            "selected",
+            "authorize",
+            "reserve",
+            "bindProducer"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#6",
+          "parameters": [
+            "request",
+            "authorize"
           ],
           "async": false
         },
@@ -76011,7 +75752,8 @@
             "originalVerifier",
             "signal",
             "visit",
-            "modelInstallation"
+            "modelInstallation",
+            "debugEntryInstalled"
           ],
           "async": false
         },
@@ -76022,7 +75764,8 @@
             "environment",
             "originalVerifier",
             "signal",
-            "modelInstallation"
+            "modelInstallation",
+            "debugEntryInstalled"
           ],
           "async": false
         },
@@ -76989,7 +76732,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ec41d40718cb517ff89276318638c684b6f64d96dd2193f06b528087cc6c327e"
+      "sha256": "5f9609423d4fb89e27226cf1c79f0be54ca23a238da81e610cc32ab0abeae297"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -129763,7 +129506,7 @@
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2cb7c400d12b916d5e603024708789c6a3062819ca5e59092f568503d11775fb",
+      "sha256": "68fab35489f8ce92038c84ce2f50cffb35ab922e2ec8f58deb1494065c690fc0",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -129928,16 +129671,19 @@
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared",
           "parameters": [
             "prepared",
-            "signal"
+            "signal",
+            "relationSample"
           ],
           "async": true
         },
         {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared",
-          "parameters": [
-            "input",
-            "index"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -129976,10 +129722,7 @@
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#10",
-          "parameters": [
-            "emit",
-            "readSignal"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -129988,7 +129731,57 @@
           "async": false
         },
         {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#12",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#13",
+          "parameters": [
+            "emit",
+            "readSignal",
+            "commit"
+          ],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#14",
+          "parameters": [
+            "emit",
+            "readSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#15",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#2",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#3",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#4",
+          "parameters": [
+            "result",
+            "required",
+            "cleanupPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#5",
           "parameters": [
             "input",
             "index"
@@ -129996,7 +129789,15 @@
           "async": false
         },
         {
-          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#3",
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#6",
+          "parameters": [
+            "input",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#7",
           "parameters": [
             "index",
             "row"
@@ -130004,38 +129805,14 @@
           "async": false
         },
         {
-          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#4",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#5",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#6",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#7",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#8",
           "parameters": [],
-          "async": false
+          "async": true
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#9",
-          "parameters": [
-            "emit",
-            "readSignal",
-            "commit"
-          ],
-          "async": false
+          "parameters": [],
+          "async": true
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/memory/init:read/init:read",
@@ -131129,6 +130906,78 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mts",
                 "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:close/init:close",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#12",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#13",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#14",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#15"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "async runPrepared(prepared: PreparedTask"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "startSample.call(moon, prepared.configuration, retained"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "sampleOwner, sampleProfile, prepared.task"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "pendingSample = prefix"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "relationSample.adopt(prefix); return true"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "InstalledRelationSampleControlUnavailable"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "signal?.throwIfAborted()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "additionalCleanup.push({close()"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "relationSample === undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
+                "anchor": "installed Local SDK Debug steps one original and a cold process reads its Sample and receipt"
               }
             ]
           }

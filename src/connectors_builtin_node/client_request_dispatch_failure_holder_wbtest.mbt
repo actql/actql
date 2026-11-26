@@ -89,7 +89,7 @@ test "pre-adopted original Explanation propagates actual Estimate failure throug
     parent, input, contracts, true,
   ).unwrap()
   let explanation = client_program_prepare_request_original_explanation(
-    parent, input, 1000000, 100000, 64,
+    parent, input, 1000000, 100000, 64, false,
   ).unwrap()
   client_program_prepare_request_program_module_body(
     parent,

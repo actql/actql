@@ -21,6 +21,10 @@ const generatedContentReview = JSON.parse(readFileSync(new URL(
   '../../docs/reviews/2026-11-25-session-generated-content-test-import-review.json', import.meta.url)));
 const sqliteCapacityReview = JSON.parse(readFileSync(new URL(
   '../../docs/reviews/2026-11-19-session-sqlite-key-capacity-selector-review.json', import.meta.url)));
+const taskAuthorityReview = JSON.parse(currentTree.read(
+  'docs/reviews/2026-11-25-session-explorer-task-authority-review.json'));
+const taskAuthorityPaths = ['src/client_local_host/moon.pkg', 'src/physical_strategy_host/moon.pkg'];
+const retainedRequestRevision = 'b58d8581136cf7b6783d38031e5753d80d47b2e5';
 const request = (path, digest) => ({path, digest, target: 'js', toolchainDigest});
 
 test('archived review retains exact authored preimages without promoting them to current evidence', () => {
@@ -49,7 +53,8 @@ test('archived review retains exact authored preimages without promoting them to
 
 for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
   test(`current configuration refuses changed meaning, unknown options and foreign scope: ${path}`, () => {
-    const selectedTree = gitTree(root, entry.revision ?? currentConfigurationReviewRevision);
+    const selectedTree = taskAuthorityPaths.includes(path) ? currentTree
+      : gitTree(root, entry.revision ?? currentConfigurationReviewRevision);
     const body = selectedTree.read(path).toString();
     if (path === 'src/platform_native/sqlite/moon.pkg') {
       assert.equal(entry.revision, sqliteCapacityReview.source);
@@ -313,7 +318,8 @@ test('current configuration entries bind exact authored Git inputs and literal d
     if (['src/client_local_host/moon.pkg', 'src/platform_native/sqlite/moon.pkg',
       'src/physical_resources/moon.pkg', 'src/connectors/local/driver/moon.pkg'].includes(path)) {
       // A shared local object database must not hide an unpublished review.
-      execFileSync('git', ['merge-base', '--is-ancestor', review.revision, 'HEAD'], {cwd: root});
+      const anchor = path === taskAuthorityPaths[0] ? retainedRequestRevision : review.revision;
+      execFileSync('git', ['merge-base', '--is-ancestor', anchor, 'HEAD'], {cwd: root});
     }
     const selected = packageSourceInputs({tree: currentTree, packages: [path.slice(0, -9)], target: 'js'});
     assert(selected.paths.includes(path));
@@ -329,7 +335,7 @@ test('current configuration entries bind exact authored Git inputs and literal d
   }
 });
 
-test('current Local JS review binds retained Request imports and the existing fixture selectors', () => {
+test('current Local JS review binds task authorization, retained Request imports and existing fixture selectors', () => {
   const review = JSON.parse(readFileSync(new URL(
     '../../docs/reviews/2026-11-21-session-local-namespace-quote-selector-review.json', import.meta.url)));
   const path = review.path;
@@ -365,23 +371,32 @@ test('current Local JS review binds retained Request imports and the existing fi
       `Original JS fixture dependency: ${dependency}`);
   }
   assert.deepEqual(packageImports(historical).imports, packageImports(previous).imports);
-  const intakeTree = gitTree(root, entry.revision);
-  const body = intakeTree.read(path).toString();
+  const intakeTree = gitTree(root, retainedRequestRevision);
+  const body = currentTree.read(path).toString();
   assert.equal(hash(body), entry.digest);
-  assert.equal(intakeTree.entries.get(path)?.mode, review.mode);
-  assert.equal(currentTree.read(path).toString(), body);
   const utf8 = '  "moonbitlang/core/encoding/utf8",\n';
   const string = '  "moonbitlang/core/string",\n';
   const json = '  "moonbitlang/core/json",\n';
   const debug = '  "moonbitlang/core/debug",\n';
   assert.equal(historical.split(utf8 + debug).length, 2);
   assert.equal(historical.split(json).length, 2);
-  assert.equal(body, historical.replace(utf8 + debug, debug).replace(json, utf8 + json + string),
-    'Only the two ordinary imports change; every option and target selector remains exact');
+  const retainedRequest = intakeTree.read(path).toString();
+  assert.equal(retainedRequest, historical.replace(utf8 + debug, debug).replace(json, utf8 + json + string),
+    'The retained Request stage changes only the two ordinary imports');
+  const local = taskAuthorityReview.configurations.find(config => config.path === path);
+  assert.equal(local.addedImport, '  "actql/actql/execution_authorization" @authorization,\n');
+  assert.equal(body.split(local.addedImport).length, 2);
+  assert.equal(body.replace(local.addedImport, ''), retainedRequest,
+    'Task authority adds one import and preserves every option and target selector');
+  assert.equal(hash(retainedRequest), local.previous.sha256);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, local.previous.sha256)), null);
+  assert.deepEqual(packageImports(body).imports,
+    [...packageImports(retainedRequest).imports, 'actql/actql/execution_authorization'].sort());
   assert.equal(currentPackageConfigurationReviewFor(request(path, review.sha256)), null);
   const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
   assert(!selected.unresolved.includes('Unreviewed package configuration: ' + path));
   assert(selected.packageConfigurations.some(value => value.path === path && value.digest === entry.digest));
+  assert(selected.paths.includes('src/execution_authorization/moon.pkg'));
   const intake = 'src/client_local_host/preparation_request_retained_intent.mbt';
   assert(selected.paths.includes(intake));
   assert.equal(currentTree.entries.get(intake)?.mode, '100644');
@@ -401,6 +416,8 @@ test('current Local JS review binds retained Request imports and the existing fi
     body.replace('"actql/actql/decode_shape" @shape', '"actql/actql/decode_shape" @permission'),
     body.replace(string, ''),
     body.replace(utf8 + json, json).replace(debug, utf8 + debug),
+    body.replace(local.addedImport, ''),
+    body.replace(local.addedImport, local.addedImport.replace('@authorization', '@foreign')),
   ]) {
     assert.notEqual(changed, body);
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
@@ -416,6 +433,51 @@ test('current Local JS review binds retained Request imports and the existing fi
   assert.equal(currentPackageConfigurationReviewFor(request(path, review.previousSha256)), null);
 });
 
+test('task authority preserves reviewed old manifests and admits only the exact current JS strategy fixture', () => {
+  const review = taskAuthorityReview;
+  // The review retains the source and tested tree for provenance. A replacement
+  // PR can preserve those bytes without keeping the old PR head as an ancestor.
+  for (const identity of [review.head, review.source, review.tree]) assert.match(identity, /^[a-f0-9]{40}$/u);
+  execFileSync('git', ['merge-base', '--is-ancestor', review.previousRevision, 'HEAD'], {cwd: root});
+  const original = gitTree(root, review.previousRevision);
+  assert.deepEqual(review.configurations.map(config => config.path), taskAuthorityPaths);
+  for (const config of review.configurations) {
+    assert.equal(currentPackageConfigurations[config.path].revision, review.head);
+    for (const [snapshot, expected, path] of [[original, config.previous, config.path],
+      [currentTree, config, config.path]]) {
+      assert.equal(snapshot.entries.get(path)?.mode, expected.mode);
+      assert.equal(snapshot.read(path).length, expected.bytes);
+      assert.equal(hash(snapshot.read(path)), expected.sha256);
+    }
+  }
+  assert.equal(review.toolchain.sha256, toolchainDigest);
+  assert.equal(currentTree.entries.get('toolchain.json')?.mode, review.toolchain.mode);
+  assert.equal(currentTree.read('toolchain.json').length, review.toolchain.bytes);
+  assert.equal(hash(currentTree.read('toolchain.json')), toolchainDigest);
+  const strategy = review.configurations.find(config => config.fixture);
+  const path = strategy.path, prior = original.read(path).toString(), body = currentTree.read(path).toString();
+  const fixture = strategy.fixture;
+  assert.deepEqual(fixture.targets, ['js']);
+  assert.equal(fixture.path, 'src/physical_strategy_host/task_completion_current_js_wbtest.mbt');
+  assert.equal(strategy.addedBlock,
+    '\nimport {\n  "moonbitlang/core/debug",\n} for "wbtest"\n\noptions(\n  targets: { "task_completion_current_js_wbtest.mbt": [ "js" ] },\n)\n');
+  assert.equal(body, prior + strategy.addedBlock);
+  assert.deepEqual(packageImports(body).imports, [...packageImports(prior).imports, 'moonbitlang/core/debug'].sort());
+  assert.equal(currentTree.entries.get(fixture.path)?.mode, fixture.mode);
+  assert.equal(currentTree.read(fixture.path).length, fixture.bytes);
+  assert.equal(hash(currentTree.read(fixture.path)), fixture.sha256);
+  const selected = packageSourceInputs({tree: currentTree, packages: ['src/physical_strategy_host'], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  assert(selected.paths.includes(fixture.path));
+  assert(selected.packageConfigurations.some(entry => entry.path === path && entry.digest === strategy.sha256));
+  for (const changed of [prior, body.replace('"js"', '"native"'),
+    body.replace('for "wbtest"', 'for "test"'), body + '\noptions(pre_build: "unreviewed-hook")\n']) {
+    assert.notEqual(changed, body);
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+  }
+  assert.equal(currentPackageConfigurationReviewFor({...request(path, strategy.sha256), target: 'native'}), null);
+});
+
 test('the prior Local descriptor stays historical without admitting it as current', () => {
   const path = 'src/client_local_host/moon.pkg';
   for (const [revision, digest] of [
@@ -426,6 +488,7 @@ test('the prior Local descriptor stays historical without admitting it as curren
     ['942da5f7cff320f37489be12498fee6f742c40c3', 'b0d5e68d9e82221e6ae49e364de6175ca92377e8227443eafa84149e5ee25b23'],
     ['776746d359ec107cf3172d90016d07e009384fc9', '8c60608fabbcc3310000730ac92fb17768d5b87796e189a192dd1bee513f3ce8'],
     ['4d25879b4f9443cfc73758b948fc472401a5a96e', '4411b9a5d341bf6d5ab235cb1c1a4f99ac12de9387b08f582bbe9e41c610f359'],
+    ['b58d8581136cf7b6783d38031e5753d80d47b2e5', '69f0f83ea6b499104c1e5b501a6b7b47511e62d422d85cc9281fca18a375d63b'],
   ]) {
     assert.equal(hash(gitTree(root, revision).read(path)), digest);
     assert.equal(currentPackageConfigurationReviewFor(request(path, digest)), null);

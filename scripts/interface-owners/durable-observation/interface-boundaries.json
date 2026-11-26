@@ -2075,7 +2075,7 @@
     {
       "module": "adapters/host-common/sqlite-transaction.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5a0adaff85c7bfb7685e62978a1fd6537f6bfd917c1b60799d81f20a489a1ddb",
+      "sha256": "eb89c67ca7859c024e4ad4ea5716a3df2cf96287f75130f860b4d0e7a1af964a",
       "exports": [
         "createSqliteTransaction",
         "throwSqliteInitializationFailure"
@@ -2096,14 +2096,21 @@
         },
         {
           "name": "createSqliteTransaction/createSqliteTransaction",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createSqliteTransaction/run/run",
           "parameters": [
             "body"
           ],
+          "async": false
+        },
+        {
+          "name": "createSqliteTransaction/createSqliteTransaction#2",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSqliteTransaction/createSqliteTransaction#3",
+          "parameters": [],
           "async": false
         },
         {
@@ -2139,11 +2146,12 @@
             "createSqliteTransaction",
             "createSqliteTransaction/assertUsable/assertUsable",
             "createSqliteTransaction/createSqliteTransaction",
-            "createSqliteTransaction/run/run",
             "throwSqliteInitializationFailure",
             "throwSqliteInitializationFailure/close/close",
             "throwSqliteInitializationFailure/retry/retry",
-            "throwSqliteInitializationFailure/status/status"
+            "throwSqliteInitializationFailure/status/status",
+            "createSqliteTransaction/createSqliteTransaction#2",
+            "createSqliteTransaction/createSqliteTransaction#3"
           ],
           "exports": [
             "createSqliteTransaction",
@@ -2190,6 +2198,10 @@
               {
                 "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "if (closing) return status();"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mts",
+                "anchor": "read: <Result extends SynchronousRuntimeData>(body: () => Result) => transact(body, 'BEGIN'),"
               }
             ],
             "failure": [
@@ -2240,6 +2252,10 @@
               {
                 "path": "adapters/host-common/sqlite-initialization-custody.test.mts",
                 "anchor": "synchronous cleanup reentry only observes the existing close flight"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
+                "anchor": "test('lost Debug resume COMMIT acknowledgement recovers only the retained command'"
               }
             ]
           }

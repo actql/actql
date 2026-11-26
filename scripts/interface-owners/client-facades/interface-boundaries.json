@@ -2357,7 +2357,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-interactive-read-public.test.mjs",
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
                 "anchor": "test("
               },
               {
@@ -2531,7 +2531,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-interactive-read-public.test.mjs",
+                "path": "adapters/host-node/client-interactive-read-public.test.mts",
                 "anchor": "test("
               },
               {
@@ -6066,7 +6066,7 @@
     {
       "module": "packages/sdk/index.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "d1db92228eebdf3328d536fa8857e73b229f268e5a4a3d25d841fd8c3c2980ff",
+      "sha256": "2ad7b0f9c84dbfa438690d98ba266d0bd6236a990bcabe383bce8d8edb942276",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -6509,6 +6509,14 @@
           "result": "Promise<CancellationLookup>"
         },
         {
+          "name": "Execution/lookupControlOperation",
+          "parameters": [
+            "ref: WireControlOperationRef",
+            "options?: Readonly<{\n        signal?: AbortSignal;\n        maxWireBytes?: number;\n        maxNodes?: number;\n        maxDepth?: number;\n    }>"
+          ],
+          "result": "Promise<WireControlOperationLookup>"
+        },
+        {
           "name": "Execution/observeOwners",
           "parameters": [
             "options?: {\n        signal?: AbortSignal;\n        cursors?: readonly OwnerCursor[];\n        maxEntries?: number;\n        maxWireBytes?: number;\n    }"
@@ -6523,6 +6531,13 @@
           "result": "Promise<WireRunPlanView>"
         },
         {
+          "name": "Execution/prepareResume",
+          "parameters": [
+            "options: Readonly<{\n        operationId: string;\n        expectedRevision: number;\n        until: 'step' | 'terminal';\n    }>"
+          ],
+          "result": "Promise<WireControlCommand>"
+        },
+        {
           "name": "Execution/reconcile",
           "parameters": [
             "options?: {\n        signal?: AbortSignal;\n    }"
@@ -6535,6 +6550,22 @@
             "name: string"
           ],
           "result": "Result"
+        },
+        {
+          "name": "Execution/resume",
+          "parameters": [
+            "command: WireControlCommand",
+            "options?: Readonly<{\n        signal?: AbortSignal;\n        maxWireBytes?: number;\n        maxNodes?: number;\n        maxDepth?: number;\n    }>"
+          ],
+          "result": "Promise<WireControlOperationLookup>"
+        },
+        {
+          "name": "Execution/sample",
+          "parameters": [
+            "selector: WireSampleSelector",
+            "options?: Readonly<{\n        signal?: AbortSignal;\n        maxWireBytes?: number;\n        maxNodes?: number;\n        maxDepth?: number;\n        nextRevision?: number;\n    }>"
+          ],
+          "result": "Promise<WireRunSample>"
         },
         {
           "name": "Execution/status",
@@ -7266,7 +7297,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -7480,12 +7511,178 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
               },
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explainContext reads one original projection"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "Execution/sample"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "sample(selector: WireSampleSelector"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/index.mts",
+                "anchor": "sample(selector: WireSampleSelector"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reply = async (answer: WireRunSample) => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reserve: SampleReserve = bytes => {readWorkspace.metadata(request, bytes);};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "Execution/lookupControlOperation",
+            "Execution/prepareResume",
+            "Execution/resume"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "async lookupControlOperation(operationRef,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/client-wire/index.mts",
+                "anchor": "export function validControlOperationLookup(value: unknown, operationRef: WireControlOperationRef)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/client-wire/index.mts",
+                "anchor": "origin.command_cid === operationRef.command_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "await contentCid(receipt) !== receiptCid"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "requestLifetime!.beforeReply();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "fail('InvalidClientHostControlOperationLookup');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "withinResultDescriptionLimits(lookup, input)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"lookup-control-operation\": ["
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-plan-sdk.test.mts",
+                "anchor": "test('SDK lookup consumes the original control receipt through Local Host ingress'"
               }
             ]
           }
@@ -14926,7 +15123,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a5c913f33a21ff869fba6bf4bd9fa7c40eac3ede3b70aad8db728d46784490d4",
+      "sha256": "d0ca74fa77ca4d0cf94040d75701fc42ef3f1283830f27efed1ea810f44f3e3f",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -15064,6 +15261,49 @@
             "maxWireBytes",
             "maxNodes",
             "maxDepth"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExecutionFactory/createExecutionFactory/handle/init:lookupControlOperation/init:lookupControlOperation",
+          "parameters": [
+            "operationRef",
+            "signal",
+            "maxWireBytes",
+            "maxNodes",
+            "maxDepth"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExecutionFactory/createExecutionFactory/handle/init:prepareResume/init:prepareResume",
+          "parameters": [
+            "operationId",
+            "expectedRevision",
+            "until"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExecutionFactory/createExecutionFactory/handle/init:resume/init:resume",
+          "parameters": [
+            "command",
+            "signal",
+            "maxWireBytes",
+            "maxNodes",
+            "maxDepth"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExecutionFactory/createExecutionFactory/handle/init:sample/init:sample",
+          "parameters": [
+            "selector",
+            "signal",
+            "maxWireBytes",
+            "maxNodes",
+            "maxDepth",
+            "nextRevision"
           ],
           "async": true
         },
@@ -15502,12 +15742,178 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
               },
               {
-                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explainContext reads one original projection"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createExecutionFactory/createExecutionFactory/handle/init:sample/init:sample"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "async sample(selector,"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "async sample(selector,"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reply = async (answer: WireRunSample) => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const reserve: SampleReserve = bytes => {readWorkspace.metadata(request, bytes);};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "if (source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createExecutionFactory/createExecutionFactory/handle/init:lookupControlOperation/init:lookupControlOperation",
+            "createExecutionFactory/createExecutionFactory/handle/init:prepareResume/init:prepareResume",
+            "createExecutionFactory/createExecutionFactory/handle/init:resume/init:resume"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "async lookupControlOperation(operationRef,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/client-wire/index.mts",
+                "anchor": "export function validControlOperationLookup(value: unknown, operationRef: WireControlOperationRef)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/client-wire/index.mts",
+                "anchor": "origin.command_cid === operationRef.command_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "await contentCid(receipt) !== receiptCid"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "requestLifetime!.beforeReply();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "fail('InvalidClientHostControlOperationLookup');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "withinResultDescriptionLimits(lookup, input)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"lookup-control-operation\": ["
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-plan-sdk.test.mts",
+                "anchor": "test('SDK lookup consumes the original control receipt through Local Host ingress'"
               }
             ]
           }
@@ -15987,7 +16393,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -16895,7 +17301,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
@@ -19846,7 +20252,7 @@
                 "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
               },
               {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mts",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]

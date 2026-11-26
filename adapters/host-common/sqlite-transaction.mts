@@ -36,9 +36,10 @@ export function createSqliteTransaction(database: TransactionDatabase, prefix: s
       return {active: undefined, stateCause};
     }
   };
-  const run = <Result extends SynchronousRuntimeData>(body: () => Result): Result => {
+  const transact = <Result extends SynchronousRuntimeData>(body: () => Result,
+    begin: 'BEGIN' | 'BEGIN IMMEDIATE'): Result => {
     assertUsable();
-    try { database.exec('BEGIN IMMEDIATE'); }
+    try { database.exec(begin); }
     catch (cause) {
       const state = inspect();
       if (state.active === false) throw cause;
@@ -74,7 +75,10 @@ export function createSqliteTransaction(database: TransactionDatabase, prefix: s
       });
     }
   };
-  return Object.freeze({run, assertUsable,
+  return Object.freeze({
+    run: <Result extends SynchronousRuntimeData>(body: () => Result) => transact(body, 'BEGIN IMMEDIATE'),
+    read: <Result extends SynchronousRuntimeData>(body: () => Result) => transact(body, 'BEGIN'),
+    assertUsable,
     get connectionUsable() { return !unusable; }});
 }
 

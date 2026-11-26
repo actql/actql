@@ -16,6 +16,9 @@ pub(all) suberror ClientExplanationNarrativeIssue {
 pub struct ClientExplanationNarrative {
   context : Array[String]
   steps : Array[String]
+  summary : String
+  clauses : Array[ClientExplanationSummaryClause]
+  items : Array[ClientExplanationNarrativeItem]
 }
 
 ///|
@@ -314,12 +317,12 @@ fn explain_narrative_node_index(
 fn explain_narrative_predicate(
   value : @canonical.CanonicalValue,
   text : ExplanationNarrativeText,
-) -> Unit raise ClientExplanationNarrativeIssue {
+) -> String? raise ClientExplanationNarrativeIssue {
   if explanation_narrative_string(value, "state") == "not_projected" {
     text.say(
       "Predicate form not projected", "この述語形式の説明は未提供",
     )
-    return
+    return None
   }
   guard explanation_narrative_field(value, "nodes") is @canonical.Array(nodes) else {
     raise InvalidExplanation
@@ -335,6 +338,25 @@ fn explain_narrative_predicate(
   let active = Array::make(count, false)
   let rendered : Array[String?] = Array::make(count, None)
   let heights = Array::make(count, 0)
+  // A property receiver is part of the same checked field path. Its type
+  // stays in Facts without interrupting the visible dotted name.
+  let path_receivers = Array::make(count, false)
+  for index in 0..<count {
+    text.budget.visit()
+    let node = @canonical.array_at(nodes, index).unwrap()
+    if explanation_narrative_string(node, "form") == "property" {
+      let receiver = explain_narrative_node_index(
+        explanation_narrative_field(node, "receiver"),
+        count,
+      )
+      let original = @canonical.array_at(nodes, receiver).unwrap()
+      let form = explanation_narrative_string(original, "form")
+      if form != "field" && form != "property" {
+        raise InvalidExplanation
+      }
+      path_receivers[receiver] = true
+    }
+  }
   fn render(
     index : Int,
     depth : Int,
@@ -370,18 +392,33 @@ fn explain_narrative_predicate(
       }
       "field" | "parameter" as form => {
         if form == "field" {
-          part.append(explanation_narrative_string(original, "scope"))
-          part.append(".")
+          let scope = explanation_narrative_string(original, "scope")
+          if !path_receivers[index] || scope != "fields" {
+            part.append(scope)
+            part.append(".")
+          }
           part.quote(explanation_narrative_string(original, "name"))
         } else {
           part.append("$")
           part.append(explanation_narrative_string(original, "name"))
         }
-        part.append(":")
-        explain_narrative_type(
-          explanation_narrative_field(original, "type"),
-          part,
+        if !path_receivers[index] {
+          part.append(":")
+          explain_narrative_type(
+            explanation_narrative_field(original, "type"),
+            part,
+          )
+        }
+      }
+      "property" => {
+        let receiver = explain_narrative_node_index(
+          explanation_narrative_field(original, "receiver"),
+          count,
         )
+        part.append(render(receiver, depth + 1))
+        part.append(".")
+        part.quote(explanation_narrative_string(original, "name"))
+        height = heights[receiver] + 1
       }
       "operation" => {
         let operator = explanation_narrative_string(original, "operator")
@@ -436,13 +473,81 @@ fn explain_narrative_predicate(
     raise InvalidExplanation
   }
   text.append(result)
+  // Only a positive Boolean property can stand on its own as an example.
+  // Reuse the already bounded and validated field path. Other clauses stay
+  // in the full predicate detail, including any redacted literals.
+  fn property_address(
+    index : Int,
+  ) -> String? raise ClientExplanationNarrativeIssue {
+    let original = @canonical.array_at(nodes, index).unwrap()
+    if explanation_narrative_string(original, "form") == "property" &&
+      explanation_narrative_string(
+        explanation_narrative_field(original, "type"),
+        "kind",
+      ) ==
+      "boolean" &&
+      rendered[index] is Some(address) &&
+      address.length() <= 64 {
+      Some(address)
+    } else {
+      None
+    }
+  }
+  if property_address(root) is Some(address) {
+    return Some(address)
+  }
+  let original = @canonical.array_at(nodes, root).unwrap()
+  if @canonical.object_field(original, "operator")
+    is Some(@canonical.String("and")) &&
+    explanation_narrative_field(original, "children")
+    is @canonical.Array(children) {
+    for index in 0..<@canonical.array_count(children) {
+      text.budget.visit()
+      let child = explain_narrative_node_index(
+        @canonical.array_at(children, index).unwrap(),
+        count,
+      )
+      if property_address(child) is Some(address) {
+        return Some(address)
+      }
+    }
+  }
+  None
+}
+
+///|
+fn explain_narrative_join_keys(
+  meaning : @canonical.CanonicalValue,
+  text : ExplanationNarrativeText,
+  right_source_keys? : Bool = false,
+) -> Unit raise ClientExplanationNarrativeIssue {
+  visit_explanation_narrative_array(
+    explanation_narrative_field(meaning, "keys"),
+    text.budget,
+    (index, key) => {
+      if index > 0 {
+        text.say(", ", "、")
+      }
+      let left = explanation_narrative_string(key, "left")
+      let right = explanation_narrative_string(key, "right")
+      if right_source_keys || left == right {
+        text.quote(right)
+      } else {
+        text.append("left.")
+        text.quote(left)
+        text.append(" = right.")
+        text.quote(right)
+      }
+    },
+  )
 }
 
 ///|
 fn explain_narrative_fact(
   fact : @canonical.CanonicalValue,
+  topology : ExplanationJoinTopology?,
   text : ExplanationNarrativeText,
-) -> Unit raise ClientExplanationNarrativeIssue {
+) -> String? raise ClientExplanationNarrativeIssue {
   let meaning = explanation_narrative_field(fact, "meaning")
   match explanation_narrative_string(meaning, "kind") {
     "input_output" =>
@@ -477,7 +582,7 @@ fn explain_narrative_fact(
     }
     "filter" => {
       text.say("Keep rows where: ", "この条件を満たす行を残す: ")
-      explain_narrative_predicate(
+      return explain_narrative_predicate(
         explanation_narrative_field(meaning, "predicate"),
         text,
       )
@@ -510,21 +615,7 @@ fn explain_narrative_fact(
       )
     }
     "join" => {
-      text.append(explanation_narrative_string(meaning, "join_kind"))
-      text.say(" join on: ", " 結合のキー: ")
-      visit_explanation_narrative_array(
-        explanation_narrative_field(meaning, "keys"),
-        text.budget,
-        (index, key) => {
-          if index > 0 {
-            text.append(", ")
-          }
-          text.append("left.")
-          text.quote(explanation_narrative_string(key, "left"))
-          text.append(" = right.")
-          text.quote(explanation_narrative_string(key, "right"))
-        },
-      )
+      explain_narrative_join(fact, topology, text)
       text.say("; Null keys: ", "; NULLキー: ")
       match explanation_narrative_string(meaning, "null_key") {
         "no_match" => text.say("do not match", "一致させない")
@@ -534,6 +625,7 @@ fn explain_narrative_fact(
     }
     _ => raise InvalidExplanation
   }
+  None
 }
 
 ///|
@@ -542,9 +634,10 @@ fn explain_narrative_fact(
 /// No compiler, Host or application callback is invoked by the renderer.
 pub fn render_client_explanation_narrative(
   facts : @canonical.CanonicalValue,
-  context : @canonical.CanonicalValue,
+  context : @canonical.CanonicalValue?,
   language : ClientExplanationLanguage,
   max_characters : Int,
+  logical_map? : @canonical.CanonicalValue? = None,
 ) -> ClientExplanationNarrative raise ClientExplanationNarrativeIssue {
   if max_characters < 1 || max_characters > 65536 {
     raise ExplanationPresentationLimit
@@ -555,16 +648,20 @@ pub fn render_client_explanation_narrative(
     visits: 10000,
   }
   let context_items : Array[String] = []
-  visit_explanation_narrative_array(
-    explanation_narrative_field(context, "items"),
-    budget,
-    (_, item) => {
-      let text : ExplanationNarrativeText = { budget, out: StringBuilder(), }
-      explain_narrative_context(item, text)
-      context_items.push(text.out.to_string())
-    },
-  )
+  if context is Some(original) {
+    visit_explanation_narrative_array(
+      explanation_narrative_field(original, "items"),
+      budget,
+      (_, item) => {
+        let text : ExplanationNarrativeText = { budget, out: StringBuilder(), }
+        explain_narrative_context(item, text)
+        context_items.push(text.out.to_string())
+      },
+    )
+  }
   let steps : Array[String] = []
+  let mut topology = None
+  let mut example_filter = None
   visit_explanation_narrative_array(
     explanation_narrative_field(facts, "steps"),
     budget,
@@ -573,11 +670,30 @@ pub fn render_client_explanation_narrative(
         raise ExplanationPresentationLimit
       }
       let text : ExplanationNarrativeText = { budget, out: StringBuilder(), }
-      explain_narrative_fact(fact, text)
+      if topology is None &&
+        @canonical.object_field(fact, "operator")
+        is Some(@canonical.String("join")) &&
+        logical_map is Some(map) {
+        let stage_result_links = context.bind(value => {
+          @canonical.object_field(value, "stage_result_links")
+        })
+        topology = Some(
+          explanation_join_topology(
+            facts, context, map, stage_result_links, budget,
+          ),
+        )
+      }
+      let example = explain_narrative_fact(fact, topology, text)
+      if example_filter is None {
+        example_filter = example
+      }
       steps.push(text.out.to_string())
     },
   )
-  { context: context_items, steps, }
+  let (summary, clauses, items) = explain_narrative_summary(
+    context, facts, example_filter, budget,
+  )
+  { context: context_items, steps, summary, clauses, items, }
 }
 
 ///|
@@ -589,8 +705,24 @@ let explanation_narrative_max_characters = 65536
 let explanation_narrative_max_items = 10000
 
 ///|
-/// Project text from an already disclosed static Explanation. This entry
-/// owns no Host, Run or authorization and cannot reopen the original read.
+/// Select the computation map from the admitted Plan arm.
+pub fn explanation_narrative_map(
+  plan : @canonical.CanonicalValue,
+) -> @canonical.CanonicalValue? {
+  match @canonical.object_field(plan, "version") {
+    Some(@canonical.String("actql-plan-view/0.1")) =>
+      @canonical.object_field(plan, "logical_map")
+    Some(@canonical.String("actql-effectful-static-plan-view/0.1")) =>
+      @canonical.object_field(plan, "computation")
+      .bind(component => @canonical.object_field(component, "plan_view"))
+      .bind(view => @canonical.object_field(view, "logical_map"))
+    _ => None
+  }
+}
+
+///|
+/// Render an already disclosed static view or its original retained Facts.
+/// The renderer uses only structural values and cannot reopen the read.
 pub fn render_client_static_explanation_narrative_wire(
   wire : String,
   locale : String,
@@ -600,34 +732,54 @@ pub fn render_client_static_explanation_narrative_wire(
     "ja" => Japanese
     _ => return Err(0)
   }
-  if wire.length() > explanation_narrative_max_characters {
+  let limit = explanation_narrative_max_characters
+  let nodes = explanation_narrative_max_items
+  if wire.length() > limit {
     return Err(1)
   }
-  let view = match
-    @publication.parse_interactive_run_control_shape(
-      "static_explanation_view", wire, explanation_narrative_max_characters, explanation_narrative_max_items,
-      64,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(0)
-  }
-  guard @canonical.object_field(view, "facts") is Some(facts) &&
-    @canonical.object_field(view, "context") is Some(context) else {
+  guard parse_plan_identity_value(wire, limit, nodes, 64) is Some(value) else {
     return Err(0)
   }
+  let schema = match @canonical.object_field(value, "version") {
+    Some(@canonical.String("actql-static-explanation/0.1")) =>
+      "static_explanation_view"
+    Some(@canonical.String("actql-explanation-facts/0.1")) =>
+      "explanation_facts"
+    _ => return Err(0)
+  }
+  guard @publication.admit_interactive_run_control_value(
+      schema, wire, value, limit, nodes, 64,
+    )
+    is Ok(decoded) else {
+    return Err(0)
+  }
+  let (facts, context, map) = if schema == "explanation_facts" {
+    (decoded, None, None)
+  } else {
+    guard @canonical.object_field(decoded, "facts") is Some(facts) &&
+      @canonical.object_field(decoded, "context") is Some(context) &&
+      @canonical.object_field(decoded, "plan") is Some(plan) &&
+      explanation_narrative_map(plan) is Some(map) else {
+      return Err(0)
+    }
+    (facts, Some(context), Some(map))
+  }
   let narrative = render_client_explanation_narrative(
-    facts, context, selected, explanation_narrative_max_characters,
+    facts,
+    context,
+    selected,
+    limit,
+    logical_map=map,
   ) catch {
     InvalidExplanation => return Err(0)
     ExplanationPresentationLimit => return Err(1)
   }
   try {
+    let items = narrative.items.length()
     let reply = @encode.writer(
-      6 * explanation_narrative_max_characters +
-      3 * explanation_narrative_max_items +
-      64,
-      explanation_narrative_max_items + 16,
-      4,
+      6 * explanation_narrative_max_characters + 220 * items + 1024,
+      12 * items + 128,
+      6,
     )
     @encode.begin_object(reply)
     @encode.key(reply, "context")
@@ -636,6 +788,50 @@ pub fn render_client_static_explanation_narrative_wire(
       @encode.string_value(reply, line)
     }
     @encode.end_array(reply)
+    @encode.key(reply, "summary")
+    @encode.string_value(reply, narrative.summary)
+    @encode.key(reply, "clauses")
+    @encode.begin_array(reply)
+    for clause in narrative.clauses {
+      @encode.begin_object(reply)
+      explanation_text(reply, "kind", clause.kind)
+      explanation_text(reply, "text", clause.text)
+      @encode.key(reply, "context_items")
+      @encode.begin_array(reply)
+      for index in clause.context_items {
+        @encode.number_value(reply, index.to_double())
+      }
+      @encode.end_array(reply)
+      @encode.key(reply, "step_ids")
+      @encode.begin_array(reply)
+      for id in clause.step_ids {
+        @encode.string_value(reply, id)
+      }
+      @encode.end_array(reply)
+      @encode.end_object(reply)
+    }
+    @encode.end_array(reply)
+    @encode.key(reply, "items")
+    @encode.begin_array(reply)
+    for item in narrative.items {
+      @encode.begin_object(reply)
+      match item {
+        ContextItem(index) => {
+          explanation_text(reply, "kind", "context")
+          @encode.key(reply, "index")
+          @encode.number_value(reply, index.to_double())
+        }
+        FactStep(index, id) => {
+          explanation_text(reply, "kind", "step")
+          @encode.key(reply, "index")
+          @encode.number_value(reply, index.to_double())
+          explanation_text(reply, "step_id", id)
+        }
+      }
+      @encode.end_object(reply)
+    }
+    @encode.end_array(reply)
+    explanation_text(reply, "version", "actql-explanation-narrative/0.1")
     @encode.key(reply, "steps")
     @encode.begin_array(reply)
     for line in narrative.steps {

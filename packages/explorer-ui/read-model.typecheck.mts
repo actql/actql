@@ -1,3 +1,4 @@
+import type {WireExplanationNarrative} from '@actql/client-wire';
 import type {Client, RunReference} from '@actql/sdk';
 import {createReadEpoch, describeExistingResult, explanationStoryModel, planStoryModel, readExistingRun, readExistingRunPlan, readExistingRunExplanation, readExistingRunPresentation, readExistingRunStory, readStaticPlan} from './read-model.js';
 import type {WirePlanView, WireExplanationFacts, WireRunExplanationView} from '@actql/client-wire';
@@ -21,7 +22,8 @@ const lengthLeak: RedactedLiteral['type'] = {...redacted.type, max_utf8_bytes: 7
 const repaired: WireRunExplanationView['explanation'] = {state: 'not_projected', reason: 'not_retained', facts: structuralFacts};
 void structuralOnly; void literalLeak; void lengthLeak; void repaired;
 declare const originalView: WirePlanView;
-const explained = explanationStoryModel(originalView, structuralFacts, {locale: 'ja'});
+declare function render(...args: unknown[]): WireExplanationNarrative;
+const explained = explanationStoryModel(originalView, structuralFacts, {locale: 'ja', render});
 const originalFactsCid: string = explained.factsCid;
 const originalMeaning: WireExplanationFacts['steps'][number]['meaning'] = explained.occurrences[0].explanation.meaning;
 // @ts-expect-error Structural explanation text is not an execution/control fact.
@@ -49,13 +51,13 @@ const explanationRef: RunReference = retainedExplanation.run_ref;
 // @ts-expect-error Reading absent original Facts does not expose a repair operation.
 await readExistingRunExplanation(client, ref, ticket, {recompile: true});
 void explanationRef;
-const presentation = await readExistingRunPresentation(client, ref, {locale: 'ja'}, ticket);
+const presentation = await readExistingRunPresentation(client, ref, {locale: 'ja', render}, ticket);
 if (presentation.explanation.state === 'projected') {
   const originalText: string = presentation.explanation.story.occurrences[0].explanation.text;
   void originalText;
 }
 // @ts-expect-error This presentation selector cannot install a Debug or Sample profile.
-await readExistingRunPresentation(client, ref, {locale: 'ja', stopOnEntry: true}, ticket);
+await readExistingRunPresentation(client, ref, {locale: 'ja', render, stopOnEntry: true}, ticket);
 const savedStory = await readExistingRunStory(client, ref, {locale: 'ja'}, ticket);
 const sameStoryRef: RunReference = savedStory.runRef;
 const staticOriginal: 'static' = original.plan.observation;

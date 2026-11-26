@@ -5,6 +5,87 @@
 // construction, not a SQL parser, format authority or operational issuer.
 // Automatic native indexes have NULL SQL and are checked separately.
 const sql = Object.freeze([
+  `CREATE TABLE client_run_explanation_plan_originals (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_context_originals(run_definition_cid) ON DELETE CASCADE,
+  compiled_plan_wire TEXT NOT NULL,
+  plan_view_wire TEXT NOT NULL
+) STRICT`,
+  `CREATE TABLE client_debug_task_pauses (
+  run_definition_cid TEXT NOT NULL REFERENCES client_debug_entry_parks(run_definition_cid) ON DELETE CASCADE,
+  control_revision INTEGER NOT NULL CHECK (control_revision BETWEEN 2 AND 2147483646 AND control_revision % 2 = 0),
+  step_id TEXT NOT NULL,
+  next_step_id TEXT CHECK (next_step_id IS NULL OR length(CAST(next_step_id AS BLOB)) = 71),
+  committed_generation INTEGER NOT NULL CHECK (committed_generation BETWEEN 1 AND 2147483647),
+  paused_revision INTEGER NOT NULL CHECK (paused_revision BETWEEN 1 AND 2147483646),
+  expires_at INTEGER NOT NULL CHECK (expires_at > 0),
+  paused_at INTEGER NOT NULL CHECK (paused_at >= 0 AND paused_at < expires_at),
+  journal_ordinal INTEGER NOT NULL UNIQUE CHECK (journal_ordinal > 0),
+  operation_id TEXT,
+  resume_wire TEXT,
+  receipt_wire TEXT CHECK (receipt_wire IS NULL OR
+    (resume_wire IS NOT NULL AND length(CAST(receipt_wire AS BLOB)) BETWEEN 1 AND 4096)),
+  receipt_cid TEXT CHECK (length(CAST(receipt_cid AS BLOB)) = 71),
+  resume_accepted_at INTEGER,
+  CHECK ((resume_wire IS NULL) = (resume_accepted_at IS NULL)),
+  CHECK ((receipt_wire IS NULL) = (receipt_cid IS NULL)),
+  CHECK (resume_accepted_at >= paused_at AND resume_accepted_at < expires_at),
+  CHECK ((resume_wire IS NULL) = (operation_id IS NULL)),
+  PRIMARY KEY (run_definition_cid, control_revision),
+  UNIQUE (run_definition_cid, operation_id)
+) STRICT`,
+  `CREATE TABLE client_debug_entry_parks (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,
+  submitted_intent_cid TEXT NOT NULL,
+  parked_revision INTEGER NOT NULL CHECK (parked_revision BETWEEN 1 AND 2147483645),
+  expires_at INTEGER NOT NULL CHECK (expires_at > 0),
+  paused_at INTEGER NOT NULL CHECK (paused_at >= 0 AND paused_at < expires_at),
+  resume_wire TEXT,
+  receipt_wire TEXT CHECK (receipt_wire IS NULL OR
+    (resume_wire IS NOT NULL AND length(CAST(receipt_wire AS BLOB)) BETWEEN 1 AND 4096)),
+  receipt_cid TEXT CHECK (length(CAST(receipt_cid AS BLOB)) = 71),
+  resume_revision INTEGER,
+  resume_accepted_at INTEGER,
+  CHECK ((resume_wire IS NULL) = (resume_accepted_at IS NULL)),
+  CHECK ((receipt_wire IS NULL) = (receipt_cid IS NULL)),
+  CHECK (resume_accepted_at >= paused_at AND resume_accepted_at < expires_at),
+  CHECK ((resume_wire IS NULL AND resume_revision IS NULL) OR
+    (resume_wire IS NOT NULL AND resume_revision IS NOT NULL AND resume_revision = parked_revision + 1))
+) STRICT`,
+  `CREATE TABLE client_relation_sample_adoptions (
+  run_definition_cid TEXT NOT NULL REFERENCES client_relation_sample_starts(run_definition_cid) ON DELETE CASCADE,
+  sample_ref_cid TEXT NOT NULL,
+  source_generation_cid TEXT NOT NULL,
+  output_port_id TEXT NOT NULL,
+  original_capture_cid TEXT NOT NULL,
+  emission_provenance_cid TEXT NOT NULL,
+  expires_at INTEGER NOT NULL CHECK (expires_at > 0),
+  journal_receipt_ordinal INTEGER NOT NULL CHECK (journal_receipt_ordinal > 0),
+  run_receipt_ordinal INTEGER NOT NULL CHECK (run_receipt_ordinal > 0),
+  source_generation_wire TEXT,
+  capture_wire TEXT,
+  emission_wire TEXT,
+  reference_wire TEXT,
+  receipt_wire TEXT NOT NULL,
+  relation_wire TEXT,
+  CHECK ((relation_wire IS NULL) = (source_generation_wire IS NULL) AND
+    (relation_wire IS NULL) = (capture_wire IS NULL) AND
+    (relation_wire IS NULL) = (emission_wire IS NULL) AND
+    (relation_wire IS NULL) = (reference_wire IS NULL)),
+  PRIMARY KEY (run_definition_cid, sample_ref_cid),
+  UNIQUE (run_definition_cid, source_generation_cid),
+  UNIQUE (run_definition_cid, output_port_id, sample_ref_cid),
+  UNIQUE (journal_receipt_ordinal),
+  UNIQUE (run_definition_cid, run_receipt_ordinal)
+) STRICT`,
+  `CREATE TABLE client_relation_sample_starts (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,
+  namespace_id TEXT NOT NULL,
+  authority_scope_cid TEXT NOT NULL,
+  submitted_intent_cid TEXT NOT NULL,
+  control_admission_cid TEXT NOT NULL,
+  resolved_profile_cid TEXT NOT NULL,
+  start_revision INTEGER NOT NULL CHECK (start_revision BETWEEN 1 AND 2147483647)
+) STRICT`,
   `CREATE TABLE client_run_explanation_context_originals (
   run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_originals(run_definition_cid) ON DELETE CASCADE,
   context_wire TEXT NOT NULL,
