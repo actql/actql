@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {readNativeSymbols} from './native-code-inspection.mjs';
 
 // Actual subprocess output transport, not a scientific artifact or code proof.
@@ -79,6 +82,56 @@ test('symbol command deadline is enforced and reported separately from output ex
   failure(()=>readNativeSymbols(process.execPath,['-e','setInterval(()=>{},1000)'],{names:['wanted']},{timeout:50}),
     'ERR_NATIVE_INSPECTION_TIMEOUT');
   failure(()=>runCodeInspection(process.execPath,['-e','setInterval(()=>{},1000)'],{timeout:50}),'ETIMEDOUT');
+});
+function countedSymbolCommand(t, script) {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-native-inspection-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const countPath = join(directory, 'attempts');
+  const args = ['-e', `
+    const {appendFileSync, existsSync, writeSync} = require('node:fs');
+    const countPath = ${JSON.stringify(countPath)};
+    const tried = existsSync(countPath);
+    appendFileSync(countPath, 'x');
+    ${script}
+  `];
+  return {
+    inspect: () => readNativeSymbols(process.execPath, args, {names: ['wanted']}, {timeout: 700}),
+    attempts: () => readFileSync(countPath, 'utf8').length,
+  };
+}
+test('one silent symbol timeout can recover with a complete second scan', t => {
+  const output = '100 T wanted\n110 T next\n';
+  const probe = countedSymbolCommand(t, `
+    if (tried) writeSync(1, ${JSON.stringify(output)});
+    else setInterval(() => {}, 1000);
+  `);
+  assert.equal(probe.inspect(), output);
+  assert.equal(probe.attempts(), 2);
+});
+test('two silent symbol timeouts terminate with both failures', t => {
+  const probe = countedSymbolCommand(t, 'setInterval(() => {}, 1000);');
+  assert.throws(probe.inspect, error => {
+    assert.equal(error.code, 'ERR_NATIVE_CODE_INSPECTION');
+    assert.equal(error.details.code, 'ERR_NATIVE_INSPECTION_TIMEOUT');
+    assert.deepEqual(error.cause.details, error.details);
+    return true;
+  });
+  assert.equal(probe.attempts(), 2);
+});
+test('a symbol tool timeout after stdout or stderr is terminal', t => {
+  for (const [fd, text, measured] of [[1, '100 T wanted\n', 'stdoutBytes'], [2, 'diagnostic\n', 'stderrBytes']]) {
+    const probe = countedSymbolCommand(t, `
+      writeSync(${fd}, ${JSON.stringify(text)});
+      setInterval(() => {}, 1000);
+    `);
+    assert.throws(probe.inspect, error => {
+      assert.equal(error.code, 'ERR_NATIVE_CODE_INSPECTION');
+      assert.equal(error.details.code, 'ERR_NATIVE_INSPECTION_TIMEOUT');
+      assert.equal(error.details[measured], Buffer.byteLength(text));
+      return true;
+    });
+    assert.equal(probe.attempts(), 1);
+  }
 });
 test('retained symbols, a single line and stderr keep the existing finite output envelope',()=>{
   const large="const {writeSync}=require('node:fs');const s='00001000 t __M0connectors5local4'+ 'x'.repeat(1000)+'\\n';for(let i=0;i<36;i++)writeSync(1,s.repeat(1024));";
