@@ -2,7 +2,7 @@
 test "checked Client Result transformation orders before identity and evidence" {
   let (_, environment, effect_limits) = local_effect_export_fixture()
   let document =
-    #|{"version":"actql/0.1","id":"client-result-transform","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":3},{"id":1},{"id":2}]},"as":"selected"}],"results":{"ordered":{"from":"selected","fields":["id"],"order_by":[{"id":"asc"}]},"unchanged":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"source","result":"ordered"}},"original":{"from":{"stage":"source","result":"unchanged"}}}}
+    #|{"version":"actql/0.1","id":"client-result-transform","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":3},{"id":1},{"id":2}]},"as":"selected"}],"results":{"ordered":{"from":"selected","fields":["id"],"order_by":[{"id":"asc"}]},"unchanged":{"from":"selected","fields":["id"]},"private":{"from":"selected","fields":["id"],"order_by":[{"id":"desc"}]}}}],"results":{"answer":{"from":{"stage":"source","result":"ordered"}},"original":{"from":{"stage":"source","result":"unchanged"}}}}
   let prepare = fn() {
     @publication_host.prepare_effect_free_client_program(
       document,
@@ -13,14 +13,21 @@ test "checked Client Result transformation orders before identity and evidence" 
     ).unwrap()
   }
   let prepared = prepare()
-  let run = @publication_host.open_prepared_source_free_client_run(prepared, {
+  let resource_limits : @resources.LedgerLimits = {
     planning_work: 100000,
     attempts: 10,
     holdings: 10,
     transfer_bytes: 500000L,
     retained_bytes: 200000000L,
     execution_bytes: 268435456L,
-  }).unwrap()
+  }
+  let run = @publication_host.open_prepared_source_free_client_run(
+    prepared, resource_limits,
+  ).unwrap()
+  assert_true(
+    @strategy.pin_captured_completed_unit_results(run, 0, 3, 4)
+    is Err(ForeignCandidate),
+  )
   let ledger = @strategy.captured_dag_ledger(run)
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -107,6 +114,44 @@ test "checked Client Result transformation orders before identity and evidence" 
   ])
   assert_true(@strategy.captured_task_completed(run, 0))
   assert_eq(@strategy.next_captured_task(run), None)
+  // All three declared Results belong to Unit 0 even though the Program
+  // exports only two. The exact bound covers one task and those three ports.
+  assert_true(
+    @strategy.pin_captured_completed_unit_results(run, 0, 2, 4)
+    is Err(PreviewWorkLimit),
+  )
+  assert_true(
+    @strategy.pin_captured_completed_unit_results(run, 0, 3, 3)
+    is Err(PreviewWorkLimit),
+  )
+  let unit = @strategy.pin_captured_completed_unit_results(run, 0, 3, 4).unwrap()
+  let foreign = @publication_host.open_prepared_source_free_client_run(
+    prepared, resource_limits,
+  ).unwrap()
+  assert_true(@strategy.captured_completed_unit_results_match(unit, run, 0))
+  assert_false(
+    @strategy.captured_completed_unit_results_match(unit, foreign, 0),
+  )
+  assert_false(@strategy.captured_completed_unit_results_match(unit, run, 1))
+  assert_eq(@strategy.captured_completed_unit_result_count(unit), 3)
+  let declared = []
+  for index in 0..<3 {
+    let borrow = @strategy.captured_completed_unit_result_at(unit, index).unwrap()
+    assert_true(
+      @strategy.captured_any_result_borrow_matches_managed(borrow, completed),
+    )
+    declared.push(
+      @execution.managed_result_occurrence_name(
+        @strategy.captured_any_result_borrow_occurrence(borrow),
+      ),
+    )
+  }
+  assert_eq(declared, ["ordered", "unchanged", "private"])
+  assert_true(@strategy.captured_completed_unit_result_at(unit, 3) is None)
+  assert_true(@strategy.release_captured_completed_unit_results(unit))
+  assert_false(@strategy.release_captured_completed_unit_results(unit))
+  assert_true(@strategy.captured_completed_unit_result_at(unit, 0) is None)
+  @strategy.stop_captured_dag(foreign)
   let values : @execution.ValueLimits = {
     max_nodes: 1000,
     max_text_bytes: 10000,

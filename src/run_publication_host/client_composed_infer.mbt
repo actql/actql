@@ -23,13 +23,39 @@ pub fn client_infer_occurrence_coordinates(
 pub fn client_infer_occurrence_model_task_cid(
   value : ClientInferOccurrence,
 ) -> String? {
+  client_infer_occurrence_original_task(value).map(task => {
+    @environment.model_task_identity(task).2
+  })
+}
+
+///|
+fn client_infer_occurrence_original_task(
+  value : ClientInferOccurrence,
+) -> @environment.ModelTaskContract? {
   guard client_infer_occurrence_matches(value, value.owner) &&
     @lower.node_at(@lower.bound_preparation(value.preparation), value.step)
     is Some(node) &&
     @lower.payload(node) is @lower.Infer(infer) else {
     return None
   }
-  Some(@environment.model_task_identity(@infer.model_task(infer)).2)
+  Some(@infer.model_task(infer))
+}
+
+///|
+/// Share immutable execution material only inside the same checked Program
+/// and original Task. The candidate still needs its own Scope and authority.
+pub fn client_infer_occurrences_share_model_execution(
+  original : ClientInferOccurrence,
+  candidate : ClientInferOccurrence,
+  execution : @environment.ModelExecutionContract,
+) -> Bool {
+  guard physical_equal(original.owner, candidate.owner) &&
+    client_infer_occurrence_original_task(original) is Some(first) &&
+    client_infer_occurrence_original_task(candidate) is Some(second) else {
+    return false
+  }
+  physical_equal(first, second) &&
+  physical_equal(first, @environment.model_execution_task(execution))
 }
 
 ///|

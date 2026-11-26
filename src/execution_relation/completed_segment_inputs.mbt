@@ -267,6 +267,32 @@ pub fn completed_segment_inputs_has_original_pipeline_input(
   input_index : Int,
   original : CompletedOutput,
 ) -> Bool {
+  completed_segment_inputs_has_pipeline_input(value, receiver, input_index, read => {
+    bound_producer_input_has_original_completion(read.bound, original)
+  })
+}
+
+///|
+/// A completed receiving prefix used the same physical producer representation
+/// selected by the Host, including the liveness restriction on that original.
+pub fn completed_segment_inputs_has_exact_pipeline_input(
+  value : CompletedSegmentInputs,
+  receiver : @lower.BoundPrepared,
+  input_index : Int,
+  original : CompletedOutput,
+) -> Bool {
+  completed_segment_inputs_has_pipeline_input(value, receiver, input_index, read => {
+    physical_equal(read.bound.output, original)
+  })
+}
+
+///|
+fn completed_segment_inputs_has_pipeline_input(
+  value : CompletedSegmentInputs,
+  receiver : @lower.BoundPrepared,
+  input_index : Int,
+  matches : (ProducerRead) -> Bool,
+) -> Bool {
   if input_index < 0 ||
     !physical_equal(generated_sequence_owner(value.sequence), receiver) {
     return false
@@ -278,11 +304,11 @@ pub fn completed_segment_inputs_has_original_pipeline_input(
         read => Some(read),
         receiver,
         input_index,
-        original,
+        matches,
       )
     Fixed(inputs) =>
       completed_segment_original_pipeline_input(
-        inputs, fixed_relation_read_completed, receiver, input_index, original,
+        inputs, fixed_relation_read_completed, receiver, input_index, matches,
       )
   }
 }
@@ -293,7 +319,7 @@ fn[T] completed_segment_original_pipeline_input(
   completed : (T) -> ProducerRead?,
   receiver : @lower.BoundPrepared,
   input_index : Int,
-  original : CompletedOutput,
+  matches : (ProducerRead) -> Bool,
 ) -> Bool {
   let mut found = false
   for (step, port, input) in inputs {
@@ -302,8 +328,7 @@ fn[T] completed_segment_original_pipeline_input(
     }
     if @lower.node_input_target(node, port) ==
       Some(@pipeline.Input(input_index)) {
-      guard completed(input) is Some(read) &&
-        bound_producer_input_has_original_completion(read.bound, original) else {
+      guard completed(input) is Some(read) && matches(read) else {
         return false
       }
       found = true

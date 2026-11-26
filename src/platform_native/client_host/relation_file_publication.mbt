@@ -189,6 +189,9 @@ fn NativeClientRelationFileWork::publication_invocation_original(
   if self.publication_original is Some(original) {
     return Ok(original)
   }
+  if @host.client_compiled_run_has_infers(self.compiled) {
+    return Err(FileWorkSourceBinding)
+  }
   let count = @strategy.graph_result_count(
     @strategy.captured_dag_graph(self.run),
   )
@@ -443,6 +446,7 @@ pub fn NativeClientRelationFileWork::prepare_local_publication(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  model_leader? : NativeClientMockModelWork? = None,
 ) -> Result[
   @native_publication.NativePreparedCapturedRunPublication,
   NativeClientSourcePublicationIssue,
@@ -451,6 +455,25 @@ pub fn NativeClientRelationFileWork::prepare_local_publication(
     self.publication_invocation(max_wire_bytes, max_nodes, max_depth) {
     Err(issue) => return Err(Work(issue))
     Ok(value) => value
+  }
+  let model = match
+    (@host.client_compiled_run_has_infers(self.compiled), model_leader) {
+    (false, None) => []
+    (true, Some(leader)) => {
+      guard physical_equal(leader.request, self.start.request) &&
+        physical_equal(leader.compiled, self.compiled) &&
+        physical_equal(leader.definition, self.definition) &&
+        leader.observation_original()
+        is Some((issued_observation, issued_invocation)) &&
+        physical_equal(issued_observation, observation) &&
+        physical_equal(issued_invocation, invocation) &&
+        leader.publication_inputs is Some((original_inputs, evidence)) &&
+        physical_equal(original_inputs, input_cid) else {
+        return Err(SourceBindingMismatch)
+      }
+      evidence
+    }
+    _ => return Err(SourceBindingMismatch)
   }
   guard (match self.access.source {
       WholeRelationFile(_, _, _, owner, _, _)
@@ -504,7 +527,7 @@ pub fn NativeClientRelationFileWork::prepare_local_publication(
       binding_names: [],
       binding_digests: [],
       source_evidence: source,
-      model_evidence: [],
+      model_evidence: model,
       barrier_attempt_receipt_cids: [],
       source_advances: [],
       authoring,

@@ -856,23 +856,17 @@ test "complete original observation keeps compiler order when the second Model o
   assert_eq(calls[0].val + calls[1].val, 2)
   let ordered = [owners[0].unwrap(), owners[1].unwrap()]
   let before_quote = @resources.ledger_usage(ledger)
-  let (publication_limits, publication_bytes) = original_source_free_model_observation_requirements(
+  let (publication_limits, publication_bytes) = original_model_observation_requirements(
     ordered, plans,
   ).unwrap()
   assert_eq(publication_limits.max_slots, 2)
   assert_eq(@resources.ledger_usage(ledger), before_quote)
   assert_true(
-    original_source_free_model_observation_requirements(
-      [ordered[1], ordered[0]],
-      plans,
-    )
+    original_model_observation_requirements([ordered[1], ordered[0]], plans)
     is None,
   )
   assert_true(
-    original_source_free_model_observation_requirements(ordered, [
-      plans[1],
-      plans[0],
-    ])
+    original_model_observation_requirements(ordered, [plans[1], plans[0]])
     is None,
   )
 
@@ -919,8 +913,7 @@ test "complete original observation keeps compiler order when the second Model o
   assert_eq(@publication.model_observation_slot_count(observation), Some(2))
   let before_projection = @resources.ledger_usage(ledger)
   assert_true(
-    original_source_free_model_publication_inputs(issued, compiled, definition)
-    is None,
+    original_model_publication_inputs(issued, compiled, definition) is None,
   )
   assert_eq(@resources.ledger_usage(ledger), before_projection)
   grow_original_infer_publication_capacity(
@@ -932,19 +925,19 @@ test "complete original observation keeps compiler order when the second Model o
   assert_eq(ordered[1].limits.model.ledger, child)
   assert_eq(@resources.ledger_limits(ledger), parent)
   {
-    let (inputs, evidence) = original_source_free_model_publication_inputs(
+    let (inputs, evidence) = original_model_publication_inputs(
       issued, compiled, definition,
     ).unwrap()
     let template = @publication_host.client_compiled_run_template(compiled)
     let policy = invocation_fixture_policy_cid()
     assert_true(
-      @publication.source_free_model_invocation_matches(
+      @publication.model_invocation_matches(
         template, observation, invocation, inputs, policy,
       ),
     )
     assert_not_eq(inputs[0], inputs[1])
     assert_false(
-      @publication.source_free_model_invocation_matches(
+      @publication.model_invocation_matches(
         template,
         observation,
         invocation,
@@ -953,7 +946,7 @@ test "complete original observation keeps compiler order when the second Model o
       ),
     )
     assert_false(
-      @publication.source_free_model_invocation_matches(
+      @publication.model_invocation_matches(
         template,
         observation,
         invocation,
@@ -1044,8 +1037,7 @@ test "complete original observation keeps compiler order when the second Model o
   }
   assert_true(cleanup_observation_issuance(issued).unwrap())
   assert_true(
-    original_source_free_model_publication_inputs(issued, compiled, definition)
-    is None,
+    original_model_publication_inputs(issued, compiled, definition) is None,
   )
   assert_true(release_original_infer_publication_capacity(publication).unwrap())
   for index in 0..<2 {

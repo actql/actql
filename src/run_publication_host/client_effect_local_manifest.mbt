@@ -23,14 +23,15 @@ struct ClientEffectLocalManifest {
 }
 
 ///|
-fn emit_client_effect_local_manifest(
+fn[Artifact] emit_client_local_result_manifest(
   writer : @encode.Writer,
   unit_definition_cid : String,
   invocation_cid : String,
   names : Array[String],
-  artifacts : Map[String, ClientEffectLocalResultArtifact],
+  artifacts : Map[String, Artifact],
   table_names : Array[String],
-  table_artifacts : Map[String, ClientEffectLocalResultArtifact],
+  table_artifacts : Map[String, Artifact],
+  artifact_cid : (Artifact) -> String,
   self_cid : String?,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
@@ -40,10 +41,7 @@ fn emit_client_effect_local_manifest(
   @encode.begin_object(writer)
   for name in names {
     @encode.key(writer, name)
-    @encode.string_value(
-      writer,
-      @publication.publication_contract_identity(artifacts[name].artifact),
-    )
+    @encode.string_value(writer, artifact_cid(artifacts[name]))
   }
   @encode.end_object(writer)
   if self_cid is Some(cid) {
@@ -56,12 +54,7 @@ fn emit_client_effect_local_manifest(
     @encode.begin_object(writer)
     for name in table_names {
       @encode.key(writer, name)
-      @encode.string_value(
-        writer,
-        @publication.publication_contract_identity(
-          table_artifacts[name].artifact,
-        ),
-      )
+      @encode.string_value(writer, artifact_cid(table_artifacts[name]))
     }
     @encode.end_object(writer)
   }
@@ -249,7 +242,7 @@ pub fn issue_client_effect_local_manifest(
       }
       defer @encode.cancel_writer(measure)
       try {
-        emit_client_effect_local_manifest(
+        emit_client_local_result_manifest(
           measure,
           invocation.unit_definition_cid,
           invocation.cid,
@@ -257,6 +250,7 @@ pub fn issue_client_effect_local_manifest(
           by_name,
           table_names,
           by_table,
+          client_effect_local_result_artifact_cid,
           Some(invocation.cid),
         )
         @encode.finish_construction_measurement(measure)
@@ -284,7 +278,7 @@ pub fn issue_client_effect_local_manifest(
   let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  emit_client_effect_local_manifest(
+  emit_client_local_result_manifest(
     hash,
     invocation.unit_definition_cid,
     invocation.cid,
@@ -292,6 +286,7 @@ pub fn issue_client_effect_local_manifest(
     by_name,
     table_names,
     by_table,
+    client_effect_local_result_artifact_cid,
     None,
   ) catch {
     _ => return Err(Encoding)
@@ -301,7 +296,7 @@ pub fn issue_client_effect_local_manifest(
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  emit_client_effect_local_manifest(
+  emit_client_local_result_manifest(
     writer,
     invocation.unit_definition_cid,
     invocation.cid,
@@ -309,6 +304,7 @@ pub fn issue_client_effect_local_manifest(
     by_name,
     table_names,
     by_table,
+    client_effect_local_result_artifact_cid,
     Some(cid),
   ) catch {
     _ => return Err(Encoding)
@@ -410,7 +406,7 @@ pub fn client_effect_local_manifest_construction_geometry(
     _ => return Err(Encoding)
   }
   try {
-    emit_client_effect_local_manifest(
+    emit_client_local_result_manifest(
       writer,
       invocation.unit_definition_cid,
       invocation.cid,
@@ -418,6 +414,7 @@ pub fn client_effect_local_manifest_construction_geometry(
       by_name,
       tables,
       by_table,
+      client_effect_local_result_artifact_cid,
       Some(invocation.cid),
     )
     Ok(@encode.finish_construction_measurement(writer))

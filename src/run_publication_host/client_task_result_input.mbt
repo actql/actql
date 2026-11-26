@@ -1,75 +1,4 @@
 ///|
-/// A checked Result dependency is not its producer's unprojected terminal.
-/// Resolve the original import at the checked Unit/input coordinate. Internal
-/// operation edges and supplied inputs never become inferred Result ports.
-fn client_task_result_input_port(
-  graph : @strategy.CheckedDAG,
-  edge : @strategy.DataEdge,
-) -> Result[@results.ResultPort?, ClientTaskPlanGraphIssue] {
-  let consumer = @strategy.data_edge_consumer(edge)
-  guard @strategy.graph_task_owner(graph, consumer) is Some(owner) &&
-    @strategy.graph_task_unit_index(graph, consumer) is Some(unit) else {
-    return Err(InvalidEdge)
-  }
-  let prepared = @lower.bound_preparation(owner)
-  let index = match @strategy.data_edge_operation_input(edge) {
-    Some((step, position)) => {
-      if @strategy.graph_task_selected_step(graph, consumer) is Some(selected) &&
-        selected != step {
-        return Err(InvalidEdge)
-      }
-      guard @lower.node_at(prepared, step) is Some(node) else {
-        return Err(InvalidEdge)
-      }
-      match @lower.node_input_target(node, position) {
-        Some(@pipeline.Input(index)) => index
-        Some(@pipeline.Step(_)) => return Ok(None)
-        None => return Err(InvalidEdge)
-      }
-    }
-    None => @strategy.data_edge_input(edge)
-  }
-  guard @checked.unit_input_completeness(
-      @strategy.graph_program(graph),
-      unit,
-      index,
-    )
-    is Some(completeness) else {
-    return Err(InvalidEdge)
-  }
-  let (interface, producer) = match completeness.binding {
-    @checked.Imported(interface, producer) => (interface, producer)
-    _ => return Ok(None)
-  }
-  guard @pipeline.input_at(@lower.pipeline(prepared), index) is Some((name, _)) &&
-    @pipeline.input_producer(@lower.pipeline(prepared), index) is Some(actual) &&
-    physical_equal(actual, producer) &&
-    interface.input_name == name else {
-    return Err(InvalidEdge)
-  }
-  let site = @context.result_import_type_site(interface.row)
-  guard site.stage == unit &&
-    site.requirement is @context.Result(import_name, _, imported) &&
-    import_name == name &&
-    physical_equal(@stage_results.input_producer(imported), producer) &&
-    @strategy.graph_task_owner(graph, @strategy.data_edge_producer(edge))
-    is Some(source) &&
-    physical_equal(
-      @pipeline.producer_pipeline(producer),
-      @lower.pipeline(@lower.bound_preparation(source)),
-    ) &&
-    @pipeline.producer_target(producer) == @strategy.data_edge_target(edge) else {
-    return Err(InvalidEdge)
-  }
-  let port = @stage_results.input_port(imported)
-  if @results.port_target(port) != @strategy.data_edge_target(edge) ||
-    !physical_equal(@results.port_input(port), producer) {
-    return Err(InvalidEdge)
-  }
-  Ok(Some(port))
-}
-
-///|
 priv struct ClientTaskResultInputProjection {
   node : @canonical.CanonicalValue
   edge : @canonical.CanonicalValue
@@ -126,17 +55,16 @@ fn[P, C] emit_client_task_result_input_parts(
 ///|
 fn issue_client_task_result_input_projection(
   graph : @strategy.CheckedDAG,
-  edge : @strategy.DataEdge,
   index : Int,
   source : ClientTaskFragmentNode,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientTaskResultInputProjection?, ClientTaskPlanGraphIssue] {
-  let port = match client_task_result_input_port(graph, edge) {
+  let port = match @strategy_view.graph_result_input_port(graph, index) {
     Ok(Some(port)) => port
     Ok(None) => return Ok(None)
-    Err(issue) => return Err(issue)
+    Err(_) => return Err(InvalidEdge)
   }
   let projection = @pipeline.publication_projection(
     @results.port_publication(port),
@@ -217,15 +145,14 @@ fn issue_client_task_result_input_projection(
 /// projection, this upper bound does not select the actual CID-equality branch.
 fn measure_client_task_result_input_projection(
   graph : @strategy.CheckedDAG,
-  edge : @strategy.DataEdge,
   index : Int,
   source_node : String,
   source_port : String,
 ) -> Result[ClientResultGraphConstruction?, ClientTaskPlanGraphIssue] {
-  let port = match client_task_result_input_port(graph, edge) {
+  let port = match @strategy_view.graph_result_input_port(graph, index) {
     Ok(Some(port)) => port
     Ok(None) => return Ok(None)
-    Err(issue) => return Err(issue)
+    Err(_) => return Err(InvalidEdge)
   }
   let node_id = client_compilation_result_input_node_id(index)
   let output = client_task_result_input_output(port)

@@ -218,7 +218,7 @@ pub fn NativeClientValuesWork::bind_model_publication(
     Err(issue) => return Err(issue)
   }
   guard leader.observation_original() is Some((observation, invocation) as pair) &&
-    @infer.original_source_free_model_publication_inputs(
+    @infer.original_model_publication_inputs(
       issued,
       self.compiled,
       self.definition,

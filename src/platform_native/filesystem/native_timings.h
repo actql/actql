@@ -45,6 +45,7 @@ void actql_native_timing_count(int32_t tag);
 int64_t actql_native_timing_counter_value(int32_t tag);
 /* Acceptance metadata is separate from numeric timing counters and authority. */
 int32_t actql_native_acceptance_enabled(void);
+void actql_native_model_confirmation_observation(int32_t kind, const uint16_t *wire, int32_t length);
 void actql_native_acceptance_identity(int32_t tag, int32_t ordinal,
     const uint16_t *identity, int32_t length);
 void actql_native_acceptance_incomplete(void);

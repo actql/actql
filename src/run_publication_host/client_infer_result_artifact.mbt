@@ -4,9 +4,26 @@
 struct ClientInferResultArtifactInput {
   occurrence : ClientInferOccurrence
   input : @execution.CompletedOutput
-  artifact : ClientEffectLocalResultArtifact
-  manifest : ClientEffectLocalManifest
+  original : ClientInferResultArtifactOriginal
   interface : @checked.BuiltResultInterface
+}
+
+///|
+priv enum ClientInferResultArtifactOriginal {
+  Effect(ClientEffectLocalResultArtifact, ClientEffectLocalManifest)
+  Whole(ClientWholeLocalResultArtifact, ClientWholeLocalResultManifest)
+}
+
+///|
+fn client_infer_result_artifact_original_cids(
+  value : ClientInferResultArtifactInput,
+) -> (String, String) {
+  match value.original {
+    Effect(artifact, manifest) =>
+      (client_effect_local_result_artifact_cid(artifact), manifest.cid)
+    Whole(artifact, manifest) =>
+      (client_whole_local_result_artifact_cid(artifact), manifest.cid)
+  }
 }
 
 ///|
@@ -136,17 +153,7 @@ fn prepare_client_infer_result_artifact_input_original(
       value
     }
   }
-  let pipeline = @lower.pipeline(
-    @lower.bound_preparation(occurrence.preparation),
-  )
-  let mut selected = None
-  for index in 0..<@pipeline.input_count(pipeline) {
-    if @pipeline.input_at(pipeline, index).map(value => value.0) ==
-      Some(interface.input_name) {
-      selected = Some(index)
-    }
-  }
-  guard selected is Some(slot) &&
+  guard client_infer_result_input_slot(occurrence, interface) is Some(slot) &&
     original_output() is Some(actual) &&
     physical_equal(actual, input) &&
     @execution.completed_segment_inputs_has_original_pipeline_input(
@@ -158,7 +165,132 @@ fn prepare_client_infer_result_artifact_input_original(
     client_effect_local_artifact_matches_computation(artifact, owner) else {
     return Err(ForeignInput)
   }
-  Ok({ occurrence, input, artifact, manifest, interface, })
+  Ok({ occurrence, input, original: Effect(artifact, manifest), interface, })
+}
+
+///|
+/// A Whole-backed Model prefix must consume the canonical exported Result
+/// from the already completed producer Unit at its own checked input port.
+pub fn prepare_client_infer_whole_result_artifact_input(
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+  import_index : Int,
+  input : @execution.CompletedOutput,
+  sequence : @execution.GeneratedSequence,
+  bindings : Array[(Int, Int, @execution.FixedRelationRead)],
+  completed : @execution.CompletedSegmentInputs,
+  artifact : ClientWholeLocalResultArtifact,
+  manifest : ClientWholeLocalResultManifest,
+) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue] {
+  let owner = artifact.invocation.owner
+  let program = @strategy.graph_program(occurrence.owner.graph)
+  guard client_infer_occurrence_matches_plan(occurrence, plan) &&
+    physical_equal(owner.scope.origin.compiled.owner, occurrence.owner) &&
+    artifact.invocation.unit < occurrence.stage &&
+    @checked.unit_result_import_at(program, occurrence.stage, import_index)
+    is Some(interface) &&
+    interface.producer_unit_definition_cid ==
+    artifact.source.unit_definition_cid &&
+    interface.result_name == artifact.source.result_name &&
+    client_whole_local_result_manifest_matches(manifest, artifact) &&
+    @execution.completed_output_matches_port(
+      input,
+      occurrence.preparation,
+      @pipeline.Step(occurrence.step - 1),
+    ) &&
+    @execution.completed_fixed_segment_inputs_output(
+      completed, sequence, bindings,
+    )
+    is Some(actual) &&
+    physical_equal(actual, input) &&
+    @strategy.captured_completed_unit_result_input_original(artifact.custody)
+    is Some(original) else {
+    return Err(ForeignInput)
+  }
+  guard client_infer_result_input_slot(occurrence, interface) is Some(slot) &&
+    @execution.completed_segment_inputs_has_exact_pipeline_input(
+      completed,
+      occurrence.preparation,
+      slot,
+      original,
+    ) &&
+    client_whole_local_result_manifest_matches(manifest, artifact) else {
+    return Err(ForeignInput)
+  }
+  Ok({ occurrence, input, original: Whole(artifact, manifest), interface, })
+}
+
+///|
+fn client_infer_result_input_slot(
+  occurrence : ClientInferOccurrence,
+  interface : @checked.BuiltResultInterface,
+) -> Int? {
+  let pipeline = @lower.pipeline(
+    @lower.bound_preparation(occurrence.preparation),
+  )
+  for index in 0..<@pipeline.input_count(pipeline) {
+    if @pipeline.input_at(pipeline, index).map(value => value.0) ==
+      Some(interface.input_name) {
+      return Some(index)
+    }
+  }
+  None
+}
+
+///|
+fn client_infer_whole_result_sources_match(
+  artifact : ClientWholeLocalResultArtifact,
+  supplied : ClientInferComposedSources,
+) -> Bool {
+  let original = artifact.invocation.owner.sources
+  if original.inputs.length() != supplied.inputs.length() ||
+    supplied.keyed is Some(_) {
+    return false
+  }
+  for index, input in original.inputs {
+    let actual = supplied.inputs[index]
+    if !physical_equal(input.observation, actual.observation) ||
+      !physical_equal(input.source, actual.source) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn client_infer_whole_result_scope_sources_match(
+  artifact : ClientWholeLocalResultArtifact,
+  named : Array[(String, @publication.ModelSourceObservation)],
+  sources : Array[@publication.ModelSourceObservation],
+) -> Bool {
+  let original = artifact.invocation.owner.sources.inputs
+  if named.length() != original.length() ||
+    sources.length() != original.length() {
+    return false
+  }
+  for index, input in original {
+    if !physical_equal(input.observation, sources[index]) ||
+      !physical_equal(input.observation, named[index].1) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn client_infer_result_artifact_original_current(
+  value : ClientInferResultArtifactInput,
+) -> Bool {
+  match value.original {
+    Effect(artifact, manifest) =>
+      physical_equal(manifest.invocation, artifact.invocation) &&
+      client_effect_local_artifact_matches_computation(
+        artifact,
+        artifact.invocation.owner,
+      )
+    Whole(artifact, manifest) =>
+      client_whole_local_result_manifest_matches(manifest, artifact)
+  }
 }
 
 ///|
@@ -170,17 +302,13 @@ pub fn client_infer_result_artifact_input_binding(
 ) -> Result[(String, String), ClientInferCallScopeIssue] {
   if !physical_equal(value.occurrence, occurrence) ||
     !physical_equal(value.input, input) ||
-    !physical_equal(value.manifest.invocation, value.artifact.invocation) ||
-    !client_effect_local_artifact_matches_computation(
-      value.artifact,
-      value.artifact.invocation.owner,
-    ) {
+    !client_infer_result_artifact_original_current(value) {
     return Err(ForeignInput)
   }
   Ok(
     (
       value.interface.input_name,
-      client_effect_local_result_artifact_cid(value.artifact),
+      client_infer_result_artifact_original_cids(value).0,
     ),
   )
 }
@@ -207,19 +335,73 @@ pub fn client_infer_occurrence_result_imports(
     0,
   )
   Array::makei(count, index => {
-    let imported = @checked.unit_result_import_at(
-      program,
-      occurrence.stage,
-      index,
-    ).unwrap()
-    let mut producer = -1
-    for unit in 0..<occurrence.stage {
-      if @checked.unit_definition_cid(program, unit) ==
-        Some(imported.producer_unit_definition_cid) {
-        producer = unit
-        break
-      }
-    }
-    (producer, imported.result_name)
+    client_infer_occurrence_result_import_at(occurrence, index).unwrap_or(
+      (-1, ""),
+    )
   })
+}
+
+///|
+/// Borrow one checked import coordinate without building a result inventory.
+pub fn client_infer_occurrence_result_import_at(
+  occurrence : ClientInferOccurrence,
+  index : Int,
+) -> (Int, String)? {
+  let program = @strategy.graph_program(occurrence.owner.graph)
+  guard @checked.unit_result_import_at(program, occurrence.stage, index)
+    is Some(imported) else {
+    return None
+  }
+  for unit in 0..<occurrence.stage {
+    if @checked.unit_definition_cid(program, unit) ==
+      Some(imported.producer_unit_definition_cid) {
+      return Some((unit, imported.result_name))
+    }
+  }
+  Some((-1, imported.result_name))
+}
+
+///|
+/// Select one checked receiving edge on the original Whole graph. A matching
+/// producer Result alone is insufficient when two ports import the same view.
+pub fn client_infer_whole_result_input_edge(
+  occurrence : ClientInferOccurrence,
+  index : Int,
+  run : @strategy.CapturedDAG,
+  port : @results.ResultPort,
+) -> Int? {
+  let graph = @strategy.captured_dag_graph(run)
+  let program = @strategy.graph_program(occurrence.owner.graph)
+  guard client_infer_occurrence_matches(occurrence, occurrence.owner) &&
+    @strategy.source_inputs_dag_matches_original(graph, occurrence.owner.graph) &&
+    @checked.unit_result_import_at(program, occurrence.stage, index)
+    is Some(imported) &&
+    client_infer_result_input_slot(occurrence, imported) is Some(slot) else {
+    return None
+  }
+  let mut selected = None
+  for i in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, i).unwrap()
+    if @strategy.data_edge_consumer(edge) != occurrence.task {
+      continue
+    }
+    let target = match @strategy.data_edge_operation_input(edge) {
+      Some((step, input)) =>
+        @lower.node_at(@lower.bound_preparation(occurrence.preparation), step).bind(node => {
+            @lower.node_input_target(node, input)
+          },
+        )
+      None => Some(@pipeline.Input(@strategy.data_edge_input(edge)))
+    }
+    if target != Some(@pipeline.Input(slot)) {
+      continue
+    }
+    guard selected is None &&
+      @strategy_view.graph_result_input_port(graph, i) is Ok(Some(actual)) &&
+      physical_equal(actual, port) else {
+      return None
+    }
+    selected = Some(i)
+  }
+  selected
 }

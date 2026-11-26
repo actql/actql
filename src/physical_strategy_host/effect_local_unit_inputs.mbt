@@ -21,37 +21,20 @@ pub fn pin_captured_effect_acquired_unit_results(
   max_dependency_work? : Int = 65536,
   max_dependency_depth? : Int = 64,
 ) -> Result[CapturedEffectLocalUnitInputs, RunIssue] {
-  let graph = run.captured.graph
-  if unit < 0 || unit >= graph.stage_tasks_count() {
-    return Err(ForeignCandidate)
-  }
-  // All original tasks of the selected Unit must have completed. A Whole
-  // input graph has no captured-prefix tasks; its actual completed JOIN is
-  // still the producer. Neither an individual Source nor a future Model can
-  // substitute for that whole original Unit's Result inventory.
-  guard graph.stage_tasks_count_at(unit) is Some(task_count) &&
-    graph.stage_tasks_iter_at(unit) is Some(tasks) else {
-    return Err(ForeignCandidate)
-  }
-  if task_count > max_dependency_work {
-    return Err(PreviewWorkLimit)
-  }
-  for task in tasks {
-    if !task_done(run.captured, task) {
-      return Err(
-        if unit >= graph.captured_prefix_value() {
-          ForeignCandidate
-        } else {
-          NotReady
-        },
-      )
-    }
+  let remaining = match
+    require_captured_local_unit_completion(
+      run.captured,
+      unit,
+      max_dependency_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let all = match
     effect_dependency_ports(
       run.checked.computation,
       4096,
-      max_dependency_work - task_count,
+      remaining,
       max_dependency_depth,
     ) {
     Ok(value) => value
@@ -376,28 +359,9 @@ pub fn retain_captured_effect_local_unit_result_pending_inputs(
       }
       continue
     }
-    let receiver = run.graph.owners_at(task).unwrap()
-    let producer = run.graph.owners_at(edge.producer).unwrap()
-    let binding = match (edge.operation_input, edge.source_input) {
-      (Some((step, port)), None) =>
-        @execution.bind_completed_operation_input(
-          receiver, step, port, producer, source,
-        )
-      _ =>
-        @execution.bind_completed_input(
-          receiver,
-          edge.source_input.unwrap_or(edge.input),
-          producer,
-          source,
-        )
-    }
-    let binding = match binding {
-      Ok(value) => value
-      Err(_) => return Err(ForeignOutput)
-    }
     let read = match
-      @execution.prepare_producer_read(
-        receiver, binding, max_entries, max_name_bytes,
+      prepare_captured_pending_data_edge_read(
+        run, edge, source, max_entries, max_name_bytes,
       ) {
       Ok(value) => value
       Err(_) => return Err(ForeignOutput)

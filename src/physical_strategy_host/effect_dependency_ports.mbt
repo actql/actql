@@ -96,13 +96,6 @@ pub fn captured_effect_inputs_acquired_source_matches(
 }
 
 ///|
-priv struct EffectDependencyPort {
-  stage : Int
-  task : Int
-  occurrence : @execution.ManagedResultOccurrence
-}
-
-///|
 /// Select complete local Manifests only for Effect source Units and their
 /// imported Result ancestry. Exact checked import owners determine edges;
 /// caller-authored dependency CIDs or task masks are not accepted.
@@ -111,7 +104,7 @@ fn effect_dependency_ports(
   max_results : Int,
   max_work : Int,
   max_depth : Int,
-) -> Result[Array[EffectDependencyPort], RunIssue] {
+) -> Result[Array[CheckedLocalUnitResultPort], RunIssue] {
   if max_results < 0 {
     return Err(PreviewWorkLimit)
   }
@@ -130,7 +123,7 @@ fn materialize_effect_dependency_ports(
   depth : Array[Int],
   max_results : Int,
   remaining : Int,
-) -> Result[Array[EffectDependencyPort], RunIssue] {
+) -> Result[Array[CheckedLocalUnitResultPort], RunIssue] {
   let graph = value.graph_value()
   let program = graph.program_value()
   let count = @checked.unit_count(program)
@@ -139,7 +132,7 @@ fn materialize_effect_dependency_ports(
   )
   let wiring = @context.program_incoming_wiring(incoming)
   let mut work = remaining
-  let output : Array[EffectDependencyPort] = []
+  let output : Array[CheckedLocalUnitResultPort] = []
   for stage in 0..<count {
     if depth[stage] < 0 {
       continue
@@ -153,27 +146,10 @@ fn materialize_effect_dependency_ports(
       return Err(PreviewWorkLimit)
     }
     work -= results
-    for index in 0..<results {
-      let port = @ports.port_at(publications, index).unwrap()
-      // A captured Unit can also publish a later computed Result. Resolve its
-      // exact checked target before falling back to that Unit's Source task.
-      // The ordinary pin still checks the original owner, target and lifetime.
-      let selected = match
-        graph_stage_target_task(graph, stage, @ports.port_target(port)) {
-        Some(task) => Some(task)
-        None if stage < graph.captured_prefix_value() => Some(stage)
-        None => None
-      }
-      guard selected is Some(task) && graph.owners_at(task) is Some(owner) else {
-        return Err(ForeignCandidate)
-      }
-      let name = @ports.name(@ports.port_result(port))
-      let occurrence = match
-        @execution.bind_managed_result_occurrence(owner, name, port) {
-        Ok(value) => value
-        Err(_) => return Err(ForeignCandidate)
-      }
-      output.push({ stage, task, occurrence, })
+    match
+      append_checked_local_unit_result_ports(graph, stage, publications, output) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
   }
   Ok(output)

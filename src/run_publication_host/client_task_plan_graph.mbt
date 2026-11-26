@@ -450,7 +450,7 @@ fn issue_client_task_plan_graph(
           let projection = if input_contract_cid != source.output_contract_cid {
             match
               issue_client_task_result_input_projection(
-                graph, edge, index, source, max_wire_bytes, max_nodes, max_depth,
+                graph, index, source, max_wire_bytes, max_nodes, max_depth,
               ) {
               Ok(value) => value
               Err(issue) => return Err(issue)

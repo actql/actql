@@ -58,8 +58,18 @@ fn begin_program_publication_invocation(
 }
 
 ///|
-/// Adopt the capture issuer's completed Model pair on the already captured
-/// managed Run. Ordinary Values and captured Source use their own issuers.
+/// Captured Whole File evidence from the same adopted Run. The caller must
+/// retain the original publication issuer for the duration of this binding.
+pub(all) struct ClientWholeModelPublicationSources {
+  captures : Array[@row_source_host.RowSourceCapture]
+  evidence : Array[@publication.RunEvidenceValue]
+  started_at : String
+  completed_at : String
+}
+
+///|
+/// Adopt the original Model issuer on the same captured Run. Whole File
+/// publication also checks each actual capture against its installed plan.
 pub fn bind_program_model_publication_invocation(
   owner : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientProgram,
@@ -70,28 +80,60 @@ pub fn bind_program_model_publication_invocation(
   invocation : @publication.PublicationContract,
   inputs : Array[String],
   policy_cid : String,
+  whole_sources? : ClientWholeModelPublicationSources? = None,
 ) -> Result[Unit, ClientClosedValuesPreparationIssue] {
   guard owner.source_free_captured is Some(original) &&
     physical_equal(original, captured) &&
-    owner.captured_preparation is None &&
     installed_managed_run_compilation_original(owner, prepared)
     is Some(@publication_host.Tasks(compilation)) &&
     @publication_host.client_compiled_run_matches_tasks(
       compiled, prepared, compilation,
     ) &&
-    @publication_host.prepared_client_acquisition_count(prepared) == 0 &&
     compilation.serialization is None &&
     !compilation.infers.is_empty() &&
     inputs.length() == compilation.infers.length() &&
     @publication_host.client_compiled_run_infer_observation_policy(compiled) ==
-    Some(policy_cid) &&
-    @publication.source_free_model_invocation_matches(
-      @publication_host.client_compiled_run_template(compiled),
-      observation,
-      invocation,
-      inputs,
-      policy_cid,
-    ) else {
+    Some(policy_cid) else {
+    return Err(ForeignOriginal)
+  }
+  let template = @publication_host.client_compiled_run_template(compiled)
+  let matches = match (owner.captured_preparation, whole_sources) {
+    (None, None) =>
+      !@publication_host.prepared_client_has_checked_sources(prepared) &&
+      @publication.model_invocation_matches(
+        template, observation, invocation, inputs, policy_cid,
+      )
+    (Some(plan), Some(sources)) => {
+      guard physical_equal(plan.prepared, prepared) &&
+        physical_equal(plan.request, owner.request) &&
+        !plan.whole_sources.is_empty() &&
+        sources.captures.length() == plan.whole_sources.length() &&
+        sources.evidence.length() == sources.captures.length() else {
+        return Err(ForeignOriginal)
+      }
+      for index, capture in sources.captures {
+        if !whole_source_publication_capture_matches(
+            owner,
+            plan,
+            capture,
+            index~,
+          ) {
+          return Err(ForeignOriginal)
+        }
+      }
+      @publication.model_invocation_matches(
+        template,
+        observation,
+        invocation,
+        inputs,
+        policy_cid,
+        source_evidence=sources.evidence,
+        capture_interval=Some((sources.started_at, sources.completed_at)),
+      )
+    }
+    _ => false
+  }
+  if !matches {
     return Err(ForeignOriginal)
   }
   match

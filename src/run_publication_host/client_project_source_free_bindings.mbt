@@ -74,6 +74,7 @@ fn project_bindings_empty_object(
 pub fn admit_client_source_free_project_bindings(
   connectors : String?,
   model_tasks : String?,
+  model_registry? : ClientProjectModelRegistry? = None,
 ) -> Result[ClientSourceFreeProjectBindings, ClientProjectBindingsIssue] {
   if connectors is Some(wire) {
     let object = match
@@ -90,36 +91,26 @@ pub fn admit_client_source_free_project_bindings(
       Err(issue) => return Err(issue)
     }
   }
-  if model_tasks is Some(wire) {
-    let object = match
-      project_bindings_object(wire, [
-        "version", "tasks", "providers", "default_provider",
-      ]) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    guard @decode.lookup(object, "version") is Some(value) &&
-      @decode.text(value) == Ok("actql-model-tasks/0.1") else {
-      return Err(InvalidBindings)
-    }
-    if @decode.field(object, "default_provider") is Present(value) {
-      guard project_configuration_text(value) is Some(_) else {
-        return Err(InvalidBindings)
-      }
-      return Err(BindingsUnavailable)
-    } else if @decode.field(object, "default_provider") is ExplicitNull {
-      return Err(InvalidBindings)
-    }
-    for field in ["tasks", "providers"] {
-      match project_bindings_empty_object(object, field) {
-        Ok(_) => ()
+  let selected = match (model_tasks, model_registry) {
+    (None, original) => original
+    (Some(wire), None) =>
+      match admit_client_project_model_registry(wire) {
+        Ok(original) => Some(original)
         Err(issue) => return Err(issue)
       }
-    }
+    (Some(_), Some(_)) => return Err(InvalidBindings)
+  }
+  if selected is Some(registry) &&
+    (
+      registry.task_count() != 0 ||
+      registry.provider_count() != 0 ||
+      registry.selected_default_provider() is Some(_)
+    ) {
+    return Err(BindingsUnavailable)
   }
   Ok({
     connectors_present: connectors is Some(_),
-    model_tasks_present: model_tasks is Some(_),
+    model_tasks_present: selected is Some(_),
   })
 }
 

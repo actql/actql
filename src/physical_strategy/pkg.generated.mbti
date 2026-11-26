@@ -9,6 +9,7 @@ import {
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
   "actql/actql/program_check",
+  "actql/actql/relation_results",
   "actql/actql/sourceview_resolution",
   "moonbitlang/core/debug",
 }
@@ -89,6 +90,8 @@ pub fn graph_program_definition_cid(CheckedDAG) -> String
 pub fn graph_program_has_effects(CheckedDAG) -> Bool
 
 pub fn graph_result_count(CheckedDAG) -> Int
+
+pub fn graph_result_input_port(CheckedDAG, Int) -> Result[@relation_results.ResultPort?, GraphIssue]
 
 pub fn graph_result_name(CheckedDAG, Int) -> String?
 

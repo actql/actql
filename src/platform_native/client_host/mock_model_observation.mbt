@@ -65,7 +65,7 @@ pub fn NativeClientMockModelWork::prepare_observation(
 ///|
 /// Form one publication issuer on the first completed configured Work. The
 /// original Request has already funded the temporary vector of executions.
-pub fn NativeClientMockModelWork::prepare_source_free_model_observation(
+pub fn NativeClientMockModelWork::prepare_model_run_observation(
   self : Self,
   works : Array[NativeClientMockModelWork],
   plans : Array[@host.ClientInferPlanGraph],
@@ -98,9 +98,7 @@ pub fn NativeClientMockModelWork::prepare_source_free_model_observation(
     }
     owners.push(original)
   }
-  guard @infer.original_source_free_model_observation_requirements(
-      owners, plans,
-    )
+  guard @infer.original_model_observation_requirements(owners, plans)
     is Some((limits, bytes)) &&
     @execution.execution_capacity(bytes, bytes) is Some(issuer) &&
     @execution.add_execution_capacity(

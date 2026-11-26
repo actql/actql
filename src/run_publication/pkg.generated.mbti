@@ -805,6 +805,8 @@ pub fn model_invocation_evidence_usage(RunEvidenceValue) -> Result[ModelCaptureU
 
 pub fn model_invocation_evidence_version(RunEvidenceValue) -> String?
 
+pub fn model_invocation_matches(RunEvidenceValue, RunEvidenceValue, PublicationContract, Array[String], String, source_evidence? : Array[RunEvidenceValue], capture_interval? : (String, String)?) -> Bool
+
 pub fn model_invocation_review_expires_at(RunEvidenceValue) -> String?
 
 pub fn model_invocation_scope_boundary(BoundModelInvocationScope) -> ModelInvocationBoundary
@@ -856,6 +858,8 @@ pub fn model_scoped_private_holding_cid(PublicationContract, String, String, Str
 pub fn model_source_observation_fields(ModelSourceObservation) -> (String, String, String)
 
 pub fn model_source_observation_interval(Array[ModelSourceObservation]) -> (String, String)?
+
+pub fn model_source_observation_matches_authority(ModelSourceObservation, String) -> Bool
 
 pub fn model_source_observation_matches_input(ModelSourceObservation, RunEvidenceValue) -> Bool
 
@@ -1282,8 +1286,6 @@ pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[Public
 pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(String, String)], CapturedEffectDependencyIssue]
-
-pub fn source_free_model_invocation_matches(RunEvidenceValue, RunEvidenceValue, PublicationContract, Array[String], String) -> Bool
 
 pub fn source_unit_metadata_construction_geometry(Array[RunEvidenceValue], Array[RunEvidenceValue], Array[Int], PublicationContract, Int, Int, Int, include_union? : Bool) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], AcquisitionRelationIssue]
 

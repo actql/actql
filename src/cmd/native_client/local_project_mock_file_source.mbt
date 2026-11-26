@@ -227,6 +227,16 @@ fn LocalProjectMockDeclarations::file_lookup_policy(self : Self) -> Json? {
     !sources.is_empty() else {
     return None
   }
+  local_file_source_lookup_policy(sources)
+}
+
+///|
+fn local_file_source_lookup_policy(
+  sources : Array[LocalProjectMockFileSource],
+) -> Json? {
+  if sources.is_empty() {
+    return None
+  }
   let limits = @local_values.client_local_preparation_initial_limits(
     @local_values.client_local_resource_policy(),
   ).unwrap()
