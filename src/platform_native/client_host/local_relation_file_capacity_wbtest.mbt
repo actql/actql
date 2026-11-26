@@ -177,9 +177,15 @@ test "relation entry authored minimum fixture and maximum constructor totals" {
   // One additional borrowed Work reference in the refusal closure; no payload copy.
   let publication_failure_borrow = 8L
   let export_vectors = 6L * 16L + 32L * 8L + 4L * 8L
+  // A staged execution tag and the reference to the same Work's Whole evidence.
+  let staging = 16L + 2L * 8L + 8L
   assert_eq(
     relation_file_work_control_bytes().unwrap(),
-    48234L + collection_tag + publication_failure_borrow + export_vectors,
+    48234L +
+    collection_tag +
+    publication_failure_borrow +
+    export_vectors +
+    staging,
   )
   let minimum = {
     ..limits,
@@ -204,11 +210,19 @@ test "relation entry authored minimum fixture and maximum constructor totals" {
     let read = native_relation_file_entry_read_capacity(selected, bounded).unwrap()
     assert_eq(
       @execution.execution_capacity_retained_bytes(work),
-      work_bytes + collection_tag + publication_failure_borrow + export_vectors,
+      work_bytes +
+      collection_tag +
+      publication_failure_borrow +
+      export_vectors +
+      staging,
     )
     assert_eq(
       @execution.execution_capacity_execution_bytes(work),
-      work_bytes + collection_tag + publication_failure_borrow + export_vectors,
+      work_bytes +
+      collection_tag +
+      publication_failure_borrow +
+      export_vectors +
+      staging,
     )
     assert_eq(@execution.execution_capacity_retained_bytes(read), read_bytes)
     assert_eq(@execution.execution_capacity_execution_bytes(read), read_bytes)

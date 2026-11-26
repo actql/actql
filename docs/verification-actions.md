@@ -22,7 +22,7 @@ run's CI selection plan. Consult the selector and final-check summaries to
 distinguish executed jobs from explicitly **NOT APPLICABLE** families.
 
 For pull requests containing only ordinary edits to existing regular files in
-the [reviewed maintenance inventory](../scripts/ci-targets.mjs), CI runs the
+the [reviewed maintenance inventory](../scripts/ci-targets.mts), CI runs the
 selector, complete lint, complete spec and final check. Unrelated runtime and
 proof families are skipped as whole families. N/A is neither a test pass nor
 reuse of an older execution receipt. Selected proof campaigns still require

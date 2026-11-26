@@ -46,8 +46,13 @@ fn LocalValuesExecution::prepare_publication_bridge_for_task(
     is Some((operations, completed)) else {
     return Err(MissingOutput)
   }
-  self.prepare_publication_bridge_for_original(
-    operations, completed, row_limits, bridge_max_entries, bridge_max_name_bytes,
+  prepare_publication_bridge_for_original(
+    self.available,
+    operations,
+    completed,
+    row_limits,
+    bridge_max_entries,
+    bridge_max_name_bytes,
     limits,
   )
 }

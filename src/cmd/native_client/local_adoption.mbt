@@ -19,11 +19,12 @@ priv struct LocalHostSettings {
   run_policy_profile_file : String?
   reviewer_file : String?
   initial_host_signing : (String, String, String)?
-  model_http_installation : LocalModelHttpInstallationSettings?
+  model_http_installations : Array[LocalModelHttpInstallationSettings]?
 }
 
 ///|
 priv struct LocalModelHttpInstallationSettings {
+  task_id : String
   files : @local_host.NativeModelHttpConfigurationFiles
   provider_id : String
   response_profile_cid : String
@@ -54,13 +55,13 @@ fn local_model_http_installation_settings(
 ) -> LocalModelHttpInstallationSettings raise ClientStop {
   let child = @decode.indexed_child_construction_extent()
   let retained = local_host_metadata_price(
-    local_host_metadata_units(4L, 11L, 1L, 0L),
+    local_host_metadata_units(4L, 12L, 1L, 0L),
   )
   let execution = local_host_metadata_price(
     local_host_metadata_units(
-      20L + 8L * child.record_headers,
-      45L + 8L * child.reference_slots,
-      12L + 8L * child.scalar_words,
+      20L + 9L * child.record_headers,
+      45L + 9L * child.reference_slots,
+      12L + 9L * child.scalar_words,
       0L,
     ),
   )
@@ -68,13 +69,15 @@ fn local_model_http_installation_settings(
   let fields = local_host_settings_object(
     cursor,
     [
-      "provider_id", "credential_installation", "installation_revision", "configuration_contract",
-      "response_profile", "response_profile_cid", "execution_file", "run_policy_file",
+      "task_id", "provider_id", "credential_installation", "installation_revision",
+      "configuration_contract", "response_profile", "response_profile_cid", "execution_file",
+      "run_policy_file",
     ],
-    3,
+    4,
     "InvalidLocalModelHttpInstallation",
   )
   let provider_id = local_settings_text(fields, "provider_id")
+  let task_id = local_settings_text(fields, "task_id")
   let setting = local_settings_text(fields, "credential_installation")
   let installation_revision = local_settings_text(
     fields, "installation_revision",
@@ -84,7 +87,9 @@ fn local_model_http_installation_settings(
   )
   let response_profile = local_settings_text(fields, "response_profile")
   let response_profile_cid = local_settings_text(fields, "response_profile_cid")
-  if provider_id.length() > 128 ||
+  if task_id.length() > 128 ||
+    task_id.contains("\u{0}") ||
+    provider_id.length() > 128 ||
     provider_id.contains("\u{0}") ||
     response_profile_cid.length() != 71 ||
     !response_profile_cid.has_prefix("sha256:") ||
@@ -123,6 +128,7 @@ fn local_model_http_installation_settings(
     stop("LocalModelHttpOriginalNotSelected")
   }
   {
+    task_id,
     files: {
       setting,
       installation_revision,
@@ -134,6 +140,53 @@ fn local_model_http_installation_settings(
     execution_file,
     policy_file,
   }
+}
+
+///|
+fn local_model_http_installation_selections(
+  cursor : @decode.Cursor,
+  installation_files : Array[String],
+) -> Array[LocalModelHttpInstallationSettings] raise ClientStop {
+  guard @decode.array_length(cursor) is Some(count) &&
+    count > 0 &&
+    count <= @run_host.client_local_model_configuration_limit() else {
+    stop("InvalidLocalModelHttpInstallation")
+  }
+  let slots = count.to_int64()
+  let read = @shape.scale_collection_construction_extent(
+    @decode.indexed_child_construction_extent(),
+    slots,
+  ).unwrap_or_else(() => stop("LocalCommandPreparationLayoutUnavailable"))
+  let retained = local_host_metadata_price(
+    local_host_metadata_units(4L + slots, 4L + 2L * slots, 5L, 0L),
+  )
+  let working = local_host_metadata_price(
+    local_host_metadata_units(
+      4L + slots + read.record_headers,
+      4L + 2L * slots + read.reference_slots,
+      5L + read.scalar_words,
+      0L,
+    ),
+  )
+  local_host_metadata_prepare(retained, working)
+  let selections : Array[LocalModelHttpInstallationSettings] = Array(
+    capacity=count,
+  )
+  for index in 0..<count {
+    let selected = local_model_http_installation_settings(
+      @decode.element_at(cursor, index).unwrap(),
+      installation_files,
+    )
+    for prior in selections {
+      if prior.task_id == selected.task_id ||
+        prior.provider_id != selected.provider_id ||
+        prior.files.setting == selected.files.setting {
+        stop("InvalidLocalModelHttpInstallation")
+      }
+    }
+    selections.push(selected)
+  }
+  selections
 }
 
 ///|
@@ -180,7 +233,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
       "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
       "journal_snapshot_bytes", "installation_files", "source_file", "run_file",
       "read_file", "reviewer_file", "run_policy_profile_file", "initial_host_signing",
-      "model_http_installation",
+      "model_http_installations",
     ],
     2,
     "InvalidLocalHostConfiguration",
@@ -262,11 +315,13 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     snapshot_bytes: snapshot,
     installation_files,
     initial_host_signing,
-    model_http_installation: match
-      @decode.lookup(fields, "model_http_installation") {
+    model_http_installations: match
+      @decode.lookup(fields, "model_http_installations") {
       None => None
       Some(value) =>
-        Some(local_model_http_installation_settings(value, installation_files))
+        Some(
+          local_model_http_installation_selections(value, installation_files),
+        )
     },
     run_policy_profile_file: match
       @decode.lookup(fields, "run_policy_profile_file") {
@@ -384,6 +439,16 @@ fn execute_native_local_adoption(
       (body, local_host_settings(body))
     }
   }
+  if local_project_explicit_operator_selected(matches) {
+    guard preparation is Some(original) &&
+      original.project is Some(project) &&
+      local_product_selected_location(Some(project.state_directory), None)
+      is { parent_path, directory_name, } &&
+      parent_path == settings.state_parent &&
+      directory_name == settings.state_name else {
+      stop("ConflictingLocalHostState")
+    }
+  }
   if configuration_original is None && preparation_runtime is Some(runtime) {
     if settings.sqlite_library != runtime.sqlite ||
       settings.signature_library != runtime.crypto ||
@@ -424,7 +489,7 @@ fn execute_native_local_adoption(
   // The operator selects installation originals separately from submitted
   // Program data. Their bytes and generations join the same adoption intent;
   // naming a file installs no Source, Policy, credential or execution grant.
-  if settings.model_http_installation is Some(_) && preparation is Some(_) {
+  if settings.model_http_installations is Some(models) && preparation is Some(_) {
     let installed = settings.installation_files
     let host_file = settings.initial_host_signing is Some(_) ||
       installed.contains("host.json")
@@ -432,18 +497,27 @@ fn execute_native_local_adoption(
       !installed.contains("host.json")
     let count = installed.length() + 2 + (if add_host { 1 } else { 0 })
     let allowed = Int::min(
-      @run_host.client_local_model_configuration_file_limit(),
+      @run_host.client_local_model_configuration_file_limit(models.length()),
       count - (if host_file { 1 } else { 0 }),
     )
     if !@run_host.client_local_configuration_file_count_supported(
-        count, host_file, allowed,
+        count,
+        host_file,
+        allowed,
+        models.length(),
       ) {
       stop("LocalModelHttpConfigurationLimit")
     }
     // The command's distinct input vector and the selected Model descriptor
     // are live through the next capture's separately funded snapshot.
+    let bindings = models.length().to_int64()
     let inventory = local_host_metadata_price(
-      local_host_metadata_units(9L, 30L + 2L * count.to_int64(), 16L, 0L),
+      local_host_metadata_units(
+        10L + bindings,
+        32L + 2L * count.to_int64() + 6L * bindings,
+        18L,
+        0L,
+      ),
     )
     local_host_metadata_prepare(inventory, inventory)
   }
@@ -460,15 +534,27 @@ fn execute_native_local_adoption(
     !selected_files.contains("host.json") {
     selected_files.push("host.json")
   }
-  let selected_source = match settings.source_file {
-    None => None
+  let (selected_source, declared_file_source) = match settings.source_file {
+    None => (None, None)
     Some(file) => {
       if !settings.installation_files.contains(file) {
         stop("LocalSourceOriginalNotSelected")
       }
-      let body = text_file(root, file, 65536L)
-      ignore(local_source_installation(body))
-      Some((file, @utf8.encode(body)))
+      let text = text_file(root, file, 65536L)
+      let material = local_prepare_source_installation(text)
+      if material is Some(_) {
+        // Retain the original name, body and parsed declaration together.
+        // The captured bytes are the same body already handed to adoption.
+        let binding = local_host_metadata_price(
+          local_host_metadata_units(4L, 8L, 2L, 0L),
+        )
+        local_host_metadata_prepare(binding, binding)
+      }
+      let body = @utf8.encode(text)
+      (
+        Some((file, body)),
+        material.map(value => { name: file, body, material: value, }),
+      )
     }
   }
   let (selected_run, run_original) = match settings.run_file {
@@ -526,6 +612,7 @@ fn execute_native_local_adoption(
         environment_body: @utf8.encode(environment),
         environment: check_environment,
         run_original,
+        declared_file_source,
       },
       selected_files,
       additional,

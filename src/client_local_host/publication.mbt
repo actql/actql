@@ -76,7 +76,8 @@ pub fn LocalValuesExecution::prepare_result_export(
       })
   }
   let (bridge, output) = match
-    self.prepare_publication_bridge_for_original(
+    prepare_publication_bridge_for_original(
+      self.available,
       operations,
       managed,
       row_limits,
@@ -202,7 +203,8 @@ pub fn LocalValuesExecution::prepare_captured_result_export(
       .map(stream => { stream, bridge: None, closed: false, })
   }
   let (bridge, output) = match
-    self.prepare_publication_bridge_for_original(
+    prepare_publication_bridge_for_original(
+      self.available,
       operations,
       managed,
       row_limits,
@@ -397,8 +399,8 @@ fn reserve_publication_bridge_row_copy(
 // Conversion keeps the selected operations and SAME managed completion
 // together across material/row callbacks. No second task lookup can replace
 // that generation. An optional Host funding boundary precedes row decoding.
-fn LocalValuesExecution::prepare_publication_bridge_for_original(
-  self : LocalValuesExecution,
+fn prepare_publication_bridge_for_original(
+  available : Ref[Bool],
   operations : @local_driver.LocalManagedDispatchOperations[Int],
   completed : @execution.ManagedCompletedOutput[Int],
   row_limits : @execution.RetainedRowDecodeLimits,
@@ -411,7 +413,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
   (@execution.ManagedPublicationBridge[Int], @execution.CompletedOutput),
   LocalValuesPublicationBridgeIssue,
 ] {
-  if !self.available.val {
+  if !available.val {
     return Err(MissingOutput)
   }
   guard (operations.material)() is Some(material) else {
@@ -444,7 +446,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
         )
         is Some(start) &&
         reserve(start, 0L) &&
-        self.available.val else {
+        available.val else {
         return Err(MissingOutput)
       }
       Some((imports, reserve))
@@ -511,7 +513,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
     }
     // The Host's storage callback can reenter retirement. Keep this cheap
     // execution fence in addition to the bridge's original material checks.
-    if !self.available.val {
+    if !available.val {
       @execution.close_managed_publication_bridge(bridge)
       return Err(MissingOutput)
     }

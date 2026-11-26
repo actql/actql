@@ -183,14 +183,19 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
         intent,
         environment,
         publication,
-        verify_request_value_policy=match self.project {
-          Some(project) =>
-            project.mock_declarations.map(original => {
+        verify_request_value_policy=match self.declared_file_sources {
+          Some((sources, _)) =>
+            Some(subject => {
+              local_verify_file_source_request_policy(sources, subject)
+            })
+          None =>
+            self.project
+            .bind(project => project.mock_declarations)
+            .map(original => {
               subject => {
                 original.verify_static_request_policy(environment, subject)
               }
             })
-          None => None
         },
         before_program_borrow=Some(() => {
           match
@@ -373,7 +378,7 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
   }
   self.original.with_business_request(self.capture, () => {
     let run = match self.file_source {
-      Some(Project(original)) => {
+      Some(Original(declarations, listings)) => {
         guard @local_host.native_client_submitted_preparation(self.preparation)
           is Computation(prepared) &&
           business.file_capacity is None else {
@@ -385,7 +390,8 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
           input,
           prepared,
           request,
-          original,
+          declarations,
+          listings,
           self.installed_contracts,
           self.assets,
           query_contracts,

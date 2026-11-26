@@ -156,7 +156,7 @@ test('plain Request Model dispatch borrows its same adopted Source Ledger before
     assert.strictEqual(actual, preparedSource); calls.push('capacity'); return capacity;
   }};
   const ports = {held, entry, preparedProgram: prepared, requested: request, inferring: true,
-    generatingContent: false, acquiring: true, multiple: false, keyedSelection: undefined,
+    generatingContent: false, ordinaryContent: false, acquiring: true, multiple: false, keyedSelection: undefined,
     installedSource, checkpoints: undefined, submission: {requestId: 'fixture-request'},
     preparationLease: {}, moon: {},
     prepareAcquisition() {assert.fail('do not reconstruct the retained original Source');},
@@ -382,7 +382,7 @@ test('actual complete Model dispatcher retains its original Run before borrowing
   const managed = {}, prepared = {}, request = {}, plan = {}, ledger = {}, entry = {},
     capacities = [{managedRun: managed, capacity: {}}, {managedRun: managed, capacity: {}}], calls = [], held = {managedRun: managed, plan};
   const ports = {capacities, managedRun: managed, held, preparedProgram: prepared, requested: request,
-    registry: {}, values: {}, fragment: {}, ordered: {}, entry, preparationLease: {}, inferring: true,
+    registry: {}, values: {}, fragment: {}, ordered: {}, entry, preparationLease: {}, inferring: true, ordinaryContent: false,
     moon: {clientProgramInstalledManagedRunPrepareLedger() {assert.fail('Use the original Model getter with its sticky custody');},
       clientProgramPrepareMultiCapturedLocalInstalledLedger() {assert.fail('No legacy Model Ledger');}},
     checked: value => value,

@@ -57,7 +57,7 @@ pub fn pin_captured_effect_sources(
 fn pin_captured_effect_sources_with_ports(
   run : CapturedEffectRunDAG,
   max_pins : Int,
-  local_ports : Array[EffectDependencyPort],
+  local_ports : Array[CheckedLocalUnitResultPort],
 ) -> Result[CapturedEffectInputs, RunIssue] {
   let requests : Array[(Int, @execution.ManagedResultOccurrence)] = []
   let sources : Array[CheckedEffectSourcePort?] = []

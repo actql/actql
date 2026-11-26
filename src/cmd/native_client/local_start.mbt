@@ -395,8 +395,10 @@ fn local_submission_start(
     let model = business.bind(original => {
       original.configured_model_compilation(prepared)
     })
-    let source_free = @run_host.prepared_client_acquisition_count(prepared) == 0
-    if !source_free && model is Some(_) {
+    let source_free = !@run_host.prepared_client_has_checked_sources(prepared)
+    let original_file = business is Some(original) &&
+      original.file_source is Some(_)
+    if !source_free && model is Some(_) && !original_file {
       stop("LocalModelHttpSourcePlanUnavailable")
     }
     if source_free &&
@@ -404,8 +406,6 @@ fn local_submission_start(
       !@local_host.native_client_local_values_profile_supported(prepared) {
       stop("LocalValuesExecutionProfileNotSupported")
     }
-    let original_file = business is Some(original) &&
-      original.file_source is Some(_)
     if !source_free &&
       !original_file &&
       !@source_owner.resident_source_compute_shape_supported(prepared) {

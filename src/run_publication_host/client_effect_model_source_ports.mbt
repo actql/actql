@@ -297,7 +297,7 @@ fn model_effect_scope_imported_source(
   input : ClientInferSourceInput,
 ) -> Bool {
   for observed in imports {
-    let artifact = observed.input.artifact
+    guard observed.input.original is Effect(artifact, _) else { return false }
     let program = @checked.effect_program_static_checked_computation(
       artifact.invocation.owner.candidate,
     )

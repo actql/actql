@@ -175,8 +175,8 @@ pub fn issue_single_model_client_effect_acquired_evidence(
   let scopes = []
   let scope_relations : Array[@publication.PublicationContract] = []
   for observed in scope_imports {
-    let artifact = observed.input.artifact
-    guard artifact.scope is Some(original_scope) else {
+    guard observed.input.original is Effect(artifact, _) &&
+      artifact.scope is Some(original_scope) else {
       return Err(Relation(@publication.WrongScope))
     }
     scopes.push(original_scope)

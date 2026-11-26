@@ -357,7 +357,7 @@ pub fn prepare_client_effect_keyed_source_unit(
     Ok(value) => value
   }
   let invocation = match
-    issue_client_effect_local_invocation_body(
+    issue_client_local_unit_invocation(
       parent.prepared,
       unit,
       definition,

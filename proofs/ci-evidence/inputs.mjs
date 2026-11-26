@@ -86,6 +86,7 @@ const migratedTooling = new Map([
   ['scripts/packed-query-evidence.mjs', 'scripts/packed-query-evidence.mts'],
   ['scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.mts'],
   ['scripts/ci-main-base.mjs', 'scripts/ci-main-base.mts'],
+  ['scripts/ci-targets.mjs', 'scripts/ci-targets.mts'],
 ]);
 export const typescriptPreparationInputs = Object.freeze([
   'tsconfig.base.json', 'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts',

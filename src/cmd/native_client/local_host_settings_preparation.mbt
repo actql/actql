@@ -196,7 +196,11 @@ fn local_host_metadata_parser_quote(
 }
 
 ///|
-fn local_host_settings_cursor(text : String) -> @decode.Cursor raise ClientStop {
+fn local_host_settings_cursor(
+  text : String,
+  max_input_bytes? : Int = 2147483646,
+  max_nodes? : Int = 2147483646,
+) -> @decode.Cursor raise ClientStop {
   guard command_preparation_invocation.val is Some(_) else {
     return local_input_cursor(text)
   }
@@ -207,8 +211,8 @@ fn local_host_settings_cursor(text : String) -> @decode.Cursor raise ClientStop 
   let preflight = @source.start_json_source_preflight(
     text,
     {
-      max_input_bytes: Int::max(1, bytes),
-      max_nodes: Int::max(1, text.length()),
+      max_input_bytes: Int::min(max_input_bytes, Int::max(1, bytes)),
+      max_nodes: Int::min(max_nodes, Int::max(1, text.length())),
       max_depth: 64,
     },
     data_keys=true,

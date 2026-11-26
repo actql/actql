@@ -25,6 +25,30 @@ priv struct LocalValuesTaskExecution {
 }
 
 ///|
+/// An observation of the original Local task table before the selected
+/// receiver is registered. The table remains owned by its original execution.
+struct LocalWholeTaskPreparation {
+  run : @strategy.CapturedDAG
+  task : Int
+  tasks : Array[LocalValuesTaskExecution?]
+  available : Ref[Bool]
+}
+
+///|
+/// Check the original receiver and lifetime without choosing another task.
+pub fn local_whole_task_preparation_matches(
+  value : LocalWholeTaskPreparation,
+  run : @strategy.CapturedDAG,
+  task : Int,
+) -> Bool {
+  value.available.val &&
+  physical_equal(value.run, run) &&
+  value.task == task &&
+  @strategy.next_captured_task(run) == Some(task) &&
+  value.tasks.get(task) is Some(None)
+}
+
+///|
 pub(all) enum LocalValuesExecutionIssue {
   InvalidLimits
   Fenced

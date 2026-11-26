@@ -11,14 +11,19 @@ pub(all) enum ClientEffectLocalResultDefinitionIssue {
 ///|
 /// A checked Unit-local Result identity. This is intentionally distinct from
 /// the Run-bound Program Result Definition used by publication.
-struct ClientEffectLocalResultDefinition {
-  owner : PreparedClientEffectComputation
+struct ClientLocalUnitResultDefinition[Owner] {
+  owner : Owner
   unit : Int
   result_name : String
   unit_definition_cid : String
   cid : String
   wire : String
 }
+
+///|
+pub type ClientEffectLocalResultDefinition = ClientLocalUnitResultDefinition[
+  PreparedClientEffectComputation,
+]
 
 ///|
 fn emit_client_effect_local_result_definition(
@@ -84,6 +89,24 @@ pub fn issue_client_effect_local_result_definition(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  issue_client_local_unit_result_definition(
+    owner, unit, unit_definition_cid, result_name, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn[Owner] issue_client_local_unit_result_definition(
+  owner : Owner,
+  unit : Int,
+  unit_definition_cid : String,
+  result_name : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientLocalUnitResultDefinition[Owner],
+  ClientEffectLocalResultDefinitionIssue,
+] {
   let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }

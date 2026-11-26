@@ -1007,6 +1007,7 @@ for (const partial of [false, true]) {
 function pairedAdmissionFixture({wholeSource = false, missingModel = false, effectSelection} = {}) {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}), declarations = new Map();
+  const admissionDeclarations = ['admissionFailures', 'unsupportedAcquiredContentRefusals', 'holderRefusal', 'admitPreparedSubmission'];
   let holder, route, requestNode, unadmitted, directCoordinates;
   function visit(node) {
     if (node === null || typeof node !== 'object') return;
@@ -1025,7 +1026,7 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
       assert.equal(requestNode, undefined); requestNode = node.init;
     }
     if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
-        ['admissionFailures', 'holderRefusal', 'admitPreparedSubmission', 'prepareEffectInferSelection'].includes(node.declarations[0].id.name)) {
+        [...admissionDeclarations, 'prepareEffectInferSelection'].includes(node.declarations[0].id.name)) {
       const name = node.declarations[0].id.name; assert.equal(declarations.has(name), false); declarations.set(name, node);
     }
     for (const child of Object.values(node)) {
@@ -1033,7 +1034,8 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
       else if (child && typeof child === 'object') visit(child);
     }
   }
-  visit(ast); assert(holder); assert(route); assert(requestNode); assert(unadmitted); assert(directCoordinates); assert.equal(declarations.size, 4);
+  visit(ast); assert(holder); assert(route); assert(requestNode); assert(unadmitted); assert(directCoordinates);
+  assert.equal(declarations.size, admissionDeclarations.length + 1);
   const text = node => source.slice(node.start, node.end), record = {computeRuns: new Map()};
   const runtime = {clientProgramSerializationOccurrences: () => [],
     clientProgramEffectInferOccurrences: () => ({$tag: 1, _0: []})}, prepared = {}, requested = {};
@@ -1141,7 +1143,7 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
   const callback = new Function('preparation', 'moon', 'requestOf', 'inferSelections', 'prepareOrdinaryManagedRun',
     'sourceProfile', 'sourceFreeRequestIdentities', 'prepareSubmit', 'installedSourceFor', 'journal', 'namespaceId', 'control',
     'missingModelExecutionRefusals', 'prepareEffectInferSelection', 'retainPreparedSubmissionFailure', 'diagnostic',
-    ['admissionFailures', 'holderRefusal', 'admitPreparedSubmission'].map(name => text(declarations.get(name))).join('\n') +
+    admissionDeclarations.map(name => text(declarations.get(name))).join('\n') +
       '\nreturn admitPreparedSubmission;')(preparation, runtime, requestOf, inferSelections, prepareOrdinaryManagedRun,
     sourceProfile, sourceFreeRequestIdentities, prepareSubmit, installedSourceFor,
     {resolveDefinition(value) {assert.equal(value, requested); return existingDefinition;}}, 'fixture', {}, missingModelExecutionRefusals,

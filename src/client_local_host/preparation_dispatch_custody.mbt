@@ -1211,6 +1211,30 @@ fn installed_effect_model_unit_result_export_limits(
     !@strategy.captured_any_result_borrow_requires_managed_export(borrow) {
     return Err(Export(ForeignOutput))
   }
+  guard completed_unit_result_export_capacity(
+      borrow, rows, limits, codec, managed,
+    )
+    is Some(capacity) else {
+    return Err(Run(InsufficientCapacity))
+  }
+  match
+    reserve_effect_unit_publication_capacity(value, plan, request, capacity) {
+    Ok(_) => ()
+    Err(issue) => return Err(Run(issue))
+  }
+  Ok(limits)
+}
+
+///|
+// Price one exact pinned producer Result. The view/codec and bridge overlap
+// regardless of which caller owns the original Unit's Open.
+fn completed_unit_result_export_capacity(
+  borrow : @strategy.CapturedAnyResultBorrow,
+  rows : Int,
+  limits : @publication_host.PublicationOutputExportLimits,
+  codec : Int64,
+  managed : @execution.ManagedPublicationBridgeLimits?,
+) -> @execution.ExecutionCapacity? {
   let port = @execution.managed_result_occurrence_port(
     @strategy.captured_any_result_borrow_occurrence(borrow),
   )
@@ -1251,9 +1275,9 @@ fn installed_effect_model_unit_result_export_limits(
       workspace_bytes: codec,
     })
     is Some(capacity) else {
-    return Err(Run(InsufficientCapacity))
+    return None
   }
-  let capacity = if managed is Some(geometry) {
+  if managed is Some(geometry) {
     // The existing Local import allowance owns re-admitted rows, values and
     // decode scratch while the physical original and export view remain held.
     guard @local.local_import_retention_capacity({
@@ -1283,18 +1307,12 @@ fn installed_effect_model_unit_result_export_limits(
       )
       is Some(executing) &&
       @execution.execution_capacity(retained, executing) is Some(capacity) else {
-      return Err(Run(InsufficientCapacity))
+      return None
     }
-    capacity
+    Some(capacity)
   } else {
-    capacity
+    Some(capacity)
   }
-  match
-    reserve_effect_unit_publication_capacity(value, plan, request, capacity) {
-    Ok(_) => ()
-    Err(issue) => return Err(Run(issue))
-  }
-  Ok(limits)
 }
 
 ///|

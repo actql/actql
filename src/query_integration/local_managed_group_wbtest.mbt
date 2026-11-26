@@ -673,6 +673,7 @@ fn run_local_managed_group_case(
   second_expected : Array[String],
   activation? : Bool = false,
   close_private_intermediates? : Bool = false,
+  retain_result_export? : Bool = false,
 ) -> Unit raise {
   let split = variant == "collections" ||
     variant == "numeric_filter" ||
@@ -983,30 +984,187 @@ fn run_local_managed_group_case(
   }
   assert_eq(group_rows, group_expected)
 
+  let retained = if retain_result_export {
+    guard intermediates.last() is Some((_, ops, _)) else {
+      fail("missing the original Unit completion")
+    }
+    let unit = @strategy.pin_captured_completed_unit_results(
+      run, group_stage, 1, 2,
+    ).unwrap()
+    let borrow = @strategy.captured_completed_unit_result_at(unit, 0).unwrap()
+    let values = limits.local_execution.rows.input_values
+    let row : @execution.RetainedRowDecodeLimits = {
+      max_bytes: 1024,
+      max_nodes: 24,
+      max_depth: 6,
+      max_text_bytes: 1024,
+    }
+    fn convert() {
+      let bridge = @execution.prepare_managed_publication_bridge(
+        groups,
+        (ops.material)().unwrap(),
+        10,
+        values,
+        16,
+        1024,
+      ).unwrap()
+      for wire in group_rows {
+        @execution.append_managed_publication_bridge_wire(bridge, wire, row).unwrap()
+      }
+      let completed = @execution.finish_managed_publication_bridge(bridge).unwrap()
+      let wire = row_wire_limits()
+      let preparation = @execution.start_completed_result_relation_export(
+        completed,
+        @strategy.captured_any_result_borrow_occurrence(borrow),
+        {
+          max_fields: 10,
+          max_mapping_work: 100,
+          max_order_work: 100,
+          max_workspace_entries: 16,
+        },
+        10,
+        values,
+        wire,
+        wire,
+        { max_fields: 10, max_bytes: 1024, max_nodes: 100, max_depth: 10, },
+        64,
+      ).unwrap()
+      for _ in 0..<64 {
+        if @execution.advance_completed_result_relation_export(preparation, 16).unwrap().0 {
+          break
+        }
+      }
+      let stream = @execution.finish_completed_result_relation_export_preparation(
+        preparation,
+      ).unwrap()
+      while @execution.next_completed_output_export(stream).unwrap() is Some(_) {
+
+      }
+      let (receipt, _) = @execution.finish_completed_relation_export(stream).unwrap()
+      (bridge, preparation, receipt)
+    }
+    let (bridge, preparation, receipt) = convert()
+    let handoff = @strategy.prepare_captured_completed_unit_result_handoff(
+      unit, 0, groups, bridge, preparation, receipt,
+    ).unwrap()
+    let edge_at = (task : Int) => {
+      for index in 0..<@strategy.graph_data_count(graph) {
+        let edge = @strategy.graph_data_at(graph, index).unwrap()
+        if @strategy.data_edge_consumer(edge) == task {
+          return Some(index)
+        }
+      }
+      None
+    }
+    let first = edge_at(first_task).unwrap()
+    let second = edge_at(second_task).unwrap()
+    assert_true(
+      @strategy.retain_captured_completed_unit_result_input(
+        handoff, second, 16, 1024,
+      )
+      is Err(ForeignCandidate),
+    )
+    assert_false(@strategy.captured_next_task_has_prepared_input(run, 0))
+    @strategy.retain_captured_completed_unit_result_input(
+      handoff, first, 16, 1024,
+    ).unwrap()
+    @strategy.retain_captured_completed_unit_result_input(
+      handoff, first, 16, 1024,
+    ).unwrap()
+    // Re-admit equal bytes independently for the negative control. That
+    // conversion cannot replace the one already attached to this receiver.
+    let (foreign_bridge, foreign_preparation, foreign_receipt) = convert()
+    assert_eq(
+      @execution.output_stream_identity(
+        @execution.completed_relation_export_content(receipt),
+      ),
+      @execution.output_stream_identity(
+        @execution.completed_relation_export_content(foreign_receipt),
+      ),
+    )
+    assert_true(
+      @strategy.prepare_captured_completed_unit_result_handoff(
+        unit, 0, groups, foreign_bridge, preparation, receipt,
+      )
+      is Err(ForeignCandidate),
+    )
+    let replacement = @strategy.prepare_captured_completed_unit_result_handoff(
+      unit, 0, groups, foreign_bridge, foreign_preparation, foreign_receipt,
+    ).unwrap()
+    assert_true(
+      @strategy.retain_captured_completed_unit_result_input(
+        replacement, first, 16, 1024,
+      )
+      is Err(ForeignCandidate),
+    )
+    @execution.cancel_completed_relation_export_receipt(foreign_receipt)
+    @execution.close_managed_publication_bridge(foreign_bridge)
+    let original = @strategy.captured_pending_task_input_output(
+      run, first_task, 0,
+    ).unwrap()
+    Some((unit, bridge, receipt, handoff, second, original))
+  } else {
+    None
+  }
+  let supplied = if retained is Some(_) {
+    Some([@local_driver.local_managed_captured_relation_input()])
+  } else {
+    None
+  }
+
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
     first_task,
     [groups],
-    [group_rows],
+    if retained is Some(_) {
+      []
+    } else {
+      [group_rows]
+    },
     first_task,
     first_live,
+    ordered_outputs=supplied,
     grant?,
   )
+  if retained is Some(_) {
+    assert_true(
+      first_ops.inputs.is_empty() && first_ops.retained_inputs.is_empty(),
+    )
+  }
   assert_eq(local_managed_test_rows(first_ops), group_rows)
 
+  if retained is Some((_, _, _, handoff, edge, original)) {
+    @strategy.retain_captured_completed_unit_result_input(
+      handoff, edge, 16, 1024,
+    ).unwrap()
+    let received = @strategy.captured_pending_task_input_output(
+      run, second_task, 0,
+    ).unwrap()
+    assert_true(physical_equal(original, received))
+  }
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
     second_task,
     [groups],
-    [group_rows],
+    if retained is Some(_) {
+      []
+    } else {
+      [group_rows]
+    },
     second_task,
     second_live,
+    ordered_outputs=supplied,
     grant?,
   )
+  if retained is Some(_) {
+    assert_true(
+      second_ops.inputs.is_empty() && second_ops.retained_inputs.is_empty(),
+    )
+  }
   assert_eq(local_managed_test_rows(second_ops), second_expected)
   assert_true(@execution.managed_completed_output_available(first))
   assert_true(@execution.managed_completed_output_available(second))
@@ -1023,6 +1181,11 @@ fn run_local_managed_group_case(
   @strategy.close_captured_task_output(run, second_task)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
+  if retained is Some((unit, bridge, receipt, _, _, _)) {
+    assert_true(@strategy.release_captured_completed_unit_results(unit))
+    @execution.cancel_completed_relation_export_receipt(receipt)
+    @execution.close_managed_publication_bridge(bridge)
+  }
   for index = intermediates.length() - 1; index >= 0; index = index - 1 {
     let (task, ops, live) = intermediates[index]
     if live.val {
@@ -1044,6 +1207,17 @@ fn run_local_managed_group_case(
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Local siblings share the completed producer's one Result conversion" {
+  run_local_managed_group_case(
+    "keyed",
+    ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"],
+    ["{\"id\":null,\"n\":1}", "{\"id\":1,\"n\":2}"],
+    ["{\"n\":1,\"id\":null}", "{\"n\":2,\"id\":1}"],
+    retain_result_export=true,
+  )
 }
 
 ///|

@@ -346,8 +346,7 @@ pub fn NativeClientMockModelWork::open(
     // the full original for the later suffix; this view preserves its owner
     // and step coordinates and neither recompiles nor copies kernel contexts.
     let input_sequence = if compiled_prefix {
-      guard sources is None &&
-        @execution.generated_sequence_step_count(sequence) == model_step else {
+      guard @execution.generated_sequence_step_count(sequence) == model_step else {
         return Err(ForeignOriginal)
       }
       sequence

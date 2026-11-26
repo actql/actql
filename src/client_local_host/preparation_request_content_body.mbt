@@ -157,7 +157,7 @@ fn[I] prepare_request_serialization_compilation_owned(
   match keyed {
     None => {
       guard (
-          @publication_host.prepared_client_acquisition_count(prepared) <= 1 ||
+          @publication_host.prepared_client_acquisition_count(prepared) == 0 ||
           @publication_host.client_serialization_plan_direct_occurrences(
             component, prepared,
           )

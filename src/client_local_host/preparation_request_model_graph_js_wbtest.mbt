@@ -3241,12 +3241,25 @@ test "two Model Plan current mutation refuses changed original read partition an
 ///|
 // Same Request and actual two Source/Model compiler graph. Providers below
 // are explicit pure component ports; no physical read or normal ABI is claimed.
-fn request_captured_models_original_case(native : Bool) -> Unit raise {
+fn request_captured_models_original_case(
+  native : Bool,
+  whole? : Bool = false,
+  swapped? : Bool = false,
+  read_headroom? : (Bool, Int64)? = None,
+) -> Unit raise {
   let row_document =
     #|{"version":"actql/0.1","id":"request-two-captured-models","stages":[{"id":"left","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"right","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"classify","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}},{"id":"classify-second","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"classify","result":"rows"}},"second":{"from":{"stage":"classify-second","result":"rows"}}}}
   let native_document =
     #|{"version":"actql/0.1","id":"request-native-source-two-models","stages":[{"id":"input","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"from":"rows","derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"from":"rows","derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"first","result":"rows"}},"second":{"from":{"stage":"second","result":"rows"}}}}
-  let document = if native { native_document } else { row_document }
+  let whole_document =
+    #|{"version":"actql/0.1","id":"request-native-whole-joined-models","stages":[{"id":"input","inputs":{"left":{"connector":"crm/main","resource":"r"},"right":{"connector":"crm/main","resource":"r"}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}},"as":"joined"}],"results":{"rows":{"from":"joined","fields":["id"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"from":"rows","derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"from":"rows","derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"first","result":"rows"}},"second":{"from":{"stage":"second","result":"rows"}}}}
+  let document = if whole {
+    whole_document
+  } else if native {
+    native_document
+  } else {
+    row_document
+  }
   let declaration = request_model_module_declaration()
   let (parent, input, prepared) = request_model_input_fixture(
     authored=Some(document),
@@ -3301,7 +3314,21 @@ fn request_captured_models_original_case(native : Bool) -> Unit raise {
     "sha256:" + "a".repeat(64),
     "two-model-captured",
   ).unwrap()
-  let direct = request_model_direct_occurrences(parent, input).unwrap()
+  let (direct, sources) = if native {
+    (request_model_direct_occurrences(parent, input).unwrap(), [])
+  } else {
+    assert_true(
+      reserve_request_model_file_source_inputs(parent, input.copy(), request)
+      is Err(Preparation(ForeignOriginal)),
+    )
+    reserve_request_model_file_source_inputs(parent, input, request).unwrap()
+  }
+  assert_true(
+    physical_equal(
+      request_model_direct_occurrences(parent, input).unwrap(),
+      direct,
+    ),
+  )
   assert_eq(
     @publication_host.client_direct_acquisition_occurrence_count(direct),
     if native {
@@ -3310,8 +3337,61 @@ fn request_captured_models_original_case(native : Bool) -> Unit raise {
       2
     },
   )
+  let whole_sources = []
+  if whole {
+    assert_eq(sources.length(), 2)
+    assert_eq(
+      @strategy.graph_captured_prefix(
+        @publication_host.prepared_client_graph(prepared),
+      ),
+      1,
+    )
+    for index in 0..<2 {
+      guard @publication_host.client_direct_acquisition_occurrence_at(
+          direct, index,
+        )
+        is Some((0, source_index, task)) &&
+        task == 0 else {
+        fail(
+          "each authored source must select a distinct input of the same JOIN task",
+        )
+      }
+      let source = sources[index]
+      assert_true(
+        @publication_host.client_source_acquisition_matches_program(
+          prepared, 0, source_index, source,
+        ),
+      )
+      whole_sources.push(
+        prepare_installed_whole_source_capacity(
+          prepared,
+          source,
+          declaration,
+          contracts,
+          installed_row_input_policy(4, 4096, 1000, 20, 4),
+          None,
+        ).unwrap(),
+      )
+    }
+  } else {
+    assert_true(sources.is_empty())
+  }
+  if swapped {
+    whole_sources.swap(0, 1)
+  }
   let loader = publication_test_loader(publication_test_url())
   let entries : Array[Int] = []
+  let declared_provider = if !native && !whole {
+    Some(
+      installed_json_source_reader_capacity(
+        [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4],
+        1,
+        3,
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
   let selected = prepare_request_model_capture_module(
     parent,
     input,
@@ -3319,7 +3399,7 @@ fn request_captured_models_original_case(native : Bool) -> Unit raise {
     compiled,
     definition,
     compilation,
-    if native {
+    if native || whole {
       []
     } else {
       [declaration, declaration]
@@ -3360,13 +3440,83 @@ fn request_captured_models_original_case(native : Bool) -> Unit raise {
     } else {
       None
     },
+    providers=declared_provider.map(provider => [Some(provider), Some(provider)]),
+    whole_sources~,
     components_factory=Some((index, extent, _, _) => {
       entries.push(index)
       @local.managed_provider(_ => false, _ => Some(extent), (_, _, _, _, _) => {
         Err(@connector.ComputeUnsupported)
       })
     }),
-  ).unwrap()
+  )
+  if swapped {
+    assert_true(selected is Err(Installed(ForeignOriginal)))
+    assert_true(entries.is_empty())
+    assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    return
+  }
+  let selected = match selected {
+    Ok(value) => value
+    Err(Installed(ForeignOriginal)) =>
+      fail("captured Model module rejected its original Source")
+    Err(Installed(Unsupported)) =>
+      fail("captured Model module rejected the supported shape")
+    Err(Installed(InsufficientCapacity)) =>
+      fail("captured Model module could not fund the original shape")
+    Err(Installed(MetadataCapacityUnavailable)) =>
+      fail("captured Model module could not fund metadata")
+    Err(Preparation(issue)) => fail(@debug.to_string(issue))
+    Err(_) => fail("captured Model module refused at another boundary")
+  }
+  if whole {
+    assert_eq(@strategy.graph_captured_prefix(selected.graph), 0)
+    assert_true(@publication_host.prepared_client_has_checked_sources(prepared))
+    let policy = @publication_host.prepared_client_publication_data_policy_cid(
+      prepared,
+    )
+    assert_true(
+      policy is Some(_),
+      msg="the two checked Sources must contribute the original Result policy",
+    )
+    assert_eq(
+      @publication_host.client_compiled_run_infer_observation_policy(compiled),
+      policy,
+    )
+    let originals = @publication_host.client_compiled_run_publication_policy_bodies(
+      compiled, 65536, 8192, 64,
+    ).unwrap()
+    assert_eq(Some(originals[0].1), policy)
+    assert_true(
+      @publication_host.with_client_source_free_result_policy(
+        compiled,
+        "sha256:" + "0".repeat(64),
+        "{}",
+        4096,
+        128,
+        16,
+      )
+      is Err(ForeignOwner),
+    )
+    for index, original in whole_sources {
+      assert_true(physical_equal(selected.whole_sources[index], original))
+    }
+  }
+  if declared_provider is Some(provider) {
+    for index in 0..<2 {
+      let acquisition = prepared_installed_managed_capture_acquisition(
+        selected, index,
+      ).unwrap()
+      assert_true(
+        installed_provider_row_capture_capacity_matches(
+          selected.captures[index],
+          acquisition,
+          provider,
+        ),
+      )
+    }
+  }
   assert_eq(entries, [0, 1])
   assert_true(
     selected.direct_occurrences is Some(original) &&
@@ -3412,7 +3562,66 @@ fn request_captured_models_original_case(native : Bool) -> Unit raise {
     assert_true(plan.limits.planning_work <= initial.planning_work)
   }
   let scopes = prepare_request_models_read_scopes(parent, input, plan).unwrap()
-  complete_request_model_preparation(parent, input, plan).unwrap()
+  let capacity = parent.program_capacity.unwrap()
+  let (retained, execution) = @resources.preparation_capacity_working_extents(
+    capacity, input,
+  ).unwrap()
+  if read_headroom is Some((retention_axis, bytes)) {
+    let usage = @resources.ledger_usage(parent.ledger)
+    let limits = @resources.ledger_limits(parent.ledger)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retention_axis {
+        limits.retained_bytes -
+        usage.held_bytes -
+        usage.reserved_retention_bytes -
+        bytes
+      } else {
+        0L
+      },
+      if retention_axis {
+        0L
+      } else {
+        limits.execution_bytes - usage.reserved_execution_bytes - bytes
+      },
+    ).unwrap()
+    let completed = complete_request_model_preparation(parent, input, plan)
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    if bytes == 7L {
+      if retention_axis {
+        assert_true(completed is Err(Capacity(Resource(RetentionLimit))))
+      } else {
+        assert_true(completed is Err(Capacity(Resource(ExecutionLimit))))
+      }
+      assert_true(parent.phase == ProgramBodyFailed)
+      assert_eq(
+        @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+        (retained, execution),
+      )
+      assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+      for index, scope in scopes {
+        @publication_host.finish_client_model_read_scope(
+          scope,
+          compiled,
+          definition,
+          graphs[index],
+          true,
+        ).unwrap()
+        |> ignore
+      }
+      abort_request_preparation_after_cleanup(parent).unwrap()
+      assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+      return
+    }
+    completed.unwrap()
+  } else {
+    complete_request_model_preparation(parent, input, plan).unwrap()
+  }
+  let extra = if whole { 8L } else { 0L }
+  assert_eq(
+    @resources.preparation_capacity_reserved_extents(capacity, input).unwrap(),
+    (retained + extra, execution + extra),
+  )
   assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
   let run = begin_request_model_managed_run(
     parent,
@@ -3421,6 +3630,48 @@ fn request_captured_models_original_case(native : Bool) -> Unit raise {
     scopes=Some(scopes),
   ).unwrap()
   assert_true(physical_equal(run.ledger.unwrap(), parent.ledger))
+  if whole {
+    let (first, _, _, first_capacity) = begin_installed_managed_whole_source_read_at(
+      run, prepared, request, declaration, 0,
+    ).unwrap()
+    let (second, _, _, second_capacity) = match
+      begin_installed_managed_whole_source_read_at(
+        run, prepared, request, declaration, 1,
+      ) {
+      Ok(value) => value
+      Err(Unsupported) =>
+        fail("the second checked Whole Source lacks an original Read slot")
+      Err(_) =>
+        fail("the second checked Whole Source refused at another boundary")
+    }
+    assert_true(physical_equal(first_capacity, whole_sources[0]))
+    assert_true(physical_equal(second_capacity, whole_sources[1]))
+    let foreign = @publication_host.prepare_source_free_client_request_identity(
+      prepared,
+      "sha256:" + "a".repeat(64),
+      "two-model-captured",
+    ).unwrap()
+    assert_true(
+      begin_installed_managed_whole_source_read_at(
+        run, prepared, foreign, declaration, 1,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(
+      begin_installed_managed_whole_source_read_at(
+        run, prepared, request, declaration, 2,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(
+      begin_installed_managed_whole_source_read_at(
+        run, prepared, request, declaration, 1,
+      )
+      is Err(AlreadyBound),
+    )
+    retire_installed_source_read(second).unwrap()
+    retire_installed_source_read(first).unwrap()
+  }
   for index, scope in scopes {
     @publication_host.finish_client_model_read_scope(
       scope,
@@ -3460,6 +3711,30 @@ test "two captured Model Request keeps original Direct inventory and all scopes 
 ///|
 test "native captured Model Request keeps one original Query and both ordered scopes on its aggregate Plan" {
   request_captured_models_original_case(true)
+}
+
+///|
+test "native joined Whole inputs bind the two Model scopes on the same Request" {
+  request_captured_models_original_case(false, whole=true)
+}
+
+///|
+test "native joined Whole Read slots obey original preparation headroom" {
+  // One existing array grows by one reference. The tariff is 8 logical bytes.
+  for retention_axis in [true, false] {
+    for bytes in [8L, 7L] {
+      request_captured_models_original_case(
+        false,
+        whole=true,
+        read_headroom=Some((retention_axis, bytes)),
+      )
+    }
+  }
+}
+
+///|
+test "native joined Whole inputs refuse swapped original ports before Model factory selection" {
+  request_captured_models_original_case(false, whole=true, swapped=true)
 }
 
 ///|

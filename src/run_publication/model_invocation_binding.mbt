@@ -166,15 +166,16 @@ pub fn check_model_observation_binding(
 }
 
 ///|
-/// Compare the admitted Model-only Invocation and its ordered captured inputs
-/// without another parse or write. The installing owner supplies the actual
-/// capture issuer and separately retains the durable slot inventory.
-pub fn source_free_model_invocation_matches(
+/// Compare the admitted Model Invocation to its original ordered inputs and
+/// Source evidence. The installing owner separately retains the Call slots.
+pub fn model_invocation_matches(
   template : RunEvidenceValue,
   observation : RunEvidenceValue,
   invocation : PublicationContract,
   inputs : Array[String],
   policy_cid : String,
+  source_evidence? : Array[RunEvidenceValue] = [],
+  capture_interval? : (String, String)? = None,
 ) -> Bool {
   guard template.name == "bound_invocation_template" &&
     model_template_requires_slots(template) &&
@@ -190,15 +191,39 @@ pub fn source_free_model_invocation_matches(
     contract_string_from_value(observation.value, "data_policy_cid") ==
     Some(policy_cid) &&
     contract_string_from_value(observation.value, "consistency") ==
-    Some("no_external_sources") &&
+    Some(
+      if source_evidence.is_empty() {
+        "no_external_sources"
+      } else {
+        "independent_snapshots"
+      },
+    ) &&
     @json.object_field(observation.value, "content_generation_cids") is None &&
     @json.object_field(observation.value, "source_evidence_cids")
     is Some(@json.Array(sources)) &&
-    @json.array_count(sources) == 0 &&
+    @json.array_count(sources) == source_evidence.length() &&
     @json.object_field(observation.value, "captured_input_artifact_cids")
     is Some(@json.Array(originals)) &&
     @json.array_count(originals) == inputs.length() else {
     return false
+  }
+  match capture_interval {
+    None if source_evidence.is_empty() => ()
+    Some((started, completed)) if !source_evidence.is_empty() => {
+      guard contract_string_from_value(observation.value, "capture_started_at") ==
+        Some(started) &&
+        contract_string_from_value(observation.value, "capture_completed_at") ==
+        Some(completed) else {
+        return false
+      }
+    }
+    _ => return false
+  }
+  for index, expected in source_evidence {
+    if expected.name != "source_evidence" ||
+      optional_string(@json.array_at(sources, index)) != Some(expected.identity) {
+      return false
+    }
   }
   for index, expected in inputs {
     if optional_string(@json.array_at(originals, index)) != Some(expected) {

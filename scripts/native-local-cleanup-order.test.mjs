@@ -651,7 +651,10 @@ test('Native Host settings runs original staged decoding only after same Read co
         writeFileSync(join(root, 'src', name, file), read(`src/${name}/${file}`));
     }
   }
-  for (const name of ['execution', 'arena', 'local_host']) mkdirSync(join(root, 'src', name));
+  for (const name of ['execution', 'arena', 'local_host', 'run_host']) mkdirSync(join(root, 'src', name));
+  writeFileSync(join(root, 'src/run_host/moon.pkg'), 'supported_targets = "js"\n');
+  writeFileSync(join(root, 'src/run_host/model-settings.mbt'),
+    pick('src/run_publication_host/client_local_original_codec.mbt', 'pub fn client_local_model_configuration_limit('));
   writeFileSync(join(root, 'src/local_host/moon.pkg'), 'supported_targets = "js"\n');
   writeFileSync(join(root, 'src/local_host/settings.mbt'),
     pick('src/platform_native/client_host/model_http_call.mbt', 'pub(all) struct NativeModelHttpConfigurationFiles {'));
@@ -670,11 +673,12 @@ pub fn InstalledArenaHost::prepare_domain_original_read_construction(self : Self
   if r > self.ceiling || e > self.ceiling { Err(Refused) } else { Ok(()) }
 }
 `);
-  writeFileSync(join(root, 'src/moon.pkg'), 'supported_targets = "js"\nimport { "actql/actql/arena" @initial_arena, "actql/actql/execution" @execution, "actql/actql/local_host" @local_host, "actql/actql/source_value" @source, "actql/actql/decode_core" @decode, "actql/actql/decode_shape" @shape, "moonbitlang/core/encoding/utf8" } for "wbtest"\n');
+  writeFileSync(join(root, 'src/moon.pkg'), 'supported_targets = "js"\nimport { "actql/actql/arena" @initial_arena, "actql/actql/execution" @execution, "actql/actql/local_host" @local_host, "actql/actql/run_host" @run_host, "actql/actql/source_value" @source, "actql/actql/decode_core" @decode, "actql/actql/decode_shape" @shape, "moonbitlang/core/encoding/utf8" } for "wbtest"\n');
   const preparation = blocks('src/cmd/native_client/local_host_settings_preparation.mbt')
     .filter(body => !body.includes('fn local_host_configuration_text_file(')).join('///|');
   const settings = ['priv struct LocalHostSettings {', 'priv struct LocalModelHttpInstallationSettings {',
     'fn local_settings_text(', 'fn local_model_http_installation_settings(',
+    'fn local_model_http_installation_selections(',
     'fn local_host_journal_record_limit(', 'fn local_host_settings(']
     .map(marker => pick('src/cmd/native_client/local_adoption.mbt', marker)).join('\n');
   const input = pick('src/cmd/native_client/local.mbt', 'fn local_input_cursor(');
@@ -685,9 +689,10 @@ pub fn InstalledArenaHost::prepare_domain_original_read_construction(self : Self
     submission_ttl_ms:1000, journal_record_limit:1025, journal_snapshot_bytes:4096,
     installation_files:Array.from({length:9},(_,i)=>`original-${i}.json`),
   }}});
-  const withModel = responseProfile => {
+  const withModel = (responseProfile, extraTask) => {
     const settings = JSON.parse(wire);
-    settings.native.local.model_http_installation = {
+    const first = {
+      task_id: 'first-task',
       provider_id: 'models/fixture',
       credential_installation: 'original-0.json',
       installation_revision: 'original-1.json',
@@ -697,6 +702,12 @@ pub fn InstalledArenaHost::prepare_domain_original_read_construction(self : Self
       execution_file: 'original-4.json',
       run_policy_file: 'original-5.json',
     };
+    settings.native.local.model_http_installations = [first];
+    if (extraTask) {
+      settings.native.local.model_http_installations.push({...first, task_id: extraTask,
+        credential_installation: 'original-6.json', response_profile: 'original-7.json',
+        response_profile_cid: 'sha256:' + '2'.repeat(64), execution_file: 'original-8.json'});
+    }
     return JSON.stringify(settings);
   };
   writeFileSync(join(root, 'src/probe_wbtest.mbt'), `
@@ -742,7 +753,8 @@ test "configured Model HTTP selects only the original admitted installation file
   command_preparation_invocation.val = Some(value)
   defer { command_preparation_invocation.val = None }
   let selected = local_host_settings(${JSON.stringify(withModel('original-3.json'))})
-  let model = selected.model_http_installation.unwrap()
+  let model = selected.model_http_installations.unwrap()[0]
+  assert_eq(model.task_id, "first-task")
   assert_eq(model.files.setting, "original-0.json")
   assert_eq(model.files.installation_revision, "original-1.json")
   assert_eq(model.files.configuration_contract, "original-2.json")
@@ -750,6 +762,16 @@ test "configured Model HTTP selects only the original admitted installation file
   assert_eq(model.execution_file, Some("original-4.json"))
   assert_eq(model.policy_file, Some("original-5.json"))
   assert_true(host.calls.length() >= 6)
+  let pair = local_host_settings(${JSON.stringify(withModel('original-3.json', 'second-task'))})
+    .model_http_installations.unwrap()
+  assert_eq(pair.length(), 2)
+  assert_eq(pair[1].task_id, "second-task")
+  assert_eq(pair[1].execution_file, Some("original-8.json"))
+  let duplicate = try {
+    ignore(local_host_settings(${JSON.stringify(withModel('original-3.json', 'first-task'))}))
+    ""
+  } catch { ClientStop(reason) => reason }
+  assert_eq(duplicate, "InvalidLocalModelHttpInstallation")
   let refused = try {
     ignore(local_host_settings(${JSON.stringify(withModel('foreign.json'))}))
     ""

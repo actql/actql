@@ -184,7 +184,7 @@ export async function executeMonitor({mode, options, report, directory}) {
       if (ready) {
         await releaseMeasurements({options, prepared, repository, root: raw, source: report.source, command, onMetric});
         const {assessLatency} = await import('./operation-performance.mjs');
-        const {nodeBenchmarkInstrumentation} = await import('./benchmark-node-operations.mjs');
+        const {nodeBenchmarkInstrumentation} = await import('./node-benchmark-evidence.mjs');
         await mockWorkflowMetrics({prepared, root: raw, repository, command, counts,
           onMetric: async metric => {
             const binding = {cohortSha256: digest(await readFile(prepared.manifestPath)), fixtureSha256: metric.fixtureSha256};

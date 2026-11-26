@@ -5,10 +5,27 @@ priv struct LocalCommandModelRun {
   compiled : @run_host.ClientCompiledRun
   definition : @publication.PublicationContract
   graphs : Array[@run_host.ClientInferPlanGraph]
-  requirements : @local_values.ClientLocalRequirements
+  requirements : @local_values.ClientLocalRequirements?
   scopes : Array[@run_host.ClientModelReadScope]
   reads : Array[@run_host.ClientModelReadPreparation?]
   completions : Array[@infer.OutputUse?]
+  mut whole_inputs : LocalCommandWholeModelInputs?
+}
+
+///|
+// At most one task is prepared before its managed provider opens. Earlier
+// workers retain their own already bound Scope, alongside the File producer.
+priv struct LocalCommandWholeModelInputs {
+  sources : Array[@run_host.ClientInferComposedSources]
+  mut pending : (Int, @local_host.NativeWholeModelResultInputs)?
+}
+
+///|
+priv enum LocalCommandModelModule {
+  SourceFreeModelModule(
+    @local_values.ClientInstalledManagedSourceFreePreparation
+  )
+  FileModelModule(@local_values.ClientInstalledManagedCapturePlan)
 }
 
 ///|
@@ -72,6 +89,85 @@ fn[T] LocalCommandPreparationOriginal::require_model_plan(
 }
 
 ///|
+// Both module forms register the original ordered Model providers through
+// the same retained command. Source locators are selected only for File.
+fn LocalCommandBusinessPreparation::prepare_model_module(
+  self : Self,
+  business : LocalCommandBusinessOriginal,
+  parent : @local_values.ClientRequestPreparation[LocalCommandBusinessInput],
+  input : LocalCommandBusinessInput,
+  model : LocalCommandModelCompilation,
+  request : @run_host.ClientRequestIdentity,
+  compiled : @run_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> LocalCommandModelModule raise ClientStop {
+  let count = model.graphs.length()
+  let component_factory = if count == 1 {
+    Some((_, prefix, suffix) => {
+      self.original.configured_native_model_provider(
+        business, model, 0, prefix, suffix,
+      )
+    })
+  } else {
+    None
+  }
+  let components_factory = if count > 1 {
+    Some((index, _, prefix, suffix) => {
+      self.original.configured_native_model_provider(
+        business, model, index, prefix, suffix,
+      )
+    })
+  } else {
+    None
+  }
+  let providers = if count == 1 { 1 } else { 0 }
+  match self.file_source {
+    Some(Original(declarations, listings)) => {
+      let (selected, sources) = prepare_local_native_model_file_request_module(
+        self.original,
+        parent,
+        input,
+        model.program,
+        request,
+        compiled,
+        definition,
+        model.compilation,
+        declarations,
+        listings,
+        self.installed_contracts,
+        providers,
+        component_factory,
+        components_factory,
+      )
+      self.file_source = Some(sources)
+      FileModelModule(selected)
+    }
+    None => {
+      let selected = local_command_query_preparation_result(
+        self.original,
+        @local_values.prepare_request_model_source_free_module(
+          parent,
+          input,
+          request,
+          compiled,
+          definition,
+          model.compilation,
+          self.installed_contracts,
+          true,
+          providers,
+          native_request_provider_factory,
+          component_factory~,
+          components_factory~,
+        ).map_err(issue => CommandBusinessModelGraph(issue)),
+        "LocalOriginalModelModuleUnavailable",
+      )
+      SourceFreeModelModule(selected)
+    }
+    _ => stop("LocalBusinessOriginalUnavailable")
+  }
+}
+
+///|
 fn LocalCommandBusinessPreparation::prepare_model_run(
   self : Self,
   model : LocalCommandModelCompilation,
@@ -89,71 +185,59 @@ fn LocalCommandBusinessPreparation::prepare_model_run(
   }
   self.original.with_business_request(self.capture, () => {
     let count = model.graphs.length()
-    let selected = match
-      @local_values.prepare_request_model_source_free_module(
-        parent,
-        input,
-        request,
-        compiled,
-        definition,
-        model.compilation,
-        self.installed_contracts,
-        true,
-        if count == 1 {
-          1
-        } else {
-          0
-        },
-        native_request_provider_factory,
-        component_factory=if count == 1 {
-          Some((_, prefix, suffix) => {
-            self.original.configured_native_model_provider(
-              business, model, 0, prefix, suffix,
-            )
-          })
-        } else {
-          None
-        },
-        components_factory=if count > 1 {
-          Some((index, _, prefix, suffix) => {
-            self.original.configured_native_model_provider(
-              business, model, index, prefix, suffix,
-            )
-          })
-        } else {
-          None
-        },
-      ) {
-      Ok(value) => value
-      Err(issue) => {
-        self.original.retain_primary(CommandBusinessModelGraph(issue))
-        stop("LocalOriginalModelModuleUnavailable")
-      }
+    let selected = self.prepare_model_module(
+      business, parent, input, model, request, compiled, definition,
+    )
+    let requirements = match selected {
+      SourceFreeModelModule(original) =>
+        Some(
+          original
+          .model_local_requirements(model.program)
+          .unwrap_or_else(() => {
+            stop("LocalOriginalModelPublicationLimitsUnavailable")
+          }),
+        )
+      FileModelModule(_) => None
     }
-    let requirements = selected
-      .model_local_requirements(model.program)
-      .unwrap_or_else(() => {
-        stop("LocalOriginalModelPublicationLimitsUnavailable")
-      })
     let plan = if count == 1 {
       let limits = model.bounds[0]
       self.original.require_model_plan(
-        @local_values.prepare_request_model_source_free_plan(
-          parent,
-          input,
-          selected,
-          request,
-          compiled,
-          definition,
-          model.occurrences[0],
-          model.graphs[0],
-          limits.model.ledger,
-          limits.mapping.logical.max_live_value_bytes,
-          limits.identity.wire.max_bytes.to_int64(),
-          limits.input.rows.operation_entries,
-          limits.input.rows.retained_entries,
-          limits.input.rows.metadata_entries,
-        ),
+        match selected {
+          SourceFreeModelModule(original) =>
+            @local_values.prepare_request_model_source_free_plan(
+              parent,
+              input,
+              original,
+              request,
+              compiled,
+              definition,
+              model.occurrences[0],
+              model.graphs[0],
+              limits.model.ledger,
+              limits.mapping.logical.max_live_value_bytes,
+              limits.identity.wire.max_bytes.to_int64(),
+              limits.input.rows.operation_entries,
+              limits.input.rows.retained_entries,
+              limits.input.rows.metadata_entries,
+            )
+          FileModelModule(original) =>
+            @local_values.prepare_request_model_capture_plan(
+              parent,
+              input,
+              original,
+              request,
+              compiled,
+              definition,
+              model.occurrences[0],
+              model.graphs[0],
+              limits.model.ledger,
+              limits.mapping.logical.max_live_value_bytes,
+              limits.identity.wire.max_bytes.to_int64(),
+              limits.input.rows.operation_entries,
+              limits.input.rows.retained_entries,
+              limits.input.rows.metadata_entries,
+            )
+        },
       )
     } else {
       self.prepare_model_group_plan(
@@ -192,6 +276,7 @@ fn LocalCommandBusinessPreparation::prepare_model_run(
       scopes,
       reads: Array::make(count, None),
       completions: Array::make(count, None),
+      whole_inputs: None,
     })
     business.model_work = Array(capacity=count)
     match
@@ -228,7 +313,7 @@ fn LocalCommandBusinessPreparation::prepare_model_group_plan(
   model : LocalCommandModelCompilation,
   parent : @local_values.ClientRequestPreparation[LocalCommandBusinessInput],
   input : LocalCommandBusinessInput,
-  selected : @local_values.ClientInstalledManagedSourceFreePreparation,
+  selected : LocalCommandModelModule,
   request : @run_host.ClientRequestIdentity,
   compiled : @run_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
@@ -257,22 +342,42 @@ fn LocalCommandBusinessPreparation::prepare_model_group_plan(
     stop("LocalOriginalModelBoundsUnavailable")
   }
   self.original.require_model_plan(
-    @local_values.prepare_request_models_source_free_plan(
-      parent,
-      input,
-      selected,
-      request,
-      compiled,
-      definition,
-      model.occurrences,
-      model.graphs,
-      ledger,
-      retained,
-      execution,
-      reservations.to_int(),
-      holdings.to_int(),
-      delegations.to_int(),
-    ),
+    match selected {
+      SourceFreeModelModule(original) =>
+        @local_values.prepare_request_models_source_free_plan(
+          parent,
+          input,
+          original,
+          request,
+          compiled,
+          definition,
+          model.occurrences,
+          model.graphs,
+          ledger,
+          retained,
+          execution,
+          reservations.to_int(),
+          holdings.to_int(),
+          delegations.to_int(),
+        )
+      FileModelModule(original) =>
+        @local_values.prepare_request_models_capture_plan(
+          parent,
+          input,
+          original,
+          request,
+          compiled,
+          definition,
+          model.occurrences,
+          model.graphs,
+          ledger,
+          retained,
+          execution,
+          reservations.to_int(),
+          holdings.to_int(),
+          delegations.to_int(),
+        )
+    },
   )
 }
 

@@ -132,7 +132,7 @@ fn issue_model_effect_local_invocation(
     )
   }
   observations.sort_by(@canonical_value.compare_utf16)
-  issue_client_effect_local_invocation_body(
+  issue_client_local_unit_invocation(
     owner,
     unit,
     definition,

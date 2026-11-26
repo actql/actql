@@ -107,6 +107,10 @@ priv struct LocalCommandPreparationOriginal {
   mut business_inventory_recorded : Bool
   mut run_observation : LocalCommandRunObservationOriginal?
   mut project : LocalProjectConfiguration?
+  mut declared_file_sources : (
+    Array[LocalProjectMockSourceDeclaration],
+    Array[LocalProjectMockFileSource],
+  )?
   cancellation_recovery : Ref[String?]
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
@@ -223,6 +227,7 @@ fn prepare_local_command_preparation_original(
     business_inventory_recorded: false,
     run_observation: None,
     project: None,
+    declared_file_sources: None,
     cancellation_recovery: Ref(None),
     business: business.map(candidate => {
       profile: candidate,
@@ -1027,6 +1032,12 @@ fn LocalCommandPreparationOriginal::close_checked(
           self.outer_library = None
         }
         self.cleanup_stage = "project-originals"
+        if self.declared_file_sources is Some((_, listings)) {
+          for listing in listings {
+            listing.retire()
+          }
+          self.declared_file_sources = None
+        }
         if self.project is Some(project) &&
           project.mock_declarations is Some(original) {
           match original.retire_originals() {
@@ -1350,7 +1361,9 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
   self : LocalCommandPreparationOriginal,
   input : @local_host.NativeLocalExistingAdoptionInput,
   initialize : Bool,
-  model_configuration? : @local_host.NativeLocalModelConfigurationSelection? = None,
+  model_configurations? : Array[
+    @local_host.NativeLocalModelConfigurationSelection,
+  ]? = None,
 ) -> Result[
   @local_host.NativeLocalAdoptionSession,
   LocalCommandPreparationIssue,
@@ -1372,7 +1385,7 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
         input,
         crypto,
         self.profile.diagnostic_ceiling,
-        model_configuration~,
+        model_configurations~,
         construction~,
       )
     } else {
@@ -1380,7 +1393,7 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
         input,
         crypto,
         self.profile.diagnostic_ceiling,
-        model_configuration~,
+        model_configurations~,
         construction~,
       )
     }

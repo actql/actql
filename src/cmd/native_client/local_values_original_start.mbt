@@ -95,10 +95,7 @@ fn local_execute_original_publish_values(
       stop("LocalOriginalModelUnavailable")
     }
     selection.original.require_model_step(
-      leader.prepare_source_free_model_observation(
-        business.model_work,
-        model.graphs,
-      ),
+      leader.prepare_model_run_observation(business.model_work, model.graphs),
     )
     while !selection.original.require_model_step(leader.advance_observation()) {
 

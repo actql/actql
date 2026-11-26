@@ -112,6 +112,25 @@ fn[S, T, E] stop_observation(
 }
 
 ///|
+/// Confirm a requested stop with the idle session's current token, without
+/// entering the kernel or releasing any state. A running session owns its
+/// own stop observation when it returns from the kernel.
+pub fn[S, T, E] confirm_requested_stop(
+  session : Session[S, T, E],
+  token : Token,
+) -> Bool {
+  guard !session.running &&
+    !session.terminal &&
+    matching_token(session, token) &&
+    stop_requested(session.reader) is Some(_) else {
+    return false
+  }
+  session.terminal = true
+  session.stopped = true
+  true
+}
+
+///|
 fn[S, T, E] retain_unaccepted_result(
   session : Session[S, T, E],
   result : KernelStep[T, E],

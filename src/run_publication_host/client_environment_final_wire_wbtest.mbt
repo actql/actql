@@ -73,3 +73,40 @@ test "final selected Client environment rejects another numeric profile without 
   assert_true(physical_equal(@checked.checking_environment_wire(valid), wire))
   assert_false(@checked.checking_environment_profile_selection(valid).graph)
 }
+
+///|
+test "funded Local Model environment keeps the admitted wire and installed policy" {
+  let installed = client_local_product_assets().environment
+  guard @json.parse(installed) is Object(body) &&
+    body.get("host_policy_profile") is Some(Object(policy)) &&
+    body.get("evidence_bundle_cid") is Some(String(evidence)) else {
+    fail("original Local policy")
+  }
+  let without_text_time = {
+    ignore(policy.remove("text_time_evaluation"))
+    ignore(body.remove("evidence_bundle_cid"))
+    let (_, cid) = source_extent_json(Json::object(body))
+    body["evidence_bundle_cid"] = cid.to_json()
+    let (wire, _) = source_extent_json(Json::object(body))
+    (wire, cid)
+  }
+  for
+    (document, cid, expected_text_time) in [
+      (installed, evidence, true),
+      (without_text_time.0, without_text_time.1, false),
+    ] {
+    let wire = admit_client_check_environment_wire(document, cid).unwrap()
+    let environment = admit_local_relation_check_environment_from_wire(wire).unwrap()
+    let selected = @checked.checking_environment_profile_selection(environment)
+    assert_true(
+      physical_equal(@checked.checking_environment_wire(environment), wire),
+    )
+    assert_eq(@checked.checking_environment_cid(environment), cid)
+    assert_eq(
+      selected.numeric_profile_cid,
+      Some(@numeric.cid(@numeric.builtin_profile())),
+    )
+    assert_eq(selected.expressions.text_time, expected_text_time)
+    assert_true(selected.operations.rela)
+  }
+}

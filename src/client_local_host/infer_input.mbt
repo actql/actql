@@ -640,6 +640,30 @@ pub fn client_infer_completed_result_artifact_input(
 }
 
 ///|
+/// Borrow the completed prefix's exact checked read of the original Whole
+/// producer, after the provider has consumed that input.
+pub fn client_infer_completed_whole_result_artifact_input(
+  active : ClientInferInputExecution,
+  occurrence : @publication_host.ClientInferOccurrence,
+  plan : @publication_host.ClientInferPlanGraph,
+  import_index : Int,
+  artifact : @publication_host.ClientWholeLocalResultArtifact,
+  manifest : @publication_host.ClientWholeLocalResultManifest,
+) -> Result[
+  @publication_host.ClientInferResultArtifactInput,
+  @publication_host.ClientInferCallScopeIssue,
+] {
+  guard client_infer_completed_input_provenance(active)
+    is Some((output, sequence, bindings, proof)) else {
+    return Err(@publication_host.ForeignInput)
+  }
+  @publication_host.prepare_client_infer_whole_result_artifact_input(
+    occurrence, plan, import_index, output, sequence, bindings, proof, artifact,
+    manifest,
+  )
+}
+
+///|
 // Keep the closed provider's exact completed external-port proof together.
 // This is input custody only; Artifact/manifest/occurrence admission stays
 // at the existing publication owner after the same original proof is retained.

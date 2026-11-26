@@ -33,6 +33,25 @@ test "completed segment inventory keeps both original JOIN ports and rejects sub
   let value = retain_completed_segment_inputs(output, sequence, inputs, 100).unwrap()
   let borrowed = completed_segment_inputs_output(value, sequence, inputs).unwrap()
   assert_true(physical_equal(borrowed, output))
+  let original = producer_read_original_output(reads[0]).unwrap()
+  let exact = completed_segment_inputs_has_exact_pipeline_input
+  assert_true(exact(value, owner, 0, original))
+  assert_false(exact(value, owner, 1, original))
+  let different_borrow = restrict_completed_output(original, () => true)
+  assert_true(
+    completed_segment_inputs_has_original_pipeline_input(
+      value, owner, 0, different_borrow,
+    ),
+  )
+  assert_false(exact(value, owner, 0, different_borrow))
+  let fixed_inputs = inputs.map(entry => {
+    (entry.0, entry.1, fixed_completed_relation_read(entry.2))
+  })
+  let fixed = retain_completed_fixed_segment_inputs(
+    output, sequence, fixed_inputs, 100,
+  ).unwrap()
+  assert_true(exact(fixed, owner, 0, original))
+  assert_false(exact(fixed, owner, 0, different_borrow))
   assert_eq(completed_row_count(borrowed), 1)
   assert_true(completed_cell(borrowed, 0, 0) is Some(Number(1)))
   assert_true(completed_cell(borrowed, 0, 1) is Some(Number(10)))

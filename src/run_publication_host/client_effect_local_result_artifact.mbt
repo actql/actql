@@ -15,7 +15,7 @@ pub(all) enum ClientEffectLocalResultArtifactIssue {
 ///|
 /// Local semantic Artifact and its exact witnesses. Store custody and the
 /// current right to consume the captured Result remain separate obligations.
-priv enum ClientEffectLocalRelationSource {
+enum ClientEffectLocalRelationSource {
   ResultSource(
     @strategy.CapturedAnyResultBorrow,
     ClientEffectLocalResultDefinition
@@ -27,7 +27,7 @@ priv enum ClientEffectLocalRelationSource {
 }
 
 ///|
-priv enum ClientEffectLocalArtifactCustody {
+enum ClientEffectLocalArtifactCustody {
   EffectInputs(@strategy.CapturedEffectInputs)
   AcquiredUnit(@strategy.CapturedEffectLocalUnitInputs)
 }
@@ -90,10 +90,10 @@ fn client_effect_local_custody_run_definition_cid(
 }
 
 ///|
-struct ClientEffectLocalResultArtifact {
-  custody : ClientEffectLocalArtifactCustody
-  source : ClientEffectLocalRelationSource
-  invocation : ClientEffectLocalInvocation
+struct ClientLocalResultArtifact[Owner, Source, Custody] {
+  custody : Custody
+  source : Source
+  invocation : ClientLocalUnitInvocation[Owner]
   mut run_invocation : @publication.PublicationContract?
   evidence : @publication.ResultOrderingEvidence
   artifact : @publication.PublicationContract
@@ -104,6 +104,13 @@ struct ClientEffectLocalResultArtifact {
   export_receipt : @execution.CompletedRelationExportReceipt
   mut content_references : @execution.CompletedContentReferences?
 }
+
+///|
+pub type ClientEffectLocalResultArtifact = ClientLocalResultArtifact[
+  PreparedClientEffectComputation,
+  ClientEffectLocalRelationSource,
+  ClientEffectLocalArtifactCustody,
+]
 
 ///|
 /// Expose only the already-issued complete export to installed Connector
@@ -348,6 +355,48 @@ fn build_client_effect_local_result_artifact(
     TableSource(_, definition) =>
       (definition.cid, definition.unit_definition_cid)
   }
+  build_client_local_result_artifact(
+    custody,
+    source,
+    invocation,
+    receipt,
+    run_invocation,
+    retention,
+    definition_cid,
+    unit_definition_cid,
+    scope_cid,
+    effective_data_policy_cid,
+    authority_scope_cid,
+    input_relations,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    scope~,
+  )
+}
+
+///|
+fn[Owner, Source, Custody] build_client_local_result_artifact(
+  custody : Custody,
+  source : Source,
+  invocation : ClientLocalUnitInvocation[Owner],
+  receipt : @execution.CompletedRelationExportReceipt,
+  run_invocation : @publication.PublicationContract?,
+  retention : @publication.PublicationContract,
+  definition_cid : String,
+  unit_definition_cid : String,
+  scope_cid : String,
+  effective_data_policy_cid : String,
+  authority_scope_cid : String,
+  input_relations : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  scope? : @publication.PublicationContract? = None,
+) -> Result[
+  ClientLocalResultArtifact[Owner, Source, Custody],
+  ClientEffectLocalResultArtifactIssue,
+] {
   let evidence = match
     @publication.issue_local_result_occurrence_evidence(
       definition_cid,
