@@ -754,6 +754,16 @@ fn target_io_fixture_ordered_before_work(directory : String) -> Unit raise {
   let contract = @rows.relation_document_prepared_contract(
     target.prepared_contract,
   )
+  let initial = native_ordered_target_capture_initial_capacity(target, 1).unwrap()
+  let initial_bytes = @execution.execution_capacity_execution_bytes(initial)
+  let legacy = native_relation_file_target_read_io_capacity(
+    target,
+    1,
+    response_bytes=Some(0),
+  ).unwrap()
+  assert_true(
+    initial_bytes < @execution.execution_capacity_execution_bytes(legacy),
+  )
   let physical_bytes = 167
   let before_bound = native_ordered_target_before_wire_bound(
     contract,
@@ -788,24 +798,37 @@ fn target_io_fixture_ordered_before_work(directory : String) -> Unit raise {
       ).unwrap()
       @execution.execution_capacity_execution_bytes(value)
     }
-    let exact = quote(physical_bytes)
+    let exact = Int64::max(initial_bytes, quote(physical_bytes))
+    let observed = Ref(0)
     let open = budget => {
+      assert_true(native_ordered_target_capture_selector_valid(target, key))
       prepare_native_relation_file_ordered_target_io(
         target,
         ["label"],
         key,
         ObserveTarget,
-        bytes => bytes == physical_bytes && quote(bytes) <= budget,
+        bytes => {
+          observed.val += 1
+          bytes == physical_bytes &&
+          Int64::max(initial_bytes, quote(bytes)) <= budget
+        },
       ).unwrap()
     }
+    let unopened = open(exact)
+    assert_true(unopened.root is None && unopened.observation is None)
+    assert_true(unopened.close().unwrap())
+    assert_eq(observed.val, 0)
     let short = open(exact - 1L)
     assert_true(short.advance() is Err(Capacity))
+    assert_eq(observed.val, 1)
     assert_eq(short.byte_counts(), (0L, 0L))
     assert_true(short.reader is None && short.buffer is None)
     assert_eq(short.snapshot(), None)
     assert_true(short.close().unwrap())
+    assert_true(short.root is None && short.observation is None)
     let child = open(exact)
     target_io_fixture_run(child)
+    assert_eq(observed.val, 2)
     let (before, version) = child.snapshot().unwrap()
     assert_true(@utf8.encode(before).length() <= before_bound)
     assert_eq((before, version), (expected_before, expected_version))

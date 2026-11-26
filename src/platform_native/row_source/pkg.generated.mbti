@@ -16,6 +16,10 @@ import {
 }
 
 // Values
+pub fn native_ordered_target_capture_initial_capacity(NativeRelationFilePreparedProvider, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn native_ordered_target_capture_selector_valid(NativeRelationFilePreparedProvider, String) -> Bool
+
 pub fn native_relation_file_caller_evaluation_maximum_inventory() -> @execution_relation.PreparationRepresentationUnits
 
 pub fn native_relation_file_caller_preparation_evaluation_inventory(NativeRelationFileSelection) -> @execution_relation.PreparationRepresentationUnits

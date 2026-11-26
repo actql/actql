@@ -409,7 +409,7 @@ fn native_mock_effect_operations(
     let rows = [request, write]
     if !creating {
       let read_initial = installation
-        .file_target_read_capacity(binding.provider, response_bytes=Some(0))
+        .file_target_initial_read_capacity(binding.provider)
         .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
       let read_maximum = installation
         .file_target_read_capacity(binding.provider)

@@ -233,17 +233,28 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
         // The original operation and partial child survive every fallible
         // constructor/return. No coordinate or attempt is reissued on error.
         state.targets.push(held)
-        let selector = @json.parse(proposal.0) catch {
-          _ => stop("LocalOriginalEffectSelectorUnavailable")
-        }
         let ordered = binding.provider.has_ordered_key()
-        if upserting && !ordered {
-          stop("LocalOriginalEffectSelectorUnavailable")
+        let identity = if ordered {
+          guard @row_file.native_ordered_target_capture_selector_valid(
+            binding.provider,
+            proposal.0,
+          ) else {
+            stop("LocalOriginalEffectSelectorUnavailable")
+          }
+          proposal.0
+        } else {
+          let selector = @json.parse(proposal.0) catch {
+            _ => stop("LocalOriginalEffectSelectorUnavailable")
+          }
+          match selector {
+            String(identity) if !upserting => identity
+            _ => stop("LocalOriginalEffectSelectorUnavailable")
+          }
         }
-        let identity = match selector {
-          String(identity) if !ordered => identity
-          Array(_) if ordered => proposal.0
-          _ => stop("LocalOriginalEffectSelectorUnavailable")
+        let initial = if ordered {
+          installation.file_target_initial_read_capacity(binding.provider)
+        } else {
+          None
         }
         let prepare_response = bytes => {
           let capacity = installation.file_target_read_capacity(
@@ -255,6 +266,15 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
               None
             },
           )
+          // Selector validation has returned. Fund the larger of the two
+          // phases on this same staged borrow before opening the Reader.
+          let capacity = match initial {
+            Some(initial) =>
+              capacity.bind(measured => {
+                native_mock_effect_capacity_envelope(initial, measured)
+              })
+            None => if ordered { None } else { capacity }
+          }
           guard capacity is Some(capacity) &&
             @local_values.prepare_installed_effect_operation_extent(
               "native.mock.file.capture-target",

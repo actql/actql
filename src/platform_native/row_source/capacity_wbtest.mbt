@@ -193,19 +193,33 @@ test "Native prepared File provider quotes its exact ordered projection" {
     @execution.execution_capacity_retained_bytes(capacity),
     @execution.execution_capacity_retained_bytes(ordinary_geometry) + wrapper,
   )
-  let fixed = native_relation_file_delete_target_read_io_capacity(
+  let key = "[\"west\",\"-9223372036854775808\"]"
+  let initial = native_ordered_target_capture_initial_capacity(selected, 0).unwrap()
+  let legacy = native_relation_file_delete_target_read_io_capacity(
     selected,
     response_bytes=Some(0),
+  ).unwrap()
+  let observed_empty = native_relation_file_delete_target_read_io_capacity(
+    selected,
+    response_bytes=Some(0),
+    ordered_wire_utf16=Some(key.length()),
   ).unwrap()
   let measured = native_relation_file_delete_target_read_io_capacity(
     selected,
     response_bytes=Some(96),
-    ordered_wire_utf16=Some(40),
+    ordered_wire_utf16=Some(key.length()),
   ).unwrap()
   let maximum = native_relation_file_delete_target_read_io_capacity(selected).unwrap()
   let execution = @execution.execution_capacity_execution_bytes
-  assert_true(execution(fixed) < execution(measured))
+  assert_true(execution(initial) < execution(legacy))
+  assert_true(execution(initial) < execution(maximum))
+  assert_true(execution(observed_empty) < execution(measured))
   assert_true(execution(measured) < execution(maximum))
+  assert_true(native_ordered_target_capture_selector_valid(selected, key))
+  assert_false(
+    native_ordered_target_capture_selector_valid(selected, "\"west\""),
+  )
+  assert_false(native_ordered_target_capture_selector_valid(selected, "[[[]]]"))
   assert_true(
     !file_listing_fields_valid(selected, {
       name: "site",

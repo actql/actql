@@ -288,6 +288,7 @@ fn file_capture_provider_capacity(
   writable_fields? : Int = 0,
   ordered_projection? : Bool = false,
   measured_transport_bytes? : Int? = None,
+  measured_projection? : @rows.RowPageLimits? = None,
 ) -> @execution.ExecutionCapacity? {
   file_capture_provider_construction(
     selection,
@@ -298,6 +299,7 @@ fn file_capture_provider_capacity(
     writable_fields~,
     ordered_projection~,
     measured_transport_bytes~,
+    measured_projection~,
   ).map(value => value.0)
 }
 
@@ -311,19 +313,25 @@ fn file_capture_provider_construction(
   writable_fields? : Int = 0,
   ordered_projection? : Bool = false,
   measured_transport_bytes? : Int? = None,
+  measured_projection? : @rows.RowPageLimits? = None,
 ) -> (@execution.ExecutionCapacity, @execution.PreparationRepresentationUnits)? {
   let page = match
     file_capture_response_backing_page(limits.page, response_bytes) {
     Some(value) => value
     None => return None
   }
-  guard file_capture_projection_backing_page(
-      contract,
-      limits.page,
-      response_bytes,
-    )
-    is Some(projection_page) else {
-    return None
+  let projection_page = match measured_projection {
+    Some(selected) => selected
+    None =>
+      match
+        file_capture_projection_backing_page(
+          contract,
+          limits.page,
+          response_bytes,
+        ) {
+        Some(selected) => selected
+        None => return None
+      }
   }
   let projection : @rows.RelationDocumentProjectionConstruction = {
     original: contract,

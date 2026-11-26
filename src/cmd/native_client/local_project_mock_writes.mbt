@@ -273,6 +273,21 @@ fn LocalProjectMockWriteInstallation::matches_file_operation(
 }
 
 ///|
+fn LocalProjectMockWriteInstallation::file_target_initial_read_capacity(
+  self : Self,
+  provider : @row_file.NativeRelationFilePreparedProvider,
+) -> @execution.ExecutionCapacity? {
+  if provider.has_ordered_key() {
+    @row_file.native_ordered_target_capture_initial_capacity(
+      provider,
+      self.write.writable_fields.length(),
+    )
+  } else {
+    self.file_target_read_capacity(provider, response_bytes=Some(0))
+  }
+}
+
+///|
 fn LocalProjectMockWriteInstallation::file_target_read_capacity(
   self : Self,
   provider : @row_file.NativeRelationFilePreparedProvider,
