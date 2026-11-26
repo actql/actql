@@ -359,7 +359,8 @@ test "Native named lost commit reply retains unknown and same-name lookup after 
         true,
         1001.0,
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(database.transaction_fenced())
     if !reply_lost {

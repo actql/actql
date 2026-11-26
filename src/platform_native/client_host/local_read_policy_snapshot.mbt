@@ -28,14 +28,14 @@ fn[T] read_binding_in_journal_snapshot(
     reads=Some(reads),
   )
   match (result, output.val) {
-    (Err(TransactionUnknown), original) =>
+    (Err(issue), original) if issue.requires_transaction_reconciliation() =>
       Err(
         OriginalRead(
           match original {
             Some(Err(issue)) => Some(issue)
             _ => None
           },
-          TransactionUnknown,
+          Journal(issue),
         ),
       )
     (Err(_), Some(Err(issue))) => Err(issue)

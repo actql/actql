@@ -172,7 +172,8 @@ test "lost signature commit return retains original signature and outcome on sam
         host, original, signing_use, signature,
       )
     })
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   physical.close_checked().unwrap()
   host.close().unwrap()
@@ -303,7 +304,10 @@ test "Initial routed signature lost commit retains Unknown and cannot enter anot
     },
     reads=Some(access.reads),
   )
-  assert_true(result is Err(TransactionUnknown))
+  assert_true(
+    result is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
+  )
   assert_true(host.journal.fenced)
   assert_true(
     calls.contains(
@@ -372,24 +376,27 @@ test "Initial signing routed return preserves original primary and refuses a fai
 test "Initial signing routed return retains combined Read failure and original commit Unknown" {
   let combined : NativeLocalAdoptionIssue = InstallationReadTransactionFailure(
     OriginalResourceScopePending,
-    TransactionUnknown,
+    journal_test_routed_commit_issue(),
   )
   assert_true(
     finish_initial_resolution_signing_read(
-      Some(Err(OriginalSigningJournal(TransactionUnknown))),
+      Some(Err(OriginalSigningJournal(journal_test_routed_commit_issue()))),
       Err(combined),
     )
     is Err(
       OriginalSigningOriginal(
         InstallationReadTransactionFailure(
           OriginalResourceScopePending,
-          TransactionUnknown
+          JournalStepFailed(
+            ScopeStep(@sqlite.Commit, OriginalResourceScopePending, None),
+            None
+          )
         )
       )
     ),
   )
   let host_unknown : Result[String, NativeLocalInitialHostAttestationIssue]? = Some(
-    Err(HostAttestationJournal(TransactionUnknown)),
+    Err(HostAttestationJournal(journal_test_routed_commit_issue())),
   )
   assert_true(
     finish_initial_host_signing_read(host_unknown, Err(combined))
@@ -397,7 +404,10 @@ test "Initial signing routed return retains combined Read failure and original c
       HostAttestationOriginal(
         InstallationReadTransactionFailure(
           OriginalResourceScopePending,
-          TransactionUnknown
+          JournalStepFailed(
+            ScopeStep(@sqlite.Commit, OriginalResourceScopePending, None),
+            None
+          )
         )
       )
     ),

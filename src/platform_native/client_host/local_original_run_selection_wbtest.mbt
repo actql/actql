@@ -35,7 +35,7 @@ fn original_selection_journal_kind(
     AuthorizationDenied => "AuthorizationDenied"
     CustodyLost => "CustodyLost"
     CapacityExceeded => "CapacityExceeded"
-    TransactionUnknown => "TransactionUnknown"
+    JournalStepFailed(_, _) => "TransactionUnknown"
     Fenced => "Fenced"
     _ => "OtherJournalRefusal"
   }
@@ -52,7 +52,7 @@ fn original_selection_epoch_kind(issue : NativeClientEpochIssue) -> String {
     Unverifiable => "Unverifiable"
     ScopeMismatch => "ScopeMismatch"
     Fenced => "Fenced"
-    TransactionUnknown => "TransactionUnknown"
+    JournalStepFailed(_, _) => "TransactionUnknown"
     Physical(_) => "Physical"
     Crypto(_) => "Crypto"
     Identity(_) => "Identity"

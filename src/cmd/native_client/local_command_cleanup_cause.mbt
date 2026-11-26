@@ -696,6 +696,12 @@ fn command_preparation_cleanup_cause(
         Journal(_) => "Journal"
         Fenced => "Fenced"
         TransactionUnknown => "TransactionUnknown"
+        JournalStepFailed(step, _) =>
+          if step.requires_reconciliation() {
+            "TransactionUnknown"
+          } else {
+            "Physical"
+          }
         DatabasePending(_, _) => "DatabasePending"
         Inspection(_) => "Inspection"
         InstallationReadTransactionFailure(_, _) =>

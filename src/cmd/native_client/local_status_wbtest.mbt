@@ -62,7 +62,7 @@ test "Native status retains authenticated reference grammar and typed Unknown" {
   assert_eq(
     local_saved_state_issue(
       @local_host.NativeClientSavedRunStateIssue::Journal(
-        @local_host.TransactionUnknown,
+        test_original_routed_commit_issue(),
       ),
     ),
     "LocalRunStateLookupUnknown",

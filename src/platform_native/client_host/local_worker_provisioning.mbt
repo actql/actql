@@ -405,7 +405,6 @@ fn worker_provisioning_journal_issue(
     Adoption(Physical(physical)) => Physical(physical)
     Adoption(Epoch(epoch)) => Epoch(epoch)
     Adoption(Fenced) => Fenced
-    Adoption(TransactionUnknown) => TransactionUnknown
     Adoption(Journal(journal)) | Journal(journal) => journal
     AuthorizationDenied => AuthorizationDenied
     _ => CustodyLost

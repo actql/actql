@@ -220,19 +220,20 @@ fn local_submission_failure_tags(
       emit(9, 1L)
       emit(
         14,
-        match transaction {
-          TransactionUnknown => 1L
-          _ => 2L
+        if transaction.requires_transaction_reconciliation() {
+          1L
+        } else {
+          2L
         },
       )
       local_submission_original_tags(original, 0L, 4, emit)
     }
-    Journal(TransactionUnknown) => {
-      emit(9, 6L)
+    Journal(Epoch(original)) if original.requires_transaction_reconciliation() => {
+      emit(9, 7L)
       emit(14, 1L)
     }
-    Journal(Epoch(TransactionUnknown)) => {
-      emit(9, 7L)
+    Journal(original) if original.requires_transaction_reconciliation() => {
+      emit(9, 6L)
       emit(14, 1L)
     }
     _ => local_submission_original_tags(issue, 0L, 4, emit)

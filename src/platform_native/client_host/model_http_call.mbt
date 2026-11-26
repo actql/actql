@@ -457,12 +457,7 @@ pub fn NativeLocalJournalCapture::adopt_model_http_configurations_in_original_re
         },
         reads=Some(operations.reads),
       )
-      .map_err(issue => {
-        match issue {
-          TransactionUnknown => NativeLocalAdoptionIssue::TransactionUnknown
-          _ => NativeLocalAdoptionIssue::Journal(issue)
-        }
-      })
+      .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
     },
     installation_written=Some(written),
   )

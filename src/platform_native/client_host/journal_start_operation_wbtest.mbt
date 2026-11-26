@@ -114,9 +114,9 @@ test "Work original routing retains a committed lost start reply as Unknown with
     ..ordinary,
     transaction: operation => {
       if operation is JournalCommit {
-        database.commit().unwrap()
         calls.push("commit-lost")
-        Err(@sqlite.Busy)
+        client_test_fail_commit_reply(database, 1)
+        operation.observe(database)
       } else {
         (ordinary.transaction)(operation)
       }
@@ -129,7 +129,8 @@ test "Work original routing retains a committed lost start reply as Unknown with
       true,
       operations=Some(access),
     )
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_true(journal.fenced)
   assert_true(database.transaction_fenced())

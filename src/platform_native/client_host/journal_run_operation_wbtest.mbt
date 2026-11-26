@@ -206,15 +206,14 @@ test "Run original routing retains an actual committed admission after a lost re
     ..ordinary,
     transaction: operation => {
       if operation is JournalCommit {
-        database.commit().unwrap()
         commits.val += 1
         if commits.val == 2 {
           calls.push("admission-commit-lost")
-          Err(@sqlite.Busy)
+          client_test_fail_commit_reply(database, 1)
         } else {
           calls.push("clock-commit")
-          Ok(())
         }
+        operation.observe(database)
       } else {
         (ordinary.transaction)(operation)
       }
@@ -234,7 +233,8 @@ test "Run original routing retains an actual committed admission after a lost re
       1002.0,
       operations=Some(access),
     )
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_eq(commits.val, 2)
   assert_true(journal.fenced)

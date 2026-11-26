@@ -12,11 +12,10 @@ fn journal_test_bootstrap_access(
     {
       ..reads,
       transaction: operation => {
-        let result = (reads.transaction)(operation)
-        match (operation, result) {
-          (JournalCommit, Ok(_)) => Err(@sqlite.Physical("lost commit reply"))
-          _ => result
+        if operation is JournalCommit {
+          client_test_fail_commit_reply(database, 1)
         }
+        (reads.transaction)(operation)
       },
     }
   } else {
@@ -160,15 +159,18 @@ test "bootstrap consumed COMMIT without reply remains fenced and never reissues"
     calls,
     lose_commit_reply=true,
   )
-  assert_true(
-    initialize_native_local_client_custody(
+  guard initialize_native_local_client_custody(
       database,
       crypto,
       b"original adoption",
       bootstrap=Some(access),
     )
-    is Err(TransactionUnknown),
-  )
+    is Err(JournalStepFailed(SqlStep(@sqlite.Commit, observed), None)) &&
+    observed.result is Err(failure) else {
+    fail("expected the original initialization COMMIT observation")
+  }
+  assert_true(failure.reply is @sqlite.SqlReplyLost)
+  assert_true(observed.state is Some(Ok(@sqlite.NoActiveSqliteTransaction)))
   assert_eq(calls[calls.length() - 1], "fence")
   assert_true(database.transaction_fenced())
   calls.clear()
@@ -183,5 +185,10 @@ test "bootstrap consumed COMMIT without reply remains fenced and never reissues"
   )
   assert_eq(calls, ["fenced"])
   database.close_checked().unwrap()
+  let retained = epoch_test_database("bootstrap-commit-unknown")
+  let original = retained.read("client_local_adoption", "adoption").unwrap()
+  assert_eq(original.revision, 0L)
+  assert_eq(original.body, b"original adoption")
+  retained.close_checked().unwrap()
   crypto.close_checked().unwrap()
 }

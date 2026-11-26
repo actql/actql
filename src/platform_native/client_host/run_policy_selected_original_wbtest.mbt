@@ -47,7 +47,7 @@ fn selected_policy_journal_issue(issue : NativeClientRunJournalIssue) -> String 
     ChangedIntent => "ChangedIntent"
     ForeignRun => "ForeignRun"
     Fenced => "Fenced"
-    TransactionUnknown => "TransactionUnknown"
+    JournalStepFailed(_, _) => "TransactionUnknown"
     Encoding => "Encoding"
     Physical(_) => "Physical"
     Start(_) => "Start"

@@ -718,7 +718,7 @@ fn native_scoped_model_credential(
     Ok(Ok(value)) => value
     Ok(Err(Journal(CustodyLost))) => fail(stage.val + " refused custody")
     Ok(Err(Journal(Physical(_)))) => fail(stage.val + " refused SQLite")
-    Ok(Err(Journal(TransactionUnknown))) =>
+    Ok(Err(Journal(issue))) if issue.requires_transaction_reconciliation() =>
       fail(stage.val + " lost transaction certainty")
     Ok(Err(Filesystem(_))) => fail(stage.val + " refused filesystem")
     Ok(Err(_)) => fail(stage.val + " refused observation")

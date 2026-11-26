@@ -54,8 +54,8 @@ fn[T] NativeLocalStoreOperation::with_publisher_read(
       let result = call(host, operations)
       output.val = Some(result)
       match result {
-        Err(Journal(TransactionUnknown | Epoch(TransactionUnknown))) =>
-          Err(Journal(TransactionUnknown))
+        Err(Journal(issue)) if issue.requires_transaction_reconciliation() =>
+          Err(Journal(issue))
         _ => Ok(())
       }
     },

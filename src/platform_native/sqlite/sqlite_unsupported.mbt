@@ -204,6 +204,14 @@ pub fn Database::transaction_step(
 }
 
 ///|
+pub fn Database::observe_transaction_step(
+  self : Database,
+  step : NativeSqliteTransactionStep,
+) -> NativeSqliteTransactionObservation {
+  { result: self.transaction_step(step), state: None, }
+}
+
+///|
 pub fn Database::transaction_state(
   _self : Database,
 ) -> Result[NativeSqliteTransactionState, NativeSqliteIssue] {

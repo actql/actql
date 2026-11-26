@@ -21,7 +21,7 @@ test "Journal migration diagnostic retains Unknown without a Run container" {
   local_command_diagnostic_reset()
   command_preparation_diagnostic.val = JournalMaintenanceFailed
   let text = local_command_failure_text(
-    local_journal_migration_issue(@local_host.TransactionUnknown),
+    local_journal_migration_issue(test_original_routed_commit_issue()),
     true,
   )
   assert_true(text.contains("ACTQL_E_COMMAND_FAILED"))

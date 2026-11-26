@@ -134,7 +134,8 @@ test "worker provisioning lost first commit reply keeps original key and lookup 
   client_test_fail_commit_reply(host.database, 1)
   assert_true(
     host.issue_worker_provisioning(selection, "operator", "local")
-    is Err(Journal(TransactionUnknown)),
+    is Err(Journal(JournalStepFailed(step, None))) &&
+    journal_test_original_commit_failure(step, true),
   )
   let original = host.worker_provisioning_attempt.unwrap()
   let key = original.key
@@ -162,7 +163,8 @@ test "worker provisioning uncommitted first write keeps durable intent unresolve
   client_test_fail_commit(host.database, 1)
   assert_true(
     host.issue_worker_provisioning(selection, "operator", "local")
-    is Err(Journal(TransactionUnknown)),
+    is Err(Journal(JournalStepFailed(step, None))) &&
+    journal_test_original_commit_failure(step, false),
   )
   let key = host.worker_provisioning_attempt.unwrap().key
   host.close().unwrap()

@@ -1489,10 +1489,36 @@ pub fn Database::transaction_step(
   self : Database,
   step : NativeSqliteTransactionStep,
 ) -> Result[Unit, NativeSqliteTransactionFailure] {
+  self.run_transaction_step(step, None)
+}
+
+///|
+pub fn Database::observe_transaction_step(
+  self : Database,
+  step : NativeSqliteTransactionStep,
+) -> NativeSqliteTransactionObservation {
+  let mut state = None
+  let result = self.run_transaction_step(
+    step,
+    Some(value => state = Some(value)),
+  )
+  { result, state, }
+}
+
+///|
+fn Database::run_transaction_step(
+  self : Database,
+  step : NativeSqliteTransactionStep,
+  observe : ((Result[NativeSqliteTransactionState, NativeSqliteIssue]) -> Unit)?,
+) -> Result[Unit, NativeSqliteTransactionFailure] {
   let mut code = -1
   let result = self.with_original_store_sql(true, fn() {
     code = self.transaction_step_code(step)
-    self.transaction_step_result(code)
+    let result = self.transaction_step_result(code)
+    if observe is Some(capture) {
+      capture(self.read_transaction_state())
+    }
+    result
   })
   match result {
     Ok(_) => Ok(())
@@ -1510,22 +1536,12 @@ pub fn Database::transaction_step(
 }
 
 ///|
-fn Database::transaction_step_compat(
-  self : Database,
-  step : NativeSqliteTransactionStep,
-) -> Result[Unit, NativeSqliteIssue] {
-  self.with_original_store_sql(true, fn() {
-    self.transaction_step_result(self.transaction_step_code(step))
-  })
-}
-
-///|
 /// Start a deferred physical snapshot on this same connection, without a
 /// write or COMMIT. The caller must explicitly stop the original transaction.
 pub fn Database::begin_deferred(
   self : Database,
 ) -> Result[Unit, NativeSqliteIssue] {
-  self.transaction_step_compat(BeginDeferred)
+  self.transaction_step(BeginDeferred).map_err(failure => failure.issue)
 }
 
 ///|
@@ -1534,14 +1550,14 @@ pub fn Database::begin_deferred(
 pub fn Database::begin_immediate(
   self : Database,
 ) -> Result[Unit, NativeSqliteIssue] {
-  self.transaction_step_compat(BeginImmediate)
+  self.transaction_step(BeginImmediate).map_err(failure => failure.issue)
 }
 
 ///|
 /// Commit the current physical transaction. Application state must still be
 /// committed separately by the portable owner after this succeeds.
 pub fn Database::commit(self : Database) -> Result[Unit, NativeSqliteIssue] {
-  self.transaction_step_compat(Commit)
+  self.transaction_step(Commit).map_err(failure => failure.issue)
 }
 
 ///|
@@ -1572,20 +1588,25 @@ pub fn Database::transaction_fenced(self : Database) -> Bool {
 pub fn Database::transaction_state(
   self : Database,
 ) -> Result[NativeSqliteTransactionState, NativeSqliteIssue] {
-  self.with_original_store_sql(true, fn() {
-    match database_transaction_state_ffi(self) {
-      0 => Ok(NoActiveSqliteTransaction)
-      1 => Ok(ActiveSqliteTransaction)
-      -2 => Err(DatabaseClosed)
-      _ => Err(Physical("SQLite transaction state unavailable"))
-    }
-  })
+  self.with_original_store_sql(true, () => self.read_transaction_state())
+}
+
+///|
+fn Database::read_transaction_state(
+  self : Database,
+) -> Result[NativeSqliteTransactionState, NativeSqliteIssue] {
+  match database_transaction_state_ffi(self) {
+    0 => Ok(NoActiveSqliteTransaction)
+    1 => Ok(ActiveSqliteTransaction)
+    -2 => Err(DatabaseClosed)
+    _ => Err(Physical("SQLite transaction state unavailable"))
+  }
 }
 
 ///|
 /// Roll back the current physical transaction after a failed adapter step.
 pub fn Database::rollback(self : Database) -> Result[Unit, NativeSqliteIssue] {
-  self.transaction_step_compat(Rollback)
+  self.transaction_step(Rollback).map_err(failure => failure.issue)
 }
 
 ///|

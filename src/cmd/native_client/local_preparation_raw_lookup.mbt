@@ -80,7 +80,8 @@ fn local_preparation_raw_lookup_issue(
     Preparation(Adoption(issue)) => local_host_issue(issue)
     Journal(ChangedIntent | ForeignRun) =>
       "LocalPreparationRawReferenceMismatch"
-    Journal(TransactionUnknown) => "LocalPreparationRawLookupUnknown"
+    Journal(issue) if issue.requires_transaction_reconciliation() =>
+      "LocalPreparationRawLookupUnknown"
     Journal(CustodyLost) => "LocalPreparationRawCustodyLost"
     Resource(AccessDenied) => "LocalPreparationRawReadAuthorizationDenied"
     Resource(Credential(_)) => "LocalPreparationRawOriginalUseUnavailable"

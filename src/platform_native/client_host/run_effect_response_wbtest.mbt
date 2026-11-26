@@ -167,7 +167,8 @@ test "Native response commit loss retains original dispatch and is resolved with
     }
     assert_true(
       journal.record_effect_row_response(dispatch, response, 4096)
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(
       journal.effect_row_response(dispatch, () => true, 4096) is Err(Fenced),

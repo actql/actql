@@ -379,7 +379,8 @@ test "Native Checkpoint closure and resume intent survive commit reply loss toge
         },
         () => "2026-10-10T00:02:00.000Z",
       )
-      is Err(TransactionUnknown),
+      is Err(JournalStepFailed(step, None)) &&
+      journal_test_original_commit_failure(step, reply_lost),
     )
     assert_true(database.transaction_fenced())
     if !reply_lost {
@@ -571,9 +572,9 @@ test "Checkpoint original operation lost COMMIT remains Unknown and fences furth
     ..ordinary,
     transaction: operation => {
       if operation is JournalCommit && calls.contains("resolution-cas") {
-        database.commit().unwrap()
         calls.push("commit-reply-lost")
-        Err(@sqlite.Busy)
+        client_test_fail_commit_reply(database, 1)
+        operation.observe(database)
       } else {
         (ordinary.transaction)(operation)
       }
@@ -599,7 +600,8 @@ test "Checkpoint original operation lost COMMIT remains Unknown and fences furth
       () => "2026-10-10T00:02:00.000Z",
       access,
     )
-    is Err(TransactionUnknown),
+    is Err(JournalStepFailed(step, None)) &&
+    journal_test_original_commit_failure(step, true),
   )
   assert_true(calls.contains("commit-reply-lost"))
   assert_true(journal.fenced)
