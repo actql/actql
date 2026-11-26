@@ -44,7 +44,8 @@ export function originalHttpCommonFixture(t,moon,options) {
 
 async function originalCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
   storeOriginals=true,beforeOriginalRead,observeSettlement,modelId='gpt-4.1-nano',nativeDecision=false,
-  physical,rowTexts,structuredSdk=false,foreignRegisteredProfile=false,excludeReportedMetadata=false,overrideCompletion}={},independentHttp) {
+  physical,rowTexts,structuredSdk=false,google=false,foreignRegisteredProfile=false,excludeReportedMetadata=false,
+  overrideCompletion}={},independentHttp) {
   // Explicit finite test inventory, not another normal capacity supplier.
   // This route has no installed ModelIoAccess and therefore remains serial;
   // a profile's active_slots declaration alone cannot enable a window.
@@ -57,6 +58,8 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     assert.notEqual(physical,undefined,'Independent HTTP requires its explicit loopback transport');
   }
   const registeredSdkMode=structuredSdk==='registered';
+  if (google) assert(registeredSdkMode);
+  const apiMode=google?'generate_content':'chat_completions';
   const preparePhysical=independentHttp
     ? (await import('../../packages/provider-http/_internal/model-port.mjs')).createHttpChatPreflight
     : nativeDecision
@@ -80,7 +83,10 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   if (physical!==undefined) {
     assert.equal(nativeDecision,false);
     assert.equal(typeof physical.fetch,'function');
-    assert.match(physical.endpoint,/^http:\/\/127\.0\.0\.1:[1-9][0-9]*\/v1\/chat\/completions$/u);
+    const path=google?'/v1beta/models/'+modelId+':generateContent':'/v1/chat/completions';
+    const endpoint=new URL(physical.endpoint);
+    assert.match(endpoint.origin,/^http:\/\/127\.0\.0\.1:[1-9][0-9]*$/u);
+    assert.equal(physical.endpoint,endpoint.origin+path);
   }
   const root=await mkdtemp(join(tmpdir(),'actql-original-sdk-common-'));
   t.diagnostic(`Original joined fixture custody retained at ${root}`);
@@ -96,6 +102,8 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   const originalTask=environmentBody.model_task_contracts[0];
   const {contract_cid:ignored,...taskBody}=originalTask;
   taskBody.prompt_template_cid=prompt.cid;
+  // The Google route's existing capability excludes a requested seed.
+  if (google) delete taskBody.generation_config.seed_requested;
   const task={...taskBody,contract_cid:hash(canonicalText(taskBody))};
   environmentBody.model_task_contracts=[task];
   delete environmentBody.evidence_bundle_cid;
@@ -154,8 +162,8 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   }
   // The exact SDK lock is a DATA reference; this explicitly synthetic fixture
   // does not authenticate these otherwise fixture builder/runtime declarations.
-  profileBody.adapter.sdk=independentHttp?null:{package:nativeDecision?'@ai-sdk/typesafe-ai':'@ai-sdk/openai',
-    version:nativeDecision?'3.0.13':'4.0.91',interface:'v4',
+  profileBody.adapter.sdk=independentHttp?null:{package:nativeDecision?'@ai-sdk/typesafe-ai':google?'@ai-sdk/google':'@ai-sdk/openai',
+    version:nativeDecision?'3.0.13':google?'4.0.124':'4.0.91',interface:'v4',
     lock_artifact_cid:hash(readFileSync(new URL('../../packages/provider-ai-sdk/package-lock.json',import.meta.url)))};
   const profileOriginal=seal(profileBody);
   const profile=control.readInstalledModelResponseProfile(profileOriginal.wire,profileOriginal.cid,bounds);
@@ -191,12 +199,25 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   const originals=providerBindingOriginals('models/fixture',{selector:task.authored_model_selector,
     endpoint:profileBody.operation.endpoint});
   if (structuredSdk) {
-    const route={model_id:modelId,adapter_kind:'ai-sdk',api_mode:'chat_completions'};
+    const route={model_id:modelId,adapter_kind:'ai-sdk',api_mode:apiMode};
     const wire=canonicalText({...JSON.parse(originals.configuration.wire),...route});
     originals.configuration={wire,cid:hash(wire)};
   }
   let registeredSdk;
-  if (registeredSdkMode) {
+  if (google) {
+    const {createGoogle}=await import('@ai-sdk/google');
+    const {sdkProvider,verifyRequest,readReportedUsage,readReportedResponse}=
+      await import('../../packages/provider-ai-sdk/_internal/google-generate-content.mjs');
+    const endpoint=installation.endpoint;
+    const route=Object.freeze({providerId:'models/fixture',selector:task.authored_model_selector,modelId,apiMode,endpoint});
+    const providerOptions=Object.freeze({google:Object.freeze({structuredOutputs:true})});
+    registeredSdk=Object.freeze({route,sdkProvider,sdkPackage:installation.sdk.package_name,
+      sdkVersion:installation.sdk.version,lockArtifactCid:installation.sdk.lock_artifact_cid,
+      adapterArtifactCid:installation.build_artifact_cid,providerOptions,
+      createLanguageModel:fetch=>createGoogle({baseURL:new URL(endpoint).origin+'/v1beta',apiKey:'fixture-only',fetch})(modelId),
+      verifyRequest:(body,options)=>verifyRequest(body,options,route,providerOptions),
+      readReportedUsage,readReportedResponse});
+  } else if (registeredSdkMode) {
     const {openAIChatStaticOriginals:{createOpenAI},readReportedUsage,readReportedResponse}=
       await import('../../packages/provider-ai-sdk/_internal/openai-chat.mjs');
     const endpoint=installation.endpoint, baseURL=endpoint.slice(0,-'/chat/completions'.length);
@@ -274,7 +295,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   if (structuredSdk) {
     structuredAdmission=checked(moon.clientProgramBindAdmittedStructuredModelProvider(
       registered.provider,admittedProvider,providerBinding.value,originals.configuration.wire,
-      task.authored_model_selector,modelId,'ai-sdk','chat_completions',profile,installation,true,true));
+      task.authored_model_selector,modelId,'ai-sdk',apiMode,profile,installation,true,true));
   }
   const accountWire=canonicalText({version:'actql-execution-account-config/0.1',account_id:'local',entries:[{
     entry_id:'model',outcome:'allow',principal:{any_of:['owner']},connection:{any_of:['models/fixture']},
