@@ -80459,7 +80459,7 @@
     {
       "module": "adapters/host-node/installed-model-originals.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "69175ef9d10f4aab3d6e660a0105e3d206f8aed60242f9157c27ad35955b317d",
+      "sha256": "4ac4003e0912de8d1a81924c1133c3ef2ec7457a404326fb9d3602c40411c540",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -80468,6 +80468,7 @@
         "assertRestoredModelRunSelection",
         "originalModelPlanReplayRefusal",
         "originalModelRunWire",
+        "prepareOriginalEffectReadCurrent",
         "prepareOriginalEffectReadRequest",
         "prepareRestoredModelEffectRequest",
         "rejectModelPlanReplay",
@@ -80533,6 +80534,20 @@
           "parameters": [
             "wire"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalEffectReadCurrent",
+          "parameters": [
+            "observeCancellation",
+            "readLeaseFailure",
+            "admitResume"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalEffectReadCurrent/assertCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -81059,6 +81074,8 @@
         },
         {
           "operations": [
+            "prepareOriginalEffectReadCurrent",
+            "prepareOriginalEffectReadCurrent/assertCurrent",
             "prepareOriginalEffectReadRequest",
             "prepareRestoredModelEffectRequest",
             "retainOriginalEffectInput",
@@ -81073,6 +81090,7 @@
             "runWithRestoredModelInput/runWithRestoredModelInput"
           ],
           "exports": [
+            "prepareOriginalEffectReadCurrent",
             "prepareOriginalEffectReadRequest",
             "prepareRestoredModelEffectRequest",
             "retainOriginalEffectInput",
@@ -81178,6 +81196,14 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
                 "anchor": "test('cold Model Effect cannot return its request input before the same failed execution cleanup'"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "test('Source resume probes reuse one same-original cancellation observer per flight'"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "test('Source resume cancellation probes preserve lease priority, read failures and current admission refusal'"
               }
             ]
           }

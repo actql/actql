@@ -215,6 +215,22 @@ export async function prepareOriginalEffectReadRequest<Request, Prepared>(
   assertInstalledModelPreflight(selected);
 }
 
+// One flight owns one observer of its already admitted Run. Read a fresh
+// lease failure before each probe, and admit the same claim only after both.
+export function prepareOriginalEffectReadCurrent<Admission>(
+    observeCancellation: () => () => Readonly<{cancellationRequested: boolean}> | undefined,
+    readLeaseFailure: () => unknown, admitResume: () => Admission): () => Admission {
+  const probe = observeCancellation();
+  return function assertCurrent() {
+    const leaseFailure = readLeaseFailure();
+    if (leaseFailure !== undefined) throw leaseFailure;
+    if (probe()?.cancellationRequested) {
+      throw Object.assign(new Error('ClientRunCancellationRequested'), {code: 'ClientRunCancellationRequested'});
+    }
+    return admitResume();
+  };
+}
+
 export function retainOriginalEffectInput<Body, Receipt>(
     register: (pending: Promise<void>) => void,
     open: () => Readonly<{body: Body; receipt: Receipt}>,

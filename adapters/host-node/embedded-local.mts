@@ -941,7 +941,7 @@ import {openNodeComposedInferProvider, finishNodeInferOriginalReadScopes,
 import {bindInferOriginalReadRecipe} from './infer-original-installation.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {assertInstalledModelPreflight, assertOriginalModelPlanReplay, assertRestoredModelRunSelection,
-  originalModelPlanReplayRefusal, originalModelRunWire, prepareOriginalEffectReadRequest,
+  originalModelPlanReplayRefusal, originalModelRunWire, prepareOriginalEffectReadCurrent, prepareOriginalEffectReadRequest,
   prepareRestoredModelEffectRequest, rejectModelPlanReplay, retainOriginalEffectInput,
   runWithEffectReadInput, runWithRestoredModelInput, selectedModelPlanRows, type ModelPlanBindings} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
@@ -6991,17 +6991,12 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
                     throw new Error('EffectContinuationRunMismatch');
                   }
                   const facts = await effectRun.restoreComputation(accepted);
-                  const observeCancellation = journal!.observeRunCancellation(ref, moon, control, retained);
                   sourceResume = {claim: claimed.claim, view, continuation, active: true,
-                    assertCurrent() {
-                      if (leaseFailure !== undefined) throw leaseFailure;
-                      if (observeCancellation()?.cancellationRequested) {
-                        throw Object.assign(new Error('ClientRunCancellationRequested'),
-                          {code: 'ClientRunCancellationRequested'});
-                      }
-                      return checkpointOwner.journal.admitResume(claimed.claim,
-                        {checkpointCid: view.checkpointCid});
-                    }};
+                    assertCurrent: prepareOriginalEffectReadCurrent(
+                      () => journal!.observeRunCancellation(ref, moon, control, retained),
+                      () => leaseFailure,
+                      () => checkpointOwner.journal.admitResume(claimed.claim, {checkpointCid: view.checkpointCid}),
+                    )};
                   const result = await executeEffectComputation(facts,
                     targetResumption ? undefined : sourceResume,
                     targetResumption ? sourceResume : undefined);
