@@ -95,13 +95,21 @@ type HttpFixture = DirectFixture & HttpPreparation &
 // the manager's retained original; it never issues a replacement annotation
 // context or converts a prepared token into a proof.
 const preparationOriginals = new WeakMap<object, Readonly<{
-  moon: FixtureMoon; manager: OrdinaryManager; request: FixtureRequest;
+  moon: FixtureMoon; manager: OrdinaryManager; request: FixtureRequest; kind: FundedOriginal['kind'];
 }>>();
 export function fundedAuthoringContextOriginalFixture(moon: FixtureMoon, prepared: object) {
   const original = preparationOriginals.get(prepared);
-  assert.ok(original, 'The publication fixture requires its original funded preparation');
+  assert.ok(original?.kind === 'effect_free', 'The publication fixture requires its original funded preparation');
   assert.strictEqual(original.moon, moon);
   return original.manager.authoringContextOriginal(prepared, original.request);
+}
+
+export function fundedModelMaterialFixture(moon: FixtureMoon, prepared: object) {
+  const original = preparationOriginals.get(prepared);
+  assert.ok(original, 'The Model reader requires its original funded preparation');
+  assert.strictEqual(original.moon, moon);
+  return (count: number, wireAt: (index: number) => string, containers: number) =>
+    original.manager.prepareModelMaterials(prepared, original.request, count, wireAt, containers);
 }
 
 // Existing caller tests use the actual Request/Resource owner and compiler.
@@ -203,9 +211,7 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
       const original = await view.fundedPreparation(request, selected, verifier, signal) as FundedOriginal;
       assert.equal(retained.has(original.prepared), false);
       retained.set(original.prepared, original.kind);
-      if (original.kind === 'effect_free') {
-        preparationOriginals.set(original.prepared, {moon, manager: view, request});
-      }
+      preparationOriginals.set(original.prepared, {moon, manager: view, request, kind: original.kind});
       return original;
     }});
   const close = async () => {

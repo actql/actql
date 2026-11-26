@@ -10833,12 +10833,12 @@
                 "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host handoff keeps final flags/checking and avoids reparsing its unchanged composer input'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller funds a new wrapper on the same actual wire and retains nominal publication'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host Task handoff preserves binding failure before parsing its new document'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller refuses copied foreign or current-lost originals before new construction'"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -10910,7 +10910,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }
@@ -14606,7 +14606,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -15128,7 +15128,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -20244,12 +20244,12 @@
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs"
               },
               {
-                "anchor": "test('actual Host handoff keeps final flags/checking and avoids reparsing its unchanged composer input'",
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs"
+                "anchor": "test('final Source checker caller funds a new wrapper on the same actual wire and retains nominal publication'",
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs"
               },
               {
-                "anchor": "test('actual Host Task handoff preserves binding failure before parsing its new document'",
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs"
+                "anchor": "test('final Source checker caller refuses copied foreign or current-lost originals before new construction'",
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs"
               },
               {
                 "anchor": "### Original Model input before its component factory",
@@ -22378,12 +22378,12 @@
                 "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host handoff keeps final flags/checking and avoids reparsing its unchanged composer input'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller funds a new wrapper on the same actual wire and retains nominal publication'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host Task handoff preserves binding failure before parsing its new document'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller refuses copied foreign or current-lost originals before new construction'"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -22455,7 +22455,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               },
               {
                 "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
@@ -23662,12 +23662,12 @@
                 "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host handoff keeps final flags/checking and avoids reparsing its unchanged composer input'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller funds a new wrapper on the same actual wire and retains nominal publication'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host Task handoff preserves binding failure before parsing its new document'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller refuses copied foreign or current-lost originals before new construction'"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -23739,7 +23739,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }
@@ -24942,12 +24942,12 @@
                 "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host handoff keeps final flags/checking and avoids reparsing its unchanged composer input'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller funds a new wrapper on the same actual wire and retains nominal publication'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host Task handoff preserves binding failure before parsing its new document'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller refuses copied foreign or current-lost originals before new construction'"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -25019,7 +25019,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }
@@ -26222,12 +26222,12 @@
                 "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host handoff keeps final flags/checking and avoids reparsing its unchanged composer input'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller funds a new wrapper on the same actual wire and retains nominal publication'"
               },
               {
-                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
-                "anchor": "test('actual Host Task handoff preserves binding failure before parsing its new document'"
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('final Source checker caller refuses copied foreign or current-lost originals before new construction'"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -26299,7 +26299,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }
@@ -31544,7 +31544,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ae49f768d6e3386ebbf582b9bbd4a883797e245e537888b49dbdf9339bbef3d1"
+      "sha256": "b9e15c9c85121755b3a5d9e9e43effa73b43ce2c8ac6892ef7c9e53ad188ee73"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

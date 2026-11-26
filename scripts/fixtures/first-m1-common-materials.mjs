@@ -58,11 +58,11 @@ export function configuration(base) {
   const {evidence_bundle_cid: ignored, ...environment} = base;
   void ignored;
   environment.model_task_contracts = [{...task, contract_cid: identity(task)}];
-  return {
+  return Object.freeze({
     environmentWire: canonical({...environment, evidence_bundle_cid: identity(environment)}),
-    executionContracts: [{modelTaskCid: identity(task), cid: identity(execution),
-      bodyWire: canonical({...execution, self_cid: identity(execution)})}],
-    dependencyBodies: [prompt, retry, backoff].map(body => ({cid: identity(body),
-      bodyWire: canonical({...body, self_cid: identity(body)})})),
-  };
+    executionContracts: Object.freeze([Object.freeze({modelTaskCid: identity(task), cid: identity(execution),
+      bodyWire: canonical({...execution, self_cid: identity(execution)})})]),
+    dependencyBodies: Object.freeze([prompt, retry, backoff].map(body => Object.freeze({cid: identity(body),
+      bodyWire: canonical({...body, self_cid: identity(body)})}))),
+  });
 }

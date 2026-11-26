@@ -183,8 +183,9 @@ async function installedHost(t, options = {}) {
     token: 'fixture-owner', durability: 'durable'});
   return {client, root, physicalStarts: () => physicalStarts,
     async closeHost() {
-      await host?.close();
+      const result = await host?.close();
       host = undefined;
+      return result;
     }};
 }
 
@@ -255,7 +256,7 @@ for (const variant of ['valid', 'wrong-self-cid', 'foreign-task']) {
           self_cid: variant === 'wrong-self-cid' ?
             `sha256:${'b'.repeat(64)}` : executionCid})}];
       const observations = [];
-      const {client, root, physicalStarts} = await installedHost(t,
+      const {client, root, physicalStarts, closeHost} = await installedHost(t,
         {modelInstallation: installation,
           authorization: diagnosticAuthorization((name, detail) => {
             if (name === 'infer_preparation_rejected') observations.push(detail);
@@ -277,6 +278,11 @@ for (const variant of ['valid', 'wrong-self-cid', 'foreign-task']) {
           'identity_mismatch' : 'reference_mismatch');
       }
       assertNoAcceptedRun(root, physicalStarts);
+      const closed = await closeHost();
+      assert.equal(closed.storeCleanupPending, false);
+      assert.equal(closed.authorizationCleanupPending, false);
+      assert.deepEqual(closed.pendingRetention, []);
+      assert.equal(closed.diagnosticDeliveryPending, false);
     });
 }
 
