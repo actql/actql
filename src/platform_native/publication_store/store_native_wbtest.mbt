@@ -272,6 +272,7 @@ test "native publication capacity rejects before payload allocation" {
 #borrow(database)
 extern "C" fn test_payload_admission_lose_commit_reply(
   database : @sqlite.Database,
+  failures : Int,
 ) -> Unit = "actql_native_sqlite_test_fail_commit_reply"
 
 ///|
@@ -288,7 +289,7 @@ test "native publication keeps original quota and rows after an initial COMMIT r
   let second_key = record_key(second_request)
   let events : Array[String] = []
   store.observe_allocation(event => events.push(event))
-  test_payload_admission_lose_commit_reply(store.database)
+  test_payload_admission_lose_commit_reply(store.database, 1)
   assert_true(store.begin_payload(second_request) is Err(Database(_)))
   guard store.payload_admission_failure is Some(Commit(failure)) else {
     fail("missing original COMMIT failure")
