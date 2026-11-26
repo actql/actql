@@ -1081,6 +1081,19 @@ fn native_relation_file_target_read_io_capacity_original(
   let contract = @rows.relation_document_prepared_contract(
     provider.prepared_contract,
   )
+  let observation_page = if provider.has_ordered_key() &&
+    response_bytes is Some(bytes) {
+    {
+      ..limits.page,
+      max_bytes: native_ordered_target_before_wire_bound(
+        contract,
+        limits.page.max_bytes,
+        bytes,
+      ),
+    }
+  } else {
+    limits.page
+  }
   guard writable_fields <= limits.page.max_nodes &&
     file_capture_provider_capacity(
       provider.selection,
@@ -1099,7 +1112,11 @@ fn native_relation_file_target_read_io_capacity_original(
       response_quote_nodes=file_capture_text_contract_nodes(contract),
     )
     is Some(controls) &&
-    native_relation_target_observation_capacity(provider, writable_fields)
+    native_relation_target_observation_capacity(
+      provider,
+      writable_fields,
+      page=Some(observation_page),
+    )
     is Some(observation) &&
     native_relation_file_caller_preparation_inventory(
       provider.selection,
@@ -1145,6 +1162,52 @@ fn native_relation_file_target_read_io_capacity_original(
   } else {
     ordinary
   }
+}
+
+///|
+// The ready Target emits one checked row. For flat Text/Int64, the original
+// file size bounds all decoded text before normalization. Int64 is emitted as
+// a quoted exact decimal, independently of the physical token spelling.
+// This bounds the Before text buffer only; the document and write check keep
+// their own inventories, and the actual writer retains all policy limits.
+fn native_ordered_target_before_wire_bound(
+  contract : @contract.Contract,
+  max_bytes : Int,
+  response_bytes : Int,
+) -> Int {
+  guard !contract.nullable &&
+    contract.shape is @contract.Object(fields) &&
+    @canonical.nfc_lf_retained_output_units(response_bytes.to_int64())
+    is Some(normalized) else {
+    return max_bytes
+  }
+  let width = @contract.field_count(fields)
+  // Braces; two key quotes, colon and at most one comma per field; keys
+  // may need six output bytes per UTF16 unit (bounded by their UTF8 bytes).
+  // Field count is Int, so at most 26 bytes per field cannot overflow Int64.
+  let mut bytes = 2L
+  for index in 0..<width {
+    let value = @contract.field_at(fields, index).unwrap().contract
+    if value.nullable {
+      return max_bytes
+    }
+    bytes += match value.shape {
+      @contract.Text(_) => 6L
+      @contract.Signed64 => 26L
+      _ => return max_bytes
+    }
+  }
+  guard @execution.checked_preparation_add_product(
+      bytes,
+      @contract.field_name_bytes(fields).to_int64(),
+      6L,
+    )
+    is Some(with_keys) &&
+    @execution.checked_preparation_add_product(with_keys, normalized, 6L)
+    is Some(total) else {
+    return max_bytes
+  }
+  Int64::min(max_bytes.to_int64(), total).to_int()
 }
 
 ///|

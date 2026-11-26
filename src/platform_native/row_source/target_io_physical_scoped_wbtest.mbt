@@ -313,6 +313,7 @@ fn target_io_fixture_physical(kind : Int) -> Unit raise {
     4 | 5 | 6 => target_io_fixture_lineage_work(directory, kind)
     7 => {
       target_io_fixture_insert_work(directory)
+      target_io_fixture_ordered_before_work(directory)
       target_io_fixture_ordered_insert_work(directory)
     }
     _ => target_io_fixture_funding_work(directory)
@@ -698,8 +699,10 @@ fn target_io_fixture_insert_work(directory : String) -> Unit raise {
 }
 
 ///|
-fn target_io_fixture_ordered_insert_work(directory : String) -> Unit raise {
-  let declaration = @rows.restore_relation_row_declaration(
+fn target_io_fixture_ordered_declaration(
+  label_nullable : Bool,
+) -> @rows.RowDeclaration {
+  @rows.restore_relation_row_declaration(
     "ordered",
     "fixture",
     "fixture/0.1",
@@ -712,7 +715,7 @@ fn target_io_fixture_ordered_insert_work(directory : String) -> Unit raise {
             "schema": {
               "site": { "type": "string", "nullable": false },
               "serial": { "type": "int64", "nullable": false },
-              "label": { "type": "string", "nullable": true },
+              "label": { "type": "string", "nullable": label_nullable },
             },
             "facts": {
               "relation_keys": { "candidate_keys": [["site", "serial"]] },
@@ -726,6 +729,103 @@ fn target_io_fixture_ordered_insert_work(directory : String) -> Unit raise {
     ).unwrap(),
     None,
   ).unwrap()
+}
+
+///|
+fn target_io_fixture_ordered_before_work(directory : String) -> Unit raise {
+  let target = prepare_native_relation_file_provider(
+    target_io_fixture_ordered_declaration(false),
+    {
+      directory,
+      name: "target-ordered-before.json",
+      resource: "records",
+      items_path: ["items"],
+      key_path: Some(["keys"]),
+      primary_identity: "site",
+    },
+    {
+      page: { max_bytes: 65536, max_nodes: 128, max_depth: 8, max_rows: 4, },
+      max_work: 1000000,
+      chunk_bytes: 32,
+      diagnostic_ceiling: 256,
+    },
+    ordered_fields=Some(["site", "serial"]),
+  ).unwrap()
+  let contract = @rows.relation_document_prepared_contract(
+    target.prepared_contract,
+  )
+  let physical_bytes = 167
+  let before_bound = native_ordered_target_before_wire_bound(
+    contract,
+    target.limits.page.max_bytes,
+    physical_bytes,
+  )
+  assert_eq(before_bound, 4138)
+  // U+0344 expands in NFC. The original typed Text emission preserves it;
+  // neither the quote nor verification replaces that spelling in Before.
+  assert_eq(
+    @canonical.normalize_nfc_lf("\u{0344}").unwrap(),
+    "\u{0308}\u{0301}",
+  )
+  for
+    (key, expected_before, expected_version) in [
+      (
+        "[\"west\",\"-9223372036854775808\"]", "{\"label\":\"\u{0344}\\n\\\"\\\\😀\",\"serial\":\"-9223372036854775808\",\"site\":\"west\"}",
+        "sha256:ec5812890f6d2fc41f42abafde54bfd4e736376ed90fcf4d4618eb678da6ce58",
+      ),
+      (
+        "[\"east\",\"9223372036854775807\"]", "{\"label\":\"plain\",\"serial\":\"9223372036854775807\",\"site\":\"east\"}",
+        "sha256:f6f0b644bb748811cdbf0aff84be6bba17bc07b667295a6abe838613b643847e",
+      ),
+    ] {
+    let quote = bytes => {
+      let (value, _) = native_relation_file_ordered_target_construction(
+        target,
+        1,
+        key,
+        ObserveTarget,
+        Some(bytes),
+      ).unwrap()
+      @execution.execution_capacity_execution_bytes(value)
+    }
+    let exact = quote(physical_bytes)
+    let open = budget => {
+      prepare_native_relation_file_ordered_target_io(
+        target,
+        ["label"],
+        key,
+        ObserveTarget,
+        bytes => bytes == physical_bytes && quote(bytes) <= budget,
+      ).unwrap()
+    }
+    let short = open(exact - 1L)
+    assert_true(short.advance() is Err(Capacity))
+    assert_eq(short.byte_counts(), (0L, 0L))
+    assert_true(short.reader is None && short.buffer is None)
+    assert_eq(short.snapshot(), None)
+    assert_true(short.close().unwrap())
+    let child = open(exact)
+    target_io_fixture_run(child)
+    let (before, version) = child.snapshot().unwrap()
+    assert_true(@utf8.encode(before).length() <= before_bound)
+    assert_eq((before, version), (expected_before, expected_version))
+    // Replacement DATA can grow beyond the received file even for this
+    // closed schema. Its existing validation and limits are independent.
+    let expanded = "{\"label\":\"" + "x".repeat(512) + "\"}"
+    child.check_update(expanded).unwrap()
+    assert_true(
+      child.check_update("{\"serial\":\"9223372036854775806\"}")
+      is Err(Document(_)),
+    )
+    assert_eq(child.byte_counts(), (physical_bytes.to_int64(), 0L))
+    assert_true(child.replacement_acknowledgment() is None)
+    assert_true(child.close().unwrap())
+  }
+}
+
+///|
+fn target_io_fixture_ordered_insert_work(directory : String) -> Unit raise {
+  let declaration = target_io_fixture_ordered_declaration(true)
   let target = prepare_native_relation_file_provider(
     declaration,
     {
@@ -746,6 +846,14 @@ fn target_io_fixture_ordered_insert_work(directory : String) -> Unit raise {
   ).unwrap()
   let key = "[\"west\",\"9223372036854775807\"]"
   let original = " {\"keys\":[\"site\",\"serial\"],\"items\":[{\"site\":\"west\",\"serial\":9223372036854775806,\"label\":\"keep\"},{\"site\":\"east\",\"serial\":9223372036854775807,\"label\":null}],\"control\":[\"untouched\"]}\n"
+  assert_eq(
+    native_ordered_target_before_wire_bound(
+      @rows.relation_document_prepared_contract(target.prepared_contract),
+      target.limits.page.max_bytes,
+      original.length(),
+    ),
+    target.limits.page.max_bytes,
+  )
   let expected = " {\"keys\":[\"site\",\"serial\"],\"items\":[{\"site\":\"west\",\"serial\":9223372036854775806,\"label\":\"keep\"},{\"site\":\"east\",\"serial\":9223372036854775807,\"label\":null},{\"label\":\"new\",\"serial\":9223372036854775807,\"site\":\"west\"}],\"control\":[\"untouched\"]}\n"
   let open = (mutation : NativeRelationFileTargetMutation) => {
     let writable = match mutation {

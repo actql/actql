@@ -155,9 +155,14 @@ function nativeRelationTargetFiles(namespace: string, suffix: string,
   for (const [name, content] of [
     ['target-' + suffix + '.json', input],
     ['target-backing-' + suffix, 384 * 1024 ** 2],
-    ...(suffix === 'insert' ? [['target-ordered.json', Buffer.from(
-      ' {"keys":["site","serial"],"items":[{"site":"west","serial":9223372036854775806,"label":"keep"},{"site":"east","serial":9223372036854775807,"label":null}],"control":["untouched"]}\n',
-    )]] as const : []),
+    ...(suffix === 'insert' ? [
+      ['target-ordered.json', Buffer.from(
+        ' {"keys":["site","serial"],"items":[{"site":"west","serial":9223372036854775806,"label":"keep"},{"site":"east","serial":9223372036854775807,"label":null}],"control":["untouched"]}\n',
+      )],
+      ['target-ordered-before.json', Buffer.from(
+        '{"keys":["site","serial"],"items":[{"site":"west","serial":-9223372036854775808,"label":"\u0344\\n\\"\\\\😀"},{"site":"east","serial":9223372036854775807,"label":"plain"}]}\n',
+      )],
+    ] as const : []),
     ...(foreignCopy ? [['foreign-copy.json', Buffer.from(text.replace('"value":1', '"value":9'))]] as const : []),
   ] as const) {
     const fd = openSync(join(root, name), 'wx', 0o600);
