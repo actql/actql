@@ -5,6 +5,7 @@ import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
+import type {BinaryLike} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
 import {checkComputeAssembly} from './connector-compute-bundles.mjs';
@@ -17,7 +18,7 @@ import {
   './connector-addition-source.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const git = args => {
+const git = (args: readonly string[]) => {
   const result = spawnSync('git', args, {cwd: root, encoding: 'utf8'});
   if (result.error || result.status !== 0) throw result.error ?? new Error('Cannot identify source revision');
   return result.stdout.trim();
@@ -40,7 +41,7 @@ if (artifactDirectory) process.on('exit', code => {
   writeFileSync(join(artifactDirectory,'execution.json'),JSON.stringify({sourceHead,exitCode:code,
     platform:process.platform,arch:process.arch,node:process.version},null,2)+'\n');
 });
-const allowed = path => path.startsWith('src/connectors/reference_compute/') ||
+const allowed = (path: string) => path.startsWith('src/connectors/reference_compute/') ||
   path.startsWith('src/connectors_builtin/') || path.startsWith('src/connectors_builtin_node/') ||
   path.startsWith('src/query_integration/') || path.startsWith('src/connector_conformance/') ||
   path.startsWith('src/connectors/duckdb/conformance/') || path.startsWith('adapters/reference-compute-node/') ||
@@ -122,9 +123,9 @@ for (const name of readdirSync(join(root, 'src'))) {
 // silently changes common consumers instead of testing connector addition.
 const commonHostInputs = copyConnectorAdditionHostSource(root,isolated);
 
-const hash = data => createHash('sha256').update(data).digest('hex');
-function inventory(directory, prefix = '') {
-  const result = new Map();
+const hash = (data: BinaryLike) => createHash('sha256').update(data).digest('hex');
+function inventory(directory: string, prefix = ''): Map<string, string> {
+  const result = new Map<string, string>();
   for (const entry of readdirSync(directory, {withFileTypes: true})) {
     if (entry.isSymbolicLink()) continue;
     const name = prefix + entry.name;
@@ -134,7 +135,7 @@ function inventory(directory, prefix = '') {
   }
   return result;
 }
-function run(label, args, executable = 'moon') {
+function run(label: string, args: readonly string[], executable = 'moon') {
   const testKind = args[0] === 'test' ? 'moon' : args.includes('--test') ? 'node' : null;
   if (testKind === 'node') args = nodeTestArguments(args);
   // Reuse Core CI's pinned Linux Native compiler soft-stack prerequisite.
@@ -164,7 +165,7 @@ if (checkComputeAssembly(isolated, true) !== 2) throw new Error('Expected the de
 checkNodeAssembly(isolated, true);
 assertConnectorAdditionHostSource(isolated,commonHostInputs);
 if (existsSync(join(isolated, 'src/connectors/reference_compute'))) throw new Error('Third implementation leaked into baseline');
-const snapshot = () => new Map([...inventory(join(isolated, 'src'), 'src/'),
+const snapshot = () => new Map<string, string>([...inventory(join(isolated, 'src'), 'src/'),
   ...inventory(join(isolated, 'adapters'), 'adapters/'),
   ...inventory(join(isolated, 'packages/client-wire'), 'packages/client-wire/'),
   ...inventory(join(isolated, 'packages/sdk'), 'packages/sdk/'),
@@ -172,7 +173,7 @@ const snapshot = () => new Map([...inventory(join(isolated, 'src'), 'src/'),
   ...inventory(join(isolated, 'scripts/templates'), 'scripts/templates/'),
   ...['scripts/native-cxx-link-driver.sh', 'scripts/native-sqlite-link-driver.sh',
     'scripts/ar', ...nodeFixturePaths].map(path =>
-    [path, hash(readFileSync(join(isolated, path)))]),
+    [path, hash(readFileSync(join(isolated, path)))] as const),
 ]);
 const before = snapshot();
 writeFileSync(join(isolated,'common-before.json'),JSON.stringify(
@@ -190,13 +191,14 @@ const changed = [...new Set([...before.keys(), ...after.keys()])].filter(path =>
 for (const path of changed) if (!allowed(path)) throw new Error(`Common implementation changed: ${path}`);
 if (!changed.some(path => path.startsWith('src/connectors/reference_compute/'))) throw new Error('No independent connector added');
 run('extended-check', ['check', '--target', 'all', '--deny-warn']);
-const tests = {};
-for (const target of ['js', 'wasm', 'native']) {
-  tests[target] = run('third-' + target, ['test', '--target', target,
+const tests: Partial<Record<'js' | 'wasm' | 'native' | 'node', string[]>> = {};
+for (const target of ['js', 'wasm', 'native'] as const) {
+  const totals = run('third-' + target, ['test', '--target', target,
     'src/query_integration/standard_subset_wbtest.mbt']);
+  tests[target] = totals;
   // The selected file includes both the reference/both-implementation case
   // and the Local-only retention refusal. Require both original cases.
-  if (!tests[target].some(total => total === 'Total tests: 2, passed: 2, failed: 0.')) {
+  if (!totals.some(total => total === 'Total tests: 2, passed: 2, failed: 0.')) {
     throw new Error(`Both independent connector cases were not executed on ${target}`);
   }
 }

@@ -9,7 +9,7 @@ export const requiredClientWireFiles = Object.freeze([
   'publication.generated.js', 'publication.generated.d.ts',
 ]);
 
-export function assertClientWireDependency(root) {
+export function assertClientWireDependency(root: string) {
   for (const name of requiredClientWireFiles) {
     const path = join(root, 'packages/client-wire', name);
     if (!existsSync(path) || readFileSync(path).byteLength === 0) {
