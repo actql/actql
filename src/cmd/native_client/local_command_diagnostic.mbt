@@ -114,17 +114,6 @@ fn local_frontend_diagnostic_kind(
 }
 
 ///|
-// The static Mapping selection already refused this original request. Keep
-// only a closed tag: neither the requested nor configured fields are public.
-fn local_effect_mapping_rule_mismatch(
-  issue : @run_host.ClientEffectComputationIssue,
-) -> Bool {
-  guard issue is Static(MappingRules(rule)) else { return false }
-  @stage_results.effect_mapping_rule_issue_kind(rule)
-  is Permission(NoMatchingRule)
-}
-
-///|
 fn local_native_preparation_diagnostic_kind(
   issue : @local_host.NativeClientPreparationIssue,
 ) -> LocalCommandDiagnosticKind {
@@ -144,8 +133,13 @@ fn local_native_preparation_diagnostic_kind(
     Computation(Syntax(_)) => ProgramInvalid
     Computation(Binding(_)) => ParameterBinding
     Computation(_) => PreparationFailedComputation
-    EffectComputation(issue) if local_effect_mapping_rule_mismatch(issue) =>
-      EffectMappingRuleMismatch
+    EffectComputation(Static(MappingRules(rule))) =>
+      // The original checker already refused the rule. Retain only a closed
+      // diagnostic tag, not the requested or configured fields.
+      match @stage_results.effect_mapping_rule_issue_kind(rule) {
+        Permission(NoMatchingRule) => EffectMappingRuleMismatch
+        _ => PreparationFailedEffectComputation
+      }
     EffectComputation(_) => PreparationFailedEffectComputation
   }
 }
@@ -174,9 +168,12 @@ fn[T] local_stop_submitted_preparation(
       }
     Request(QuerySyntax(Frontend(issue))) =>
       local_frontend_diagnostic_kind(issue)
-    Request(Preparation(ProgramCheck(EffectCompilation(original)))) if local_effect_mapping_rule_mismatch(
-        original,
-      ) => EffectMappingRuleMismatch
+    Request(Preparation(ProgramCheck(EffectCompilation(original)))) =>
+      match
+        local_native_preparation_diagnostic_kind(EffectComputation(original)) {
+        EffectMappingRuleMismatch => EffectMappingRuleMismatch
+        _ => PreparationFailedRequest
+      }
     Request(_) => PreparationFailedRequest
     RequestPreparation(_) => PreparationFailedRequestPreparation
     RequestBranchUnavailable => UnsupportedPreparation
