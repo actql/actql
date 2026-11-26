@@ -358,7 +358,11 @@ test('Project acceptance requires the original environment credential path and n
 test('registered terminal failures require original Saved in a distinct zero-egress process', () => {
   const shared = {firstCloseReturned: true, aliveScopedFD0: true, registeredSdk: true,
     projectCredential: true, maxCalls: 1, originalRunDefinitionCid: 'sha256:' + 'd'.repeat(64)};
-  for (const [caseId, terminalFailure] of [['registered-length', 'truncated'], ['registered-refusal', 'refusal']]) {
+  for (const [caseId, terminalFailure] of [
+    ['registered-length', 'truncated'], ['registered-refusal', 'refusal'],
+    ['registered-openai-filter', 'safety_rejected'], ['registered-google-recitation', 'safety_rejected'],
+    ['registered-google-blocklist', 'safety_rejected'],
+  ]) {
     const warm = {...shared, terminalFailure, phase: caseId, tasks: 1, requests: 1,
       calls: 1, projectTlsConnects: 1, originalModelStarts: 1};
     const cold = {...shared, terminalFailure, phase: 'cold', calls: 0, projectTlsConnects: 0,

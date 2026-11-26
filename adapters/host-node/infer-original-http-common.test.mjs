@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
+import {createHash} from 'node:crypto';
 import {setImmediate as turn} from 'node:timers/promises';
 import {pathToFileURL} from 'node:url';
 import {createOriginalUndiciFetch} from '../../packages/provider-ai-sdk/_internal/original-undici-transport.mjs';
@@ -12,7 +13,7 @@ import {originalSdkCommonFixture} from './infer-original-sdk-common.fixture.mjs'
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
-import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
+import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
 
 const moon=await import(process.env.ACTQL_INFER_ORIGINAL_RUNTIME===undefined
   ? new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href
@@ -94,28 +95,46 @@ test('selected structured SDK preserves absent usage separately from reported ze
 for (const [finish,outcome,usage] of [
   ['length','truncated',{prompt_tokens:5,completion_tokens:7}],
   ['refusal','refusal',{prompt_tokens:0}],
+  ['content_filter','safety_rejected',{prompt_tokens:5,completion_tokens:7}],
 ]) {
   test('registered SDK settles saved '+finish+' and retains actual failure usage',
     {timeout:15000}, t => {
       const reply=JSON.parse(responseWire);
       reply.usage=usage;
-      if(finish==='refusal') {
+      if (finish==='refusal' || finish==='content_filter') {
         delete reply.system_fingerprint;
         reply.choices[0].message.content=null;
-        reply.choices[0].message.refusal='controlled refusal';
-      } else {
-        reply.choices[0].finish_reason=finish;
+        reply.choices[0].message.refusal=finish==='refusal'?'controlled refusal':null;
       }
+      if (finish!=='refusal') reply.choices[0].finish_reason=finish;
       return originalHttpSettlement(t,'registered',{outcome,wire:JSON.stringify(reply),
-        usage:[usage.prompt_tokens??null,usage.completion_tokens??null]});
+        usage:[usage.prompt_tokens??null,usage.completion_tokens??null], report:{
+          provider_reported_model_id:'reported-model',provider_request_id:'original-http-response',
+          finish_reason:finish==='refusal'?'stop':finish,
+          ...(finish==='length'?{provider_metadata:{system_fingerprint:'fp_observed'}}:{}),
+        }});
     });
+}
+
+for (const [reason,response,usage] of [
+  ['RECITATION',{candidates:[{index:0,finishReason:'RECITATION'}],
+    usageMetadata:{promptTokenCount:0,candidatesTokenCount:0,totalTokenCount:0}},[0,0]],
+  ['BLOCKLIST',{promptFeedback:{blockReason:'BLOCKLIST'}},[null,null]],
+]) {
+  test('registered Google SDK saves '+reason+' as safety rejection',
+    {timeout:15000}, t => originalHttpSettlement(t,'registered',{
+      google:true,outcome:'safety_rejected',usage,
+      wire:JSON.stringify({modelVersion:'reported-google',responseId:'original-google-response',...response}),
+      report:{provider_reported_model_id:'reported-google',provider_request_id:'original-google-response',
+        finish_reason:reason},
+    }));
 }
 
 test('selected structured SDK keeps a truncated provider response unknown',
   {timeout:15000}, t => originalHttpSettlement(t, true, {loseResponse:true}));
 
 async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseResponse=false,
-  status=200, contentType='application/json', outcome, wire=responseWire, usage=[3,2],
+  status=200, contentType='application/json', outcome, wire=responseWire, usage=[3,2], google=false, report,
   foreignRegisteredProfile=false, excludeReportedMetadata=false, overrideCompletion} = {}) {
     const calls=[],sockets=new Set();
     const server=createServer(async(request,response)=>{
@@ -145,7 +164,9 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
       server.closeAllConnections();
       await new Promise(resolve=>server.close(resolve));
     });
-    const endpoint=`http://127.0.0.1:${server.address().port}/v1/chat/completions`;
+    const modelId=google?'gemini-2.5-flash':'gpt-4.1-nano';
+    const path=google?'/v1beta/models/'+modelId+':generateContent':'/v1/chat/completions';
+    const endpoint=`http://127.0.0.1:${server.address().port}${path}`;
     const fetch=createOriginalUndiciFetch({endpoint,
       requestLimits:{maxBytes:1000,maxHeaderBytes:4096,maxHeaders:16},
       responseLimits:{maxBytes:2048,maxChunkBytes:512,maxChunks:16,
@@ -153,10 +174,10 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
       physicalAcquisitionLimits:{maxPlaintextBytes:65536,
         maxBorrowedBackingBytes:131072,maxReads:64}});
     const refusal = new Error('FixtureRawConfirmationUnavailable');
-    const reportedFailure=structuredSdk==='registered' && ['truncated','refusal'].includes(outcome);
+    const reportedFailure=report!==undefined;
     let observedSettlement;
     const f=await originalSdkCommonFixture(t,moon,{physical:{endpoint,fetch},structuredSdk,foreignRegisteredProfile,
-      excludeReportedMetadata, overrideCompletion,
+      google,modelId,excludeReportedMetadata, overrideCompletion,
       observeSettlement:reportedFailure ? value=>{observedSettlement=value;} : undefined,
       beforeOriginalRead({read}) {
         if (refuseRaw && read === 2) throw refusal;
@@ -189,8 +210,8 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
       // another invocation or acknowledging the uncertain remote outcome.
       await assert.rejects(f.operation.run(), {code:'MoonBitHostFailure'});
     } else {
-      await assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,usage,
-        reportedFailure ? ()=>observedSettlement : undefined, excludeReportedMetadata);
+      await assertOriginalSettlement(f,capture,calls,{structuredSdk,outcome,usage,path,modelId,google,
+        report,wire,readSettlement:()=>observedSettlement,excludeReportedMetadata});
     }
     assert.equal(calls.length,1,'Settlement must not repeat the original physical request');
     const firstCaptureCleanup=await capture.custody.cleanup();
@@ -225,13 +246,14 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
     t.diagnostic('Actual loopback/SDK/Common/raw Store/SQLite; synthetic funding and private Host fixture');
 }
 
-async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,usage,readSettlement,excludeReportedMetadata) {
+async function assertOriginalSettlement(f,capture,calls,{structuredSdk,outcome,usage,path,modelId,google,
+  report,wire,readSettlement,excludeReportedMetadata}) {
     const boundary=await f.operation.run();
     assert.equal(boundary.status,'settling');
     assert.equal(calls.length,1);
     assert.deepEqual({method:calls[0].method,path:calls[0].path},
-      {method:'POST',path:'/v1/chat/completions'});
-    assert.equal(JSON.parse(calls[0].body).model,'gpt-4.1-nano');
+      {method:'POST',path});
+    if (!google) assert.equal(JSON.parse(calls[0].body).model,modelId);
     assert.equal(f.originalReads(),2,'Actual Store rechecks originals after transport');
     const entry=f.opened.entry(0);
     assert.ok(entry);
@@ -275,30 +297,33 @@ async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,us
     const saved=await capture.persistSettlement(boundary.settlement,entry);
     const expected=outcome===undefined?'SavedSuccess':'SavedFailure';
     assert.equal(saved.state,expected);
-    if (readSettlement!==undefined) {
+    if (report!==undefined) {
       const proofCid=f.control.modelScopedPrivateHoldingCid(f.plan.runDefinition,
         f.storeAuthorityCid,entry,'model_attempt_outcome','settled');
       const proof=await f.store.inspectPhysicalHolding(proofCid);
       assert.equal(proof.manifest_cid,record.outcome_evidence_cid);
-      const wire=Buffer.from(await f.store.readPrivateEvidence('model_attempt_outcome',proof.manifest_cid,proofCid));
-      const body=JSON.parse(wire.toString('utf8'));
+      const savedWire=Buffer.from(await f.store.readPrivateEvidence('model_attempt_outcome',proof.manifest_cid,proofCid));
+      const body=JSON.parse(savedWire.toString('utf8'));
       assert.equal(body.version,'actql-model-attempt-outcome/0.1');
-      const report=body.reported_response;
+      assert.equal(body.failure,outcome);
       const rawHoldingCid=f.control.modelScopedPrivateHoldingCid(f.plan.runDefinition,
         f.storeAuthorityCid,entry,'model_raw_response','entered');
       const raw=await f.store.inspectPhysicalHolding(rawHoldingCid);
-      assert.deepEqual(report,{
+      assert.deepEqual(body.reported_response,{
         raw_response_artifact_cid:raw.manifest_cid,
         response_profile_cid:JSON.parse(f.profileWire).self_cid,
         observed_at:'2026-10-12T00:00:00.000Z',
-        provider_reported_model_id:'reported-model',
-        provider_request_id:'original-http-response',
-        finish_reason:outcome==='truncated'?'length':'stop',
         response_complete:false,
-        ...(outcome==='truncated' ? {provider_metadata:{system_fingerprint:'fp_observed'}} : {}),
+        ...report,
       });
       const rawWire=await f.store.readModelRawResponseDescriptor(raw.manifest_cid,rawHoldingCid,
         (_bytes,owned)=>owned.releaseBytes());
+      const descriptor=JSON.parse(rawWire);
+      assert.equal(descriptor.self_cid,raw.manifest_cid);
+      assert.equal(descriptor.http_status,200);
+      assert.equal(descriptor.transport_eof,true);
+      assert.equal(descriptor.byte_count,Buffer.byteLength(wire));
+      assert.equal(descriptor.content_cid,'sha256:'+createHash('sha256').update(wire).digest('hex'));
       await assertSavedReportBinding(readSettlement(),body,record,accountingWire,rawWire);
     }
     assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,expected);
