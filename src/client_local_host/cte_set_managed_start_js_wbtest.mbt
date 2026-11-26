@@ -80,7 +80,7 @@ test "set expression starts its first task beside the original whole Source" {
   @row_source_host.check_row_input_compute_binding(capture, dag, 0).unwrap()
   let host = bind_client_local_configuration(
     dag,
-    plan.configuration,
+    plan.configuration.unwrap(),
     1L,
     1L,
     1L,

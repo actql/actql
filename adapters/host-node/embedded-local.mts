@@ -172,7 +172,7 @@ type CaptureAdapter = Readonly<{
   admitsSource(ref: string): boolean;
   managedCaptureCapacity(requirement: unknown): SourceCapacity | undefined;
   managedWholeSourceCapacity?(facts: Readonly<{preparedProgram: object; sourceSelection: unknown;
-    installedContracts: unknown}>): SourceCapacity | undefined;
+    installedContracts: unknown; serialization?: unknown}>): SourceCapacity | undefined;
 }>;
 type DirectSourceCoordinates = readonly [stage: number, input: number, task: number, computeTask: number];
 type JournalPreparationOriginal = Readonly<{
@@ -1393,7 +1393,8 @@ function installedDirectSourceCoordinates(moon: Pick<ManagedRequirementsRuntime,
 // Same original Source inventory serves its retained Plan and legacy purpose
 // quote. A Source capacity is immutable DATA; it grants neither a read nor a
 // second Resource Run. Actual source readers retain their existing authority.
-function retainedManagedCaptureInventory(originals: HostStartupOriginals, run: EmbeddedComputeRun, contracts: ManagedRunContracts) {
+function retainedManagedCaptureInventory(originals: HostStartupOriginals, run: EmbeddedComputeRun, contracts: ManagedRunContracts,
+    serialization?: unknown) {
   const moon = (originals as RequirementsOriginals).installation.projectRuntime, checkedPrepared = run.prepared!;
   if (run.runtime !== moon || run.closed || Object.hasOwn(run, 'failure') ||
       (originals as RequirementsOriginals).installation.computeRuns?.get(checkedPrepared) !== run ||
@@ -1428,7 +1429,8 @@ function retainedManagedCaptureInventory(originals: HostStartupOriginals, run: E
           throw clientOperationError('InstalledSourceCapacityUnavailable');
         }
         selected = adapter.managedWholeSourceCapacity({preparedProgram: checkedPrepared,
-          sourceSelection: selection, installedContracts: installed.admission});
+          sourceSelection: selection, installedContracts: installed.admission,
+          ...(serialization === undefined ? {} : {serialization})});
         if (selected?.wholeInput !== true) throw clientOperationError('InstalledSourceCapacityUnavailable');
       } else {
         requirement = checked(run.queryTimePreparation === undefined
@@ -3688,10 +3690,12 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
     const inventory = moon.clientProgramComposedInferOccurrences(prepared);
     if (!runtimeIsOk(inventory)) return false;
     const count = (runtimeField(inventory, 0) as readonly unknown[]).length;
-    if (serializations.length !== 0) return serializations.length === 1 && count === 0 &&
-      (moon.clientProgramAcquisitionCount(prepared) === 0 ||
-        moon.clientProgramAcquisitionCount(prepared) === 2 && preparation.managesInstalledSources?.() === true) &&
-      typeof moon.clientProgramPreparationBorrowSibling === 'function';
+    if (serializations.length !== 0) {
+      const acquisitions = moon.clientProgramAcquisitionCount(prepared);
+      return serializations.length === 1 && count === 0 &&
+        (acquisitions === 0 || (acquisitions === 1 || acquisitions === 2) && preparation.managesInstalledSources?.() === true) &&
+        typeof moon.clientProgramPreparationBorrowSibling === 'function';
+    }
     // This selects custody only. The registry still requires the SAME
     // Request's actual Core borrower, not an INFER shape or a permission.
     if (count !== 0) return typeof moon.clientProgramPreparationBorrowSibling === 'function';
@@ -4986,7 +4990,7 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
           prepareSerializationGraph: preparation === undefined ? undefined :
             (options, intermediate) => preparation.prepareManagedContentGraph(
               moon, preparedProgram, options, intermediate)});
-        const compilationOriginal = moon.clientProgramAcquisitionCount(preparedProgram) === 0
+        const compilationOriginal = keyedOriginal === undefined
           ? preparation?.prepareManagedContentCompilation?.(moon, preparedProgram, serializationGraph)
           : preparation === undefined ? undefined : runContent.prepareManagedKeyedCompilation({
             preparedProgram, request: requestIdentity,
@@ -6025,8 +6029,13 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
       if (acquisitionCount > 0) {
         const early = earlyContentPlans.get(submission.preparedProgram);
         if (early === undefined) throw clientOperationError('InstalledContentRunPreparationUnavailable');
-        runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,
-          plan: early.plan, request: requested, keyedAcquisition: early.keyedAcquisition});
+        if (early.keyedAcquisition === undefined) {
+          managedSourceRun = runContent.prepareRun({preparedProgram: submission.preparedProgram,
+            plan: early.plan, request: requested, ordinarySource: true})?.value;
+        } else {
+          runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,
+            plan: early.plan, request: requested, keyedAcquisition: early.keyedAcquisition});
+        }
       }
     } else {
       managedSourceRun = prepareOrdinaryManagedRun({preparedProgram: submission.preparedProgram,
@@ -6465,6 +6474,7 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
   type PreparedAdmissionFailure = Parameters<typeof retainPreparedSubmissionFailure<EmbeddedSubmission, unknown, SourceAdmissionRefusal | undefined>>[0];
   type PreparationFailure = Readonly<{cleanupPending?: unknown; cleanupHandle?: unknown}>;
   const admissionFailures = new WeakMap<EmbeddedSubmission, Parameters<PreparedAdmissionFailure['set']>[1]>();
+  const unsupportedAcquiredContentRefusals = new WeakSet<object>();
   const holderRefusal = preparation === undefined ? undefined :
     Object.getOwnPropertyDescriptor(preparation, 'isOriginalManagedComputePreparationRefusal')?.value;
   const admitPreparedSubmission = preparation === undefined ? undefined : Object.freeze(Object.assign(
@@ -6503,9 +6513,13 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
           // Content has its own pre-admitted prefix and real Store writers. A
           // Result service or Source/Model allowance cannot supply that work.
           if (selection !== undefined || acquisitionCount !== 0 &&
-              (keyedAcquisition === undefined ||
+              (keyedAcquisition === undefined ? sourceProfile === undefined :
                 typeof sourceProfile?.prepareManagedContentRun !== 'function')) {
-            throw clientOperationError('InstalledContentRunPreparationUnsupported');
+            const error = clientOperationError('InstalledContentRunPreparationUnsupported');
+            if (selection === undefined && acquisitionCount > 0) {
+              unsupportedAcquiredContentRefusals.add(error);
+            }
+            throw error;
           }
           preparation.admitResultPublicationRun(submission.preparedProgram);
           const retained = journal!.resolveDefinition(requested, {namespaceId}, moon, control);
@@ -6519,7 +6533,11 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
               plan: planFor(submission, retained?.runDefinition.wire, requested, keyedAcquisition)};
             earlyContentPlans.set(submission.preparedProgram, early);
           }
-          if (acquisitionCount === 0) runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested});
+          if (keyedAcquisition === undefined) {
+            const managed = runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan, request: requested,
+              ordinarySource: acquisitionCount > 0});
+            if (held !== undefined && acquisitionCount > 0) held.managedRun = managed?.value;
+          }
           else runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,
             plan: early.plan, request: requested, keyedAcquisition: early.keyedAcquisition});
           return;
@@ -6559,6 +6577,23 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
       admissionFailures.delete(submission);
       if (original === undefined || original.error !== error ||
           original.prepared !== submission.preparedProgram) return false;
+      if (unsupportedAcquiredContentRefusals.delete(error as object)) {
+        // Only the exact, unstarted Content request can establish refusal.
+        // A retained Run or pending cleanup is not evidence of nonacceptance.
+        const input = sourceFreeRequestIdentities.get(original.prepared);
+        if (original.requested === undefined || input?.requested !== original.requested ||
+            input?.requestId !== submission.requestId || inferSelections.has(original.prepared) ||
+            (error as PreparationFailure).cleanupPending === true ||
+            (error as PreparationFailure).cleanupHandle !== undefined) return false;
+        prepareSubmit.assertOwned(original.prepared);
+        if (prepareSubmit.kindOf(original.prepared) !== 'effect_free' ||
+            moon.clientProgramAcquisitionCount(original.prepared) === 0 ||
+            moon.clientProgramSerializationOccurrences(original.prepared).length === 0) return false;
+        preparation.assertUnadmittedSourceRequest(moon, original.prepared, original.requested);
+        if (journal!.resolveDefinition(original.requested, {namespaceId}, moon, control) !== undefined) return false;
+        preparation.assertUnadmittedSourceRequest(moon, original.prepared, original.requested);
+        return true;
+      }
       if (missingModelExecutionRefusals.has(error as object)) {
         missingModelExecutionRefusals.delete(error as object);
         const input = sourceFreeRequestIdentities.get(original.prepared);
@@ -8955,8 +8990,10 @@ async function openPreparedInstalledHost(options: unknown, initialEntry?: HostEn
       // workspace. A new facade has a different private original registry.
       const content = Object.getOwnPropertyDescriptor(contentPreparation, 'contentControl')?.value as ContentControl | undefined;
       if (content === undefined) throw clientOperationError('InstalledContentRunPreparationUnavailable');
+      const sourcePlanNeedsReaders = runtime.clientProgramAcquisitionCount(prepared) > 0;
       const run: LocalPlanRun & ComputeRunRetention = {runtime, prepared, request, manager, content, contentPlan: plan,
         contentLimits: limits, contentWorkspace: workspace, preparationKind: 'serialization-plan',
+        sourceProfile: record.managedSourceProfile,
         original: undefined, value: undefined, serialization: undefined, serializationCleaned: false,
         closed: false, selecting: true};
       if (contentPreparation?.prepared !== prepared || contentPreparation.inputHolder === undefined ||
@@ -8978,12 +9015,47 @@ async function openPreparedInstalledHost(options: unknown, initialEntry?: HostEn
           originalSourceManagedHostRequest(originals, prepared), request, (parent, input) => {
             // C's full same-parent construction/output/failed-child backing
             // belongs before this exact constructor, not in these DATA limits.
+            const sourcePlan = !sourcePlanNeedsReaders ? undefined :
+              runtimeCore(runtime).publicationControl.withCheckedClientSerializationGraph(
+                plan.compiled, plan.serializationGraph, component => {
+                  const inventory = retainedManagedCaptureInventory(originals!, run, installedManagedRunContracts(originals!), component);
+                  const constructors = runtime as PreparationRuntime & {
+                    clientProgramPrepareInstalledManagedWholeSerializationSourcesPlan?(prepared: object,
+                      request: object, graph: unknown, capacities: readonly unknown[],
+                      transfers: readonly bigint[], execution: readonly bigint[], contracts: unknown): unknown;
+                    clientProgramPrepareInstalledManagedQuerySerializationSourcePlan?(prepared: object,
+                      request: object, graph: unknown, capacity: unknown,
+                      transfer: bigint, execution: bigint, contracts: unknown): unknown;
+                  };
+                  const contracts = prepareInstalledSequenceContractOriginal(originals);
+                  if (inventory.length === 1 && inventory[0].kind === 'query') {
+                    const item = inventory[0], construct = constructors.clientProgramPrepareInstalledManagedQuerySerializationSourcePlan;
+                    if (typeof construct !== 'function') throw clientOperationError('InstalledContentRunPreparationUnavailable');
+                    return checked(Reflect.apply(construct, runtime, [prepared, request, component,
+                      item.capacity, item.transferBytes, item.executionBytes, contracts.admission]));
+                  }
+                  const construct = constructors.clientProgramPrepareInstalledManagedWholeSerializationSourcesPlan;
+                  if (typeof construct !== 'function' || inventory.some(item => item.kind !== 'whole-input')) {
+                    throw clientOperationError('InstalledContentRunPreparationUnavailable');
+                  }
+                  return checked(Reflect.apply(construct, runtime, [prepared, request, component,
+                    inventory.map(value => value.capacity), inventory.map(value => value.transferBytes),
+                    inventory.map(value => value.executionBytes), contracts.admission]));
+                });
             run.serialization = content.prepareRequestPrefix(parent, input, request,
-              plan.compiled, plan.runDefinition, limits, workspace);
+              plan.compiled, plan.runDefinition, limits, workspace, sourcePlan);
             return run.serialization;
           }, contentPreparation);
         run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
+        run.sourceCapacities = undefined;
         checked(Reflect.apply(run.check!, runtime, [run.value, prepared, request]));
+        if (sourcePlanNeedsReaders) {
+          const profile = run.sourceProfile as typeof run.sourceProfile & {
+            bindManagedSerializationReadRun?(run: EmbeddedComputeRun): void;
+          };
+          const bind = profile?.bindManagedSerializationReadRun;
+          if (bind !== undefined) Reflect.apply(bind, profile, [run]);
+        }
         return run;
       } catch (cause) {run.failure = cause; throw cause;}
       finally {run.selecting = false;}

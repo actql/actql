@@ -85,6 +85,11 @@ pub fn complete_client_serialization_generation(
     !physical_equal(input_evidence.input, input) {
     return Err(ForeignInput)
   }
+  if !input_evidence.captured
+    .map(client_serialization_whole_captures_live)
+    .unwrap_or(true) {
+    return Err(ForeignInput)
+  }
   let (proof_bytes, proof_nodes, proof_depth) = client_serialization_evidence_codec_bounds()
   let evidence = match
     @publication.bind_generated_content_observation(
@@ -108,6 +113,13 @@ pub fn complete_client_serialization_generation(
     ) {
     Ok(value) => value
     Err(issue) => return Err(Output(issue))
+  }
+  // Completion may invoke the original byte availability callback. Recheck
+  // all retained Whole parents afterwards, before exporting this proof.
+  if !input_evidence.captured
+    .map(client_serialization_whole_captures_live)
+    .unwrap_or(true) {
+    return Err(ForeignInput)
   }
   Ok({
     run,

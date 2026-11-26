@@ -387,6 +387,19 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     }
     return value;
   }
+  function bindManagedSerializationReadRun(run: HostRun) {
+    current();
+    const prepared = run.prepared, request = run.request, value = run.value;
+    if (run.preparationKind !== 'serialization-plan' || prepared === undefined ||
+        request === undefined || value === undefined || run.runtime !== moon || run.closed ||
+        Object.hasOwn(run, 'failure') || records.has(prepared)) fail('ForeignInstalledSourcePreparation');
+    checked(moon.clientProgramInstalledManagedRunCheck(value, prepared, request));
+    current();
+    const prior = effectRuns.get(prepared)?.deref();
+    if ((prior !== undefined && prior !== run) || run.prepared !== prepared || run.request !== request ||
+        run.value !== value || run.closed || Object.hasOwn(run, 'failure')) fail('ForeignInstalledSourcePreparation');
+    effectRuns.set(prepared, new WeakRef(run));
+  }
   function prepareManagedMockModelRun(prepared: object, request: unknown, control: Control, plan: Plan,
     selection: Selection, publicationCapacity: () => unknown) {
     current();
@@ -949,7 +962,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
       queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases)),
       admitsSource: (ref: string) => sources.some(source => source.admitsSource(ref)),
-      prepareManagedRun, prepareManagedMockModelRun, modelPreparation, close});
+      prepareManagedRun, bindManagedSerializationReadRun, prepareManagedMockModelRun, modelPreparation, close});
   } catch (error) {
     throw await retainInstalledHostInitializationFailure(error,
       {sourceProfile: {close}});

@@ -3177,6 +3177,9 @@ jobs:
             }
           '
   check:
+    # A successful (or skipped) job under the required name can satisfy branch
+    # protection. Never publish Draft-only evidence under that name.
+    name: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == true && 'draft-preparation' || 'check' }}
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && !inputs.native_shared_remote_linux }}
     needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native-cli-linux-local-installed, native-cli-linux-local-mock, native, spec, session-evidence, session-controls, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]

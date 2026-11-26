@@ -49,7 +49,8 @@ type SourceAuthority = Preparation['sourceAccess']['authorization'] & Readonly<{
 type SourceInitialization = Readonly<{
   prepareReadMetadata<Result>(declared: unknown, construct: () => Result): Result;
 }>;
-type WholeCapacityOptions = Readonly<{preparedProgram: unknown; sourceSelection: unknown; installedContracts: unknown}>;
+type WholeCapacityOptions = Readonly<{preparedProgram: unknown; sourceSelection: unknown; installedContracts: unknown;
+  serialization?: unknown}>;
 type PhysicalTarget = ReadAuthority['physicalTarget'];
 type OriginalReader = NonNullable<Acquisition['originalReader']> & Readonly<{retire?: () => unknown}>;
 type ReaderDemand = NonNullable<Acquisition['readerDemand']> & Readonly<{
@@ -68,6 +69,9 @@ type SourceMoon = ReadAuthority['moon'] & Preparation['moon'] & Acquisition['moo
   clientProgramPrepareWholeSourceCapacity(prepared: unknown, selection: unknown, declaration: unknown, contracts: unknown,
     provider: unknown, maxRows: number, maxPageBytes: number, maxNodes: number, maxDepth: number,
     maxPageRows: number, maxPages: number): unknown;
+  clientProgramPrepareWholeSerializationSourceCapacity?(prepared: unknown, selection: unknown, declaration: unknown, contracts: unknown,
+    provider: unknown, maxRows: number, maxPageBytes: number, maxNodes: number, maxDepth: number,
+    maxPageRows: number, maxPages: number, serialization: unknown): unknown;
   clientProgramWholeSourceCapacityMatches(capacity: unknown, acquisition: unknown, provider: unknown): boolean;
   clientProgramInstalledListingRowCaptureCapacity(acquisition: unknown, reportCapacity: unknown): unknown;
   clientProgramInstalledRowInputPolicy(maxRows: number, maxPageBytes: number, maxNodes: number,
@@ -460,16 +464,20 @@ export async function createInstalledRowSource<Publication extends object = obje
     return Object.freeze({capacity, transferBytes: maxTransferBytes,
       executionBytes: BigInt(limits.maxPageBytes)});
   }
-  function managedWholeSourceCapacity({preparedProgram, sourceSelection, installedContracts}: WholeCapacityOptions) {
+  function managedWholeSourceCapacity({preparedProgram, sourceSelection, installedContracts, serialization}: WholeCapacityOptions) {
     if (originalReader === undefined) {
       if (typeof prepareSourceRead !== 'function') fail('InstalledSourceCapacityUnavailable');
     } else if (typeof providerSiteCurrent !== 'function' ||
         Reflect.apply(providerSiteCurrent, site, []) !== true) fail('InstalledSourceReaderNotCurrent');
     const selectedPageLimits = managedPageLimits ?? pageLimits;
-    const capacity = checked(moon.clientProgramPrepareWholeSourceCapacity(
-      preparedProgram, sourceSelection, declaration, installedContracts, originalReader?.capacity,
+    const args = [preparedProgram, sourceSelection, declaration, installedContracts, originalReader?.capacity,
       limits.maxCaptureRows, limits.maxPageBytes, selectedPageLimits?.maxNodes ?? 400000,
-      selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows, limits.maxPages));
+      selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows, limits.maxPages] as const;
+    const content = moon.clientProgramPrepareWholeSerializationSourceCapacity;
+    if (serialization !== undefined && typeof content !== 'function') fail('InstalledSourceCapacityUnavailable');
+    const capacity = checked(serialization === undefined
+      ? moon.clientProgramPrepareWholeSourceCapacity(...args)
+      : content!(...args, serialization));
     const transport = readTransports === undefined ? defaultReadTransport
       : readTransport(moon.clientProgramSelectedSourceInputRef(sourceSelection));
     return Object.freeze({capacity, wholeInput: true, ...transport});

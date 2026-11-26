@@ -1577,6 +1577,19 @@ test('full integration cannot skip, omit or fail any actual CLI acceptance job',
   }
 });
 
+test('Draft preparation never publishes the required Ready and main check name', () => {
+  const expression = jobs.check.name.slice(3, -2).trim();
+  for (const [event_name, pull_request, expected] of [
+    ['pull_request', {draft: true}, 'draft-preparation'],
+    ['pull_request', {draft: false}, 'check'],
+    ['push', null, 'check'],
+    ['schedule', null, 'check'],
+    ['workflow_dispatch', null, 'check'],
+  ]) {
+    assert.equal(runInNewContext(expression, {github: {event_name, event: {pull_request}}}, {timeout: 100}), expected);
+  }
+});
+
 test('actual final gate command fails closed for missing or corrupted plans', t => {
   const dir = mkdtempSync(join(tmpdir(), 'actql-pr-event-'));
   t.after(() => rmSync(dir, {recursive: true, force: true}));
@@ -1607,11 +1620,25 @@ test('actual final gate command fails closed for missing or corrupted plans', t 
   assert.equal(good.status, 0, good.stderr);
   assert.match(good.stdout, /NOT APPLICABLE pipeline-evidence/u);
   writeFileSync(eventPath, JSON.stringify({action: 'converted_to_draft', pull_request: {draft: true}}));
-  const draftAttempt = run(JSON.stringify(plan(selection)));
-  assert.notEqual(draftAttempt.status, 0);
-  assert.match(draftAttempt.stderr, /awaiting ready_for_review/u);
+  const draftSelection = selectTargets(['scripts/ci-python-wheels.py'], {draft: true});
+  const draftPlan = JSON.stringify(plan(draftSelection));
+  const draftNeeds = results(draftSelection);
+  const draftAttempt = run(draftPlan, draftNeeds);
+  assert.equal(draftAttempt.status, 0, draftAttempt.stderr);
+  assert.match(draftAttempt.stdout, /Draft preparation passed/u);
+  const wrongProfile = run(JSON.stringify(plan(selection)));
+  assert.notEqual(wrongProfile.status, 0);
+  assert.match(wrongProfile.stderr, /requires the current Draft PR selection/u);
+  for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+    const incomplete = run(draftPlan, {...draftNeeds, 'python-wheels': {result}});
+    assert.notEqual(incomplete.status, 0);
+    assert.match(incomplete.stderr, /python-wheels: expected success/u);
+  }
   writeFileSync(eventPath, JSON.stringify({action: 'ready_for_review', pull_request: {draft: false}}));
   assert.equal(run(JSON.stringify(plan(selection))).status, 0);
+  const staleDraft = run(draftPlan, draftNeeds);
+  assert.notEqual(staleDraft.status, 0);
+  assert.match(staleDraft.stderr, /Draft preparation is not merge verification/u);
   for (const value of ['', 'undefined', '{}', JSON.stringify({...plan(selection), sourceRevision: 'a'.repeat(40)})]) {
     assert.notEqual(run(value).status, 0);
   }

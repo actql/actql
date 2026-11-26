@@ -70139,7 +70139,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e9466c4cf1b0cc5072d7ccee0a83fe0e81c0d27bd189c34ea1264a7bd1eabeeb",
+      "sha256": "f53a3a69bed99a9befc096aabbcfdfaf48ee30284fca737ad1038734544a1e5f",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -70225,6 +70225,13 @@
         {
           "name": "installNodeContentRun/execute/execute/execute#4",
           "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/execute/execute/execute#5",
+          "parameters": [
             "value"
           ],
           "async": false
@@ -70248,6 +70255,13 @@
           "async": false
         },
         {
+          "name": "installNodeContentRun/execute/execute/sourceEvidence/sourceEvidence",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeContentRun/installedBinding/installedBinding",
           "parameters": [
             "plan"
@@ -70259,7 +70273,36 @@
           "parameters": [
             "preparedProgram",
             "plan",
-            "request"
+            "request",
+            "ordinarySource"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/args/args",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/args/args#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/args/args#3",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -70274,6 +70317,15 @@
         },
         {
           "name": "installNodeContentRun/installNodeContentRun#10",
+          "parameters": [
+            "preparedProgram",
+            "plan",
+            "sourceCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#11",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -70357,7 +70409,7 @@
           "parameters": [
             "preparedProgram",
             "plan",
-            "sourceCapacity"
+            "sourceCapacities"
           ],
           "async": false
         },
@@ -70402,7 +70454,9 @@
             "installNodeContentRun/installNodeContentRun#6",
             "installNodeContentRun/installNodeContentRun#7",
             "installNodeContentRun/installNodeContentRun#8",
-            "installNodeContentRun/run/run"
+            "installNodeContentRun/run/run",
+            "installNodeContentRun/execute/execute/execute#5",
+            "installNodeContentRun/execute/execute/sourceEvidence/sourceEvidence"
           ],
           "exports": [
             "installNodeContentRun"
@@ -70465,7 +70519,7 @@
               },
               {
                 "path": "adapters/host-node/installed-content-run.mts",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request, ordinarySource = false}"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -70477,7 +70531,7 @@
               },
               {
                 "path": "adapters/host-node/installed-content-run.mts",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request, ordinarySource = false}"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -71096,7 +71150,12 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#10"
+            "installNodeContentRun/installNodeContentRun#10",
+            "installNodeContentRun/installNodeContentRun/args/args",
+            "installNodeContentRun/installNodeContentRun/args/args#2",
+            "installNodeContentRun/installNodeContentRun/args/args#3",
+            "installNodeContentRun/installNodeContentRun/installNodeContentRun",
+            "installNodeContentRun/installNodeContentRun#11"
           ],
           "exports": [],
           "attributes": {
@@ -71721,7 +71780,7 @@
               },
               {
                 "path": "adapters/host-node/installed-content-run.mts",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request, ordinarySource = false}"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -71733,7 +71792,7 @@
               },
               {
                 "path": "adapters/host-node/installed-content-run.mts",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request, ordinarySource = false}"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -82474,7 +82533,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "5e5e58b15bdde6176d106ac9d99260672c74118c4ff55a0991d7d079b4e0f9da",
+      "sha256": "38a44e262ba1dc98ef88559eb0d07a34bc658d284a10067b11f5ad7445f087c2",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -82633,6 +82692,13 @@
           "name": "installPreparedProjectMockSources/adapter/init:readPages/init:readPages/physical/physical",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/bindManagedSerializationReadRun",
+          "parameters": [
+            "run"
           ],
           "async": false
         },
@@ -83173,7 +83239,8 @@
             "installPreparedProjectMockSources/prepareManagedRun",
             "installPreparedProjectMockSources/queryAliases/queryAliases",
             "installPreparedProjectMockSources/queryAliases/queryAliases/view/view",
-            "installPreparedProjectMockSources/releaseEffectSourceAliases"
+            "installPreparedProjectMockSources/releaseEffectSourceAliases",
+            "installPreparedProjectMockSources/bindManagedSerializationReadRun"
           ],
           "exports": [
             "installPreparedProjectMockSources"
