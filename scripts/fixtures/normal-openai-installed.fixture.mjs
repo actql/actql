@@ -18,7 +18,7 @@ const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
   'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header', 'registered-anthropic',
-  'registered-google', 'registered-mixed', 'registered-mistral', 'registered-length', 'registered-refusal',
+  'registered-google', 'registered-mixed', 'registered-mistral', 'registered-external', 'registered-external-double', 'registered-length', 'registered-refusal',
   'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist'].includes(phase));
 const fresh = phase !== 'cold';
 const missingKey = phase === 'missing-key';
@@ -45,7 +45,7 @@ const {workflowWorkObservation} = await import('./work-observation.fixture.mjs')
 // Local authored fixture configuration only. A cold process must use the same
 // selected physical inputs; absence is not a reason to guess another profile.
 const alternative = {'registered-anthropic': 'anthropic', 'registered-google': 'google',
-  'registered-mixed': 'mixed', 'registered-mistral': 'mistral',
+  'registered-mixed': 'mixed', 'registered-mistral': 'mistral', 'registered-external': 'external', 'registered-external-double': 'external',
   'registered-google-recitation': 'google', 'registered-google-blocklist': 'google'}[phase];
 const safetyFinish = {'registered-openai-filter': 'content_filter', 'registered-google-recitation': 'RECITATION',
   'registered-google-blocklist': 'BLOCKLIST'}[phase];
@@ -60,11 +60,15 @@ const selection = fresh ? {
   project: phase === 'project-key' || phase.startsWith('registered-'),
   registered: phase.startsWith('registered-'),
   ...(alternative === undefined ? {} : {provider: alternative}),
+  ...(phase === 'registered-external-double' ? {externalDuplicate: true} : {}),
   ...(terminalFailure === undefined ? {} : {terminalFailure}),
   ...(safetyFinish === undefined ? {} : {safetyFinish}),
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
-assert([undefined, 'anthropic', 'google', 'mixed', 'mistral'].includes(selection.provider));
+assert([undefined, 'anthropic', 'google', 'mixed', 'mistral', 'external'].includes(selection.provider));
 const mixed = selection.provider === 'mixed';
+const external = selection.provider === 'external';
+const externalDuplicate = selection.externalDuplicate === true;
+if (externalDuplicate) assert(external);
 const mistral = selection.provider === 'mistral';
 const failedAnswer = selection.terminalFailure;
 const selectedSafetyFinish = selection.safetyFinish;
@@ -74,11 +78,11 @@ if (failedAnswer === 'safety_rejected') {
     ? ['RECITATION', 'BLOCKLIST'].includes(selectedSafetyFinish)
     : selection.provider === undefined && selectedSafetyFinish === 'content_filter');
 } else assert.equal(selectedSafetyFinish, undefined);
-const trackOriginal = mixed || mistral || failedAnswer !== undefined;
+const trackOriginal = mixed || mistral || external || failedAnswer !== undefined;
 const work = workflowWorkObservation({createObservation: createHostObservationConnection, trackOriginal});
 const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 assert.deepEqual(Object.keys(selection).sort(),
-  ['project', ...(selection.provider === undefined ? [] : ['provider']), 'rateLimit', 'registered',
+  [...(externalDuplicate ? ['externalDuplicate'] : []), 'project', ...(selection.provider === undefined ? [] : ['provider']), 'rateLimit', 'registered',
     ...(selectedSafetyFinish === undefined ? [] : ['safetyFinish']),
     ...(failedAnswer === undefined ? [] : ['terminalFailure']), 'timeout', 'usage']);
 assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
@@ -89,11 +93,12 @@ const project = selection.project === true;
 const registered = selection.registered === true;
 if (project) assert.deepEqual(selection, {usage: mixed || failedAnswer !== undefined ? null : 'reported',
   timeout: null, rateLimit: false, project: true, registered,
+  ...(externalDuplicate ? {externalDuplicate: true} : {}),
   ...(selection.provider === undefined ? {} : {provider: selection.provider}),
   ...(failedAnswer === undefined ? {} : {terminalFailure: failedAnswer}),
   ...(selectedSafetyFinish === undefined ? {} : {safetyFinish: selectedSafetyFinish})});
 if (failedAnswer !== undefined) assert(registered && (selectedSafetyFinish !== undefined || selection.provider === undefined));
-const providerName = mixed ? 'openai' : selection.provider ?? 'openai';
+const providerName = mixed || external ? 'openai' : selection.provider ?? 'openai';
 const routeFixtures = {
   openai: {officialHost: 'api.openai.com', credentialReference: 'OPENAI_API_KEY',
     credentialHeader: 'authorization', credentialPrefix: 'Bearer ', requestPath: '/v1/chat/completions',
@@ -123,19 +128,36 @@ const routesByHost = new Map(routes.map(original => [original.officialHost, orig
 const fixtureCredential = project ? 'actql-synthetic-project-credential' : 'not-an-external-secret';
 const credentialValue = original => mixed ? fixtureCredential + '-' + original.name : fixtureCredential;
 let modelSdkRegistrations;
+const independentAdapter = '@actql-acceptance/external-openai-adapter';
+let externalDuplicateSource;
+function frozenPackageImages(value) {
+  for (const member of Object.values(value)) {
+    if (member !== null && typeof member === 'object') frozenPackageImages(member);
+  }
+  return Object.freeze(value);
+}
 if (registered) {
+  const adapterModule = external ? import.meta.resolve(independentAdapter) : providerModule;
+  if (external) assert.equal(realpathSync(fileURLToPath(adapterModule)), resolve(modules, independentAdapter, 'index.mjs'));
+  const packageImages = external ? frozenPackageImages(JSON.parse(await readFile('external-package-images.fixture.json', 'utf8'))) : undefined;
+  const adapterManifest = JSON.parse(await readFile(new URL('package.json', adapterModule), 'utf8'));
+  assert.equal(adapterManifest.name, external ? independentAdapter : '@actql/provider-ai-sdk');
+  const adapterPackage = {packageName: adapterManifest.name, version: adapterManifest.version};
   const originals = [];
   for (const original of routes) {
     const packageName = '@ai-sdk/' + original.name;
-    const sdkEntry = createRequire(new URL(providerModule)).resolve(packageName);
+    const sdkEntry = createRequire(new URL(adapterModule)).resolve(packageName);
     assert.equal(sdkEntry, realpathSync(sdkEntry));
     assert(sdkEntry.startsWith(modules + '/') && sdkEntry.endsWith('/' + packageName + '/dist/index.js'));
     const image = async (path, file) => Object.freeze({path,
       cid: 'sha256:' + createHash('sha256').update(await readFile(file)).digest('hex')});
-    const {path, version, exportName, apiMode, options} = original;
+    const {version, exportName, apiMode, options} = original;
+    const path = externalDuplicate ? 'second-fetch.mjs' : external ? 'index.mjs' : original.path;
+    if (externalDuplicate) externalDuplicateSource = new URL(path, adapterModule);
     originals.push(Object.freeze({
-      adapter: await image(path, new URL(path, providerModule)),
-      lock: await image('npm-shrinkwrap.json', new URL('npm-shrinkwrap.json', providerModule)),
+      adapter: Object.freeze({...await image(path, new URL(path, adapterModule)), ...adapterPackage}),
+      lock: Object.freeze({...await image('npm-shrinkwrap.json', new URL('npm-shrinkwrap.json', adapterModule)), ...adapterPackage}),
+      ...(packageImages === undefined ? {} : {packageImages}),
       sdk: Object.freeze({...await image('dist/index.js', sdkEntry), packageName, version, exportName}),
       route: Object.freeze({providerId: original.providerId, modelId: original.resolvedModelId, selector: original.selector,
         apiMode, endpoint: 'https://' + original.officialHost + original.requestPath}),
@@ -350,6 +372,8 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
       ? {prompt_tokens: 0, completion_tokens: 0, total_tokens: 0}
       : {prompt_tokens: 2, completion_tokens: 3, total_tokens: 5}})}));
 });
+let externalTcp = 0;
+if (externalDuplicate) server.on('connection', () => {externalTcp++;});
 const port = fresh ? 0 : Number(await readFile('endpoint.fixture', 'utf8'));
 await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
 if (fresh) await writeFile('endpoint.fixture', String(server.address().port), {flag: 'wx', mode: 0o600});
@@ -507,10 +531,30 @@ if (credentialMismatch) {
   process.exit(0);
 }
 let client, primary, failed = false;
+const originalEnv = process.env;
+let externalCredentialReads = 0, duplicateObservation, externalTerminal;
+let externalResultIssue;
+async function checkExternalRejectedRun(run, status) {
+  assert.equal(status.status, 'failed');
+  externalTerminal = status.status;
+  await assert.rejects(async () => (await run.result('answer')).all(), error => {
+    externalResultIssue = error.code;
+    return typeof externalResultIssue === 'string' && /^[A-Za-z0-9_]+$/.test(externalResultIssue);
+  });
+  const adapter = await import(externalDuplicateSource);
+  duplicateObservation = adapter.observedFetches();
+  assert.deepEqual(duplicateObservation, fresh
+    ? {attempts: 2, additionalIssue: 'SdkAdditionalRequestRefused'}
+    : {attempts: 0, additionalIssue: undefined});
+}
 const firstClose = {attempted: false, returned: false, calls: 0}, cleanup = [];
 let close;
 const connectTls = tls.connect;
 try {
+  if (externalDuplicate) process.env = new Proxy(originalEnv, {get(target, name, receiver) {
+    if (name === credentialReference) externalCredentialReads++;
+    return Reflect.get(target, name, receiver);
+  }});
   if (project) {
     // Redirect only the socket in this fixture process. Keep its original
     // HTTPS host, SNI, certificate checks, request and installed transport.
@@ -562,9 +606,10 @@ try {
       originalRef = run.ref;
       const waited = await run.wait();
       await diagnostic.terminal(index, waited);
-      assert.equal(waited.status, missingKey ? 'failed'
+      assert.equal(waited.status, missingKey || externalDuplicate ? 'failed'
         : timeoutMode === undefined ? 'succeeded' : 'needs_reconciliation');
-      if (missingKey) {
+      if (externalDuplicate) await checkExternalRejectedRun(run, waited);
+      else if (missingKey) {
         const recorded = JSON.parse(await readFile('normal-diagnostic-before-assert.json', 'utf8'));
         assert.equal(recorded.dispatchFailures.length, 1);
         assert.equal(recorded.dispatchFailures[0].credentialRefusal, 'OpenAIProjectCredentialUnavailable');
@@ -589,9 +634,9 @@ try {
       const lookup = await client.lookupSubmission(submissionRef);
       assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, run.ref);
     }
-    assert.equal(calls, missingKey ? 0 : taskCount);
+    assert.equal(calls, missingKey || externalDuplicate ? 0 : taskCount);
     if (taskCount === 2) assert.notDeepEqual(schemas[0], schemas[1]);
-    if (usageMode !== undefined) {
+    if (usageMode !== undefined && !externalDuplicate) {
       // The optional copy must have actually completed, not merely a successful
       // Model Run or a provider spy reporting authored usage.
       assert.equal(usageCaptures, 1); assert.equal(usageAuthorizations, 1);
@@ -605,7 +650,8 @@ try {
     const ref = JSON.parse(await readFile('run-0.json', 'utf8'));
     const run = await client.attach(ref);
     if (trackOriginal) originalRef = ref;
-    if (mixed) {
+    if (externalDuplicate) await checkExternalRejectedRun(run, await run.status());
+    else if (mixed) {
       await checkMixedResults(run);
       assert.equal((await run.status()).status, 'succeeded');
     } else if (timeoutMode === undefined) {
@@ -638,6 +684,7 @@ finally {
       if (!failed) {failed = true;primary = cause;}
     }
   }
+  if (externalDuplicate) process.env = originalEnv;
   if (project) {
     for (const original of routes) delete process.env[original.credentialReference];
     tls.connect = connectTls;
@@ -654,13 +701,20 @@ finally {
 if (failed) throw primary;
 if (project) {
   assert.equal(unexpectedProjectConnection, false);
-  assert.equal(projectTlsConnects, fresh ? routes.length : 0);
+  assert.equal(projectTlsConnects, fresh && !externalDuplicate ? routes.length : 0);
 }
 if (trackOriginal) {
   const observed = work.forOriginal(originalRef);
   assert.equal(observed.complete, true);
-  assert.equal(observed.modelCallStarts, fresh ? routes.length : 0);
+  assert.equal(observed.modelCallStarts, fresh && !externalDuplicate ? routes.length : 0);
   assert.equal(observed.totals.modelCallStarts, observed.modelCallStarts);
+}
+if (externalDuplicate) {
+  assert.equal(externalCredentialReads, 0);
+  assert.equal(externalTcp, 0);
+  assert.equal(usageCaptures, 0);
+  assert.equal(usageAuthorizations, 0);
+  await assert.rejects(access('usage-original.json'), {code: 'ENOENT'});
 }
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
 await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
@@ -672,10 +726,16 @@ console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedF
     originalRunDefinitionCid: originalRef.runDefinitionCid} : {}),
   ...(project ? {projectTlsConnects, projectCredential: true} : {}),
   ...(usageMode === 'reported' || failedAnswer !== undefined ? {maxCalls: Number(maxCalls)} : {}),
+  ...(external ? {externalAdapterCid: modelSdkRegistrations[0].adapter.cid,
+    externalLockCid: modelSdkRegistrations[0].lock.cid} : {}),
   ...(failedAnswer === undefined ? {} : {terminalFailure: failedAnswer}),
+  ...(externalDuplicate ? {externalTerminal, externalResultIssue, externalTcp, externalCredentialReads,
+    interceptedFetches: duplicateObservation.attempts, additionalIssue: duplicateObservation.additionalIssue,
+    usageCaptures, usageAuthorizations} : {}),
   ...(phase === 'cold' ? {egressChecks,
-    ...(timeoutMode === undefined ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
-    : {tasks: taskCount, requests: taskCount, ...(missingKey ? {credentialRefused: true} : {}),
+    ...(externalDuplicate ? {originalFailureObserved: true}
+      : timeoutMode === undefined ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
+    : {tasks: taskCount, requests: externalDuplicate ? 0 : taskCount, ...(missingKey ? {credentialRefused: true} : {}),
       ...(usageMode === undefined ? {} : {usageMode, usageCaptures})}),
   ...(timeoutMode === undefined ? {} : {timeoutMode, preserveOriginalState: true}),
   ...(timeoutMode === 'call' && fresh ? {continuousWrites, responseClosedBeforeFirstClose} : {}),

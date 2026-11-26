@@ -112,6 +112,22 @@ test('all package/facade images and dependency edges contribute, not just Local 
   assert.equal(selected.sourceBytes, 7168); assert.equal(selected.dependencyEdges, 3);
 });
 
+test('ordinary external images and the bundled inventory share the same source and package ceilings', () => {
+  const runtime = Object.freeze({...original, eager: false});
+  const declaration = module.declareOrdinaryInitialControlPhaseEnvelope(1024 * 1024);
+  const data = {...inventory(), ordinaryEngine: runtime,
+    images: [file('local.mjs', declaration.limits.imageBytes)]};
+  const outside = [{images: [file('adapter.mjs', declaration.limits.imageBytes)], dependencies: [{}]}];
+  const phase = module.inspectOrdinaryInitialControlPhaseEnvelope(data, declaration, runtime, outside);
+  assert.equal(phase.sourceBytes, declaration.limits.sourceBytes);
+  assert.equal(phase.dependencyEdges, 1);
+  assert.throws(() => module.inspectOrdinaryInitialControlPhaseEnvelope(data, declaration, runtime,
+    [...outside, {images: [file('extra.mjs', 1)], dependencies: []}]), unavailable);
+  assert.throws(() => module.inspectOrdinaryInitialControlPhaseEnvelope({...data,
+    packages: Array.from({length: declaration.limits.packages}, () => ({images: [], dependencies: []}))},
+    declaration, runtime, outside), unavailable);
+});
+
 test('actual heap ceiling must fit the selected finite recipe without subtracting current usage', () => {
   for (const bytes of [0, -1, Infinity, NaN, 1.5, 5 * 1024 ** 3 + 1]) {
     assert.throws(() => inspect(inventory(), bytes), unavailable);

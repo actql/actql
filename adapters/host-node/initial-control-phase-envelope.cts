@@ -112,10 +112,10 @@ function inspectInitialControlPhaseEnvelope<Declaration extends PhaseDeclaration
 }
 
 function inspectOrdinaryInitialControlPhaseEnvelope<Declaration extends OrdinaryPhaseDeclaration, Runtime>(
-  inventory: unknown, declaration: Declaration, runtimeOriginal: Runtime) {
+  inventory: unknown, declaration: Declaration, runtimeOriginal: Runtime, externalPackages: readonly unknown[] = []) {
   if (declaration?.recipe !== 'ordinary-installed-public-prefix' || declaration.eager !== false ||
       declaration.compilation !== 'ordinary-lazy') unavailable();
-  return inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, true);
+  return inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, true, externalPackages);
 }
 
 function matchesEngine(engine: unknown, runtimeOriginal: unknown) {
@@ -154,14 +154,15 @@ function requireEngine(inventory: unknown, runtimeOriginal: unknown, ordinary: b
 }
 
 function inspectPhaseEnvelope<Declaration extends PhaseDeclaration, Runtime>(
-  inventory: unknown, declaration: Declaration, runtimeOriginal: Runtime, ordinary: boolean) {
+  inventory: unknown, declaration: Declaration, runtimeOriginal: Runtime, ordinary: boolean,
+  externalPackages: readonly unknown[] = []) {
   if (declaration?.limits !== limits) unavailable();
   // Engine facts describe the actual selected backend before image capture.
   // The operational lifetime and image checks still belong to the original
   // loader. This comparison does not authenticate a caller factory.
   requireEngine(inventory, runtimeOriginal, ordinary);
   const packages = own(inventory, 'packages');
-  if (!array(packages) || packages.length > limits.packages) unavailable();
+  if (!array(packages) || packages.length + externalPackages.length > limits.packages) unavailable();
   let files = 0, sourceBytes = 0, edges = 0;
   function images(values: unknown) {
     if (!array(values) || values.length > limits.imageFiles - files) unavailable();
@@ -193,6 +194,10 @@ function inspectPhaseEnvelope<Declaration extends PhaseDeclaration, Runtime>(
     images(own(packages[index], 'images'));
     dependencies(own(packages[index], 'dependencies'));
   }
+  for (const external of externalPackages) {
+    images(own(external, 'images'));
+    dependencies(own(external, 'dependencies'));
+  }
   const publicNode = own(inventory, 'publicNode');
   if (publicNode !== null) {
     images(own(publicNode, 'images'));
@@ -200,7 +205,7 @@ function inspectPhaseEnvelope<Declaration extends PhaseDeclaration, Runtime>(
   }
   // The actual facts select only a member of the already declared finite
   // runtime/control recipe. They authenticate no operational admission.
-  return freeze({limits, images: files, packages: packages.length, dependencyEdges: edges,
+  return freeze({limits, images: files, packages: packages.length + externalPackages.length, dependencyEdges: edges,
     sourceBytes, declaration, runtimeOriginal});
 }
 

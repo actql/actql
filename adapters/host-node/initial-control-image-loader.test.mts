@@ -31,7 +31,7 @@ function fixture(t: TestContext, files: Readonly<Record<string, string>> = {'ori
       'const {installInitialControlImageLoader} = require(' + JSON.stringify(loader) + ');',
       'const root = ' + JSON.stringify(images) + ', facts = ' + JSON.stringify(facts) + ';',
       "const captured=facts.map(({path,expected})=>({path,captured:captureInitialControlImageSource(require('node:path').join(root,path),expected)}));",
-      'globalThis.originalImageLoader=installInitialControlImageLoader([{root,images:captured}]);',
+      'globalThis.originalImageLoader=installInitialControlImageLoader([{root,images:captured,dependencies:[]}]);',
       after,
     ].join('\n'));
     writeFileSync(entry, body);

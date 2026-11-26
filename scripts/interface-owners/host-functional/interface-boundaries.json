@@ -62628,7 +62628,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
+                "anchor": "// The existing public registration port also owns the stock transport"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -63136,7 +63136,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
+                "anchor": "// The existing public registration port also owns the stock transport"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -64112,7 +64112,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-loader.cjs",
-      "sha256": "0f8a789eaffe7a1600ae72dc1f6f817ed928e1e49bc3952db0066a6deed2ead4",
+      "sha256": "599012714739e54c9c1afa176d96e534fddad8a65a89c45f2ec412012c5f779a",
       "exports": [
         "commonjs:installInitialControlImageLoader",
         "commonjs:installOrdinaryInitialControlImageLoader"
@@ -64139,6 +64139,20 @@
           "name": "installImageLoader/captureLoadedModules/captureLoadedModules",
           "parameters": [
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "installImageLoader/installImageLoader",
+          "parameters": [
+            "group"
+          ],
+          "async": false
+        },
+        {
+          "name": "installImageLoader/installImageLoader/installImageLoader",
+          "parameters": [
+            "target"
           ],
           "async": false
         },
@@ -64226,7 +64240,9 @@
             "installImageLoader/resolve",
             "installInitialControlImageLoader",
             "installOrdinaryInitialControlImageLoader",
-            "installImageLoader/loadSelectedModule"
+            "installImageLoader/loadSelectedModule",
+            "installImageLoader/installImageLoader",
+            "installImageLoader/installImageLoader/installImageLoader"
           ],
           "exports": [
             "commonjs:installInitialControlImageLoader",
@@ -64289,6 +64305,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "if (original !== undefined) captured = {url: url!, format: original.format, shortCircuit: true};"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "const packageGroup = freeze({root, dependencies});"
               }
             ],
             "ownership": [
@@ -64375,6 +64395,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "let captured: ReturnType<ResolveHook> | undefined;"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "const packageGroups = new NativeMap<string, ImageGroup>();"
               }
             ],
             "extension": [
@@ -64463,6 +64487,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a genuine namespace at another ESM image cannot substitute the selected module"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
+                "anchor": "an import uses the named dependency edge of its own captured package"
               }
             ]
           }
@@ -65710,14 +65738,14 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "b3ab0d494a043f4b40875be935ea54eefa607d87d33abd363f5241adfc5c3b49",
+      "sha256": "f7a3275f5abde3aea040e8d39d4d16d0fdc9304cee202fee8abfa07f9422ca33",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody",
         "commonjs:ordinaryLocalFilesNative",
         "commonjs:ordinaryModelSdkInstallation",
         "commonjs:prepareOrdinaryModelSdkInstallation",
-        "commonjs:readVerifiedSdkImage"
+        "commonjs:readVerifiedSdkImages"
       ],
       "operations": [
         {
@@ -65747,8 +65775,37 @@
           "async": false
         },
         {
+          "name": "capturePackageCustody/bindEdge/previous/previous",
+          "parameters": [
+            "edge"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/capturePackageCustody",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "capturePackageCustody/initializeHostNamespace",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/initializeHostNamespace/adapterGroup/adapterGroup",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/initializeHostNamespace/directory/directory",
+          "parameters": [
+            "edge"
+          ],
           "async": false
         },
         {
@@ -65787,26 +65844,72 @@
           "async": false
         },
         {
-          "name": "capturePackageCustody/readSdkImage",
+          "name": "capturePackageCustody/readSdkImages",
           "parameters": [
-            "packageName",
-            "path",
-            "cid",
-            "kind"
+            "registration"
           ],
           "async": false
         },
         {
-          "name": "capturePackageCustody/selectSdkImage/group/group",
+          "name": "capturePackageCustody/requiresBundled/requiresBundled",
+          "parameters": [
+            "registration"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/selectSdkImages/adapterGroup/adapterGroup",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "capturePackageCustody/selectSdkImage/image/image",
+          "name": "capturePackageCustody/selectSdkImages/sdkEdge/sdkEdge",
+          "parameters": [
+            "edge"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/selectSdkImages/sdkGroup/sdkGroup",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/selectSdkImages/select/image/image",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/sharesCapturedImages/sharesCapturedImages",
+          "parameters": [
+            "fact"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/validateExternalLock/original/original",
+          "parameters": [
+            "image"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/validateExternalLock/verify/verify",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/validateExternalLock/verify/verify/verify",
+          "parameters": [
+            "edge"
           ],
           "async": false
         },
@@ -65858,13 +65961,17 @@
           "async": false
         },
         {
-          "name": "readVerifiedSdkImage",
+          "name": "prepareOrdinaryModelSdkInstallation/prepareOrdinaryModelSdkInstallation",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "readVerifiedSdkImages",
           "parameters": [
             "custody",
-            "packageName",
-            "path",
-            "cid",
-            "kind"
+            "registration"
           ],
           "async": false
         }
@@ -65900,9 +66007,6 @@
             "capturePackageCustody/initializeHostNamespace/parser/parser",
             "capturePackageCustody/initializeHostNamespace/transport/transport",
             "capturePackageCustody/readAsset",
-            "capturePackageCustody/readSdkImage",
-            "capturePackageCustody/selectSdkImage/group/group",
-            "capturePackageCustody/selectSdkImage/image/image",
             "concrete/concrete/concrete",
             "ordinaryLocalFilesNative",
             "ordinaryModelSdkInstallation",
@@ -65910,7 +66014,22 @@
             "prepareOrdinaryModelSdkInstallation/data/data/data",
             "prepareOrdinaryModelSdkInstallation/data/data/data#2",
             "prepareOrdinaryModelSdkInstallation/data/data/data#3",
-            "readVerifiedSdkImage"
+            "capturePackageCustody/initializeHostNamespace/adapterGroup/adapterGroup",
+            "capturePackageCustody/initializeHostNamespace/directory/directory",
+            "capturePackageCustody/readSdkImages",
+            "capturePackageCustody/selectSdkImages/adapterGroup/adapterGroup",
+            "capturePackageCustody/selectSdkImages/sdkEdge/sdkEdge",
+            "capturePackageCustody/selectSdkImages/sdkGroup/sdkGroup",
+            "capturePackageCustody/selectSdkImages/select/image/image",
+            "readVerifiedSdkImages",
+            "capturePackageCustody/bindEdge/previous/previous",
+            "capturePackageCustody/capturePackageCustody",
+            "capturePackageCustody/sharesCapturedImages/sharesCapturedImages",
+            "capturePackageCustody/validateExternalLock/original/original",
+            "capturePackageCustody/validateExternalLock/verify/verify",
+            "capturePackageCustody/validateExternalLock/verify/verify/verify",
+            "prepareOrdinaryModelSdkInstallation/prepareOrdinaryModelSdkInstallation",
+            "capturePackageCustody/requiresBundled/requiresBundled"
           ],
           "exports": [
             "commonjs:captureInitialControlPackageCustody",
@@ -65918,7 +66037,7 @@
             "commonjs:ordinaryLocalFilesNative",
             "commonjs:ordinaryModelSdkInstallation",
             "commonjs:prepareOrdinaryModelSdkInstallation",
-            "commonjs:readVerifiedSdkImage"
+            "commonjs:readVerifiedSdkImages"
           ],
           "attributes": {
             "responsibility": [
@@ -65940,7 +66059,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "function captureDependency(binding: unknown, from: string)"
+                "anchor": "function captureDependency(binding: unknown, from: string, importer: string | undefined,"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mts",
@@ -65948,7 +66067,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
+                "anchor": "// The existing public registration port also owns the stock transport"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -65961,6 +66080,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Instance identity, original callback and receiver correspondence prevent"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "if (previous === undefined && append) edges[edges.length] = freeze({name, root});"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "function validateExternalLock(registration: SdkImageRegistration"
               }
             ],
             "ownership": [
@@ -66002,7 +66129,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "const groups: ImageGroup[] = [], actualPackages: string[] = [], roots = new NativeMap<string, number>()"
+                "anchor": "const groups: ImageGroup[] = [], actualPackages: string[] = [], groupDependencies = new NativeMap<string, ImageDependency[]>()"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -66075,6 +66202,14 @@
               {
                 "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
                 "anchor": "the original Host verifies SDK software and closes the options before supplying its factory"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
+                "anchor": "an import uses the named dependency edge of its own captured package"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
+                "anchor": "ordinary external adapters share only the exact installed dependency under their own locks"
               }
             ]
           }
@@ -66104,7 +66239,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "function captureDependency(binding: unknown, from: string)"
+                "anchor": "function captureDependency(binding: unknown, from: string, importer: string | undefined,"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mts",
@@ -66112,7 +66247,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
+                "anchor": "// The existing public registration port also owns the stock transport"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -66166,7 +66301,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "const groups: ImageGroup[] = [], actualPackages: string[] = [], roots = new NativeMap<string, number>()"
+                "anchor": "const groups: ImageGroup[] = [], actualPackages: string[] = [], groupDependencies = new NativeMap<string, ImageDependency[]>()"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -66525,7 +66660,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-phase-envelope.cjs",
-      "sha256": "bd737395d8230f6297d3b49534f4c6b458d5f9f5ebfb84c4a41e844902d5a891",
+      "sha256": "059a27c6418b6cea28b9041267ecc35669f89d24000e78347bbe877997661163",
       "exports": [
         "commonjs:declareInitialControlPhaseEnvelope",
         "commonjs:declareOrdinaryInitialControlPhaseEnvelope",
@@ -66561,7 +66696,8 @@
           "parameters": [
             "inventory",
             "declaration",
-            "runtimeOriginal"
+            "runtimeOriginal",
+            "externalPackages"
           ],
           "async": false
         },
@@ -66753,6 +66889,10 @@
               {
                 "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "mock definition acquisition adds original Task rereads and answer documents before capture without Model credit"
+              },
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
+                "anchor": "ordinary external images and the bundled inventory share the same source and package ceilings"
               }
             ]
           }

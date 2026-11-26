@@ -126,7 +126,7 @@ function packageRoot(name: string, from: string) {
 // Use the installed package's declared dependency graph, not a parallel list of
 // Connector modules. Paths in the recipe are package-relative; build locations
 // and operational receipts never enter the published image inventory.
-function dependencyImages(root: string, destination: string, localManifest: Manifest, cohort: Cohort | undefined) {
+function packageGraph(cohort: Cohort | undefined) {
   const packages: PackageImage[] = [], roots = new Map<string, number>();
   function rollback(before: number) {
     packages.length = before;
@@ -156,6 +156,21 @@ function dependencyImages(root: string, destination: string, localManifest: Mani
     }
     return index;
   }
+  return {packages, collect, rollback, exactVersion};
+}
+
+// Operator-side facts for a named external adapter resolved from the actual
+// consumer. The Host still checks the lock, physical roots and exact files.
+export function registeredExternalPackageImages(consumer: string, name: string): PackageImage[] {
+  const directory = packageRoot(name, consumer);
+  if (directory === undefined) fail('UnpreparedInitialControlDependency:' + name);
+  const {packages, collect} = packageGraph(undefined);
+  collect(name, directory);
+  return packages;
+}
+
+function dependencyImages(root: string, destination: string, localManifest: Manifest, cohort: Cohort | undefined) {
+  const {packages, collect, rollback, exactVersion} = packageGraph(cohort);
   const bindings: Dependency[] = [];
   for (const name of Object.keys(localManifest.dependencies ?? {}).sort()) {
     // Public ActQL dependencies are Source-owned packages in the same normal

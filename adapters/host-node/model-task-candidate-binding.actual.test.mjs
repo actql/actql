@@ -79,24 +79,29 @@ test('the original Host verifies SDK software and closes the options before supp
     publicNode: null, publicNodeCoverage: 'absent',
     hostModule: host, hostValidator: 'assertInitialControlHostPreparation', localPublicModule: 'index.mjs',
   }, local, join(directory, 'entry.mjs'));
-  const file = image => Object.freeze({path: image.path, cid: 'sha256:' + image.sha256});
-  const read = (name, image) => packageCustody.readVerifiedSdkImage(sdkImageCustody,
-    name, image.path, file(image).cid, 'module').namespace;
-  read('@actql/provider-ai-sdk', adapter);
-  const actualSdk = read('fixture-sdk', sdk), foreignSdk = read('fixture-sdk', foreign);
+  const file = (image, packageName = '@actql/provider-ai-sdk') => Object.freeze({
+    path: image.path, cid: 'sha256:' + image.sha256, packageName, version: '1.0.0'});
+  const installed = Object.freeze({adapter: file(adapter), lock: file(lock), sdk: file(sdk, 'fixture-sdk')});
+  const read = original => packageCustody.readVerifiedSdkImages(sdkImageCustody, original);
+  const {sdk: actualSdk} = read(installed);
+  const {sdk: foreignSdk} = read(Object.freeze({...installed, sdk: file(foreign, 'fixture-sdk')}));
   assert.notEqual(actualSdk.build, foreignSdk.build);
   sdkImageCustody.initializeHostNamespace();
 
   for (const mode of ['match', 'foreign-id', 'caller-identity', 'changed-artifact', 'different-module',
-    'foreign-custody', 'unsupported-option']) {
+    'foreign-custody', 'foreign-lock', 'different-adapter-version', 'unbound-sdk', 'unsupported-option']) {
     await t.test(mode, async t => {
       const resource = await boundConstructionActualFixture(t);
       const route = Object.freeze({providerId, selector: 'selected', modelId: 'model-a',
         apiMode: 'fixture', endpoint: 'https://example.invalid/model'});
-      const sdkOriginal = Object.freeze({route, lock: file(lock),
-        adapter: mode === 'changed-artifact' ? Object.freeze({...file(adapter), cid: file(foreign).cid}) : file(adapter),
-        sdk: Object.freeze({...file(sdk), path: mode === 'different-module' ? foreign.path : sdk.path,
-          packageName: 'fixture-sdk', version: '1.0.0', exportName: 'build'}),
+      const adapterVersion = mode === 'different-adapter-version' ? '2.0.0' : installed.adapter.version;
+      const sdkOriginal = Object.freeze({route,
+        lock: Object.freeze({...installed.lock, version: adapterVersion,
+          packageName: mode === 'foreign-lock' ? 'fixture-sdk' : installed.lock.packageName}),
+        adapter: Object.freeze({...installed.adapter, version: adapterVersion,
+          cid: mode === 'changed-artifact' ? file(foreign).cid : installed.adapter.cid}),
+        sdk: Object.freeze({...installed.sdk, path: mode === 'different-module' ? foreign.path : sdk.path,
+          packageName: mode === 'unbound-sdk' ? '@actql/provider-ai-sdk' : installed.sdk.packageName, exportName: 'build'}),
         providerOptions: Object.freeze({mode: mode === 'unsupported-option' ? 'unreviewed' : 'strict'})});
       const callsBefore = actualSdk.calls;
       let selected, current = true;
@@ -139,6 +144,9 @@ test('the original Host verifies SDK software and closes the options before supp
           'changed-artifact': 'InitialControlPackageImageChanged',
           'different-module': 'InitialControlPackageImageChanged',
           'foreign-custody': 'InitialControlSdkImageUnavailable',
+          'foreign-lock': 'InitialControlSdkImageUnavailable',
+          'different-adapter-version': 'InitialControlPackageImageChanged',
+          'unbound-sdk': 'InitialControlSdkImageUnavailable',
           'unsupported-option': 'UnsupportedInstalledModelSdkOption',
         }[mode]});
         assert.equal(selected, undefined);
