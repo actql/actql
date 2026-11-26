@@ -474,7 +474,7 @@
       "role": "physical-io",
       "owner": "Existing Native publication Store, original operation and durable delivery owner",
       "referenceQualification": "Finite changed Result-read caller/construction source responsibilities and interface snapshot only. Preexisting module operations are indexed, not requalified as normal execution; matching installed Native/FD/Saved and whole backend acceptance remain separate.",
-      "sha256": "26dd85bf0dd178159c6d8bde1df94b34813fea318a17c2c6e5c0250bf246ddb1",
+      "sha256": "8146e76f8bd569181a0361dd5b7c58b439e737ea854d26df7ab1270f649e1cd1",
       "exports": [],
       "operations": [
         {
@@ -507,7 +507,7 @@
         },
         {
           "name": "[T]Store::with_original_read",
-          "declaration": "[ T ] Store : : with_original_read ( self : Store , cleanup_work : Bool , final_close : Bool , call : ( ) - > Result [ T , NativePublicationStoreIssue ] , ) - > Result [ T , NativePublicationStoreIssue ]"
+          "declaration": "[ T ] Store : : with_original_read ( self : Store , cleanup_work : Bool , final_close : Bool , call : ( ) - > Result [ T , NativePublicationStoreIssue ] , physical_cleanup ? : Bool"
         },
         {
           "name": "admit_store_format",
@@ -644,6 +644,14 @@
         {
           "name": "load_record",
           "declaration": "load_record ( store : Store , key : String , ) - > Result [ @ payload . PublicationPayloadRecord , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "native_payload_stop_issue",
+          "declaration": "native_payload_stop_issue ( stop : @ sqlite . NativeSqliteTransactionStopFailure , ) - > @ sqlite . NativeSqliteIssue"
+        },
+        {
+          "name": "NativePayloadAdmissionFailure::issue",
+          "declaration": "NativePayloadAdmissionFailure : : issue ( self : Self , ) - > NativePublicationStoreIssue"
         },
         {
           "name": "NativePublicationStoreOpenFailure::issue",
@@ -950,6 +958,10 @@
           "declaration": "Store : : acquire_payload_cleanup_in_scope ( self : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ PayloadCleanupOwner , NativePublicationStoreIssue ]"
         },
         {
+          "name": "Store::admit_initial_payload",
+          "declaration": "Store : : admit_initial_payload ( self : Store , request : @ payload . PublicationPayloadRequest , key : String , body : Bytes , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
           "name": "Store::begin_payload",
           "declaration": "Store : : begin_payload ( self : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ PayloadWriter , NativePublicationStoreIssue ]"
         },
@@ -1122,12 +1134,20 @@
           "declaration": "Store : : resolve_committed_result_in_scope ( self : Store , namespace_id : String , authority_scope_cid : String , run_definition_cid : String , result_name : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ NativeCommittedResult ? , NativePublicationStoreIssue ]"
         },
         {
+          "name": "Store::retain_exact_publication_body",
+          "declaration": "Store : : retain_exact_publication_body ( self : Store , table : String , key : String , body : Bytes , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
           "name": "Store::retained_data_current",
           "declaration": "Store : : retained_data_current ( self : Store , ) - > Result [ Unit , NativePublicationStoreIssue ]"
         },
         {
           "name": "Store::retry_pending_result_delivery_cleanup",
           "declaration": "Store : : retry_pending_result_delivery_cleanup ( self : Store , ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::with_payload_writer",
+          "declaration": "Store : : with_payload_writer ( self : Store , acquire : ( ) - > Result [ PayloadWriter , NativePublicationStoreIssue ] , ) - > Result [ PayloadWriter , NativePublicationStoreIssue ]"
         }
       ],
       "contracts": [
@@ -1176,6 +1196,8 @@
             "insert_owned_cleanup_record",
             "load_publication_contract",
             "load_record",
+            "native_payload_stop_issue",
+            "NativePayloadAdmissionFailure::issue",
             "NativePublicationStoreOpenFailure::issue",
             "NativePublicationStoreOpenFailure::retry_cleanup",
             "NativePublicationStoreOpenFailure::retry_cleanup_in_scope",
@@ -1252,6 +1274,7 @@
             "store_open_failure",
             "Store::acquire_payload_cleanup",
             "Store::acquire_payload_cleanup_in_scope",
+            "Store::admit_initial_payload",
             "Store::begin_payload",
             "Store::begin_payload_in_scope",
             "Store::begin_result_delivery",
@@ -1295,8 +1318,10 @@
             "Store::recover_in_scope",
             "Store::resolve_committed_result",
             "Store::resolve_committed_result_in_scope",
+            "Store::retain_exact_publication_body",
             "Store::retained_data_current",
-            "Store::retry_pending_result_delivery_cleanup"
+            "Store::retry_pending_result_delivery_cleanup",
+            "Store::with_payload_writer"
           ],
           "exports": [],
           "attributes": {
@@ -1358,6 +1383,18 @@
               {
                 "path": "src/platform_native/publication_store/delivery_chunk_native_wbtest.mbt",
                 "anchor": "native delivery refuses construction before advancing and leaves unmanaged chunks unchanged"
+              },
+              {
+                "path": "src/platform_native/publication_store/store_native_wbtest.mbt",
+                "anchor": "native publication capacity rejects before payload allocation"
+              },
+              {
+                "path": "src/platform_native/publication_store/store_native_wbtest.mbt",
+                "anchor": "native publication keeps original quota and rows after an initial COMMIT reply is lost"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/store_wal_original_physical_scoped_wbtest.mbt",
+                "anchor": "unreturned original payload writer remains reachable from Store close"
               }
             ]
           }
