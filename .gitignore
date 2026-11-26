@@ -3522,6 +3522,10 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/native-preparation-originals.d.mts
 /scripts/fixtures/external-rest/configuration.mjs
 /scripts/fixtures/external-rest/configuration.d.mts
+/scripts/fixtures/external-rest/conformance-input.mjs
+/scripts/fixtures/external-rest/conformance-input.d.mts
+/scripts/fixtures/external-rest/author-package.mjs
+/scripts/fixtures/external-rest/author-package.d.mts
 /scripts/fixtures/external-rest/provider.fixture.mjs
 /scripts/fixtures/external-rest/provider.fixture.d.mts
 /scripts/fixtures/external-rest/publish-barrier.mjs
