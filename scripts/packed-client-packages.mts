@@ -71,20 +71,20 @@ function git(repository: string, args: readonly string[]) {
 export const BUILD_INPUTS = Object.freeze(['packages', 'src', 'adapters',
   'spec', 'scripts', 'release', 'portability', 'docs/spec']);
 
-function reviewTypeScriptInputs(repository: string) {
+function explicitTypeScriptInputs(repository: string) {
   const configPath = join(repository, 'tsconfig.tooling.json');
   if (!existsSync(configPath)) return [];
   const {include} = JSON.parse(readFileSync(configPath, 'utf8')) as {include?: string[]};
-  const reviewed = (include ?? []).filter(path => path.startsWith('reviews/'));
-  // The compiler names these authored files explicitly. The producer copies
-  // only these entries, leaving review receipts and other evidence out.
-  for (const path of reviewed) {
-    if (!/^reviews\/(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+\.[mc]ts$/u.test(path) ||
+  const explicit = (include ?? []).filter(path => /^(?:proofs|reviews)\//u.test(path));
+  // Copy the compiler's concrete authored inputs without their surrounding
+  // proof and review evidence or any prior compiler output.
+  for (const path of explicit) {
+    if (!/^(?:proofs|reviews)\/(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+\.[mc]ts$/u.test(path) ||
         path.split('/').some(part => part === '.' || part === '..')) {
-      throw new TypeError(`Expected a concrete review TypeScript source: ${path}`);
+      throw new TypeError(`Expected a concrete normal pack TypeScript source: ${path}`);
     }
   }
-  return reviewed;
+  return explicit;
 }
 
 // Fresh CI producers retain the same source-input policy plus the exact
@@ -92,24 +92,21 @@ function reviewTypeScriptInputs(repository: string) {
 // acquisition DATA, not another interface classifier or admission result.
 export async function normalPackSourceInputs(repository: string, listed: readonly string[]) {
   const root = realpathSync(repository), available = new Set(listed);
-  const reviewed = reviewTypeScriptInputs(root);
-  for (const path of reviewed) {
-    if (!available.has(path)) throw new Error(`UnlistedNormalPackSourceReference:${path}`);
-  }
   const selected = new Set(listed.filter(path => !path.includes('/') ||
     BUILD_INPUTS.some(input => path === input || path.startsWith(input + '/'))));
-  for (const path of reviewed) selected.add(path);
-  const {interfaceOwnerDeclarations} = await import('./interface-owner-discovery.mjs');
-  const {assertInterfaceCoverage} = await import('./interface-inventory.mjs');
-  const readReference = (path: string) => {
+  const selectReference = (path: string) => {
     if (!available.has(path)) throw new Error(`UnlistedNormalPackSourceReference:${path}`);
     const actual = realpathSync(resolve(root, path)), child = relative(root, actual);
     if (isAbsolute(child) || child === '..' || child.startsWith('../')) {
       throw new Error(`EscapedNormalPackSourceReference:${path}`);
     }
     selected.add(path);
-    return readFileSync(actual, 'utf8');
+    return actual;
   };
+  for (const path of explicitTypeScriptInputs(root)) selectReference(path);
+  const {interfaceOwnerDeclarations} = await import('./interface-owner-discovery.mjs');
+  const {assertInterfaceCoverage} = await import('./interface-inventory.mjs');
+  const readReference = (path: string) => readFileSync(selectReference(path), 'utf8');
   const checked = new Set();
   for (;;) {
     const owners = interfaceOwnerDeclarations(root, [...selected]).filter(owner => !checked.has(owner.id));
@@ -156,7 +153,7 @@ export function checkoutState(repository: string) {
   const tracked = git(repository, ['status', '--porcelain',
     '--untracked-files=no']);
   const untracked = git(repository, ['status', '--porcelain',
-    '--untracked-files=all', '--', ...BUILD_INPUTS, ...reviewTypeScriptInputs(repository)]);
+    '--untracked-files=all', '--', ...BUILD_INPUTS, ...explicitTypeScriptInputs(repository)]);
   return {revision: git(repository, ['rev-parse', 'HEAD']),
     clean: tracked === '' && untracked === ''};
 }

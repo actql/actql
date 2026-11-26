@@ -1263,7 +1263,7 @@ A Ready PR that changes no Core target input runs JS core only; main
 integration runs every target. The inputs are a short directory policy: `src`,
 `vendor`, `spec`, `portability`, `proofs`, `.github`, and the Python SDK and
 Local Runtime packages. Moon and package manifests, the toolchain pin, native
-sources and binaries, and `scripts/ci-targets.mjs` also keep every target, and
+sources and binaries, and `scripts/ci-targets.mts` also keep every target, and
 the existing macOS workload and wheel selectors still decide those jobs.
 Ordinary `scripts/` changes, including fixtures and test drivers, do not keep
 the Wasm and Native Core legs on a PR, so a cross-target regression there can
@@ -1825,8 +1825,9 @@ that the product executes graph, vector or temporal profiles.
 
 ## Read-only worktree inventory
 
-Run this opt-in development command with every worktree whose borrowed
-links should be considered, using explicit paths (quote paths with spaces):
+From the repository after `npm ci`, run this opt-in development command with
+explicit paths for every worktree whose borrowed links should be considered.
+Quote paths with spaces:
 
 ```sh
 npm run inventory:worktrees -- -- "/path/to/owner tree" "/path/to/borrower tree"
