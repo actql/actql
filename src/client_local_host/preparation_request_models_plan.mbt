@@ -349,7 +349,11 @@ fn[I] prepare_request_models_plan_owned(
   // the raw whole-Run planning ceiling is not construction work per group.
   let configuration = match (source_free, captured) {
     (Some(original), None) => original.configuration.unwrap()
-    (None, Some(original)) => original.configuration
+    (None, Some(original)) =>
+      match original.configuration {
+        Some(value) => value
+        None => return Err(ForeignOriginal)
+      }
     _ => return Err(ForeignOriginal)
   }
   let compute_limits = match

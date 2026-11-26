@@ -22255,7 +22255,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "e15c9c68c07ab87dcaef9955158ab7d91775508fcbbfff180cdb69ea51f06971",
+      "sha256": "2460dd7f984a902a5705e49a1110b9e456d4f6b885ae60dbe54d5fc4061b4ef8",
       "operations": [
         {
           "name": "cid/cid",
@@ -22438,7 +22438,8 @@
           "parameters": [
             "preparedProgram",
             "sourceSelection",
-            "installedContracts"
+            "installedContracts",
+            "serialization"
           ],
           "async": false
         },

@@ -636,6 +636,9 @@ pub fn[I] prepare_request_capture_module_body(
     @publication.PublicationContract,
   )? = None,
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
+  guard plan.configuration is Some(configuration) else {
+    return Err(Installed(Unsupported))
+  }
   prepare_request_program_module_body_owned(
     owner,
     input,
@@ -643,7 +646,7 @@ pub fn[I] prepare_request_capture_module_body(
     Some(plan),
     manifests~,
     compilation_limits~,
-    retained_output=plan.configuration.retained_output,
+    retained_output=configuration.retained_output,
     provider_factory~,
     invocation~,
   )
@@ -699,7 +702,9 @@ fn[I] retain_request_program_module_inputs(
       plan.values_body != contracts.original.values_body ||
       plan.fragment_body != contracts.original.fragment_body ||
       plan.ordered_body != contracts.original.ordered_body ||
-      plan.configuration.retained_output != retained_output ||
+      !plan.configuration
+      .map(configuration => configuration.retained_output == retained_output)
+      .unwrap_or(false) ||
       owner.program_source_free is Some(_) {
       return Err(Preparation(ForeignOriginal))
     }

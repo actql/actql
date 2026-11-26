@@ -35,7 +35,7 @@ test('Content Host uses the same original content control that owns its workspac
     clientProgramEffectInputExportLimits:()=>({}),
     clientProgramSerializationWorkspaceCapacity:()=>rawWorkspace,
     clientProgramSerializationCapacityBytes:w=>{assert.equal(w,rawWorkspace);return{_0:7n,_1:9n};},
-    clientProgramInstalledManagedRunCheck(){},clientProgramInstalledManagedRunRetire(){},
+    clientProgramAcquisitionCount:()=>0, clientProgramInstalledManagedRunCheck(){},clientProgramInstalledManagedRunRetire(){},
   };
   const publications={prepareCheckedClientRequestSerializationPlan(p,i,r,c,d,l,w){
     assert.deepEqual([p,i,r,c,d,l,w],[parent,input,request,compiled,definition,limits,rawWorkspace]);
@@ -146,7 +146,7 @@ function hostFixture({constructFailure}={}) {
   },cleanupRequestPrefix(v,s){assert.equal(this,content);assert.deepEqual([v,s],[value,selected]);
     calls.push('prefix-cleanup');if(cleanup instanceof Error)throw cleanup;return cleanup;}};
   contentPreparation.contentControl=content;
-  const moon={clientProgramInstalledManagedRunCheck(v,p,r){assert.equal(this,moon);assert.deepEqual([v,p,r],[value,prepared,request]);},
+  const moon={clientProgramAcquisitionCount:()=>0, clientProgramInstalledManagedRunCheck(v,p,r){assert.equal(this,moon);assert.deepEqual([v,p,r],[value,prepared,request]);},
     clientProgramInstalledManagedRunRetire(v){assert.equal(this,moon);assert.equal(v,value);calls.push('parent-retire');},
     clientProgramInstalledPreparationPayloadSevered:()=>true};
   const manager={prepareSerializationRun(p,r,identity,construct){
@@ -259,7 +259,7 @@ test('Request Content runtime retains original prefix start and cleanup without 
   assert.deepEqual(calls,['start','start','cleanup','cleanup']);
 });
 
-test('Request Content custody selects terminal source-free or managed keyed Serialization and keeps mixed purposes separate',()=>{
+test('Request Content custody selects terminal source-free or managed source Serialization and keeps mixed purposes separate',()=>{
   const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');let selected;
   const walk=node=>{if(!node||typeof node!=='object')return;
     if(node.type==='VariableDeclarator'&&node.id?.name==='localPreparationCustody')selected=node.init.arguments[0];
@@ -276,7 +276,8 @@ test('Request Content custody selects terminal source-free or managed keyed Seri
   const base={kind:'effect_free',serializations:[{}],infers:[],acquisitions:0};
   const prepared={};values.set(prepared,base);assert.equal(select(prepared),true);
   const keyed={};values.set(keyed,{...base,acquisitions:2});assert.equal(select(keyed),true);
-  for(const change of [{acquisitions:1},{infers:[{}]},{serializations:[{},{}]},{kind:'effectful'}]){
+  const ordinary={};values.set(ordinary,{...base,acquisitions:1});assert.equal(select(ordinary),true);
+  for(const change of [{acquisitions:3},{infers:[{}]},{serializations:[{},{}]},{kind:'effectful'}]){
     const p={};values.set(p,{...base,...change});assert.equal(select(p),false);
   }
   moon.clientProgramPreparationBorrowSibling=undefined;assert.equal(select(prepared),false);

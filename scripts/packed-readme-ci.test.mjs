@@ -65,7 +65,6 @@ test('required packed dependency boundaries keep cold approval, locked physical 
   }
   const source = await readFile(new URL('./test-packed-readme-workflows.mjs', import.meta.url), 'utf8');
   assert.match(source, /await runPackedDependencyBoundaries\(\{\s*prepared,/u);
-  assert.match(source, /report\.complete = failures\.length === 0 && report\.account\.completed &&\s*report\.dependencyBoundaries\.complete &&/u);
 });
 
 test('README artifact retains bounded observations and usage receipts without signing originals or application state', async t => {
@@ -953,6 +952,12 @@ async function runnerFunctions(relative = './test-packed-readme-workflows.mjs') 
     .map(value => value.type === 'ExportNamedDeclaration' ? value.declaration : value)
     .filter(value => value?.type === 'FunctionDeclaration');
   return (name, ports) => {
+    if (name === 'runPackedReadmeWorkflows') {
+      const runAcquiredSerializationConsumer = async ({report}) => {
+        report.acquiredSerialization.complete = true;
+      };
+      ports = {runAcquiredSerializationConsumer, ...ports};
+    }
     const node = declarations.find(value => value.id.name === name);
     assert(node, `Missing actual runner ${name}`);
     // Retain the original module coordinate when compiling its actual function
@@ -2938,11 +2943,20 @@ test('16MiB collection routing uses SAME staged artifact and separate Saved PID 
 });
 
 
-test('required Account control uses SAME prepared artifact once and cannot pass failed or unexecuted', async t => {
-  for (const mode of ['passed','failed','unexecuted']) {
+test('required Account and Source serialization consumers use the same artifact and must complete', async t => {
+  const scenarios = ['account', 'acquiredSerialization'].flatMap(consumer =>
+    ['passed', 'failed', 'unexecuted'].map(mode => ({required: consumer, mode})));
+  for (const {required, mode} of scenarios) {
     const {root,consumer} = await scratch(t), output = join(root,'out'), load = await runnerFunctions();
     const before = {clean:true,revision:'a'.repeat(40)}, prepared = {consumer,manifest:{},manifestPath:'/same-normal'};
-    const primary = new Error('OriginalAccountControlFailure'); let calls=0;
+    const primary = new Error('OriginalRequiredConsumerFailure');
+    const calls = [];
+    const checkOptions = options => {
+      assert.strictEqual(options.prepared, prepared);
+      assert.equal(options.repository, repository);
+      assert.equal(options.root, output);
+      assert.equal(typeof options.command, 'function');
+    };
     const run = load('runPackedReadmeWorkflows', {assert,isAbsolute:value=>value.startsWith('/'),
       process:{env:{ACTQL_PACKED_CLIENT_PACKAGES:'/same-normal'},version:'explicit-test'},
       fileURLToPath:()=>repository,URL,checkoutState:()=>before,execFileSync:()=>'b'.repeat(40),mkdir,join,writeFile,
@@ -2952,10 +2966,16 @@ test('required Account control uses SAME prepared artifact once and cannot pass 
       runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       async runPackedAccountControls(options) {
-        calls++; assert.strictEqual(options.prepared,prepared); assert.equal(options.repository,repository);
-        assert.equal(options.root,output); assert.equal(typeof options.command,'function'); assert(Array.isArray(options.cleanup));
-        if(mode==='failed') {options.report.account.status='failed';throw primary;}
-        if(mode==='passed') {options.report.account.completed=true;options.report.account.status='passed';}
+        calls.push('account'); checkOptions(options); assert(Array.isArray(options.cleanup));
+        if (required === 'account' && mode === 'failed') {options.report.account.status = 'failed'; throw primary;}
+        if (required !== 'account' || mode === 'passed') {
+          options.report.account.completed = true; options.report.account.status = 'passed';
+        }
+      },
+      async runAcquiredSerializationConsumer(options) {
+        calls.push('acquiredSerialization'); checkOptions(options);
+        if (required === 'acquiredSerialization' && mode === 'failed') throw primary;
+        if (required !== 'acquiredSerialization' || mode === 'passed') options.report.acquiredSerialization.complete = true;
       },
       runCollectionConsumer:async({report})=>report.collection.forEach(row=>row.completed=true),
       runProjectFileJoinConsumer:async({report})=>report.projectFiles.forEach(row=>row.completed=true),
@@ -2963,9 +2983,11 @@ test('required Account control uses SAME prepared artifact once and cannot pass 
       runMockEffectControls:async({records})=>records.forEach(row=>row.completed=true),verifyNodeBenchmarkPackages:async()=>{}});
     if(mode==='passed') assert.equal((await run(output)).complete,true);
     else await assert.rejects(run(output),error=>mode==='failed'?error===primary:error.code==='ERR_ASSERTION');
-    assert.equal(calls,1);
+    assert.deepEqual(calls, ['account', 'acquiredSerialization']);
     const report=JSON.parse(await readFile(join(output,'summary.json'),'utf8'));
-    assert.equal(report.complete,mode==='passed'); assert.equal(report.account.status,mode==='passed'?'passed':mode==='failed'?'failed':'unexecuted');
+    assert.equal(report.complete, mode === 'passed');
+    assert.equal(report.account.status, required !== 'account' || mode === 'passed' ? 'passed' : mode);
+    assert.equal(report.acquiredSerialization.complete, required !== 'acquiredSerialization' || mode === 'passed');
   }
 });
 

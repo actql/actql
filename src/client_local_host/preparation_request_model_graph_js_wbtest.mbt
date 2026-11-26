@@ -3823,7 +3823,7 @@ test "captured reusable inputs retain one owner and fund only missing import cop
   }
   let task = @strategy.graph_captured_prefix(original.graph)
   let planned = @local_driver.local_dispatch_preparation_managed_task_capacity(
-    original.configuration.dispatch,
+    original.configuration.unwrap().dispatch,
     task,
   ).unwrap()
   let usage = @resources.ledger_usage(ledger)
@@ -4020,7 +4020,7 @@ test "captured unavailable originals receive no missing-copy credit or provider 
   }
   let task = @strategy.graph_captured_prefix(original.graph)
   let planned = @local_driver.local_dispatch_preparation_managed_task_capacity(
-    original.configuration.dispatch,
+    original.configuration.unwrap().dispatch,
     task,
   ).unwrap()
   retire_installed_source_read(reads[0]).unwrap()
@@ -4032,7 +4032,7 @@ test "captured unavailable originals receive no missing-copy credit or provider 
   assert_true(run.source_free_captured is None)
   assert_eq(
     @local_driver.local_dispatch_preparation_managed_task_capacity(
-      original.configuration.dispatch,
+      original.configuration.unwrap().dispatch,
       task,
     ),
     Some(planned),

@@ -148,7 +148,8 @@ type RunInfer = ((facts: PhysicalDispatch & Readonly<{preparationHolder?: unknow
   sourceOccurrence?(prepared: unknown, index: number): Occurrence | undefined;
 };
 type RunContent = ((facts: PhysicalDispatch & Readonly<{acquiredContent?: unknown}>) => Awaitable<unknown>) &
-  NonNullable<KeyedPorts['runContent']> & {prepareKeyedLedger?: PrepareLedger; prepareAcquiredLedger?: PrepareLedger};
+  NonNullable<KeyedPorts['runContent']> & {prepareKeyedLedger?: PrepareLedger; prepareAcquiredLedger?: PrepareLedger;
+    prepareOrdinaryAcquiredLedger?: PrepareLedger};
 type Control = Parameters<Journal['reservePhysicalStart']>[3] & Stop['control'] & CleanupPorts['control'] &
   Omit<KeyedPorts['control'], 'takeSourceEvidenceOriginal'> & Direct['control'] & Logical[1] &
   Readonly<{
@@ -413,6 +414,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       const inferring = held!.plan!.kind === 'infer';
       const serializing = held!.plan!.kind === 'serialization';
       const generatingContent = held!.plan!.serializationGraph !== undefined;
+      const ordinaryContent = serializing && acquiring && held!.managedRun !== undefined;
       // Managed Compute publication cannot publish an acquisition Result.
       // Inspect the common checked graph before reserving physical custody or
       // capturing rows. Content and Infer have their own publication owners.
@@ -570,6 +572,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           return source.adapter.ledgerCapacity(source.preparedSource);
         });
         const managedRun = capacities[0]?.managedRun;
+        if (ordinaryContent && (managedRun === undefined || held!.managedRun !== managedRun)) {
+          throw new Error('InstalledContentAcquiredDispatchUnavailable');
+        }
         if (capacities.some(value => value.managedRun !== undefined)) {
           if (managedRun === undefined || capacities.some(value => value.managedRun !== managedRun) ||
               typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
@@ -578,7 +583,14 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           // The original operational parent was admitted before preparation.
           // Do not replace it with the legacy scalar accounting constructor,
           // even when another Source has equal capacities or matching CIDs.
-          if (inferring) {
+          if (ordinaryContent) {
+            if (typeof runContent!.prepareOrdinaryAcquiredLedger !== 'function') {
+              throw new Error('InstalledContentAcquiredDispatchUnavailable');
+            }
+            retainDispatchPreparationHost(entry, moon, managedRun, preparedProgram, requested, preparationLease !== undefined);
+            ledger = runContent!.prepareOrdinaryAcquiredLedger!({preparedProgram, plan: held!.plan!, sourceCapacities: capacities});
+            entry.borrowedSources = true;
+          } else if (inferring) {
             if (held!.managedRun !== managedRun || typeof runInfer!.prepareAcquiredLedger !== 'function') {
               throw new Error('InstalledMultiSourceOriginalRunUnavailable');
             }
@@ -615,9 +627,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       }
       const requestModelAcquired = inferring && !generatingContent && acquiring && !multiple &&
         keyedSelection === undefined && held!.managedRun !== undefined;
-      if ((generatingContent || requestModelAcquired) && acquiring && keyedSelection === undefined) {
+      if ((generatingContent || requestModelAcquired) && acquiring && keyedSelection === undefined &&
+          !(multiple && ordinaryContent)) {
         if (multiple ||
-            typeof (requestModelAcquired ? runInfer! : runContent!).prepareAcquiredLedger !== 'function' ||
+            (ordinaryContent ? typeof runContent!.prepareOrdinaryAcquiredLedger !== 'function'
+              : typeof (requestModelAcquired ? runInfer! : runContent!).prepareAcquiredLedger !== 'function') ||
             typeof installedSource?.ledgerCapacity !== 'function') {
           throw new Error('InstalledContentAcquiredDispatchUnavailable');
         }
@@ -632,6 +646,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           retainDispatchPreparationHost(entry, moon, held!.managedRun, preparedProgram, requested, preparationLease !== undefined);
           ledger = runInfer!.prepareAcquiredLedger!({preparedProgram, plan: held!.plan!,
             sourceCapacity: installedSource!.ledgerCapacity!(held!.preparedSource!)});
+          entry.borrowedSources = true;
+        } else if (ordinaryContent) {
+          retainDispatchPreparationHost(entry, moon, held!.managedRun, preparedProgram, requested, preparationLease !== undefined);
+          ledger = runContent!.prepareOrdinaryAcquiredLedger!({preparedProgram, plan: held!.plan!,
+            sourceCapacities: [installedSource!.ledgerCapacity!(held!.preparedSource!)]});
           entry.borrowedSources = true;
         } else ledger = runContent!.prepareAcquiredLedger!({preparedProgram, plan: held!.plan!,
           sourceCapacity: installedSource!.ledgerCapacity!(held!.preparedSource!)});
@@ -837,12 +856,14 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           await captured.prepareSourceEvidenceOriginal(evidenceOptions);
           const sourceEvidence = control.takeSourceEvidenceOriginal(captured.capture);
           sources.push({...source, captured, sourceEvidence,
-            ...(inferring ? {sourceEvidenceWire: sourceEvidence.wire} : {})});
+            ...(inferring || ordinaryContent ? {sourceEvidenceWire: sourceEvidence.wire} : {})});
         }
         const captureCompletedAt = now();
         const effectiveDataPolicyCid = moon.clientProgramPublicationDataPolicyCid(preparedProgram);
         if (effectiveDataPolicyCid === undefined) throw new Error('InstalledMultiSourcePolicyUnavailable');
-        if (inferring) {
+        if (ordinaryContent) {
+          acquiredContent = {managedSources: sources, ledger, captureStartedAt, captureCompletedAt};
+        } else if (inferring) {
           acquiredInfer = {sources, ledger, managedRun: held!.managedRun, captureStartedAt, captureCompletedAt,
             sourceEvidence: sources.map(source => source.sourceEvidence)};
         } else {
@@ -881,10 +902,14 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         }
         const {captureStartedAt, captureCompletedAt, sourceEvidence, sourceEvidenceWire} =
           await acquireSource(entry as Parameters<Acquisition>[0], preparedProgram, held!.preparedSource!, sourceAccess,
-            {captureOnly: generatingContent || requestModelAcquired, originalEvidence: singleAccounted || inferring && !generatingContent,
+            {captureOnly: generatingContent || requestModelAcquired, originalEvidence: ordinaryContent || singleAccounted || inferring && !generatingContent,
               ledger: generatingContent || singleAccounted || requestModelAcquired ? ledger : undefined,
               occurrence: inferring ? runInfer!.sourceOccurrence?.(preparedProgram, 0) : undefined});
-        if (generatingContent) {
+        if (ordinaryContent) {
+          acquiredContent = {managedSources: [{captured: entry.sourceCapture,
+            sourceEvidence, sourceEvidenceWire: (sourceEvidence as ReturnType<Control['takeSourceEvidenceOriginal']>).wire}],
+            ledger, captureStartedAt, captureCompletedAt};
+        } else if (generatingContent) {
           acquiredContent = {captured: entry.sourceCapture, ledger, sourceEvidenceWire,
             authorityScopeCid, captureStartedAt, captureCompletedAt,
             sourceEvidence: control.admitRunEvidence('source_evidence', sourceEvidenceWire!,

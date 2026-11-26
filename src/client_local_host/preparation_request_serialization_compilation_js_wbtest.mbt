@@ -562,6 +562,62 @@ test "source-free Serialization compilation remains on original Request capacity
 }
 
 ///|
+test "ordinary Serialization compilation requires the exact single Whole acquisition" {
+  let document =
+    #|{"version":"actql/0.1","id":"request-whole-content","stages":[{"id":"main","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"from":"remote","select":["id"],"as":"selected"},{"assert_rows":{"unique_by":["id"]}},{"serialize":{"format":"jsonl","fields":["id"],"name":"ids.jsonl","order_by":[{"id":"asc"}],"bounds":{"max_rows":10,"max_bytes":1024}},"as":"file"}],"results":{"file":{"from":"file","fields":["name","content"]}}}],"results":{"file":{"from":{"stage":"main","result":"file"}}}}
+  let (parent, input, prepared, _) = request_whole_source_fixture(
+    text=document,
+    reserve_plan=false,
+  )
+  let holder = borrow_request_content_plan_input(parent, input).unwrap()
+  guard @publication_host.prepared_client_serialization_occurrences(prepared)
+    is [(task, step)] else {
+    fail("original checked Whole Serialization")
+  }
+  let component = @publication_host.issue_prepared_client_acquired_serialization_plan_graph(
+    prepared,
+    task,
+    step,
+    10,
+    1024,
+    10000,
+    @publication_host.client_standard_values_sequence_limits(),
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  let source = @publication_host.client_serialization_plan_direct_occurrences(
+    component, prepared,
+  ).unwrap()
+  assert_eq(
+    @publication_host.client_direct_acquisition_occurrence_count(source),
+    1,
+  )
+  let contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  let compilation = prepare_request_serialization_compilation(
+    parent,
+    input,
+    component,
+    contracts,
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).unwrap()
+  assert_true(
+    @publication_host.client_task_compilation_serialization(compilation)
+    is Some(original) &&
+    physical_equal(original, component),
+  )
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
 fn request_keyed_serialization_component(
   prepared : @publication_host.PreparedClientProgram,
   selected : ClientInstalledManagedKeyedPreparation,
@@ -600,6 +656,8 @@ test "same Request keyed Serialization retains its one original compiler through
     )
     is Err(Installed(Unsupported)),
   )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  assert_true(parent.program_compilation is None)
   let compilation = prepare_request_keyed_serialization_compilation(
     parent,
     input,

@@ -16,6 +16,7 @@ pub struct ClientSerializationPlanGraph {
   // Keep the issuer's immutable component parts for the same Request compiler.
   // They are not reconstructed from saved wire or a copied Graph holder.
   priv original_graph : ClientTaskPlanGraph
+  priv direct_occurrences : ClientDirectAcquisitionOccurrences?
   priv graph_nodes : Array[@canonical.CanonicalValue]
   priv graph_edges : Array[@canonical.CanonicalValue]
   priv graph_roots : Array[@canonical.CanonicalValue]
@@ -78,6 +79,20 @@ pub fn client_serialization_plan_graph_coordinates(
   value : ClientSerializationPlanGraph,
 ) -> (Int, Int) {
   (value.task, value.step)
+}
+
+///|
+/// Borrow the ordinary Direct inventory proved by this exact component. No
+/// capture, read grant or completion is issued by this accessor.
+pub fn client_serialization_plan_direct_occurrences(
+  component : ClientSerializationPlanGraph,
+  prepared : PreparedClientProgram,
+) -> ClientDirectAcquisitionOccurrences? {
+  guard physical_equal(component.owner, prepared) &&
+    physical_equal(component.graph, component.original_graph) else {
+    return None
+  }
+  component.direct_occurrences
 }
 
 ///|
@@ -261,16 +276,18 @@ fn issue_acquired_client_serialization_plan_graph(
     max_depth <= 0 {
     return Err(InvalidLimits)
   }
-  if !client_serialization_single_capture_shape(
+  let single = prepared_client_acquisition_count(owner) == 1 &&
+    client_serialization_single_capture_shape(
       owner,
       task,
       max_work=max_preparation_work,
-    ) ||
-    prepared_client_acquisition_count(owner) != 1 ||
-    !client_serialization_source_inventory_supported(
+    ) &&
+    client_serialization_source_inventory_supported(
       owner, task, step, max_preparation_work,
-    ) ||
-    (@strategy.graph_program_has_effects(owner.graph) && !effect_component) {
+    )
+  let effects = @strategy.graph_program_has_effects(owner.graph)
+  if @strategy.graph_source_free_inputs_complete(owner.graph) ||
+    (effects && (!effect_component || !single)) {
     return Err(UnsupportedGraph)
   }
   guard @strategy.graph_task_unit_index(owner.graph, task) is Some(unit) else {
@@ -293,6 +310,16 @@ fn issue_acquired_client_serialization_plan_graph(
   }
   guard selected is Some(selected) else {
     return Err(PolicyClosure(@checked.MissingDependency))
+  }
+  let direct_occurrences = if effects {
+    None
+  } else {
+    client_serialization_direct_source_coverage(
+      owner, task, unit, selected, max_preparation_work,
+    )
+  }
+  if !single && direct_occurrences is None {
+    return Err(UnsupportedGraph)
   }
   let bodies = match
     checked_client_source_policy_bodies(
@@ -336,7 +363,178 @@ fn issue_acquired_client_serialization_plan_graph(
     max_nodes,
     max_depth,
     include_results~,
+    direct_occurrences~,
   )
+}
+
+///|
+/// The checked policy walks the actual Serialize input through producer
+/// occurrences. Require every original Direct input on the same checked
+/// Stage, not merely a matching Source CID or count. Multiple Whole inputs
+/// may share one physical Compute task. For independent earlier Stages,
+/// require each exact checked Result port and physical edge; runtime still
+/// needs those producer completions, not the underlying Source rows.
+fn client_serialization_direct_source_coverage(
+  owner : PreparedClientProgram,
+  task : Int,
+  unit : Int,
+  policy : @checked.PublicationSourcePolicy,
+  max_work : Int,
+) -> ClientDirectAcquisitionOccurrences? {
+  let checks = @checked.source_execution_count(
+    @strategy.graph_program(owner.graph),
+  )
+  let count = @checked.publication_policy_source_count(policy)
+  guard count > 0 &&
+    max_work > 0 &&
+    checks <= max_work &&
+    count <= (max_work - checks) / 3 &&
+    @checked.publication_policy_model_step_count(policy) == 0 &&
+    @checked.publication_policy_generator_count(policy) == 0 &&
+    @checked.publication_policy_local_check_count(policy) == 0 &&
+    client_direct_observations_cover_sources(owner, count) else {
+    return None
+  }
+  // Split the bounded structural selection from the Whole route check.
+  let remaining = max_work - checks - 3 * count
+  let selector_work = remaining / 2
+  let mut route_work = remaining - selector_work
+  guard select_client_direct_acquisition_occurrences(owner, selector_work)
+    is Ok(occurrences) &&
+    client_direct_acquisition_occurrence_count(occurrences) == count else {
+    return None
+  }
+  let inputs : Map[(Int, Int), @checked.SourceExecution] = Map([])
+  let mut source_policy_unknown = false
+  for index in 0..<count {
+    guard @checked.publication_policy_source_at(policy, index) is Some(check) &&
+      @checked.source_execution_kind(check) is @checked.CarrierResponse else {
+      return None
+    }
+    let subject = @checked.source_execution_subject(check)
+    guard subject.request is @acquisition.Direct(_, _) &&
+      subject.direct_policy is Some(direct_policy) &&
+      !inputs.contains((subject.stage, subject.input)) else {
+      return None
+    }
+    inputs.set((subject.stage, subject.input), check)
+    source_policy_unknown = source_policy_unknown ||
+      direct_policy.unknown_provenance
+  }
+  // An exact Direct read may permanently have unclassified request values.
+  // Preserve its original unknown policy and CID; capture coverage does not
+  // furnish a classification, declassification, or an egress grant.
+  guard !policy.unknown_provenance || source_policy_unknown else { return None }
+  let mut same_stage = 0
+  for index in 0..<count {
+    guard client_direct_acquisition_occurrence_at(occurrences, index)
+      is Some((stage, input, _)) &&
+      inputs.get((stage, input)) is Some(original) &&
+      physical_equal(original, occurrences.checks[index]) else {
+      return None
+    }
+    let subject = @checked.source_execution_subject(original)
+    guard @context.program_identity_stage_requests(subject.owner, stage)
+      is Some(requests) &&
+      @acquisition.select_source_acquisition_route(requests, input, route_work)
+      is Ok(@acquisition.WholeInputRoute(acquisition)) else {
+      return None
+    }
+    route_work -= @acquisition.source_acquisition_work(acquisition)
+    if stage == unit {
+      same_stage += 1
+    }
+  }
+  if same_stage == count {
+    guard @checked.publication_policy_import_count(policy) == 0 else {
+      return None
+    }
+  } else if same_stage != 0 ||
+    !client_serialization_direct_source_imports(
+      owner, task, policy, occurrences, route_work,
+    ) {
+    return None
+  }
+  Some(occurrences)
+}
+
+///|
+/// The existing bounded Direct-prefix graph may feed one Content computation
+/// through one or two independently checked Stage Result ports.
+fn client_serialization_direct_source_imports(
+  owner : PreparedClientProgram,
+  task : Int,
+  policy : @checked.PublicationSourcePolicy,
+  occurrences : ClientDirectAcquisitionOccurrences,
+  max_work : Int,
+) -> Bool {
+  let graph = owner.graph
+  let count = client_direct_acquisition_occurrence_count(occurrences)
+  let edges = @strategy.graph_data_count(graph)
+  guard count > 0 &&
+    count <= 2 &&
+    task == count &&
+    @strategy.graph_captured_prefix(graph) == count &&
+    @strategy.graph_task_input_count(graph, task) == Some(count) &&
+    @checked.publication_policy_import_count(policy) == count &&
+    count <= max_work &&
+    edges <= (max_work - count) / (1 + count) else {
+    return false
+  }
+  let used = Array::make(count, false)
+  for index in 0..<edges {
+    guard @strategy.graph_data_at(graph, index) is Some(edge) else {
+      return false
+    }
+    if @strategy.data_edge_consumer(edge) != task {
+      continue
+    }
+    let input = @strategy.data_edge_input(edge)
+    let producer = @strategy.data_edge_producer(edge)
+    guard input >= 0 &&
+      input < count &&
+      producer >= 0 &&
+      producer < count &&
+      !used[producer] &&
+      @strategy.data_edge_operation_input(edge) is None &&
+      client_task_edge_input(graph, edge) is Some(_) &&
+      client_direct_acquisition_occurrence_at(occurrences, producer)
+      is Some((stage, _, original_task)) &&
+      producer == original_task else {
+      return false
+    }
+    let mut has_exact_import = false
+    for import_index in 0..<count {
+      let imported = @checked.publication_policy_import_at(policy, import_index).unwrap()
+      if imported.input != input {
+        continue
+      }
+      let resolution = @context.publication_row_limit_result(
+        @checked.publication_selection(imported.publication),
+      )
+      let target = @results.target(@results.port_result(resolution.port))
+      guard !has_exact_import &&
+        resolution.stage == stage &&
+        @strategy.data_edge_target(edge) == target &&
+        @strategy.graph_task_unit_index(graph, producer) == Some(stage) &&
+        client_task_output_target(graph, producer) == Some(target) &&
+        @checked.publication_source_policy(imported.publication) is Some(parent) &&
+        @checked.publication_policy_source_count(parent) == 1 &&
+        @checked.publication_policy_model_step_count(parent) == 0 &&
+        @checked.publication_policy_generator_count(parent) == 0 &&
+        @checked.publication_policy_local_check_count(parent) == 0 &&
+        @checked.publication_policy_source_at(parent, 0) is Some(source) &&
+        physical_equal(source, occurrences.checks[producer]) else {
+        return false
+      }
+      has_exact_import = true
+    }
+    if !has_exact_import {
+      return false
+    }
+    used[producer] = true
+  }
+  used.iter().all(present => present)
 }
 
 ///|
@@ -531,6 +729,7 @@ fn issue_client_serialization_plan_graph_with_policy(
   max_nodes : Int,
   max_depth : Int,
   include_results? : Bool = true,
+  direct_occurrences? : ClientDirectAcquisitionOccurrences? = None,
 ) -> Result[ClientSerializationPlanGraph, ClientSerializationPlanGraphIssue] {
   let barrier = match
     prepare_client_serialization(
@@ -756,6 +955,7 @@ fn issue_client_serialization_plan_graph_with_policy(
       max_rows: rows,
       max_bytes: bytes,
       original_graph,
+      direct_occurrences,
       graph_nodes: nodes,
       graph_edges: edges,
       graph_roots: roots,

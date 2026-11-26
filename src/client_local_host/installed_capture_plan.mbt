@@ -20,7 +20,8 @@ struct ClientInstalledManagedCapturePlan {
   sequences : Array[@execution.GeneratedSequence]
   compute_sequences : Array[@execution.GeneratedSequence]
   capacity_plan : ClientLocalCapacityPlan
-  configuration : ClientPreparedLocalConfiguration
+  configuration : ClientPreparedLocalConfiguration?
+  serialization : @publication_host.ClientSerializationPlanGraph?
   mut model_input_prefix : @execution.GeneratedSequence?
   mut model_input_suffix : @execution.GeneratedSequence?
   mut compilation : @publication_host.ClientRunCompilation?
@@ -130,9 +131,8 @@ fn prepare_installed_managed_capture_plan_owned(
     return Err(ForeignOriginal)
   }
   for index, source in whole_sources {
-    guard @publication_host.client_direct_acquisition_occurrence_at(
-        direct, index,
-      )
+    guard source.serialization is None &&
+      @publication_host.client_direct_acquisition_occurrence_at(direct, index)
       is Some((stage, input, _)) &&
       @publication_host.client_source_acquisition_matches_program(
         prepared,
@@ -256,11 +256,244 @@ fn prepare_installed_managed_capture_plan_owned(
     sequences,
     compute_sequences: compute.sequences,
     capacity_plan: compute.capacity_plan,
-    configuration: compute.configuration,
+    configuration: Some(compute.configuration),
+    serialization: None,
     model_input_prefix: None,
     model_input_suffix: None,
     compilation: None,
     limits,
+  })
+}
+
+///|
+/// Retain the checked terminal Content component's Whole input requests.
+/// Generic Compute has no configuration on this capture Plan. Its execution
+/// and output budgets belong only to the separate retained Content prefix.
+pub fn prepare_installed_managed_whole_serialization_sources_plan(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  component : @publication_host.ClientSerializationPlanGraph,
+  sources : Array[ClientInstalledWholeSourceCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : ClientInstalledSequenceContracts,
+) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
+  let identity = @publication_host.prepared_client_identity(prepared)
+  guard identity.program_definition_cid ==
+    @publication_host.client_request_program_cid(request) &&
+    identity.parameter_values_cid ==
+    @publication_host.client_request_parameters_cid(request) &&
+    @publication_host.client_serialization_plan_direct_occurrences(
+      component, prepared,
+    )
+    is Some(direct) else {
+    return Err(ForeignOriginal)
+  }
+  let count = @publication_host.client_direct_acquisition_occurrence_count(
+    direct,
+  )
+  guard count > 0 &&
+    sources.length() == count &&
+    transport_bytes.length() == count &&
+    transport_execution_bytes.length() == count &&
+    installed_direct_occurrences_layout(count) is Some((selector, _)) else {
+    return Err(ForeignOriginal)
+  }
+  let mut transfer = 0L
+  let mut retained = selector
+  let mut execution = selector
+  for index, source in sources {
+    guard source.serialization is Some(original) &&
+      physical_equal(original, component) &&
+      @publication_host.client_direct_acquisition_occurrence_at(direct, index)
+      is Some((stage, ordinal, _)) &&
+      @publication_host.client_source_acquisition_matches_program(
+        prepared,
+        stage,
+        ordinal,
+        source.original,
+      ) &&
+      @row_source_host.row_input_acquisition_matches_source(
+        source.acquisition,
+        source.original,
+      ) else {
+      return Err(ForeignOriginal)
+    }
+    guard transport_bytes[index] >= 0L &&
+      transport_execution_bytes[index] >= 0L &&
+      @execution.checked_preparation_add_product(
+        transfer,
+        transport_bytes[index],
+        1L,
+      )
+      is Some(next_transfer) &&
+      @execution.checked_preparation_add_product(
+        retained,
+        @execution.execution_capacity_retained_bytes(source.complete),
+        1L,
+      )
+      is Some(next_retained) &&
+      @execution.checked_preparation_add_product(
+        execution,
+        @execution.execution_capacity_execution_bytes(source.complete),
+        1L,
+      )
+      is Some(row_execution) &&
+      @execution.checked_preparation_add_product(
+        row_execution,
+        transport_execution_bytes[index],
+        1L,
+      )
+      is Some(next_execution) else {
+      return Err(InsufficientCapacity)
+    }
+    transfer = next_transfer
+    retained = next_retained
+    execution = next_execution
+  }
+  let installed = installed_contracts.original
+  Ok({
+    prepared,
+    request,
+    _observed_query_time: None,
+    captures: [],
+    direct_occurrences: Some(direct),
+    whole_sources: sources.copy(),
+    graph: @publication_host.prepared_client_graph(prepared),
+    transport_bytes: transport_bytes.copy(),
+    transport_execution_bytes: transport_execution_bytes.copy(),
+    installed_contracts,
+    values_body: installed.values_body,
+    fragment_body: installed.fragment_body,
+    ordered_body: installed.ordered_body,
+    sequences: [],
+    compute_sequences: [],
+    capacity_plan: client_local_capacity_plan([], 0),
+    configuration: None,
+    serialization: Some(component),
+    model_input_prefix: None,
+    model_input_suffix: None,
+    compilation: None,
+    limits: {
+      planning_work: 0,
+      attempts: count,
+      holdings: count,
+      transfer_bytes: transfer,
+      retained_bytes: retained,
+      execution_bytes: execution,
+    },
+  })
+}
+
+///|
+/// The ordinary text lowering can place its eligible Query prefix in a
+/// distinct checked acquisition stage. Retain that exact original Query
+/// capture; Whole input is not a substitute for the completed stage.
+pub fn prepare_installed_managed_query_serialization_source_plan(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  component : @publication_host.ClientSerializationPlanGraph,
+  capture : ClientInstalledCaptureCapacity,
+  transfer : Int64,
+  scratch : Int64,
+  contracts : ClientInstalledSequenceContracts,
+) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
+  let identity = @publication_host.prepared_client_identity(prepared)
+  let graph = @publication_host.prepared_client_graph(prepared)
+  guard identity.program_definition_cid ==
+    @publication_host.client_request_program_cid(request) &&
+    identity.parameter_values_cid ==
+    @publication_host.client_request_parameters_cid(request) &&
+    physical_equal(component.owner, prepared) &&
+    @publication_host.prepared_client_serialization_occurrences(prepared) ==
+    [(component.task, component.step)] &&
+    @publication_host.client_serialization_plan_direct_occurrences(
+      component, prepared,
+    )
+    is None &&
+    @publication_host.prepared_client_composed_infer_occurrences(prepared)
+    is Some(infers) &&
+    infers.is_empty() &&
+    @publication_host.select_client_single_keyed_acquisition(prepared)
+    is Ok(None) &&
+    component.task == 1 &&
+    @strategy.graph_task_count(graph) == 2 &&
+    @strategy.graph_captured_prefix(graph) == 1 &&
+    @strategy.graph_task_input_count(graph, component.task) == Some(1) &&
+    @publication_host.prepared_client_acquisition_count(prepared) == 1 &&
+    @publication_host.select_client_direct_acquisition_occurrences(
+      prepared, 1000000,
+    )
+    is Ok(direct) &&
+    @publication_host.client_direct_acquisition_occurrence_count(direct) == 1 &&
+    @publication_host.client_direct_acquisition_occurrence_at(direct, 0) ==
+    Some((0, 0, 0)) &&
+    capture.original_input &&
+    capture.acquisition is Some(acquisition) &&
+    physical_equal(
+      capture.requirement,
+      @row_source_host.row_acquisition_requirement(acquisition),
+    ) &&
+    @publication_host.client_query_requirement_matches_original_query_time(
+      prepared,
+      0,
+      0,
+      capture.requirement,
+      None,
+      request,
+    ) else {
+    return Err(ForeignOriginal)
+  }
+  guard transfer >= 0L &&
+    scratch >= 0L &&
+    installed_direct_occurrences_layout(1) is Some((selector, _)) &&
+    @execution.checked_preparation_add_product(
+      selector,
+      capture.retained_bytes,
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      selector,
+      capture.execution_bytes,
+      1L,
+    )
+    is Some(row_execution) &&
+    @execution.checked_preparation_add_product(row_execution, scratch, 1L)
+    is Some(execution) else {
+    return Err(InsufficientCapacity)
+  }
+  let installed = contracts.original
+  Ok({
+    prepared,
+    request,
+    _observed_query_time: None,
+    captures: [capture],
+    direct_occurrences: Some(direct),
+    whole_sources: [],
+    graph,
+    transport_bytes: [transfer],
+    transport_execution_bytes: [scratch],
+    installed_contracts: contracts,
+    values_body: installed.values_body,
+    fragment_body: installed.fragment_body,
+    ordered_body: installed.ordered_body,
+    sequences: [],
+    compute_sequences: [],
+    capacity_plan: client_local_capacity_plan([], 0),
+    configuration: None,
+    serialization: Some(component),
+    model_input_prefix: None,
+    model_input_suffix: None,
+    compilation: None,
+    limits: {
+      planning_work: 0,
+      attempts: 1,
+      holdings: 1,
+      transfer_bytes: transfer,
+      retained_bytes: retained,
+      execution_bytes: execution,
+    },
   })
 }
 
@@ -411,6 +644,7 @@ pub fn open_installed_managed_capture_host(
     return Err(Managed(AlreadyBound))
   }
   guard value.captured_preparation is Some(plan) &&
+    plan.configuration is Some(_) &&
     sources.length() ==
     (if !plan.whole_sources.is_empty() {
       plan.whole_sources.length()
@@ -571,15 +805,12 @@ fn bind_retained_installed_capture_host(
   ),
   ClientInstalledCaptureHostIssue,
 ] {
+  guard plan.configuration is Some(configuration) else {
+    ignore(reject_client_local_run(run))
+    return Err(Configuration)
+  }
   value.source_free_captured = Some(run)
-  let host = bind_client_local_configuration(
-    run,
-    plan.configuration,
-    1L,
-    0L,
-    0L,
-    0L,
-  )
+  let host = bind_client_local_configuration(run, configuration, 1L, 0L, 0L, 0L)
   match require_installed_managed_run(value) {
     Err(issue) => {
       ignore(reject_client_local_run(run))
@@ -660,6 +891,7 @@ pub fn installed_managed_capture_publication_geometry_original(
     value.captured_preparation is Some(plan) &&
     physical_equal(plan.prepared, prepared) &&
     physical_equal(plan.request, request) &&
+    plan.configuration is Some(_) &&
     plan.capacity_plan.graph is Some(graph) &&
     physical_equal(graph, plan.graph) else {
     return None

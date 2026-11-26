@@ -30,20 +30,18 @@ pub fn issue_client_serialization_invocation(
     return Err(@publication.RunEvidenceReferenceMismatch("content_generation"))
   }
   let source_free = @strategy.graph_source_free_inputs_complete(run.owner.graph)
-  let acquired = match generation.captured {
-    Some(captured) if !source_free &&
-      physical_equal(captured.owner, run.owner) &&
-      captured.task == component.task &&
-      captured.step == component.step =>
-      Some(
-        @publication.model_source_observation_originals(captured.observation),
-      )
-    None if source_free => None
+  let acquired = match
+    client_serialization_generation_source_observations_for(generation, run) {
+    Some(named) if source_free == named.is_empty() =>
+      named.map(entry => entry.1)
     _ =>
       return Err(
         @publication.RunEvidenceReferenceMismatch("content_source_coverage"),
       )
   }
+  let capture_interval = @publication.model_source_observation_interval(
+    acquired,
+  )
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(@publication.RunEvidenceEncoding)
   }
@@ -59,16 +57,11 @@ pub fn issue_client_serialization_invocation(
     for field in ["source_evidence_cids", "captured_input_artifact_cids"] {
       @encode.key(writer, field)
       @encode.begin_array(writer)
-      if field == "source_evidence_cids" && acquired is Some((source, _, _, _)) {
-        @encode.string_value(
-          writer,
-          @publication.run_evidence_value_identity(source),
-        )
-        if generation.captured is Some(captured) &&
-          captured.keyed is Some(keyed) {
+      if field == "source_evidence_cids" {
+        for value in acquired {
           @encode.string_value(
             writer,
-            @publication.run_evidence_value_identity(keyed.source),
+            @publication.model_source_observation_fields(value).0,
           )
         }
       }
@@ -92,8 +85,8 @@ pub fn issue_client_serialization_invocation(
     )
     for field in ["capture_started_at", "capture_completed_at"] {
       @encode.key(writer, field)
-      match acquired {
-        Some((_, _, started, completed)) =>
+      match capture_interval {
+        Some((started, completed)) =>
           @encode.string_value(
             writer,
             if field == "capture_started_at" {
