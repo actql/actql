@@ -92,17 +92,21 @@ test('the original Host verifies SDK software and closes the options before supp
     'foreign-custody', 'foreign-lock', 'different-adapter-version', 'unbound-sdk', 'unsupported-option']) {
     await t.test(mode, async t => {
       const resource = await boundConstructionActualFixture(t);
-      const route = Object.freeze({providerId, selector: 'selected', modelId: 'model-a',
+      const route = Object.freeze({selector: 'selected', modelId: 'model-a',
         apiMode: 'fixture', endpoint: 'https://example.invalid/model'});
       const adapterVersion = mode === 'different-adapter-version' ? '2.0.0' : installed.adapter.version;
-      const sdkOriginal = Object.freeze({route,
+      const capability = Object.freeze({operation: 'structured_generate', adapter: 'supported', model: 'supported'});
+      const first = Object.freeze({...route, structuredCapability: capability,
+        providerOptions: Object.freeze({mode: mode === 'unsupported-option' ? 'unreviewed' : 'strict'})});
+      const second = Object.freeze({...first, selector: 'second', modelId: 'model-b', apiMode: 'alternate',
+        structuredCapability: Object.freeze({...capability, model: 'unsupported'})});
+      const sdkOriginal = Object.freeze({providerId, defaultSelector: first.selector, routes: Object.freeze([first, second]),
         lock: Object.freeze({...installed.lock, version: adapterVersion,
           packageName: mode === 'foreign-lock' ? 'fixture-sdk' : installed.lock.packageName}),
         adapter: Object.freeze({...installed.adapter, version: adapterVersion,
           cid: mode === 'changed-artifact' ? file(foreign).cid : installed.adapter.cid}),
         sdk: Object.freeze({...installed.sdk, path: mode === 'different-module' ? foreign.path : sdk.path,
-          packageName: mode === 'unbound-sdk' ? '@actql/provider-ai-sdk' : installed.sdk.packageName, exportName: 'build'}),
-        providerOptions: Object.freeze({mode: mode === 'unsupported-option' ? 'unreviewed' : 'strict'})});
+          packageName: mode === 'unbound-sdk' ? '@actql/provider-ai-sdk' : installed.sdk.packageName, exportName: 'build'})});
       const callsBefore = actualSdk.calls;
       let selected, current = true;
       const verifiedSdkInstallations = new Map([[providerId, sdkOriginal]]);
@@ -120,22 +124,28 @@ test('the original Host verifies SDK software and closes the options before supp
       if (mode === 'match') {
         await install;
         assert.equal(actualSdk.calls, callsBefore, 'the Host does not initialize the SDK before preflight');
-        assert.equal(selected.sdkArtifactCid, file(sdk).cid);
-        assert.equal(selected.adapterArtifactCid, file(adapter).cid);
-        assert.equal(selected.lockArtifactCid, file(lock).cid);
-        assert.deepEqual(selected.providerOptions, {controlled: {mode: 'strict'}});
-        assert.ok(Object.isFrozen(selected.providerOptions.controlled));
+        assert.equal(selected.defaultSelector, 'selected');
+        assert.deepEqual(selected.routes.map(item => [item.route.selector, item.route.modelId, item.route.apiMode,
+          item.structuredCapability.model]), [['selected', 'model-a', 'fixture', 'supported'],
+          ['second', 'model-b', 'alternate', 'unsupported']]);
+        const [admitted] = selected.routes;
+        assert.equal(admitted.sdkArtifactCid, file(sdk).cid);
+        assert.equal(admitted.adapterArtifactCid, file(adapter).cid);
+        assert.equal(admitted.lockArtifactCid, file(lock).cid);
+        assert.equal(admitted.structuredCapability, capability);
+        assert.deepEqual(admitted.providerOptions, {controlled: {mode: 'strict'}});
+        assert.ok(Object.isFrozen(admitted.providerOptions.controlled));
         const fetch = () => assert.fail('no network');
-        assert.deepEqual(selected.createLanguageModel(fetch), {modelId: 'model-a', fetch});
-        assert.equal(selected.verifyRequest('original', {expected: 'original'}), true);
-        assert.equal(selected.verifyRequest('changed', {expected: 'original'}), false);
+        assert.deepEqual(admitted.createLanguageModel(fetch), {modelId: 'model-a', fetch});
+        assert.equal(admitted.verifyRequest('original', {expected: 'original'}), true);
+        assert.equal(admitted.verifyRequest('changed', {expected: 'original'}), false);
         verifiedSdkInstallations.set(providerId, Object.freeze({...sdkOriginal}));
-        assert.throws(() => selected.createLanguageModel(fetch), {code: 'InvalidInstalledModelSdkInstallation'});
-        assert.throws(() => selected.verifyRequest('original', {expected: 'original'}),
+        assert.throws(() => admitted.createLanguageModel(fetch), {code: 'InvalidInstalledModelSdkInstallation'});
+        assert.throws(() => admitted.verifyRequest('original', {expected: 'original'}),
           {code: 'InvalidInstalledModelSdkInstallation'});
         verifiedSdkInstallations.set(providerId, sdkOriginal);
         current = false;
-        assert.throws(() => selected.createLanguageModel(fetch), {message: 'OriginalSdkHostClosed'});
+        assert.throws(() => admitted.createLanguageModel(fetch), {message: 'OriginalSdkHostClosed'});
         assert.equal(actualSdk.calls, callsBefore + 1);
       } else {
         await assert.rejects(install, {code: {

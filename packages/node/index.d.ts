@@ -19,17 +19,28 @@ type InstalledModelSdkPackageImage = Readonly<{
   images: readonly Readonly<{path: string; bytes: number; sha256: string}>[];
   dependencies: readonly Readonly<{name: string; package: number}>[];
 }>;
+type InstalledModelSdkSupport = 'supported' | 'experimental' | 'unsupported' | 'unavailable';
+type InstalledModelSdkRoute = Readonly<{
+  selector: string; modelId: string; apiMode: string; endpoint: string;
+  /** Only supported grants structured generation on this selected route. */
+  structuredCapability: Readonly<{operation: 'structured_generate';
+    adapter: InstalledModelSdkSupport; model: InstalledModelSdkSupport}>;
+  providerOptions: Readonly<Record<string, string | boolean | number>>;
+  /** Nonsecret reference and header, checked against the verified adapter. */
+  credential?: Readonly<{reference: string; header: string}>;
+}>;
 export type InstalledModelSdkRegistration = Readonly<{
+  providerId: string;
   adapter: InstalledModelSdkImage;
   sdk: InstalledModelSdkImage & Readonly<{exportName: string}>;
   lock: InstalledModelSdkImage;
   /** Host-approved file facts for an externally installed adapter and its dependencies.
-   * Entry zero describes the adapter. Dependency indices refer to this same frozen array. */
+   * Entry zero describes the adapter. Dependency indices refer to this same frozen array.
+   * Registrations for the same adapter reuse the approved frozen array. */
   packageImages?: readonly InstalledModelSdkPackageImage[];
-  route: Readonly<{providerId: string; selector: string; modelId: string; apiMode: string; endpoint: string}>;
-  providerOptions: Readonly<Record<string, string | boolean | number>>;
-  /** Nonsecret reference and header, checked against the verified adapter. */
-  credential?: Readonly<{reference: string; header: string}>;
+  defaultSelector: string;
+  /** Every exact alias resolves to one approved model, API mode and endpoint. */
+  routes: readonly InstalledModelSdkRoute[];
 }>;
 
 export type EmbeddedHostInstallation = Readonly<{

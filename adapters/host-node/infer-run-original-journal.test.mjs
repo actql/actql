@@ -11,9 +11,10 @@ import {pathToFileURL} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openFundedClientPreparation, fundedModelMaterialFixture} from './funded-client-preparation.fixture.mjs';
-import {readInstalledModelExecution} from './installed-model.mjs';
+import {admitInstalledModelProviderBinding, readInstalledModelExecution} from './installed-model.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
+import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {canonical, identity, configuration, program, task} from '../../scripts/fixtures/first-m1-common-materials.mjs';
 
 // A directly supervised selected build may use a separate output directory so
@@ -204,6 +205,31 @@ test('Infer original copies use the existing aggregate evidence bound before dur
   const f = await journalFixture(t, undefined, {maxRunDefinitionWireBytes: 1024});
   assert.throws(() => f.accept(), {code: 'InvalidClientRunAdmissionEvidence'});
   assert.equal(f.lookup(), undefined);
+});
+
+test('Model Plan bindings follow the original Run acceptance and cold Journal read', async t => {
+  const f = await journalFixture(t);
+  const binding = admitInstalledModelProviderBinding(moon, task.connector_id,
+    {bindingOriginals: providerBindingOriginals(task.connector_id)});
+  const matches = Object.freeze({runDefinitionCid: f.value.definition.identity,
+    compiledPlanCid: f.value.compiled.compiledPlan.identity,
+    bindings: Object.freeze([Object.freeze({task: 0, stage: 0, step: 2,
+      taskCid: identity(task), providerBindingCid: binding.identity})])});
+  const accept = modelPlanBindings => f.journal.acceptDefinition(f.value.request,
+    {...f.options, runAdmissionEvidence: {...f.value.evidence, modelPlanBindings},
+      originalInferRun: f.value.ticket}, moon, control);
+  for (const invalid of [{...matches, compiledPlanCid: cid('e')},
+    {...matches, runDefinitionCid: cid('e')},
+    {...matches, bindings: [matches.bindings[0], matches.bindings[0]]}]) {
+    assert.throws(() => accept(invalid), {code: 'InvalidClientInferRunOriginal'});
+    assert.equal(f.lookup(), undefined);
+  }
+  accept(matches);
+  f.reopen();
+  const retained = f.lookup();
+  assert.deepEqual(retained.runAdmissionEvidence.modelPlanBindings, matches);
+  assert(Object.isFrozen(retained.runAdmissionEvidence.modelPlanBindings.bindings[0]));
+  assert.equal(retained.physicalStartReserved, false);
 });
 
 test('Infer material and Run roll back together when original journal custody COMMIT fails', async t => {

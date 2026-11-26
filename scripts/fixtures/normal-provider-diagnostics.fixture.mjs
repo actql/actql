@@ -62,6 +62,9 @@ export function normalProviderDiagnostics({phase, work, write}) {
         if (ownData(detail, 'primaryCode') === 'OpenAIProjectCredentialUnavailable') {
           record.credentialRefusal = 'OpenAIProjectCredentialUnavailable';
         }
+        const capability = ownData(detail, 'primaryCode');
+        if (capability === 'InstalledModelStructuredModelUnsupported' ||
+            capability === 'InstalledModelStructuredAdapterUnsupported') record.capabilityRefusal = capability;
         const primary = diagnosticScalars(ownData(detail, 'primaryDiagnostic'));
         const cleanup = diagnosticScalars(ownData(detail, 'cleanupDiagnostic'), true);
         if (primary !== undefined) record.primary = primary;

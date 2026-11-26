@@ -32744,7 +32744,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/installed-model.mts",
-                "anchor": "import {runtimeField, runtimePair} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimePair, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -32945,7 +32945,7 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "686ca476c2ea1892124205929254692662c19c44ca3f4e9f98fe596df6c6ac97",
+      "sha256": "f63951ead4ca359fb60fa6d981bb7c8a0dc259c1ae59706cd8919e097233e17c",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
@@ -33074,16 +33074,26 @@
           "async": false
         },
         {
-          "name": "installModelProviders/init:physicalPreflight/init:physicalPreflight",
+          "name": "installModelProviders/init:resolveTaskDefaults/init:resolveTaskDefaults",
           "parameters": [
             "args"
           ],
           "async": false
         },
         {
-          "name": "installModelProviders/init:resolveTaskDefaults/init:resolveTaskDefaults",
+          "name": "installModelProviders/init:selectStructuredPreflight/init:selectStructuredPreflight",
           "parameters": [
-            "args"
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/init:selectStructuredPreflight/init:selectStructuredPreflight/init:prepare/init:prepare",
+          "parameters": [
+            "request",
+            "notification",
+            "rawBinder",
+            "supplied"
           ],
           "async": false
         },
@@ -33111,6 +33121,13 @@
         },
         {
           "name": "installModelProviders/installModelProviders#4",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/installModelProviders#5",
           "parameters": [
             "args"
           ],
@@ -33328,7 +33345,6 @@
             "installModelProviders/current/current",
             "installModelProviders/guarded/guarded/guarded",
             "installModelProviders/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
-            "installModelProviders/init:physicalPreflight/init:physicalPreflight",
             "installModelProviders/init:resolveTaskDefaults/init:resolveTaskDefaults",
             "installModelProviders/init:taskOriginals/init:taskOriginals",
             "installModelProviders/selectTaskOriginals/selectTaskOriginals",
@@ -33342,7 +33358,10 @@
             "fundModelMaterials/fundModelMaterials",
             "readInstalledModelDependencies/readInstalledModelDependencies/readInstalledModelDependencies",
             "readInstalledModelDependencies/readInstalledModelDependencies#3",
-            "readInstalledModelExecution/readInstalledModelExecution"
+            "readInstalledModelExecution/readInstalledModelExecution",
+            "installModelProviders/init:selectStructuredPreflight/init:selectStructuredPreflight",
+            "installModelProviders/init:selectStructuredPreflight/init:selectStructuredPreflight/init:prepare/init:prepare",
+            "installModelProviders/installModelProviders#5"
           ],
           "exports": [
             "admitInstalledModelProvider",
@@ -33405,7 +33424,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/installed-model.mts",
-                "anchor": "import {runtimeField, runtimePair} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimePair, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -33828,7 +33847,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/installed-model.mts",
-                "anchor": "import {runtimeField, runtimePair} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimePair, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",

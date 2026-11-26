@@ -23305,7 +23305,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "db458f90082cf7bcb64d36f78d0cf49bdc5a8b1dcd7e76a558754934e7d992d5",
+      "sha256": "4e372a5015ac02a70810fde4e98cfca637660ca38a2d38b74a8ab3bcebf3fd88",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -23328,6 +23328,7 @@
             "assertRequestedStopAvailable",
             "requestIdentityFor",
             "inferPlanFor",
+            "modelPlanBindingsFor",
             "resultPolicyOriginalFor",
             "validateInstallation",
             "updateTargetOriginals",
@@ -39644,7 +39645,7 @@
     {
       "module": "adapters/host-node/client-request-journal-records.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "84dcfe20d3e758ced5d9f5f26ef3d97369649865116301f3e1ad3ffcb1a02420",
+      "sha256": "2b046088064b14a067bc016983f0bc02609358097346f6880fef8da68520ca7d",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -40392,7 +40393,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "admission",
             "admissionEvidenceShape",
             "admissionEvidenceShape/admissionEvidenceShape",
@@ -45232,7 +45232,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ceeff7134ea4415d9c00a44ac45e54fd40639cda1627515412944e04f0754bdf",
+      "sha256": "60a76ef2c522e9876be2a278d33736c0bb885fc84f2bdd76210889846df0aad0",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -45261,7 +45261,8 @@
             "bindOwnedRequest",
             "admitPreparedSubmission",
             "preparationCustody",
-            "submittedIntentOriginal"
+            "submittedIntentOriginal",
+            "retainedModelReplay"
           ],
           "async": false
         },
@@ -45386,6 +45387,13 @@
           "async": false
         },
         {
+          "name": "installNodeClientSubmission/submitAttempt/submitAttempt/outcome/init:rejectModelReplay/init:rejectModelReplay",
+          "parameters": [
+            "issue"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientSubmission/submitIntent/submitIntent",
           "parameters": [
             "request",
@@ -45454,7 +45462,8 @@
             "installNodeClientSubmission/submitIntent/submitIntent/flight/flight",
             "installNodeClientSubmission/submitIntent/submitIntent/flight/flight#2",
             "installNodeClientSubmission/unresolved/unresolved",
-            "issueNodeClientSubmissionEpoch"
+            "issueNodeClientSubmissionEpoch",
+            "installNodeClientSubmission/submitAttempt/submitAttempt/outcome/init:rejectModelReplay/init:rejectModelReplay"
           ],
           "exports": [
             "installNodeClientSubmission",
@@ -46606,7 +46615,8 @@
       "imports": [
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
-        "./client-program-preparation.mjs"
+        "./client-program-preparation.mjs",
+        "./installed-model-originals.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -65738,7 +65748,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "f7a3275f5abde3aea040e8d39d4d16d0fdc9304cee202fee8abfa07f9422ca33",
+      "sha256": "1d61cd0893a4e9a63078f5262113c65c60b7cf3a180ce5d6b43fb4442d4ca173",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody",
@@ -80165,13 +80175,23 @@
     {
       "module": "adapters/host-node/installed-model-originals.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1b6c8a5376008e75fdfb3814eef12a0c10b3f718cce66b33bb1966f1efecbcf4",
+      "sha256": "892837fefaf53fa96fcc8d487e22e9de9398069260e89a33f8b422fe741234d8",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
-        "originalModelRunWire"
+        "originalModelPlanReplayRefusal",
+        "originalModelRunWire",
+        "rejectModelPlanReplay"
       ],
       "operations": [
+        {
+          "name": "originalModelPlanReplayRefusal",
+          "parameters": [
+            "error",
+            "ref"
+          ],
+          "async": false
+        },
         {
           "name": "originalModelRunWire",
           "parameters": [
@@ -80187,16 +80207,28 @@
             "wire"
           ],
           "async": false
+        },
+        {
+          "name": "rejectModelPlanReplay",
+          "parameters": [
+            "ref",
+            "issue"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "originalModelRunWire",
-            "originalModelRunWire/originalModelRunWire"
+            "originalModelRunWire/originalModelRunWire",
+            "originalModelPlanReplayRefusal",
+            "rejectModelPlanReplay"
           ],
           "exports": [
-            "originalModelRunWire"
+            "originalModelRunWire",
+            "originalModelPlanReplayRefusal",
+            "rejectModelPlanReplay"
           ],
           "attributes": {
             "responsibility": [

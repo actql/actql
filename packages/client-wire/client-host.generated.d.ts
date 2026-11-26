@@ -728,7 +728,7 @@ export type WireSubmissionAttemptShape = Readonly<{
 }>;
   intentCid: string;
   guarantee: "attempt_uncommitted_unconsumed";
-  reason: "admission_capacity" | "epoch_expired" | "epoch_not_yet_valid";
+  reason: "admission_capacity" | "epoch_expired" | "epoch_not_yet_valid" | "model_provider_selection_unavailable";
 }> | Readonly<{
   kind: "conflict";
   attemptRef: Readonly<{
@@ -747,7 +747,7 @@ export type WireSubmissionAttemptShape = Readonly<{
   nonce: string;
 }>;
   intentCid: string;
-  reason: "intent" | "restart_decision";
+  reason: "intent" | "restart_decision" | "model_provider_selection";
 }>;
 export declare function validSubmissionAttemptShape(value: unknown): value is WireSubmissionAttemptShape;
 

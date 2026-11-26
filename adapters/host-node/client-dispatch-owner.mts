@@ -264,6 +264,7 @@ type Options = Pick<KeyedPorts, 'registry' | 'values' | 'fragment' | 'ordered' |
       Awaitable<Readonly<{kind: string; ref: Ref; revision?: number}>>;
     hostConnection(input: DispatchAuthority): boolean;
     beforeDispatch?(ref: Ref): unknown; observed?: unknown;
+    assertInstalledModelPreflight?(prepared: unknown): void;
     prepareAcquisition(prepared: unknown, access: SourceAccess | undefined, occurrence?: Occurrence,
       original?: Prepared): Awaitable<Prepared>;
     planFor(submission: Submission, definitionWire: string, requested: unknown): Plan;
@@ -747,7 +748,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, runContent, computeConfigurations = {},
   observation, preparationCustody, beforePublication, authorizeLogicalObservation, authorizeSampleCapture, prepareSampleStart,
-  prepareDebugEntryResume,
+  prepareDebugEntryResume, assertInstalledModelPreflight,
   managedComputeRequired = false,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}: Options) {
@@ -1003,8 +1004,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       // A checked model barrier is not a Values task. The installed Model
       // connection must consume this exact plan and transfer physical custody
       // before advancing; this supervisor still owns the one Run-start claim.
-      if (inferring && typeof runInfer !== 'function') {
-        throw new Error('InstalledInferDispatchUnavailable');
+      if (inferring) {
+        assertInstalledModelPreflight?.(preparedProgram);
+        if (typeof runInfer !== 'function') throw new Error('InstalledInferDispatchUnavailable');
       }
       if ((serializing || generatingContent) && typeof runContent !== 'function') {
         // Only the Host's installed physical composition may consume this

@@ -9,6 +9,7 @@ import {access, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {isAbsolute, relative, resolve} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import tls, {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath} from 'node:url';
 import {observeOwnScopedStateFds} from './conformance.mjs';
@@ -19,13 +20,14 @@ assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-repor
   'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header', 'registered-anthropic',
   'registered-google', 'registered-mixed', 'registered-mistral', 'registered-external', 'registered-external-double', 'registered-length', 'registered-refusal',
-  'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist'].includes(phase));
-const fresh = phase !== 'cold';
+  'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist', 'registered-capabilities', 'changed-route'].includes(phase));
+const changedRoute = phase === 'changed-route';
+const fresh = phase !== 'cold' && !changedRoute;
 const missingKey = phase === 'missing-key';
 const credentialMismatch = phase.startsWith('registered-credential-');
 const modules = resolve(realpathSync(process.cwd()), 'node_modules');
 assert.equal(realpathSync(modules), modules, 'The fresh node_modules must not redirect to another installation');
-const publicModules = new Map(['@actql/node', '@actql/provider-ai-sdk', '@actql/local-node/observation']
+const publicModules = new Map(['@actql/node', '@actql/sdk', '@actql/provider-ai-sdk', '@actql/local-node/observation']
   .map(name => [name, import.meta.resolve(name)]));
 for (const [name, url] of publicModules) {
   const member = realpathSync(fileURLToPath(url));
@@ -38,6 +40,7 @@ for (const [name, url] of publicModules) {
 }
 // Resolve and validate all public entrances before any package can execute.
 const {open} = await import(publicModules.get('@actql/node'));
+const {getSubmissionAttempt} = await import(publicModules.get('@actql/sdk'));
 const providerModule = publicModules.get('@actql/provider-ai-sdk');
 const {createHostObservationConnection} = await import(publicModules.get('@actql/local-node/observation'));
 const {workflowWorkObservation} = await import('./work-observation.fixture.mjs');
@@ -61,11 +64,14 @@ const selection = fresh ? {
   registered: phase.startsWith('registered-'),
   ...(alternative === undefined ? {} : {provider: alternative}),
   ...(phase === 'registered-external-double' ? {externalDuplicate: true} : {}),
+  ...(phase === 'registered-capabilities' ? {capabilities: true} : {}),
   ...(terminalFailure === undefined ? {} : {terminalFailure}),
   ...(safetyFinish === undefined ? {} : {safetyFinish}),
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
 assert([undefined, 'anthropic', 'google', 'mixed', 'mistral', 'external'].includes(selection.provider));
 const mixed = selection.provider === 'mixed';
+const capabilities = selection.capabilities === true;
+if (changedRoute) assert(capabilities);
 const external = selection.provider === 'external';
 const externalDuplicate = selection.externalDuplicate === true;
 if (externalDuplicate) assert(external);
@@ -78,11 +84,11 @@ if (failedAnswer === 'safety_rejected') {
     ? ['RECITATION', 'BLOCKLIST'].includes(selectedSafetyFinish)
     : selection.provider === undefined && selectedSafetyFinish === 'content_filter');
 } else assert.equal(selectedSafetyFinish, undefined);
-const trackOriginal = mixed || mistral || external || failedAnswer !== undefined;
+const trackOriginal = capabilities || mixed || mistral || external || failedAnswer !== undefined;
 const work = workflowWorkObservation({createObservation: createHostObservationConnection, trackOriginal});
 const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 assert.deepEqual(Object.keys(selection).sort(),
-  [...(externalDuplicate ? ['externalDuplicate'] : []), 'project', ...(selection.provider === undefined ? [] : ['provider']), 'rateLimit', 'registered',
+  [...(capabilities ? ['capabilities'] : []), ...(externalDuplicate ? ['externalDuplicate'] : []), 'project', ...(selection.provider === undefined ? [] : ['provider']), 'rateLimit', 'registered',
     ...(selectedSafetyFinish === undefined ? [] : ['safetyFinish']),
     ...(failedAnswer === undefined ? [] : ['terminalFailure']), 'timeout', 'usage']);
 assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
@@ -93,6 +99,7 @@ const project = selection.project === true;
 const registered = selection.registered === true;
 if (project) assert.deepEqual(selection, {usage: mixed || failedAnswer !== undefined ? null : 'reported',
   timeout: null, rateLimit: false, project: true, registered,
+  ...(capabilities ? {capabilities: true} : {}),
   ...(externalDuplicate ? {externalDuplicate: true} : {}),
   ...(selection.provider === undefined ? {} : {provider: selection.provider}),
   ...(failedAnswer === undefined ? {} : {terminalFailure: failedAnswer}),
@@ -123,6 +130,7 @@ const route = (name, providerId, index) => ({...routeFixtures[name], name, provi
 const routes = [route(providerName, 'models/http', 0)];
 if (mixed) routes.push(route('anthropic', 'models/messages', 1));
 const selectedRoute = routes[0];
+const deniedAlias = 'fixture-unsupported';
 const {credentialReference} = selectedRoute;
 const routesByHost = new Map(routes.map(original => [original.officialHost, original]));
 const fixtureCredential = project ? 'actql-synthetic-project-credential' : 'not-an-external-secret';
@@ -154,18 +162,24 @@ if (registered) {
     const {version, exportName, apiMode, options} = original;
     const path = externalDuplicate ? 'second-fetch.mjs' : external ? 'index.mjs' : original.path;
     if (externalDuplicate) externalDuplicateSource = new URL(path, adapterModule);
-    originals.push(Object.freeze({
-      adapter: Object.freeze({...await image(path, new URL(path, adapterModule)), ...adapterPackage}),
-      lock: Object.freeze({...await image('npm-shrinkwrap.json', new URL('npm-shrinkwrap.json', adapterModule)), ...adapterPackage}),
-      ...(packageImages === undefined ? {} : {packageImages}),
-      sdk: Object.freeze({...await image('dist/index.js', sdkEntry), packageName, version, exportName}),
-      route: Object.freeze({providerId: original.providerId, modelId: original.resolvedModelId, selector: original.selector,
-        apiMode, endpoint: 'https://' + original.officialHost + original.requestPath}),
+    const exact = Object.freeze({modelId: changedRoute ? 'fixture-changed-model' : original.resolvedModelId,
+      selector: original.selector, apiMode, endpoint: 'https://' + original.officialHost + original.requestPath,
+      structuredCapability: Object.freeze({operation: 'structured_generate', adapter: 'supported', model: 'supported'}),
       providerOptions: Object.freeze(options),
       credential: Object.freeze({
         reference: phase === 'registered-credential-reference' ? 'ACTQL_TEST_UNAPPROVED_MODEL_KEY' : original.credentialReference,
         header: phase === 'registered-credential-header' ? 'x-api-key' : original.credentialHeader,
       }),
+    });
+    const unsupported = capabilities ? [Object.freeze({...exact, selector: deniedAlias, modelId: 'fixture-model-without-json',
+      structuredCapability: Object.freeze({...exact.structuredCapability, model: 'unsupported'})})] : [];
+    originals.push(Object.freeze({
+      adapter: Object.freeze({...await image(path, new URL(path, adapterModule)), ...adapterPackage}),
+      lock: Object.freeze({...await image('npm-shrinkwrap.json', new URL('npm-shrinkwrap.json', adapterModule)), ...adapterPackage}),
+      ...(packageImages === undefined ? {} : {packageImages}),
+      sdk: Object.freeze({...await image('dist/index.js', sdkEntry), packageName, version, exportName}),
+      providerId: original.providerId, defaultSelector: original.selector,
+      routes: Object.freeze([exact, ...unsupported]),
     }));
   }
   modelSdkRegistrations = Object.freeze(originals);
@@ -210,7 +224,7 @@ if (phase === 'registered-too-late') {
   process.exit(0);
 }
 const maxCalls = usageMode === 'reported' || mixed || failedAnswer !== undefined ? 1n : 2n;
-const taskCount = !missingKey && usageMode === undefined && timeoutMode === undefined &&
+const taskCount = capabilities ? 2 : !missingKey && usageMode === undefined && timeoutMode === undefined &&
   !selection.rateLimit && failedAnswer === undefined ? 2 : 1;
 const phaseTimeoutMs = timeoutMode === 'call' ? 2000 : 1000;
 const transportTimeouts = {
@@ -234,7 +248,8 @@ if (fresh) {
     ['first.json', {task: 'model-task:first', instructions: 'Return the exact boolean.',
       input: {text: 'string'}, output: {answer: 'boolean'}, limits: {max_items: 2, max_output_tokens: 100}}],
     ['second.json', {task: 'model-task:second', instructions: 'Return the exact label.',
-      ...(mixed ? {model: {provider: routes[1].providerId, name: routes[1].selector}} : {}),
+      ...(mixed ? {model: {provider: routes[1].providerId, name: routes[1].selector}}
+        : capabilities ? {model: {provider: selectedRoute.providerId, name: deniedAlias}} : {}),
       input: {quantity: 'number'}, output: {label: 'string'}, limits: {max_items: 2, max_output_tokens: 100}}],
   ]) await put(path, JSON.stringify(task));
   const keys = generateKeyPairSync('ed25519');
@@ -401,7 +416,7 @@ const fixtureHandling = {schema: 'actql.contract/0.1', id: 'registered-sdk-fixtu
     retention: 'provider_contract', training_use: 'forbidden'},
   cid: 'sha256:45514e22d8ea4714fb2d6a4bfac3a963f51fd8ef0b5c5e12229f053b9f8955aa'};
 const configureProvider = ({createOpenAIChatProvider, createProjectOpenAIChatProvider, createRegisteredSdkProvider}) =>
-  selection.provider !== undefined ? createRegisteredSdkProvider({...providerOptions, providerId: 'models/http',
+  capabilities || selection.provider !== undefined ? createRegisteredSdkProvider({...providerOptions, providerId: 'models/http',
     dataHandlingContractWire: JSON.stringify(fixtureHandling)})
     : missingKey || project ? createProjectOpenAIChatProvider({...providerOptions, modelId: 'fixture-chat'})
     : createOpenAIChatProvider({...providerOptions, modelId: 'fixture-chat', providerId: 'models/http',
@@ -533,6 +548,56 @@ if (credentialMismatch) {
 let client, primary, failed = false;
 const originalEnv = process.env;
 let externalCredentialReads = 0, duplicateObservation, externalTerminal;
+let deniedRef, capabilityIssue, changedIssue, changedReason, historicalSavedAfterChange;
+function readCapabilityJournal(ref, refused) {
+  const requests = new DatabaseSync('.state/requests/client-requests.sqlite3', {readOnly: true});
+  try {
+    const row = requests.prepare(
+      `SELECT run_definition_wire, run_admission_evidence_json,
+              dispatch_reserved, pre_dispatch_failure_confirmed, physical_start_reserved
+         FROM client_requests WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?`
+    ).get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+    assert(row, 'The same original Run must own the capability outcome');
+    assert.equal(row.dispatch_reserved, 1);
+    assert.equal(row.pre_dispatch_failure_confirmed, refused ? 1 : 0);
+    assert.equal(row.physical_start_reserved, refused ? 0 : 1);
+    const definition = JSON.parse(row.run_definition_wire);
+    const {modelPlanBindings} = JSON.parse(row.run_admission_evidence_json);
+    assert.equal(definition.run_definition_cid, ref.runDefinitionCid);
+    assert.equal(modelPlanBindings.runDefinitionCid, ref.runDefinitionCid);
+    assert.match(modelPlanBindings.compiledPlanCid, /^sha256:[0-9a-f]{64}$/u);
+    assert.equal(modelPlanBindings.compiledPlanCid, definition.compiled_plan_cid);
+    assert.equal(modelPlanBindings.bindings.length, 1);
+    const [member] = modelPlanBindings.bindings;
+    assert.deepEqual([member.task, member.stage, member.step], [0, 0, 2]);
+    assert.match(member.taskCid, /^sha256:[0-9a-f]{64}$/u);
+    assert.match(member.providerBindingCid, /^sha256:[0-9a-f]{64}$/u);
+    const checkpoints = new DatabaseSync('.state/checkpoints/journal/checkpoint-journal.sqlite3', {readOnly: true});
+    try {
+      const scopes = checkpoints.prepare(
+        `SELECT scope_cid, inventory_json FROM resume_model_scopes WHERE run_id = ?`
+      ).all(definition.run_id);
+      if (refused) {
+        assert.equal(scopes.length, 0, 'Refusal must precede Model preflight, Scope and Entry');
+        return {preDispatchRefusal: true, scopes: 0};
+      }
+      assert.equal(scopes.length, 1);
+      const [scope] = scopes;
+      const inventory = JSON.parse(scope.inventory_json);
+      assert.equal(inventory.runId, definition.run_id);
+      assert.equal(inventory.runDefinitionCid, ref.runDefinitionCid);
+      assert.equal(inventory.taskIndex, member.task);
+      assert.equal(inventory.providerBindingCid, member.providerBindingCid);
+      const attempts = checkpoints.prepare(
+        `SELECT state FROM resume_model_attempts WHERE scope_cid = ? ORDER BY ordinal`
+      ).all(scope.scope_cid);
+      assert.equal(attempts.length, 1);
+      assert.equal(attempts[0].state, 'SavedSuccess');
+      return {providerBindingCid: member.providerBindingCid, savedAttempts: 1};
+    } finally {checkpoints.close();}
+  } finally {requests.close();}
+}
+let deniedModel = false, capabilityCredentialReads = 0, deniedCredentialReads = 0;
 let externalResultIssue;
 async function checkExternalRejectedRun(run, status) {
   assert.equal(status.status, 'failed');
@@ -551,8 +616,12 @@ const firstClose = {attempted: false, returned: false, calls: 0}, cleanup = [];
 let close;
 const connectTls = tls.connect;
 try {
-  if (externalDuplicate) process.env = new Proxy(originalEnv, {get(target, name, receiver) {
-    if (name === credentialReference) externalCredentialReads++;
+  if (externalDuplicate || capabilities) process.env = new Proxy(originalEnv, {get(target, name, receiver) {
+    if (name === credentialReference) {
+      if (externalDuplicate) externalCredentialReads++;
+      if (capabilities) capabilityCredentialReads++;
+      if (deniedModel) deniedCredentialReads++;
+    }
     return Reflect.get(target, name, receiver);
   }});
   if (project) {
@@ -590,6 +659,23 @@ try {
     assert.equal(calls, 2);
     assert.deepEqual([...dispatchedProviders].sort(), routes.map(original => original.providerId).sort());
     assert.notDeepEqual(schemas[0], schemas[1]);
+  } else if (changedRoute) {
+    const ref = JSON.parse(await readFile('run-0.json', 'utf8'));
+    const submissionRef = JSON.parse(await readFile('submission-0.json', 'utf8'));
+    originalRef = ref;
+    await assert.rejects(client.start(program('model-task:first', 'text', 'first', 'string'), {submissionRef}),
+      error => {
+        changedIssue = error.code;
+        changedReason = getSubmissionAttempt(error)?.reason;
+        return changedIssue === 'SubmissionConflict' && changedReason === 'model_provider_selection';
+      });
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.admission.ref, ref);
+    await checkResult(await client.attach(ref),
+      {id: 'original-text', outcome: 'ok', value: {answer: true}}, 0);
+    historicalSavedAfterChange = true;
+    assert.equal(calls, 0);
   } else if (fresh) {
     const cases = [
       [0, ['model-task:first', 'text', 'first', 'string'], {id: 'original-text', outcome: 'ok', value: {answer: true}}],
@@ -601,15 +687,26 @@ try {
     for (const [index, args, expected] of cases) {
       const submissionRef = client.newSubmission({nonce: 'installed-' + index});
       await writeFile('submission-' + index + '.json', JSON.stringify(submissionRef), {flag: 'wx', mode: 0o600});
+      const denied = capabilities && index === 1;
+      deniedModel = denied;
       const run = await client.start(program(...args), {submissionRef});
       await writeFile('run-' + index + '.json', JSON.stringify(run.ref), {flag: 'wx', mode: 0o600});
-      originalRef = run.ref;
+      if (denied) deniedRef = run.ref;
+      else originalRef = run.ref;
       const waited = await run.wait();
       await diagnostic.terminal(index, waited);
-      assert.equal(waited.status, missingKey || externalDuplicate ? 'failed'
+      assert.equal(waited.status, missingKey || externalDuplicate || denied ? 'failed'
         : timeoutMode === undefined ? 'succeeded' : 'needs_reconciliation');
       if (externalDuplicate) await checkExternalRejectedRun(run, waited);
-      else if (missingKey) {
+      else if (denied) {
+        const recorded = JSON.parse(await readFile('normal-diagnostic-before-assert.json', 'utf8'));
+        assert.equal(recorded.dispatchFailures.length, 1);
+        capabilityIssue = recorded.dispatchFailures[0].capabilityRefusal;
+        assert.equal(capabilityIssue, 'InstalledModelStructuredModelUnsupported');
+        assert.equal(work.forOriginal(deniedRef).modelCallStarts, 0);
+        assert.equal(deniedCredentialReads, 0);
+        await assert.rejects(async () => (await run.result('answer')).all(), {code: 'ResultAccessDenied'});
+      } else if (missingKey) {
         const recorded = JSON.parse(await readFile('normal-diagnostic-before-assert.json', 'utf8'));
         assert.equal(recorded.dispatchFailures.length, 1);
         assert.equal(recorded.dispatchFailures[0].credentialRefusal, 'OpenAIProjectCredentialUnavailable');
@@ -634,8 +731,8 @@ try {
       const lookup = await client.lookupSubmission(submissionRef);
       assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, run.ref);
     }
-    assert.equal(calls, missingKey || externalDuplicate ? 0 : taskCount);
-    if (taskCount === 2) assert.notDeepEqual(schemas[0], schemas[1]);
+    assert.equal(calls, missingKey || externalDuplicate ? 0 : capabilities ? 1 : taskCount);
+    if (taskCount === 2 && !capabilities) assert.notDeepEqual(schemas[0], schemas[1]);
     if (usageMode !== undefined && !externalDuplicate) {
       // The optional copy must have actually completed, not merely a successful
       // Model Run or a provider spy reporting authored usage.
@@ -671,6 +768,12 @@ try {
     const submissionRef = JSON.parse(await readFile('submission-0.json', 'utf8'));
     const lookup = await client.lookupSubmission(submissionRef);
     assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, ref);
+    if (capabilities) {
+      deniedRef = JSON.parse(await readFile('run-1.json', 'utf8'));
+      const denied = await client.attach(deniedRef);
+      assert.equal((await denied.status()).status, 'failed');
+      await assert.rejects(async () => (await denied.result('answer')).all(), {code: 'ResultAccessDenied'});
+    }
     assert.equal(calls, 0); assert.equal(egressChecks, 0);
     assert.equal(usageCaptures, 0); assert.equal(usageAuthorizations, 0);
   }
@@ -684,7 +787,7 @@ finally {
       if (!failed) {failed = true;primary = cause;}
     }
   }
-  if (externalDuplicate) process.env = originalEnv;
+  if (externalDuplicate || capabilities) process.env = originalEnv;
   if (project) {
     for (const original of routes) delete process.env[original.credentialReference];
     tls.connect = connectTls;
@@ -718,8 +821,16 @@ if (externalDuplicate) {
 }
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
 await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
+const capabilityJournal = capabilities ? {supported: readCapabilityJournal(originalRef, false),
+  ...(deniedRef === undefined ? {} : {refused: readCapabilityJournal(deniedRef, true)})} : undefined;
 console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedFD0: true,
   ...(registered ? {registeredSdk: true} : {}),
+  ...(capabilities ? {capabilityRoutes: [selectedRoute.selector, deniedAlias], capabilityCredentialReads,
+    deniedCredentialReads, capabilityJournal,
+    ...(capabilityIssue === undefined ? {} : {capabilityIssue}),
+    ...(deniedRef === undefined ? {} : {deniedRunDefinitionCid: deniedRef.runDefinitionCid,
+      deniedModelStarts: work.forOriginal(deniedRef).modelCallStarts}),
+    ...(changedIssue === undefined ? {} : {changedIssue, changedReason, historicalSavedAfterChange})} : {}),
   ...(mixed ? {mixedProviders: routes.map(original => original.providerId),
     dispatchedProviders: [...dispatchedProviders].sort()} : {}),
   ...(trackOriginal ? {originalModelStarts: work.forOriginal(originalRef).modelCallStarts,
@@ -732,10 +843,10 @@ console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedF
   ...(externalDuplicate ? {externalTerminal, externalResultIssue, externalTcp, externalCredentialReads,
     interceptedFetches: duplicateObservation.attempts, additionalIssue: duplicateObservation.additionalIssue,
     usageCaptures, usageAuthorizations} : {}),
-  ...(phase === 'cold' ? {egressChecks,
+  ...(changedRoute ? {egressChecks} : phase === 'cold' ? {egressChecks,
     ...(externalDuplicate ? {originalFailureObserved: true}
       : timeoutMode === undefined ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
-    : {tasks: taskCount, requests: externalDuplicate ? 0 : taskCount, ...(missingKey ? {credentialRefused: true} : {}),
+    : {tasks: taskCount, requests: externalDuplicate ? 0 : capabilities ? 1 : taskCount, ...(missingKey ? {credentialRefused: true} : {}),
       ...(usageMode === undefined ? {} : {usageMode, usageCaptures})}),
   ...(timeoutMode === undefined ? {} : {timeoutMode, preserveOriginalState: true}),
   ...(timeoutMode === 'call' && fresh ? {continuousWrites, responseClosedBeforeFirstClose} : {}),

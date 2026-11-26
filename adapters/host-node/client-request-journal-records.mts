@@ -6,6 +6,7 @@ import {valuesExecutionContextCid, validValuesHostPolicyRows} from './local-valu
 import {sourceAliasDataGeometry} from './source-alias-construction.mjs';
 import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
 import {fail, type JournalSqlConnection} from './client-request-journal-sql.mjs';
+import type {ModelPlanBindings} from './installed-model-originals.mjs';
 import type {SQLOutputValue} from 'node:sqlite';
 import type {WireRunRef} from '../../packages/client-wire/index.js';
 import {checked, type SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
@@ -68,6 +69,7 @@ type AdmissionEvidence = Readonly<{
   }>;
   logicalPlanOriginal?: LogicalPlanOriginal; valuesHostPolicyOriginal?: ValuesPolicyOriginal;
   resultPolicyOriginal?: ResultPolicyOriginal; modelOriginalRunWire?: string;
+  modelPlanBindings?: ModelPlanBindings;
   inferRunOriginal?: Readonly<{materialsWire: string; resultPolicyOriginal: ResultPolicyOriginal}>;
 }>;
 type UpdateOriginalControl = Readonly<{run(original: unknown, captured: RawRecord): unknown}>;
@@ -360,9 +362,36 @@ export function assertKeyedInventoryRequest(wire: string | undefined, fields: Pi
 }
 
 const admissionEvidenceFields = Object.freeze(['authorization', 'prepared',
-  'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
+  'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire', 'modelPlanBindings',
   'valuesHostPolicyOriginal', 'logicalPlanOriginal', 'updateTargetRunOriginal',
   'submittedIntentCid', 'effectOriginalRunWire', 'inferRunOriginal']);
+
+function validModelPlanBindings(value: unknown, runDefinitionWire: string) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const proof = value as RawRecord;
+  if (Object.keys(proof).sort().join(',') !== 'bindings,compiledPlanCid,runDefinitionCid' ||
+      !cid(proof.runDefinitionCid) || !cid(proof.compiledPlanCid) ||
+      !Array.isArray(proof.bindings) || proof.bindings.length < 1 || proof.bindings.length > 64) return false;
+  let definition: unknown;
+  try {definition = JSON.parse(runDefinitionWire);} catch {return false;}
+  if (definition === null || typeof definition !== 'object' || Array.isArray(definition) ||
+      (definition as RawRecord).run_definition_cid !== proof.runDefinitionCid ||
+      (definition as RawRecord).compiled_plan_cid !== proof.compiledPlanCid) return false;
+  const seen = new Set<string>();
+  const coordinate = (value: unknown) => typeof value === 'number' && Number.isInteger(value) &&
+    value >= 0 && value <= 2147483647;
+  for (const entry of proof.bindings) {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry) ||
+        Object.keys(entry).sort().join(',') !== 'providerBindingCid,stage,step,task,taskCid') return false;
+    const {task, stage, step, taskCid, providerBindingCid} = entry as RawRecord;
+    if (!coordinate(task) || !coordinate(stage) || !coordinate(step) ||
+        !cid(taskCid) || !cid(providerBindingCid)) return false;
+    const key = [task, stage, step].join(':');
+    if (seen.has(key)) return false;
+    seen.add(key);
+  }
+  return true;
+}
 
 export function admissionEvidenceShape(value: RawRecord | null | undefined, updateOriginalControl?: UpdateOriginalControl,
   captured?: {modelRunDefinitionWire?: string}): value is AdmissionEvidence {
@@ -433,8 +462,10 @@ export function admissionEvidenceShape(value: RawRecord | null | undefined, upda
         canonicalValueJson(original) !== value.modelOriginalRunWire ||
         original.preparedInvocationWire !== value.prepared ||
         original.runAuthorizationWire !== value.authorization) return false;
+    if (value.modelPlanBindings !== undefined &&
+        !validModelPlanBindings(value.modelPlanBindings, original.runDefinitionWire as string)) return false;
     if (captured !== undefined) captured.modelRunDefinitionWire = original.runDefinitionWire as string;
-  }
+  } else if (value.modelPlanBindings !== undefined) return false;
   return true;
 }
 
@@ -495,6 +526,11 @@ export function retainedEvidence(row: EvidenceRow, updateOriginalControl?: Updat
 
 export function freezeAdmissionEvidence(value: AdmissionEvidence) {
   if (value.logicalPlanOriginal !== undefined) Object.freeze(value.logicalPlanOriginal);
+  if (value.modelPlanBindings !== undefined) {
+    value.modelPlanBindings.bindings.forEach(Object.freeze);
+    Object.freeze(value.modelPlanBindings.bindings);
+    Object.freeze(value.modelPlanBindings);
+  }
   if (value.inferRunOriginal !== undefined) {
     Object.freeze(value.inferRunOriginal.resultPolicyOriginal);
     Object.freeze(value.inferRunOriginal);

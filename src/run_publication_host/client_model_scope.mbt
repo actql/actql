@@ -65,6 +65,75 @@ pub fn client_model_resolved_configuration_matches(
     is Some(configuration) else {
     return false
   }
+  client_model_configuration_route_matches(
+    configuration, provider_id, selector, model_id, adapter_kind, api_mode, endpoint,
+  )
+}
+
+///|
+/// Read the registered SDK capability from the exact bound Task route.
+/// The published status is distinct from the boolean grant used by the
+/// current structured output gate. Only supported supplies that grant.
+pub fn client_model_registered_sdk_structured_support(
+  binding : @publication.RunEvidenceValue,
+  configuration_wire : String,
+  provider_id : String,
+  selector : String,
+  model_id : String,
+  api_mode : String,
+  endpoint : String,
+) -> (Bool, Bool)? {
+  guard original_client_model_provider_configuration(
+      binding, provider_id, configuration_wire,
+    )
+    is Some(configuration) &&
+    client_model_configuration_string_matches(
+      configuration, "provider_id", provider_id,
+    ) &&
+    client_model_configuration_string_matches(
+      configuration, "adapter_kind", "ai-sdk",
+    ) &&
+    @canonical.object_field(configuration, "structured_routes") is Some(routes) &&
+    @canonical.object_field_count(routes) is Some(count) &&
+    count > 0 &&
+    count <= 64 &&
+    @canonical.object_field(routes, selector) is Some(route) &&
+    client_model_configuration_string_matches(route, "model_id", model_id) &&
+    client_model_configuration_string_matches(route, "api_mode", api_mode) &&
+    client_model_configuration_string_matches(route, "endpoint", endpoint) &&
+    @canonical.object_field(route, "structured_capability") is Some(capability) &&
+    @canonical.object_field_count(capability) == Some(3) &&
+    @canonical.object_field(capability, "operation")
+    is Some(@canonical.String("structured_generate")) &&
+    @canonical.object_field(capability, "adapter")
+    is Some(@canonical.String(adapter)) &&
+    @canonical.object_field(capability, "model")
+    is Some(@canonical.String(model)) &&
+    client_model_structured_support_known(adapter) &&
+    client_model_structured_support_known(model) else {
+    return None
+  }
+  Some((adapter == "supported", model == "supported"))
+}
+
+///|
+fn client_model_structured_support_known(value : String) -> Bool {
+  match value {
+    "supported" | "experimental" | "unsupported" | "unavailable" => true
+    _ => false
+  }
+}
+
+///|
+fn client_model_configuration_route_matches(
+  configuration : @canonical.CanonicalValue,
+  provider_id : String,
+  selector : String,
+  model_id : String,
+  adapter_kind : String,
+  api_mode : String,
+  endpoint : String,
+) -> Bool {
   for
     (field, expected) in [
       ("provider_id", provider_id),
@@ -74,13 +143,24 @@ pub fn client_model_resolved_configuration_matches(
       ("adapter_kind", adapter_kind),
       ("api_mode", api_mode),
     ] {
-    guard @canonical.object_field(configuration, field)
-      is Some(@canonical.String(actual)) &&
-      actual == expected else {
+    if !client_model_configuration_string_matches(
+        configuration, field, expected,
+      ) {
       return false
     }
   }
   true
+}
+
+///|
+fn client_model_configuration_string_matches(
+  configuration : @canonical.CanonicalValue,
+  field : String,
+  expected : String,
+) -> Bool {
+  @canonical.object_field(configuration, field)
+  is Some(@canonical.String(actual)) &&
+  actual == expected
 }
 
 ///|

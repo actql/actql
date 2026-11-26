@@ -1141,6 +1141,21 @@ Task wire or reconstruct opaque declarations. The context closes when that
 single callback settles, and a failed or unfinished read cannot install a
 fallback Provider. A caller may keep the existing synchronous registration path.
 
+An SDK installation has one approved package original per Provider and one
+bounded list of routes. The original default or the checked Task alias selects
+one model, API mode, endpoint, options and structured-output status. The Host
+retains the selected route in its existing per-Task Provider view. Common checks
+the route against the same authenticated configuration bytes before physical
+preflight. Only a supported adapter and model admit structured generation.
+
+The Run Journal retains the ordered checked Model occurrences and ProviderBinding
+identities with the admitted Run Definition and Compiled Plan. An execution
+replay compares the current selection before it can wake recovery or dispatch.
+A changed selection conflicts with the original Run. Unavailable proof refuses
+execution. Authorized Submission lookup and Saved reads keep observing the
+original acceptance and results. Submitting the same named request still
+observes its existing binding without entering execution again.
+
 The same initial Resource reserves construction peaks before file decoding and
 Task projection. Successful construction retains the emitted material and drops
 its workspace through the existing managed constructor. This does not reserve a

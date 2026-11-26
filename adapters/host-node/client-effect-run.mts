@@ -105,6 +105,7 @@ type Installation<Value> = Readonly<{moon: Runtime; publicationControl?: Publica
   assertRequestedStopAvailable?(): unknown;
   requestIdentityFor?(input: RequestFacts): unknown;
   inferPlanFor?(prepared: unknown): unknown;
+  modelPlanBindingsFor?(prepared: unknown, compiled: unknown, definition: RunDefinition): AdmissionMaterial['modelPlanBindings'];
   resultPolicyOriginalFor?(prepared: unknown): ResultPolicy | undefined;
   validateInstallation?(input: Pick<DefinitionFacts, 'prepared' | 'compilation'>): unknown;
   updateTargetOriginals?: UpdateOriginals;
@@ -150,7 +151,7 @@ export function installNodeClientEffectRun<Value>({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
   prepareDefinition, captureDefinitionExplanation, assertRequestedStopAvailable, requestIdentityFor,
-  inferPlanFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals, reserveOriginal,
+  inferPlanFor, modelPlanBindingsFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals, reserveOriginal,
   localPolicySigning = false,
   now = () => new Date().toISOString()}: Installation<Value>) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
@@ -163,6 +164,7 @@ export function installNodeClientEffectRun<Value>({moon,
       (assertRequestedStopAvailable !== undefined &&
         typeof assertRequestedStopAvailable !== 'function') ||
       (inferPlanFor !== undefined && typeof inferPlanFor !== 'function') ||
+      (modelPlanBindingsFor !== undefined && typeof modelPlanBindingsFor !== 'function') ||
       (resultPolicyOriginalFor !== undefined &&
         typeof resultPolicyOriginalFor !== 'function') ||
       (validateInstallation !== undefined && typeof validateInstallation !== 'function') ||
@@ -440,6 +442,8 @@ export function installNodeClientEffectRun<Value>({moon,
             const modelOriginal = modelCompiled === undefined ? undefined :
               originalModelRunWire(modelCompiled, runDefinition, maxOptionalBytes);
             if (modelCompiled !== undefined && modelOriginal === undefined) return undefined;
+            const modelPlanBindings = modelOriginal === undefined ? undefined :
+              modelPlanBindingsFor?.(prepared, modelCompiled, runDefinition);
             return Object.freeze({
               prepared: moon.strategyRunEvidenceJson(
                 moon.clientProgramAllowedEffectRunPrepared(allowed)),
@@ -449,6 +453,7 @@ export function installNodeClientEffectRun<Value>({moon,
               ...(effectOriginalRunWire === undefined ? {} : {effectOriginalRunWire}),
               ...(resultPolicyOriginal === undefined ? {} : {resultPolicyOriginal}),
               ...(modelOriginal === undefined ? {} : {modelOriginalRunWire: modelOriginal}),
+              ...(modelPlanBindings === undefined ? {} : {modelPlanBindings}),
             });
           };
           const selectedExplanation = captureDefinitionExplanation?.(definitionFacts, evidence,

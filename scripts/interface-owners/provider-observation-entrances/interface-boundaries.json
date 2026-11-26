@@ -3935,7 +3935,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8d277bb976c4830c95b2aeb1370cd828eb5cc4c5781cbe672edcd7598f3ad632",
+      "sha256": "ca9e07834a7cc460de8356a829fa79310a403f3a1c99ae209db5373b8c753ee0",
       "exports": [
         "createOpenAIChatProvider",
         "createProjectOpenAIChatProvider",
@@ -4118,6 +4118,14 @@
           "async": false
         },
         {
+          "name": "prepareSdkProvider/bindings/bindings/bindings",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareSdkProvider/borrow/borrow",
           "parameters": [],
           "async": false
@@ -4135,9 +4143,16 @@
           "async": false
         },
         {
-          "name": "prepareSdkProviderTasks/prepareSdkProviderTasks",
+          "name": "prepareSdkProvider/prepareSdkProvider",
           "parameters": [
-            "task"
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProvider/registeredSdk/registeredSdk",
+          "parameters": [
+            "item"
           ],
           "async": false
         },
@@ -4155,6 +4170,13 @@
           "name": "prepareSdkProviderTasks/select/select/select",
           "parameters": [
             "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProviderTasks/selectedSdk/selectedSdk",
+          "parameters": [
+            "route"
           ],
           "async": false
         },
@@ -4201,11 +4223,14 @@
             "prepareSdkProvider/borrow/borrow",
             "prepareSdkProvider/config/config",
             "prepareSdkProvider/config/config/validQuote/validQuote/validQuote",
-            "prepareSdkProviderTasks/prepareSdkProviderTasks",
             "prepareSdkProviderTasks/profile/profile",
             "prepareSdkProviderTasks/select/select",
             "prepareSdkProviderTasks/select/select/select",
-            "requireConfigurationContext/requireConfigurationContext"
+            "requireConfigurationContext/requireConfigurationContext",
+            "prepareSdkProvider/bindings/bindings/bindings",
+            "prepareSdkProvider/prepareSdkProvider",
+            "prepareSdkProvider/registeredSdk/registeredSdk",
+            "prepareSdkProviderTasks/selectedSdk/selectedSdk"
           ],
           "exports": [
             "createOpenAIChatProvider",

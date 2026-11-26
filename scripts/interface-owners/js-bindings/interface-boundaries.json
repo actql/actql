@@ -46552,6 +46552,7 @@
             "authorizeSampleCapture",
             "prepareSampleStart",
             "prepareDebugEntryResume",
+            "assertInstalledModelPreflight",
             "managedComputeRequired",
             "retainedRelationOutput",
             "runPublished"
@@ -48911,9 +48912,7 @@
           }
         },
         {
-          "operations": [
-            "<module>"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -49499,7 +49498,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "dfe3acbd0d4ec392cf4d1ca14a14f3d1213df7624687b4824a5c8b540206c38a",
+      "sha256": "757d9f91bb66678843359691f643cd98ac1f557cb52e1c781dc4ec8329e311bf",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -57815,7 +57814,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#7",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand"
@@ -60952,11 +60950,9 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/changed/changed",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
@@ -60976,7 +60972,11 @@
             "openInstalledHost/recoveredInstalledEffect/descriptors/descriptors",
             "openInstalledHost/releaseRequestDomainAliases",
             "openInstalledHost/requireModelSdkEagerStartup",
-            "openInstalledHost/retireModelRuntime"
+            "openInstalledHost/retireModelRuntime",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/assertInstalledModelPreflight/assertInstalledModelPreflight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/assertOriginalModelPlanReplay/assertOriginalModelPlanReplay/assertOriginalModelPlanReplay",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelPlanBindingsFor/modelPlanBindingsFor",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retainedModelReplay/retainedModelReplay"
           ],
           "exports": [],
           "attributes": {
@@ -74546,6 +74546,21 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/assertInstalledModelPreflight/assertInstalledModelPreflight",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/assertOriginalModelPlanReplay/assertOriginalModelPlanReplay/assertOriginalModelPlanReplay",
+          "parameters": [
+            "prior",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/attach/attach",
           "parameters": [
             "ref",
@@ -75169,6 +75184,15 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/modelPlanBindingsFor/modelPlanBindingsFor",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "definition"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeHeldRun/observeHeldRun",
           "parameters": [
             "captured"
@@ -75715,6 +75739,14 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retainedModelReplay/retainedModelReplay",
+          "parameters": [
+            "actor",
+            "ref"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
           "parameters": [],
           "async": true
@@ -76075,7 +76107,8 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit",
           "parameters": [
-            "submission"
+            "submission",
+            "replayRef"
           ],
           "async": true
         },
@@ -76286,13 +76319,6 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
-          "parameters": [
-            "component"
-          ],
-          "async": false
-        },
-        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
           "parameters": [],
           "async": false
@@ -76318,13 +76344,6 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
-          "parameters": [
-            "slot"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#3",
           "parameters": [],
           "async": false
         },
@@ -78540,7 +78559,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "73020edd101de983811aaa748f92be890059ebba25a2d477098da563534a82f5"
+      "sha256": "c57b3c59a9f4f3864175f25077a2a2eb9871029aaaefe1288d44cda6e374f7e9"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -92270,7 +92289,7 @@
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "686ca476c2ea1892124205929254692662c19c44ca3f4e9f98fe596df6c6ac97",
+      "sha256": "f63951ead4ca359fb60fa6d981bb7c8a0dc259c1ae59706cd8919e097233e17c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -92400,16 +92419,26 @@
           "async": false
         },
         {
-          "name": "installModelProviders/init:physicalPreflight/init:physicalPreflight",
+          "name": "installModelProviders/init:resolveTaskDefaults/init:resolveTaskDefaults",
           "parameters": [
             "args"
           ],
           "async": false
         },
         {
-          "name": "installModelProviders/init:resolveTaskDefaults/init:resolveTaskDefaults",
+          "name": "installModelProviders/init:selectStructuredPreflight/init:selectStructuredPreflight",
           "parameters": [
-            "args"
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/init:selectStructuredPreflight/init:selectStructuredPreflight/init:prepare/init:prepare",
+          "parameters": [
+            "request",
+            "notification",
+            "rawBinder",
+            "supplied"
           ],
           "async": false
         },
@@ -92437,6 +92466,13 @@
         },
         {
           "name": "installModelProviders/installModelProviders#4",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/installModelProviders#5",
           "parameters": [
             "args"
           ],
@@ -92633,7 +92669,6 @@
             "installModelProviders/current/current",
             "installModelProviders/guarded/guarded/guarded",
             "installModelProviders/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
-            "installModelProviders/init:physicalPreflight/init:physicalPreflight",
             "installModelProviders/init:resolveTaskDefaults/init:resolveTaskDefaults",
             "installModelProviders/init:taskOriginals/init:taskOriginals",
             "installModelProviders/selectTaskOriginals/selectTaskOriginals",
@@ -92643,7 +92678,10 @@
             "snapshotTaskInstallations/snapshotTaskInstallations#2",
             "snapshotTaskInstallations/snapshotTaskInstallations#3",
             "snapshotTaskInstallations/snapshotTaskInstallations#4",
-            "snapshotTaskInstallations/value/value"
+            "snapshotTaskInstallations/value/value",
+            "installModelProviders/init:selectStructuredPreflight/init:selectStructuredPreflight",
+            "installModelProviders/init:selectStructuredPreflight/init:selectStructuredPreflight/init:prepare/init:prepare",
+            "installModelProviders/installModelProviders#5"
           ],
           "exports": [
             "admitInstalledModelProvider"

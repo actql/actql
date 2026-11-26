@@ -39,6 +39,7 @@ const registeredProviderCases = Object.freeze([
 export const registeredSafetyAcceptanceCases = Object.freeze([
   'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist',
 ]);
+const registeredCapabilityCase = 'registered-capabilities';
 const externalCase = 'registered-external';
 const externalDuplicateCase = 'registered-external-double';
 const externalCases: readonly string[] = [externalCase, externalDuplicateCase];
@@ -77,6 +78,43 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     return;
   }
   assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
+  if (caseId === registeredCapabilityCase) {
+    assert.equal(value.projectCredential, true);
+    assert.equal(value.registeredSdk, true);
+    assert.deepEqual(value.capabilityRoutes, ['fixture-chat', 'fixture-unsupported']);
+    assert.match(value.originalRunDefinitionCid as string, /^sha256:[0-9a-f]{64}$/u);
+    const journal = value.capabilityJournal as Readonly<{supported: {providerBindingCid: string; savedAttempts: number};
+      refused?: {preDispatchRefusal: boolean; scopes: number}}>;
+    assert.match(journal.supported.providerBindingCid, /^sha256:[0-9a-f]{64}$/u);
+    assert.equal(journal.supported.savedAttempts, 1);
+    if (phase === registeredCapabilityCase) {
+      assert.equal(value.tasks, 2);
+      for (const field of ['calls', 'requests', 'projectTlsConnects', 'originalModelStarts', 'usageCaptures']) {
+        assert.equal(value[field], 1);
+      }
+      assert.equal(value.capabilityIssue, 'InstalledModelStructuredModelUnsupported');
+      assert(Number.isSafeInteger(value.capabilityCredentialReads) && (value.capabilityCredentialReads as number) > 0);
+    } else {
+      assert.notEqual(pid, originalPid);
+      for (const field of ['calls', 'projectTlsConnects', 'originalModelStarts', 'capabilityCredentialReads']) {
+        assert.equal(value[field], 0);
+      }
+      if (phase === 'cold') assert.equal(value.egressChecks, 0);
+    }
+    assert.equal(value.deniedCredentialReads, 0);
+    if (phase === 'changed-route') {
+      assert.equal(value.changedIssue, 'SubmissionConflict');
+      assert.equal(value.changedReason, 'model_provider_selection');
+      assert.equal(value.historicalSavedAfterChange, true);
+    } else {
+      assert.deepEqual(journal.refused, {preDispatchRefusal: true, scopes: 0});
+      assert.match(value.deniedRunDefinitionCid as string, /^sha256:[0-9a-f]{64}$/u);
+      assert.notEqual(value.deniedRunDefinitionCid, value.originalRunDefinitionCid);
+      assert.equal(value.deniedModelStarts, 0);
+      if (phase === 'cold') assert.equal(value.originalSavedFirst, true);
+    }
+    return;
+  }
   if (caseId === externalDuplicateCase) {
     assert.equal(value.registeredSdk, true);
     assert.equal(value.externalTerminal, 'failed');
@@ -218,6 +256,7 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : [...available,
     ...[...registeredProviderCases, ...externalCases].map(id => [id, 'cold']),
+    [registeredCapabilityCase, 'cold', 'changed-route'],
     ...Object.keys(registeredTerminalFailures).map(id => [id, 'cold']),
     ...registeredRefusalCases.map(id => [id])].filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
@@ -279,7 +318,7 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
         join(prepared.consumer, 'normal-provider-diagnostics.fixture.mjs'));
       await copyFile(join(repository, 'adapters/host-node/fixtures/work-observation.fixture.mjs'),
         join(prepared.consumer, 'work-observation.fixture.mjs'));
-      let originalPid: number | undefined, originalRunDefinitionCid: unknown;
+      let originalPid: number | undefined, originalRunDefinitionCid: unknown, deniedRunDefinitionCid: unknown;
       for (const phase of phases) {
         const record = report.phases.find(value => value.case === id && value.phase === phase);
         assert(record, 'Missing original phase');
@@ -302,11 +341,15 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
             }
           }
           if (id === 'registered-mixed' || id === 'registered-mistral' || externalCases.includes(id) ||
-              Object.hasOwn(registeredTerminalFailures, id)) {
-            if (phase === 'cold') assert.equal(value.originalRunDefinitionCid, originalRunDefinitionCid);
-            else originalRunDefinitionCid = value.originalRunDefinitionCid;
+              id === registeredCapabilityCase || Object.hasOwn(registeredTerminalFailures, id)) {
+            if (phase === id) originalRunDefinitionCid = value.originalRunDefinitionCid;
+            else assert.equal(value.originalRunDefinitionCid, originalRunDefinitionCid);
           }
-          if (phase !== 'cold') originalPid = actual.pid;
+          if (id === registeredCapabilityCase) {
+            if (phase === id) deniedRunDefinitionCid = value.deniedRunDefinitionCid;
+            if (phase === 'cold') assert.equal(value.deniedRunDefinitionCid, deniedRunDefinitionCid);
+          }
+          if (phase === id) originalPid = actual.pid;
           record.status = 'passed';
         } catch (failure) {
           record.status = 'failed'; record.failure = nodeBenchmarkFailure(failure); throw failure;
@@ -374,12 +417,14 @@ async function installRelease(root: string, release: string, manifest: ReleaseMa
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [root, selection, ...extra] = process.argv.slice(2);
-  assert(root !== undefined && [undefined, '--registered-only', '--registered-safety-only', '--registered-external-only'].includes(selection)
+  assert(root !== undefined && [undefined, '--registered-only', '--registered-safety-only', '--registered-external-only',
+    '--registered-capabilities-only'].includes(selection)
     && extra.length === 0,
-  'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT [--registered-only | --registered-safety-only | --registered-external-only]');
+  'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT [--registered-only | --registered-safety-only | --registered-external-only | --registered-capabilities-only]');
   const cases = selection === '--registered-only' ? registeredProviderAcceptanceCases
     : selection === '--registered-safety-only' ? registeredSafetyAcceptanceCases
-    : selection === '--registered-external-only' ? externalCases : undefined;
+    : selection === '--registered-external-only' ? externalCases
+    : selection === '--registered-capabilities-only' ? [registeredCapabilityCase] : undefined;
   process.exitCode = await runLocalCheck({root: fileURLToPath(new URL('../', import.meta.url)),
     heavy: false, timeoutSeconds: 300, graceSeconds: 5,
     steps: [{name: 'Original normal provider, usage and timeout consumers', command: process.execPath,

@@ -207,3 +207,103 @@ test "structured Provider admission requires support on the resolved model and m
   assert_true(plan(selected, profile, installation) is Ok(_))
   assert_eq(starts, 0)
 }
+
+///|
+test "installed SDK capability retains exact route and refuses non-supported statuses" {
+  let (execution, dependencies) = provider_admission_fixture()
+  let provider = install_async_model_provider("models/fixture").unwrap()
+  let selected : ResolvedStructuredModel = {
+    selector: "fixture-risk-model",
+    model_id: "physical-model-a",
+    adapter_kind: "ai-sdk",
+    api_mode: "structured-http",
+    endpoint: "https://models.example/v1/structured",
+  }
+  let configuration = (adapter, model, operation) => {
+    (
+      $|{"adapter_kind":"ai-sdk","provider_id":"models/fixture","structured_routes":{"fixture-risk-model":{"api_mode":"structured-http","endpoint":"https://models.example/v1/structured","model_id":"physical-model-a","structured_capability":{"adapter":"\{adapter}","model":"\{model}","operation":"\{operation}"}},"fixture-second":{"api_mode":"other-http","endpoint":"https://models.example/v1/second","model_id":"physical-model-b","structured_capability":{"adapter":"supported","model":"unsupported","operation":"structured_generate"}}}}
+    )
+  }
+  let issue = wire => {
+    @publication_host.issue_client_model_provider_binding(
+      "models/fixture", "{}", "{}", wire,
+    ).unwrap()
+  }
+  let profile = structured_capability_fixture_profile()
+  let installation = structured_capability_fixture_installation()
+  let resolve = (binding, wire, route) => {
+    register_installed_sdk_structured_model_capability(
+      provider, binding, wire, route, profile,
+    )
+  }
+  let accepted_wire = configuration(
+    "supported", "supported", "structured_generate",
+  )
+  let accepted_binding = issue(accepted_wire)
+  let accepted = resolve(accepted_binding, accepted_wire, selected).unwrap()
+  assert_true(
+    @publication_host.client_model_registered_sdk_structured_support(
+      accepted_binding, accepted_wire, "models/fixture", "fixture-second", "physical-model-b",
+      "other-http", "https://models.example/v1/second",
+    )
+    is Some((true, false)),
+  )
+  assert_true(
+    resolve(accepted_binding, accepted_wire, {
+      ..selected,
+      selector: "fixture-second",
+    })
+    is Err(ForeignConfiguration),
+  )
+  let mut validations = 0
+  let admit = capability => {
+    admit_structured_model_provider(
+      capability,
+      selected,
+      execution,
+      dependencies,
+      installation,
+      (_, _) => {
+        validations += 1
+        true
+      },
+    )
+  }
+  for support in ["experimental", "unsupported", "unavailable"] {
+    let denied_model = configuration(
+      "supported", support, "structured_generate",
+    )
+    let denied_adapter = configuration(
+      support, "supported", "structured_generate",
+    )
+    assert_true(
+      admit(resolve(issue(denied_model), denied_model, selected).unwrap())
+      is Err(UnsupportedModel),
+    )
+    assert_true(
+      admit(resolve(issue(denied_adapter), denied_adapter, selected).unwrap())
+      is Err(UnsupportedAdapter),
+    )
+    assert_true(
+      resolve(accepted_binding, denied_model, selected)
+      is Err(ForeignConfiguration),
+    )
+  }
+  for
+    (adapter, operation) in [
+      ("unknown", "structured_generate"),
+      ("supported", "chat"),
+    ] {
+    let wire = configuration(adapter, "supported", operation)
+    assert_true(
+      resolve(issue(wire), wire, selected) is Err(ForeignConfiguration),
+    )
+  }
+  assert_true(
+    resolve(accepted_binding, accepted_wire, { ..selected, api_mode: "other", })
+    is Err(ForeignConfiguration),
+  )
+  assert_eq(validations, 0)
+  assert_true(admit(accepted) is Ok(_))
+  assert_eq(validations, 1)
+}

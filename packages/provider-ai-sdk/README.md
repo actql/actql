@@ -28,7 +28,13 @@ Pass the selected `modelSdkRegistrations` to the installed Node Host and use
 the matching Provider ID, the original request-data-handling contract wire,
 generation defaults, bounds, a whole-call timeout and the current egress
 observer. The trusted registration supplies the SDK and adapter identities,
-resolved model, endpoint and credential reference. The Host reads the
+and a frozen list of `routes` for one `providerId`. Each route specifies its
+alias, resolved model, API mode, endpoint, options and credential reference.
+Set `defaultSelector` to one of those aliases. For each route, set
+`structuredCapability` with operation `structured_generate` and explicit
+`adapter` and `model` statuses. The statuses are `supported`, `experimental`,
+`unsupported`, and `unavailable`. The current runtime admits structured
+generation only when both statuses are `supported`. The Host reads the
 credential only at authorized dispatch.
 
 On the first SDK-enabled Host initialization in a process, include every SDK
