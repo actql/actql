@@ -149711,7 +149711,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
-      "sha256": "95ef820b9c3604eaa394a99197f4122f16686cfd8c33006e93a2533d6806a51f",
+      "sha256": "51571d6585190ceb6afae68a42df404ff2225ec34217471f0fc6ceb60f2b1282",
       "exports": [
         "createLocalResultReadWorkspace"
       ],
@@ -150053,6 +150053,10 @@
               {
                 "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
                 "anchor": "record durability"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "an execution refusal with no pending child returns the actual control Read"
               },
               {
                 "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",

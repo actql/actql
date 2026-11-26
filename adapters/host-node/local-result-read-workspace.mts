@@ -427,6 +427,9 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
           }
           if (!Object.hasOwn(handle, 'value')) {entry.unknownPhysical = true;continue;}
           const receiver = handle.value;
+          // An execution failure wrapper can explicitly report completed
+          // cleanup while carrying an empty handle slot.
+          if (receiver === undefined && pending?.value === false) continue;
           if (entry.physical.some(child => child.receiver === receiver)) continue;
           const status = Object.getOwnPropertyDescriptor(receiver, 'status')?.value;
           const retry = Object.getOwnPropertyDescriptor(receiver, 'retry')?.value;
