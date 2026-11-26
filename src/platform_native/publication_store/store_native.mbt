@@ -11,6 +11,7 @@ struct Store {
   // child's cleanup are confirmed. A reader count cannot replace its custody.
   mut pending_result_delivery : ResultDelivery?
   mut pending_payload_verification : NativePayloadVerificationCleanup?
+  mut payload_admission_failure : NativePayloadAdmissionFailure?
   authority_cid : String
   journal_identity : @filesystem.NativeFileOwnership
   capacity_bytes : Int64
@@ -35,6 +36,49 @@ struct Store {
 priv enum NativePayloadVerificationCleanup {
   Open(@filesystem.NativeReaderOpenFailure)
   Reader(@filesystem.Reader)
+}
+
+///|
+priv enum NativePayloadAdmissionFailure {
+  Begin(@sqlite.NativeSqliteTransactionFailure)
+  Body(NativePublicationStoreIssue, @sqlite.NativeSqliteTransactionStopFailure)
+  Commit(@sqlite.NativeSqliteJournalCommitFailure)
+}
+
+///|
+fn native_payload_stop_issue(
+  stop : @sqlite.NativeSqliteTransactionStopFailure,
+) -> @sqlite.NativeSqliteIssue {
+  if stop.rollback is Some(Err(original)) {
+    return original.issue
+  }
+  match stop.state {
+    Err(issue) => issue
+    Ok(_) =>
+      @sqlite.Physical("publication payload transaction stop is unconfirmed")
+  }
+}
+
+///|
+fn NativePayloadAdmissionFailure::issue(
+  self : Self,
+) -> NativePublicationStoreIssue {
+  match self {
+    Begin(failure) => Database(failure.issue)
+    Body(primary, stop) =>
+      OperationCleanup(Some(primary), Database(native_payload_stop_issue(stop)))
+    Commit(failure) => {
+      let primary = Database(failure.primary.issue)
+      match failure.cleanup_failure {
+        None => primary
+        Some(stop) =>
+          OperationCleanup(
+            Some(primary),
+            Database(native_payload_stop_issue(stop)),
+          )
+      }
+    }
+  }
 }
 
 ///|
@@ -221,7 +265,13 @@ fn[T] Store::with_original_read(
   cleanup_work : Bool,
   final_close : Bool,
   call : () -> Result[T, NativePublicationStoreIssue],
+  physical_cleanup? : Bool = false,
 ) -> Result[T, NativePublicationStoreIssue] {
+  if self.payload_admission_failure is Some(_) &&
+    !final_close &&
+    !physical_cleanup {
+    return Err(CleanupPending)
+  }
   if !cleanup_work && self.pending_payload_verification is Some(_) {
     return Err(CleanupPending)
   }
@@ -1190,6 +1240,7 @@ fn open_store_owned_with_custody(
     operation_return_primary: None,
     pending_result_delivery: None,
     pending_payload_verification: None,
+    payload_admission_failure: None,
     authority_cid,
     journal_identity,
     capacity_bytes,
@@ -1702,6 +1753,94 @@ pub fn Store::begin_payload(
 }
 
 ///|
+// The first durable row and its reservation are one write. Only a confirmed
+// commit permits allocation; an already retained reservation cannot fund it.
+fn Store::admit_initial_payload(
+  self : Store,
+  request : @payload.PublicationPayloadRequest,
+  key : String,
+  body : Bytes,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  let db = self.database
+  if db.transaction_fenced() {
+    return Err(CleanupPending)
+  }
+  match db.begin_journal_write() {
+    Ok(_) => ()
+    Err(failure) => {
+      let original = Begin(failure)
+      if failure.reply is @sqlite.SqlConfirmed ||
+        failure.reply is @sqlite.SqlReplyLost ||
+        failure.issue is @sqlite.OperationRoutingBefore(_) ||
+        failure.issue is @sqlite.OperationRoutingAfter(_, _) {
+        self.payload_admission_failure = Some(original)
+      }
+      return Err(original.issue())
+    }
+  }
+  let metadata = () => {
+    match load_record(self, key) {
+      Ok(existing) => {
+        if @payload.publication_payload_request_identity(
+            @payload.publication_payload_record_request(existing),
+          ) !=
+          @payload.publication_payload_request_identity(request) {
+          return Err(StateCollision)
+        }
+        return if @payload.publication_payload_record_state(existing) ==
+          @payload.Sealed {
+          Err(ExistingPayload)
+        } else {
+          Err(RecoveryRequired)
+        }
+      }
+      Err(Database(@sqlite.NotFound)) => ()
+      Err(issue) => return Err(issue)
+    }
+    match
+      db.reserve_capacity_in_transaction(
+        "publication_payload",
+        key,
+        @payload.publication_payload_request_max_bytes(request),
+        1L,
+        self.capacity_bytes,
+        self.max_objects,
+      ) {
+      Ok(true) => ()
+      Ok(false) => return Err(StateCollision)
+      Err(issue) => return Err(Database(issue))
+    }
+    match db.insert("publication_payload", key, body) {
+      Ok(0L) => Ok(())
+      Ok(_) => Err(StateCollision)
+      Err(issue) => Err(Database(issue))
+    }
+  }
+  if metadata() is Err(primary) {
+    return match db.rollback_journal_write() {
+      Ok(_) => Err(primary)
+      Err(stop) => {
+        let original = Body(primary, stop)
+        self.payload_admission_failure = Some(original)
+        Err(original.issue())
+      }
+    }
+  }
+  match db.commit_journal_write() {
+    Ok(_) => Ok(())
+    Err(failure) => {
+      let original = Commit(failure)
+      if failure.outcome != @sqlite.CommitNotApplied ||
+        failure.primary.issue is @sqlite.OperationRoutingBefore(_) ||
+        failure.primary.issue is @sqlite.OperationRoutingAfter(_, _) {
+        self.payload_admission_failure = Some(original)
+      }
+      Err(original.issue())
+    }
+  }
+}
+
+///|
 fn Store::begin_payload_in_scope(
   self : Store,
   request : @payload.PublicationPayloadRequest,
@@ -1726,45 +1865,9 @@ fn Store::begin_payload_in_scope(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match
-    self.database.insert("publication_payload", key, @utf8.encode(initial)) {
-    Ok(revision) => if revision != 0L { return Err(StateCollision) }
-    Err(@sqlite.Collision) => {
-      let existing = match load_record(self, key) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      if @payload.publication_payload_request_identity(
-          @payload.publication_payload_record_request(existing),
-        ) !=
-        @payload.publication_payload_request_identity(request) {
-        return Err(StateCollision)
-      }
-      return if @payload.publication_payload_record_state(existing) ==
-        @payload.Sealed {
-        Err(ExistingPayload)
-      } else {
-        Err(RecoveryRequired)
-      }
-    }
-    Err(issue) => return Err(Database(issue))
-  }
-  match
-    self.database.reserve_capacity(
-      "publication_payload",
-      key,
-      @payload.publication_payload_request_max_bytes(request),
-      1L,
-      self.capacity_bytes,
-      self.max_objects,
-    ) {
+  match self.admit_initial_payload(request, key, @utf8.encode(initial)) {
     Ok(_) => ()
-    Err(issue) => {
-      if !cleanup_after_begin_failure(self, record) {
-        return Err(CleanupPending)
-      }
-      return Err(Database(issue))
-    }
+    Err(issue) => return Err(issue)
   }
   let reserved = match
     protocol(@payload.prepare_publication_payload_reserved(record)) {
@@ -2078,7 +2181,12 @@ fn PayloadWriter::seal_in_scope(
 pub fn PayloadWriter::cancel(
   self : PayloadWriter,
 ) -> Result[Unit, NativePublicationStoreIssue] {
-  self.store.with_original_read(true, false, fn() { self.cancel_in_scope() })
+  self.store.with_original_read(
+    true,
+    false,
+    fn() { self.cancel_in_scope() },
+    physical_cleanup=true,
+  )
 }
 
 ///|
@@ -2088,7 +2196,26 @@ fn PayloadWriter::cancel_in_scope(
   if self.closed {
     return Ok(())
   }
-  match filesystem(self.physical.cancel()) {
+  let stop = filesystem(self.physical.cancel())
+  if self.store.payload_admission_failure is Some(_) {
+    // The exact writer may stop; its durable metadata and reservation must
+    // survive for reconciliation by a new admitted Store.
+    match
+      retain_pending_writer(
+        self.store,
+        self.record,
+        self.physical,
+        stop is Ok(_),
+      ) {
+      Ok(_) => self.closed = true
+      Err(issue) => return Err(issue)
+    }
+    return match stop {
+      Ok(_) => Err(CleanupPending)
+      Err(issue) => Err(issue)
+    }
+  }
+  match stop {
     Ok(_) => ()
     Err(issue) => {
       match
@@ -2322,7 +2449,12 @@ fn PayloadReader::finish_in_scope(
 pub fn PayloadReader::close(
   self : PayloadReader,
 ) -> Result[Unit, NativePublicationStoreIssue] {
-  self.store.with_original_read(true, false, fn() { self.close_in_scope() })
+  self.store.with_original_read(
+    true,
+    false,
+    fn() { self.close_in_scope() },
+    physical_cleanup=true,
+  )
 }
 
 ///|
@@ -3723,9 +3855,12 @@ fn PayloadDelivery::finish_in_scope(
 pub fn PayloadDelivery::close(
   self : PayloadDelivery,
 ) -> Result[Unit, NativePublicationStoreIssue] {
-  self.reader.store.with_original_read(true, false, fn() {
-    self.close_in_scope()
-  })
+  self.reader.store.with_original_read(
+    true,
+    false,
+    fn() { self.close_in_scope() },
+    physical_cleanup=true,
+  )
 }
 
 ///|
@@ -3895,9 +4030,12 @@ fn ConfirmedPayloadDelivery::confirm_sink_finished_in_scope(
 pub fn ConfirmedPayloadDelivery::close(
   self : ConfirmedPayloadDelivery,
 ) -> Result[Unit, NativePublicationStoreIssue] {
-  self.source.reader.store.with_original_read(true, false, fn() {
-    self.close_in_scope()
-  })
+  self.source.reader.store.with_original_read(
+    true,
+    false,
+    fn() { self.close_in_scope() },
+    physical_cleanup=true,
+  )
 }
 
 ///|
@@ -4457,7 +4595,12 @@ fn ResultDelivery::terminate_in_scope(
 pub fn ResultDelivery::close(
   self : ResultDelivery,
 ) -> Result[Unit, NativePublicationStoreIssue] {
-  self.store.with_original_read(true, false, fn() { self.close_in_scope() })
+  self.store.with_original_read(
+    true,
+    false,
+    fn() { self.close_in_scope() },
+    physical_cleanup=true,
+  )
 }
 
 ///|
@@ -4844,9 +4987,12 @@ pub fn Store::close(self : Store) -> Result[Bool, NativePublicationStoreIssue] {
   }
   if self.pending_payload_verification is Some(_) {
     match
-      self.with_original_read(true, false, fn() {
-        self.finish_payload_verification_cleanup()
-      }) {
+      self.with_original_read(
+        true,
+        false,
+        fn() { self.finish_payload_verification_cleanup() },
+        physical_cleanup=true,
+      ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -4877,9 +5023,23 @@ fn Store::close_in_scope(
     Err(issue) => return Err(issue)
   }
   if !self.retiring {
-    match self.recover_in_scope() {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
+    if self.payload_admission_failure is Some(_) {
+      if !self.pending_allocations.is_empty() {
+        return Err(CleanupPending)
+      }
+      for _, pending in self.pending_writers {
+        if !pending.stopped {
+          match filesystem(pending.physical.cancel()) {
+            Ok(_) => pending.stopped = true
+            Err(issue) => return Err(issue)
+          }
+        }
+      }
+    } else {
+      match self.recover_in_scope() {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
     }
     self.retiring = true
   }

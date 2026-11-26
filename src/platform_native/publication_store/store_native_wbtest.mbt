@@ -269,6 +269,102 @@ test "native publication capacity rejects before payload allocation" {
 }
 
 ///|
+#borrow(database)
+extern "C" fn test_payload_admission_lose_commit_reply(
+  database : @sqlite.Database,
+) -> Unit = "actql_native_sqlite_test_fail_commit_reply"
+
+///|
+test "native publication keeps original quota and rows after an initial COMMIT reply is lost" {
+  let (store, authority, library, root) = native_payload_fixture(
+    "initial-payload-commit-reply", 16L,
+  ).unwrap()
+  let first_request = native_payload_request(authority, "first-writer", 8L)
+  let first = store.begin_payload(first_request).unwrap()
+  first.append(b"original").unwrap()
+  let first_key = record_key(first_request)
+  let original = store.database.read("publication_payload", first_key).unwrap()
+  let second_request = native_payload_request(authority, "unacknowledged", 8L)
+  let second_key = record_key(second_request)
+  let events : Array[String] = []
+  store.observe_allocation(event => events.push(event))
+  test_payload_admission_lose_commit_reply(store.database)
+  assert_true(store.begin_payload(second_request) is Err(Database(_)))
+  guard store.payload_admission_failure is Some(Commit(failure)) else {
+    fail("missing original COMMIT failure")
+  }
+  assert_true(failure.outcome is @sqlite.CommitUnknown)
+  assert_true(failure.primary.reply is @sqlite.SqlReplyLost)
+  assert_true(
+    store.database.transaction_state() is Ok(@sqlite.NoActiveSqliteTransaction),
+  )
+  assert_true(events.is_empty())
+  assert_true(store.begin_payload(second_request) is Err(CleanupPending))
+  assert_true(store.inspect_payload(second_key) is Err(CleanupPending))
+  assert_true(store.close() is Err(CleanupPending))
+  assert_false(first.closed)
+  assert_true(first.cancel() is Err(CleanupPending))
+  assert_true(first.closed)
+  assert_true(store.close().unwrap())
+  assert_false(store.close().unwrap())
+  let reopened = open_store(library, root, authority, 16L, 8L, 65536L).unwrap()
+  let first = reopened.database.read("publication_payload", first_key).unwrap()
+  assert_eq(first.revision, original.revision)
+  assert_eq(first.body, original.body)
+  let second = reopened.database
+    .read("publication_payload", second_key)
+    .unwrap()
+  assert_eq(second.revision, 0L)
+  let retained = @payload.admit_durable_publication_payload_record(second.body).unwrap()
+  assert_eq(
+    @payload.durable_publication_payload_record_material_identity(retained),
+    second_key,
+  )
+  assert_true(
+    reopened.database.read(
+      @payload.publication_payload_allocation_namespace(),
+      second_key,
+    )
+    is Err(@sqlite.NotFound),
+  )
+  assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, 16L)
+  assert_eq(reopened.capacity_usage().unwrap().reserved_objects, 2L)
+  assert_true(reopened.close().unwrap())
+}
+
+///|
+test "native publication does not adopt a matching reservation without its original payload" {
+  let (store, authority, library, root) = native_payload_fixture(
+    "orphan-payload-reservation", 8L,
+  ).unwrap()
+  let request = native_payload_request(authority, "orphan", 8L)
+  let key = record_key(request)
+  assert_true(
+    store.database
+    .reserve_capacity("publication_payload", key, 8L, 1L, 8L, 8L)
+    .unwrap(),
+  )
+  let events : Array[String] = []
+  store.observe_allocation(event => events.push(event))
+  assert_true(store.begin_payload(request) is Err(StateCollision))
+  assert_true(events.is_empty())
+  assert_true(
+    store.database.read("publication_payload", key) is Err(@sqlite.NotFound),
+  )
+  assert_true(store.close().unwrap())
+  let reopened = open_store(library, root, authority, 8L, 8L, 65536L).unwrap()
+  assert_true(
+    reopened.database.read("publication_payload", key) is Err(@sqlite.NotFound),
+  )
+  let hold = reopened.database
+    .read_capacity("publication_payload", key)
+    .unwrap()
+  assert_eq(hold.reserved_bytes, 8L)
+  assert_eq(hold.reserved_objects, 1L)
+  assert_true(reopened.close().unwrap())
+}
+
+///|
 test "native publication Store root has one live recovery owner" {
   guard native_payload_fixture("shared-capacity", 8L)
     is Some((first, authority, library, root)) else {
