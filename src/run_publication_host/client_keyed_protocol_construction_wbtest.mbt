@@ -107,13 +107,14 @@ test "managed protocol extent refusal retains already adopted originals for clea
   defer assert_true(cleanup())
   let peak = Ref(0L)
   let wire = "{\"text\":\"é😀\"}"
-  let result = with_keyed_protocol_construction(
+  let adopted : Ref[Array[@publication.CapturedEffectDependencyBody]?] = Ref(
+    None,
+  )
+  let result = with_keyed_dependency_collection(
     lookup,
-    8192,
-    16L,
     1,
     8,
-    fn(_) {
+    fn(phase) {
       let body = @publication.admit_captured_effect_dependency_body(
         "request_values",
         Some(
@@ -125,18 +126,22 @@ test "managed protocol extent refusal retains already adopted originals for clea
         8,
       ).unwrap()
       peak.val = lookup.retained_bytes
-      Ok(keyed_protocol_built((), dependencies=Unmeasured([body])))
+      complete_unmeasured_keyed_dependencies(lookup, phase, [body])
     },
-    _ => {
-      lookup.identity_bodies = Some((wire, "schema"))
+    bodies => {
+      adopted.val = Some(bodies)
       Ok(())
     },
+    () => Ok(adopted.val),
   )
   assert_true(result is Err(Identity(@publication.Contract(Encoding))))
   assert_true(
     !lookup.growing && @resources.reservation_open(lookup.reservation),
   )
-  assert_eq(lookup.identity_bodies.unwrap().0, wire)
+  assert_eq(
+    @publication.captured_effect_dependency_body_json(adopted.val.unwrap()[0]),
+    wire,
+  )
   assert_true(lookup.retained_bytes >= peak.val)
 }
 

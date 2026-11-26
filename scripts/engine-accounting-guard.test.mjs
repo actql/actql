@@ -183,6 +183,23 @@ test('only the funded Cursor and its seal may construct same-package controls', 
   }
 });
 
+test('keyed dependency collectors cannot fall back to independent builder values and proofs', () => {
+  const owner = 'src/run_publication_host/client_keyed_declared_file_journal.mbt';
+  const method = 'prepare_declared_file_lookup_dependencies';
+  const make = body => new Map([[owner, `fn ${method}(lookup : ClientKeyedLookupInput) -> Unit { ${body} }`]]);
+  const selection = {inventory: [[owner, method]]};
+  const fallback = 'with_keyed_protocol_construction(lookup, 1, 8L, 32, 8, _ => Ok(keyed_protocol_built(value)), adopt)';
+  assert(resourceLifecycleProblems(make(fallback), selection)
+    .some(issue => issue.rule === 'missing-managed-construction'));
+  const mismatched = 'with_keyed_dependency_collection(lookup, 32, 8, _ => Ok(keyed_protocol_built(bodies)), adopt, observe)';
+  assert(resourceLifecycleProblems(make(mismatched), selection)
+    .some(issue => issue.rule === 'unsettled-builder-escape'));
+  for (const operation of ['with_keyed_dependency_collection', 'close_keyed_dependency_collection', 'complete_unmeasured_keyed_dependencies']) {
+    assert(problems(guardedConstruction(`let escape = ${operation}`))
+      .some(issue => issue.rule === 'private-serial-dependency-forgery'));
+  }
+});
+
 test('managed scan guard keeps private phase and builder references inside the original wrapper', () => {
   for (const body of [
     'let grow = grow_keyed_body_construction',

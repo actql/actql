@@ -22,7 +22,6 @@ priv struct KeyedProtocolBuilt[T] {
   contracts : Array[@publication.PublicationContract]
   evidence : Array[@publication.RunEvidenceValue]
   texts : Array[String]
-  dependencies : KeyedProtocolDependencies
 }
 
 ///|
@@ -38,9 +37,8 @@ fn[T] keyed_protocol_built(
   contracts? : Array[@publication.PublicationContract] = [],
   evidence? : Array[@publication.RunEvidenceValue] = [],
   texts? : Array[String] = [],
-  dependencies? : KeyedProtocolDependencies = NoDependencies,
 ) -> KeyedProtocolBuilt[T] {
-  { value, contracts, evidence, texts, dependencies, }
+  { value, contracts, evidence, texts, }
 }
 
 ///|
@@ -107,8 +105,134 @@ fn[T] with_keyed_protocol_construction(
     built.contracts,
     evidence=built.evidence,
     texts=built.texts,
-    dependencies=built.dependencies,
   ).map(_ => { value: built.value, })
+}
+
+///|
+fn validate_completed_keyed_dependencies(
+  lookup : ClientKeyedLookupInput,
+  phase : KeyedProtocolConstruction,
+  completion : KeyedDependencySerialCompletion,
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  match
+    validate_keyed_dependency_cursor_owner(
+      lookup,
+      completion.lookup,
+      completion.reservation,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !physical_equal(phase, completion.phase) {
+    return Err(Assembly("foreign_dependency_cursor"))
+  }
+  if phase.finished || !client_keyed_left_available(lookup.left) {
+    return Err(Assembly("retired_dependency_cursor"))
+  }
+  if completion.bodies.length() != completion.body_count {
+    return Err(Assembly("foreign_dependency_body_extent"))
+  }
+  Ok(())
+}
+
+///|
+// Keep the construction fence across adoption and the read back from the
+// actual Owner slot. A refused adoption, observation or measurement leaves
+// the charges and any installed Array on the original cleanup owner.
+fn with_keyed_dependency_collection(
+  lookup : ClientKeyedLookupInput,
+  max_nodes : Int,
+  max_depth : Int,
+  build : (KeyedProtocolConstruction) -> Result[
+    KeyedDependencySerialCompletion,
+    ClientKeyedRequestIssue,
+  ],
+  adopt : (Array[@publication.CapturedEffectDependencyBody]) -> Result[
+    Unit,
+    ClientKeyedRequestIssue,
+  ],
+  observe : () -> Result[
+    Array[@publication.CapturedEffectDependencyBody]?,
+    ClientKeyedRequestIssue,
+  ],
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  if !keyed_dependency_cursor_reservation_live(lookup) {
+    return Err(Assembly("retired_dependency_cursor"))
+  }
+  // The single completion and the post-adoption Result and slot borrow
+  // coexist with the original collector controls until settlement.
+  let controls = @execution.preparation_representation_cost({
+    record_headers: 4L,
+    reference_slots: 8L,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  let phase = match
+    grow_keyed_lookup_protocol_metadata(
+      lookup,
+      1,
+      64L + 2L * max_depth.to_int64(),
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  lookup.growing = true
+  defer {
+    lookup.growing = false
+    phase.finished = true
+  }
+  match
+    keyed_lookup_body_grow(
+      lookup,
+      lookup.retained_bytes,
+      lookup.execution_bytes,
+      controls,
+      None,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let completion = match build(phase) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  match validate_completed_keyed_dependencies(lookup, phase, completion) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match observe() {
+    Err(issue) => return Err(issue)
+    Ok(Some(_)) => return Err(Assembly("occupied_dependency_array_slot"))
+    Ok(None) => ()
+  }
+  match adopt(completion.bodies) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let adopted = match observe() {
+    Err(issue) => return Err(issue)
+    Ok(Some(value)) if physical_equal(value, completion.bodies) => value
+    Ok(_) => return Err(Assembly("foreign_adopted_dependency_array"))
+  }
+  match validate_completed_keyed_dependencies(lookup, phase, completion) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let dependencies = if completion.serial_range is Some(_) {
+    Measured(completion)
+  } else {
+    Unmeasured(adopted)
+  }
+  lookup.growing = false
+  finish_keyed_lookup_protocol_metadata(
+    lookup,
+    phase,
+    max_nodes,
+    max_depth,
+    [],
+    dependencies~,
+  )
 }
 
 ///|
