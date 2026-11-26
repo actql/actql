@@ -567,6 +567,9 @@ fn prepare_client_effect_keyed_generic_dependencies(
     !lookup.closed &&
     lookup.holding is None &&
     lookup.left.lookup_issue is None &&
+    parent.generic is Some(original) &&
+    physical_equal(original, state) &&
+    physical_equal(original.lookup, lookup) &&
     state.bodies is None &&
     state.completed is Some(same) &&
     physical_equal(same, completed) else {
@@ -575,10 +578,9 @@ fn prepare_client_effect_keyed_generic_dependencies(
   // Begin before even the temporary receiver/callback controls. They do not
   // escape into the completed dependency bodies and cannot become a stale
   // retained baseline merely because the collector used them first.
-  with_keyed_protocol_construction(
+  with_keyed_dependency_collection(
     lookup,
-    1,
-    64L + 2L * max_depth.to_int64(),
+    GenericDependencyCollection,
     max_nodes,
     max_depth,
     fn(phase) {
@@ -686,26 +688,10 @@ fn prepare_client_effect_keyed_generic_dependencies(
         Ok(value) => value
         Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
       }
-      let dependencies = match serial_cursor {
-        Some(cursor) =>
-          match cursor.seal(lookup, bodies) {
-            Ok(value) => value
-            Err(issue) => return Err(issue)
-          }
-        None => Unmeasured(bodies)
+      match serial_cursor {
+        Some(cursor) => cursor.seal(lookup, bodies)
+        None => complete_unmeasured_keyed_dependencies(lookup, phase, bodies)
       }
-      Ok(keyed_protocol_built(bodies, dependencies~))
     },
-    bodies => {
-      guard !lookup.closed &&
-        lookup.left.lookup_issue is None &&
-        state.completed is Some(same) &&
-        physical_equal(same, completed) &&
-        state.bodies is None else {
-        return Err(Assembly("retired_generic_dependency_entry"))
-      }
-      state.bodies = Some(bodies)
-      Ok(())
-    },
-  ).map(_ => ())
+  )
 }

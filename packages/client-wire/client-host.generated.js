@@ -21029,6 +21029,9 @@ const schemas = {
               "policy_revision_cid": {
                 "type": "string",
                 "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "debug_entry": {
+                "const": true
               }
             }
           }
@@ -21605,6 +21608,65 @@ const schemas = {
                                                 "type": "object",
                                                 "required": [
                                                   "form",
+                                                  "name",
+                                                  "receiver",
+                                                  "type"
+                                                ],
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                  "form": {
+                                                    "const": "property"
+                                                  },
+                                                  "name": {
+                                                    "type": "string",
+                                                    "minLength": 1
+                                                  },
+                                                  "receiver": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 2147483647
+                                                  },
+                                                  "type": {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "projection",
+                                                      "kind",
+                                                      "nullable"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                      "projection": {
+                                                        "const": "shape_and_nullability"
+                                                      },
+                                                      "kind": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "string",
+                                                          "number",
+                                                          "boolean",
+                                                          "timestamp",
+                                                          "date",
+                                                          "json",
+                                                          "decimal",
+                                                          "array",
+                                                          "object",
+                                                          "vector",
+                                                          "resource_ref",
+                                                          "content_ref",
+                                                          "int64"
+                                                        ]
+                                                      },
+                                                      "nullable": {
+                                                        "type": "boolean"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "form",
                                                   "operator",
                                                   "children",
                                                   "type"
@@ -21962,6 +22024,22 @@ const operationKeys = {
     "cancelId",
     "expectedRevision"
   ],
+  "resume-run": [
+    "connection",
+    "ref",
+    "command",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
+  ],
+  "lookup-control-operation": [
+    "connection",
+    "ref",
+    "operationRef",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
+  ],
   "reconcile": [
     "connection",
     "ref"
@@ -22054,6 +22132,14 @@ const operationKeys = {
     "maxWireBytes",
     "maxNodes",
     "maxDepth"
+  ],
+  "run-sample": [
+    "connection",
+    "ref",
+    "selector",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
   ]
 };
 
@@ -22064,6 +22150,13 @@ const optionalRequestFields = {
       "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
       "minLength": 1,
       "maxLength": 256
+    }
+  },
+  "run-sample": {
+    "nextRevision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
     }
   },
   "submit": {

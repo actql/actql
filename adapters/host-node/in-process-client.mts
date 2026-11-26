@@ -13,7 +13,8 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape,
-  validWireRunPlanViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireStaticExplanationViewShape} from '../../packages/client-wire/index.mjs';
+  validWireRunPlanViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireRunSampleShape, validWireStaticExplanationViewShape,
+  resumeControlOperationRef, validControlOperationLookup, withinResultDescriptionLimits} from '../../packages/client-wire/index.mjs';
 import {observeClientRunState} from './client-run-state.mjs';
 import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
@@ -44,6 +45,7 @@ type HostAttempt<Operation extends ClientHostOperation> = Operation extends 'sub
 type Handler<Operation extends ClientHostOperation> = (request: HostBody<Operation> & HostAttempt<Operation>) => unknown;
 type CheckHandler = Handler<'check'> & NonNullable<Parameters<typeof projectClientCheckUnavailable>[0]>;
 type ExplanationConsumer = (view: unknown) => unknown;
+type ReplyConsumer = (view: unknown, assertCurrent: () => void) => unknown;
 type HandlerPorts = Readonly<{
   negotiate: Handler<'connect'>;
   prepareSubmit?: Handler<'submit'>;
@@ -67,14 +69,17 @@ type HandlerPorts = Readonly<{
   inspectResource?: Handler<'resource-inspect'>;
   peekResource?: Handler<'resource-peek'>;
   check?: CheckHandler;
-  plan?: Handler<'plan'>;
-  inspectRun?: Handler<'inspect-run'>;
+  plan?: (request: HostBody<'plan'>, consume: ReplyConsumer) => unknown;
+  inspectRun?: (request: HostBody<'inspect-run'>, consume: ExplanationConsumer) => unknown;
   runPlan?: Handler<'run-plan'>;
+  runSample?: (request: HostBody<'run-sample'>, consume: ExplanationConsumer) => unknown;
+  lookupControlOperation?: (request: HostBody<'lookup-control-operation'>, consume: ExplanationConsumer) => unknown;
+  resumeRun?: (request: HostBody<'resume-run'>, consume: ExplanationConsumer) => unknown;
   runExplanation?: (request: HostBody<'run-explanation'>, consume: ExplanationConsumer) => unknown;
   runExplanationContext?: (request: HostBody<'run-explanation-context'>, consume: ExplanationConsumer) => unknown;
   staticEffectExplanation?: (request: HostBody<'static-explanation'>, consume: ExplanationConsumer) => unknown;
 }>;
-type DispatchedHandler = (request: Readonly<Record<string, unknown>>, consume?: ExplanationConsumer) => unknown;
+type DispatchedHandler = (request: Readonly<Record<string, unknown>>, consume?: ReplyConsumer) => unknown;
 type RunState = Parameters<typeof observeClientRunState>;
 type ResultService = Parameters<typeof authorizedLocalResultFrames>[0];
 type ResultObservation = ReturnType<NonNullable<ReturnType<typeof installHostObservation>>['captureCurrentOperation']>;
@@ -105,7 +110,7 @@ type HostInstallation = HandlerPorts & Readonly<{
   captureResultOperation?: () => ResultObservation;
 }>;
 
-export type {DispatchedHandler, ExplanationConsumer, Handler, HandlerPorts, HostInstallation, RoutedBody};
+export type {DispatchedHandler, ExplanationConsumer, Handler, HandlerPorts, HostInstallation, ReplyConsumer, RoutedBody};
 
 const localErrors = new WeakSet<ClientError>();
 // Only packets captured here before deferred service construction carry this
@@ -198,7 +203,7 @@ export function createNodeInProcessClientHost({
   attach, lookupRequest, stateService, runStateObservation, resultService, observeRun, observeOwners, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, plan, staticEffectExplanation,
-  inspectRun, runPlan, runExplanation, runExplanationContext, maxRowBytes, observe,
+  inspectRun, runPlan, runExplanation, runExplanationContext, runSample, lookupControlOperation, resumeRun, maxRowBytes, observe,
   performInstalledRequest,
   captureResultObservation,
   captureResultOperation,
@@ -283,7 +288,7 @@ export function createNodeInProcessClientHost({
         // caller packet or replace the prepared Program/permission.
         return await performInstalledRequest(operation,admittedBody as WireClientBody,signal);
       }
-      const invoke = async (handler: HandlerPorts[keyof HandlerPorts], preparedProgram?: unknown, consume?: ExplanationConsumer) => {
+      const invoke = async (handler: HandlerPorts[keyof HandlerPorts], preparedProgram?: unknown, consume?: ReplyConsumer) => {
         if (typeof handler !== 'function') fail('ClientOperationUnavailable');
         const original = own(admittedBody, Object.freeze({principalId, connection,
           ...Object.fromEntries(Object.entries(admittedBody).filter(([key]) =>
@@ -355,9 +360,11 @@ export function createNodeInProcessClientHost({
         return state;
       }
       if (operation === 'plan') {
-        const view = await invoke(plan);
-        if (!validWirePlanViewShape(view) && !validWireEffectfulStaticPlanViewShape(view)) fail('InvalidClientHostPlanView');
-        return view;
+        return await invoke(plan, undefined, function deliverStaticPlan(view, assertCurrent) {
+          if (!validWirePlanViewShape(view) && !validWireEffectfulStaticPlanViewShape(view)) fail('InvalidClientHostPlanView');
+          assertCurrent();
+          return view;
+        });
       }
       if (operation === 'run-plan') {
         const view = await invoke(runPlan);
@@ -366,13 +373,34 @@ export function createNodeInProcessClientHost({
         return view;
       }
       if (operation === 'run-explanation' || operation === 'run-explanation-context' ||
-            operation === 'static-explanation') {
+            operation === 'static-explanation' || operation === 'run-sample' ||
+            operation === 'lookup-control-operation' || operation === 'resume-run' || operation === 'inspect-run') {
         const staticRead = operation === 'static-explanation';
         const contextRead = operation === 'run-explanation-context';
-        const reader = staticRead ? staticEffectExplanation : contextRead ? runExplanationContext : runExplanation;
+        const sampleRead = operation === 'run-sample';
+        const resuming = operation === 'resume-run';
+        const controlLookup = resuming || operation === 'lookup-control-operation';
+        const inspectRead = operation === 'inspect-run';
+        const reader = resuming ? resumeRun : controlLookup ? lookupControlOperation : sampleRead ? runSample
+          : inspectRead ? inspectRun : staticRead ? staticEffectExplanation : contextRead ? runExplanationContext : runExplanation;
         const validateRun = contextRead ? validWireRunExplanationContextViewShape : validWireRunExplanationViewShape;
         return await invoke(reader, undefined, view => {
-          if (staticRead) {
+          if (controlLookup) {
+            if (!withinResultDescriptionLimits(view, admittedBody) ||
+                !validControlOperationLookup(view, resuming
+                  ? resumeControlOperationRef(admittedBody.command) : admittedBody.operationRef)) {
+              fail('InvalidClientHostControlOperationLookup');
+            }
+          } else if (sampleRead) {
+            if (!validWireRunSampleShape(view) || view.state === 'available' &&
+                (ref === undefined || (Object.keys(ref) as (keyof WireRunRef)[])
+                  .some(key => view.source.run_ref[key] !== ref[key]))) fail('InvalidClientHostRunSample');
+          } else if (inspectRead) {
+            if (!validWireRunViewShape(view) || ref === undefined ||
+                (Object.keys(ref) as (keyof WireRunRef)[]).some(key => view.run_ref[key] !== ref[key])) {
+              fail('InvalidClientHostRunView');
+            }
+          } else if (staticRead) {
             if (!validWireStaticExplanationViewShape(view)) fail('InvalidClientHostStaticExplanationView');
           } else if (!validateRun(view) ||
               (Object.keys(ref!) as (keyof WireRunRef)[]).some(key => view.run_ref[key] !== ref![key])) fail('InvalidClientHostRunExplanationView');
@@ -380,15 +408,11 @@ export function createNodeInProcessClientHost({
           // admitted. Only the independent caller value crosses this boundary.
           const wire = JSON.stringify(view);
           if (wire.length > admittedBody.maxWireBytes || Buffer.byteLength(wire) > admittedBody.maxWireBytes) {
-            fail(staticRead ? 'StaticExplanationReadLimit' : 'RunExplanationReadLimit');
+            fail(controlLookup ? 'RunControlReadLimit' : sampleRead ? 'RunSampleReadLimit'
+                : inspectRead ? 'InvalidClientHostRunView' : staticRead ? 'StaticExplanationReadLimit' : 'RunExplanationReadLimit');
           }
           return JSON.parse(wire);
         });
-      }
-      if (operation === 'inspect-run') {
-        const view = await invoke(inspectRun);
-        if (!validWireRunViewShape(view)) fail('InvalidClientHostRunView');
-        return view;
       }
       if (operation === 'owner-observations') {
         const views = await invoke(observeOwners);

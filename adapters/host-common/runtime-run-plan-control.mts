@@ -57,7 +57,11 @@ type CommonRunPlanBindings = Readonly<{
     maxNodes: number, maxDepth: number): unknown;
   clientProgramCurrentRunView(run: unknown, prepared: unknown, authorization: unknown,
     runRefWire: string, stateWire: string, snapshotCid: string, maxBytes: number, maxNodes: number,
-    maxDepth: number): unknown;
+    maxDepth: number, debugParkWire: string): unknown;
+  clientProgramLocalDebugResumeReceiptConstructionBytes(maxBytes: number, maxNodes: number, maxDepth: number,
+    issuing: boolean): unknown;
+  clientProgramIssueLocalDebugResumeReceipt(run: unknown, command: unknown, parkWire: string, revision: number,
+    acceptedAt: string, maxBytes: number, maxNodes: number, maxDepth: number): unknown;
   clientProgramDefinitionCid(prepared: unknown): string;
   clientProgramEffectDefinitionCid(value: unknown): string;
   clientProgramEffectfulStaticPlanView(prepared: unknown, compiled: unknown, maxBytes: number,
@@ -100,7 +104,7 @@ export function createRunPlanControls(moon: CommonRunPlanBindings, {
 }: RunPlanPorts) {
   return {
     readCurrentClientRunView(runDefinition: unknown, prepared: unknown, authorization: unknown,
-      ref: unknown, state: unknown, snapshotCid: string, limits: Limits) {
+      ref: unknown, state: unknown, snapshotCid: string, limits: Limits, debugParkWire = '') {
       if (typeof moon.clientProgramCurrentRunView !== 'function') {
         throw Object.assign(new Error('ClientOperationUnavailable'),
           {code: 'ClientOperationUnavailable'});
@@ -108,7 +112,7 @@ export function createRunPlanControls(moon: CommonRunPlanBindings, {
       return compiledRunResult(moon.clientProgramCurrentRunView(
         token(runDefinition), evidenceToken(prepared), evidenceToken(authorization),
         JSON.stringify(ref), JSON.stringify(state), snapshotCid,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth, debugParkWire),
       'RunHostInspectRejected') as string;
     },
     readCheckedClientStaticPlan(checkedProgram: unknown, kind: string, limits: Limits) {
@@ -279,7 +283,7 @@ export function createRunPlanControls(moon: CommonRunPlanBindings, {
       try {
         if (explanation.definition !== undefined) {
           explanation.contextWire = explanation.invocationTemplateWire = explanation.plan = undefined;
-          compiledRunResult(explanation.methods!.returnCapture(explanation.scope, explanation.definition, false),
+          compiledRunResult(explanation.methods!.returnCapture(explanation.scope, explanation.definition, true),
             'RunHostOriginalExplanationCleanupPending');
           explanation.scope = undefined;
         } else if (typeof acknowledgeExplanationCapture === 'function') {

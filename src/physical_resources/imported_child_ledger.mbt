@@ -240,7 +240,7 @@ fn imported_child_seed_capacity(
     execution: bytes,
     open: true,
     attempt_reserved: false,
-    attempt_started: false,
+    attempt_sequence: 0,
     cleanup_pending: false,
     quantities: None,
     uncertain_quantities: None,

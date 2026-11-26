@@ -26,7 +26,7 @@ test "static plan geometry matches complete original map and view including iden
     ).unwrap()
     for inspect in [false, true] {
       let geometry = measure_client_static_plan_view(
-        prepared, 1000000, 100000, 100, inspect,
+        prepared, 1000000, 100000, 100, inspect, false,
       ).unwrap()
       let wire = client_task_static_plan_view(
         prepared,
@@ -88,7 +88,8 @@ test "static plan geometry matches complete original map and view including iden
           (1000000, 100000, geometry.view.2 - 1),
         ] {
         assert_true(
-          measure_client_static_plan_view(prepared, b, n, d, inspect) is Err(_),
+          measure_client_static_plan_view(prepared, b, n, d, inspect, false)
+          is Err(_),
         )
       }
     }
@@ -166,7 +167,7 @@ test "static plan geometry follows long checked chains past legacy 64KiB project
     100,
   ).unwrap()
   let geometry = measure_client_static_plan_view(
-    prepared, 1000000, 100000, 100, false,
+    prepared, 1000000, 100000, 100, false, false,
   ).unwrap()
   let wire = client_task_static_plan_view(
     prepared, compilation, 1000000, 100000, 100,
@@ -176,7 +177,7 @@ test "static plan geometry follows long checked chains past legacy 64KiB project
   assert_eq(geometry.step_count, 71)
   assert_eq(geometry.max_stage_producers, 71)
   assert_true(
-    measure_client_static_plan_view(prepared, 65536, 100000, 100, false)
+    measure_client_static_plan_view(prepared, 65536, 100000, 100, false, false)
     is Err(_),
   )
 }

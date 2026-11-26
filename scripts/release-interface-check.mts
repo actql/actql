@@ -175,8 +175,29 @@ export async function releaseInterfaceCheck({repository, directory}: {repository
             author: emit.author, build: 'tsconfig.tooling.json',
             qualification: 'exact semantic declaration emit from the original TypeScript author'}}];
       });
+      const firstInventory = installedInterfaceInventory(installed, {artifacts: [...artifacts, ...declarations]});
+      const authoredEntrances = firstInventory.modules.map(module => {
+        const binding = bindings.get(module.module);
+        assert(binding, `Unbound installed authored interface: ${module.module}`);
+        return binding.source;
+      });
+      const checkedSource = await checkInterfaceOwners(repository, {manifests: [root.manifest], authoredEntrances});
+      // Resolve each ordinary configured output from the same checked source
+      // and the already verified normal tarball. The generated member cannot
+      // pass as authored JavaScript or inherit a dependency's output proof.
+      const packagedOutputs = new Map(item.files.map(file => [file.path, file.sha256]));
+      const configured = checkedSource.configuredOutputs.filter(output =>
+        dirname(output.build) === packageSource);
+      for (const output of configured) {
+        assert(output.module.startsWith(packageSource + '/'), 'Configured output escaped its package');
+        const module = output.module.slice(packageSource.length + 1);
+        assert.equal(packagedOutputs.get(module), output.sha256, `Mixed normal Vite output: ${output.module}`);
+        artifacts.push({module, sha256: output.sha256, sourceSha: before.revision, target: 'js',
+          verification: {manifestSha256, originalSha256: item.originalSha256, build: output.build}});
+      }
       const installedArtifacts = [...artifacts, ...declarations];
-      const actual = installedInterfaceInventory(installed, {artifacts: installedArtifacts});
+      const actual = configured.length === 0 ? firstInventory
+        : installedInterfaceInventory(installed, {artifacts: installedArtifacts});
       if (declarations.length) {
         const runtimeMembers = new Set(actual.modules.map(file => file.module));
         const typeModules = typescriptInterfaceInputs(installed, declarations.map(file => file.module)).modules;
@@ -189,17 +210,11 @@ export async function releaseInterfaceCheck({repository, directory}: {repository
           assert.equal(syntax.sha256, file.sha256, `Changed installed declaration interface: ${file.module}`);
         }
       }
-      const authoredEntrances = actual.modules.map(module => {
-        const binding = bindings.get(module.module);
-        assert(binding, `Unbound installed authored interface: ${module.module}`);
-        return binding.source;
-      });
-      const checkedSource = await checkInterfaceOwners(repository, {manifests: [root.manifest], authoredEntrances});
       const bySource = new Map([...bindings.values()].map(value => [value.source, value.member]));
       const runtimeBindings = checkedSource.runtimeBindings.filter(value => bySource.has(value.module))
         .map(value => ({...value, module: bySource.get(value.module)!}));
       const dependencies = await assertInstalledDependencyClosure({directory: installed,
-        modules: actual.modules, artifacts, runtimeBindings});
+        modules: actual.modules, artifacts: installedArtifacts, runtimeBindings});
       reports.push({...installedInterfaceCorrespondence({repository, directory: installed,
         source: before.revision, bindings: [...bindings.values()], artifacts: installedArtifacts,
         owners, generated: checkedSource.generatedQualification, checkedSource}), dependencies});

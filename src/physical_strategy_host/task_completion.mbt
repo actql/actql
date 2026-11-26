@@ -59,6 +59,11 @@ fn commit_task_output(
     Err(issue) => return Err(Physical(issue))
     Ok(_) => ()
   }
+  // The Ledger current callback may have committed this original slot.
+  // Preserve its output, generation and task boundary in that case.
+  if run.done[task] {
+    return Err(ForeignCandidate)
+  }
   run.resources[task] = Some({
     holding,
     release_confirmed: fn() { true },
@@ -70,7 +75,7 @@ fn commit_task_output(
   run.done[task] = true
   clear_captured_inputs(run, task)
   run.generation += 1
-  record_captured_task_boundary_commit(run, task)
+  record_captured_task_boundary_commit(run, task, reservation)
   Ok(())
 }
 

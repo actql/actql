@@ -43,7 +43,7 @@ const serialPrivateTypes = new Set([
 ]);
 const serialConstructorFields = new Map([
   ['extent_workspace_depth', 'begin_keyed_dependency_serial_cursor'],
-  ['serial_range', 'KeyedDependencySerialCursor::seal'],
+  ['serial_range', 'close_keyed_dependency_collection'],
   ['serial_witness', 'begin_keyed_dependency_serial_cursor'],
 ]);
 const serialDependencyConsumers = new Set([
@@ -56,11 +56,23 @@ const scanBuilders = new Set([
 ]);
 const identity = ([module, name]) => `${module}:${name}`;
 const common = directory + 'client_keyed_protocol_construction.mbt';
+const dependencyCollection = 'with_keyed_dependency_collection';
+const dependencySettlement = 'settle_keyed_dependency_slot';
+const dependencyAdoption = 'adopt_keyed_dependency_slot';
+const dependencySelection = 'select_keyed_dependency_slot';
+const dependencyObservation = 'read_keyed_dependency_slot';
+const dependencySlotOwners = new Map([
+  [dependencySelection, [dependencyCollection]],
+  [dependencyAdoption, [dependencyCollection]],
+  [dependencySettlement, [dependencyCollection]],
+  [dependencyObservation, [dependencyAdoption, dependencySettlement]],
+]);
+const protocolOwners = new Set(['with_keyed_protocol_construction', dependencyCollection]);
 const beginFinish = new Set(['grow_keyed_lookup_protocol_metadata', 'finish_keyed_lookup_protocol_metadata']);
-const privateTypes = new Set(['KeyedProtocolConstruction', 'KeyedProtocolBuilt', 'KeyedProtocolDependencies', 'SettledKeyedProtocolMetadata', 'KeyedBodyConstruction']);
+const privateTypes = new Set(['KeyedProtocolConstruction', 'KeyedProtocolBuilt', 'KeyedProtocolDependencies', 'SettledKeyedProtocolMetadata', 'KeyedBodyConstruction', 'KeyedDependencyCollectionKind', 'KeyedDependencyCollectionSlot']);
 const rawResource = new Set(['grow_execution_reservation_capacity', 'reduce_execution_reservation_capacity',
   'reduce_execution_reservation']);
-const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|begin_keyed_dependency_serial_cursor|grow_keyed_dependency_body|ReturnedKeyedDependencyRange|KeyedDependencySerialCursor|KeyedDependencySerialCompletion|KeyedDependencyWitnessChunk|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
+const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|with_keyed_dependency_collection|complete_unmeasured_keyed_dependencies|close_keyed_dependency_collection|begin_keyed_dependency_serial_cursor|grow_keyed_dependency_body|ReturnedKeyedDependencyRange|KeyedDependencySerialCursor|KeyedDependencySerialCompletion|KeyedDependencyWitnessChunk|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
 const lowOwners = new Set([
   entry('client_keyed_lookup_body', 'keyed_lookup_body_grow'),
   entry('client_keyed_lookup_identity', 'grow_keyed_lookup_protocol_metadata'),
@@ -79,6 +91,7 @@ const bodyGrowthOwners = new Map([
   [...entry('client_keyed_dependency_serial_cursor', 'grow_keyed_dependency_body'), 'same-lookup body and cursor allowance'],
   [...entry('client_keyed_dependency_serial_cursor', 'KeyedDependencySerialCursor::fund_keyed_dependency_witness'), 'prepaid original reference chunks'],
   [...entry('client_keyed_protocol_construction', 'with_keyed_body_construction'), 'original scan first-entry backing'],
+  [...entry('client_keyed_protocol_construction', dependencyCollection), 'same-lookup completion and adopted slot observation'],
   [...entry('client_keyed_protocol_construction', 'grow_keyed_body_construction'), 'latched original scan grow port'],
   [...entry('client_keyed_lookup_identity', 'finish_keyed_lookup_protocol_metadata'), 'pre-admitted extent walk'],
   [...entry('client_keyed_lookup_body', 'build_keyed_lookup_identity_bodies'), 'original supplied-input/output predecessor'],
@@ -98,6 +111,23 @@ function close(list, start, open, end) {
     else if (list[i].value === end && --depth === 0) return i;
   }
   throw new Error(`Unclosed lifecycle delimiter ${open}`);
+}
+
+function argumentStarts(list, open, end) {
+  const starts = [];
+  const delimiters = new Map([['(', ')'], ['[', ']'], ['{', '}']]);
+  let start = open + 1;
+  for (let i = start; i < end; i++) {
+    if (list[i].kind !== 'symbol') continue;
+    if (list[i].value === ',') {
+      starts.push(start);
+      start = i + 1;
+    } else if (delimiters.has(list[i].value)) {
+      i = close(list, i, list[i].value, delimiters.get(list[i].value));
+    }
+  }
+  if (start < end) starts.push(start);
+  return starts;
 }
 
 // Named top-level functions and their balanced bodies only, using the existing
@@ -158,9 +188,17 @@ export function resourceLifecycleProblems(sources, {
     const issue = (rule, index, fn = at(index)) => problems.push({module, function: fn?.name,
       rule, offset: list[index]?.begin ?? 0});
     for (let i = 0; i < list.length; i++) {
-      if (list[i].kind === 'word' && ['with_keyed_protocol_construction', 'with_keyed_body_construction'].includes(list[i].value) &&
+      if (list[i].kind === 'word' && (protocolOwners.has(list[i].value) || list[i].value === 'with_keyed_body_construction') &&
           list[i + 1]?.value === '(' && !parsed.declarations.has(i)) {
-        scopes.push([i, close(list, i + 1, '(', ')'), list[i].value]);
+        const end = close(list, i + 1, '(', ')');
+        scopes.push([i, end, list[i].value]);
+        if (list[i].value === dependencyCollection && serialDependencyConsumers.has(`${module}:${at(i)?.name}`)) {
+          const starts = argumentStarts(list, i + 1, end);
+          const generic = module === directory + 'client_effect_generic_keyed_dependency.mbt';
+          const kind = generic ? 'GenericDependencyCollection' : 'NativeDependencyCollection';
+          if (starts.length !== 5 || list[starts[1]]?.value !== kind ||
+              starts[2] !== starts[1] + 2) issue('unbound-dependency-collection-slot', i);
+        }
       }
     }
     const inScope = index => scopes.some(([start, end]) => index > start && index < end);
@@ -173,7 +211,9 @@ export function resourceLifecycleProblems(sources, {
       }
       if (expected.has(id)) {
         found.add(id);
-        if (!scopes.some(([start, end]) => start > fn.body && end < fn.end)) issue('missing-managed-construction', fn.body, fn);
+        const wrapper = serialDependencyConsumers.has(id) ? dependencyCollection : 'with_keyed_protocol_construction';
+        if (!scopes.some(([start, end, kind]) => start > fn.body && end < fn.end &&
+            kind === wrapper)) issue('missing-managed-construction', fn.body, fn);
       }
     }
     for (let i = 0; i < list.length; i++) {
@@ -188,8 +228,31 @@ export function resourceLifecycleProblems(sources, {
         continue;
       }
       if (token.kind !== 'word' || parsed.declarations.has(i)) continue;
-      if (beginFinish.has(token.value) && !(module === common && fn?.name === 'with_keyed_protocol_construction')) {
+      if (beginFinish.has(token.value) && !(module === common && (protocolOwners.has(fn?.name) ||
+          (fn?.name === dependencySettlement && token.value === 'finish_keyed_lookup_protocol_metadata')))) {
         issue('manual-protocol-phase', i);
+      }
+      if (token.value === dependencyCollection && !serialDependencyConsumers.has(id) ||
+          token.value === 'complete_unmeasured_keyed_dependencies' &&
+            !(serialDependencyConsumers.has(id) && inScope(i)) ||
+          token.value === 'close_keyed_dependency_collection' &&
+            !(module === serialDependencyModule &&
+              ['KeyedDependencySerialCursor::seal', 'complete_unmeasured_keyed_dependencies'].includes(fn?.name))) {
+        issue('private-serial-dependency-forgery', i);
+      }
+      if (dependencySlotOwners.has(token.value) &&
+          !(module === common && dependencySlotOwners.get(token.value).includes(fn?.name))) {
+        issue('private-dependency-slot-escape', i);
+      }
+      if (['NativeDependencySlot', 'GenericDependencySlot'].includes(token.value) &&
+          !(module === common && (fn === undefined ||
+            [dependencySelection, dependencyObservation, dependencyAdoption].includes(fn.name)))) {
+        issue('private-dependency-slot-escape', i);
+      }
+      if (keyedOwner && ['dependency_bodies', 'bodies'].includes(token.value) && list[i - 1]?.value === '.' &&
+          list[i + 1]?.value === '=' && !['=', 'None'].includes(list[i + 2]?.value) &&
+          !(module === common && fn?.name === dependencyAdoption)) {
+        issue('unbound-dependency-collection-slot', i);
       }
       if ((token.value === 'grow_keyed_body_construction' || token.value === 'keyed_body_construction_controls') &&
           !(module === common && fn?.name === 'with_keyed_body_construction')) issue('manual-scan-phase', i);
@@ -212,7 +275,7 @@ export function resourceLifecycleProblems(sources, {
       }
       if (token.value === 'Measured' && list[i + 1]?.value === '(' &&
           !(module === common && fn === undefined ||
-            module === serialDependencyModule && fn?.name === 'KeyedDependencySerialCursor::seal' ||
+            module === common && fn?.name === dependencySettlement ||
             module === directory + 'client_keyed_lookup_identity.mbt' &&
               fn?.name === 'finish_keyed_lookup_protocol_metadata')) {
         issue('private-serial-dependency-forgery', i);
@@ -222,12 +285,13 @@ export function resourceLifecycleProblems(sources, {
         const literal = offsets[0] === '{' || offsets[0] === '::' && offsets[1] === '{' ||
           offsets[0] === ':' && offsets[1] === ':' && offsets[2] === '{';
         const issuer = token.value === 'KeyedDependencySerialCursor' ? 'begin_keyed_dependency_serial_cursor' :
-          token.value === 'KeyedDependencySerialCompletion' ? 'KeyedDependencySerialCursor::seal' :
+          token.value === 'KeyedDependencySerialCompletion' ? 'close_keyed_dependency_collection' :
             'KeyedDependencySerialCursor::remember_original';
         const serialBody = module === serialDependencyModule;
         const declaration = serialBody && fn === undefined && list[i - 1]?.value === 'struct';
         const sharedType = module === common && token.value === 'KeyedDependencySerialCompletion' &&
-          list[i - 2]?.value === 'Measured' && list[i - 1]?.value === '(';
+          (list[i - 2]?.value === 'Measured' && list[i - 1]?.value === '(' ||
+            [dependencyCollection, dependencySettlement, 'validate_completed_keyed_dependencies'].includes(fn?.name));
         const consumerType = serialDependencyConsumers.has(id) && inScope(i) &&
           token.value === 'KeyedDependencySerialCursor' && list[i - 1]?.value === ':';
         if (!declaration && (literal ? (!serialBody || fn?.name !== issuer) : !(serialBody || sharedType || consumerType))) {
@@ -237,7 +301,7 @@ export function resourceLifecycleProblems(sources, {
       if (serialConstructorFields.has(token.value) && ['{', ','].includes(list[i - 1]?.value) &&
           [':', ',', '}'].includes(list[i + 1]?.value)) {
         const issuer = serialConstructorFields.get(token.value);
-        const sealWitness = token.value === 'serial_witness' && fn?.name === 'KeyedDependencySerialCursor::seal';
+        const sealWitness = token.value === 'serial_witness' && fn?.name === 'close_keyed_dependency_collection';
         if (module !== serialDependencyModule || (fn?.name !== issuer && !sealWitness)) {
           issue('private-serial-dependency-forgery', i);
         }
@@ -245,19 +309,18 @@ export function resourceLifecycleProblems(sources, {
       if (scanBuilders.has(token.value) && !inScope(i)) issue('unsettled-scan-builder', i);
       if (rawResource.has(token.value) && (keyedOwner || fn === undefined) && !lowOwners.has(id)) issue('unclassified-reservation-mutation', i);
       if (token.value === 'keyed_lookup_body_grow' && !inScope(i) && !bodyGrowthOwners.has(id)) issue('unclassified-body-growth', i);
-      if (token.value === 'keyed_protocol_built' && !inScope(i)) issue('unsettled-builder-escape', i);
+      if (token.value === 'keyed_protocol_built' &&
+          !scopes.some(([start, end, kind]) => i > start && i < end &&
+            kind === 'with_keyed_protocol_construction')) issue('unsettled-builder-escape', i);
       if (privateTypes.has(token.value)) {
         const declaration = ['struct', 'enum'].includes(list[i - 1]?.value) &&
           module === common;
-        const owner = module === common && ['keyed_protocol_built', 'with_keyed_protocol_construction', 'with_keyed_body_construction', 'grow_keyed_body_construction'].includes(fn?.name) ||
+        const owner = module === common && [...protocolOwners, ...dependencySlotOwners.keys(), 'keyed_protocol_built', 'validate_completed_keyed_dependencies', 'with_keyed_body_construction', 'grow_keyed_body_construction'].includes(fn?.name) ||
           module === directory + 'client_keyed_lookup_identity.mbt' && beginFinish.has(fn?.name);
-        const dependencyField = module === common && token.value === 'KeyedProtocolDependencies' &&
-          list[i - 2]?.value === 'dependencies' && list[i - 1]?.value === ':';
-        const measuredSeal = module === serialDependencyModule && fn?.name === 'KeyedDependencySerialCursor::seal' &&
-          token.value === 'KeyedProtocolDependencies';
         const serialPhase = module === serialDependencyModule && token.value === 'KeyedProtocolConstruction' &&
-          (fn === undefined || fn?.name === 'begin_keyed_dependency_serial_cursor');
-        if (!declaration && !dependencyField && !owner && !measuredSeal && !serialPhase && !inScope(i)) {
+          (fn === undefined || ['begin_keyed_dependency_serial_cursor', 'complete_unmeasured_keyed_dependencies',
+            'close_keyed_dependency_collection'].includes(fn?.name));
+        if (!declaration && !owner && !serialPhase && !inScope(i)) {
           issue('private-construction-forgery', i);
         }
       }

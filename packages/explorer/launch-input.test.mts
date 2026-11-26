@@ -96,3 +96,16 @@ test('cancellation needs explicit launcher opt-in and does not turn Program inpu
   assert.throws(()=>explorerArguments(['--local','--allow-cancel','--allow-cancel']),/ExplorerInvalidArguments/u);
   assert.throws(()=>explorerArguments(['--allow-cancel']),/ExplorerExplicitHostRequired/u);
 });
+
+test('the Local launcher enables ordinary start and Debug resume with independent explicit opt-ins', () => {
+  assert.equal(explorerArguments(['--local']).allowRunStart, undefined);
+  assert.deepEqual(explorerArguments(['--local', '--allow-run-start']), {local: {}, allowRunStart: true});
+  assert.throws(() => explorerArguments(['--local', '--allow-run-start', '--allow-run-start']),
+    /ExplorerInvalidArguments/u);
+  assert.throws(() => explorerArguments(['--allow-run-start']), /ExplorerExplicitHostRequired/u);
+  assert.equal(explorerArguments(['--local', '--allow-run-start']).allowDebugResume, undefined);
+  assert.deepEqual(explorerArguments(['--local', '--allow-debug-resume']), {local: {}, allowDebugResume: true});
+  assert.throws(() => explorerArguments(['--local', '--allow-debug-resume', '--allow-debug-resume']),
+    /ExplorerInvalidArguments/u);
+  assert.throws(() => explorerArguments(['--allow-debug-resume']), /ExplorerExplicitHostRequired/u);
+});

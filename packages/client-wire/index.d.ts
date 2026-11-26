@@ -1,3 +1,5 @@
+import type {WireSampleSelector, WireControlCommand, WireControlOperationRef, WireControlOperationLookup}
+  from './interactive-control.generated.js';
 export * from './interactive-control.generated.js';
 import type {WireStaticExplanationView} from './interactive-control.generated.js';
 import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
@@ -18,6 +20,20 @@ import type {WireOwnerRefShape, WireOwnerCursorShape, WireOwnerObservationsShape
 export type {ClientHostOperation} from './client-host.generated.js';
 export {checkOutcomeProtocol, runStateProtocol} from './client-host.generated.js';
 
+export type WireExplanationNarrative = Readonly<{
+  version: 'actql-explanation-narrative/0.1';
+  summary: string;
+  clauses: readonly Readonly<{
+    kind: 'source' | 'join' | 'model_task' | 'filter' | 'result' | 'effect';
+    text: string;
+    context_items: readonly number[];
+    step_ids: readonly string[];
+  }>[];
+  items: readonly (Readonly<{kind: 'context'; index: number}> |
+    Readonly<{kind: 'step'; index: number; step_id: string}>)[];
+  context: readonly string[];
+  steps: readonly string[];
+}>;
 export declare function validStaticExplanationBinding(view: WireStaticExplanationView): boolean;
 export declare const clientHostOperations: readonly ClientHostOperation[];
 /** Explicit submit refusal contracts, not generic public error codes. */
@@ -119,6 +135,10 @@ export type WireClientBodyByOperation = Readonly<{
   'run-plan': WireClientBodyByOperation['inspect-run'];
   'run-explanation': WireClientBodyByOperation['inspect-run'];
   'run-explanation-context': WireClientBodyByOperation['inspect-run'];
+  'run-sample': WireClientBodyByOperation['inspect-run'] & Readonly<{selector: WireSampleSelector}>;
+  'lookup-control-operation': WireClientBodyByOperation['inspect-run'] &
+    Readonly<{operationRef: WireControlOperationRef}>;
+  'resume-run': WireClientBodyByOperation['inspect-run'] & Readonly<{command: WireControlCommand}>;
   'inspect-run': WireRefBody & Readonly<{
     maxWireBytes: number;
     maxNodes: number;
@@ -283,6 +303,9 @@ export declare function validCancellationAttempt(value: unknown, expected: WireC
 export declare function validCancellationRef(value: unknown): value is WireCancellationRef;
 export declare function validCancellation(value: unknown,
   expected?: WireCancellationRef): value is WireCancellation;
+export declare function resumeControlOperationRef(command: WireControlCommand): WireControlOperationRef;
+export declare function validControlOperationLookup(value: unknown,
+  operationRef: WireControlOperationRef): value is WireControlOperationLookup;
 export declare function validCancellationLookup(value: unknown,
   expected: WireCancellationRef): value is WireCancellationLookup;
 

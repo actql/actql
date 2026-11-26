@@ -13,6 +13,8 @@ type StaticPlanRequest = Readonly<{
 }>;
 type StaticPlanKind = 'effects' | 'tasks' | 'values';
 type StaticPlanView = WirePlanView | WireEffectfulStaticPlanView;
+type AcquiredPlanEgress = (assertCurrent: () => void) => void;
+type PlanDelivery<Value> = (view: StaticPlanView, assertCurrent: () => void) => Value;
 type StaticPlanInstallation<Request, Prepared> = Readonly<{
   moon: Readonly<{clientProgramRequiresTaskCompilation(prepared: Awaited<Prepared>): boolean}>;
   control: Readonly<{
@@ -23,12 +25,13 @@ type StaticPlanInstallation<Request, Prepared> = Readonly<{
     kindOf(prepared: Awaited<Prepared>): 'effectful' | 'effect_free';
   }>;
   authorize: (request: Request) => boolean | PromiseLike<boolean>;
-  readOriginal?: (request: Request) => unknown;
+  authorizeDebugEntry?: (request: Request) => boolean;
+  readOriginal?: (request: Request, retainAcquiredEgress: AcquiredPlanEgress) => unknown;
 }>;
 
 export function installClientStaticPlan<Request extends StaticPlanRequest, Prepared>(
-  {moon, control, prepare, authorize, readOriginal}: StaticPlanInstallation<Request, Prepared>,
-): (request: Request) => Promise<StaticPlanView> {
+  {moon, control, prepare, authorize, authorizeDebugEntry, readOriginal}: StaticPlanInstallation<Request, Prepared>,
+) {
   if (typeof prepare !== 'function' || typeof prepare.assertOwned !== 'function' ||
       typeof prepare.kindOf !== 'function' || typeof authorize !== 'function' ||
       typeof control?.readCheckedClientStaticPlan !== 'function' ||
@@ -38,11 +41,17 @@ export function installClientStaticPlan<Request extends StaticPlanRequest, Prepa
   }
   const denied = () => Object.assign(new Error('ClientConnectionDenied'),
     {code: 'ClientConnectionDenied'});
-  return async (request: Request) => {
+  return async <Value = StaticPlanView,>(request: Request, deliver?: PlanDelivery<Value>) => {
     if (await authorize(request) !== true) throw denied();
     request.signal?.throwIfAborted();
     let kind: StaticPlanKind | undefined, wire: unknown;
-    if (readOriginal !== undefined) wire = await readOriginal(request);
+    let acquiredCurrent: (() => void) | undefined;
+    if (readOriginal !== undefined) {
+      wire = await readOriginal(request, function retainOriginalPlanEgress(assertCurrent) {
+        if (acquiredCurrent !== undefined) throw new TypeError('InvalidClientHostPlanView');
+        acquiredCurrent = assertCurrent;
+      });
+    }
     else {
       // Explicit compiler ports used by component callers. The installed
       // ordinary service always selects its held original read above.
@@ -56,15 +65,29 @@ export function installClientStaticPlan<Request extends StaticPlanRequest, Prepa
       throw new TypeError('InvalidClientHostPlanView');
     }
     const view: unknown = JSON.parse(wire);
-    if (!(kind === 'effects' ? validWireEffectfulStaticPlanViewShape(view)
-      : validWirePlanViewShape(view) || kind === undefined && validWireEffectfulStaticPlanViewShape(view))) {
+    const pure = kind !== 'effects' && validWirePlanViewShape(view);
+    if (!pure && !(kind !== 'tasks' && kind !== 'values' && validWireEffectfulStaticPlanViewShape(view))) {
       throw new TypeError('InvalidClientHostPlanView');
     }
     // No prepared handle or Plan authority crosses the read boundary. Current
     // access is checked again after asynchronous preparation.
     request.signal?.throwIfAborted();
-    if (await authorize(request) !== true) throw denied();
-    return view as StaticPlanView;
+    if (await authorize(request) !== true ||
+        pure && view.capabilities.debug_entry === true && authorizeDebugEntry?.(request) !== true) throw denied();
+    let delivering = true;
+    const assertCurrent = () => {
+      if (!delivering) throw denied();
+      request.signal?.throwIfAborted();
+      acquiredCurrent?.();
+    };
+    try {
+      if (deliver !== undefined) return deliver(view as StaticPlanView, assertCurrent);
+      assertCurrent();
+      return view as StaticPlanView;
+    } finally {
+      acquiredCurrent = undefined;
+      delivering = false;
+    }
   };
 }
 
@@ -76,6 +99,7 @@ type StaticCurrent = () => unknown;
 type StaticExplanationInstallation<Request> = Readonly<{
   authorize(request: Request): unknown;
   authorizeEgress(request: Request): unknown;
+  authorizeDebugEntry?: (request: Request) => boolean;
   withOriginal<Value>(request: Request,
     visit: (wires: StaticExplanationWires, assertCurrent: StaticCurrent) => Promise<Value>): Value | PromiseLike<Value>;
 }>;
@@ -93,7 +117,7 @@ function assertSynchronousStaticCurrent(assertCurrent: StaticCurrent) {
 // preparation owner backs decoding, the combined response and consumption,
 // retains that reservation until this visitor finishes, and supplies a
 // synchronous assertion for the same original's current state.
-export function installClientStaticEffectExplanation<Request extends StaticPlanRequest>({authorize, authorizeEgress, withOriginal}:
+export function installClientStaticEffectExplanation<Request extends StaticPlanRequest>({authorize, authorizeEgress, authorizeDebugEntry, withOriginal}:
   StaticExplanationInstallation<Request>) {
   if (typeof authorize !== 'function' || typeof authorizeEgress !== 'function' ||
       typeof withOriginal !== 'function') {
@@ -181,6 +205,8 @@ export function installClientStaticEffectExplanation<Request extends StaticPlanR
       assertSynchronousStaticCurrent(assertCurrent);
       // Keep the current Account observation in the same turn as the sink.
       requireCurrentEgress();
+      if (view.plan.version === 'actql-plan-view/0.1' && view.plan.capabilities.debug_entry === true &&
+          authorizeDebugEntry?.(request) !== true) throw staticExplanationFailure('StaticExplanationAccessDenied');
       const delivery = await consume(view);
       assertActive();
       completed = true;

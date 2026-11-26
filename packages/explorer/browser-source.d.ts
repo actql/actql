@@ -1,15 +1,30 @@
 import type {CheckpointPageModel,ReviewObservation,ReviewReference} from '@actql/explorer-ui/checkpoint-review';
 import type {OriginalCancellation, CancellationObservation} from '@actql/explorer-ui/cancellation';
 import type {Client, RunReference, ResultDescription, CancellationReference} from '@actql/sdk';
-import type {WireCancellationLookup, WireRunView, WireRunExplanationView} from '@actql/client-wire';
+import type {WireCancellationLookup, WireControlCommand, WireControlOperationLookup, WireControlOperationRef, WireRunView, WireRunExplanationView, WireRunSample, WireSubmissionRef} from '@actql/client-wire';
 import type {RunObservationModel} from '@actql/explorer-ui/run-observation';
-import type {PlanReadModel, StaticExplanationReadModel, OriginalRunPlanReadModel, OriginalRunPresentationReadModel, SavedExplanationReadModel} from '@actql/explorer-ui/read-model';
+import type {PlanReadModel, StaticExplanationReadModel, OriginalRunPlanReadModel, OriginalRunPresentationReadModel, SavedExplanationReadModel, SamplePortSelection} from '@actql/explorer-ui/read-model';
 export type ExplorerCapabilities = Readonly<{plan: boolean; run: true;
-  resultMetadata: true; resultPayload: false; control: false; sample: false; cancellation: boolean;checkpointList:boolean;checkpointReview:boolean}>;
+  resultMetadata: true; resultPayload: false; control: false; sample: boolean; cancellation: boolean;checkpointList:boolean;checkpointReview:boolean;
+  runStart?: true; debugResume?: true}>;
+export type ExplorerResumeSelection = Readonly<{operationId: string; expectedRevision: number; until: 'step' | 'terminal'}>;
+export type ExplorerStartSelection = Readonly<{ref: WireSubmissionRef;
+  text: string; format: 'sql' | 'aql' | 'aql-text' | 'program'}> &
+  (Readonly<{executionProfile?: never; programDefinitionCid?: never}> |
+    Readonly<{executionProfile: 'debug'; programDefinitionCid: string}>);
+export type ExplorerStartObservation = Readonly<{state: 'ready'; ref: RunReference}> |
+  Readonly<{state: 'held' | 'preparing' | 'not_accepted' | 'preparation_failed' | 'unresolvable' | 'reply_unknown'}>;
 export function createExplorerBrowserSource(options: Readonly<{
   origin: string; fetch?: typeof fetch; now?: () => number;
 }>): Readonly<{
   connect(bootstrap: string): Promise<ExplorerCapabilities>;
+  prepareStart(): Promise<WireSubmissionRef>;
+  startRun(selection: ExplorerStartSelection): Promise<ExplorerStartObservation>;
+  prepareResume(ref: RunReference, selection: ExplorerResumeSelection): Promise<WireControlCommand>;
+  resume(command: WireControlCommand): Promise<WireControlOperationLookup |
+    Readonly<{state: 'reply_unknown'; operationRef: WireControlOperationRef}>>;
+  lookupControlOperation(operationRef: WireControlOperationRef): Promise<WireControlOperationLookup>;
+  lookupStart(ref: WireSubmissionRef): Promise<ExplorerStartObservation>;
   launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |
     Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;
   plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;
@@ -21,6 +36,7 @@ export function createExplorerBrowserSource(options: Readonly<{
   explain(ref: RunReference): Promise<WireRunExplanationView>;
   runContext(ref: RunReference, locale?: 'en' | 'ja'): Promise<SavedExplanationReadModel>;
   runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;
+  runSample(ref: RunReference, port: SamplePortSelection): Promise<WireRunSample>;
   describe(ref: RunReference, name: string): Promise<ResultDescription>;
   cancel(original: OriginalCancellation): Promise<CancellationObservation>;
   lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;

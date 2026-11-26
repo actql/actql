@@ -1,5 +1,8 @@
 import type * as Public from './gateway.js';
 import type {Client} from '@actql/sdk';
+import type {WireControlCommand, WireControlOperationRef, WireExplanationFacts, WireExplanationNarrative, WireStaticExplanationView, WireSubmissionRef}
+  from '@actql/client-wire';
+import type {ExplorerStartObservation} from './browser-source.js';
 import type {ContentfulStatusCode} from 'hono/utils/http-status';
 import type {Server} from 'node:http';
 import type {AddressInfo} from 'node:net';
@@ -11,11 +14,13 @@ import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {Hono} from 'hono';
 import {serve} from '@hono/node-server';
-import {validRunRef} from '@actql/client-wire';
+import {resumeControlOperationRef, sameSubmissionRef, validControlOperationLookup, validRunRef, validSubmissionRef,
+  validWireControlCommandShape, validWireControlOperationRefShape, withinResultDescriptionLimits} from '@actql/client-wire';
+import {getSubmissionOutcome} from '@actql/sdk';
 import {canonicalJson} from '@actql/sdk/host-port';
 import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
   readExistingRunExplanation, readExistingRunPresentation, readExistingRunContext, readStaticPlan,
-  readStaticExplanation} from '@actql/explorer-ui/read-model';
+  readStaticExplanation, readExistingRunSample, validSamplePortSelection, type ReadTicket} from '@actql/explorer-ui/read-model';
 import {copyExplorerLaunchInput} from './launch-input.mjs';
 import {requestExistingCancellation, lookupExistingCancellation} from './cancellation.mjs';
 import {readRunObservation} from '@actql/explorer-ui/run-observation';
@@ -35,7 +40,66 @@ const exact = (value:unknown, required:readonly string[], optional:readonly stri
   required.every(key => Object.hasOwn(value, key)) &&
   Object.keys(value).every(key => [...required, ...optional].includes(key));
 const fail:(code:string,status?:number)=>never = (code, status = 400) => {throw Object.assign(new Error(code), {code, status});};
-async function loadExplanationRenderer(ticket: Parameters<typeof readStaticExplanation>[4]): Promise<Parameters<typeof readStaticExplanation>[3]['render']> {
+function startObservation(outcome: ReturnType<typeof getSubmissionOutcome>,
+  submissionRef: WireSubmissionRef): ExplorerStartObservation {
+  if (outcome === undefined) return {state: 'reply_unknown'};
+  if (!sameSubmissionRef(outcome.submissionRef, submissionRef)) fail('ExplorerInvalidReply', 409);
+  if (outcome.kind === 'ready') {
+    const ref = outcome.admission?.ref;
+    if (!validRunRef(ref) || ref.authorityScopeCid !== submissionRef.epoch.authorityScopeCid) {
+      fail('ExplorerInvalidReply', 409);
+    }
+    return {state: 'ready', ref};
+  }
+  if (outcome.kind === 'held' || outcome.kind === 'preparing' || outcome.kind === 'not_accepted' ||
+      outcome.kind === 'preparation_failed' || outcome.kind === 'unresolvable') {
+    return {state: outcome.kind};
+  }
+  fail('ExplorerInvalidReply', 409);
+}
+
+async function startExplorerRun(client: Pick<Parameters<typeof Public.createExplorerGateway>[0]['client'], 'startSource' | 'plan'>,
+  body: unknown, ticket: ReadTicket) {
+  if (!exact(body, ['ref', 'text', 'format'], ['executionProfile', 'programDefinitionCid']) ||
+      !validSubmissionRef(body.ref) ||
+      typeof body.text !== 'string' || !body.text.isWellFormed() || !body.text.trim() ||
+      body.format !== 'sql' && body.format !== 'aql' && body.format !== 'aql-text' && body.format !== 'program') {
+    fail('ExplorerInvalidRequest');
+  }
+  const debug = Object.hasOwn(body, 'executionProfile') || Object.hasOwn(body, 'programDefinitionCid');
+  if (debug && (body.executionProfile !== 'debug' || typeof body.programDefinitionCid !== 'string' ||
+      !/^sha256:[0-9a-f]{64}$/u.test(body.programDefinitionCid))) fail('ExplorerInvalidRequest');
+  const submissionRef = Object.freeze({...body.ref, epoch: Object.freeze({...body.ref.epoch})});
+  if (debug) {
+    if (client.plan === undefined) return {state: 'not_accepted'};
+    try {
+      const input = body.format === 'program' ? JSON.parse(body.text) : body.text;
+      const plan = await readStaticPlan({plan: client.plan.bind(client)}, input,
+        body.format === 'program' ? {} : {format: body.format}, ticket);
+      if (plan.debugEntry !== true || plan.programDefinitionCid !== body.programDefinitionCid) {
+        return {state: 'not_accepted'};
+      }
+    } catch {
+      ticket.assertCurrent();
+      return {state: 'not_accepted'};
+    }
+    ticket.assertCurrent();
+  }
+  let outcome;
+  try {
+    const run = await client.startSource!(body.text, {submissionRef,
+      format: body.format === 'program' ? 'json' : body.format,
+      ...(debug ? {executionProfile: 'debug' as const} : {})});
+    outcome = getSubmissionOutcome(run);
+  } catch (error) {
+    outcome = getSubmissionOutcome(error);
+  }
+  ticket.assertCurrent();
+  return startObservation(outcome, submissionRef);
+}
+
+async function loadExplanationRenderer(ticket: Parameters<typeof readStaticExplanation>[4]):
+  Promise<(view: WireStaticExplanationView | WireExplanationFacts, locale: 'en' | 'ja') => WireExplanationNarrative> {
   const {renderStaticExplanationNarrative} = await import('@actql/local-node/_internal/explanation-narrative');
   ticket.assertCurrent();
   return (view, locale) => renderStaticExplanationNarrative(canonicalJson(view, {dataKeys: true}), locale);
@@ -104,20 +168,76 @@ function copiedAssets(assets:unknown) {
   }
   return result;
 }
+const resumeLimits = Object.freeze({maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64});
+const commandLimits = Object.freeze({maxWireBytes: 4096, maxNodes: 64, maxDepth: 8});
+const resumeCommand = (value: unknown): value is WireControlCommand =>
+  withinResultDescriptionLimits(value, commandLimits) && validWireControlCommandShape(value) &&
+  value.operation === 'resume' && value.interval?.guards === null &&
+  (value.interval.until === 'step' || value.interval.until === 'terminal');
+
+async function prepareDebugResume(client: Pick<Client, 'attach'>, body: unknown, ticket: ReadTicket) {
+  if (!exact(body, ['ref', 'operationId', 'expectedRevision', 'until']) || !validRunRef(body.ref) ||
+      typeof body.operationId !== 'string' || !body.operationId.isWellFormed() ||
+      body.operationId.length < 1 || body.operationId.length > commandLimits.maxWireBytes ||
+      typeof body.expectedRevision !== 'number' || !Number.isInteger(body.expectedRevision) ||
+      body.expectedRevision < 1 || body.expectedRevision > 2147483647 ||
+      body.until !== 'step' && body.until !== 'terminal') fail('ExplorerInvalidRequest');
+  const {ref, operationId, expectedRevision, until} = body;
+  const run = await client.attach(Object.freeze({...ref}));
+  ticket.assertCurrent();
+  if (typeof run.prepareResume !== 'function') fail('ExplorerCapabilityUnavailable', 404);
+  const command = await run.prepareResume({operationId, expectedRevision, until});
+  ticket.assertCurrent();
+  if (!resumeCommand(command) || !sameRunRef(ref, command.run_ref) ||
+      command.operation_id !== operationId || command.expected_control_revision !== expectedRevision ||
+      command.interval?.until !== until) fail('ExplorerInvalidReply', 409);
+  return command;
+}
+
+function sameRunRef(left: WireControlOperationRef['run_ref'], right: WireControlOperationRef['run_ref']) {
+  return left.namespaceId === right.namespaceId && left.authorityScopeCid === right.authorityScopeCid &&
+    left.runDefinitionCid === right.runDefinitionCid;
+}
+
+async function observeDebugResume(client: Pick<Client, 'attach'>, original: WireControlOperationRef,
+  ticket: ReadTicket, command?: WireControlCommand) {
+  const run = await client.attach(Object.freeze({...original.run_ref}));
+  ticket.assertCurrent();
+  if (command ? typeof run.resume !== 'function' : typeof run.lookupControlOperation !== 'function') {
+    fail('ExplorerCapabilityUnavailable', 404);
+  }
+  let answer;
+  try {
+    answer = command ? await run.resume(command, resumeLimits) :
+      await run.lookupControlOperation(original, resumeLimits);
+  } catch (error) {
+    ticket.assertCurrent();
+    const code = (error as ErrorView | null)?.code;
+    if (command && code === 'ClientRunDebugEntryRevisionConflict') fail('ExplorerControlRevisionConflict', 409);
+    if (command && code === 'ClientRunDebugEntryUnsupportedCommand') fail('ExplorerResumeUnsupported', 400);
+    throw error;
+  }
+  ticket.assertCurrent();
+  if (!withinResultDescriptionLimits(answer, resumeLimits) ||
+      !validControlOperationLookup(answer, original)) fail('ExplorerInvalidReply', 409);
+  return answer;
+}
+
 function safeReadError(error: unknown) {
   if ((error as ErrorView | null | undefined)?.code === 'InvalidStaticExplanationNarrative') return {code: 'ExplorerInvalidExplanation', status: 409};
   if ((error as ErrorView | null | undefined)?.code === 'StaticExplanationNarrativeLimit') return {code: 'ExplorerExplanationLimit', status: 409};
   if (['ExplorerBodyLimit', 'ExplorerContentType', 'ExplorerInvalidRequest',
     'ExplorerSessionExpired', 'ExplorerBootstrapRefused', 'ExplorerSessionRefused',
-    'ExplorerBusy', 'ExplorerCapabilityUnavailable', 'ExplorerReplyLimit',
-    'ExplorerReadTimeout', 'ExplorerStaleScope', 'ExplorerMapLimit', 'ExplorerExplanationLimit', 'ExplorerUnsupportedLocale',
-    'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan', 'ExplorerInvalidExplanation', 'ExplorerInvalidCancellation','ExplorerInvalidCheckpointReview'].includes((error as ErrorView | null | undefined)?.code as string)) {
+    'ExplorerBusy', 'ExplorerCapabilityUnavailable', 'ExplorerInvalidReply', 'ExplorerReplyLimit',
+    'ExplorerReadTimeout', 'ExplorerStaleScope', 'ExplorerControlRevisionConflict', 'ExplorerResumeUnsupported', 'ExplorerMapLimit', 'ExplorerExplanationLimit', 'ExplorerUnsupportedLocale',
+    'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan', 'ExplorerInvalidExplanation', 'ExplorerInvalidCancellation', 'ExplorerInvalidSample', 'ExplorerInvalidCheckpointReview'].includes((error as ErrorView | null | undefined)?.code as string)) {
     return {code: (error as ErrorView).code, status: (error as ErrorView).status ?? 409};
   }
   // Never serialize Host messages, bodies, URLs, stack traces or credentials.
+  if ((error as ErrorView | null | undefined)?.status === 401) return {code: 'ExplorerSessionExpired', status: 401};
   if ((error as ErrorView | null | undefined)?.code === 'AuthorizationDenied' || (error as ErrorView | null | undefined)?.code === 'ClientUnauthorized' ||
       (error as ErrorView | null | undefined)?.code === 'StaticExplanationAccessDenied' ||
-      (error as ErrorView | null | undefined)?.status === 401 || (error as ErrorView | null | undefined)?.status === 403) {
+      (error as ErrorView | null | undefined)?.status === 403) {
     return {code: 'ExplorerReadRefused', status: 403};
   }
   return {code: 'ExplorerReadUnavailable', status: 502};
@@ -126,11 +246,15 @@ function safeReadError(error: unknown) {
 /** Attach a borrowed, already-connected public SDK Client. No Host is opened. */
 export function createExplorerGateway({client, origin, assets = new Map(),
   now = Date.now, sessionMs = gatewayLimits.sessionMs,
-  bootstrapMs = gatewayLimits.bootstrapMs, launchInput = null, allowCancellation = false}:Parameters<typeof Public.createExplorerGateway>[0]):ReturnType<typeof Public.createExplorerGateway> {
+  bootstrapMs = gatewayLimits.bootstrapMs, launchInput = null, allowCancellation = false,
+  allowRunStart = false, allowSamples = false, allowDebugResume = false}: Parameters<typeof Public.createExplorerGateway>[0]): ReturnType<typeof Public.createExplorerGateway> {
   const address = new URL(origin);
   if (address.protocol !== 'http:' || address.hostname !== '127.0.0.1' ||
       !address.port || origin !== address.origin || address.username || address.password ||
-      typeof allowCancellation !== 'boolean' || typeof client?.attach !== 'function' || typeof now !== 'function' ||
+      typeof allowCancellation !== 'boolean' || typeof allowRunStart !== 'boolean' || typeof allowSamples !== 'boolean' || typeof allowDebugResume !== 'boolean' ||
+      allowRunStart && (['newSubmission', 'startSource', 'lookupSubmission'] as const)
+        .some(name => typeof client?.[name] !== 'function') ||
+      typeof client?.attach !== 'function' || typeof now !== 'function' ||
       !Number.isSafeInteger(sessionMs) || sessionMs <= 0 || sessionMs > gatewayLimits.sessionMs ||
       !Number.isSafeInteger(bootstrapMs) || bootstrapMs <= 0 || bootstrapMs > gatewayLimits.bootstrapMs) {
     fail('ExplorerInvalidGateway');
@@ -190,7 +314,8 @@ export function createExplorerGateway({client, origin, assets = new Map(),
     c.header('Set-Cookie', `${cookieName}=${session.value}; Path=/api; HttpOnly; SameSite=Strict; Max-Age=${Math.ceil(sessionMs / 1000)}`);
     return c.json({csrf: session.csrf, scopeEpoch, expiresAt: session.expiresAt,
       capabilities: {plan: typeof client.plan === 'function', run: true,
-        resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: allowCancellation, checkpointList:typeof client.checkpoints==='function', checkpointReview:typeof client.reviewCheckpoint==='function'}});
+        resultMetadata: true, resultPayload: false, control: false, sample: allowSamples, cancellation: allowCancellation, checkpointList:typeof client.checkpoints==='function', checkpointReview:typeof client.reviewCheckpoint==='function',
+        ...(allowRunStart ? {runStart: true} : {}), ...(allowDebugResume ? {debugResume: true} : {})}});
   });
   app.post('/api/:group/:kind', async c => {
     const selected = session;
@@ -215,7 +340,14 @@ export function createExplorerGateway({client, origin, assets = new Map(),
       assertSession(selected); ticket.assertCurrent();
       let data:unknown;
       const group=c.req.param('group'),kind=c.req.param('kind');
-      if (group==='control') {
+      if (group === 'control' && kind === 'start-run') {
+        if (!allowRunStart) fail('ExplorerCapabilityUnavailable', 404);
+        data = await startExplorerRun(client, body, ticket);
+      } else if (group === 'control' && kind === 'resume') {
+        if (!allowDebugResume) fail('ExplorerCapabilityUnavailable', 404);
+        if (!exact(body, ['command']) || !resumeCommand(body.command)) fail('ExplorerInvalidRequest');
+        data = await observeDebugResume(client, resumeControlOperationRef(body.command), ticket, body.command);
+      } else if (group==='control') {
         if (!allowCancellation) fail('ExplorerCapabilityUnavailable',404);
         if (kind==='cancel') {
           if (!exact(body,['cancelRef','attemptRef'])) fail('ExplorerInvalidRequest');
@@ -226,6 +358,19 @@ export function createExplorerGateway({client, origin, assets = new Map(),
         } else fail('ExplorerCapabilityUnavailable',404);
       } else if (group!=='read') fail('ExplorerCapabilityUnavailable',404);
       else switch (kind) {
+        case 'prepare-start':
+          if (!allowRunStart) fail('ExplorerCapabilityUnavailable', 404);
+          if (!exact(body, [])) fail('ExplorerInvalidRequest');
+          data = client.newSubmission!();
+          if (!validSubmissionRef(data)) fail('ExplorerInvalidReply', 409);
+          break;
+        case 'lookup-start': {
+          if (!allowRunStart) fail('ExplorerCapabilityUnavailable', 404);
+          if (!exact(body, ['ref']) || !validSubmissionRef(body.ref)) fail('ExplorerInvalidRequest');
+          const original = Object.freeze({...body.ref, epoch: Object.freeze({...body.ref.epoch})});
+          data = startObservation(await client.lookupSubmission!(original), original);
+          break;
+        }
         case 'launch':
           if (!exact(body, [])) fail('ExplorerInvalidRequest');
           // Return only the existing Owner's admitted projection, not the
@@ -269,6 +414,22 @@ export function createExplorerGateway({client, origin, assets = new Map(),
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
           data = await readRunObservation(client, body.ref, ticket);
           break;
+        case 'prepare-resume':
+          if (!allowDebugResume) fail('ExplorerCapabilityUnavailable', 404);
+          data = await prepareDebugResume(client, body, ticket);
+          break;
+        case 'lookup-control-operation':
+          if (!allowDebugResume) fail('ExplorerCapabilityUnavailable', 404);
+          if (!exact(body, ['operationRef']) ||
+              !validWireControlOperationRefShape(body.operationRef)) fail('ExplorerInvalidRequest');
+          data = await observeDebugResume(client, body.operationRef, ticket);
+          break;
+        case 'run-sample':
+          if (!allowSamples) fail('ExplorerCapabilityUnavailable', 404);
+          if (!exact(body, ['ref', 'port']) || !validRunRef(body.ref) ||
+              !validSamplePortSelection(body.port)) fail('ExplorerInvalidRequest');
+          data = await readExistingRunSample(client, body.ref, body.port, ticket);
+          break;
         case 'run-plan':
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
           data = await readExistingRunPlan(client, body.ref, ticket);
@@ -284,11 +445,13 @@ export function createExplorerGateway({client, origin, assets = new Map(),
           data = await readExistingRunContext(client, body.ref, {locale: body.locale as 'en' | 'ja' | undefined, render}, ticket);
           break;
         }
-        case 'run-presentation':
+        case 'run-presentation': {
           if (!exact(body, ['ref'], ['locale']) || !validRunRef(body.ref) ||
               body.locale !== undefined && !['en', 'ja'].includes(body.locale as string)) fail('ExplorerInvalidRequest');
-          data = await readExistingRunPresentation(client, body.ref, {locale: body.locale as 'en'|'ja'|undefined}, ticket);
+          const render = await loadExplanationRenderer(ticket);
+          data = await readExistingRunPresentation(client, body.ref, {locale: body.locale as 'en' | 'ja' | undefined, render}, ticket);
           break;
+        }
         case 'checkpoints':
           if(!exact(body,[]))fail('ExplorerInvalidRequest');
           data=await readWaitingCheckpoints(client,ticket);break;

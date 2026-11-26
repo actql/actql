@@ -103,6 +103,7 @@ test "checked static Effect Explanation bridge reads the original Request and it
       64,
       10000,
       [],
+      false,
     )
     is Err(Projection(Preparation(ForeignOriginal))),
   )
@@ -115,6 +116,7 @@ test "checked static Effect Explanation bridge reads the original Request and it
       64,
       10000,
       [],
+      true,
     ).unwrap()
     let parse = (name, wire) => {
       @publication.parse_interactive_run_control_shape(

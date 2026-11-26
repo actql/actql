@@ -18,7 +18,7 @@ const canonical = value => value !== null && typeof value === 'object'
       `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
   : JSON.stringify(value);
 
-async function fixture({acquired = false} = {}) {
+async function fixture({acquired = false, resultFields} = {}) {
   // Reuse input vectors, not an oracle calculated from the product's Plan.
   const vectors = await readFile(new URL('../../src/client_infer_host/serialization_input_wbtest.mbt', import.meta.url), 'utf8');
   const task = JSON.parse(vectors.match(/let task =\s+#\|([^\n]+)/u)[1]);
@@ -41,6 +41,7 @@ async function fixture({acquired = false} = {}) {
     // pair before the consumer. Keep it; Serialize is not a replacement scan.
     stage.steps.splice(1, 0, {select: ['id', 'amount'], as: 'captured'});
     stage.steps.splice(2, 0, {assert_rows: {unique_by: ['id']}, as: 'unique_input'});
+    if (resultFields !== undefined) stage.results.answer.fields = resultFields;
     document = canonical(program);
   }
   const {evidence_bundle_cid: _, ...body} = base;
@@ -129,15 +130,13 @@ test('Host retains the checked acquired policy and Source port in an intermediat
     {remote: 'sha256:9acb07a25a365ae4cc47286f663bea8727eea912cdc188cddb55ca136c38c163'});
   const graph = control.prepareCheckedClientSerializedInferGraph(f.occurrence, component, f.execution);
   const plan = JSON.parse(moon.clientProgramInferPlanGraphWire(graph));
-  assert.equal(plan.root_refs.length, 1);
-  // Acquired task completion needs the existing explicit Result projection,
-  // rather than treating its capture target as the Model's completed port.
   assert.deepEqual(plan.nodes.map(node => node.node_id), [
     'task_0_before_serialize_3', 'task_0_serialize_3',
-    'task_0_after_serialize_4', 'task_0_infer_5', 'result_0',
+    'task_0_after_serialize_4', 'task_0_infer_5',
   ]);
-  assert.equal(plan.data_edges.length, 4);
-  assert.equal(plan.root_refs[0].ref.node_id, 'result_0');
+  assert.equal(plan.data_edges.length, 3);
+  assertCheckedResultRoot(plan, f.prepared, {node_id: 'task_0_infer_5', port: 'infer_5'},
+    ['name', 'outcome', 'value']);
   assert.equal(JSON.stringify(plan).includes('REL.values'), false);
   const barrier = prefix.nodes.find(node => node.kind === 'content_barrier').barrier;
   assert.notEqual(barrier.effective_output_data_policy_cid, f.policy.cid,
@@ -161,4 +160,41 @@ test('Host retains the checked acquired policy and Source port in an intermediat
     {...component}, f.execution), /Foreign Content compilation graph/u);
   assert.throws(() => control.prepareCheckedClientAcquiredSerializationComponent(f.prepared,
     {...options, maxBytes: -1}), /Invalid acquired Content compilation options/u);
+});
+
+function assertCheckedResultRoot(plan, prepared, ref, fields) {
+  assert.deepEqual(plan.root_refs, [{name: 'answer', ref, role: 'requested_result'}]);
+  const checkedResult = checked(moon.clientProgramIssueResultPlan(prepared, 0));
+  const resultPlan = JSON.parse(moon.clientProgramResultPlanWire(checkedResult));
+  assert.equal(resultPlan.result_name, 'answer');
+  assert.deepEqual(resultPlan.order, {strategy: 'inherited', terms: []});
+  assert.deepEqual(resultPlan.projection.map(({input, output}) => [input, output]),
+    fields.map(name => [name, name]));
+  const producer = plan.nodes.find(node => node.node_id === ref.node_id);
+  assert.ok(producer);
+  assert.deepEqual(resultPlan.typed_output_port, {
+    carrier: 'relation', name: 'answer', row_contract_cid: producer.output_contracts[ref.port],
+  });
+  return producer;
+}
+
+test('an acquired serialized Model Result with fewer fields still selects an explicit projection', async () => {
+  const resultFields = ['name', 'value'];
+  const f = await fixture({acquired: true, resultFields});
+  const control = runtimeCore(moon).publicationControl;
+  const component = control.prepareCheckedClientAcquiredSerializationComponent(f.prepared,
+    {task: 0, step: 3, maxRows: 2, maxBytes: 18});
+  const graph = control.prepareCheckedClientSerializedInferGraph(f.occurrence, component, f.execution);
+  const plan = JSON.parse(moon.clientProgramInferPlanGraphWire(graph));
+  const model = plan.nodes.find(node => node.node_id === 'task_0_infer_5');
+  const projection = assertCheckedResultRoot(plan, f.prepared, {node_id: 'result_0', port: 'projected'}, resultFields);
+  const modelContract = model.output_contracts.infer_5;
+  assert.deepEqual(projection.input_contracts, {input_0: modelContract});
+  assert.notEqual(projection.output_contracts.projected, modelContract);
+  assert.deepEqual(projection.pipeline.steps, [
+    {id: 'projected', in: ['input_0'], op: 'REL.select', params: {columns: resultFields}},
+  ]);
+  assert.equal(plan.data_edges.length, 4);
+  assert.deepEqual(plan.data_edges.at(-1), {carrier: 'relation', contract_cid: modelContract,
+    from: {node_id: 'task_0_infer_5', port: 'infer_5'}, to: {node_id: 'result_0', port: 'input_0'}});
 });

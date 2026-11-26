@@ -42,7 +42,8 @@ type RequestSnapshot = Readonly<{
 }>;
 type RequestJournal = ReturnType<typeof openClientRequestJournal>;
 type StaticPlanLimits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number;
-  acquiredPlanAuthorization?: Readonly<{connection: () => boolean; accountMetadata: () => unknown}>}>;
+  acquiredPlanAuthorization?: Readonly<{connection: () => boolean; accountMetadata: () => unknown;
+    retainEgress(assertCurrent: () => void): void}>}>;
 type StaticExplanationWires = Readonly<{plan: string; facts: string; context: string}>;
 type StaticExplanationVisitor<Value> = (wires: StaticExplanationWires, assertCurrent: () => void) => Value;
 type VerifyOriginalPolicy = (subject: unknown, options: Readonly<{signal: AbortSignal | undefined}>) => unknown;
@@ -831,7 +832,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
     async withOriginalStaticEffectExplanation<Value>(request: object, environment: unknown,
         originalVerifier: VerifyOriginalPolicy | undefined, signal: AbortSignal | undefined, limits: StaticPlanLimits,
         maxWork: number, visit: StaticExplanationVisitor<Value>, modelInstallation?: StaticModelInstallation,
-        fileReadDeclarations?: readonly unknown[]): Promise<Awaited<Value>> {
+        fileReadDeclarations?: readonly unknown[], debugEntryInstalled = false): Promise<Awaited<Value>> {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.parent === undefined || state.preparing || state.adopting ||
@@ -850,7 +851,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
       };
       try {
         const wires = await view.fundedPreparation(request, environment, originalVerifier, signal,
-          undefined, limits, modelInstallation, fileReadDeclarations, visit, maxWork);
+          undefined, limits, modelInstallation, fileReadDeclarations, visit, maxWork, debugEntryInstalled);
         assertOriginal();
         const response = await visit(wires as StaticExplanationWires, assertOriginal);
         assertOriginal();
@@ -862,7 +863,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
     async fundedPreparation(request: object, environment: unknown, originalVerifier?: VerifyOriginalPolicy,
         signal?: AbortSignal, journal?: RequestJournal, staticPlan?: StaticPlanLimits,
         staticModelInstallation?: StaticModelInstallation, staticFileReadDeclarations?: readonly unknown[],
-        staticExplanation?: StaticExplanationVisitor<unknown>, maxWork?: number):
+        staticExplanation?: StaticExplanationVisitor<unknown>, maxWork?: number, debugEntryInstalled = false):
         Promise<FundedRequest | StaticExplanationWires | string | undefined> {
       current();
       const producer = producerForRequest(request);
@@ -885,6 +886,8 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
       // Only the installed static-plan service selects this private read.
       // Capture the same loaded compiler method before policy verification can
       // await. Its token still requires actual original working admission.
+      const inspectInstalled = staticPlan !== undefined &&
+        typeof Object.getOwnPropertyDescriptor(moon, 'clientProgramCurrentRunView')?.value === 'function';
       const readStaticPlan = staticPlan === undefined ? undefined
         : Object.getOwnPropertyDescriptor(moon, 'clientProgramRequestOriginalStaticPlanWire')?.value;
       const readCheckedStaticPlan = staticPlan === undefined ? undefined
@@ -1141,7 +1144,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
               ? checked(Reflect.apply(requiresTime, moon, [prepared, 100000, 100000])) as boolean : false;
             if (typeof state.requiresQueryTime !== 'boolean') fail('InvalidHostRuntimeResult');
             if (staticExplanation === undefined && state.compilationFamily === 'pure' && count === 0) {
-              prepareOriginalExplanation(state, producer!, contracts, journal, staticPlan);
+              prepareOriginalExplanation(state, producer!, contracts, journal, staticPlan, debugEntryInstalled);
             }
             // A timed module needs the actual submission Request and first
             // bound Run. Keep this SAME borrower until that adoption caller.
@@ -1169,6 +1172,9 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
       if (staticPlan !== undefined) {
         const effectful = state.compilationKind === 'effectful';
         const acquired = (state.acquisitionCount ?? 0) > 0;
+        const acquiredPlan = !effectful && acquired && explanationPorts === undefined;
+        const acquiredAuthorization = staticPlan.acquiredPlanAuthorization;
+        if (acquiredPlan && acquiredAuthorization === undefined) fail('ClientConnectionDenied');
         if (effectful || acquired || explanationPorts !== undefined) {
           if (explanationPorts === undefined &&
               (typeof readCheckedStaticPlan !== 'function' || typeof checkedStaticIssue !== 'function')) {
@@ -1187,17 +1193,24 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
             }
             const readOriginal = effectful ? state.effectBorrowMethods!.clientProgramEffectPreparationInputRead
               : moon.clientProgramPreparationBorrowRead;
-            const assertOriginal = () => {
+            const assertSelection = () => {
               current(); signal?.throwIfAborted();
-              if (producer!.finished || producer!.preparation !== state || state.prepared !== prepared ||
+              if (producerForRequest(request) !== producer || producer!.finished ||
+                  producer!.preparation !== state || state.prepared !== prepared ||
                   Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) {
                 fail('ForeignInstalledSourceProducer');
               }
-              // Acquired metadata uses the same immediate Account read
-              // decision as structural Explain, never a delegated or stale grant.
-              if (!effectful && acquired && explanationPorts === undefined &&
-                  (staticPlan.acquiredPlanAuthorization?.connection() !== true ||
-                    staticPlan.acquiredPlanAuthorization.accountMetadata() !== true)) fail('ClientConnectionDenied');
+            };
+            const assertOriginal = () => {
+              assertSelection();
+              // Use the original immediate Account decision for each
+              // acquired metadata disclosure, including transport delivery.
+              if (acquiredPlan) {
+                if (acquiredAuthorization!.connection() !== true ||
+                    acquiredAuthorization!.accountMetadata() !== true ||
+                    acquiredAuthorization!.connection() !== true) fail('ClientConnectionDenied');
+                assertSelection();
+              }
             };
             assertOriginal();
             const occurrences = effectful || explanationPorts !== undefined
@@ -1220,7 +1233,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
                 const [project, planWire, factsWire, contextWire] = explanationPorts;
                 const projection = checked(Reflect.apply(project, moon, [state.parent, producer!.receipt,
                   staticPlan.maxWireBytes, staticPlan.maxNodes, staticPlan.maxDepth,
-                  maxWork, state.staticModelGraphs]));
+                  maxWork, state.staticModelGraphs, debugEntryInstalled && !effectful && state.compilationFamily === 'pure']));
                 assertOriginal();
                 return {plan: Reflect.apply(planWire, moon, [projection]),
                   facts: Reflect.apply(factsWire, moon, [projection]),
@@ -1231,9 +1244,10 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
               const wire = checkedRequestProgramPreparation(moon,
                 Reflect.apply(readCheckedStaticPlan, moon, [state.parent, producer!.receipt,
                   staticPlan.maxWireBytes, staticPlan.maxNodes, staticPlan.maxDepth,
-                  state.staticModelGraphs]), checkedStaticIssue);
+                  state.staticModelGraphs, inspectInstalled]), checkedStaticIssue);
               assertOriginal();
               if (typeof wire !== 'string') fail('InvalidOriginalStaticPlan');
+              if (acquiredPlan) acquiredAuthorization!.retainEgress(assertOriginal);
               return wire;
             });
           } catch (cause) {
@@ -1246,7 +1260,7 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
         const original = state.originalExplanation;
         if (original?.preparation === undefined) fail('ClientOperationUnavailable');
         const wire = constructRequestDomain(state, () => {
-          const value = checked(Reflect.apply(readStaticPlan, moon, [original.preparation]));
+          const value = checked(Reflect.apply(readStaticPlan, moon, [original.preparation, inspectInstalled]));
           current();
           if (producerForRequest(request) !== producer || producer!.preparation !== state ||
               state.originalExplanation !== original || typeof value !== 'string') {
@@ -1318,10 +1332,11 @@ async function prepareOrdinaryManagedInstallation<Original extends Originals>(
         const evidence = readEvidence(budget);
         // Measure the exact JSON without emitting a new copy. The submitted
         // intent has a fixed 71-byte CID, counted here before the Journal adds it.
-        const candidate = Object.freeze({...evidence, logicalPlanOriginal: original.plan,
+        const candidate = Object.freeze({...evidence,
           ...(hasIntent ? {submittedIntentCid: facts.runDefinition.identity} : {})});
         const fits = evidence !== undefined && sourceAliasDataGeometry(candidate).jsonBytes <= BigInt(budget) &&
-          Buffer.byteLength(factsWire) + Buffer.byteLength(contextWire) + Buffer.byteLength(invocationTemplateWire) <= budget;
+          Buffer.byteLength(compiledPlanWire) + Buffer.byteLength(planViewWire) + Buffer.byteLength(factsWire) +
+            Buffer.byteLength(contextWire) + Buffer.byteLength(invocationTemplateWire) <= budget;
         current();
         if (producerForRequest(request) !== producer || producer!.preparation !== state ||
             state.originalExplanation !== original ||

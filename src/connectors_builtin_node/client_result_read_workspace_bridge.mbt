@@ -41,6 +41,20 @@ pub fn client_program_reserve_request_result_metadata(
 }
 
 ///|
+#export_name("clientProgramReserveRequestResultConstruction")
+pub fn client_program_reserve_request_result_construction(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  peak : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_result_read_construction(
+    parent, input, peak,
+  )
+}
+
+///|
 #export_name("clientProgramRetainRequestResultMetadataContract")
 pub fn client_program_retain_request_result_metadata_contract(
   parent : @client_local_host.ClientRequestPreparation[

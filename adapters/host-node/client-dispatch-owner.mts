@@ -2,12 +2,13 @@ import {dispatchFailureSnapshot, dispatchFailureCodeSite, publicBudgetFailureMes
 // One installed Host owner for an admitted Run's physical dispatch, stop
 // observation, and recoverable cleanup. The journal and MoonBit control keep
 // their existing authority; this owner does not decide whether to retry.
+import {addAbortListener} from 'node:events';
 import {types as nodeTypes} from 'node:util';
-import {runtimeField, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimeOptionalField, runtimeTag, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan,
-  sourceFreePlanExecutionOwner} from './local-values-plan.mjs';
+  localContractLimits, sourceFreePlanExecutionOwner} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {ordinarySourceDescriptors, verifyOrdinarySourceBinding} from './ordinary-source-binding.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
@@ -18,7 +19,8 @@ import {prepareInstalledLogicalObservation} from './logical-task-observation.mjs
 import {bindClientSourceOperation} from './client-source-operation.mjs';
 import {ledgerUsageDiagnostic} from '../host-common/runtime-core.mjs';
 import {isModelCredentialRefusal} from './infer-operation.mjs';
-import {createClientDispatchCleanup, releaseDispatchPreparationHost, retainDispatchPreparationHost}
+import {closeDebugControl, closeSampleAdoption, createClientDispatchCleanup,
+  releaseDispatchPreparationHost, retainDispatchPreparationHost, returnSampleProfileObservation}
   from './client-dispatch-cleanup.mjs';
 import {createClientDispatchTracking} from './client-dispatch-tracking.mjs';
 import {createClientDispatchKeyedAcquisition, createClientDispatchSourceAcquisition} from './client-dispatch-source-acquisition.mjs';
@@ -30,16 +32,58 @@ export {cancelNodeRunContinuation, confirmNodeRunCancellation, observeNodeRestor
 
 
 import type {WireRunRef} from '../../packages/client-wire/index.js';
+import type {WireControlOperationRef} from '../../packages/client-wire/interactive-control.generated.js';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import type {runtimeCore} from '../host-common/runtime-core.mjs';
 import type {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import type {openClientRequestJournal} from './client-request-journal.mjs';
+import type {installClientRunSample} from './client-run-plan.mjs';
 
 type Awaitable<Value> = Value | PromiseLike<Value>;
 type Ref = WireRunRef;
 type Journal = ReturnType<typeof openClientRequestJournal>;
+type PublicationControl = ReturnType<typeof runtimeCore>['publicationControl'];
+type DebugReadScope = Parameters<Journal['lookupDebugResume']>[1];
+type NextSampleRead = NonNullable<Parameters<typeof installClientRunSample>[0]['readNextRetained']>;
+type DispatchAuthority = Readonly<{principalId: string; connection: object; ref: Ref}>;
+type DebugActor = Omit<DispatchAuthority, 'ref'> & Readonly<{authorize(): boolean}>;
+type DebugResumeActor = DebugActor & Readonly<{reserve: NonNullable<DebugReadScope['reserve']>}>;
+type DebugPark = Parameters<Journal['debugPauseCurrent']>[1]['parked'];
+type PhysicalStartOptions = Parameters<Journal['reservePhysicalStart']>[1];
+type DebugStartSelection = NonNullable<PhysicalStartOptions['debugResume']>;
+type DebugStartWitness = Parameters<DebugStartSelection['capture']>[0];
+type SampleStartSelection = NonNullable<PhysicalStartOptions['captureSampleStart']>;
+type SampleWriter = Parameters<NonNullable<SampleStartSelection['captureAdoption']>>[0];
+type SampleProfile = ReturnType<NonNullable<NonNullable<
+  ReturnType<Journal['originalSubmittedIntent']>>['checkSampleProfile']>>;
+type DebugDefinition = NonNullable<Parameters<Journal['acceptDebugTaskResume']>[1]['receiptOriginal']>['runDefinition'];
+type DebugJournal = Pick<Journal, 'parkDebugEntry' | 'parkDebugTask' | 'debugPauseCurrent' |
+  'acceptDebugEntryResume' | 'acceptDebugTaskResume' | 'readRetainedRelationSample'>;
+type DebugControl = Parameters<Journal['parkDebugEntry']>[3] &
+  Parameters<Journal['acceptDebugTaskResume']>[2] & Parameters<Journal['readRetainedRelationSample']>[3];
+type DebugBinding = [profile: unknown, owner: unknown, setup: unknown];
+type DebugAccountBinding = [...DebugBinding, account: unknown, principal: string, site: string];
+type DebugCommand = 'prepare' | 'step' | 'terminal';
+type SampleStartMoon = Readonly<{
+  clientProgramAdvanceRelationSampleStartControl?(...args: [...DebugAccountBinding, advance: boolean]): unknown;
+}>;
+type DebugMoon = Parameters<Journal['parkDebugEntry']>[2] & Readonly<{
+  clientProgramAdvanceRelationSampleDebugEntry?(...args: [...DebugAccountBinding, command: DebugCommand, revision: number]): unknown;
+  clientProgramRelationSampleDebugEntryRunnable?(...args: [...DebugBinding, startRevision: number]): unknown;
+  clientProgramRelationSampleDebugTaskPause?(...args: [...DebugBinding, startRevision: number]): unknown;
+  clientProgramRelationSampleDebugNextInput?(...args: [...DebugBinding, startRevision: number,
+    controlRevision: number, pauseGeneration: number, nextStepId: string, input: number, maxWork: number]): unknown;
+  clientProgramResumeRelationSampleDebugTask?(...args: [...DebugAccountBinding,
+    startRevision: number, controlRevision: number, stepId: string, nextStepId: string,
+    committedGeneration: number, step: boolean]): unknown;
+  clientProgramRelationSampleDebugResumeAllowed?(...args: DebugAccountBinding): unknown;
+}>;
+type DebugLive = {setup: unknown; owner: unknown; authority: DispatchAuthority; account: unknown; profile: unknown;
+  signal: AbortSignal; logicalMapCid?: string; runDefinition?: DebugDefinition; startRevision: number; revision: number};
+type DebugWait = {parked: DebugPark; resolve(handoff: string | undefined): void; reject(reason: unknown): void;
+  listener: ReturnType<typeof addAbortListener>; timer?: ReturnType<typeof setTimeout>; unresolved?: boolean};
 type Stop = Parameters<typeof observeNodeRunStop>[0];
-type InferAdmission = ReturnType<typeof runtimeCore>['publicationControl']['admitInferCapturedInput'];
+type InferAdmission = PublicationControl['admitInferCapturedInput'];
 type CleanupPorts = Parameters<typeof createClientDispatchCleanup<Ref, Accepted>>[0];
 type TrackingPorts = Parameters<typeof createClientDispatchTracking<Ref>>[0];
 type Acquisition = ReturnType<typeof createClientDispatchSourceAcquisition<Ref>>;
@@ -51,6 +95,7 @@ type Direct = Parameters<typeof acquiredTaskPublicationPlan<unknown>>[0];
 type Plural = Parameters<typeof acquiredMultiTaskPublicationPlan<unknown>>[0];
 type Logical = Parameters<typeof prepareInstalledLogicalObservation>;
 type Published = typeof runPublishedCapturedStrategy;
+type RelationSampleDriver = NonNullable<Parameters<Published>[9]>;
 type TrackedEntry = NonNullable<ReturnType<TrackingPorts['current']>>;
 type Execution = NonNullable<TrackedEntry['cleanupOwner']>;
 type FailureHandle = Readonly<{status(): Readonly<{pending: boolean}> | undefined; retry(): unknown}>;
@@ -96,6 +141,10 @@ type Plan = PreparedPlan | (ReturnType<typeof acquiredTaskPublicationPlan<unknow
 type Held = {
   plan?: Plan; preparedSource?: Prepared; preparedSourceAccess?: SourceAccess;
   preparedSources?: readonly PreparedMember[]; managedRun?: unknown;
+  sampleProfile?: string;
+  prepareSampleStart?: ReturnType<typeof installNodeRelationSampleStart>;
+  debugEntryExpiresAt?: number;
+  debugResumeCid?: string;
   keyedSource?: Readonly<{acquisition: unknown; prepared: Prepared; occurrence: Occurrence; requestIdentity: unknown}>;
 };
 type Accepted = NonNullable<ReturnType<Journal['lookupRunDefinition']>>;
@@ -118,6 +167,10 @@ type Entry = FailureFields & Parameters<typeof releaseDispatchPreparationHost>[0
   observeStopped?: (outcome: Terminal) => unknown; terminalOutcome?: Terminal;
   cleanupOwner?: Execution; cleanupHandle?: FailureHandle;
   acquisitionLedger?: unknown; pendingSetup?: unknown; sourceCapture?: Readonly<{close(): unknown}> | Capture;
+  sampleProfileObservation?: unknown;
+  sampleAdoption?: ReturnType<typeof selectedSampleAdoption>;
+  debugControl?: ReturnType<NonNullable<ReturnType<typeof installNodeRelationSampleDebugEntry>>>;
+  waitingForDebugEntry?: boolean;
   sourceOperationScope?: object;
   sourcePreparations?: Array<Readonly<{source: Adapter; prepared: Prepared;
     retire(prepared: unknown): SynchronousRuntimeData}>>;
@@ -126,7 +179,8 @@ type Entry = FailureFields & Parameters<typeof releaseDispatchPreparationHost>[0
 type Failure = Readonly<{cause?: unknown; code?: unknown; message?: unknown;
   cleanupPending?: boolean; cleanupHandle?: FailureHandle}>;
 type Step = (name: string, detail: unknown) => unknown;
-type JournalPort = Stop['journal'] & CleanupPorts['journal'] & Pick<Journal, 'reservePhysicalStart' | 'sourceOperationConfigured'>;
+type JournalPort = Stop['journal'] & CleanupPorts['journal'] & DebugJournal & Pick<Journal,
+  'reservePhysicalStart' | 'sourceOperationConfigured' | 'originalSubmittedIntent' | 'lookupDebugResume'>;
 type CheckpointPort = NonNullable<Stop['checkpoints']> & NonNullable<CleanupPorts['checkpoints']> & Readonly<{
   heldOrigin(requestId: string): unknown;
   acquisitionAccess(requestId: string, access: SourceAccess | undefined, scope?: unknown): SourceAccess | undefined;
@@ -152,6 +206,8 @@ type RunContent = ((facts: PhysicalDispatch & Readonly<{acquiredContent?: unknow
     prepareOrdinaryAcquiredLedger?: PrepareLedger};
 type Control = Parameters<Journal['reservePhysicalStart']>[3] & Stop['control'] & CleanupPorts['control'] &
   Omit<KeyedPorts['control'], 'takeSourceEvidenceOriginal'> & Direct['control'] & Logical[1] &
+  Parameters<Journal['lookupDebugResume']>[2] & Parameters<Journal['readRetainedRelationSample']>[3] &
+  Pick<PublicationControl, 'reserveClientRelationSampleStart' | 'acknowledgeClientRelationSampleStart'> &
   Readonly<{
     takeSourceEvidenceOriginal(capture: unknown): Readonly<{wire: string; identity: string; name: string}>;
     admitInferCapturedInput: InferAdmission;
@@ -159,7 +215,9 @@ type Control = Parameters<Journal['reservePhysicalStart']>[3] & Stop['control'] 
 type Part = KeyedPorts['fragment'];
 type Values = KeyedPorts['values'];
 type Setup = Parameters<Published>[0];
-type Moon = Omit<Parameters<Journal['reservePhysicalStart']>[2], 'clientProgramAcquisitionCount'> & Stop['moon'] & CleanupPorts['moon'] & KeyedPorts['moon'] & Direct['moon'] & Logical[0] &
+type Moon = Omit<Parameters<Journal['reservePhysicalStart']>[2], 'clientProgramAcquisitionCount'> &
+  Parameters<Journal['originalSubmittedIntent']>[2] & Stop['moon'] & CleanupPorts['moon'] &
+  KeyedPorts['moon'] & Direct['moon'] & Logical[0] &
   Parameters<typeof retainDispatchPreparationHost>[1] & Readonly<{
     clientProgramAcquisitionCount(prepared: unknown): number;
     clientProgramMultiCapturedLedgerUsage(ledger: unknown): unknown;
@@ -203,8 +261,8 @@ type Options = Pick<KeyedPorts, 'registry' | 'values' | 'fragment' | 'ordered' |
     store: Stop['store'] & Awaited<ReturnType<typeof openLocalPublicationStore>>;
     checkpoints?: CheckpointPort;
     startRun(input: Readonly<{identity: unknown; namespaceId: string; principalId: string; connection: object}>):
-      Awaitable<Readonly<{kind: string; ref: Ref}>>;
-    hostConnection(input: Readonly<{principalId: string; connection: object; ref: Ref}>): boolean;
+      Awaitable<Readonly<{kind: string; ref: Ref; revision?: number}>>;
+    hostConnection(input: DispatchAuthority): boolean;
     beforeDispatch?(ref: Ref): unknown; observed?: unknown;
     prepareAcquisition(prepared: unknown, access: SourceAccess | undefined, occurrence?: Occurrence,
       original?: Prepared): Awaitable<Prepared>;
@@ -222,6 +280,9 @@ type Options = Pick<KeyedPorts, 'registry' | 'values' | 'fragment' | 'ordered' |
     beforePublication?(prepared: unknown): SynchronousRuntimeData;
     authorizeLogicalObservation?(operation: Parameters<Parameters<NonNullable<Entry['logicalObservation']>['attach']>[3]>[0],
       connection: object): boolean;
+    authorizeSampleCapture?(authority: DispatchAuthority): unknown;
+    prepareSampleStart?: ReturnType<typeof installNodeRelationSampleStart>;
+    prepareDebugEntryResume?: ReturnType<typeof installNodeRelationSampleDebugEntry>;
     managedComputeRequired?: boolean; retainedRelationOutput?: boolean; runPublished?: Published;
   }>;
 
@@ -249,16 +310,449 @@ function retainDispatchPrimaryFailure(entry: Pick<Entry, 'primaryFailure'>, resu
   } catch { /* Optional failure DATA cannot interrupt the original cleanup. */ }
 }
 
+function invalidSampleStartReceiver(value: unknown, code = 'InvalidClientRunSampleStartReceiver'): never {
+  if (typeof (value as {then?: unknown} | null | undefined)?.then === 'function') {
+    void Promise.resolve(value).catch(() => {});
+  }
+  throw new TypeError(code);
+}
+
+// The installed Host owns the Account and Core port. A selected profile may
+// prepare its controller, then cross the acknowledged start boundary once.
+export function installNodeRelationSampleStart(moon: SampleStartMoon, observeAccount: () => unknown,
+  hostConnection: Options['hostConnection'], site: string) {
+  const advance = moon.clientProgramAdvanceRelationSampleStartControl;
+  if (typeof advance !== 'function') return undefined;
+  return (setup: unknown, owner: unknown, profile: unknown, authority: DispatchAuthority) => {
+    const observe = () => {
+      if (hostConnection(authority) !== true) throw new Error('ClientRunSampleStartAuthorityLost');
+      return observeAccount();
+    };
+    const original = observe();
+    const assertCurrent = () => {
+      if (observe() !== original) throw new Error('ClientRunSampleStartAuthorityLost');
+    };
+    checked(advance.call(moon, profile, owner, setup, original, authority.principalId, site, false));
+    assertCurrent();
+    let pending = true;
+    return () => {
+      if (!pending) throw new Error('ClientRunSampleStartOriginalUnavailable');
+      pending = false;
+      assertCurrent();
+      checked(advance.call(moon, profile, owner, setup, original, authority.principalId, site, true));
+      assertCurrent();
+    };
+  };
+}
+
+// A drain interrupts the local wait, independently of cancellation or failure.
+class DebugPauseHostClosing extends Error {
+  readonly code = 'ClientRunDebugEntryHostClosing';
+
+  constructor() {
+    super('ClientRunDebugEntryHostClosing');
+  }
+}
+
+// The installed entry reads its actual Core phase after the shared start ACK.
+// Closing this port releases the borrowed aliases and its outstanding wait.
+export function installNodeRelationSampleDebugEntry(moon: DebugMoon, observeAccount: () => unknown,
+  hostConnection: Options['hostConnection'], site: string,
+  {journal, control, now}: Readonly<{journal: DebugJournal | undefined; control: DebugControl; now(): string}>) {
+  const advance = moon.clientProgramAdvanceRelationSampleDebugEntry;
+  const runnable = moon.clientProgramRelationSampleDebugEntryRunnable;
+  const pause = moon.clientProgramRelationSampleDebugTaskPause;
+  const nextInput = moon.clientProgramRelationSampleDebugNextInput;
+  const resume = moon.clientProgramResumeRelationSampleDebugTask;
+  const resumeAllowed = moon.clientProgramRelationSampleDebugResumeAllowed;
+  if (typeof advance !== 'function' || typeof runnable !== 'function' ||
+      typeof pause !== 'function' || typeof resume !== 'function' || typeof resumeAllowed !== 'function' ||
+      typeof journal?.parkDebugTask !== 'function' || typeof journal.acceptDebugTaskResume !== 'function' ||
+      typeof journal.debugPauseCurrent !== 'function') {
+    return undefined;
+  }
+  return (setup: unknown, owner: unknown, authority: DispatchAuthority, profile?: unknown,
+    signal?: AbortSignal, logicalMapCid?: string, runDefinition?: DebugDefinition) => {
+    if (profile === undefined || signal === undefined || hostConnection(authority) !== true) {
+      throw new Error('ClientRunDebugEntryOriginalUnavailable');
+    }
+    const account = observeAccount();
+    let live: DebugLive | undefined = {setup, owner, authority, account, profile, signal, logicalMapCid, runDefinition,
+      startRevision: 0, revision: 0};
+    let waiting: DebugWait | undefined;
+    let activated = false, resuming = false, hostClosing = false;
+    const current = () => {
+      const original = live;
+      return original !== undefined && !original.signal.aborted &&
+        hostConnection(original.authority) === true && observeAccount() === original.account &&
+        live === original && !original.signal.aborted && hostConnection(original.authority) === true &&
+        live === original && !original.signal.aborted;
+    };
+    const requireCurrent = (original: DebugLive) => {
+      if (!current() || live !== original) throw new Error('ClientRunDebugEntryDenied');
+    };
+    const call = (original: DebugLive, command: DebugCommand, revision: number) => {
+      requireCurrent(original);
+      checked(advance.call(moon, original.profile, original.owner, original.setup, original.account,
+        original.authority.principalId, site, command, revision));
+      requireCurrent(original);
+    };
+    const phase = (actual: unknown) => {
+      const original = live;
+      if (original === undefined || actual !== original.setup || original.startRevision === 0) {
+        throw new Error('ClientRunDebugEntryOriginalUnavailable');
+      }
+      requireCurrent(original);
+      const ready = checked(runnable.call(moon, original.profile, original.owner, original.setup, original.startRevision));
+      requireCurrent(original);
+      if (typeof ready !== 'boolean') throw new TypeError('InvalidInstalledTaskController');
+      return ready ? 'runnable' : 'paused';
+    };
+    function stopWaiting(wait: DebugWait, failure?: unknown, handoff?: string) {
+      if (waiting !== wait) return;
+      waiting = undefined;
+      wait.listener[Symbol.dispose]();
+      clearTimeout(wait.timer);
+      if (failure === undefined) wait.resolve(handoff);
+      else wait.reject(failure);
+    }
+    function expireWaiting(wait: DebugWait) {
+      if (waiting !== wait) return;
+      const left = wait.parked.expiresAt - Date.parse(now());
+      if (!Number.isFinite(left) || left <= 0) {
+        stopWaiting(wait, new Error('ClientRunDebugEntryExpired'));
+      } else {
+        wait.timer = setTimeout(expireWaiting, Math.min(left, 2147483647), wait);
+      }
+    }
+    function holdPause(parked: DebugPark, signal: AbortSignal) {
+      if (!Number.isSafeInteger(parked.pausedAt) || parked.pausedAt < 0 || parked.pausedAt >= parked.expiresAt) {
+        throw new Error('ClientRunDebugEntryOriginalUnavailable');
+      }
+      if (hostClosing) throw new DebugPauseHostClosing();
+      return new Promise<string | undefined>((resolve, reject) => {
+        const wait: DebugWait = {parked, resolve, reject,
+          listener: addAbortListener(signal, () => stopWaiting(wait, signal.reason))};
+        waiting = wait;
+        try {expireWaiting(wait);}
+        catch (cause) {stopWaiting(wait, cause);}
+      });
+    }
+    call(live, 'prepare', 0);
+    return Object.freeze({
+      current,
+      activate(witness: Pick<DebugStartWitness, 'physicalStartRevision' | 'until'> | undefined) {
+        const original = live;
+        const revision = witness?.physicalStartRevision;
+        const command = witness?.until;
+        if (activated || original === undefined || revision === undefined || !Number.isInteger(revision) ||
+            revision < 1 || revision > 2147483647 || (command !== 'step' && command !== 'terminal')) {
+          throw new Error('ClientRunDebugEntryOriginalUnavailable');
+        }
+        activated = true;
+        call(original, command, revision);
+        original.startRevision = original.revision = revision;
+      },
+      parkEntry(identity: unknown, expectedRevision: number, expiresAt: number) {
+        const original = live;
+        if (original === undefined || activated || waiting !== undefined ||
+            typeof journal.parkDebugEntry !== 'function' || typeof journal.acceptDebugEntryResume !== 'function') {
+          throw new Error('ClientRunDebugEntryOriginalUnavailable');
+        }
+        requireCurrent(original);
+        const parked = journal.parkDebugEntry(identity, {
+          ref: original.authority.ref, expectedRevision, expiresAt, current,
+        }, moon, control);
+        requireCurrent(original);
+        if (parked?.kind === 'expired') throw new Error('ClientRunDebugEntryExpired');
+        if (parked?.kind !== 'parked' || parked.revision !== expectedRevision + 1 || parked.expiresAt !== expiresAt) {
+          throw new Error('ClientRunDebugEntryOriginalUnavailable');
+        }
+        return holdPause(parked, original.signal);
+      },
+      observePause(authorize: DebugActor['authorize'], inspect = false,
+        authorizeResume?: DebugActor['authorize']) {
+        const original = live, wait = waiting;
+        if (original === undefined || wait === undefined) return undefined;
+        const local = () => waiting === wait && !hostClosing && !resuming && !wait.unresolved;
+        const allowed = () => local() && current() && authorize() === true && current() && local();
+        if (!allowed() ||
+            !journal.debugPauseCurrent(original.authority.ref, {
+              parked: wait.parked, startRevision: original.startRevision, current: allowed, requireEntryDeadline: inspect,
+            }) || !local()) return undefined;
+        const resumeAvailable = authorizeResume === undefined ? undefined :
+          authorizeResume() === true && allowed() && resumeAllowed.call(moon, original.profile,
+            original.owner, original.setup, original.account, original.authority.principalId, site) === true && allowed();
+        if (!allowed()) return undefined;
+        return Object.freeze({revision: wait.parked.revision,
+          ...(resumeAvailable === undefined ? {} : {resumeAvailable}),
+          ...(wait.parked.controlRevision === undefined ? {} : {completedStepId: wait.parked.stepId,
+            committedGeneration: wait.parked.committedGeneration,
+            ...(wait.parked.nextStepId === null ? {} : {nextStepId: wait.parked.nextStepId})}),
+          ...(inspect ? {logicalMapCid: original.logicalMapCid, startRevision: original.startRevision,
+            controlRevision: wait.parked.controlRevision, runRef: original.authority.ref,
+            ttlPolicy: 'original_debug_entry_deadline'} : {}),
+          expiresAt: wait.parked.expiresAt, pausedAt: wait.parked.pausedAt});
+      },
+      readNextSample(selected: Parameters<NextSampleRead>[1], authorize: DebugActor['authorize'],
+        reserve: Parameters<NextSampleRead>[3], bindProducer: Parameters<NextSampleRead>[4]) {
+        const original = live, wait = waiting;
+        const local = () => wait !== undefined && waiting === wait && !hostClosing && !resuming && !wait.unresolved;
+        const denied = () => {throw Object.assign(new Error('ClientRelationSampleDenied'), {code: 'ClientRelationSampleDenied'});};
+        const stale = (): never => {throw Object.assign(new Error('ClientRunDebugEntryRevisionConflict'),
+          {code: 'ClientRunDebugEntryRevisionConflict'});};
+        const allowed = () => local() && live === original && current() && authorize() === true && current() && local();
+        if (typeof nextInput !== 'function' || typeof journal.readRetainedRelationSample !== 'function' ||
+            typeof reserve !== 'function' || typeof bindProducer !== 'function' || !Object.isFrozen(selected)) {
+          throw new Error('ClientRunDebugEntryOriginalUnavailable');
+        }
+        if (original === undefined || wait?.parked.controlRevision === undefined || !local() ||
+            selected.revision !== wait.parked.revision || selected.nextStepId !== wait.parked.nextStepId) return stale();
+        if (!allowed()) denied();
+        // The fixed Read covers the bridge call, checked edge/port probes
+        // and the borrowed producer tuple. It holds no Run payload or pin.
+        const quote: unknown = reserve(2048);
+        if (quote !== undefined) {
+          if (typeof (quote as {then?: unknown} | null)?.then === 'function') void Promise.resolve(quote).catch(() => {});
+          throw Object.assign(new Error('ClientRelationSampleCapacity'), {code: 'ClientRelationSampleCapacity'});
+        }
+        if (!local()) stale();
+        if (!allowed()) denied();
+        const result = nextInput.call(moon, original.profile, original.owner, original.setup,
+          original.startRevision, wait.parked.controlRevision, wait.parked.committedGeneration,
+          selected.nextStepId, selected.inputOrdinal, selected.maxWork);
+        if (!allowed()) denied();
+        if (runtimeIsError(result)) {
+          const issue = runtimeField(result, 0);
+          if (issue === 'stale') stale();
+          if (issue === 'capacity' || issue === 'foreign') {
+            const code = issue === 'capacity' ? 'ClientRelationSampleCapacity' : 'ForeignClientRunSampleOutput';
+            throw Object.assign(new Error(code), {code});
+          }
+        }
+        const selectedProducer = checked(result);
+        if (selectedProducer === undefined) return Object.freeze({kind: 'unobserved'});
+        const stepId = runtimeField(selectedProducer, 0), outputPortId = runtimeField(selectedProducer, 1),
+          carrierContractCid = runtimeField(selectedProducer, 2), generation = runtimeField(selectedProducer, 3),
+          attemptSequence = runtimeField(selectedProducer, 4);
+        if (typeof stepId !== 'string' || typeof outputPortId !== 'string' || typeof carrierContractCid !== 'string' ||
+            typeof generation !== 'number' || typeof attemptSequence !== 'number') {
+          throw Object.assign(new Error('ForeignClientRunSampleOutput'), {code: 'ForeignClientRunSampleOutput'});
+        }
+        const producer = Object.freeze({stepId, outputPortId, carrierContractCid, generation, attemptSequence});
+        const bound: unknown = bindProducer(producer);
+        if (bound !== true) {
+          if (typeof (bound as {then?: unknown} | null | undefined)?.then === 'function') void Promise.resolve(bound).catch(() => {});
+          throw Object.assign(new Error('ForeignClientRunSampleOutput'), {code: 'ForeignClientRunSampleOutput'});
+        }
+        if (!local()) stale();
+        if (!allowed()) denied();
+        return journal.readRetainedRelationSample(original.authority.ref, Object.freeze({
+          compiledPlanCid: selected.compiledPlanCid, logicalMapCid: selected.logicalMapCid,
+          stepId: producer.stepId, outputPortId: producer.outputPortId, carrierContractCid: producer.carrierContractCid,
+          nextStepId: selected.nextStepId, maxBytes: selected.maxBytes,
+        }), {current: allowed, reserve, debugPause: {parked: wait.parked,
+          startRevision: original.startRevision, producer}}, control);
+      },
+      resumeTask(commandWire: string, authorize: DebugActor['authorize'], reserve?: DebugResumeActor['reserve']) {
+        const original = live, wait = waiting;
+        if (original === undefined || wait === undefined || hostClosing || resuming) {
+          throw new Error('ClientRunDebugEntryOriginalUnavailable');
+        }
+        const reconciliationRequired = () => Object.assign(new Error('ClientRunDebugEntryReconciliationRequired'),
+          {code: 'ClientRunDebugEntryReconciliationRequired'});
+        resuming = true;
+        const allowed = () => waiting === wait && !hostClosing && current() && authorize() === true &&
+          current() && !hostClosing && waiting === wait;
+        try {
+          if (!allowed() || resumeAllowed.call(moon, original.profile, original.owner, original.setup,
+            original.account, original.authority.principalId, site) !== true || !allowed()) {
+            throw Object.assign(new Error('ClientRunDebugEntryDenied'), {code: 'ClientRunDebugEntryDenied'});
+          }
+          if (wait.unresolved) throw reconciliationRequired();
+          const {runDefinition, logicalMapCid} = original;
+          let receiptOriginal: Parameters<Journal['acceptDebugTaskResume']>[1]['receiptOriginal'];
+          if (reserve !== undefined) {
+            if (runDefinition === undefined || logicalMapCid === undefined) {
+              throw new Error('ClientRunDebugEntryOriginalUnavailable');
+            }
+            receiptOriginal = {runDefinition, logicalMapCid, reserve};
+          }
+          let result;
+          if (wait.parked.controlRevision === undefined) {
+            result = journal.acceptDebugEntryResume(original.authority.ref, {commandWire, current: allowed, receiptOriginal,
+              capture(witness) {
+                try {
+                  if (!allowed()) throw new Error('ClientRunDebugEntryDenied');
+                  if (witness?.kind !== 'resume_accepted' || witness.revision !== wait.parked.revision + 1 ||
+                      typeof witness.commandCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(witness.commandCid) ||
+                      (witness.until !== 'step' && witness.until !== 'terminal')) {
+                    throw new Error('ClientRunDebugEntryOriginalUnavailable');
+                  }
+                  stopWaiting(wait, undefined, witness.commandCid);
+                } catch (cause) {
+                  stopWaiting(wait, cause);
+                  // The funded caller's receipt records the committed
+                  // acceptance. The original Driver receives this failure.
+                  if (receiptOriginal === undefined) throw cause;
+                }
+              },
+            }, control);
+          } else {
+            result = journal.acceptDebugTaskResume(original.authority.ref, {
+              commandWire, startRevision: original.startRevision, stepId: wait.parked.stepId, nextStepId: wait.parked.nextStepId,
+              committedGeneration: wait.parked.committedGeneration,
+              current: allowed, receiptOriginal, capture(witness) {
+                try {
+                  if (!allowed()) throw new Error('ClientRunDebugEntryDenied');
+                  if (witness?.kind !== 'resume_accepted' || witness.revision !== wait.parked.revision + 1 ||
+                      witness.controlRevision !== wait.parked.controlRevision || witness.stepId !== wait.parked.stepId ||
+                      witness.nextStepId !== wait.parked.nextStepId ||
+                      witness.committedGeneration !== wait.parked.committedGeneration ||
+                      (witness.until !== 'step' && witness.until !== 'terminal')) {
+                    throw new Error('ClientRunDebugEntryOriginalUnavailable');
+                  }
+                  checked(resume.call(moon, original.profile, original.owner, original.setup, original.account,
+                    original.authority.principalId, site, original.startRevision,
+                    witness.controlRevision, witness.stepId, witness.nextStepId ?? '', witness.committedGeneration,
+                    witness.until === 'step'));
+                  if (!allowed()) throw new Error('ClientRunDebugEntryDenied');
+                  original.revision = witness.revision;
+                  stopWaiting(wait);
+                } catch (cause) {
+                  stopWaiting(wait, cause);
+                  // The funded caller's receipt records the committed
+                  // acceptance. The original Driver receives this failure.
+                  if (receiptOriginal === undefined) throw cause;
+                }
+              },
+            }, control);
+          }
+          // An exact retry can read the receipt, but cannot take the live handoff.
+          if (waiting === wait && result?.kind === 'resume_accepted') {
+            wait.unresolved = true;
+            throw reconciliationRequired();
+          }
+          return result;
+        } catch (cause) {
+          // A lost reply may have consumed this durable pause. Keep the
+          // original wait for cancellation/expiry and allow receipt lookup.
+          // Known refusals leave any still-current pause usable.
+          if ((cause as {outcome?: unknown} | null | undefined)?.outcome === 'unknown' && waiting === wait) wait.unresolved = true;
+          throw cause;
+        } finally {resuming = false;}
+      },
+      taskControl: Object.freeze({
+        phase,
+        waitForResume(actual: unknown, waitSignal: AbortSignal) {
+          const original = live;
+          if (original === undefined || waitSignal !== original.signal || waiting !== undefined || phase(actual) !== 'paused') {
+            throw new Error('ClientRunDebugEntryOriginalUnavailable');
+          }
+          const boundary = checked(pause.call(moon, original.profile, original.owner, original.setup, original.startRevision));
+          requireCurrent(original);
+          const controlRevision = runtimeField(boundary, 0), stepId = runtimeField(boundary, 1),
+            nextOriginal = runtimeField(boundary, 2), committedGeneration = runtimeField(boundary, 3);
+          if (typeof controlRevision !== 'number' || typeof stepId !== 'string' || typeof nextOriginal !== 'string' ||
+              typeof committedGeneration !== 'number') throw new Error('ClientRunDebugEntryOriginalUnavailable');
+          const nextStepId = nextOriginal === '' ? null : nextOriginal;
+          const parked = journal.parkDebugTask(original.authority.ref, {
+            startRevision: original.startRevision, expectedRevision: original.revision, controlRevision, stepId,
+            nextStepId, committedGeneration, current,
+          }, control);
+          requireCurrent(original);
+          if (parked?.kind === 'expired') throw new Error('ClientRunDebugEntryExpired');
+          if (parked?.kind !== 'parked' || parked.revision !== original.revision + 1 ||
+              parked.controlRevision !== controlRevision || parked.stepId !== stepId || parked.nextStepId !== nextStepId ||
+              parked.committedGeneration !== committedGeneration || !Number.isSafeInteger(parked.expiresAt)) {
+            throw new Error('ClientRunDebugEntryOriginalUnavailable');
+          }
+          return holdPause(parked, waitSignal);
+        },
+      }),
+      beginDrain() {
+        hostClosing = true;
+        if (waiting !== undefined) stopWaiting(waiting,
+          new DebugPauseHostClosing());
+      },
+      close() {
+        live = undefined;
+        if (waiting !== undefined) stopWaiting(waiting, new Error('ClientRunDebugEntryOriginalUnavailable'));
+      },
+    });
+  };
+}
+
+// The existing dispatch entry owns the Journal writer until cleanup. A
+// prepared Driver only receives a synchronous port to the checked prefix.
+function selectedSampleAdoption(entry: Entry | undefined, visit: SampleProfile['withAdoption'] | undefined,
+  hostConnection: Options['hostConnection'], authority: DispatchAuthority | undefined,
+  authorizeSampleCapture: NonNullable<Options['authorizeSampleCapture']>, owner: object | undefined,
+  profile: object | undefined) {
+  let writer: SampleWriter | undefined;
+  let armed = false;
+  const unavailable = (): never => {throw new Error('ClientRunSampleStartOriginalUnavailable');};
+  const active = () => armed && entry !== undefined && entry.computeStartAttempted === true &&
+    !entry.abort.signal.aborted;
+  const driver: RelationSampleDriver = Object.freeze({
+    get owner() {return owner;},
+    get profile() {return profile;},
+    maxWireBytes: localContractLimits.maxWireBytes,
+    maxNodes: localContractLimits.maxNodes,
+    maxDepth: localContractLimits.maxDepth,
+    current() {
+      const originalAuthority = authority;
+      if (originalAuthority === undefined || !active() ||
+          hostConnection(originalAuthority) !== true || !active()) return false;
+      const outcome = authorizeSampleCapture(originalAuthority);
+      if (typeof (outcome as {then?: unknown} | null | undefined)?.then === 'function') {
+        void Promise.resolve(outcome).catch(() => {});
+      }
+      return outcome === true && active() && hostConnection(originalAuthority) === true && active();
+    },
+    adopt(prefix: object) {scope.adopt(prefix);},
+  });
+  const scope = {
+    driver,
+    captureAdoption(original: SampleWriter) {
+      if (entry === undefined || writer !== undefined || typeof original !== 'function') unavailable();
+      writer = original;
+    },
+    requireWriter() {
+      if (typeof writer !== 'function' || entry === undefined) unavailable();
+    },
+    arm() {armed = true;},
+    adopt(prefix: object) {
+      const current = driver.current;
+      if (!current()) unavailable();
+      let receipt: ReturnType<SampleWriter>;
+      const write = writer;
+      if (visit === undefined || write === undefined) return unavailable();
+      visit(prefix, current, ticket => {receipt = write(ticket);});
+      if (!current() || receipt === undefined) unavailable();
+      return receipt;
+    },
+    close() {
+      armed = false;
+      writer = visit = authority = entry = undefined;
+      owner = profile = undefined;
+    },
+  };
+  return scope;
+}
+
 export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, runContent, computeConfigurations = {},
-  observation, preparationCustody, beforePublication, authorizeLogicalObservation,
+  observation, preparationCustody, beforePublication, authorizeLogicalObservation, authorizeSampleCapture, prepareSampleStart,
+  prepareDebugEntryResume,
   managedComputeRequired = false,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}: Options) {
   const entries = new Map<string, Entry>();
+  let draining = false;
   const capturedRun = moon?.strategyHostRun;
   const diagnostic = diagnosticObserver(observed);
   const diagnosticErrorType = Error;
@@ -276,6 +770,46 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   const cancel = (ref: Ref) => current(ref)?.abort.abort(
     new Error('ClientRunCancellationRequested'));
   const live = (ref: Ref) => current(ref)?.settled === false;
+
+  function controlledDebugTask<Result>(ref: Ref, {principalId, connection, authorize}: DebugActor,
+    consume: (owner: NonNullable<Entry['debugControl']>, allowed: DebugActor['authorize']) => Result) {
+    const entry = current(ref);
+    const original = entry?.debugControl;
+    const authority = {principalId, connection, ref};
+    if (entry === undefined || entry.ref.namespaceId !== ref.namespaceId ||
+        entry.ref.authorityScopeCid !== ref.authorityScopeCid || original === undefined ||
+        typeof authorize !== 'function') throw new Error('ClientRunDebugEntryOriginalUnavailable');
+    const allowed = () => entry.debugControl === original &&
+      hostConnection(authority) === true && authorize() === true &&
+      entry.debugControl === original && hostConnection(authority) === true;
+    return consume(original, allowed);
+  }
+  const observeDebugTask = (ref: Ref, actor: DebugActor) => controlledDebugTask(ref, actor,
+    (owner, allowed) => owner.observePause(allowed));
+  const observeDebugInspect = (ref: Ref, actor: DebugActor, authorizeResume?: DebugActor['authorize']) => {
+    if (current(ref)?.debugControl === undefined) return undefined;
+    const observed = controlledDebugTask(ref, actor, (owner, allowed) => owner.observePause(allowed, true, authorizeResume));
+    return observed?.runRef === undefined ? undefined : observed as typeof observed & {runRef: Ref};
+  };
+  const readDebugNextSample = (ref: Ref, actor: DebugActor, selected: Parameters<NextSampleRead>[1],
+    reserve: Parameters<NextSampleRead>[3], bindProducer: Parameters<NextSampleRead>[4]) => controlledDebugTask(ref, actor,
+    (owner, allowed) => owner.readNextSample(selected, allowed, reserve, bindProducer));
+  const resumeDebugTask = (ref: Ref, actor: DebugResumeActor, commandWire: string) => {
+    if (typeof actor.reserve !== 'function' || current(ref)?.debugControl === undefined) {
+      throw Object.assign(new Error('ClientOperationUnavailable'), {code: 'ClientOperationUnavailable'});
+    }
+    return controlledDebugTask(ref, actor, (owner, allowed) => owner.resumeTask(commandWire, allowed, actor.reserve));
+  };
+  const lookupDebugResume = ({run_ref: ref, operation_id: operationId, command_cid: commandCid,
+    accepted_from_revision: acceptedFromRevision}: WireControlOperationRef,
+    {principalId, connection, authorize, reserve, reserveConstruction}: DebugActor &
+      Pick<DebugReadScope, 'reserve' | 'reserveConstruction'>) => {
+    const authority = {principalId, connection, ref};
+    if (typeof authorize !== 'function') throw new Error('ClientRunDebugEntryDenied');
+    const current = () => hostConnection(authority) === true &&
+      authorize() === true && hostConnection(authority) === true;
+    return journal.lookupDebugResume(ref, {operationId, commandCid, acceptedFromRevision, current, reserve, reserveConstruction}, control);
+  };
   const operation = (ref: Ref) => current(ref)?.promise;
   const credentialRefusalPending = (ref: Ref) => {
     const entry = current(ref);
@@ -314,9 +848,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.stopObserved = true;
       return;
     }
+    const primary = entry.primaryFailure instanceof CapturedRunPublicationError
+      ? entry.primaryFailure.primaryFailure : entry.primaryFailure;
     await observeNodeRunStop({ref: entry.ref, journal, store, checkpoints,
       moon, control, cleanupConfirmed: true, physicalStopConfirmed: true},
-    {failureObserved: !entry.abort.signal.aborted});
+    {failureObserved: !entry.abort.signal.aborted && !(primary instanceof DebugPauseHostClosing)});
     entry.stopObservationPending = false;
     entry.stopObserved = true;
   }
@@ -325,6 +861,37 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     entries, keyOf, moon, journal, control, now, checkpoints, observation, observeStop: observeStop as CleanupPorts['observeStop'],
     resourceUsage, diagnostic,
   });
+  function checkSampleProfile(entry: Entry, requested: unknown, ref: Ref, run: object,
+    execution: Parameters<Control['reserveClientRelationSampleStart']>[2], definition: DebugDefinition,
+    setup: Setup, profile: string) {
+    const cleanup = moon.clientProgramLogicalObservationCleanup;
+    if (typeof cleanup !== 'function') throw new Error('ClientRunSampleStartOriginalUnavailable');
+    const result = control.prepareClientLogicalObservation(run, execution,
+      definition, localContractLimits);
+    try {
+      entry.sampleProfileObservation = checked(result);
+    } catch (error) {
+      entry.sampleProfileObservation = cleanup.call(moon, result);
+      throw error;
+    }
+    const original = journal.originalSubmittedIntent(requested,
+      {namespaceId, sampleRunRef: ref, reserveSampleRead(bytes, previousBytes) {
+        control.reserveClientRelationSampleStart(run, requested, execution, definition, setup,
+          bytes, false, previousBytes);
+        entry.abort.signal.throwIfAborted();
+      }}, moon, control);
+    if (typeof original?.checkSampleProfile !== 'function') {
+      throw new Error('ClientRunSampleStartOriginalUnavailable');
+    }
+    const profileCheck = original.checkSampleProfile(run, definition,
+      entry.sampleProfileObservation, profile, localContractLimits);
+    if (profileCheck?.profile === null || typeof profileCheck?.profile !== 'object' ||
+        profileCheck.startTicket === null || typeof profileCheck.startTicket !== 'object' ||
+        typeof profileCheck.withAdoption !== 'function' ||
+        typeof (profileCheck as {then?: unknown}).then === 'function') invalidSampleStartReceiver(profileCheck);
+    return profileCheck as SampleProfile & {profile: object};
+  }
+
 
   const start: Start = (submission: Submission | undefined, requested: unknown, accepted: DispatchAdmission | undefined,
     held: Held | undefined, finished?: () => unknown, gate?: RequestGate) => {
@@ -340,6 +907,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     if (gate === undefined && checkpoints?.heldOrigin(submission!.requestId)) {
       return Promise.resolve('not_started');
     }
+    let debugResumeCid = held!.debugResumeCid;
+    const debugEntryExpiresAt = held!.debugEntryExpiresAt;
+    const parkDebugEntry = debugEntryExpiresAt !== undefined;
+    const resumesDebug = parkDebugEntry || debugResumeCid !== undefined;
     let preparationLease = preparationCustody?.begin(submission!);
     let preparedProgram = preparationLease === undefined
       ? submission!.preparedProgram : preparationLease.preparedProgram;
@@ -718,7 +1289,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           if (typeof moon.clientProgramOpenInstalledManagedSourceFreeHost !== 'function') {
             throw new Error('InstalledManagedComputeHostUnavailable');
           }
-          if (!generatingContent && preparationLease !== undefined &&
+          if (!generatingContent && !Object.hasOwn(held!, 'sampleProfile') && preparationLease !== undefined &&
               typeof capturedRun === 'function' && typeof authorizeLogicalObservation === 'function') {
             const logical = prepareInstalledLogicalObservation(moon, control,
               held!.managedRun, sourceFreePlanExecutionOwner(held!.plan!), held!.plan!.runDefinition, observation);
@@ -756,24 +1327,211 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           return;
         }
       }
-      entry.physicalStartClaimAttempted = true;
-      if (!journal.reservePhysicalStart(requested, {
-        namespaceId, ref: accepted!.ref,
-        currentAuthorization: hostConnection({principalId: actual,
-          connection, ref: accepted!.ref}),
-        ...(!acquiring && !inferring && !serializing && !generatingContent ? {
-          localExecutionOwner: sourceFreePlanExecutionOwner(held!.plan!),
-        } : {}),
-        ...(acquiring && journal.sourceOperationConfigured === true ? {
-          captureSourceOperation: {program: preparedProgram, compiled: (held!.plan as PreparedPlan).compiled, store,
-            capture(scope: object) {entry.sourceOperationScope = scope;}},
-        } : {}),
-      }, moon, control)) {
+      let physicalStarted;
+      let taskControl: Parameters<Published>[10];
+      {
+        const originalHeld = held;
+        const originalAdmission = accepted;
+        if (originalHeld?.plan === undefined || originalAdmission === undefined) {
+          throw new Error('ClientDispatchOriginalUnavailable');
+        }
+        let debugController: Entry['debugControl'];
+        let debugStart: DebugStartWitness | undefined;
+        let debugResume: DebugStartSelection | undefined;
+        if (resumesDebug && (typeof prepareDebugEntryResume !== 'function' ||
+            (parkDebugEntry
+              ? !Number.isSafeInteger(debugEntryExpiresAt) || debugEntryExpiresAt <= 0 ||
+                debugResumeCid !== undefined || !Object.hasOwn(originalHeld, 'sampleProfile')
+              : typeof debugResumeCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(debugResumeCid)) ||
+            acquiring || inferring || serializing || generatingContent ||
+            gate !== undefined || setup === undefined || entry.pendingSetup !== setup ||
+            originalHeld.managedRun === undefined || entry.preparationHostBorrow === undefined)) {
+          throw new Error('ClientRunDebugEntryOriginalUnavailable');
+        }
+        // Transfer the selected writer into the original dispatch entry.
+        // The remaining synchronous aliases end before the following awaits.
+        let sampleReady: (() => void) | undefined;
+        let sampleStartSelection: Pick<PhysicalStartOptions, 'captureSampleStart'> | undefined;
+        let sampleStartRevision: number | undefined;
+        let checkedSampleProfile: object | undefined, debugMapCid: string | undefined;
+        let sampleRun: object | undefined, sampleExecution: Parameters<Control['reserveClientRelationSampleStart']>[2] | undefined;
+        let sampleDefinition: DebugDefinition | undefined, sampleCaptured: unknown;
+        // Only the installed owner can provide this private receiver.
+        // The ordinary wire Debug intent does not opt in to unattended resume.
+        if (Object.hasOwn(originalHeld, 'sampleProfile')) {
+          // The already selected Run transfers its original profile once.
+          // Merely installing the shared dispatcher never selects a Normal Run.
+          const sampleProfile = originalHeld.sampleProfile;
+          delete originalHeld.sampleProfile;
+          if ((!resumesDebug && (typeof prepareSampleStart !== 'function' || originalAdmission.dispatchReserved === true)) ||
+              sampleProfile === undefined || gate !== undefined || preparationLease === undefined ||
+              acquiring || inferring || serializing || generatingContent ||
+              originalHeld.managedRun === null || typeof originalHeld.managedRun !== 'object' || setup === undefined ||
+              entry.pendingSetup !== setup || entry.preparationHostBorrow === undefined) {
+            throw new Error('ClientRunSampleStartOriginalUnavailable');
+          }
+          const execution = sourceFreePlanExecutionOwner(originalHeld.plan);
+          if (execution === undefined ||
+              typeof capturedRun !== 'function' ||
+              typeof journal.originalSubmittedIntent !== 'function' ||
+              typeof control.prepareClientLogicalObservation !== 'function' ||
+              typeof moon.clientProgramLogicalObservationCleanup !== 'function' ||
+              typeof moon.clientProgramReturnLogicalObservation !== 'function' ||
+              typeof authorizeSampleCapture !== 'function' ||
+              typeof control.reserveClientRelationSampleStart !== 'function' ||
+              typeof control.acknowledgeClientRelationSampleStart !== 'function') {
+            throw new Error('ClientRunSampleStartOriginalUnavailable');
+          }
+          sampleRun = originalHeld.managedRun;
+          // The Journal admits its own copy of the definition. Its ACK must
+          // match this Run, while the compiler and setup keep their nominal original.
+          const definition = originalHeld.plan.runDefinition;
+          if (definition?.identity !== originalAdmission.ref.runDefinitionCid ||
+              definition.identity !== originalAdmission.runDefinition?.identity ||
+              definition.wire !== originalAdmission.runDefinition.wire) {
+            throw new Error('ClientRunSampleStartOriginalUnavailable');
+          }
+          sampleDefinition = definition as DebugDefinition;
+          control.reserveClientRelationSampleStart(sampleRun, requested, execution, sampleDefinition, setup, undefined, resumesDebug);
+          entry.abort.signal.throwIfAborted();
+          const {profile: checkedProfile, startTicket, withAdoption, logicalMapCid} = checkSampleProfile(entry, requested, originalAdmission.ref, sampleRun, execution,
+            sampleDefinition, setup, sampleProfile);
+          returnSampleProfileObservation(entry, moon);
+          entry.abort.signal.throwIfAborted();
+          // The temporary profile reader and the optional boundary observer
+          // reuse one sibling slot on the same Request. Only the latter may
+          // stay live through Compute and observation delivery.
+          if (typeof authorizeLogicalObservation === 'function') {
+            const logical = prepareInstalledLogicalObservation(moon, control,
+              sampleRun, execution, sampleDefinition, observation);
+            if (logical !== undefined) {
+              entry.logicalObservation = logical;
+              logical.attach(Reflect.apply(capturedRun, moon, [setup]),
+                accepted!.ref, actual, operation => authorizeLogicalObservation(operation, connection),
+                control.runDefinitionRunId(sampleDefinition));
+            }
+          }
+          entry.abort.signal.throwIfAborted();
+          const sampleAuthority = {principalId: actual, connection, ref: accepted!.ref};
+          if (!resumesDebug) {
+            sampleReady = prepareSampleStart?.(setup, sampleRun, checkedProfile, sampleAuthority);
+            if (typeof sampleReady !== 'function') invalidSampleStartReceiver(sampleReady);
+          }
+          checkedSampleProfile = checkedProfile;
+          if (typeof logicalMapCid === 'string') debugMapCid = logicalMapCid;
+          sampleExecution = execution;
+          sampleCaptured = Reflect.apply(capturedRun, moon, [setup]);
+          if (sampleCaptured === undefined) throw new Error('ClientRunSampleStartOriginalUnavailable');
+          entry.sampleAdoption = selectedSampleAdoption(entry, withAdoption, hostConnection,
+            sampleAuthority, authorizeSampleCapture, sampleRun, checkedProfile);
+          sampleStartSelection = {captureSampleStart: {program: execution.program, compiled: execution.compiled, startTicket,
+            captureAdoption: entry.sampleAdoption.captureAdoption,
+            captureRevision(revision) { sampleStartRevision = revision; }}};
+          entry.abort.signal.throwIfAborted();
+        }
+        if (resumesDebug) {
+          const authority = Object.freeze({principalId: actual, connection, ref: accepted!.ref});
+          debugController = checkedSampleProfile === undefined
+            ? prepareDebugEntryResume?.(setup, originalHeld.managedRun, authority)
+            : prepareDebugEntryResume?.(setup, originalHeld.managedRun, authority, checkedSampleProfile,
+              entry.abort.signal, debugMapCid, sampleDefinition);
+          entry.debugControl = debugController;
+          taskControl = debugController?.taskControl;
+          if (typeof debugController?.activate !== 'function' || typeof debugController.current !== 'function' ||
+              typeof taskControl?.phase !== 'function' || typeof taskControl.waitForResume !== 'function') {
+            throw new TypeError('InvalidInstalledTaskController');
+          }
+          const originalController = debugController;
+          const current = () => !entry.abort.signal.aborted && hostConnection(authority) === true &&
+            originalController.current() === true && hostConnection(authority) === true && !entry.abort.signal.aborted;
+          if (parkDebugEntry) {
+            if (typeof debugController.parkEntry !== 'function' || claim.revision === undefined ||
+                !Number.isInteger(claim.revision)) {
+              throw new Error('ClientRunDebugEntryOriginalUnavailable');
+            }
+            if (draining) throw new Error('ClientRunDebugEntryHostClosing');
+            entry.waitingForDebugEntry = true;
+            try {
+              debugResumeCid = await debugController.parkEntry(requested, claim.revision, debugEntryExpiresAt);
+            } finally {entry.waitingForDebugEntry = false;}
+            entry.abort.signal.throwIfAborted();
+            if (!current()) throw new Error('ClientRunDebugEntryDenied');
+            if (draining) throw new Error('ClientRunDebugEntryHostClosing');
+          }
+          if (debugResumeCid === undefined) throw new Error('ClientRunDebugEntryOriginalUnavailable');
+          debugResume = {commandCid: debugResumeCid, current,
+            capture(witness) {debugStart = witness;}};
+        }
+        entry.physicalStartClaimAttempted = true;
+        physicalStarted = journal.reservePhysicalStart(requested, {
+          namespaceId, ref: accepted!.ref,
+          currentAuthorization: hostConnection({principalId: actual,
+            connection, ref: accepted!.ref}),
+          ...(!acquiring && !inferring && !serializing && !generatingContent ? {
+            localExecutionOwner: sourceFreePlanExecutionOwner(originalHeld.plan),
+          } : {}),
+          ...(acquiring && journal.sourceOperationConfigured === true ? {
+            captureSourceOperation: {program: preparedProgram, compiled: originalHeld.plan.compiled, store,
+              capture(scope) {entry.sourceOperationScope = scope;}},
+          } : {}),
+          ...sampleStartSelection,
+          ...(debugResume === undefined ? {} : {debugResume}),
+        }, moon, control);
+        if (physicalStarted) {
+          // A refusal in the receiver cannot erase the committed start.
+          entry.physicalStarted = true;
+          entry.finishPending = true;
+          // The Journal can assign this witness only through the synchronous ACK callback.
+          const acknowledgedDebugStart = debugStart as DebugStartWitness | undefined;
+          if (debugResume !== undefined) {
+            if (acknowledgedDebugStart === undefined || acknowledgedDebugStart.commandCid !== debugResumeCid ||
+                !['step', 'terminal'].includes(acknowledgedDebugStart.until) ||
+                !Number.isInteger(acknowledgedDebugStart.acceptedRevision) || acknowledgedDebugStart.acceptedRevision < 1 ||
+                acknowledgedDebugStart.physicalStartRevision !== acknowledgedDebugStart.acceptedRevision + 1 ||
+                acknowledgedDebugStart.physicalStartRevision > 2147483647 || debugResume.current() !== true) {
+              throw new Error('ClientRunDebugEntryOriginalUnavailable');
+            }
+          }
+          // The writer and both acknowledged originals must agree before
+          // either Core Sample custody or the live Debug task can advance.
+          if (sampleStartSelection !== undefined) {
+            if (typeof sampleStartRevision !== 'number' || !Number.isInteger(sampleStartRevision) || sampleStartRevision <= 0 ||
+                sampleStartRevision > 2147483647 ||
+                sampleExecution === undefined || entry.sampleAdoption === undefined ||
+                (acknowledgedDebugStart !== undefined && sampleStartRevision !== acknowledgedDebugStart.physicalStartRevision)) {
+              throw new Error('ClientRunSampleStartOriginalUnavailable');
+            }
+            entry.sampleAdoption.requireWriter();
+            control.acknowledgeClientRelationSampleStart(sampleRun, requested, sampleExecution,
+              sampleDefinition, sampleCaptured, sampleStartRevision);
+            entry.abort.signal.throwIfAborted();
+          }
+          if (debugResume !== undefined) {
+            if (debugController === undefined || acknowledgedDebugStart === undefined) {
+              throw new Error('ClientRunDebugEntryOriginalUnavailable');
+            }
+            if (sampleStartSelection !== undefined && debugResume.current() !== true) {
+              throw new Error('ClientRunDebugEntryDenied');
+            }
+            const result = debugController.activate(acknowledgedDebugStart);
+            if (result !== undefined) invalidSampleStartReceiver(result, 'InvalidInstalledTaskController');
+            if (debugResume.current() !== true) throw new Error('ClientRunDebugEntryDenied');
+          } else if (sampleReady !== undefined) {
+            const result = sampleReady();
+            if (result !== undefined) invalidSampleStartReceiver(result);
+          }
+          if (sampleStartSelection !== undefined) {
+            entry.abort.signal.throwIfAborted();
+            if (entry.sampleAdoption === undefined) throw new Error('ClientRunSampleStartOriginalUnavailable');
+            entry.sampleAdoption.arm();
+          }
+        }
+      }
+      if (!physicalStarted) {
         await settleCleanup(entry);
         return;
       }
-      entry.physicalStarted = true;
-      entry.finishPending = true;
+      if (draining) entry.debugControl?.beginDrain?.();
       gate?.started();
       reached('started');
       await step('physical_start_reserved', {ref: accepted!.ref});
@@ -1068,6 +1826,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
               entry.pendingSetup !== undefined && entry.pendingSetup !== setup) {
             throw new Error('ClientDispatchCleanupOwnerAlreadyRetained');
           }
+          // The managed driver has returned. Publication may await an
+          // independent Store, but it no longer owns a Sample commit visit.
+          closeDebugControl(entry);
+          closeSampleAdoption(entry);
           entry.cleanupOwner = owner;
           entry.pendingSetup = undefined;
         }, observation === undefined ? undefined : installTaskObservation(({event, task, durationMs}) =>
@@ -1077,7 +1839,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.preparationHostBorrow === undefined ? undefined : () => {
           if (typeof beforePublication !== 'function') throw new Error('PreparationPublicationUnavailable');
           return beforePublication(preparedProgram);
-        });
+        }, entry.sampleAdoption?.driver, taskControl);
       entry.cleanupOwner = published;
       entry.publicationCommitted = true;
       await step('computed', {ref: accepted!.ref,
@@ -1129,7 +1891,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         }
       }
       if (entry.reserved && !entry.physicalStartClaimAttempted &&
-          !entry.abort.signal.aborted) {
+          !resumesDebug && !entry.abort.signal.aborted) {
         entry.failureObservationPending = true;
       }
       if (failedExecution !== undefined) entry.cleanupOwner = failedExecution;
@@ -1153,11 +1915,24 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     return physical;
   };
 
-  const {track, settleCredentialRefusal, drain} = createClientDispatchTracking({
+  const {track, settleCredentialRefusal, drain: drainTracked} = createClientDispatchTracking({
     entries, keyOf, current, beforeDispatch, acquireSource, retainDispatchPrimaryFailure,
     settleCleanup, settleRetainedEntry, retire, credentialRefusalPending, diagnostic,
     diagnosticErrorType, diagnosticStackFormatter, observation,
+    beforeDrain(entry) {
+      const original = current(entry.ref);
+      if (original !== entry) return;
+      // Untouched entry parks have no physical start. Started parks still
+      // retire through the existing physical Driver and the same cleanup.
+      if (original.waitingForDebugEntry) closeDebugControl(original);
+      else if (original.physicalStarted) original.debugControl?.beginDrain?.();
+    },
   });
+  const drain = () => {
+    draining = true;
+    return drainTracked();
+  };
   return Object.freeze({start, track, cancel, live, operation, failureMessage, drain,
-    credentialRefusalPending, settleCredentialRefusal});
+    credentialRefusalPending, settleCredentialRefusal, observeDebugTask, resumeDebugTask, lookupDebugResume,
+    readDebugNextSample, observeDebugInspect});
 }
