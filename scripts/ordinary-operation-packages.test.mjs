@@ -1664,7 +1664,7 @@ test('record-only prepares the same five original packages with its own bound pr
 test('record-only trend lane reuses exact normal packages without dispatch, rebuild, or speed gating', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs['main-performance'];
-  assert.match(job.if, /github.event_name == 'push'/u);
+  assert.match(job.if, /github.event_name == 'schedule'/u);
   assert.match(job.if, /github.ref == 'refs\/heads\/main'/u);
   assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert.equal(job['timeout-minutes'], 15);

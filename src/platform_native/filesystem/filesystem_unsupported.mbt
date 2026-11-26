@@ -90,8 +90,10 @@ pub fn Root::create_writer(
 pub fn Writer::append(
   _self : Writer,
   chunk : Bytes,
+  length? : Int,
 ) -> Result[Unit, NativeFilesystemIssue] {
   ignore(chunk)
+  ignore(length)
   Err(UnsupportedTarget)
 }
 

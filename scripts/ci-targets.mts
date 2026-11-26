@@ -153,9 +153,9 @@ export function gateJobRequired(selection: Selection, name: string) {
   if (['select-targets', 'preflight', 'lint', 'spec'].includes(name)) return true;
   if (selection.profile === 'documentation') return false;
   if (name === 'client-readme-packed') return selection.profile === 'full';
-  if (name === 'main-performance') return selection.event === 'push' ||
-    selection.event === 'pull_request' && selection.profile === 'full';
-  if (name === 'health-quick') return selection.event === 'push';
+  if (name === 'main-performance') return selection.profile === 'full' &&
+    ['schedule', 'pull_request'].includes(selection.event);
+  if (name === 'health-quick') return selection.profile === 'full' && selection.event === 'schedule';
   if (name === 'focused-tests') return ['focused-tests', 'draft-focused'].includes(selection.profile);
   if (name === 'python-wheels') return pythonWheelAcceptanceRequired(selection);
   if (['session-evidence', 'session-controls', 'pipeline-evidence'].includes(name)) return deepProofRequired(selection);

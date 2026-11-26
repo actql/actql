@@ -751,12 +751,15 @@ test('ordinary filename cannot hide target-specific syntax changes', () => {
     assert.equal(result.targetSensitiveDiff, true, line);
   }
 });
-test('read-only PR lifecycle, main pushes and explicit dispatch trigger CI', () => {
-  assert.deepEqual(Object.keys(workflow.on).sort(), ['pull_request', 'push', 'schedule', 'workflow_dispatch']);
-  assert.deepEqual(workflow.on.push.branches, ['main']);
+test('read-only PR lifecycle, six-hour main schedule and explicit dispatch trigger CI', () => {
+  assert.deepEqual(Object.keys(workflow.on).sort(), ['pull_request', 'schedule', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.pull_request.types, ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft']);
   assert.equal(workflow.on.pull_request_target, undefined);
-  assert.deepEqual(workflow.on.schedule, [{cron: '23 3 * * 1'}]);
+  assert.deepEqual(workflow.on.schedule, [
+    {cron: '17 6,12,18 * * *'},
+    {cron: '17 0 * * 0,2-6'},
+    {cron: '17 0 * * 1'},
+  ]);
   assert.equal(workflow.on.workflow_run, undefined);
   assert.equal(workflow.on.merge_group, undefined);
   assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}");
@@ -790,8 +793,9 @@ test('active main finishes while pending work coalesces and manual campaigns hav
     [{native_shared_remote_linux: true}, 'linux-shared-remote'],
     [{performance_matrix: true, native_shared_remote_linux: true}, 'performance'],
     [{packed_query_evidence_probe: true, native_shared_remote_linux: true}, 'evidence-probe']]) {
-    assert.equal(runInNewContext(selectGroup, {inputs}, {timeout: 100}), group);
+    assert.equal(runInNewContext(selectGroup, {inputs, github: {event_name: 'workflow_dispatch'}}, {timeout: 100}), group);
   }
+  assert.equal(runInNewContext(selectGroup, {inputs: {}, github: {event_name: 'schedule'}}, {timeout: 100}), 'schedule');
   assert.equal(workflow.concurrency.queue, undefined);
   const expression = workflow.concurrency['cancel-in-progress'].slice(3, -2);
   for (const ref of ['refs/heads/main', 'refs/heads/feature']) {
@@ -2444,7 +2448,6 @@ test('deep proof scheduling covers its complete snapshot and safety inputs witho
     assert.equal(selection.profile, 'full'); assert.deepEqual(selection.targets, all);
     assert.equal(deepProofRequired(selection), false, path);
     assert.equal(gateJobRequired(selection, 'pipeline-validation'), true);
-    assert.equal(gateJobRequired(selection, 'main-performance'), true);
   }
   for (const options of [{failure: 'unavailable'}, {event: 'schedule'}, {event: 'workflow_dispatch'}])
     assert.equal(deepProofRequired(selectTargets(['README.md'], options)), true);
@@ -2515,7 +2518,7 @@ test('shallow and deep aggregate expectations reject every wrong status, includi
   assert.equal(scheduled('pipeline-evidence', needs), false, 'cheap checks alone do not start deep assembly');
 });
 
-test('Ready PR record-only observations and the aggregate select the same existing package consumers', () => {
+test('Scheduled main and Ready PR observations select the same existing package consumers as the aggregate', () => {
   const job = jobs['main-performance'];
   assert(gateJobs.includes('main-performance') && jobs.check.needs.includes('main-performance'));
   const cases = [
@@ -2525,7 +2528,7 @@ test('Ready PR record-only observations and the aggregate select the same existi
     ...['push', 'schedule', 'workflow_dispatch'].map(event => selectTargets(['README.md'], {event})),
   ];
   for (const selection of cases) {
-    const required = selection.event === 'push' || selection.event === 'pull_request' && selection.profile === 'full';
+    const required = selection.event === 'schedule' || selection.event === 'pull_request' && selection.profile === 'full';
     const scheduled = runInNewContext(job.if.slice(3, -2).trim(), {
       inputs: {}, needs: {'select-targets': {outputs: {profile: selection.profile}}}, toJSON: JSON.stringify,
       github: {event_name: selection.event, ref: 'refs/heads/main', event: {
@@ -2561,14 +2564,14 @@ test('record-only PR observations preserve private, Draft, lightweight and alter
     assert.equal(gateJobRequired({event: 'pull_request', profile}, 'main-performance'), false, profile);
   }
   for (const options of [{draft: true}, {visibility: 'private', privateFlag: true},
-    {privateFlag: null}, {event: 'schedule'}, {event: 'workflow_dispatch'},
-    {event: 'push', ref: 'refs/heads/feature'},
+    {privateFlag: null}, {event: 'workflow_dispatch'}, {event: 'push'},
+    {event: 'schedule', ref: 'refs/heads/feature'},
     {inputs: {performance_matrix: true}}, {inputs: {packed_query_evidence_probe: true}}]) {
     assert.equal(runs(options), false, JSON.stringify(options));
   }
 });
 
-test('existing push-only health result is required by the same aggregate that schedules it', () => {
+test('scheduled main health result is required by the same aggregate that schedules it', () => {
   assert(jobs.check.needs.includes('health-quick'));
   assert(gateJobs.includes('health-quick'));
   assert.equal(jobs['health-quick'].uses, './.github/workflows/health-monitor.yml');
@@ -2581,7 +2584,7 @@ test('existing push-only health result is required by the same aggregate that sc
       github: {event_name: event, ref, event: {repository: {visibility: 'public', private: false}}}});
   for (const event of ['push', 'pull_request', 'schedule', 'workflow_dispatch']) {
     const selection = selectTargets(['README.md'], {event});
-    const required = event === 'push';
+    const required = event === 'schedule';
     assert.equal(runs(event), required, event);
     assert.equal(gateJobRequired(selection, 'health-quick'), required, event);
     const env = {...context, event};
@@ -2591,14 +2594,14 @@ test('existing push-only health result is required by the same aggregate that sc
         {...results(selection), 'health-quick': {result}}, env), /health-quick/);
     }
   }
-  assert.equal(runs('push', 'refs/heads/feature'), false);
+  assert.equal(runs('schedule', 'refs/heads/feature'), false);
   for (const mode of ['performance_matrix', 'packed_query_evidence_probe'])
-    assert.equal(runs('push', 'refs/heads/main', {[mode]: true}), false);
+    assert.equal(runs('schedule', 'refs/heads/main', {[mode]: true}), false);
   for (const producer of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
-    assert.equal(runs('push', 'refs/heads/main', {}, {admission: 'success', producer}), true,
+    assert.equal(runs('schedule', 'refs/heads/main', {}, {admission: 'success', producer}), true,
       'Valid admission must preserve the real producer outcome in the monitor');
     for (const admission of ['failure', 'cancelled', 'skipped', undefined])
-      assert.equal(runs('push', 'refs/heads/main', {}, {admission, producer}), false,
+      assert.equal(runs('schedule', 'refs/heads/main', {}, {admission, producer}), false,
         'Failed admission cannot reach the fresh-package monitor fallback');
   }
 });

@@ -161,6 +161,8 @@ pub fn bound_content_generation_derivation(BoundContentGeneration) -> RunEvidenc
 
 pub fn bound_content_generation_input_artifact(BoundContentGeneration) -> RunEvidenceValue?
 
+pub fn bound_content_generation_input_relation_cid(BoundContentGeneration) -> String?
+
 pub fn bound_content_generation_location(BoundContentGeneration) -> (String, String)?
 
 pub fn bound_content_generation_reference(BoundContentGeneration) -> String?
@@ -270,6 +272,8 @@ pub fn captured_effect_source_result_from_original_capture(EffectPreviewIdentity
 pub fn captured_effect_source_store_authority_cid(CapturedEffectSourceArtifact) -> String
 
 pub fn captured_effect_source_table_input_from_capture(EffectPreviewIdentity, Int, PublicationContract, CapturedEffectSourceArtifact, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
+
+pub fn captured_effective_data_policy_classification(CapturedEffectDependencyBody) -> String?
 
 pub fn captured_local_effect_source_json(CapturedLocalEffectSourceEvidence, Int, Int, Int) -> String?
 

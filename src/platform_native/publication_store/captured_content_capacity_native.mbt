@@ -27,6 +27,43 @@ pub fn Store::captured_content_custody_construction_inventory(
 }
 
 ///|
+/// Quote the same Native custody owner using the actual generated reference.
+/// Encoder pieces and the bounded bytes passed to persist keep their own
+/// existing generation backing.
+pub fn Store::generated_content_custody_construction_inventory(
+  self : Store,
+  chunk_bytes : Int,
+  original : @publication.GeneratedContentReference,
+) -> @execution.PreparationRepresentationUnits? {
+  let (authority, _, _, _) = @publication.generated_content_reference_storage(
+    original,
+  )
+  guard authority == self.authority_cid else { return None }
+  self.captured_payload_construction_inventory(
+    chunk_bytes,
+    Some(@publication.generated_content_reference_wire(original)),
+    retiring=true,
+  )
+}
+
+///|
+/// The same Native readback inventory, derived from the exact saved candidate.
+pub fn Store::saved_generated_content_custody_construction_inventory(
+  self : Store,
+  chunk_bytes : Int,
+  original : @publication.StoredGeneratedContentReference,
+) -> @execution.PreparationRepresentationUnits? {
+  let (_, authority, _, _, _) = @publication.stored_generated_content_reference_storage(
+    original,
+  )
+  guard authority == self.authority_cid else { return None }
+  self.captured_payload_construction_inventory(
+    chunk_bytes,
+    Some(@publication.stored_generated_content_reference_wire(original)),
+  )
+}
+
+///|
 /// Same file/record/verification/cleanup inventory as Content, with actual raw
 /// metadata. Original response bytes and semantic issuance keep their own
 /// Source backing; this quotes no disk grant or execution permission.
@@ -49,6 +86,7 @@ fn Store::captured_payload_construction_inventory(
   self : Store,
   chunk_bytes : Int,
   wire : String?,
+  retiring? : Bool = false,
 ) -> @execution.PreparationRepresentationUnits? {
   if self.closed || self.retiring {
     return None
@@ -56,7 +94,11 @@ fn Store::captured_payload_construction_inventory(
   let record = match wire {
     None => None
     Some(wire) => {
-      guard captured_content_record_bound(wire, self.max_record_bytes)
+      guard captured_content_record_bound(
+          wire,
+          self.max_record_bytes,
+          retiring~,
+        )
         is Some(bytes) else {
         return None
       }
@@ -81,20 +123,25 @@ fn Store::captured_payload_construction_inventory(
 
 ///|
 // The canonical closed record has at most seven Strings. Count array syntax,
-// this exact tag, the validated 71-character holding CID, a seven-character
-// state and three <=20-character generation numbers. A JSON-escaped UTF16
+// this exact tag, the validated 71-character holding CID, the longest
+// selected state and three <=20-character generation numbers. A JSON-escaped UTF16
 // unit needs at most six UTF8 bytes. This is an output/parse geometry bound,
 // not another Store policy limit; raw database readback keeps its full bound.
-fn captured_content_record_bound(wire : String, maximum : Int) -> Int? {
+fn captured_content_record_bound(
+  wire : String,
+  maximum : Int,
+  retiring? : Bool = false,
+) -> Int? {
   if maximum <= 0 {
     return None
   }
+  let state = if retiring { "retiring" } else { "pending" }
   let fixed = 2L +
     6L +
     14L +
     "actql-native-captured-content-custody/0.1".length().to_int64() +
     71L +
-    7L +
+    state.length().to_int64() +
     3L * 20L
   @execution.checked_preparation_add_product(
     fixed,

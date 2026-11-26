@@ -712,6 +712,14 @@ pub fn checked_environment(
 }
 
 ///|
+/// Borrow the capacity policy already admitted by this checked Program.
+pub fn checked_host_capacity_policy(program : CheckedProgram) -> @policy.Policy {
+  @environment.capacity_policy(
+    @context.selected_capacity(checked_selected_policy(program)),
+  )
+}
+
+///|
 /// Return the exact Catalog role-reference closure admitted during this
 /// Program check. This is static evidence, not current authority or an Effect
 /// execution permit; consumers must retain its owner and bind exact members.

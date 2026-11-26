@@ -48,6 +48,9 @@ fn local_publication_primary_tags(
 ) -> Int64 {
   match issue {
     InvalidCapturedRun => 1L
+    TerminalInvocation(_) => 6L
+    TerminalResult(_) => 7L
+    TerminalWorkLimit => 8L
     Export(original) => {
       emit(13, local_publication_export_tag(original))
       2L
@@ -58,6 +61,9 @@ fn local_publication_primary_tags(
         13,
         match original {
           InvalidOutputConfiguration => 1L
+          TerminalWorkLimit => 6L
+          TerminalWorkCleanup(cause) =>
+            700L + local_publication_store_tag(cause, emit)
           Preparation(_) => 4L
           Snapshot(_) | SnapshotCleanup(_, _) => 5L
           Output(cause) | OutputCleanup(cause, _) =>

@@ -94,7 +94,16 @@ test "SHA-256 padding and block boundaries" {
       bytes.push((i % 256).to_byte())
     }
     assert_eq(hex(Bytes::from_array(bytes)), expected)
+    bytes.push(0xff)
+    bytes.push(0xa5)
+    assert_eq(hex_prefix(Bytes::from_array(bytes), length), Some(expected))
   }
+  assert_eq(
+    hex_prefix(b"tail", 0),
+    Some("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+  )
+  assert_eq(hex_prefix(b"tail", -1), None)
+  assert_eq(hex_prefix(b"tail", 5), None)
 }
 
 ///|
