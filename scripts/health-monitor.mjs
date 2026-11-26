@@ -117,7 +117,7 @@ async function compareOriginalReports(base, current, python = 'python3') {
 export async function applyComparison(report, options, root = repository) {
   const explicit = Object.hasOwn(options, 'base');
   const selection = explicit ? 'explicit' : 'default';
-  let baselinePath;
+  let baselinePath, baselineRead = false;
   try {
     if (explicit) baselinePath = resolve(options.base);
     else {
@@ -128,11 +128,12 @@ export async function applyComparison(report, options, root = repository) {
       baselinePath = join(root, 'benchmarks/health/baselines', `${platform}-${architecture}.json`);
     }
     const bytes = await readFile(baselinePath);
+    baselineRead = true;
     const {comparison} = await compareOriginalReports(JSON.parse(bytes), report, options.python);
     report.comparison = {...comparison,
       baselineSelection: selection, baselinePath, baselineSha256: digest(bytes)};
   } catch (error) {
-    if (!explicit && baselinePath && error.code === 'ENOENT') {
+    if (!explicit && !baselineRead && baselinePath && error.code === 'ENOENT') {
       report.comparison = {available: false, comparable: false, baselineId: null,
         baselineSelection: selection, baselinePath,
         reason: 'Default reviewed baseline absent; measurement-only first run; baseline not created or updated'};

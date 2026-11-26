@@ -899,6 +899,18 @@ test('Release Health comparison and offline replay use the selected policy from 
   await applyComparison(missing, {base: basePath, python});
   assert.equal(missing.comparison.comparable, false);
   assert.match(missing.comparison.reasons.join('\n'), /current: incomplete required profile measurements/u);
+
+  const baselineDirectory = join(root, 'benchmarks/health/baselines');
+  await mkdir(baselineDirectory, {recursive: true});
+  await writeFile(join(baselineDirectory, 'linux-x64.json'), baseBytes);
+  const originalCohort = base.pythonReleaseCohort.path;
+  await rename(originalCohort, originalCohort + '.hidden');
+  const incomplete = structuredClone(current);
+  await assert.rejects(applyComparison(incomplete, {python}, root), {code: 'ENOENT'});
+  assert.equal(incomplete.comparison.baselineSelection, 'default');
+  assert.equal(incomplete.comparison.available, true);
+  assert.equal(incomplete.comparison.status, 'error');
+  assert.match(incomplete.comparison.reasons.join('\n'), /base-cohort.*cohort\.json/u);
 });
 test('source/config and gated workflow declare exact Quick 10/5 and fail closed', async () => {
   assert.deepEqual(policy.quick, {warmSamples: 10, coldSamples: 5});
