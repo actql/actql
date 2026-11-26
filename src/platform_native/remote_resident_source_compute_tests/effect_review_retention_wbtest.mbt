@@ -556,8 +556,12 @@ fn retained_effect_review_retention_store(
         fail("original Review waiting journal custody lost")
       Err(@client.Journal(@client.Fenced)) =>
         fail("original Review waiting journal fenced")
-      Err(@client.Journal(@client.TransactionUnknown)) =>
-        fail("original Review waiting transaction unknown")
+      Err(@client.Journal(@client.JournalStepFailed(step, _))) =>
+        if step.requires_reconciliation() {
+          fail("original Review waiting transaction unknown")
+        } else {
+          fail("original Review waiting transaction refused before acquisition")
+        }
       Err(@client.Journal(@client.Physical(_))) =>
         fail("original Review waiting journal physical failure")
       Err(@client.Journal(_)) => fail("original Review waiting journal refused")
