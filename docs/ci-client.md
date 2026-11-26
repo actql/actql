@@ -150,7 +150,7 @@ compiler-owned Moon test plan.
   report assessor retain lint and spec, including their actual synthetic tests,
   without starting unrelated product, Native, wheel or proof producers. New,
   deleted, renamed, executable or aliased files stay full. The list is explicit
-  in `scripts/ci-targets.mjs`, not every Markdown or JavaScript file.
+  in `scripts/ci-targets.mts`, not every Markdown or JavaScript file.
 - `docs/development.md` is also an executable input: packed acceptance reads its
   Quickstart through `readmeQuickstart`. A prose-only edit may stay maintenance;
   changed or missing Program, client, expected output or shell blocks restore
@@ -178,7 +178,7 @@ compiler-owned Moon test plan.
   an unselected nested package through a directory input. Neither the metadata
   deadline nor the original execution/compiler budgets are extended or reduced.
 - FFI/platform, generator/build, JS bridge/distribution and proof-snapshot
-  relationships are declared in `ci-moon-test-plan.mjs`. They are not inferred
+  relationships are declared in `ci-moon-test-plan.mts`. They are not inferred
   from Moon imports. Their existing product jobs remain required. In particular,
   the proof snapshot still includes all `src`/`vendor`, so a selected Moon test
   plan does not narrow the registered three-target proof campaign.

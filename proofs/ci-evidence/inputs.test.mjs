@@ -41,7 +41,8 @@ test('unrelated source and provenance changes preserve a closed Session input id
 
 test('migrated tooling binds Git-authored TypeScript, its compiler inputs and no emitted aliases', () => {
   const files = new Map(base);
-  const moved = ['scripts/test-execution', 'scripts/packed-query-evidence', 'scripts/ci-artifact-reader', 'scripts/ci-main-base'];
+  const moved = ['scripts/test-execution', 'scripts/packed-query-evidence', 'scripts/ci-artifact-reader',
+    'scripts/ci-main-base', 'scripts/ci-targets'];
   const extra = ['scripts/test-execution-reporter.mts', 'scripts/ci-core-partitions.mts',
     'tsconfig.base.json', 'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts'];
   for (const stem of moved) {
@@ -65,9 +66,11 @@ test('migrated tooling binds Git-authored TypeScript, its compiler inputs and no
     const missing = new Map(files); missing.delete(path);
     assert(inventory(missing).unresolved.includes(`missing source input: ${path}`));
   }
-  const ambiguous = new Map(files); ambiguous.set('scripts/ci-artifact-reader.mjs', 'tracked duplicate');
-  assert(inventory(ambiguous).unresolved.includes('ambiguous authored tooling input: scripts/ci-artifact-reader.mjs'));
-  assert.equal(compareInputs(typed, inventory(ambiguous)).eligible, false);
+  for (const path of ['scripts/ci-artifact-reader.mjs', 'scripts/ci-targets.mjs']) {
+    const ambiguous = new Map(files); ambiguous.set(path, 'tracked duplicate');
+    assert(inventory(ambiguous).unresolved.includes(`ambiguous authored tooling input: ${path}`));
+    assert.equal(compareInputs(typed, inventory(ambiguous)).eligible, false);
+  }
 });
 
 test('separate pipeline consumers and membership do not invalidate Session inputs', () => {

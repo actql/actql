@@ -696,7 +696,7 @@ test('manual integration keeps full core and explicit macOS opt-in', () => {
   assert.equal(selectTargets([], {event: 'workflow_dispatch', nativeMacos: true}).macos, true);
 });
 test('portable PR paths choose JS and explain deferred macOS coverage', () => {
-  for (const path of ['README.md', 'src/source_span/span.mbt', 'scripts/worktree-inventory.mjs']) {
+  for (const path of ['README.md', 'src/source_span/span.mbt', 'scripts/worktree-inventory.mts']) {
     const result = validateSelection(selectTargets([path]));
     assert.deepEqual(result.targets, ['js'], path); assert.equal(result.macos, false, path);
     assert.match(result.reason, /full targets run on main integration/u);
@@ -1429,7 +1429,7 @@ test('documentation keeps required job names and real document checks without co
 });
 
 test('raw Git classification rejects additions deletions renames modes and malformed inventories', () => {
-  const path = 'scripts/worktree-inventory.mjs', base = 'a'.repeat(40);
+  const path = 'scripts/worktree-inventory.mts', base = 'a'.repeat(40);
   const raw = (status = 'M', before = '100644', after = '100644') =>
     `:${before} ${after} ${'c'.repeat(40)} ${'d'.repeat(40)} ${status}\0${path}\0`;
   const inspect = output => readChanges({pull_request: {base: {sha: base}}}, args =>
@@ -2674,11 +2674,12 @@ test('Core target input directories, manifests, native sources, the selector and
     'proofs/relation-pipeline/run.mjs', '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
     'packages/python-sdk/tests/test_client.py', 'packages/python-local-runtime/pyproject.toml',
     'moon.mod', 'toolchain.json', 'package-lock.json', 'adapters/workers/package.json', 'src/a/moon.pkg',
-    'tests/native/read.c', 'adapters/host-node/native/api.h', 'packages/local-node/core.wasm', 'scripts/ci-targets.mjs']) {
+    'tests/native/read.c', 'adapters/host-node/native/api.h', 'packages/local-node/core.wasm',
+    'scripts/ci-targets.mjs', 'scripts/ci-targets.mts']) {
     assert.deepEqual(selectTargets([path, 'scripts/release-check.mjs'], {draft: false}).targets, all, path);
   }
   // The existing macOS workload selector still owns the Native drivers.
-  for (const path of ['scripts/native-core-c-compiler.mjs', 'scripts/test-native-core.mjs']) {
+  for (const path of ['scripts/native-core-c-compiler.mts', 'scripts/test-native-core.mts']) {
     const workload = validateSelection(selectTargets([path], {draft: false}));
     assert.deepEqual(workload.targets, all, path); assert.equal(workload.macos, true, path);
   }
