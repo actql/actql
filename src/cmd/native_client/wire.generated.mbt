@@ -12352,6 +12352,138 @@ fn wire_named_submission_attempt_shape(value : Json) -> Bool {
 }
 
 ///|
+fn wire_rule_1441(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 16384 {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_1442(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.length() > 16384 {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_resolve_item_shape(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "checkpointCid" ||
+      key == "resolutionWire" ||
+      key == "approvalEvidenceWire") {
+      return false
+    }
+  }
+  if !fields.contains("checkpointCid") {
+    return false
+  }
+  if !fields.contains("resolutionWire") {
+    return false
+  }
+  if !fields.contains("approvalEvidenceWire") {
+    return false
+  }
+  if fields.get("checkpointCid") is Some(item) {
+    if !wire_rule_1(item) {
+      return false
+    }
+  }
+  if fields.get("resolutionWire") is Some(item) {
+    if !wire_rule_1441(item) {
+      return false
+    }
+  }
+  if fields.get("approvalEvidenceWire") is Some(item) {
+    if !wire_rule_1442(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_1444(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "committed" ||
+    text == "duplicate" ||
+    text == "conflicting" ||
+    text == "expired" ||
+    text == "cancelled" ||
+    text == "invalid") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_1445(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "approved" || text == "rejected") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_resolve_result_shape(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "checkpointCid" ||
+      key == "status" ||
+      key == "decision" ||
+      key == "resolutionCid" ||
+      key == "reason") {
+      return false
+    }
+  }
+  if !fields.contains("checkpointCid") {
+    return false
+  }
+  if !fields.contains("status") {
+    return false
+  }
+  if fields.get("checkpointCid") is Some(item) {
+    if !wire_rule_1(item) {
+      return false
+    }
+  }
+  if fields.get("status") is Some(item) {
+    if !wire_rule_1444(item) {
+      return false
+    }
+  }
+  if fields.get("decision") is Some(item) {
+    if !wire_rule_1445(item) {
+      return false
+    }
+  }
+  if fields.get("resolutionCid") is Some(item) {
+    if !wire_rule_1(item) {
+      return false
+    }
+  }
+  if fields.get("reason") is Some(item) {
+    if !wire_rule_7(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_resolution_cid_shape(value : Json) -> Bool {
+  wire_rule_1(value)
+}
+
+///|
 fn wire_check_report_contract(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   let report = match fields.get("report") {

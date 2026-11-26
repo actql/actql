@@ -3522,10 +3522,22 @@ jobs:
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - name: Install existing scoped component producer dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
-      - name: Install isolated network tools
+      - name: Ensure isolated network tools are available
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes iproute2 iptables curl
+          network_tools_available() {
+            local tool path
+            for tool in ip iptables curl; do
+              path="$(type -P "$tool")" && test -f "$path" && test -x "$path" || return 1
+            done
+          }
+
+          if ! network_tools_available; then
+            sudo timeout --kill-after=5s 120s bash -ec '
+              apt-get update
+              apt-get install --yes iproute2 iptables curl
+            '
+            network_tools_available
+          fi
       - name: Select the original pinned Noble static Crypto inputs
         timeout-minutes: 5
         run: |

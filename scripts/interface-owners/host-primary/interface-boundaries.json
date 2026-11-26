@@ -26552,7 +26552,8 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/plan/plan",
           "parameters": [
-            "request"
+            "request",
+            "retainEgress"
           ],
           "async": false
         },
@@ -29887,7 +29888,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "2307f51ddd5aa4dfa52bc73a56f01e00baf81367fa686e114ab4e373274805ea"
+      "sha256": "673eb2bf27a9794c989ff2561367128ecc6da336b038e48048d73391a0876b56"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

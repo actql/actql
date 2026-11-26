@@ -17,7 +17,7 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5539,
+    "operations": 5544,
     "exports": 1202,
     "explicitContractGroups": 550
   },
@@ -24505,7 +24505,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9dc2f9a6f1efa076195ca20a516b6aa0ec002c0228497de104ae5f8f6b2a8ede",
+      "sha256": "37fc1b75612cf5c33386f914a6568ed81d2a3d081bbdeafd0d115f32fba7d372",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -24702,6 +24702,14 @@
           "parameters": [
             "resolve",
             "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/deliverStaticPlan",
+          "parameters": [
+            "view",
+            "assertCurrent"
           ],
           "async": false
         },
@@ -26302,7 +26310,8 @@
         },
         {
           "operations": [
-            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#7"
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#7",
+            "createClientHttpHandler/createClientHttpHandler/deliverStaticPlan"
           ],
           "exports": [],
           "attributes": {
@@ -26364,6 +26373,10 @@
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
               }
             ]
           }
@@ -26585,7 +26598,7 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "160d1ba13ce5af49f3a8e4fb3c06a2cd9a2cefc54708beb4cadb66ac393747c4",
+      "sha256": "6791eb28099176f2f95cfeb38ed023d43c23f53da9d5ee44e7123a1fb2728301",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -26649,16 +26662,31 @@
         {
           "name": "installClientStaticPlan/installClientStaticPlan",
           "parameters": [
-            "request"
+            "request",
+            "deliver"
           ],
           "async": true
+        },
+        {
+          "name": "installClientStaticPlan/installClientStaticPlan/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientStaticPlan/installClientStaticPlan/retainOriginalPlanEgress",
+          "parameters": [
+            "assertCurrent"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "installClientStaticPlan",
-            "installClientStaticPlan/installClientStaticPlan"
+            "installClientStaticPlan/installClientStaticPlan",
+            "installClientStaticPlan/installClientStaticPlan/assertCurrent/assertCurrent",
+            "installClientStaticPlan/installClientStaticPlan/retainOriginalPlanEgress"
           ],
           "exports": [
             "installClientStaticPlan"
@@ -26838,6 +26866,10 @@
               {
                 "path": "adapters/host-node/client-interactive-plan.test.mjs",
                 "anchor": "test('installed static service reads its held original and never re-enters raw preparation or compilation'"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
               }
             ]
           }
@@ -58137,7 +58169,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "26ca35f53280616d9a8c9bec26288c41b824f3d6e436f3f1fbca4e0bd6875508",
+      "sha256": "a1bb8f7f559ced9e799338b71ef85bb21fb11637552c8a2a8eb9ba400153be8e",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -58201,6 +58233,14 @@
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "createNodeInProcessClientHost/init:perform/init:perform/deliverStaticPlan",
+          "parameters": [
+            "view",
+            "assertCurrent"
+          ],
+          "async": false
         },
         {
           "name": "createNodeInProcessClientHost/init:perform/init:perform/init:perform",
@@ -59371,7 +59411,8 @@
         },
         {
           "operations": [
-            "createNodeInProcessClientHost/init:perform/init:perform/init:perform#4"
+            "createNodeInProcessClientHost/init:perform/init:perform/init:perform#4",
+            "createNodeInProcessClientHost/init:perform/init:perform/deliverStaticPlan"
           ],
           "exports": [],
           "attributes": {
@@ -59433,6 +59474,10 @@
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mts",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
               }
             ]
           }
@@ -122749,7 +122794,8 @@
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/wire/wire",
             "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation"
+            "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertOriginal/assertOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -123215,6 +123261,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback'"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "acquired static Plan rechecks its same original at delivery"
               }
             ]
           }
@@ -127267,6 +127317,11 @@
           "async": true
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertOriginal/assertOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/explanationPorts/originalExplanationPort",
           "parameters": [
             "name"
@@ -128148,7 +128203,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6fa2dc51009717db92ffbcfa001e19c1d31a084f3fbd19e05548b9b9d5bd0947"
+      "sha256": "56611a0f3a7442851b67422b360b6d965189b15c7603dc22b88ab3016a9cc010"
     },
     {
       "module": "adapters/host-node/ordinary-source-model-materials.mjs",

@@ -638,27 +638,27 @@ test "Portable narrative renders the original deal-review Facts and Context in b
   )
   assert_true(
     english.summary.contains(
-      "Read \"salesforce\".\"Opportunity\", \"drive\".\"files\", \"drive\".\"contents\".",
+      "Read \"salesforce\".\"Opportunity\", \"drive\".\"files\", \"drive\".\"contents\",",
     ),
   )
   assert_true(
     japanese.summary.contains(
-      "\"salesforce\" の \"Opportunity\"、\"drive\" の \"files\"、\"drive\" の \"contents\" を読む。",
+      "\"salesforce\" の \"Opportunity\"、\"drive\" の \"files\"、\"drive\" の \"contents\" を読み、",
     ),
   )
-  assert_true(english.summary.contains("Ask \"model-task:deal-review.v1\"."))
+  assert_true(english.summary.contains("ask \"model-task:deal-review.v1\","))
   assert_true(
     japanese.summary.contains(
-      "\"model-task:deal-review.v1\" に問い合わせる。",
+      "\"model-task:deal-review.v1\" に問い合わせ、",
     ),
   )
-  assert_true(english.summary.contains("Return \"updates\"."))
+  assert_true(english.summary.contains("return \"updates\", and "))
   assert_true(
-    japanese.summary.contains("\"updates\" を結果として返す。"),
+    japanese.summary.contains("\"updates\" を結果として返し、"),
   )
   assert_true(
     english.summary.contains(
-      "Plan to update \"Opportunity\" in \"salesforce\".",
+      "plan to update \"Opportunity\" in \"salesforce\".",
     ),
   )
   assert_true(

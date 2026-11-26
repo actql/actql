@@ -100,18 +100,18 @@ fn explanation_summary_effects(
   item : @canonical.CanonicalValue,
   text : ExplanationNarrativeText,
 ) -> Unit raise ClientExplanationNarrativeIssue {
+  text.say("Plan to ", "")
   visit_explanation_narrative_array(
     explanation_narrative_field(item, "members"),
     text.budget,
     (index, entry) => {
       if index > 0 {
-        text.say(". ", "。")
+        text.say(" and ", "、")
       }
       let declaration = explanation_narrative_field(entry, "declaration")
       let contract = explanation_narrative_field(declaration, "contract")
       match explanation_narrative_string(contract, "kind") {
         "mapping" => {
-          text.say("Plan to ", "")
           let kind = explanation_narrative_string(declaration, "effect_kind")
           match kind {
             "create" => text.say("create records in ", "")
@@ -126,26 +126,81 @@ fn explanation_summary_effects(
             text,
           )
           match kind {
-            "create" => text.say("", " にレコードを作成する計画")
-            "update" => text.say("", " を更新する計画")
-            "delete" => text.say("", " のレコードを削除する計画")
+            "create" => text.say("", " にレコードを作成する")
+            "update" => text.say("", " を更新する")
+            "delete" => text.say("", " のレコードを削除する")
             "upsert" =>
-              text.say(
-                "", " にレコードを作成または更新する計画",
-              )
-            "store" => text.say("", " にデータを保存する計画")
+              text.say("", " にレコードを作成または更新する")
+            "store" => text.say("", " にデータを保存する")
             _ => raise InvalidExplanation
           }
         }
         "command" => {
-          text.say("Plan to send command ", "コマンド ")
+          text.say("send command ", "コマンド ")
           text.quote(explanation_narrative_string(contract, "reference"))
-          text.say("", " を送る計画")
+          text.say("", " を送る")
         }
         _ => raise InvalidExplanation
       }
     },
   )
+  text.say("", "計画")
+}
+
+///|
+fn explanation_summary_sentence(
+  clauses : Array[ClientExplanationSummaryClause],
+  budget : ExplanationNarrativeBudget,
+) -> String raise ClientExplanationNarrativeIssue {
+  let sentence : ExplanationNarrativeText = { budget, out: StringBuilder(), }
+  if clauses.is_empty() {
+    sentence.say(
+      "Describe the checked computation.", "確認済みの処理を説明する。",
+    )
+    return sentence.out.to_string()
+  }
+  for index, clause in clauses {
+    let last = index == clauses.length() - 1
+    let text = clause.text
+    match budget.language {
+      English =>
+        if index > 0 {
+          if last {
+            sentence.append(if index == 1 { " and " } else { ", and " })
+          } else {
+            sentence.append(", ")
+          }
+          // The first letter belongs to the fixed English verb, not its arguments.
+          sentence.append(text.unsafe_substring(start=0, end=1).to_lower())
+          sentence.append(text.unsafe_substring(start=1, end=text.length()))
+        } else {
+          sentence.append(text)
+        }
+      Japanese =>
+        if last {
+          sentence.append(text)
+        } else {
+          let (ending, conjunction) = match clause.kind {
+            "source" => ("読む", "読み")
+            "join" => ("結合する", "結合し")
+            "model_task" => ("問い合わせる", "問い合わせ")
+            "filter" => ("絞り込む", "絞り込み")
+            "result" => ("返す", "返し")
+            _ => raise InvalidExplanation
+          }
+          if !text.has_suffix(ending) {
+            raise InvalidExplanation
+          }
+          sentence.append(
+            text.unsafe_substring(start=0, end=text.length() - ending.length()),
+          )
+          sentence.append(conjunction)
+          sentence.append("、")
+        }
+    }
+  }
+  sentence.say(".", "。")
+  sentence.out.to_string()
 }
 
 ///|
@@ -243,7 +298,6 @@ fn explain_narrative_summary(
     }
   }
   let clauses : Array[ClientExplanationSummaryClause] = []
-  let summary : ExplanationNarrativeText = { budget, out: StringBuilder(), }
   for
     (kind, part, context_items, step_ids) in [
       ("source", read, sources, []),
@@ -254,19 +308,13 @@ fn explain_narrative_summary(
       ("effect", effect, effects, []),
     ] {
     if !context_items.is_empty() || !step_ids.is_empty() {
-      if !clauses.is_empty() {
-        summary.say(" ", "")
-      }
-      let text = part.out.to_string()
-      summary.append(text)
-      summary.say(".", "。")
-      clauses.push({ kind, text, context_items, step_ids, })
+      clauses.push({
+        kind,
+        text: part.out.to_string(),
+        context_items,
+        step_ids,
+      })
     }
   }
-  if clauses.is_empty() {
-    summary.say(
-      "Describe the checked computation.", "確認済みの処理を説明する。",
-    )
-  }
-  (summary.out.to_string(), clauses, items)
+  (explanation_summary_sentence(clauses, budget), clauses, items)
 }

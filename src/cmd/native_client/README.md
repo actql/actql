@@ -540,9 +540,12 @@ acceptance requires execution against the new source and package cohort.
 
 A held submission prints the validated request control reply as JSON. It has
 no Run reference: `lookup-submission --submission-ref-file <file>` observes the same intent
-without approving or resubmitting it. Once lookup returns `ready`, its `admission.ref` can be used with `attach`. The native CLI does not yet provide
-Checkpoint answer commands; use the existing public Client operations for
-that workflow.
+without approving or resubmitting it. Once lookup returns `ready`, its
+`admission.ref` can be used with `attach`. Remote `resolve --signed-answer-file`
+sends one original public signed Checkpoint answer, as documented in
+[Share one authenticated Remote Host](../../../docs/cli.md#share-one-authenticated-remote-host).
+It does not discover Checkpoints, sign decisions or infer completion from a
+decision acknowledgement.
 
 Confirmed Host preparation rejections preserve the public input error code.
 An unrecognized or lost submit response remains `SubmissionUnknown` with the

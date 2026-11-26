@@ -178,9 +178,9 @@ test('installed static Explanation retains the original deal-review Source, Mode
       assert.doesNotMatch(JSON.stringify(presentation), /"(?:prompt|instructions)"|Review only the current stage/);
     }
     assert.equal(english.story.narrative.summary,
-      'Read "salesforce"."Opportunity", "drive"."files", "drive"."contents". Join inputs. Ask "model-task:deal-review.v1". Filter on checks including "review"."value"."changed". Return "updates". Plan to update "Opportunity" in "salesforce".');
+      'Read "salesforce"."Opportunity", "drive"."files", "drive"."contents", join inputs, ask "model-task:deal-review.v1", filter on checks including "review"."value"."changed", return "updates", and plan to update "Opportunity" in "salesforce".');
     assert.equal(japanese.story.narrative.summary,
-      '"salesforce" の "Opportunity"、"drive" の "files"、"drive" の "contents" を読む。入力を結合する。"model-task:deal-review.v1" に問い合わせる。"review"."value"."changed" などの条件で絞り込む。"updates" を結果として返す。"salesforce" の "Opportunity" を更新する計画。');
+      '"salesforce" の "Opportunity"、"drive" の "files"、"drive" の "contents" を読み、入力を結合し、"model-task:deal-review.v1" に問い合わせ、"review"."value"."changed" などの条件で絞り込み、"updates" を結果として返し、"salesforce" の "Opportunity" を更新する計画。');
     for (const [presentation, redaction] of [[english, /\[redacted /u], [japanese, /\[非開示 /u]] as const) {
       const filter = presentation.story.occurrences.find(step => step.operator === 'filter');
       assert(filter?.explanation.meaning.kind === 'filter');

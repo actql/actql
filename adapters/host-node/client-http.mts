@@ -22,7 +22,7 @@ import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWire
 
 import type {IncomingMessage, ServerResponse} from 'node:http';
 import type {ClientHostOperation, WireClientBodyByOperation, WireConnection, WireRunRef} from '../../packages/client-wire/index.js';
-import type {DispatchedHandler, ExplanationConsumer, Handler, HandlerPorts, HostInstallation, RoutedBody}
+import type {DispatchedHandler, Handler, HandlerPorts, HostInstallation, ReplyConsumer, RoutedBody}
   from './in-process-client.mjs';
 
 type Delivery = Parameters<typeof deliverAuthorizedResult>;
@@ -394,7 +394,7 @@ export function createClientHttpHandler({
           typeof requestLifetime.finish !== 'function') invalid('InvalidClientHostPreparation');
       const admittedRequest = requestLifetime.body;
       const invoke = async (handler: HandlerPorts[keyof HandlerPorts] | Handler<'delivery-attempt'>,
-        signal?: AbortSignal, preparedProgram?: unknown, consume?: ExplanationConsumer) => {
+        signal?: AbortSignal, preparedProgram?: unknown, consume?: ReplyConsumer) => {
         if (typeof handler !== 'function') invalid('ClientOperationUnavailable');
         const original = Object.freeze({...admittedRequest,
           ...(signal === undefined ? {} : {signal}),
@@ -481,9 +481,14 @@ export function createClientHttpHandler({
       } else if (operation === 'plan') {
         const observer = observationAttempt(response);
         try {
-          const view = await invoke(plan, observer.signal);
-          if (!validWirePlanViewShape(view) && !validWireEffectfulStaticPlanViewShape(view)) invalid('InvalidClientHostPlanView');
-          sendJson(view);
+          await invoke(plan, observer.signal, undefined, function deliverStaticPlan(view, assertCurrent) {
+            if (!validWirePlanViewShape(view) && !validWireEffectfulStaticPlanViewShape(view)) invalid('InvalidClientHostPlanView');
+            const wire = JSON.stringify(view);
+            requestLifetime!.beforeReply();
+            assertCurrent();
+            response.writeHead(200, {'content-type': 'application/json'});
+            response.end(wire);
+          });
         } finally { observer.release(); }
       } else if (operation === 'run-plan') {
         const observer = observationAttempt(response);
