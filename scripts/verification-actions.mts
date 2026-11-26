@@ -9,6 +9,9 @@ const usage = 'Usage: node scripts/verification-actions.mjs [--root DIR] ' +
 type Mapping = Record<string, unknown>;
 type CommandLink = 'start' | '&&' | 'newline';
 type Command = {argv: string[]; after: CommandLink; line: number};
+const localRunnerAuthor = 'scripts/local-checks.mts';
+const historicalLocalRunnerAuthor = 'scripts/local-checks.mjs';
+type LocalRunnerPath = typeof localRunnerAuthor | typeof historicalLocalRunnerAuthor;
 
 const object = (value: unknown): value is Mapping => value !== null && typeof value === 'object' && !Array.isArray(value);
 const canonical = (value: unknown) => JSON.stringify(value, (_key, item) => object(item)
@@ -226,11 +229,12 @@ type InventoryInputs = {
   workflowText: string;
   packageText: string;
   localRunnerText?: string;
+  localRunnerPath?: LocalRunnerPath;
   toolchainText?: string;
   workflowPath?: string;
 };
 
-export function inventory({workflowText, packageText, localRunnerText = '',
+export function inventory({workflowText, packageText, localRunnerText = '', localRunnerPath = localRunnerAuthor,
   toolchainText = '', workflowPath = '.github/workflows/ci.yml'}: InventoryInputs) {
   const {document, counter, value: workflow} = parseYaml(workflowText, workflowPath);
   if (!object(workflow.jobs)) throw new Error('Workflow jobs must be a mapping');
@@ -369,7 +373,7 @@ export function inventory({workflowText, packageText, localRunnerText = '',
     actionIdentity: {status: 'unavailable', reason: 'No complete action-input evidence is supplied',
       owner: 'proofs/bounded-session/action-inputs.mjs (#195 / #214)',
       integration: 'Use that module to compare two explicit bounded-session manifests after integration; equal observed inputs never permit reuse'},
-    localRunner: {source: {path: 'scripts/local-checks.mjs'}, status: 'unknown',
+    localRunner: {source: {path: localRunnerPath}, status: 'unknown',
       workflowReferenceLines: runnerLines.flatMap((line, i) => line.includes('.github/workflows/ci.yml') ? [i + 1] : []),
       reason: 'Inspected as text only. No JavaScript executed; local command filtering and substitutions are not certified'},
     boundaries: unknownDependencies, actions, comparisons, omissions,
@@ -394,6 +398,17 @@ function readText(path: string) {
         before.ctimeMs !== after.ctimeMs) throw new Error('Input changed while reading');
     return new TextDecoder('utf-8', {fatal: true}).decode(bytes.subarray(0, length));
   } finally { closeSync(fd); }
+}
+
+function readLocalRunner(root: string, allowHistoricalSource: boolean):
+  {localRunnerPath: LocalRunnerPath; localRunnerText: string} {
+  try {
+    return {localRunnerPath: localRunnerAuthor, localRunnerText: readText(join(root, localRunnerAuthor))};
+  } catch (error) {
+    if (!allowHistoricalSource || (error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  return {localRunnerPath: historicalLocalRunnerAuthor,
+    localRunnerText: readText(join(root, historicalLocalRunnerAuthor))};
 }
 
 const terminalSafe = (value: unknown) => String(value).replace(/[\u0000-\u001f\u007f-\u009f\u2028-\u202e\u2066-\u2069]/gu,
@@ -437,7 +452,7 @@ export function main(args: string[]) {
   const root = resolve(options.root), workflowPath = resolve(root, options.workflow);
   const report = inventory({workflowText: readText(workflowPath),
     workflowPath: relative(root, workflowPath), packageText: readText(join(root, 'package.json')),
-    localRunnerText: readText(join(root, 'scripts/local-checks.mjs')),
+    ...readLocalRunner(root, seen.has('--root')),
     toolchainText: readText(join(root, 'toolchain.json'))});
   process.stdout.write(options.json ? JSON.stringify(report, null, 2) + '\n' : formatReport(report));
 }

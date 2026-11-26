@@ -158,6 +158,7 @@ test('source locations, local runner limits and report interpretation are explic
   const report = inventory({workflowText: 'jobs:\n  one:\n    runs-on: ubuntu-24.04\n    steps:\n      - name: Check\n        run: node check.mjs\n',
     packageText: '{"scripts":{}}', localRunnerText: "// .github/workflows/ci.yml\nthrow new Error('do not run')"});
   assert.equal(report.actions[0].source[0].line, 5);
+  assert.deepEqual(report.localRunner.source, {path: 'scripts/local-checks.mts'});
   assert.deepEqual(report.localRunner.workflowReferenceLines, [1]);
   assert.equal(report.localRunner.status, 'unknown');
   assert.match(formatReport(report), /No equivalence proven/);
@@ -181,13 +182,31 @@ test('CLI reads only explicit sources; no command/JavaScript execution or inheri
     }}));
     writeFileSync(join(root, 'package.json'), '{"scripts": {"check:one": "touch marker"}}');
     writeFileSync(join(root, 'toolchain.json'), '{}');
-    writeFileSync(join(root, 'scripts/local-checks.mjs'), 'throw new Error("must not import")');
-    const child = spawnSync(process.execPath, [script, '--root', root, '--json'], {
+    const author = join(root, 'scripts/local-checks.mts'), emitted = join(root, 'scripts/local-checks.mjs');
+    writeFileSync(author, '// .github/workflows/ci.yml\nthrow new Error("must not import")');
+    const run = () => spawnSync(process.execPath, [script, '--root', root, '--json'], {
       cwd: root, encoding: 'utf8', env: {...process.env, PRIVATE_TEST_SECRET: 'do-not-serialize-this'},
     });
+    const child = run();
     assert.equal(child.status, 0, child.stderr);
-    assert.equal(JSON.parse(child.stdout).summary.occurrences, 2);
+    const report = JSON.parse(child.stdout);
+    assert.equal(report.summary.occurrences, 2);
+    assert.deepEqual(report.localRunner.source, {path: 'scripts/local-checks.mts'});
+    assert.deepEqual(report.localRunner.workflowReferenceLines, [1]);
     assert(!child.stdout.includes('do-not-serialize-this'));
+    // An emitted file beside the original does not become the report input.
+    writeFileSync(emitted, 'throw new Error("must not import emitted JavaScript")');
+    assert.equal(run().stdout, child.stdout);
+    rmSync(author);
+    symlinkSync(emitted, author);
+    const aliased = run();
+    assert.equal(aliased.status, 1);
+    assert.match(aliased.stderr, /ELOOP/u);
+    // Explicitly selected historical roots may still have a JavaScript author.
+    rmSync(author);
+    const historical = run();
+    assert.equal(historical.status, 0, historical.stderr);
+    assert.deepEqual(JSON.parse(historical.stdout).localRunner.source, {path: 'scripts/local-checks.mjs'});
     assert.throws(() => readFileSync(join(root, 'marker')));
     assert.equal(spawnSync(process.execPath, [script, '--run'], {encoding: 'utf8'}).status, 1);
     rmSync(join(root, 'toolchain.json'));
