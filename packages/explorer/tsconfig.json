@@ -2,7 +2,10 @@
   "compilerOptions": {
     "target": "ES2022", "module": "NodeNext", "moduleResolution": "NodeNext",
     "strict": true, "noEmit": true, "skipLibCheck": false,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "isolatedModules": true, "erasableSyntaxOnly": true,
+    "noImplicitOverride": true, "noImplicitReturns": true, "noFallthroughCasesInSwitch": true,
+    "types": ["node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "ES2024.String"]
   },
   "files": ["gateway.d.ts", "browser-source.d.ts", "gateway.typecheck.mts", "launcher.d.ts", "launcher.typecheck.mts"]
 }

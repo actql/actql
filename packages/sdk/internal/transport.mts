@@ -29,7 +29,7 @@ type DirectLoopback = (url: URL, options: {
 }) => Promise<Response>;
 
 // Return the import promise itself so only the existing loopback branch yields.
-export const loadLoopbackTransport = (): Promise<{requestLoopbackClient: DirectLoopback}> => import('#loopback-http');
+export const loadLoopbackTransport = (): Promise<{requestLoopbackClient: DirectLoopback | undefined}> => import('#loopback-http');
 
 const isSubmission = (operation: ClientHostOperation) => operation === 'submit-intent' ||
   operation === 'submit-named-intent' || operation === 'restart-intent';

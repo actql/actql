@@ -1912,9 +1912,25 @@ function draftStepEnabled(step, profile) {
 }
 test('Explorer components require original built assets and keep Draft preparation source-only', () => {
   const steps = jobs.lint.steps;
+  const types = steps.filter(step => step.name === 'Check Explorer browser and Node types');
   const prepare = steps.filter(step => step.name === 'Build Explorer component assets');
   const consume = steps.filter(step => step.name === 'Test Explorer gateway and UI components');
+  const draftInstall = steps.find(step => step.run === 'npm ci');
+  const readyInstall = steps.find(step => step.uses === './.github/actions/setup-toolchain');
+  assert.equal(types.length, 1);
   assert.equal(prepare.length, 1); assert.equal(consume.length, 1);
+  assert.equal(types[0].run, 'npm run check:explorer-types');
+  assert.equal(types[0]['continue-on-error'], undefined);
+  assert(draftInstall && readyInstall);
+  assert(steps.indexOf(draftInstall) < steps.indexOf(types[0]));
+  assert(steps.indexOf(readyInstall) < steps.indexOf(types[0]));
+  assert(steps.indexOf(types[0]) < steps.indexOf(prepare[0]));
+  for (const profile of ['draft', 'draft-focused', 'full', 'maintenance', 'focused-tests']) {
+    assert.equal(draftStepEnabled(types[0], profile), true);
+  }
+  assert.equal(draftStepEnabled(types[0], 'documentation'), false);
+  assert.equal(draftStepEnabled(draftInstall, 'draft'), true);
+  assert.equal(draftStepEnabled(readyInstall, 'full'), true);
   assert.equal(prepare[0].run, 'npm run build --prefix packages/explorer');
   assert.equal(consume[0].run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- packages/explorer/*.test.mjs packages/explorer-ui/*.test.mjs');
   assert(steps.indexOf(prepare[0]) < steps.indexOf(consume[0]));

@@ -291,6 +291,9 @@ jobs:
       - name: Test connector Source profiles and independent request fixtures
         if: needs.select-targets.outputs.profile != 'documentation'
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- adapters/connectors/gcs/test/gcs-file-listing.test.mjs adapters/connectors/gcs/test/gcs-prefix-profile.test.mjs adapters/connectors/gcs/test/gcs-site-profile-bounds.test.mjs adapters/connectors/snowflake/test/snowflake-key-pair.test.mjs adapters/connectors/snowflake/test/snowflake-public-fixture.test.mjs adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mjs adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs
+      - name: Check Explorer browser and Node types
+        if: needs.select-targets.outputs.profile != 'documentation'
+        run: npm run check:explorer-types
       - name: Build Explorer component assets
         if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: npm run build --prefix packages/explorer

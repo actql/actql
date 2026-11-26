@@ -66,3 +66,44 @@ test('required client typecheck includes every tracked SDK and Wire type fixture
   const roots = new Set(config.fileNames);
   assert.deepEqual(fixtures.filter(path => !roots.has(resolve(root, path))), []);
 });
+
+test('required Explorer typechecks use separate Node and browser compiler graphs', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const projects = [
+    {file: 'packages/explorer/tsconfig.json', browser: false, entries: [
+      'packages/explorer/gateway.typecheck.mts', 'packages/explorer/launcher.typecheck.mts',
+    ]},
+    {file: 'packages/explorer-ui/tsconfig.json', browser: true, entries: [
+      'packages/explorer-ui/plan-explorer.tsx', 'packages/explorer-ui/run-inspector.tsx',
+      'packages/explorer-ui/flow-layout-worker.mts', 'packages/explorer-ui/flow-model.mts',
+      'packages/explorer-ui/read-model.typecheck.mts', 'packages/explorer-ui/run-observation.typecheck.mts',
+      'packages/explorer-ui/checkpoint-review.typecheck.mts',
+    ]},
+    {file: 'packages/explorer/app/tsconfig.json', browser: true, entries: [
+      'packages/explorer/app/main.tsx', 'packages/explorer/app/story-card-groups.mts',
+    ]},
+  ];
+  const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as {scripts: Record<string, unknown>};
+  assert.equal(manifest.scripts['check:explorer-types'], projects.map(({file}) => `tsc --project ${file}`).join(' && '));
+  for (const {file, browser, entries} of projects) {
+    const config = ts.getParsedCommandLineOfConfigFile(join(root, file), {}, {
+      ...ts.sys,
+      onUnRecoverableConfigFileDiagnostic(diagnostic) {
+        assert.fail(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+      },
+    });
+    assert(config, file);
+    assert.deepEqual(config.errors, []);
+    const {options, fileNames} = config;
+    assert.equal(options.skipLibCheck, false, file);
+    for (const option of ['strict', 'noEmit', 'isolatedModules', 'erasableSyntaxOnly', 'noImplicitOverride',
+      'noImplicitReturns', 'noFallthroughCasesInSwitch'] as const) {
+      assert.equal(options[option], true, `${file} must enable ${option}`);
+    }
+    const graph = new Set(ts.createProgram(fileNames, options).getSourceFiles().map(source => resolve(source.fileName)));
+    for (const entry of entries) assert(graph.has(resolve(root, entry)), `${file} omitted ${entry}`);
+    assert.equal(graph.has(resolve(root, 'packages/sdk/loopback-http-unavailable.mts')), browser, file);
+    assert.equal(graph.has(resolve(root, 'packages/sdk/loopback-http.mts')), !browser, file);
+    assert.equal([...graph].some(path => /(?:^|[/\\])@types[/\\]node[/\\]/u.test(path)), !browser, file);
+  }
+});
