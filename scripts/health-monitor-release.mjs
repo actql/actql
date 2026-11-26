@@ -273,13 +273,15 @@ export async function releaseMeasurements({options, prepared, repository, root, 
       await onMetric({id: operation, target: adapter, kind: 'latency', required: true, status: 'incomplete', reason: 'Matching ordinary Python venv absent'}); continue;
     }
     const output = join(root, `formal-${adapter}-${operation}`);
+    const evidence = join(output, 'measurements.json');
     const interpreter = adapter === 'python' ? join(options.pythonVenv, 'bin/python') : options.python ?? 'python3';
     await command(interpreter, ['-I', '-B', join(repository, 'scripts/benchmark-ordinary-processes.py'),
       '--adapter', adapter, '--manifest', options[adapter + 'Manifest'], '--consumer', options[adapter + 'Consumer'],
       '--source', source.sha, '--output', output, '--operation', operation, '--mode', 'final',
       '--load', options.load ?? 'concurrent', ...(adapter === 'python' ? ['--venv', options.pythonVenv] : [])],
     {cwd: repository, name: `formal-${adapter}-${operation}`, timeout: 0});
-    const raw = JSON.parse(await readFile(join(output, 'measurements.json')));
+    const evidenceBytes = await readFile(evidence);
+    const raw = JSON.parse(evidenceBytes);
     const originalPythonCohort = await readFile(options.pythonManifest);
     const originalManifest = JSON.parse(originalPythonCohort.toString('utf8'));
     const releaseProfile = pythonReleaseLatencyApplies(originalManifest.package_version);
@@ -311,9 +313,11 @@ export async function releaseMeasurements({options, prepared, repository, root, 
       controlsSha256: adapter === 'python' && options.pythonControls ? digest(await readFile(options.pythonControls)) : null}, null, 2), {flag: 'wx'});
     const verdict = formalCollectorVerdict(raw);
     const emitMetric = releaseProfile ? onPythonMetric : onMetric;
+    const originalEvidence = {cohortSha256: raw.cohortSha256, evidenceSha256: digest(evidenceBytes)};
     for (const series of raw.latency) await emitMetric({id: operation, target: adapter, kind: 'latency', required: true,
       unit: 'ms', temperature: operation.startsWith('warm-') ? 'warm' : 'cold', requiredSamples: operation.startsWith('warm-') ? 100 : 30,
-      fixtureSha256: series.fixtureSha256, samples: series.samples, evidence: join(output, 'measurements.json'),
-      formalAssessments: assessmentPath, ...verdict});
+      fixtureSha256: series.fixtureSha256, samples: series.samples, evidence,
+      formalAssessments: assessmentPath, ...(releaseProfile ? {evidenceSha256: originalEvidence.evidenceSha256} : {}),
+      ...verdict}, originalEvidence);
   }
 }

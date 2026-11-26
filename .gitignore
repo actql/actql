@@ -2362,8 +2362,12 @@ target/
 /scripts/npm-pack-json.test.d.mts
 /scripts/health-monitor-report.mjs
 /scripts/health-monitor-report.d.mts
+/scripts/health-python-release-evidence.mjs
+/scripts/health-python-release-evidence.d.mts
 /scripts/operation-performance-sample-summary.mjs
 /scripts/operation-performance-sample-summary.d.mts
+/scripts/python-release-latency-policy.mjs
+/scripts/python-release-latency-policy.d.mts
 /adapters/host-node/fixtures/installed-family-content.fixture.mjs
 /adapters/host-node/fixtures/installed-family-content.fixture.d.mts
 /adapters/host-node/fixtures/mock-project-terminal-public.mjs
@@ -3873,5 +3877,3 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/worktree-inventory.d.mts
 /scripts/worktree-inventory.test.mjs
 /scripts/worktree-inventory.test.d.mts
-/scripts/python-release-latency-policy.mjs
-/scripts/python-release-latency-policy.d.mts

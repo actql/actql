@@ -29,6 +29,7 @@ export type HealthMetric = MetricDefinition & {
   samples?: PublicLatencySample[];
   value?: number | null;
   evidence?: unknown;
+  evidenceSha256?: string;
   fixtureSha256?: string;
 };
 
@@ -39,6 +40,10 @@ type Artifact<T = NativeInventory | PythonInventory> = {
   name: string;
   sourceSha?: string;
   sha256?: string;
+  artifactKind?: string;
+  version?: string;
+  file?: string;
+  acquisitionBytes?: number;
   installedBytes?: number;
   installedInventory?: T;
 };
@@ -69,6 +74,7 @@ export type HealthReport = {
   nativeInstalledPayloadsUnchanged?: boolean;
   pythonInstalledInventoryAfter?: PythonInventory;
   pythonInstalledPayloadsUnchanged?: boolean;
+  pythonReleaseCohort?: {path: string; sha256: string};
   methodologySha256?: string;
   baseline?: {id?: string; reason?: string; reviewed?: boolean};
   guardExitCode?: number;
@@ -265,7 +271,8 @@ function profileAssessment(report: HealthReport, pythonReleaseMetrics?: Readonly
 
 const environmentFields = ['platform', 'architecture', 'osRelease', 'cpuModel', 'logicalCpus',
   'node', 'nodeExecutableSha256', 'python', 'moon', 'toolchainSha256', 'buildSettings'];
-export function compareReports(base: HealthReport, current: HealthReport, policy: Policy): Comparison {
+export function compareReports(base: HealthReport, current: HealthReport, policy: Policy,
+    pythonReleaseMetrics: {base?: ReadonlySet<string>; current?: ReadonlySet<string>} = {}): Comparison {
   assert(base?.format === 'actql-health/0.1' && current?.format === 'actql-health/0.1', 'Unsupported report format');
   const reasons: string[] = [];
   for (const key of environmentFields) {
@@ -296,7 +303,9 @@ export function compareReports(base: HealthReport, current: HealthReport, policy
     if (!report.installedPayloadsUnchanged || !report.sourceAfter || !report.environmentAfter) reasons.push(`${label}: before/after custody observation missing`);
     if (report.sourceAfter && jsonDigest(report.sourceAfter) !== jsonDigest(report.source)) reasons.push(`${label}: source before/after differs`);
     if (report.environmentAfter && jsonDigest(report.environmentAfter) !== jsonDigest(report.environment)) reasons.push(`${label}: environment before/after differs`);
-    if (profileAssessment(report).some(row => row.required && row.status !== 'pass')) reasons.push(`${label}: incomplete required profile measurements`);
+    if (profileAssessment(report, pythonReleaseMetrics[label]).some(row => row.required && row.status !== 'pass')) {
+      reasons.push(`${label}: incomplete required profile measurements`);
+    }
     for (const artifact of report.artifacts ?? []) {
       if (artifact.sourceSha !== report.source!.sha || !/^[a-f0-9]{64}$/u.test(artifact.sha256 ?? '')) reasons.push(`${label}: unbound artifact ${artifact.name}`);
     }

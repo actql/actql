@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp, readFile, writeFile, mkdir, readdir, rename, symlink, unlink, readlink} from 'node:fs/promises';
+import {mkdtemp, readFile, writeFile, mkdir, readdir, rename, symlink, unlink, readlink, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {createRequire} from 'node:module';
@@ -691,7 +691,8 @@ test('Release methodology identity binds actual cold and Native Python collector
     'scripts/connector-authoring-toolkit.mts', 'scripts/operation-performance.mjs', 'scripts/operation-performance-sample-summary.mts', 'scripts/ordinary-operation-packages.mjs'];
   const releaseOnly = ['scripts/benchmark-node-process-operations.mjs', 'scripts/benchmark-ordinary-processes.py',
     'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs',
-    'scripts/python-release-latency-policy.mts'];
+    'scripts/python-release-latency-policy.mts', 'scripts/health-python-release-evidence.mts',
+    'scripts/python_release_cohort.py', 'scripts/build-python-product-wheels.py', 'scripts/release-version.mts'];
   const files = [...quickFiles, ...releaseOnly];
   for (const file of files) {
     await mkdir(join(root, file, '..'), {recursive: true}); await writeFile(join(root, file), 'authored source-tool DATA\n');
@@ -784,6 +785,120 @@ test('Compare runs offline with no git/npm/moon executables and never changes it
   assert.equal(result.status, 0, result.stderr); assert.equal(await readFile(base, 'utf8'), before);
   assert.equal(await readFile(current, 'utf8'), before);
   assert.deepEqual((await readdir(output)).sort(), ['report.json', 'summary.md']);
+});
+
+async function writePythonHealthOriginals(directory, report, python) {
+  const source = report.source.sha;
+  const output = spawnSync(python, ['-I', '-B', '-c', `
+import hashlib, json, pathlib, sys, zipfile
+root = pathlib.Path(sys.argv[1]); (root / 'wheels').mkdir(parents=True)
+source = sys.argv[2]; version = '0.0.3'; wheels = []
+for name, requires in [('actql-sdk', ['httpx==0.28.1', 'rfc8785==0.1.4']),
+                       ('actql-local-runtime', ['wasmtime==38.0.0']),
+                       ('actql', ['actql-sdk==0.0.3', 'actql-local-runtime==0.0.3'])]:
+    stem = name.replace('-', '_') + '-' + version
+    tag = 'py3-none-manylinux_2_28_x86_64' if name == 'actql-local-runtime' else 'py3-none-any'
+    wheel = root / 'wheels' / (stem + '-' + tag + '.whl')
+    with zipfile.ZipFile(wheel, 'w') as archive:
+        archive.writestr(stem + '.dist-info/METADATA', f'Name: {name}\\nVersion: {version}\\n' +
+                         ''.join('Requires-Dist: ' + item + '\\n' for item in requires))
+        archive.writestr(stem + '.dist-info/WHEEL', 'Tag: ' + tag + '\\n')
+        if name == 'actql':
+            for entry in ['__init__.py', '__init__.pyi', 'py.typed']:
+                archive.writestr('actql/' + entry, '')
+    contents = wheel.read_bytes()
+    wheels.append(dict(distribution=name, file=wheel.name, bytes=len(contents), sha256=hashlib.sha256(contents).hexdigest()))
+cohort = dict(source_sha=source, package_version=version, platform='linux-x64', core_abi=91, wheels=wheels,
+              host_capacity_sha256=None, runtime_executed=False, public_local_accepted=False,
+              recovery_accepted=False, published=False)
+for name in ('artifact', 'module', 'duckdb', 'image', 'engine_recipe'):
+    cohort[name + '_sha256'] = 'a' * 64
+cohort['release_metadata'] = dict(version=version, source_package_version='0.0.0.dev0',
+    source_artifact_sha256='b' * 64, transforms=[dict(file=name, before_sha256='b' * 64, after_sha256='a' * 64)
+    for name in ['stages/python-product/pyproject.toml', 'stages/python-sdk/pyproject.toml',
+                 'stages/python-local-runtime/pyproject.toml', 'stages/python-local-runtime/src/actql_local_runtime/artifact.json']])
+(root / 'cohort.json').write_text(json.dumps(cohort))
+`, directory, source], {encoding: 'utf8', timeout: 15_000});
+  assert.equal(output.status, 0, output.stderr);
+  const path = join(directory, 'cohort.json'), cohortBytes = await readFile(path);
+  const cohort = JSON.parse(cohortBytes), cohortSha256 = digest(cohortBytes);
+  report.pythonReleaseCohort = {path, sha256: cohortSha256};
+  for (const wheel of cohort.wheels) report.artifacts.push({name: wheel.distribution, version: cohort.package_version,
+    sourceSha: source, artifactKind: 'wheel', file: wheel.file, acquisitionBytes: wheel.bytes, sha256: wheel.sha256});
+  const {version, executableSha256} = report.environment.pythonRuntime;
+  for (const metric of report.metrics.filter(row => row.target === 'python' && row.kind === 'latency')) {
+    const wallMs = {'warm-result': 300, 'cold-existing': 1000}[metric.id] ?? 10;
+    for (const sample of metric.samples) sample.wallNs = wallMs * 1e6;
+    const raw = {sourceSha: source, cohortSha256, executionPath: 'python-sdk',
+      protocol: {adapter: 'python', operation: metric.id}, environment: {python: version, pythonExecutableSha256: executableSha256},
+      installedPayloadsUnchanged: true, cleanup: {closed: true},
+      latency: [{operation: metric.id, mode: 'final', profiled: false, fixtureSha256: metric.fixtureSha256, samples: metric.samples}]};
+    const bytes = JSON.stringify(raw);
+    metric.evidence = join(directory, metric.id + '.json');
+    metric.evidenceSha256 = digest(bytes);
+    await writeFile(metric.evidence, bytes);
+  }
+}
+
+test('Release Health comparison and offline replay use the selected policy from both original wheel cohorts', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-python-compare-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const locator = spawnSync('python3', ['-I', '-B', '-c', 'import sys; print(sys.executable)'], {encoding: 'utf8'});
+  assert.equal(locator.status, 0, locator.stderr);
+  const python = locator.stdout.trim(), base = fixture('release'), current = fixture('release');
+  current.source.sha = 'b'.repeat(40); current.sourceAfter.sha = current.source.sha;
+  for (const artifact of current.artifacts) artifact.sourceSha = current.source.sha;
+  const native = current.artifacts.find(row => row.name === 'native-products-installed');
+  native.installedInventory.sourceSha = current.source.sha;
+  native.sha256 = digest(JSON.stringify(native.installedInventory));
+  current.nativeInstalledInventoryAfter = structuredClone(native.installedInventory);
+  await writePythonHealthOriginals(join(root, 'base-cohort'), base, python);
+  await writePythonHealthOriginals(join(root, 'current-cohort'), current, python);
+  const basePath = join(root, 'base.json'), currentPath = join(root, 'current.json');
+  const baseBytes = JSON.stringify(base), currentBytes = JSON.stringify(current);
+  await writeFile(basePath, baseBytes); await writeFile(currentPath, currentBytes);
+  await applyComparison(current, {base: basePath, python});
+  assert.equal(current.comparison.comparable, true, JSON.stringify(current.comparison.reasons));
+  assert.equal(current.comparison.status, 'pass');
+  const replay = (label, currentFile) => {
+    const output = join(root, label);
+    const result = spawnSync(process.execPath, [new URL('./health-monitor.mjs', import.meta.url).pathname,
+      'compare', '--base', basePath, '--current', currentFile, '--output', output, '--python', python],
+    {env: {...process.env, PATH: '/nonexistent'}, encoding: 'utf8', timeout: 30_000});
+    return {result, output};
+  };
+  const valid = replay('valid', currentPath);
+  assert.equal(valid.result.status, 0, valid.result.stderr);
+  const compared = JSON.parse(await readFile(join(valid.output, 'report.json')));
+  for (const metric of ['warm-result', 'cold-existing']) {
+    assert.equal(compared.verdicts.find(row => row.target === 'python' && row.metric === metric)?.status, 'pass');
+  }
+  assert.equal(await readFile(basePath, 'utf8'), baseBytes);
+  assert.equal(await readFile(currentPath, 'utf8'), currentBytes);
+
+  const foreign = structuredClone(current);
+  foreign.pythonReleaseCohort = base.pythonReleaseCohort;
+  await assert.rejects(applyComparison(foreign, {base: basePath, python}), /cohort differs from the selected source/u);
+  const modified = structuredClone(current);
+  modified.metrics.find(row => row.target === 'python' && row.id === 'warm-result').samples[0].wallNs++;
+  await assert.rejects(applyComparison(modified, {base: basePath, python}), /samples differ from their original measurements/u);
+  const archived = join(root, 'base-cohort', 'wheels', base.artifacts.find(row => row.artifactKind === 'wheel').file);
+  const originalWheel = await readFile(archived);
+  await writeFile(archived, Buffer.concat([originalWheel, Buffer.from('changed')]));
+  try {
+    await assert.rejects(applyComparison(structuredClone(current), {base: basePath, python}), /Python release wheel bytes changed/u);
+  } finally {await writeFile(archived, originalWheel);}
+  const missing = structuredClone(current);
+  delete missing.pythonReleaseCohort;
+  const missingPath = join(root, 'missing.json');
+  await writeFile(missingPath, JSON.stringify({...missing, latencyProfile: 'python-v0.0.3-public'}));
+  const refused = replay('refused', missingPath);
+  assert.equal(refused.result.status, 3, refused.result.stderr);
+  assert.match(refused.result.stderr, /Missing original Python Health cohort/u);
+  for (const artifact of missing.artifacts.filter(row => row.artifactKind === 'wheel')) artifact.version = '0.0.1';
+  await applyComparison(missing, {base: basePath, python});
+  assert.equal(missing.comparison.comparable, false);
+  assert.match(missing.comparison.reasons.join('\n'), /current: incomplete required profile measurements/u);
 });
 test('source/config and gated workflow declare exact Quick 10/5 and fail closed', async () => {
   assert.deepEqual(policy.quick, {warmSamples: 10, coldSamples: 5});
