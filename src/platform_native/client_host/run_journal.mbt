@@ -65,7 +65,6 @@ pub(all) enum NativeClientRunJournalIssue {
   ChangedIntent
   ForeignRun
   Fenced
-  TransactionUnknown
   JournalStepFailed(
     NativeClientJournalStepFailure,
     NativeClientRunJournalIssue?
@@ -94,7 +93,6 @@ pub fn NativeClientRunJournalIssue::requires_transaction_reconciliation(
   self : Self,
 ) -> Bool {
   match self {
-    TransactionUnknown => true
     JournalStepFailed(step, _) => step.requires_reconciliation()
     Epoch(issue) => issue.requires_transaction_reconciliation()
     _ => false

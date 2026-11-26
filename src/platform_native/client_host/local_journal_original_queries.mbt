@@ -236,8 +236,6 @@ fn[T] NativeLocalJournalOriginalResources::audit_read_stage(
     match (queries.failure, result) {
       (_, Err(Journal(JournalStepFailed(_, _) | Epoch(JournalStepFailed(_, _))))
       ) => result
-      (Some(original), Err(Journal(TransactionUnknown))) =>
-        Err(InstallationReadTransactionFailure(original, TransactionUnknown))
       (Some(original), _) => Err(original)
       (None, value) => value
     }
@@ -313,10 +311,6 @@ fn[T] NativeLocalJournalOriginalResources::bootstrap_read_stage(
           | Journal(JournalStepFailed(_, _) | Epoch(JournalStepFailed(_, _)))
         ),
       ) => result
-      (Some(original), Err(TransactionUnknown)) =>
-        Err(InstallationReadTransactionFailure(original, TransactionUnknown))
-      (Some(original), Err(Journal(TransactionUnknown))) =>
-        Err(InstallationReadTransactionFailure(original, TransactionUnknown))
       (Some(original), _) => Err(original)
       (None, value) => value
     }

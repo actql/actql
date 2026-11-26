@@ -78,8 +78,8 @@ fn[T] local_business_policy_result(
       local_report_submission_failure(issue)
       original.original.retain_primary(CommandAdoption(issue))
       match issue {
-        @local_host.InstallationReadTransactionFailure(_, TransactionUnknown) =>
-          Err(@local_host.TransactionUnknown)
+        @local_host.InstallationReadTransactionFailure(_, journal) if journal.requires_transaction_reconciliation() =>
+          Err(journal)
         _ => stop("LocalRunPolicyOriginalUnavailable")
       }
     }

@@ -385,3 +385,11 @@ fn journal_test_original_commit_failure(
     observation.state is Some(Ok(@sqlite.ActiveSqliteTransaction))
   }
 }
+
+///|
+fn journal_test_routed_commit_issue() -> NativeClientRunJournalIssue {
+  JournalStepFailed(
+    ScopeStep(@sqlite.Commit, OriginalResourceScopePending, None),
+    None,
+  )
+}

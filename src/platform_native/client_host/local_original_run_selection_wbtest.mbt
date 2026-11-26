@@ -35,7 +35,7 @@ fn original_selection_journal_kind(
     AuthorizationDenied => "AuthorizationDenied"
     CustodyLost => "CustodyLost"
     CapacityExceeded => "CapacityExceeded"
-    TransactionUnknown | JournalStepFailed(_, _) => "TransactionUnknown"
+    JournalStepFailed(_, _) => "TransactionUnknown"
     Fenced => "Fenced"
     _ => "OtherJournalRefusal"
   }

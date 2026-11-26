@@ -202,10 +202,6 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
       self.read_operation_issue = Some(issue)
       result
     }
-    (Some(issue), _, Err(Journal(TransactionUnknown))) => {
-      self.read_operation_issue = Some(issue)
-      Err(InstallationReadTransactionFailure(issue, TransactionUnknown))
-    }
     (Some(issue), _, _) => {
       self.read_operation_issue = Some(issue)
       Err(issue)

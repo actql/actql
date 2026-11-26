@@ -155,7 +155,6 @@ fn local_publisher_journal_issue_code(
     ChangedIntent => "ChangedIntent"
     ForeignRun => "ForeignRun"
     Fenced => "Fenced"
-    TransactionUnknown => "TransactionUnknown"
     JournalStepFailed(step, _) =>
       if step.requires_reconciliation() {
         "TransactionUnknown"

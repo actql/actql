@@ -663,10 +663,8 @@ fn local_submission_start(
               Err(issue) => {
                 original.original.retain_primary(CommandAdoption(issue))
                 match issue {
-                  @local_host.InstallationReadTransactionFailure(
-                    _,
-                    TransactionUnknown
-                  ) => Err(@local_host.TransactionUnknown)
+                  @local_host.InstallationReadTransactionFailure(_, journal) if journal.requires_transaction_reconciliation() =>
+                    Err(journal)
                   _ => stop("LocalRunAdmissionUnavailable")
                 }
               }

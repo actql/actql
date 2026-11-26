@@ -115,7 +115,8 @@ priv enum NativeClientJournalTransactionOperation {
 }
 
 ///|
-pub enum NativeClientJournalStepFailure {
+/// Evidence of a transaction refusal. These values carry no authority to enter or retry the original connection.
+pub(all) enum NativeClientJournalStepFailure {
   ForeignDatabase(@sqlite.NativeSqliteTransactionStep)
   SqlStep(
     @sqlite.NativeSqliteTransactionStep,

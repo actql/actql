@@ -262,7 +262,7 @@ fn NativeLocalJournalCapture::save_effect_review_original_in_scope(
           ) {
           Ok(value) => value
           Err(issue) => {
-            // The original transaction Owner returns TransactionUnknown for
+            // The original transaction Owner retains uncertainty for
             // lost COMMIT/rollback. All other failures precede COMMIT or have
             // its successful rollback. This clears no Read/Store duty and
             // never retries waiting; it only permits their actual cleanup.

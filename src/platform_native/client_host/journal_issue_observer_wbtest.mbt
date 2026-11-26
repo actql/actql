@@ -200,7 +200,7 @@ fn test_observe_run(
     ChangedIntent => emit(503)
     ForeignRun => emit(504)
     Fenced => emit(505)
-    TransactionUnknown | JournalStepFailed(_, _) => emit(506)
+    JournalStepFailed(_, _) => emit(506)
     Encoding => emit(507)
     Physical(p0) => {
       emit(508)
@@ -620,7 +620,7 @@ test "test-only original issue observer keeps phase and transaction causes" {
         Some(CustodyLost),
         @arena.Domain(@bootstrap.Bootstrap(@bootstrap.Physical(-41))),
       ),
-      TransactionUnknown,
+      journal_test_routed_commit_issue(),
     ),
     tag => tags.push(tag),
     32,
