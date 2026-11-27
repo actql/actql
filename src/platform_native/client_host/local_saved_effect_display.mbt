@@ -256,7 +256,7 @@ pub fn NativeMockEffectReview::display_preview_in_original_read(
       host.journal.retained(first.request, reads=Some(operations.reads))
       is Ok(Some(actual)) &&
       actual.revision == waiting.revision &&
-      !actual.cancellation_requested &&
+      !actual.cancellation_requested() &&
       actual.checkpoint is Some(selected) &&
       selected.artifact.checkpoint_cid == checkpoint_cid
     }

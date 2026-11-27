@@ -58,12 +58,9 @@ test "Native original Submission material binding preserves cancelled or started
       issued,
     ) = submitted_original_effect_material_fixture("submitted-material-" + mode)
     if mode == "cancelled" {
-      journal
-      .transaction(() => {
-        let record = journal.retained(request).unwrap().unwrap()
-        journal.save({ ..record, cancellation_requested: true, }).map(_ => ())
-      })
-      .unwrap()
+      journal.accept_fixture_cancellation(
+        journal.retained(request).unwrap().unwrap(),
+      )
     } else if mode == "started" {
       claim_native_client_effect_work_start(
         journal,
@@ -371,14 +368,9 @@ test "Native material binding does not overwrite cancellation accepted between i
       () => {
         calls += 1
         if calls == 2 {
-          journal
-          .transaction(() => {
-            let record = journal.retained(request).unwrap().unwrap()
-            journal
-            .save({ ..record, cancellation_requested: true, })
-            .map(_ => ())
-          })
-          .unwrap()
+          journal.accept_fixture_cancellation(
+            journal.retained(request).unwrap().unwrap(),
+          )
         }
         true
       },
@@ -387,7 +379,7 @@ test "Native material binding does not overwrite cancellation accepted between i
     .unwrap()
   let after = journal.retained(request).unwrap().unwrap()
   assert_eq(calls, 3)
-  assert_true(after.cancellation_requested)
+  assert_true(after.cancellation_requested())
   assert_false(after.dispatch_reserved)
   assert_false(after.physical_start_claimed)
   assert_eq(after.revision, before.revision + 1L)

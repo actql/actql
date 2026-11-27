@@ -160,7 +160,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
       ) ==
       @publication.publication_contract_identity(definition) &&
       !record.physical_start_claimed &&
-      !record.cancellation_requested &&
+      !record.cancellation_requested() &&
       record.checkpoint is None => ()
     Ok(_) => return refuse(NeedsOriginalReconciliation)
     Err(issue) => return refuse(OriginalOperation(issue))

@@ -2103,7 +2103,7 @@ pub fn decode_client_submitted_journal_row(Bytes, before_construction? : ((Clien
 
 pub fn decode_client_submitted_name_row(Bytes) -> Result[ClientSubmittedNameRow, ClientSubmittedNameIssue]
 
-pub fn decode_native_client_run_journal_row_with_checkpoint_companion(Bytes, (ClientRequestIdentity, @run_publication.PublicationContract)?, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[(ClientRunJournalEncoding, String?, String?, Bool), ClientJournalDecodingIssue]
+pub fn decode_native_client_run_journal_row_with_checkpoint_companion(Bytes, (ClientRequestIdentity, @run_publication.PublicationContract)?, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[(ClientRunJournalEncoding, String?, String?, Bool, Bool?), ClientJournalDecodingIssue]
 
 pub fn emit_client_effect_file_preview_draft(@encode_core.Writer, ClientEffectFilePreviewDraftHeader, @encode_core.EncodedDocument, Int, (Int, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure) -> Unit raise @encode_core.EncodeFailure
 
@@ -3112,6 +3112,8 @@ pub fn read_client_effect_material_journal_packet(String) -> Result[ClientEffect
 pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
+
+pub fn[E] read_client_legacy_cancellation_heads(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (Int64, Int64, Int64) -> Result[Unit, E], E, E) -> Result[ClientLegacyCancellationHeads, E]
 
 pub fn read_client_local_initial_signing_payload(Bytes) -> Result[ClientLocalInitialSigningPayloadFields, ClientLocalOriginalCodecIssue]
 
@@ -5053,6 +5055,9 @@ pub enum ClientKeyedRequestPoll {
 }
 
 type ClientKeyedRequestPreparation
+
+type ClientLegacyCancellationHeads
+pub fn ClientLegacyCancellationHeads::select(Self, ClientRequestIdentity, @run_publication.PublicationContract, Int64) -> ClientAcceptedCancellationHead?
 
 pub(all) enum ClientLocalAdoptedCurrentIssue[E] {
   Physical(E)

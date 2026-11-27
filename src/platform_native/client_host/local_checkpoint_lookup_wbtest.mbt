@@ -251,7 +251,7 @@ test "Native Checkpoint lookup separates cancellation request from retained Chec
   host.journal
   .cancellation_test_operation(
     request,
-    "checkpoint-cancel-namespace",
+    @publication.run_definition_namespace(before.definition).unwrap(),
     "checkpoint-cancel-original",
     before.revision.to_int(),
     () => true,
@@ -260,7 +260,7 @@ test "Native Checkpoint lookup separates cancellation request from retained Chec
   .unwrap()
   |> ignore
   let accepted = host.journal.retained(request).unwrap().unwrap()
-  assert_true(accepted.cancellation_requested)
+  assert_true(accepted.cancellation_requested())
   let bytes = run_record_body(accepted).unwrap()
   let original = local_checkpoint_lookup_call(host, reference, request)
     .unwrap()
@@ -279,6 +279,22 @@ test "Native Checkpoint lookup separates cancellation request from retained Chec
   assert_eq(
     run_record_body(host.journal.retained(request).unwrap().unwrap()).unwrap(),
     bytes,
+  )
+  let key = @host.client_request_scope_cid(request)
+  let legacy = old_cancellation_run_row(host.database, key, true)
+  let saved = local_checkpoint_lookup_call(host, reference, request)
+    .unwrap()
+    .unwrap()
+  assert_true(native_client_original_checkpoint_cancellation_requested(saved))
+  assert_eq(native_client_original_checkpoint_revision(saved), legacy.revision)
+  assert_eq(
+    native_client_original_checkpoint_state(saved).wire,
+    native_client_original_checkpoint_state(original).wire,
+  )
+  let unchanged = host.database.read("client_runs", key).unwrap()
+  assert_eq(
+    (unchanged.revision, unchanged.body),
+    (legacy.revision, legacy.body),
   )
   host.close().unwrap()
 }
@@ -323,7 +339,7 @@ test "Native Checkpoint metadata distinguishes an authenticated empty original f
   let record = host.journal.retained(request).unwrap().unwrap()
   assert_false(record.physical_start_claimed)
   assert_false(record.dispatch_reserved)
-  assert_false(record.cancellation_requested)
+  assert_false(record.cancellation_requested())
   host.close().unwrap()
 }
 
@@ -491,7 +507,7 @@ test "closed Checkpoint metadata keeps one epoch clock ACK without another metad
       .unwrap()
     assert_eq(value.checkpoint_cid, artifact.checkpoint_cid)
     assert_eq(value.revision, original.revision)
-    assert_eq(value.cancellation_requested, original.cancellation_requested)
+    assert_eq(value.cancellation_requested, original.cancellation_requested())
     assert_eq(value.state, original.checkpoint.unwrap().state)
   }
   // Epoch authentication still owns its real initial clock/CAS COMMIT.

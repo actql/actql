@@ -267,12 +267,7 @@ test "Native checked Effect waiting cannot overwrite a concurrent cancellation r
       persisted,
       before.revision,
       current=() => {
-        journal
-        .transaction(() => {
-          journal.save({ ..before, cancellation_requested: true, })
-        })
-        .unwrap()
-        |> ignore
+        journal.accept_fixture_cancellation(before)
         true
       },
     )
@@ -282,7 +277,7 @@ test "Native checked Effect waiting cannot overwrite a concurrent cancellation r
     fail("original cancellation lost")
   }
   assert_eq(cancelled.revision, before.revision + 1L)
-  assert_true(cancelled.cancellation_requested)
+  assert_true(cancelled.cancellation_requested())
   assert_true(cancelled.checkpoint is None)
   assert_true(
     submitted_effect_checkpoint_wait(

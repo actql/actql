@@ -46,7 +46,7 @@ fn claim_native_client_effect_work_start(
       @publication.publication_contract_identity(definition) =>
       // This original was cancelled before this start attempt. Refuse before
       // reserving dispatch so reconciliation cannot mutate its saved intent.
-      if record.cancellation_requested {
+      if record.cancellation_requested() {
         return Err(NeedsOriginalReconciliation)
       }
     Ok(Retained(_)) => return Err(Journal(ForeignRun))

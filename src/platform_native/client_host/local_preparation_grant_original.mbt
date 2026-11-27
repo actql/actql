@@ -61,7 +61,7 @@ fn NativeLocalCredentialIssuerBinding::check_preparation_original_locked(
   // exact original started/cancelled/Checkpoint facts again, under this lock.
   guard self.host.journal.retained(original.request) is Ok(Some(record)) &&
     record.physical_start_claimed &&
-    !record.cancellation_requested &&
+    !record.cancellation_requested() &&
     record.checkpoint is None &&
     record.revision >= fence.work.first_start.observed_revision &&
     @publication.publication_contract_identity(record.definition) ==

@@ -124,7 +124,7 @@ test "Native submitted Effect Values joins the saved original packet before the 
   assert_true(physical_equal(work.run_for_capture().unwrap(), captured))
   let after = host.journal.retained(request).unwrap().unwrap()
   assert_true(after.physical_start_claimed)
-  assert_false(after.cancellation_requested)
+  assert_false(after.cancellation_requested())
   assert_eq(after.effect_material_originals, Some(packet))
   let submitted_after = host.journal
     .retained_submission(reference)

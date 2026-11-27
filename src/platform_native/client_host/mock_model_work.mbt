@@ -273,7 +273,7 @@ fn NativeClientMockModelWork::observe_model_step_in_original_read(
         }
         if !record.dispatch_reserved ||
           !record.physical_start_claimed ||
-          record.cancellation_requested ||
+          record.cancellation_requested() ||
           record.checkpoint is Some(_) ||
           @publication.publication_contract_identity(record.definition) !=
           @publication.publication_contract_identity(self.definition) {

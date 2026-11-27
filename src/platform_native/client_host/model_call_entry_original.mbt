@@ -303,7 +303,7 @@ fn NativeClientMockModelWork::persist_model_entry_original(
           record.checkpoint is Some(_) ||
           (
             self.provider_role is PortableHttp(_) &&
-            record.cancellation_requested
+            record.cancellation_requested()
           ) {
           return Err(ForeignRun)
         }

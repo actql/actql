@@ -150,7 +150,7 @@ test "Native Local capture preflight preserves accepted cancellation and origina
   .unwrap()
   |> ignore
   let cancelled = host.journal.retained(request).unwrap().unwrap()
-  assert_true(cancelled.cancellation_requested)
+  assert_true(cancelled.cancellation_requested())
   assert_true(cancelled.physical_start_claimed)
   let before = run_record_body(cancelled).unwrap()
   local_capture_binding_fixture_call(

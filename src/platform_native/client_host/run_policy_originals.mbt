@@ -84,7 +84,7 @@ fn NativeClientRunJournal::retain_publication_policy_originals(
       }
       if record.dispatch_reserved ||
         record.physical_start_claimed ||
-        record.cancellation_requested {
+        record.cancellation_requested() {
         return Err(Fenced)
       }
       // Recheck after preparation/transaction reads, immediately before CAS.
