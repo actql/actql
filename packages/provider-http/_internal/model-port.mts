@@ -6,6 +6,18 @@ import type {RequestLimits, ResponseLimits, QuantityCapacity} from '../index.d.t
 type Projection = Parameters<typeof prepareOriginalHttpChatRequest>[0];
 type PhysicalResponse = Parameters<typeof readBoundedInferResponse>[0];
 type RawObservation = Awaited<ReturnType<typeof readBoundedInferResponse>> & {observedAt: unknown};
+type OriginalHttpInit = Readonly<{method: 'POST'; body: string; headers: unknown;
+  redirect: 'error'; signal: AbortSignal}>;
+interface PreparedHttpTransport {
+  invoke(): Promise<PhysicalResponse>;
+  cleanup(): Promise<boolean>;
+  finishResponse?(): void;
+  bindCredential?(): void;
+}
+// Installed Host only. This selects a physical child before Entry. It cannot
+// issue a Model Call, a credential grant, or a Raw receipt.
+export type PrepareHttpTransport = (endpoint: string, init: OriginalHttpInit,
+  limits: ResponseLimits, controller: AbortController) => Readonly<PreparedHttpTransport> | undefined;
 interface SavedRaw {response?: unknown}
 type PersistRaw = (call: unknown, raw: RawObservation) => SavedRaw | PromiseLike<SavedRaw>;
 type BoundPersistence = PersistRaw & {cleanup(call: unknown): unknown};
@@ -21,6 +33,7 @@ interface HttpRuntime {
   clientProgramModelPhysicalPending(): unknown;
   clientProgramModelPhysicalUnknown(): unknown;
   clientProgramModelPhysicalSavedChat(response: unknown): unknown;
+  clientProgramModelPhysicalIoObservation?(call: unknown, retired: boolean, observed: unknown): unknown;
   clientProgramReadReconciledInferRawUsage(original: unknown, response: unknown, quantum: number): unknown;
 }
 // Unchecked original Common/physical port views. Existing guards and same-entry
@@ -30,10 +43,13 @@ type PhysicalOptions = Omit<Projection, 'limits' | 'moon'> & {moon: Projection['
   requestLimits: RequestLimits | undefined; responseLimits: ResponseLimits | undefined;
   profile: unknown; installation: unknown; quantities: QuantityCapacity['perAttempt'] | undefined;
   fetch: ((endpoint: string, init: unknown) => unknown) | undefined;
+  prepareTransport?: PrepareHttpTransport;
+  needsCredential?: boolean;
   notify: (() => unknown) | undefined; observeAt: (() => unknown) | undefined;
   checked: ((value: unknown) => unknown) | undefined; signal?: AbortSignal;
   persistRaw?: PersistRaw; cleanupRaw?: (call: unknown) => unknown;
-  rawCaptureBinder?: (bind: (registration: unknown, persistence: BoundPersistence) => void) => unknown;
+  rawCaptureBinder?: (bind: (registration: unknown, persistence: BoundPersistence) => void,
+    prepareCredential?: () => void) => unknown;
 };
 interface UnreadResponse {body?: null | {cancel(): unknown}}
 
@@ -43,15 +59,18 @@ const positive = (value: unknown): value is number => Number.isSafeInteger(value
 
 // Private physical adapter of the existing Common plan/call, not a Model
 // Owner. Installation must fund every body/record/Promise/reader/Store overlap
-// before calling this factory. No endpoint, credential or permission is read
-// from a Program. Normal public installation remains unavailable.
+// before calling this factory. Deployment selects the endpoint and credential;
+// Common still owns the original Call and permission to start it.
 export function createHttpChatPreflight({moon, admittedProvider, request,
   modelId, taskCid, promptCid, outputSchemaCid, modelSelector, projectionLimits,
   endpoint, headers, requestLimits, responseLimits, profile, installation,
-  quantities, fetch, notify, observeAt, checked, signal,
+  quantities, fetch, prepareTransport, needsCredential = false, notify, observeAt, checked, signal,
   persistRaw, cleanupRaw, rawCaptureBinder}: PhysicalOptions) {
   const deferred = rawCaptureBinder !== undefined;
-  if (![fetch, notify, observeAt, checked].every(value => typeof value === 'function') ||
+  if (!(prepareTransport === undefined ? typeof fetch === 'function' :
+      typeof prepareTransport === 'function' && fetch === undefined) ||
+      typeof needsCredential !== 'boolean' || needsCredential && (prepareTransport === undefined || !deferred) ||
+      ![notify, observeAt, checked].every(value => typeof value === 'function') ||
       deferred && (typeof rawCaptureBinder !== 'function' || persistRaw !== undefined || cleanupRaw !== undefined) ||
       !deferred && (typeof persistRaw !== 'function' || typeof cleanupRaw !== 'function') ||
       signal !== undefined && !(signal instanceof AbortSignal)) fail('InvalidHTTPChatPhysicalPort');
@@ -59,7 +78,8 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
     'clientProgramProjectHTTPChatRequest', 'clientProgramModelRequestPreflight',
     'clientProgramModelAsyncPhysicalRequestPlan', 'clientProgramModelPhysicalCallForRequest',
     'clientProgramModelPhysicalPending', 'clientProgramModelPhysicalUnknown',
-    'clientProgramModelPhysicalSavedChat'].every(name => typeof moon?.[name] === 'function')) {
+    'clientProgramModelPhysicalSavedChat'].every(name => typeof moon?.[name] === 'function') ||
+      prepareTransport !== undefined && typeof moon.clientProgramModelPhysicalIoObservation !== 'function') {
     fail('HTTPChatRuntimeUnavailable');
   }
   let url!: URL;
@@ -91,7 +111,9 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
   }
   let controller: AbortController | undefined = new AbortController();
   let body: string | undefined;
-  let init: unknown;
+  let init: OriginalHttpInit | undefined;
+  let physical: Readonly<PreparedHttpTransport> | undefined;
+  let physicalClosing = false;
   let plan: unknown;
   let call: unknown;
   let response: unknown;
@@ -105,6 +127,7 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
   let failure: unknown;
   let attempted = false;
   let terminal = false;
+  let closing = false;
   let retired = false;
   let rawBound = !deferred;
   let reconciling: Promise<SavedRaw> | undefined;
@@ -112,10 +135,14 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
   let reconciled: unknown;
   const wake = () => { try { notify?.(); } catch { /* Availability is not permission. */ } };
   const unknown = () => moon.clientProgramModelPhysicalUnknown();
-  let abort: (() => void) | undefined = () => { controller?.abort!(); wake(); };
+  let abort: (() => void) | undefined = () => {
+    if (controller === undefined || controller.signal.aborted) return;
+    controller.abort();
+    wake();
+  };
   signal?.addEventListener('abort', abort, {once: true});
   if (signal?.aborted) controller.abort!();
-  const poll = () => {
+  const pollResponse = () => {
     if (response !== undefined) return moon.clientProgramModelPhysicalSavedChat(response);
     if (failure !== undefined) return unknown();
     if (retired) fail('ForeignHTTPChatCall');
@@ -132,9 +159,39 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
     if (retired) fail('ForeignHTTPChatCall');
     abort!();
   };
+  const advancePhysicalCleanup = () => {
+    if (physical === undefined) return true;
+    if (!physicalClosing) {
+      const original = physical;
+      physicalClosing = true;
+      const finish = (closed: boolean) => {
+        physicalClosing = false;
+        if (closed === true) {
+          physical = undefined;
+          wake();
+        }
+      };
+      Promise.resolve().then(() => original.cleanup()).then(finish, () => finish(false));
+    }
+    return false;
+  };
+  const poll = () => {
+    const observed = pollResponse();
+    if (prepareTransport === undefined || retired) return observed;
+    // Keep the original response/Store work independent of the physical ACK.
+    // The prepared child must finish its reader (or receive an actual stop)
+    // before asking that same Client, socket, and resolver to close.
+    const ioRetired = (!pending || controller!.signal.aborted) && advancePhysicalCleanup();
+    return moon.clientProgramModelPhysicalIoObservation!(call, ioRetired, observed);
+  };
   const cleanup = () => {
     if (retired) return true;
-    if (pending || saving !== undefined || reconciliationPending) { abort!(); return false; }
+    closing = true;
+    if (pending || saving !== undefined || reconciliationPending) {
+      abort!();
+      if (pending) advancePhysicalCleanup();
+      return false;
+    }
     if (unread !== undefined) {
       if (!retiring) {
         retiring = true;
@@ -154,6 +211,7 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
       }
       return false;
     }
+    if (!advancePhysicalCleanup()) return false;
     if (saveStarted || deferred && rawBound) {
       try { if (cleanupRaw!(call) !== true) return false; }
       catch { return false; }
@@ -162,16 +220,21 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
     body = init = plan = call = response = raw = unread = reconciled = reconciling = undefined;
     request = admittedProvider = profile = installation = quantities = undefined;
     headers = controller = signal = abort = fetch = notify = observeAt = checked = undefined;
-    projectionLimits = requestLimits = responseLimits = persistRaw = cleanupRaw = undefined;
+    projectionLimits = requestLimits = responseLimits = persistRaw = cleanupRaw = prepareTransport = undefined;
     retired = true;
     return true;
   };
+  let credentialAttempted = false, credentialBound = !needsCredential;
   const start = (entry: unknown) => {
-    if (retired || attempted) return undefined;
+    if (closing || attempted) return undefined;
     attempted = true;
     if (!rawBound) { failure = Error('HTTPChatRawBindingUnavailable'); return undefined; }
     call = moon.clientProgramModelPhysicalCallForRequest(entry, request, poll, cancel, cleanup);
     if (call === undefined) { failure = Error('HTTPChatOriginalCallUnavailable'); return undefined; }
+    if (!credentialBound) {
+      failure = Error('HTTPChatCredentialPreparationUnavailable');
+      return call;
+    }
     if (controller!.signal.aborted) {
       // Retain the original entered call; a local abort denies this physical
       // start but cannot turn durable Entry custody into a new send permit.
@@ -180,9 +243,10 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
     }
     pending = true;
     let operation;
-    // Common's original final gate immediately precedes this fixed fetch.
+    // Common's original final gate immediately precedes the prepared invoke.
     // No notification, await or request construction is interposed here.
-    try { operation = fetch!(endpoint, init); }
+    // Explicit Fetch installations use their own original start primitive.
+    try { operation = prepareTransport === undefined ? fetch!(endpoint, init) : physical!.invoke(); }
     catch { operation = Promise.reject(Error('HTTPChatTransportUnknown')); }
     Promise.resolve(operation).then(original => {
       unread = original as UnreadResponse;
@@ -194,11 +258,16 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
           value.readerRetirement.then(done => { readerRetired = done; wake(); }, () => {});
         });
     }).catch(() => { failure ??= Error('HTTPChatTransportUnknown'); })
-      .finally(() => { pending = false; wake(); });
+      .finally(() => {
+        try { physical?.finishResponse?.(); }
+        catch (issue) { failure ??= issue; }
+        finally { pending = false; wake(); }
+      });
     return call;
   };
   const advance = () => {
-    if (retired || terminal) return runtimePair(true, plan);
+    if (closing) return runtimePair(true, undefined);
+    if (terminal) return runtimePair(true, plan);
     terminal = true;
     if (controller!.signal.aborted) return runtimePair(true, undefined);
     try {
@@ -207,6 +276,15 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
       const requestBytes = Buffer.byteLength(body);
       if (body.length > maxRequestBytes || requestBytes > maxRequestBytes) return runtimePair(true, undefined);
       init = Object.freeze({method: 'POST', body, headers, redirect: 'error', signal: controller!.signal});
+      if (prepareTransport !== undefined) {
+        physical = prepareTransport(endpoint, init, responseLimits!, controller!);
+        // The original Host's pre-Entry continuation owns credential binding.
+        // A missing or unsolicited credential port stays unstarted and held
+        // for actual retirement.
+        if (physical === undefined || (typeof physical.bindCredential === 'function') !== needsCredential) {
+          return runtimePair(true, undefined);
+        }
+      }
       plan = checked!(moon.clientProgramModelAsyncPhysicalRequestPlan(request,
         BigInt(requestBytes), quantities!.tokens, quantities!.costUnits,
         quantities!.durationMs, profile, installation, start));
@@ -216,13 +294,21 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
   const preflight = moon.clientProgramModelRequestPreflight(advance, cleanup);
   if (deferred) {
     try {
-      const bound = rawCaptureBinder!((registration, persistence) => {
+      const bindRaw = (registration: unknown, persistence: BoundPersistence) => {
         if (retired || rawBound || terminal && plan === undefined || registration === undefined ||
             typeof persistence !== 'function' || typeof persistence.cleanup !== 'function') fail('HTTPChatRawBindingRefused');
         persistRaw = persistence;
         cleanupRaw = persistence.cleanup;
         rawBound = true;
-      });
+      };
+      const bound = needsCredential ? rawCaptureBinder!(bindRaw, () => {
+        if (closing || retired || attempted || plan === undefined || credentialAttempted) {
+          fail('HTTPChatCredentialPreparationUnavailable');
+        }
+        credentialAttempted = true;
+        physical!.bindCredential!();
+        credentialBound = true;
+      }) : rawCaptureBinder!(bindRaw);
       if (bound !== undefined) fail('HTTPChatRawBinderUnavailable');
     } catch {
       // An already retained/bound port belongs to this same rejected

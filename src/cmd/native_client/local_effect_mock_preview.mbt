@@ -211,6 +211,41 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
 }
 
 ///|
+// The measured proposal and its imports are still retained on this capture.
+// The warm frame needs the Preview constructor beside those originals.
+// The original recovery recipe is used by another phase and remains intact.
+fn native_mock_measured_effect_preview_recipe(
+  held : Array[@execution.ExecutionCapacity],
+  warm : Array[@execution.ExecutionCapacity],
+  preview : @execution.ExecutionCapacity,
+) -> Array[@execution.ExecutionCapacity]? {
+  guard held.length() == 6 &&
+    warm.length() == 6 &&
+    @execution.execution_capacity_retained_bytes(held[1]) == 0L &&
+    @execution.execution_capacity_execution_bytes(held[1]) == 0L else {
+    return None
+  }
+  let previous = @execution.execution_capacity_retained_bytes(held[0])
+  let warm_fixed = warm[0]
+  let workspace = @execution.execution_capacity_execution_bytes(warm_fixed) -
+    @execution.execution_capacity_retained_bytes(warm_fixed)
+  let preview_r = @execution.execution_capacity_retained_bytes(preview)
+  guard @execution.execution_capacity_execution_bytes(held[0]) == previous &&
+    @execution.execution_capacity_execution_bytes(preview) - preview_r <=
+    workspace &&
+    @execution.checked_preparation_add_product(previous, preview_r, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(retained, workspace, 1L)
+    is Some(execution) &&
+    @execution.execution_capacity(retained, execution) is Some(fixed) else {
+    return None
+  }
+  let selected = held.copy()
+  selected[0] = fixed
+  Some(selected)
+}
+
+///|
 // Build the Preview from the original captured Result and closed target reads.
 // Original Source or Model evidence is supplied by the selected caller inside
 // this Request frame, after the existing construction workspace is available.
@@ -243,11 +278,30 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
   let construction = proposals.construction.unwrap_or_else(() => {
     stop_native_effect_preview(Construction)
   })
+  let policy = @run_host.client_standard_effect_computation_limits()
+  let max_nodes = policy.effects.max_admission_nodes
+  let max_depth = policy.effects.max_admission_depth
   let recipe = if proposals.uses_measured_model_proposal() {
-    let preview = state._retained_import_recipes[1].copy()
-    // The measured proposal already holds its actual retained row pairs.
-    preview[1] = @execution.execution_capacity(0L, 0L).unwrap()
-    preview
+    let selected = @local_values.installed_physical_write_preview_capacity(
+      max_bytes, max_nodes, max_depth,
+    ).bind(preview => {
+      native_mock_measured_effect_preview_recipe(
+        construction.recipe,
+        state._retained_import_recipes[1],
+        preview,
+      )
+    })
+    guard construction.workspace == 0L && selected is Some(recipe) else {
+      let issue = LocalNativeMockEffectProposalIssue::Managed(
+        InsufficientCapacity,
+      )
+      report(issue)
+      stop_native_effect_preview(
+        Growth,
+        managed_reason=native_effect_preview_managed_reason(issue),
+      )
+    }
+    recipe
   } else {
     construction.recipe
   }
@@ -267,10 +321,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     }
   }
   construction.recipe = recipe
-  let policy = @run_host.client_standard_effect_computation_limits()
   let codec = policy.program.checking.compilation.artifacts
-  let max_nodes = policy.effects.max_admission_nodes
-  let max_depth = policy.effects.max_admission_depth
   let max_work = policy.effects.max_work
   let encode_with_usage = fn(
     value : Json,

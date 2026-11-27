@@ -1089,7 +1089,7 @@ pub fn client_program_infer_run_materials_prepared(@run_publication_host.ClientT
 
 pub fn client_program_installed_calendar_artifact_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
-pub fn client_program_installed_chat_configuration_matches(@run_publication.RunEvidenceValue, String, String, String, String, String) -> Bool
+pub fn client_program_installed_chat_configuration_matches(@run_publication.RunEvidenceValue, String, String, String, String, String, String) -> Bool
 
 pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
 

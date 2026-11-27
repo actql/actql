@@ -17,6 +17,7 @@ import {buildLocalNodeAdapters} from './build-local-node-adapters.mjs';
 import {buildConnectorAuthoring} from './build-connector-authoring.mjs';
 import {authoringBinPath, authoringToolkitPath} from './connector-authoring-toolkit.mjs';
 import {inventory, unpack} from './package-release.mjs';
+import {preparePackedClientInstallCache} from './prepare-packed-client-install-cache.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -155,6 +156,7 @@ async function acceptance() {
   assert.doesNotMatch(await readFile(join(coreRoot, 'moon.mod'), 'utf8'), /fixture\//);
   const sdk = await pack(join(coreRoot, 'packages/sdk')), wire = await pack(join(coreRoot, 'packages/client-wire'));
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
+  await preparePackedClientInstallCache(environment.npm_config_cache);
   run('npm', ['install', '--ignore-scripts', '--legacy-peer-deps', '--offline', '--no-audit', '--no-fund', '--no-save',
     hostPack.path, sdk.path, wire.path, ...providers.map(entry => entry.pack.path)], consumer, environment);
   const installedHost = join(consumer, 'node_modules/@actql/local-node');

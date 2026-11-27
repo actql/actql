@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@actql/client-wire": "0.0.0-development",
-    "@actql/sdk": "0.0.0-development"
+    "@actql/sdk": "0.0.0-development",
+    "undici": "7.30.0"
   },
   "peerDependencies": {
     "@duckdb/node-api": "1.5.5-r.4"
@@ -28,6 +29,7 @@
     "./effect-site": "./adapters/host-node/installed-effect-site.mjs",
     "./selected-infer-startup": "./selected-infer-startup.cjs",
     "./_internal/initial-control-public-dispatch": "./initial-control-public-dispatch.cjs",
+    "./_internal/model-http-transport": {"types": "./adapters/host-node/original-model-http-transport.d.mts", "default": "./adapters/host-node/original-model-http-transport.mjs"},
     "./_internal/compile-cache": "./adapters/host-node/compile-cache.mjs",
     "./_internal/explanation-narrative": {
       "types": "./explanation-narrative.d.ts",

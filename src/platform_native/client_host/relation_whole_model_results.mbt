@@ -1,4 +1,67 @@
 ///|
+// The fixed Native acceptance recorder emits only the first binding refusal.
+// The existing typed error, retained work and original cleanup still return.
+priv enum NativeWholeModelBindingStage {
+  ProducerOutput
+  ProducerTerminal
+  ProducerInvocation
+  ProducerSelection
+  ProducerCompletion
+  SourceInvocation
+  ProducerPublication
+  ProducerArtifact
+  ProducerManifest
+  ReceiverSelection
+  ReceiverReader
+  ReceiverRetain
+}
+
+///|
+extern "C" fn native_model_dependency_failure(
+  stage : Int,
+  reason : Int,
+) -> Unit = "actql_native_model_dependency_failure"
+
+///|
+fn native_whole_model_binding_issue(
+  stage : NativeWholeModelBindingStage,
+  reason? : Int = 0,
+) -> NativeClientSourceWorkIssue {
+  let number = match stage {
+    ProducerOutput => 1
+    ProducerTerminal => 2
+    ProducerInvocation => 3
+    ProducerSelection => 4
+    ProducerCompletion => 5
+    SourceInvocation => 6
+    ProducerPublication => 7
+    ProducerArtifact => 8
+    ProducerManifest => 9
+    ReceiverSelection => 10
+    ReceiverReader => 11
+    ReceiverRetain => 12
+  }
+  native_model_dependency_failure(number, reason)
+  FileWorkSourceBinding
+}
+
+///|
+fn native_whole_model_invocation_reason(
+  issue : @host.ClientEffectLocalInvocationIssue,
+) -> Int {
+  match issue {
+    MissingUnit => 1
+    NotSourceFree => 2
+    ForeignCapturedInput => 3
+    MissingCapturedInput => 4
+    ForeignSourceObservation => 5
+    IncompleteResultImports => 6
+    ForeignResultImport => 7
+    Encoding => 8
+  }
+}
+
+///|
 /// The selected Native Model consumer keeps the adopted retention and the
 /// exact selected Model Reads and completed outputs. Each receiver accepts only its
 /// own view of the already issued producer Result.
@@ -345,7 +408,7 @@ fn NativeClientRelationFileWork::materialize_whole_model_invocation(
       plan,
     )
     is Some((output, _)) else {
-    return Err(FileWorkSourceBinding)
+    return Err(native_whole_model_binding_issue(ProducerOutput))
   }
   let (task, unit, _) = @host.client_infer_occurrence_coordinates(
     plan.occurrence,
@@ -353,7 +416,7 @@ fn NativeClientRelationFileWork::materialize_whole_model_invocation(
   let mut selected = None
   for index, result in producer.results {
     guard result.handoff() is Some(handoff) else {
-      return Err(FileWorkSourceBinding)
+      return Err(native_whole_model_binding_issue(ProducerTerminal))
     }
     if @strategy.captured_completed_unit_result_export_matches_output(
         handoff,
@@ -367,7 +430,7 @@ fn NativeClientRelationFileWork::materialize_whole_model_invocation(
     }
   }
   guard selected is Some((index, handoff)) else {
-    return Err(FileWorkSourceBinding)
+    return Err(native_whole_model_binding_issue(ProducerTerminal))
   }
   self
   .whole_model_outcome(producer, held, plan, quantum, max_rounds, funding)
@@ -390,7 +453,12 @@ fn NativeClientRelationFileWork::materialize_whole_model_invocation(
       funding.retain,
       fund_original,
       fund_body,
-    ).map_err(_ => FileWorkSourceBinding)
+    ).map_err(issue => {
+      native_whole_model_binding_issue(
+        ProducerInvocation,
+        reason=native_whole_model_invocation_reason(issue),
+      )
+    })
   })
 }
 
@@ -413,7 +481,9 @@ fn NativeClientRelationFileWork::issue_whole_model_producer(
   let mut modeled = None
   for index, plan in plans {
     if @host.client_infer_occurrence_coordinates(plan.occurrence).1 == unit {
-      guard modeled is None else { return Err(FileWorkSourceBinding) }
+      guard modeled is None else {
+        return Err(native_whole_model_binding_issue(ProducerSelection))
+      }
       modeled = Some(index)
     }
   }
@@ -423,7 +493,7 @@ fn NativeClientRelationFileWork::issue_whole_model_producer(
     (funding.retain)(controls) &&
     @strategy.pin_captured_completed_unit_results(self.run, unit, count, 100000)
     is Ok(pins) else {
-    return Err(FileWorkSourceBinding)
+    return Err(native_whole_model_binding_issue(ProducerSelection))
   }
   let producer : NativeWholeModelProducer = {
     pins,
@@ -503,10 +573,10 @@ fn NativeClientRelationFileWork::issue_whole_model_producer(
         64,
         fund_sources,
         fund_body,
-      ).map_err(_ => FileWorkSourceBinding)
+      ).map_err(_ => native_whole_model_binding_issue(SourceInvocation))
     Some(model) => {
       guard (configuration.completed)(model) is Some(held) else {
-        return Err(FileWorkSourceBinding)
+        return Err(native_whole_model_binding_issue(ProducerCompletion))
       }
       // The actual terminal export supplies the one checked Model occurrence
       // required by the shared issuer. Each declared view is constructed once.
@@ -544,7 +614,7 @@ fn NativeClientRelationFileWork::issue_whole_model_producer(
       fund_body,
     ) {
     Ok(value) => value
-    Err(_) => return Err(FileWorkSourceBinding)
+    Err(_) => return Err(native_whole_model_binding_issue(ProducerPublication))
   }
   workspace.val = None
   let artifacts = Array(capacity=count)
@@ -558,7 +628,7 @@ fn NativeClientRelationFileWork::issue_whole_model_producer(
         }
     }
     guard result.handoff() is Some(handoff) else {
-      return Err(FileWorkSourceBinding)
+      return Err(native_whole_model_binding_issue(ProducerArtifact))
     }
     match
       @host.issue_client_whole_local_result_artifact(
@@ -573,7 +643,7 @@ fn NativeClientRelationFileWork::issue_whole_model_producer(
         fund_body,
       ) {
       Ok(value) => artifacts.push(value)
-      Err(_) => return Err(FileWorkSourceBinding)
+      Err(_) => return Err(native_whole_model_binding_issue(ProducerArtifact))
     }
   }
   let manifest = match
@@ -587,7 +657,7 @@ fn NativeClientRelationFileWork::issue_whole_model_producer(
       shape => fund_body("local_manifest", shape),
     ) {
     Ok(value) => value
-    Err(_) => return Err(FileWorkSourceBinding)
+    Err(_) => return Err(native_whole_model_binding_issue(ProducerManifest))
   }
   producer.issued = Some((artifacts, manifest))
   Ok(producer)
@@ -616,7 +686,7 @@ fn NativeClientRelationFileWork::stage_whole_model_results(
   for receiver, plan in plans {
     if @host.client_infer_occurrence_coordinates(plan.occurrence).0 == task {
       if matching is Some(_) {
-        return Err(FileWorkSourceBinding)
+        return Err(native_whole_model_binding_issue(ReceiverSelection))
       }
       matching = Some((receiver, plan))
     }
@@ -634,7 +704,7 @@ fn NativeClientRelationFileWork::stage_whole_model_results(
       is Some((unit, _)) &&
       unit >= 0 &&
       unit < cached.length() else {
-      return Err(FileWorkSourceBinding)
+      return Err(native_whole_model_binding_issue(ReceiverSelection))
     }
     let producer = match cached[unit] {
       Some(value) => value
@@ -643,7 +713,7 @@ fn NativeClientRelationFileWork::stage_whole_model_results(
           is Some(result_count) &&
           result_count > 0 &&
           result_count <= max_entries else {
-          return Err(FileWorkSourceBinding)
+          return Err(native_whole_model_binding_issue(ReceiverSelection))
         }
         match
           self.issue_whole_model_producer(
@@ -666,7 +736,7 @@ fn NativeClientRelationFileWork::stage_whole_model_results(
       }
     }
     guard producer.issued is Some((artifacts, manifest)) else {
-      return Err(FileWorkSourceBinding)
+      return Err(native_whole_model_binding_issue(ReceiverReader))
     }
     let mut matched = None
     for result_index, original in producer.results {
@@ -677,7 +747,7 @@ fn NativeClientRelationFileWork::stage_whole_model_results(
           result_index,
         )
         is Some((port, _)) else {
-        return Err(FileWorkSourceBinding)
+        return Err(native_whole_model_binding_issue(ReceiverReader))
       }
       if @host.client_infer_whole_result_input_edge(
           plan.occurrence,
@@ -686,7 +756,9 @@ fn NativeClientRelationFileWork::stage_whole_model_results(
           port,
         )
         is Some(edge) {
-        guard matched is None else { return Err(FileWorkSourceBinding) }
+        guard matched is None else {
+          return Err(native_whole_model_binding_issue(ReceiverReader))
+        }
         matched = Some((result_index, edge, handoff))
       }
     }
@@ -695,7 +767,7 @@ fn NativeClientRelationFileWork::stage_whole_model_results(
         handoff, edge, max_entries, 65536,
       )
       is Ok((position, read)) else {
-      return Err(FileWorkSourceBinding)
+      return Err(native_whole_model_binding_issue(ReceiverReader))
     }
     selected_results.push(
       (index, artifacts[result_index], manifest, position, read),
@@ -705,7 +777,7 @@ fn NativeClientRelationFileWork::stage_whole_model_results(
   .require_current()
   .bind(_ => {
     if !(configuration.retain)(task, selected_results) {
-      return Err(FileWorkSourceBinding)
+      return Err(native_whole_model_binding_issue(ReceiverRetain))
     }
     self.require_current()
   })

@@ -82,6 +82,14 @@ fn[T] LocalCommandBusinessPreparation::with_model_driver_read(
 }
 
 ///|
+// Acceptance stage 13 is the existing original Read/return boundary inside
+// the receiving callback. Its original exception stays with the same owner.
+extern "C" fn native_model_dependency_read_failure(
+  stage : Int,
+  reason : Int,
+) -> Unit = "actql_native_model_dependency_failure"
+
+///|
 // A dependent task's actual Readers are already staged, and its own
 // compute registration and Model Read have not yet opened.
 fn LocalCommandBusinessPreparation::retain_model_output_dependencies(
@@ -112,6 +120,7 @@ fn LocalCommandBusinessPreparation::retain_model_output_dependencies(
       return true
     } catch {
       ClientStop(message) => {
+        native_model_dependency_read_failure(13, 0)
         self.original.retain_primary(CommandApplication(message))
         return false
       }

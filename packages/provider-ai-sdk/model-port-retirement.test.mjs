@@ -2,19 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as turn} from 'node:timers/promises';
 import {interceptSdkRequest} from './_internal/intercepted-request.mjs';
-import {createSdkModelPreflight} from './_internal/model-port.mjs';
+import {createSdkStructuredModelPreflight} from './_internal/model-port.mjs';
 
 const endpoint = 'https://fixture.invalid/chat';
 const limits = {maxBytes: 128, maxChunkBytes: 128, maxChunks: 4,
   maxHeaderBytes: 128, observedHeaders: ['content-type']};
 const moon = {
   clientProgramModelRequestPreflight: (advance, cleanup) => ({advance, cleanup}),
-  clientProgramModelAsyncPhysicalRequestPlan: (...args) => ({start: args.at(-1)}),
+  clientProgramModelStructuredRequestPlan: (...args) => ({start: args.at(-2)}),
   clientProgramModelPhysicalCallForRequest: (entry, request, poll, cancel, cleanup) =>
     ({poll, cancel, cleanup}),
   clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
   clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
-  clientProgramModelPhysicalSavedChat: value => ({kind: 'chat', value}),
+  clientProgramModelPhysicalSavedStructured(_call, receipt, bytes) {
+    assert.strictEqual(bytes, receipt.raw.body);
+    return {kind: 'structured', value: receipt};
+  },
 };
 
 // Each factory callback intentionally borrows the original input. Retaining
@@ -40,7 +43,7 @@ function fixture({saveFailure} = {}) {
       const response = await fetch(endpoint, {method: 'POST', body: '{}'});
       return response.text();
     }});
-  const port = createSdkModelPreflight({moon, request: input, preparation,
+  const port = createSdkStructuredModelPreflight({moon, request: input, preparation,
     profile: Object.freeze({input}), installation: Object.freeze({input}),
     quantities: Object.freeze({tokens: 1n, costUnits: 0n, durationMs: 1n, input}),
     responseLimits: limits,
@@ -48,10 +51,11 @@ function fixture({saveFailure} = {}) {
       state.fetches++;
       return new Response('original', {headers: {'content-type': 'text/plain'}});
     }),
-    persistRaw: borrowing(input, (call, raw) => {
+    persistRaw: borrowing(input, (call, raw, structured) => {
+      assert.equal(structured, true);
       state.saves++;
       if (state.saveFailure) throw state.saveFailure;
-      return {response: Object.freeze({raw, marker: 'Saved e\u0301\r\n'})};
+      return {receipt: Object.freeze({raw, marker: 'Saved e\u0301\r\n'}), bytes: raw.body};
     }),
     notify: borrowing(input, () => {}), checked: borrowing(input, value => value),
     observeAt: borrowing(input, () => '2026-10-12T00:00:00.000Z'),
@@ -60,7 +64,7 @@ function fixture({saveFailure} = {}) {
       if (state.cleanupThrows) throw new Error('CleanupStillPending');
       return state.cleanupAllowed;
     }),
-  });
+  }, Object.freeze({}));
   return {port, state, ref};
 }
 
@@ -105,7 +109,7 @@ test('saved SDK port preserves pending cleanup and escaped immutable raw view',
     const f = fixture();
     const {_1: plan} = await until(() => f.port.preflight.advance(), value => value._0);
     const call = plan.start({});
-    const saved = (await until(() => call.poll(), value => value.kind === 'chat')).value;
+    const saved = (await until(() => call.poll(), value => value.kind === 'structured')).value;
     f.state.cleanupThrows = true;
     assert.equal(call.cleanup(), false);
     assert.ok(f.ref.deref());

@@ -6,7 +6,7 @@ import {once} from 'node:events';
 
 // Actual pinned Client/HTTP with a delegating response-access observer. This
 // counts the original headers borrow, not heap bytes/GC, a Model ACK or grant.
-const require = createRequire(new URL('./package.json', import.meta.url));
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici');
 const OriginalClient = undici.Client;
 let headersReads = 0;
@@ -25,7 +25,7 @@ undici.Client = new Proxy(OriginalClient, {construct(target, args) {
   return client;
 }});
 let physical;
-try { physical = await import('./_internal/original-undici-transport.mjs'); }
+try { physical = await import('@actql/local-node/_internal/model-http-transport'); }
 finally { undici.Client = OriginalClient; }
 
 test('original headers are borrowed once without retaining the full response through every getter', async () => {

@@ -51,6 +51,7 @@ static bool actql_acceptance_selected;
 static bool actql_model_confirmation_selected;
 static _Atomic unsigned actql_model_confirmation_count[2];
 static _Atomic uint32_t actql_model_preview_failure;
+static _Atomic uint32_t actql_model_dependency_failure;
 typedef struct { int32_t tag; uint64_t start, child_ns, sql_start, current_start; } actql_timing_frame;
 static _Thread_local actql_timing_frame actql_timing_stack[ACTQL_TIMING_STACK];
 static _Thread_local uint32_t actql_timing_depth;
@@ -213,6 +214,12 @@ static void actql_timing_report(void) {
       (long)actql_timing_process, (unsigned)(preview_failure >> 8),
       (unsigned)(preview_failure & UINT32_C(0xff)));
   }
+  uint32_t dependency_failure = ACTQL_TIMING_LOAD(actql_model_dependency_failure);
+  if (dependency_failure != 0) {
+    ACTQL_TIMING_APPEND("ACTQL_NATIVE_MODEL_DEPENDENCY_FAILURE {\"pid\":%ld,\"stage\":%u,\"reason\":%u}\n",
+      (long)actql_timing_process, (unsigned)(dependency_failure >> 8),
+      (unsigned)(dependency_failure & UINT32_C(0xff)));
+  }
   actql_timing_emit(body, used);
 #undef ACTQL_TIMING_APPEND
   errno = saved_errno;
@@ -255,6 +262,21 @@ void actql_native_model_preview_failure(int32_t stage, int32_t managed_reason) {
     uint32_t unset = 0;
     uint32_t value = ((uint32_t)stage << 8) | (uint32_t)managed_reason;
     (void)atomic_compare_exchange_strong_explicit(&actql_model_preview_failure,
+      &unset, value, memory_order_relaxed, memory_order_relaxed);
+  }
+  errno = saved_errno;
+}
+/* As with Preview, keep the first refusal and emit after normal cleanup.
+ * Stage 3 records the closed typed Whole Model Invocation reason. */
+void actql_native_model_dependency_failure(int32_t stage, int32_t reason) {
+  int saved_errno = errno;
+  if (actql_native_acceptance_enabled() && actql_model_confirmation_selected &&
+      stage >= 1 && stage <= 13 &&
+      ((stage == 3 && reason >= 1 && reason <= 8) ||
+       (stage != 3 && reason == 0))) {
+    uint32_t unset = 0;
+    uint32_t value = ((uint32_t)stage << 8) | (uint32_t)reason;
+    (void)atomic_compare_exchange_strong_explicit(&actql_model_dependency_failure,
       &unset, value, memory_order_relaxed, memory_order_relaxed);
   }
   errno = saved_errno;

@@ -9,7 +9,7 @@ import {providerBundleUrl} from '../adapters/host-node/installed-connectors.mjs'
 import {build} from 'esbuild';
 import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
-import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {localNodeModelHttpCopySources, localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
 import {javascriptInterface} from './interface-inventory.mjs';
 import {moonInterfaceClosure} from './moon-interface-inventory.mjs';
@@ -92,12 +92,14 @@ export async function sourceInterfaceClosure(root: string, {distributionRoots = 
     artifacts.set(path, input);
   }
   const ownedAssets = includesLocal ? local!.dataFiles : [];
+  const modelHttpSources = includesLocal ? localNodeModelHttpCopySources : [];
   const commands = new Set(roots.flatMap(value => value.commands ?? []));
   const declarationEntrances = [...new Set([...roots.flatMap(value => value.entrances),
     ...authoredEntrances].filter(path => /\.d\.[cm]?ts$/u.test(path)))];
   const entrances = [...new Set([...roots.flatMap(value => value.entrances)
     .filter(path => !/\.d\.[cm]?ts$/u.test(path)),
     ...(includesLocal ? local!.adapterEntries : []), ...ownedAssets.filter(path => /\.[cm]?js$/u.test(path)),
+    ...modelHttpSources.filter(value => value.path.endsWith('.mjs')).map(value => value.source),
     ...authoredEntrances.filter(path => !/\.d\.[cm]?ts$/u.test(path))])];
   const native = nativeCliPackageInputs(root);
   if (native && roots.some(value => value.manifest === native.manifest)) {
@@ -115,11 +117,12 @@ export async function sourceInterfaceClosure(root: string, {distributionRoots = 
       return resolve(root, source);
     }
     if (!destination.startsWith('adapters/') && !destination.startsWith('src/')) return;
-    const source = resolve(root, destination);
+    const selected = modelHttpSources.find(value => value.path === destination)?.source ?? destination;
+    const source = resolve(root, selected);
     if (destination.startsWith('src/')) assert(local!.dataFiles.includes(destination),
       `Undeclared local-node source asset: ${destination}`);
-    assert(existsSync(source), `Missing local-node copy source: ${destination}`);
-    copyReferences.set(path, {destination: relative(root, path), source: destination});
+    assert(existsSync(source), `Missing local-node copy source: ${selected}`);
+    copyReferences.set(path, {destination: relative(root, path), source: selected});
     return source;
   }
   for (const entrance of entrances) {
@@ -325,8 +328,18 @@ export async function sourceInterfaceClosure(root: string, {distributionRoots = 
       .map(file => join(dirname(manifest), file)).filter(hasExecutable);
     return [...publicEmits, ...siblings];
   });
+  const authoredDeclarations = declarationEntrances.map(entrance => {
+    const prefix = 'packages/local-node/';
+    if (!includesLocal || !entrance.startsWith(prefix + 'adapters/')) return entrance;
+    const destination = entrance.slice(prefix.length);
+    assert(local!.dataFiles.includes(destination) || modelHttpSources.some(source => source.path === destination),
+      `Undeclared local-node declaration: ${destination}`);
+    return relative(root, copiedSource(resolve(root, entrance))!);
+  });
+  const published = [...new Set([...publishedDeclarations, ...ownedAssets.filter(hasExecutable),
+    ...authoredDeclarations.filter((entry, index) => entry !== declarationEntrances[index] && hasExecutable(entry))])];
   const types = typescriptInterfaceClosure(root,
-    [...new Set([...declarationEntrances, ...publishedDeclarations])], publishedDeclarations);
+    [...new Set([...authoredDeclarations, ...published])], published);
   return {qualification: unresolvedEntrances.length ? 'incomplete-source-input-coverage' : 'source-input-coverage-only',
     unresolvedEntrances, runtimeBindings, roots, modules: modules.sort((a, b) => a.module.localeCompare(b.module)),
     assets: assets.sort((a, b) => a.module.localeCompare(b.module)), types, moon,

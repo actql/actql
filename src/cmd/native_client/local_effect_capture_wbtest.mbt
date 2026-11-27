@@ -635,6 +635,37 @@ test "Native serial capture retains every row and one original constructor works
 }
 
 ///|
+test "measured Model Preview keeps the imported bodies and excludes cold recovery" {
+  let zero = @execution.execution_capacity(0L, 0L).unwrap()
+  let imported = @execution.execution_capacity(131072L, 131072L).unwrap()
+  let warm = @execution.execution_capacity(402744160L, 536961888L).unwrap()
+  let preview = @local_values.installed_physical_write_preview_capacity(
+    16777216, 100000, 64,
+  ).unwrap()
+  let held = [imported, zero, zero, zero, zero, zero]
+  let original = [warm, zero, zero, zero, zero, zero]
+  let selected = native_mock_measured_effect_preview_recipe(
+    held, original, preview,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(selected[0]),
+    201503152L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(selected[0]),
+    335720880L,
+  )
+  assert_true(physical_equal(held[0], imported))
+  assert_true(physical_equal(original[0], warm))
+  let live_row = @execution.execution_capacity(1L, 1L).unwrap()
+  let unfinished = [imported, live_row, zero, zero, zero, zero]
+  assert_true(
+    native_mock_measured_effect_preview_recipe(unfinished, original, preview)
+    is None,
+  )
+}
+
+///|
 // Real checked Result declarations and Effect source, no Model, Source IO,
 // Provider, Store or ordinary installation. Aliases of one port stay distinct.
 test "Native complete Unit inventory keeps an unconsumed Result alias" {

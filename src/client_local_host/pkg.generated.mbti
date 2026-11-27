@@ -810,6 +810,8 @@ pub fn installed_original_explanation_capture_wires(ClientOriginalExplanationCap
 
 pub fn installed_pending_duckdb_capture_capacity(ClientDuckDBCaptureCapacity) -> ClientInstalledCaptureCapacity
 
+pub fn installed_physical_write_preview_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_physical_write_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.ExecutionCapacity, control_wire_bytes? : Int?, request_construction? : @execution_relation.ExecutionCapacity?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 
 pub fn installed_preparation_payload_severed(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity) -> Bool

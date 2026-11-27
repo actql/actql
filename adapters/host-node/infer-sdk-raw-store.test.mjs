@@ -5,16 +5,15 @@ import {once} from 'node:events';
 import {setImmediate as turn} from 'node:timers/promises';
 import {open, readdir} from 'node:fs/promises';
 import {join} from 'node:path';
-import {prepareOpenAIChatRequest} from
+import {createOpenAI} from '@ai-sdk/openai';
+import {readReportedResponse, readReportedUsage, sdkProvider, verifyRequest} from
   '../../packages/provider-ai-sdk/_internal/openai-chat.mjs';
-import {createSdkModelPreflight} from
+import {createAdmittedRegisteredSdkPreflight} from
   '../../packages/provider-ai-sdk/_internal/model-port.mjs';
-import {cleanupSdkPreparation, confirmSavedSdkTransportResponse, pollSdkDecode,
+import {cleanupSdkPreparation, confirmSavedSdkTransportResponse, pollSdkDecode, prepareRegisteredSdkLanguageModel,
   pollSdkPreparation, pollSdkTransport, prepareSdkTransport, sdkTransportRawObservation,
   startSdkTransport, takeSavedSdkDecodedResult, takeSdkDecodedResult}
   from '../../packages/provider-ai-sdk/_internal/intercepted-request.mjs';
-import {createAdmittedOpenAIChatPreflight} from
-  '../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs';
 import {openNodeInferOperation} from './infer-operation.mjs';
 import {createModelRawCaptureStorePort, createModelRawTransportPersistence,
   createModelRawTransportPersistenceFactory}
@@ -86,6 +85,20 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
   });
   const request = Object.freeze({original: Symbol('semantic request double')});
   const entry = Object.freeze({original: Symbol('consumed original Entry double')});
+  const admission = Object.freeze({original: Symbol('selected SDK admission double')});
+  const profile = Object.freeze({});
+  const baseURL = `http://127.0.0.1:${server.address().port}/v1`;
+  const route = Object.freeze({selector:'fixture-chat',modelId:'gpt-4.1-nano',
+    apiMode:'chat_completions',endpoint:baseURL+'/chat/completions'});
+  const providerOptions = Object.freeze({openai:Object.freeze({})});
+  const createLanguageModel = fetch => createOpenAI({baseURL,
+    apiKey:'fixture-only-not-a-service-secret',fetch}).chat(route.modelId);
+  const registeredSdk = {route,sdkProvider,createLanguageModel,providerOptions,readReportedResponse,readReportedUsage,
+    verifyRequest:(body,options)=>verifyRequest(body,options,route,providerOptions),
+    sdkPackage:'@ai-sdk/openai',sdkVersion:'4.0.91',lockArtifactCid:'original-lock',adapterArtifactCid:'original-adapter'};
+  const installation = Object.freeze({endpoint:route.endpoint,build_artifact_cid:registeredSdk.adapterArtifactCid,
+    sdk:{package_name:registeredSdk.sdkPackage,version:registeredSdk.sdkVersion,
+      interface:'v4',lock_artifact_cid:registeredSdk.lockArtifactCid}});
   const registration = Object.freeze({original: Symbol('raw grant double')});
   let originalCall;
   let observes = 0;
@@ -101,11 +114,20 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
   // Real pinned SDK, final loopback fetch and encrypted Store/holding. The
   // Common grant/Entry/nominal receipt below are explicitly doubles; this is
   // neither a public Run nor original Ledger/complete-answer acceptance.
+  let decodeSaved;
   const moon = {...f.moon,
+    clientProgramAdmittedStructuredSdkRouteMatches(...actual) {
+      assert.deepEqual(actual,[admission,route.selector,route.modelId,route.apiMode,route.endpoint]);
+      return true;
+    },
     clientProgramModelRequestPreflight: (advance, cleanup) => ({advance, cleanup}),
-    clientProgramModelAsyncPhysicalRequestPlan(actual, count, tokens, cost, duration,
-      profile, installation, start) {
+    clientProgramModelStructuredRequestPlan(selected, actual, count, tokens, cost, duration,
+      originalProfile, originalInstallation, start, read) {
+      assert.strictEqual(selected, admission);
+      assert.strictEqual(originalProfile, profile);
+      assert.strictEqual(originalInstallation, installation);
       assert.equal(actual, request);
+      decodeSaved=read;
       assert.ok(count > 0n && count <= 4096n);
       assert.equal(tokens, 16n);
       assert.equal(cost, 0n);
@@ -121,7 +143,15 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
     },
     clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
     clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
-    clientProgramModelPhysicalSavedChat: response => ({kind: 'chat', response}),
+    clientProgramModelPhysicalSavedStructured(call, receipt, confirmedBytes) {
+      assert.strictEqual(call, originalCall);
+      assert.strictEqual(receipt, f.receipt);
+      assert.deepEqual(Buffer.from(confirmedBytes), Buffer.from(bytes));
+      const observation = decodeSaved(call, receipt, confirmedBytes);
+      f.state.structuredObservation = observation;
+      if (observation === undefined) return {$tag:0,_0:{kind:'FixtureNoDecodedAnswer'}};
+      return {$tag:1,_0:{kind:'saved',receipt,bytes:confirmedBytes,observation}};
+    },
     clientProgramObserveInferRawCapture(call, grant, content, count, status, eof, at) {
       assert.equal(call, originalCall);
       assert.equal(grant, registration);
@@ -134,66 +164,43 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
       return {$tag: 1, _0: f.view};
     },
   };
-  // The deferred installed route binds a separate original single-Call port
-  // through its consumed factory. The direct legacy route stays unchanged.
   const persistence = (deferredRaw ? createModelRawTransportPersistenceFactory
     : createModelRawTransportPersistence)({store: physicalFor(f),
     moon, registration, operation:originalOperation,
     retainHolding: value => retained.push(value), notify: io.notify});
-  const preparation = deferredRaw ? undefined : prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
-    baseURL: `http://127.0.0.1:${server.address().port}/v1`,
-    apiKey: 'fixture-only-not-a-service-secret', maxRequestBytes: 4096,
-    maxHeaderBytes: 4096, maxHeaders: 16, notify: io.notify, options: {
-      prompt: [{role: 'user', content: [{type: 'text', text: input}]}],
-      maxOutputTokens: 16, responseFormat: {type: 'json'},
-    }});
-  const physicalOptions = {moon, request,
-    profile: {}, installation: {}, quantities: {tokens: 16n, costUnits: 0n,
-      durationMs: 500n}, fetch(...args) { physicalStarts++; return fetch(...args); },
-    responseLimits, notify: io.notify, checked, observeAt: () => observedAt};
   const projectedInput='{"text":"Original é\\r\\n"}';
   const schema={type:'object',properties:{risk:{type:'string'}},required:['risk'],additionalProperties:false};
+  const cursor = Object.freeze({});
+  const projected = {_0: input, _1: projectedInput, _2: JSON.stringify(schema),
+    _3: 'task', _4: 'prompt', _5: 'schema', _6: route.selector};
   let projectionSteps=0;
-  if (deferredRaw) {
-    // The Core/registration ports remain doubles. This joins the real pinned
-    // SDK and encrypted Store through the actual operation's private binder.
-    const cursor = Object.freeze({});
-    const projected = {_0: input, _1: projectedInput, _2: JSON.stringify(schema),
-      _3: 'task', _4: 'prompt', _5: 'schema', _6: 'fixture-chat'};
-    moon.clientProgramStartOpenAIChatProjection=()=>({$tag:1,_0:cursor});
-    moon.clientProgramAdvanceOpenAIChatProjection=actual=>{
-      assert.equal(actual, cursor);
-      return {$tag:1,_0:++projectionSteps===2 ? projected : undefined};
-    };
-    moon.clientProgramFinishOpenAIChatSdkV4Projection=(actual, model, maxRequestBytes)=>{
-      assert.equal(actual, cursor);
-      assert.equal(projectionSteps, 2);
-      assert.equal(model, 'gpt-4.1-nano');
-      assert.equal(maxRequestBytes, 4096);
-      return {$tag:1,_0:{...projected,_7:JSON.stringify({model,temperature:0.25,top_p:0.875,
-        max_tokens:16,messages:[{role:'system',content:input},{role:'user',content:projectedInput}],
-        response_format:{type:'json_schema',json_schema:{schema,strict:true,name:'actql_output'}}})}};
-    };
-    moon.clientProgramRetireOpenAIChatProjection=actual=>assert.equal(actual, cursor);
-    moon.clientProgramModelRequestGeneration=()=>({_0:'fixture-chat',_1:0.25,_2:0.875,_3:16n,_4:undefined});
-  }
-  const port = deferredRaw ? createAdmittedOpenAIChatPreflight({...physicalOptions,
-    admittedProvider:{},taskCid:'task',promptCid:'prompt',outputSchemaCid:'schema',modelSelector:'fixture-chat',
+  moon.clientProgramStartAdmittedStructuredSdkProjection=(selected, actual, originalProfile, originalInstallation)=>{
+    assert.strictEqual(selected, admission);assert.strictEqual(actual, request);
+    assert.strictEqual(originalProfile, profile);assert.strictEqual(originalInstallation, installation);
+    return {$tag:1,_0:cursor};
+  };
+  moon.clientProgramAdvanceOpenAIChatProjection=actual=>{
+    assert.equal(actual, cursor);
+    return {$tag:1,_0:++projectionSteps===2 ? projected : undefined};
+  };
+  moon.clientProgramRetireOpenAIChatProjection=actual=>assert.equal(actual, cursor);
+  moon.clientProgramModelRequestGeneration=()=>({_0:route.selector,_1:0.25,_2:0.875,_3:16n,_4:undefined});
+  const port = createAdmittedRegisteredSdkPreflight({moon, request, admission, registeredSdk,
+    profile, installation, quantities:{tokens:16n,costUnits:0n,durationMs:500n},
+    fetch(...args) { physicalStarts++; return fetch(...args); },
+    responseLimits, notify:io.notify, checked, observeAt:()=>observedAt,
+    taskCid:'task',promptCid:'prompt',outputSchemaCid:'schema',modelSelector:route.selector,
     projectionLimits:{maxBytes:4096,maxNodes:1000,maxDepth:30,maxFrames:100,maxWork:10000},
-    modelId:'gpt-4.1-nano',baseURL:`http://127.0.0.1:${server.address().port}/v1`,
-    apiKey:'fixture-only-not-a-service-secret',maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,
-    rawCaptureBinder(callback){assert.equal(bindRaw,undefined);bindRaw=callback;}})
-    : createSdkModelPreflight({...physicalOptions,preparation,
-      persistRaw:persistence,cleanupRaw:persistence.cleanup});
-  if (deferredRaw) {
-    // Core maps these fixed projection transitions to Kernel Continue, not
-    // AwaitIo. Do not wait on a physical notification for synchronous work.
-    // This fixture has exactly start + two synthetic child transitions.
-    for (let step=0;step<3;step++) {
-      assert.deepEqual(port.preflight.advance(),{_0:false,_1:undefined});
-    }
-    assert.equal(projectionSteps,2);
+    maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,
+    ...(deferredRaw
+      ? {rawCaptureBinder(callback){assert.equal(bindRaw,undefined);bindRaw=callback;}}
+      : {persistRaw:persistence,cleanupRaw:persistence.cleanup}),
+  });
+  // Core schedules the original cursor transitions before waiting on SDK I/O.
+  for (let step=0;step<3;step++) {
+    assert.deepEqual(port.preflight.advance(),{_0:false,_1:undefined});
   }
+  assert.equal(projectionSteps,2);
   const {_1: plan} = await wait(() => port.preflight.advance(), value => value._0);
   t.diagnostic('joined boundary: fixed SDK preflight prepared');
   assert.equal(serverState.requests, 0);
@@ -216,11 +223,12 @@ test('joined fixed SDK and original encrypted Store preserve exact raw bytes acr
     if (reopened !== undefined) assert.equal(await reopened.close(), true);
   });
   const f = await joinedFixture(t);
-  const observed = await f.wait(() => f.call.poll(), value => value.kind === 'chat');
-  t.diagnostic('joined boundary: original raw saved Chat view observed');
-  assert.equal(observed.response.actual, f.receipt);
-  assert.equal(observed.response.body, wire);
-  assert.equal(observed.response.metadata, undefined);
+  const observed = await f.wait(() => f.call.poll(), value => value.kind === 'saved');
+  t.diagnostic('joined boundary: selected SDK decoded the same confirmed Raw');
+  assert.strictEqual(observed.receipt,f.receipt);
+  assert.deepEqual(Buffer.from(observed.bytes),Buffer.from(wire));
+  assert.equal(observed.observation._0,'{"risk":"low"}');
+  assert.deepEqual([observed.observation._2,observed.observation._3],[3n,2n]);
   assert.equal(f.state.writes, 1);
   assert.equal(f.state.commits, 1);
   assert.equal(f.retained.length, 1);
@@ -343,9 +351,11 @@ test('joined commit reply loss reconfirms one durable cell with one stable Promi
   const original = f.port.reconcileRaw(f.call);
   assert.equal(f.port.reconcileRaw(f.call), original);
   const saved = await original;
-  assert.equal(saved.response.body, wire);
+  assert.deepEqual(Buffer.from(saved.bytes),Buffer.from(wire));
+  assert.strictEqual(saved.receipt,f.receipt);
   assert.equal(f.port.reconcileRaw(f.call), original);
-  assert.equal((await f.port.reconcileRaw(f.call)).response, saved.response);
+  assert.strictEqual((await f.port.reconcileRaw(f.call)).receipt,saved.receipt);
+  assert.strictEqual((await f.port.reconcileRaw(f.call)).bytes,saved.bytes);
   assert.equal(f.call.poll().kind, 'unknown');
   assert.equal(f.port.rawFailure(), failure);
   assert.equal(f.state.writes, 1);
@@ -377,19 +387,13 @@ test('joined raw cleanup retries the same failed writer without another SDK requ
   assert.deepEqual(f.counters(), {physicalStarts: 1, observes: 1});
 });
 
-test('joined invalid UTF8 retains the actual Store raw receipt and Unknown without repair', async t => {
+test('joined invalid UTF8 retains the exact confirmed Raw without exposing a decoded answer', async t => {
   const bytes = Uint8Array.of(0x7b, 0xc3, 0x28, 0x7d);
   const f = await joinedFixture(t, {bytes});
   await f.wait(() => f.call.poll(), value => value.kind === 'unknown');
-  const original = f.port.rawFailure();
-  assert.equal(original.code, 'ERR_ENCODING_INVALID_ENCODED_DATA');
-  assert.equal(original.rawReceipt, f.receipt);
-  assert.equal(original.rawCustodyRetained, true);
-  const reconfirmation = f.port.reconcileRaw(f.call);
-  await assert.rejects(reconfirmation, {code: 'ERR_ENCODING_INVALID_ENCODED_DATA'});
-  assert.equal(f.port.reconcileRaw(f.call), reconfirmation);
-  assert.equal(f.port.rawFailure(), original);
-  assert.equal(f.state.decoded.length, 0);
+  assert.equal(f.state.structuredObservation,undefined);
+  assert.equal(f.state.acknowledgements,1);
+  assert.equal(f.state.decoded.length,0,'the superseded Chat envelope reader never runs');
   const saved = await f.store.confirmModelRawEvidence(f.binding);
   assert.deepEqual(saved.bytes, Buffer.from(bytes));
   assert.equal(f.state.writes, 1);
@@ -401,9 +405,10 @@ test('joined invalid UTF8 retains the actual Store raw receipt and Unknown witho
 
 test('deferred original-operation binding joins admitted SDK preparation and actual Store without another send',async t=>{
   const f=await joinedFixture(t,{deferredRaw:true});
-  const observed=await f.wait(()=>f.call.poll(),value=>value.kind==='chat');
-  assert.equal(observed.response.actual,f.receipt);
-  assert.equal(observed.response.body,wire);
+  const observed=await f.wait(()=>f.call.poll(),value=>value.kind==='saved');
+  assert.strictEqual(observed.receipt,f.receipt);
+  assert.deepEqual(Buffer.from(observed.bytes),Buffer.from(wire));
+  assert.equal(observed.observation._0,'{"risk":"low"}');
   assert.equal(f.state.writes,1);assert.equal(f.state.acknowledgements,1);
   assert.equal(JSON.parse(f.serverState.requestBody).messages[1].content,'{"text":"Original é\\r\\n"}');
   await f.wait(()=>f.port.preflight.cleanup(),Boolean);
@@ -454,12 +459,24 @@ test('selected SDK decodes the original Store-confirmed fetch response once', as
     await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   });
 
-  const preparation = prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
-    baseURL: 'http://127.0.0.1:' + server.address().port + '/v1',
-    apiKey: 'fixture-only-not-a-service-secret', maxRequestBytes: 4096,
-    maxHeaderBytes: 4096, maxHeaders: 16, notify: io.notify,
-    options: {prompt: [{role: 'user', content: [{type: 'text', text: input}]}],
-      maxOutputTokens: 16, responseFormat: {type: 'json'}}});
+  const admission = Object.freeze({});
+  const baseURL = 'http://127.0.0.1:' + server.address().port + '/v1';
+  const route = {selector:'fixture-chat',modelId:'gpt-4.1-nano',apiMode:'chat_completions',
+    endpoint:baseURL+'/chat/completions'};
+  const options = {prompt:[{role:'system',content:input},
+    {role:'user',content:[{type:'text',text:'{"text":"source"}'}]}],
+    temperature:0,topP:1,maxOutputTokens:16,
+    responseFormat:{type:'json',name:'actql_output',schema:{type:'object',properties:{risk:{type:'string'}},
+      required:['risk'],additionalProperties:false}}};
+  const preparation = prepareRegisteredSdkLanguageModel({
+    moon:{clientProgramAdmittedStructuredSdkRouteMatches(...actual) {
+      assert.deepEqual(actual,[admission,route.selector,route.modelId,route.apiMode,route.endpoint]);
+      return true;
+    }},admission,...route,sdkProvider,options,
+    createLanguageModel: fetch => createOpenAI({baseURL,apiKey:'fixture-only-not-a-service-secret',fetch}).chat(route.modelId),
+    verifyRequest:body=>verifyRequest(body,options,route,{openai:{}}),
+    maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,notify:io.notify,
+  });
   t.after(async () => {
     for (let step = 0; step < 40; step++) {
       if (cleanupSdkPreparation(preparation)) return;

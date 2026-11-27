@@ -212,7 +212,7 @@ const contribution = new URL('./adapters/connectors/duckdb/node/strategy-bundle.
 await assert.rejects(import(contribution.href), {code: 'DuckDBDependencyUnavailable'});
 await assert.rejects(stat(resolve('not-opened.duckdb')), {code: 'ENOENT'});
 assert.equal(networkCalls, 0, 'missing DuckDB must not use the network');
-console.log('Packed dependency-free Local: Values, Result, close, attach, inert Source inventory and explicit refusal passed');
+console.log('Packed Local without DuckDB: Values, Result, close, attach, inert Source inventory and explicit refusal passed');
 
 if (mode === 'initial') {
   const consumerRoot = process.cwd();

@@ -126,7 +126,7 @@ function packageRoot(name: string, from: string) {
 // Use the installed package's declared dependency graph, not a parallel list of
 // Connector modules. Paths in the recipe are package-relative; build locations
 // and operational receipts never enter the published image inventory.
-function packageGraph(cohort: Cohort | undefined) {
+function packageGraph(cohort: Cohort | undefined, localPeer?: Readonly<{root: string; manifest: Manifest}>) {
   const packages: PackageImage[] = [], roots = new Map<string, number>();
   function rollback(before: number) {
     packages.length = before;
@@ -152,7 +152,11 @@ function packageGraph(cohort: Cohort | undefined) {
       if (manifest.peerDependenciesMeta?.[dependency]?.optional === true) continue;
       const resolved = packageRoot(dependency, directory);
       if (resolved === undefined) fail('UnpreparedInitialControlDependency:' + dependency);
-      item.dependencies.push({name: dependency, package: collect(dependency, resolved, dependencies[dependency])});
+      if (localPeer !== undefined && dependency === '@actql/local-node' && name === '@actql/provider-ai-sdk') {
+        exactVersion(localPeer.manifest, dependencies[dependency], dependency);
+        if (resolved !== localPeer.root) fail('WrongInitialControlLocalDependency');
+        item.dependencies.push({name: dependency, local: true});
+      } else item.dependencies.push({name: dependency, package: collect(dependency, resolved, dependencies[dependency])});
     }
     return index;
   }
@@ -170,7 +174,8 @@ export function registeredExternalPackageImages(consumer: string, name: string):
 }
 
 function dependencyImages(root: string, destination: string, localManifest: Manifest, cohort: Cohort | undefined) {
-  const {packages, collect, rollback, exactVersion} = packageGraph(cohort);
+  const {packages, collect, rollback, exactVersion} = packageGraph(cohort,
+    {root: realpathSync(destination), manifest: localManifest});
   const bindings: Dependency[] = [];
   for (const name of Object.keys(localManifest.dependencies ?? {}).sort()) {
     // Public ActQL dependencies are Source-owned packages in the same normal

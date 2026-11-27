@@ -4,7 +4,7 @@ import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {packedClientPackage} from './packed-client-packages.mjs';
+import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const loopbackHttp = process.argv.includes('--loopback-http');
@@ -15,7 +15,7 @@ const scratch = await createOwnedScratch({parent: join(repository, '..', '.codex
 const root = scratch.path;
 const run = (command: string, args: readonly string[], cwd: string, timeout = 120000) => {
   const result = spawnSync(command, args, {cwd, encoding: 'utf8', timeout,
-    env: {...process.env, npm_config_cache: join(repository, '_build/npm-cache')}});
+    env: {...process.env, npm_config_cache: packedNpmCache(join(repository, '_build'))}});
   if (result.error || result.status !== 0) {
     throw new Error(`PackedWorkspaceCommandFailed:${command}\n${result.stdout}\n${result.stderr}`);
   }
