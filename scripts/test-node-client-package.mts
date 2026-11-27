@@ -15,6 +15,34 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {assertRemoteBrowserDependencyBoundary} from './installed-interface-correspondence.mjs';
 import {groupedQueryCases, quotedLeadQuery} from './fixtures/grouped-query-programs.mjs';
 
+import type {ChildProcessWithoutNullStreams} from 'node:child_process';
+import type {AddressInfo} from 'node:net';
+import type {HostCapacityPolicy, InstalledRemoteHostOptions} from '../packages/local-node/http-host.d.ts';
+
+type QueryInputs = [text: string, relation: string, inputName: string,
+  inputJson: string, fieldsJson: string, programId: string];
+interface QueryFrontend {
+  compileValuesQueryJson(...args: QueryInputs): string;
+  compileCapturedQueryJson(...args: [...QueryInputs, environment: string, environmentCid: string]): string;
+  compileTwoValuesSetQueryJson(text: string, left: string, leftJson: string, leftFields: string,
+    right: string, rightJson: string, rightFields: string, programId: string): string;
+}
+type DerivedProgram = {stages: {steps: {derive?: Record<string, unknown>}[]}[]};
+type SourceFixtureEnvironment = Record<string, unknown> & {
+  host_policy_profile: {capacity: HostCapacityPolicy};
+  evidence_bundle_cid?: string;
+};
+type AcquisitionRequest = {
+  requestId: string;
+  principalId: string;
+  connection: {mode: 'remote'; owner: 'remote'};
+};
+type InstalledRemoteHost = Awaited<ReturnType<
+  typeof import('../adapters/host-node/embedded-local.mjs').openInstalledRemoteHttpHost>> & {
+  inspectAcquisition(request: AcquisitionRequest): Promise<{state: string; ref?: unknown}>;
+};
+type RestartHost = {child: ChildProcessWithoutNullStreams; port: number; recovery?: string};
+
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const graphOnly = process.argv.includes('--graph-only');
 const projectionOnly = process.argv.includes('--projection-only');
@@ -25,12 +53,12 @@ const scratch = await createOwnedScratch({parent: join(repository, '..', '.codex
   prefix: 'node-client-package-', label: 'packed Node Client',
   digests: () => readdirSync(root).filter(name => name.endsWith('.tgz'))
     .sort()});
-const root = scratch.path;
+const root: string = scratch.path;
 const cache = join(build, 'npm-cache');
-const environment = {...process.env, npm_config_cache: cache,
+const environment: NodeJS.ProcessEnv = {...process.env, npm_config_cache: cache,
   ACTQL_LOCAL_STATE_DIR: join(root, 'local-state')};
 
-function run(command, args, cwd) {
+function run(command: string, args: readonly string[], cwd: string) {
   const timeout = command === 'npm' && args[0] === 'pack' ? 180000
     : command === 'npm' && args[0] === 'install' ? 120000 : 30000;
   const result = spawnSync(command, args, {cwd, env: environment,
@@ -42,8 +70,8 @@ function run(command, args, cwd) {
   return result.stdout;
 }
 
-function runAsync(command, args, cwd, extraEnvironment = {}) {
-  return new Promise((resolve, reject) => {
+function runAsync(command: string, args: readonly string[], cwd: string, extraEnvironment: NodeJS.ProcessEnv = {}) {
+  return new Promise<string>((resolve, reject) => {
     const child = spawn(command, args, {cwd,
       env: {...environment, ...extraEnvironment}});
     let output = '';
@@ -109,8 +137,8 @@ await writeFile(join(root, 'values.json'), machineValues);
 const sourceProgram = await readFile(join(repository,
   'adapters/connectors/duckdb/node/examples/program.json'), 'utf8');
 await writeFile(join(root, 'source-program.json'), sourceProgram);
-const queryFrontend = await import(pathToFileURL(join(repository,
-  '_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js')));
+const queryFrontend: QueryFrontend = await import(pathToFileURL(join(repository,
+  '_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js')).href);
 // Current Graph acceptance uses the admitted keyed Program, never the retired
 // frontend tuple generator. Rich snapshot/identity acceptance is registered
 // separately in test-packed-graph.mjs.
@@ -228,7 +256,7 @@ for (const [name, rows, expected] of [
   ['count-variety', [{x: 1}, {x: null}, {x: 2}, {x: 2}],
     [{matched: 2, distinct_x: 2, smallest: 1, largest: 2}]],
   ['count-empty', [], [{total: 0}]],
-]) {
+] as const) {
   const values = {values: {schema: {
     x: {type: 'number', nullable: true}}, rows}, as: 'rows'};
   const sql = name === 'count-empty'
@@ -292,7 +320,7 @@ for (const [name, sql] of [
     `fixture.${name}`);
   assert.notEqual(query, '', name);
   if (name === 'computed-alias-expression-order') {
-    const program = JSON.parse(query);
+    const program: DerivedProgram = JSON.parse(query);
     const derivations = program.stages.flatMap(stage => stage.steps.flatMap(
       step => Object.entries(step.derive ?? {})));
     assert.equal(derivations.filter(([field]) =>
@@ -318,7 +346,7 @@ for (const [name, sql] of [
     JSON.stringify(pairValues), JSON.stringify(Object.keys(pairSchema)),
     `fixture.${name}`);
   assert.notEqual(query, '', name);
-  const program = JSON.parse(query);
+  const program: DerivedProgram = JSON.parse(query);
   const derivations = program.stages.flatMap(stage => stage.steps.flatMap(
     step => Object.keys(step.derive ?? {})));
   if (name === 'hidden-expression-order') {
@@ -491,7 +519,7 @@ for (const [name, operator, right] of setQueries) {
   assert.notEqual(query, '', name);
   await writeFile(join(root, `${name}.json`), query);
 }
-const joinCases = [
+const joinCases: [kind: string, expected: {a: number | null; d: string | null}[]][] = [
   ['inner', [{a: 1, d: 'x'}, {a: 1, d: 'x'}]],
   ['left', [{a: 1, d: 'x'}, {a: 1, d: 'x'},
     {a: 2, d: null}, {a: null, d: null}]],
@@ -645,7 +673,7 @@ const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
   'fn query_amount_nullable_catalog')).match(
   /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
 assert.ok(catalog);
-const sourceEnvironment = JSON.parse(JSON.parse(catalog[1]));
+const sourceEnvironment: SourceFixtureEnvironment = JSON.parse(JSON.parse(catalog[1]));
 const sourceSelector = {source_ref: 'connector://crm/main/r#v',
   source_contract_cid:
     'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
@@ -671,15 +699,15 @@ Object.assign(sourceEnvironment.host_policy_profile.capacity, {
 });
 // The fixture's existing capacity is an explicit operator selection. Preserve
 // the remaining policy fields from this same installed Host base publication.
-const sourceBaseEnvironment = JSON.parse(await readFile(join(root, 'node_modules',
+const sourceBaseEnvironment: {host_policy_profile: Record<string, unknown>} = JSON.parse(await readFile(join(root, 'node_modules',
   '@actql', 'local-node', 'spec', 'local-check-environment.json'), 'utf8'));
 const hostCapacityPolicy = sourceEnvironment.host_policy_profile.capacity;
 sourceEnvironment.host_policy_profile = {...sourceBaseEnvironment.host_policy_profile,
   capacity: hostCapacityPolicy};
 delete sourceEnvironment.evidence_bundle_cid;
 sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
-const compileCapturedQuery = (...args) => queryFrontend.compileCapturedQueryJson(
-  ...args, canonicalText(sourceEnvironment), sourceEnvironment.evidence_bundle_cid);
+const compileCapturedQuery = (...args: QueryInputs) => queryFrontend.compileCapturedQueryJson(
+  ...args, canonicalText(sourceEnvironment), sourceEnvironment.evidence_bundle_cid!);
 const capturedQuery = compileCapturedQuery(
   'SELECT id FROM records WHERE id > 1', 'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
@@ -857,7 +885,7 @@ const analyticQuery = compileCapturedQuery(
   JSON.stringify(['id', 'amount']), 'fixture.analytic_query');
 assert.notEqual(analyticQuery, '');
 await writeFile(join(root, 'analytic-query.json'), analyticQuery);
-const analyticCases = [
+const analyticCases: [name: string, sql: string, expected: Record<string, number | null>[]][] = [
   ['row-number',
     'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS pos '
       + 'FROM records WHERE id < 3',
@@ -963,7 +991,7 @@ await writeFile(join(root, 'segmented-join-program.json'), await readFile(
 await writeFile(join(root, 'segmented-results-program.json'), await readFile(
   join(repository, 'adapters/host-node/fixtures/segmented-results-program.json')));
 const databasePath = join(root, 'records.duckdb');
-const {DuckDBInstance} = createRequire(join(root, 'node_modules', '@actql',
+const {DuckDBInstance}: Pick<typeof import('@duckdb/node-api'), 'DuckDBInstance'> = createRequire(join(root, 'node_modules', '@actql',
   'local-node', 'package.json'))('@duckdb/node-api');
 const sourceDatabase = await DuckDBInstance.create(databasePath);
 const sourceConnection = await sourceDatabase.connect();
@@ -2190,11 +2218,16 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], root);
 const remoteModule = pathToFileURL(join(root, 'node_modules', '@actql',
   'local-node', 'adapters', 'host-node', 'embedded-local.mjs')).href;
-const {openInstalledRemoteHttpHost} = await import(remoteModule);
-const installedControl = await import(pathToFileURL(join(root, 'node_modules', '@actql',
-  'local-node', '_build', 'js', 'release', 'build', 'connectors_builtin_node', 'connectors_builtin_node.js')));
-let releaseDispatch;
-const heldDispatch = new Promise(resolve => { releaseDispatch = resolve; });
+const {openInstalledRemoteHttpHost}: {
+  openInstalledRemoteHttpHost(options: InstalledRemoteHostOptions): Promise<InstalledRemoteHost>;
+} = await import(remoteModule);
+const installedControl: {
+  clientSubmissionEpoch(scope: string, nonce: string, notBefore: number, expiresAt: number): unknown;
+  clientSubmissionRequestId(epoch: unknown, nonce: string): string | null | undefined;
+} = await import(pathToFileURL(join(root, 'node_modules', '@actql',
+  'local-node', '_build', 'js', 'release', 'build', 'connectors_builtin_node', 'connectors_builtin_node.js')).href);
+let releaseDispatch!: () => void;
+const heldDispatch = new Promise<void>(resolve => { releaseDispatch = resolve; });
 let failNextDispatch = false;
 // The Remote operator explicitly selects request admission and the exact
 // Run/Named Result reads used below; Source reads keep their own Account.
@@ -2246,9 +2279,9 @@ const remoteServer = createServer({
   }
   return remoteHost.handler(request, response);
 });
-await new Promise(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
+await new Promise<void>(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
 try {
-  const endpoint = `https://127.0.0.1:${remoteServer.address().port}/`;
+  const endpoint = `https://127.0.0.1:${(remoteServer.address() as AddressInfo).port}/`;
   await runAsync(process.execPath, ['smoke.mjs'], root, {
     ACTQL_TEST_REMOTE_ENDPOINT: endpoint,
     ACTQL_GRAPH_ONLY: graphOnly ? '1' : '0',
@@ -2273,10 +2306,10 @@ const acquiredOriginal = JSON.parse(await readFile(join(root,
 const acquiredOriginalEpoch = acquiredOriginal.submissionRef.epoch;
 // Decode the same stored identity with the installed Host's existing Core;
 // this neither renews its epoch nor admits or submits another request.
-const acquiredRecoveryRequest = {requestId: installedControl.clientSubmissionRequestId(
+const acquiredRecoveryRequest: AcquisitionRequest = {requestId: installedControl.clientSubmissionRequestId(
   installedControl.clientSubmissionEpoch(acquiredOriginalEpoch.authorityScopeCid,
     acquiredOriginalEpoch.epochNonce, acquiredOriginalEpoch.notBefore, acquiredOriginalEpoch.expiresAt),
-  acquiredOriginal.submissionRef.nonce),
+  acquiredOriginal.submissionRef.nonce)!,
   principalId: userInfo().username,
   connection: {mode: 'remote', owner: 'remote'}};
 assert.equal(typeof acquiredRecoveryRequest.requestId, 'string');
@@ -2421,12 +2454,12 @@ assert.equal(acquiredLookup.kind, 'ready');
 assert.deepEqual(acquiredLookup.admission.ref, acquiredRef);
 client.close();
 `);
-async function startRestartHost(hold) {
+async function startRestartHost(hold: boolean) {
   const child = spawn(process.execPath, ['restart-remote-host.mjs'], {
     cwd: root, env: {...environment, ACTQL_HOLD_DISPATCH: hold ? '1' : '0'},
   });
   let output = '';
-  return new Promise((resolve, reject) => {
+  return new Promise<RestartHost>((resolve, reject) => {
     child.stdout.setEncoding('utf8').on('data', chunk => {
       output += chunk;
       const ready = output.match(/READY:(\d+)/u);
@@ -2439,7 +2472,7 @@ async function startRestartHost(hold) {
       `Packed restart Host exited before ready (${code}): ${output}`)));
   });
 }
-async function stopRestartHost(host) {
+async function stopRestartHost(host: RestartHost) {
   if (host.child.exitCode !== null) return;
   const stopped = once(host.child, 'exit');
   host.child.kill('SIGTERM');

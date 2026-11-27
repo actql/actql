@@ -1496,7 +1496,7 @@
             ],
             "ownership": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "export function runLocalCheck"
               }
             ],
@@ -1514,7 +1514,7 @@
             ],
             "cancellation": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "process.on('SIGTERM', interrupt)"
               }
             ],
@@ -1774,7 +1774,7 @@
             ],
             "cancellation": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "const cancel ="
               }
             ],
@@ -2611,7 +2611,7 @@
     {
       "module": "scripts/local-checks-guard.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7d238667ad8b76cc84acd5df69c0acc8ee4020aabfbf53e075dac79eaa956bc8",
+      "sha256": "7cf573deaf851c3cca2d68feb1f791659bf8818f4bf1639ee61ccc93d7edf312",
       "exports": [
         "acquireLocalLocks",
         "availableVerificationMemory",
@@ -2918,61 +2918,61 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "Cooperative local execution only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "function runLocalCheck"
               }
             ],
             "identity": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "const owner = {token:"
               }
             ],
             "ownership": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "supervisor owns the new process group"
               }
             ],
             "synchronization": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "withPoolAdmission"
               }
             ],
             "failure": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "Lock ownership or metadata is ambiguous"
               }
             ],
             "cancellation": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "signal?.addEventListener"
               }
             ],
             "resources": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "heavyResourceAdmission"
               }
             ],
             "extension": [
               {
-                "path": "scripts/local-checks-guard.mjs",
+                "path": "scripts/local-checks-guard.mts",
                 "anchor": "export function heavyResourceRequest"
               }
             ],
             "verification": [
               {
-                "path": "scripts/local-checks-guard.test.mjs",
+                "path": "scripts/local-checks-guard.test.mts",
                 "anchor": "local check guard"
               }
             ]

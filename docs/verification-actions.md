@@ -1,6 +1,6 @@
 # Read-only verification scheduling report
 
-Before reducing verification work, inspect repeated **declarations**:
+Run `npm ci` in the checkout that supplies the report tool. Then inspect repeated **declarations**.
 
 ```sh
 node scripts/verification-actions.mjs
@@ -36,7 +36,9 @@ caller of a registered reporting tool requires re-review of that registration.
 ## Sources and candidate workflows
 
 The default sources are `.github/workflows/ci.yml`, `package.json`,
-`toolchain.json` and `scripts/local-checks.mjs` under the repository root.
+`toolchain.json` and the authored `scripts/local-checks.mts` under the repository root.
+A historical checkout selected with `--root` may supply its original
+`scripts/local-checks.mjs` if it predates that author. The report records the path it read.
 A different checkout or an explicitly chosen candidate workflow is read-only:
 
 ```sh

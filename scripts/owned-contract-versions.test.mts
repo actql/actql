@@ -99,7 +99,7 @@ test('legacy inventory cannot authorize another file, context or duplicate', () 
 });
 
 test('reviewed local verification pool admits only its exact script context once', () => {
-  const path = 'scripts/local-checks-guard.mjs';
+  const path = 'scripts/local-checks-guard.mts';
   const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
   const inventory: Inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url), 'utf8'));
   const token = 'actql-local-heavy-pool/' + String(1);

@@ -20,7 +20,7 @@ const groupedSteps = [
   {filter: {gt: [{field: 'n'}, {literal: 1}]}},
 ];
 const order = [{field: 'id', dir: 'asc', nulls: 'first'}];
-const program = suffix => ({
+const program = (suffix: readonly {select?: string[]; sort?: typeof order; as?: string}[]) => ({
   version: 'actql/0.1', id: 'fixture.grouped_query',
   stages: [capture, {
     id: 'main', inputs: {remote: {result: {stage: 'capture', result: 'source'}}},

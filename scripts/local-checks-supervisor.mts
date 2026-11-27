@@ -1,40 +1,58 @@
 // One invocation, one live process-group leader. Never signal a stored PID.
-import {spawn, spawnSync} from 'node:child_process';
+import {spawn, spawnSync, type ChildProcessByStdio} from 'node:child_process';
 import {closeSync, constants, fstatSync, ftruncateSync, lstatSync, mkdirSync,
-  mkdtempSync, openSync, realpathSync, writeFileSync} from 'node:fs';
+  mkdtempSync, openSync, realpathSync, writeFileSync, type Stats} from 'node:fs';
 import {join} from 'node:path';
+import type {Readable} from 'node:stream';
 import {acquireLocalLocks, durationSeconds} from './local-checks-guard.mjs';
 import {COMMAND_OUTPUT_LIMIT, redactCommandArguments, redactCommandEvidence} from './packed-query-evidence.mjs';
 
-let config, locks, directory, evidence, timer, escalation, child, primaryStatus;
+type CheckConfig = Parameters<typeof import('./local-checks-guard.mjs').runLocalCheck>[0];
+type LocalLocks = ReturnType<typeof acquireLocalLocks>;
+type OwnedChild = ChildProcessByStdio<null, Readable, Readable>;
+type StreamName = 'stdout' | 'stderr';
+type CallerStream = {name: StreamName; stream: NodeJS.WriteStream; error?: NodeJS.ErrnoException; reported?: boolean};
+type Failure = {stage: string; code: string};
+type ChildResult = {code: number | null; signal: NodeJS.Signals | null; error: string | undefined};
+type StepRecord = Partial<ChildResult> & {name: string; command: string[]; startedAt: string; status: string;
+  streamsComplete: boolean; endedAt?: string; streamErrors?: {stream: StreamName; code: string}[]};
+type CheckSummary = {startedAt: string; status: string; complete: boolean; steps: StepRecord[];
+  errors?: Failure[]; callerOutputComplete?: boolean; outputComplete?: boolean; endedAt?: string;
+  exitCode?: number; locksReleased?: boolean; worktree?: string; heavy?: boolean; timeoutSeconds?: number;
+  graceSeconds?: number; owner?: LocalLocks['owner']; locks?: LocalLocks['paths'];
+  heavyAdmission?: LocalLocks['heavyAdmission']};
+
+let config: CheckConfig | undefined, locks: LocalLocks | undefined, directory: string | undefined,
+  evidence: ReturnType<typeof createEvidence> | undefined, timer: NodeJS.Timeout | undefined,
+  escalation: NodeJS.Timeout | undefined, child: OwnedChild | undefined, primaryStatus: number | undefined;
 let childClosed = true;
 let cancelling = false, finished = false, groupOwned = false, retainLocks = false;
-let output = [], outputBytes = 0, outputComplete = true;
-let summary = {startedAt: new Date().toISOString(), status: 'starting', complete: false, steps: []};
+let output: Uint8Array[] = [], outputBytes = 0, outputComplete = true;
+let summary: CheckSummary = {startedAt: new Date().toISOString(), status: 'starting', complete: false, steps: []};
 const env = process.env;
 // Caller pipes can reject early diagnostics, or stop draining after the command
 // exits. Keep their faults separate from captured command evidence and never
 // report a stream error by writing recursively to that same stream.
-const callerStreams = ['stdout', 'stderr'].map(name => {
-  const stream = process[name], state = {name, stream};
+const callerStreams = (['stdout', 'stderr'] as const).map(name => {
+  const stream = process[name], state: CallerStream = {name, stream};
   stream.on('error', error => { state.error ??= error; });
   stream.on('close', () => { state.error ??= new Error('CallerOutputClosed'); });
   return state;
 });
-function writeCaller(name, text) {
-  const state = callerStreams.find(item => item.name === name);
+function writeCaller(name: StreamName, text: string) {
+  const state = callerStreams.find(item => item.name === name)!;
   if (state.error) return;
   try { state.stream.write(text, error => { if (error) state.error ??= error; }); }
-  catch (error) { state.error ??= error; }
+  catch (error) { state.error ??= error as NodeJS.ErrnoException; }
 }
-const diagnostic = message => writeCaller('stderr', `${message}\n`);
-const same = (a, b) => a.dev === b.dev && a.ino === b.ino;
+const diagnostic = (message: string) => writeCaller('stderr', `${message}\n`);
+const same = (a: Stats, b: Stats) => a.dev === b.dev && a.ino === b.ino;
 
-async function flushCallerOutput(deadline) {
-  await Promise.all(callerStreams.map(state => new Promise(resolve => {
+async function flushCallerOutput(deadline: number) {
+  await Promise.all(callerStreams.map(state => new Promise<void>(resolve => {
     if (state.error) { resolve(); return; }
     const {stream} = state;
-    const done = error => {
+    const done = (error?: NodeJS.ErrnoException | null) => {
       if (error) state.error ??= error;
       clearTimeout(timeout);
       stream.removeListener('error', done);
@@ -48,7 +66,7 @@ async function flushCallerOutput(deadline) {
     stream.once('close', closed);
     // A callback on the last queued write also waits for earlier diagnostics.
     // A true return from write() alone would not prove delivery to the pipe.
-    try { stream.write('', done); } catch (error) { done(error); }
+    try { stream.write('', done); } catch (error) { done(error as NodeJS.ErrnoException); }
   })));
 }
 
@@ -66,27 +84,27 @@ function recordCallerFailures() {
 // The same ownership checks as packed-query-evidence: a unique canonical
 // directory, exclusive initial files, and truncation only through a checked
 // no-follow descriptor. Check ancestors too, including a replaced _build.
-function createEvidence(root) {
+function createEvidence(root: string) {
   const paths = [realpathSync(root)];
-  for (const name of ['_build', 'local-checks', 'attempts']) paths.push(join(paths.at(-1), name));
-  const identities = [];
-  const ownedDirectory = path => {
+  for (const name of ['_build', 'local-checks', 'attempts']) paths.push(join(paths.at(-1)!, name));
+  const identities: Stats[] = [];
+  const ownedDirectory = (path: string) => {
     const stat = lstatSync(path);
-    if (!stat.isDirectory() || stat.isSymbolicLink() || stat.uid !== process.getuid()) {
+    if (!stat.isDirectory() || stat.isSymbolicLink() || stat.uid !== process.getuid!()) {
       throw new Error('EvidenceDirectoryOwnershipChanged');
     }
     return stat;
   };
   for (const [index, path] of paths.entries()) {
     if (index > 0) {
-      try { mkdirSync(path); } catch (error) { if (error.code !== 'EEXIST') throw error; }
+      try { mkdirSync(path); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
     }
     identities.push(ownedDirectory(path));
   }
-  const directory = mkdtempSync(join(paths.at(-1), 'run-'));
+  const directory = mkdtempSync(join(paths.at(-1)!, 'run-'));
   paths.push(directory);
   identities.push(ownedDirectory(directory));
-  const files = new Map();
+  const files = new Map<string, Stats>();
   function checkDirectory() {
     paths.forEach((path, index) => {
       if (!same(ownedDirectory(path), identities[index]) || realpathSync(path) !== path) {
@@ -94,7 +112,7 @@ function createEvidence(root) {
       }
     });
   }
-  function write(name, value) {
+  function write(name: string, value: string | Uint8Array) {
     checkDirectory();
     const path = join(directory, name), previous = files.get(name);
     // Nonblocking also refuses a substituted FIFO without waiting for a reader.
@@ -102,7 +120,7 @@ function createEvidence(root) {
       (previous ? 0 : constants.O_CREAT | constants.O_EXCL), 0o600);
     try {
       const current = fstatSync(fd);
-      if (!current.isFile() || current.uid !== process.getuid() || current.nlink !== 1 ||
+      if (!current.isFile() || current.uid !== process.getuid!() || current.nlink !== 1 ||
           (previous && !same(previous, current)) || !same(lstatSync(path), current)) {
         throw new Error('EvidenceFileOwnershipChanged');
       }
@@ -117,11 +135,11 @@ function createEvidence(root) {
   return {directory, write};
 }
 
-function noteError(error, stage) {
+function noteError(error: unknown, stage: string) {
   summary.complete = false;
-  (summary.errors ??= []).push({stage, code: error.code ?? error.message});
+  (summary.errors ??= []).push({stage, code: (error as NodeJS.ErrnoException).code ?? (error as Error).message});
   if (['starting', 'running', 'passed'].includes(summary.status)) summary.status = 'guard failed';
-  diagnostic(error.message);
+  diagnostic((error as Error).message);
 }
 
 function persist() {
@@ -138,7 +156,7 @@ function persist() {
   if (failure) throw failure;
 }
 
-function capture(data) {
+function capture(data: Uint8Array) {
   const bytes = Buffer.from(data);
   const remaining = COMMAND_OUTPUT_LIMIT - outputBytes;
   if (remaining > 0) {
@@ -171,7 +189,7 @@ function groupMembers() {
   } catch (error) { retainLocks = true; throw error; }
 }
 
-async function finish(status, release) {
+async function finish(status: number, release: boolean) {
   if (finished) return;
   finished = true;
   status = primaryStatus || status;
@@ -213,7 +231,7 @@ async function finish(status, release) {
     summary.exitCode = status;
     summary.complete = false;
     try { evidence?.write('summary.json', JSON.stringify(summary, null, 2) + '\n'); }
-    catch (error) { diagnostic(error.message); }
+    catch (error) { diagnostic((error as Error).message); }
   }
   await flushCallerOutput(flushDeadline);
   if (recordCallerFailures()) {
@@ -228,13 +246,13 @@ async function finish(status, release) {
   process.exit(status);
 }
 
-function cancel(reason, status = 130) {
+function cancel(reason: string, status = 130) {
   if (cancelling || finished) return;
   cancelling = true;
   summary.status = reason;
   clearTimeout(timer);
   diagnostic(`Local check stopped: ${reason}`);
-  try { persist(); } catch (error) { diagnostic(error.message); }
+  try { persist(); } catch (error) { diagnostic((error as Error).message); }
   if (!groupOwned) { finish(status, true); return; }
   // Self is still the live group leader, preventing process-group PID reuse.
   process.kill(-process.pid, 'SIGTERM');
@@ -243,10 +261,10 @@ function cancel(reason, status = 130) {
     summary.outputComplete = false;
     summary.exitCode = primaryStatus || status;
     summary.locksReleased = false;
-    try { persist(); } catch (error) { diagnostic(error.message); }
+    try { persist(); } catch (error) { diagnostic((error as Error).message); }
     if (directory) diagnostic(`Local check evidence: ${directory}`);
     diagnostic('Killing only the owned process group; locks retained for inspection.');
-    if (process.connected) process.send({terminalStatus: primaryStatus || status});
+    if (process.connected) process.send!({terminalStatus: primaryStatus || status});
     process.kill(-process.pid, 'SIGKILL');
   }, (config?.graceSeconds ?? 5) * 1000);
   const inspect = () => {
@@ -254,7 +272,7 @@ function cancel(reason, status = 130) {
     try {
       if (groupMembers().length === 0 && childClosed) { finish(status, true); return; }
     } catch (error) {
-      diagnostic(error.message);
+      diagnostic((error as Error).message);
       // Do not turn unknown liveness into a successful release. The bounded
       // escalation still addresses only our live, owned group.
       return;
@@ -267,7 +285,7 @@ function cancel(reason, status = 130) {
 process.on('SIGTERM', () => cancel('interrupted'));
 process.on('SIGINT', () => cancel('interrupted'));
 process.on('disconnect', () => cancel('parent disconnected'));
-process.on('message', async message => {
+process.on('message', async (message: {cancel?: boolean; config?: CheckConfig}) => {
   if (message.cancel) { cancel('interrupted'); return; }
   if (config || finished || !message.config) return;
   config = message.config;
@@ -294,24 +312,24 @@ process.on('message', async message => {
     for (const step of config.steps) {
       if (cancelling) return;
       if (step.scratch) mkdirSync(step.scratch, {recursive: true});
-      const record = {name: step.name, command: redactCommandArguments([step.command, ...step.args], env),
+      const record: StepRecord = {name: step.name, command: redactCommandArguments([step.command, ...step.args], env),
         startedAt: new Date().toISOString(), status: 'running', streamsComplete: false};
       summary.steps.push(record);
       persist();
       diagnostic(`== ${step.name}`);
       let exitEvidenceFailure = false;
-      const result = await new Promise(resolve => {
+      const result = await new Promise<ChildResult>(resolve => {
         childClosed = false;
-        child = spawn(step.command, step.args, {cwd: config.root,
+        child = spawn(step.command, step.args, {cwd: config!.root,
           env: {...env, ...step.env}, stdio: ['ignore', 'pipe', 'pipe']});
         child.stdout.on('data', capture);
         child.stderr.on('data', capture);
-        let error;
-        child.on('error', problem => { error = problem.code ?? problem.message; });
-        for (const [name, stream] of [['stdout', child.stdout], ['stderr', child.stderr]]) {
+        let error: string | undefined;
+        child.on('error', problem => { error = (problem as NodeJS.ErrnoException).code ?? problem.message; });
+        for (const [name, stream] of [['stdout', child.stdout], ['stderr', child.stderr]] as const) {
           stream.on('error', problem => {
             outputComplete = false;
-            (record.streamErrors ??= []).push({stream: name, code: problem.code ?? problem.message});
+            (record.streamErrors ??= []).push({stream: name, code: (problem as NodeJS.ErrnoException).code ?? problem.message});
             noteError(problem, `${name} drain`);
             cancel('output drain failed', 1);
           });
@@ -344,7 +362,7 @@ process.on('message', async message => {
         child.on('close', (code, signal) => {
           childClosed = true;
           record.streamsComplete = !record.streamErrors?.length &&
-            child.stdout.readableEnded && child.stderr.readableEnded;
+            child!.stdout.readableEnded && child!.stderr.readableEnded;
           if (!record.streamsComplete) outputComplete = false;
           resolve({code, signal, error});
         });
@@ -369,7 +387,7 @@ process.on('message', async message => {
     summary.status = 'passed';
     finish(0, true);
   } catch (error) {
-    diagnostic(error.message);
+    diagnostic((error as Error).message);
     if (!primaryStatus) summary.status = 'guard failed';
     if (child && groupOwned) {
       try {

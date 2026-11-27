@@ -6,7 +6,8 @@ description: Select and run focused local checks for ActQL OSS changes, includin
 # ActQL local verification
 
 Work from the repository root. Use the checked-in toolchain, dependency and CI
-pins; do not maintain another version table here.
+pins; do not maintain another version table here. On a fresh checkout, run
+`npm ci` to install the locked dependencies and emit the local verification entry.
 
 ## Select the smallest meaningful check
 

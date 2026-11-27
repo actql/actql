@@ -1,9 +1,9 @@
 // Codex PreToolUse/Bash adapter. Only the supported deny subset is emitted:
 // https://learn.chatgpt.com/docs/hooks#pretooluse
 // In particular, Codex does not support PreToolUse permissionDecision: "ask".
-import {hookDecision, runHookAdapter} from './local-checks-hook.mjs';
+import {hookDecision, runHookAdapter, type HookResponse} from './local-checks-hook.mjs';
 
-export function codexHookResponse(payload) {
+export function codexHookResponse(payload: unknown): HookResponse | null {
   const reason = hookDecision(payload);
   if (reason === null) return null;
   return {hookSpecificOutput: {

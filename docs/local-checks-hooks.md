@@ -7,7 +7,8 @@ pre-launch friction for three command families: unscoped `moon test`, unscoped
 the explicitly registered CI-only pipeline job wrappers. They do not run
 tests, inspect test results, or start background checks.
 
-Use the execution wrapper for the actual bounded run. From the checkout root:
+Run `npm ci` from the checkout root to build the policy and hook entry points.
+Use the execution wrapper for the actual bounded run:
 
 ```sh
 node scripts/local-checks.mjs changed
