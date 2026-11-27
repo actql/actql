@@ -2588,6 +2588,8 @@ adapters/host-node/installed-row-capture-cleanup.mjs
 adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-row-effect-plan-capture.mjs
 /adapters/host-node/installed-row-effect-plan-capture.d.mts
+/adapters/host-node/installed-row-effect-text-update.mjs
+/adapters/host-node/installed-row-effect-text-update.d.mts
 /adapters/host-node/installed-row-effect-standard-write.mjs
 /adapters/host-node/installed-row-effect-standard-write.d.mts
 /adapters/host-node/installed-row-effect-driver.mjs
