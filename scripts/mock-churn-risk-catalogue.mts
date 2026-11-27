@@ -8,44 +8,75 @@ import {fileURLToPath} from 'node:url';
 const inputPath = 'src/client_row_source_host/mock_churn_risk_catalogue.json';
 const moonPath = 'src/client_row_source_host/mock_churn_risk_catalogue.generated.mbt';
 const nodePath = 'adapters/local-node/mock-churn-risk-catalogue.mjs';
-const text = value => typeof value === 'string' && value.length > 0 && value.isWellFormed();
-const keys = (value, names) => assert.deepEqual(Object.keys(value).sort(), [...names].sort());
+type Alias = {name: string; resource: string};
+type View = {
+  resource: string;
+  resource_kind: string;
+  schema_wire: string;
+  schema_cid: string;
+  facts_wire: string;
+};
+export type CatalogueEntry = {
+  connection: string;
+  connectorId: string;
+  registration: string;
+  revision: string;
+  queryAliases: Alias[];
+  updateAliases: Alias[];
+  views: [View];
+};
 
-export function renderMockChurnRiskCatalogue(originals) {
+type Data = string | {readonly [key: string]: Data} | readonly Data[];
+
+const text = (value: unknown): value is string =>
+  typeof value === 'string' && value.length > 0 && value.isWellFormed();
+
+function keys(value: unknown, names: readonly string[]): asserts value is Record<string, unknown> {
+  assert.ok(value !== null && typeof value === 'object' && !Array.isArray(value));
+  assert.deepEqual(Object.keys(value).sort(), [...names].sort());
+}
+
+function checkCatalogue(originals: unknown): asserts originals is [CatalogueEntry, CatalogueEntry] {
   assert.ok(Array.isArray(originals) && originals.length === 2);
-  const connections = new Set(), queryNames = new Set(), updateNames = new Set();
-  for (const original of originals) {
-    keys(original, ['connection', 'connectorId', 'registration', 'revision',
+  const connections = new Set<string>(), queryNames = new Set<string>(), updateNames = new Set<string>();
+  for (const candidate of originals as readonly unknown[]) {
+    keys(candidate, ['connection', 'connectorId', 'registration', 'revision',
       'queryAliases', 'updateAliases', 'views']);
-    for (const key of ['connection', 'connectorId', 'registration', 'revision']) assert.ok(text(original[key]));
-    assert.ok(!connections.has(original.connection));
-    connections.add(original.connection);
+    assert.ok(text(candidate.connection));
+    for (const key of ['connectorId', 'registration', 'revision']) assert.ok(text(candidate[key]));
+    assert.ok(!connections.has(candidate.connection));
+    connections.add(candidate.connection);
+    assert.ok(Array.isArray(candidate.views) && candidate.views.length === 1);
+    const view: unknown = candidate.views[0];
+    keys(view, ['resource', 'resource_kind', 'schema_wire', 'schema_cid', 'facts_wire']);
+    assert.ok(text(view.schema_cid));
+    for (const value of Object.values(view)) assert.ok(text(value));
+    assert.match(view.schema_cid, /^sha256:[0-9a-f]{64}$/u);
     for (const key of ['queryAliases', 'updateAliases']) {
-      assert.ok(Array.isArray(original[key]));
-      for (const alias of original[key]) {
+      const aliases: unknown = candidate[key];
+      assert.ok(Array.isArray(aliases));
+      for (const item of aliases as readonly unknown[]) {
+        const alias: unknown = item;
         keys(alias, ['name', 'resource']);
         assert.ok(text(alias.name) && text(alias.resource));
         const names = key === 'queryAliases' ? queryNames : updateNames;
-        assert.ok(!names.has(alias.name)); names.add(alias.name);
+        assert.ok(!names.has(alias.name));
+        names.add(alias.name);
+        assert.equal(alias.resource, view.resource);
       }
     }
-    assert.ok(Array.isArray(original.views) && original.views.length === 1);
-    for (const view of original.views) {
-      keys(view, ['resource', 'resource_kind', 'schema_wire', 'schema_cid', 'facts_wire']);
-      for (const value of Object.values(view)) assert.ok(text(value));
-      assert.match(view.schema_cid, /^sha256:[0-9a-f]{64}$/u);
-    }
-    for (const alias of [...original.queryAliases, ...original.updateAliases]) {
-      assert.equal(alias.resource, original.views[0].resource);
-    }
   }
-  const frozen = value => Array.isArray(value)
+}
+
+export function renderMockChurnRiskCatalogue(originals: unknown) {
+  checkCatalogue(originals);
+  const frozen = (value: Data): string => Array.isArray(value)
     ? `Object.freeze([${value.map(frozen).join(',')}])`
     : value !== null && typeof value === 'object'
     ? `Object.freeze({${Object.entries(value).map(([key, item]) =>
       `${JSON.stringify(key)}:${frozen(item)}`).join(',')}})`
     : JSON.stringify(value);
-  const aliases = value => `[${value.map(alias =>
+  const aliases = (value: readonly Alias[]) => `[${value.map(alias =>
     `(${JSON.stringify(alias.name)}, ${JSON.stringify(alias.resource)})`).join(', ')}]`;
   const moon = originals.map(original => {
     const view = original.views[0];
@@ -81,8 +112,8 @@ export function renderMockChurnRiskCatalogue(originals) {
   ]);
 }
 
-export function checkMockChurnRiskCatalogue(root, write = false) {
-  const originals = JSON.parse(readFileSync(join(root, inputPath), 'utf8'));
+export function checkMockChurnRiskCatalogue(root: string, write = false) {
+  const originals: unknown = JSON.parse(readFileSync(join(root, inputPath), 'utf8'));
   const outputs = renderMockChurnRiskCatalogue(originals);
   for (const [path, expected] of outputs) {
     if (write) writeFileSync(join(root, path), expected);

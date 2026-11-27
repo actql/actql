@@ -106,6 +106,14 @@
       "reason": "UPDATE transport encoder compiled from the typed template with the current Core ceilings."
     },
     {
+      "path": "adapters/local-node/mock-churn-risk-catalogue.mjs",
+      "mode": "100644",
+      "object": "d3b8178d2809d9d8fb5d6ea30742399fef4c3e74",
+      "role": "generated",
+      "owner": "scripts/mock-churn-risk-catalogue.mts",
+      "reason": "Checked Node DATA projection of the owned Common Mock catalogue; the generator verifies this and the matching MoonBit output."
+    },
+    {
       "path": "packages/client-wire/client-host.generated.js",
       "mode": "100644",
       "object": "623cfe413e23998663a37ef608d58d9c7e2b5d04",

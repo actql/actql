@@ -4188,3 +4188,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/round-precision-reference.d.mts
 /scripts/round-precision-reference.test.mjs
 /scripts/round-precision-reference.test.d.mts
+/scripts/mock-churn-risk-catalogue.mjs
+/scripts/mock-churn-risk-catalogue.d.mts
+/scripts/mock-churn-risk-catalogue.test.mjs
+/scripts/mock-churn-risk-catalogue.test.d.mts
