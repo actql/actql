@@ -59,12 +59,12 @@ be referenced normally; this does not complete conditional Result delivery.
 | subtract_graphs | src/graph_typing/subtraction_test.mbt | src/query_integration/graph_subtraction_wbtest.mbt | scripts/graph-schema.mjs |
 | graft_graph | src/graph_typing/graft_test.mbt | src/query_integration/graph_graft_wbtest.mbt | scripts/graph-schema.mjs |
 | mean_graphs | src/query_program/graph_mean_source_test.mbt | src/query_integration/graph_mean_wbtest.mbt | scripts/graph-schema.mjs |
-| to_vectors | src/vector_typing/bridge_test.mbt | src/pipeline_typing/vector_projection_keys_test.mbt | scripts/vector-schema.mjs |
-| normalize_vectors, score_vectors | src/vector_typing/check_test.mbt | src/pipeline_typing/vector_test.mbt | scripts/vector-schema.mjs |
-| nearest | src/vector_typing/nearest_pair_test.mbt | src/pipeline_typing/nearest_output_keys_test.mbt | scripts/vector-schema.mjs |
-| pool_vectors | src/vector_typing/pool_relation_test.mbt | src/pipeline_typing/pool_test.mbt | scripts/vector-schema.mjs |
-| merge_rankings | src/vector_typing/ranking_merge_test.mbt | src/pipeline_typing/ranking_output_keys_test.mbt | scripts/vector-schema.mjs |
-| text_rank | src/vector_typing/text_rank_test.mbt | src/pipeline_typing/text_rank_test.mbt | scripts/vector-schema.mjs |
+| to_vectors | src/vector_typing/bridge_test.mbt | src/pipeline_typing/vector_projection_keys_test.mbt | scripts/vector-schema.mts |
+| normalize_vectors, score_vectors | src/vector_typing/check_test.mbt | src/pipeline_typing/vector_test.mbt | scripts/vector-schema.mts |
+| nearest | src/vector_typing/nearest_pair_test.mbt | src/pipeline_typing/nearest_output_keys_test.mbt | scripts/vector-schema.mts |
+| pool_vectors | src/vector_typing/pool_relation_test.mbt | src/pipeline_typing/pool_test.mbt | scripts/vector-schema.mts |
+| merge_rankings | src/vector_typing/ranking_merge_test.mbt | src/pipeline_typing/ranking_output_keys_test.mbt | scripts/vector-schema.mts |
+| text_rank | src/vector_typing/text_rank_test.mbt | src/pipeline_typing/text_rank_test.mbt | scripts/vector-schema.mts |
 
 ## Interpretation and remaining review
 

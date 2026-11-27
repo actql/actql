@@ -1,0 +1,186 @@
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {machineCid} from './actql-spec-family.mjs';
+import {valueBodyContract} from './protocol-value-contracts.mjs';
+import {carrierBodyContract} from './carrier-schema.mjs';
+import {pushdownBodyContract} from './pushdown-contract.mjs';
+import {mappingContractBody} from './mapping-contract.mjs';
+import {connectorSourceEvidenceMembers} from './source-evidence-members.mjs';
+import {fileListingProfile, fileContentProfile} from './source-file-profiles.mjs';
+
+export const sections = ['schema_snapshots','connector_capabilities','mapping_contracts','source_views','command_contracts','model_task_contracts','contract_registry','connector_catalogs'];
+const records = {type:'array',items:{type:'object'}};
+const body = {
+  version:'actql-check-environment-contract/0.1',
+  schema:{
+    $schema:'https://json-schema.org/draft/2020-12/schema',
+    type:'object',additionalProperties:false,
+    required:['version',...sections,'host_policy_profile','evidence_bundle_cid'],
+    properties:{
+      version:{const:'actql-check-environment/0.1'},
+      ...Object.fromEntries(sections.map(s=>[s,records])),
+      host_policy_profile:{type:'object'},
+      evidence_bundle_cid:{type:'string',pattern:'^sha256:[0-9a-f]{64}$'},
+      connector_manifest:{
+        type:'object',additionalProperties:false,
+        required:['version','connectors'],
+        properties:{
+          version:{const:'actql-connectors/0.1'},
+          connectors:{type:'array',items:{
+            type:'object',additionalProperties:false,
+            required:['connector','connector_id','connector_version'],
+            properties:{
+              connector:{type:'string',minLength:1},
+              connector_id:{type:'string',minLength:1},
+              connector_version:{type:'string',minLength:1},
+            },
+          }},
+        },
+      },
+    },
+  },
+  semantics:{
+    preimage:'entire_envelope_except_root_evidence_bundle_cid',
+    identity_alias:'check_environment_cid_refers_to_evidence_bundle_cid_not_a_second_body',
+    canonical_bytes:'nfc_lf_utf16_key_order_canonical_numbers_utf8_without_repair',
+    evidence_array_order:'ascending_full_canonical_body_cid_in_each_section',
+    repeated_snapshots:'reject_repeated_source_ref_even_for_identical_bodies',
+    contract_envelopes:'identical_bodies_deduplicated_before_canonical_envelope_construction',
+    closure:'catalog_authority_and_exact_derived_arrays_required_separately',
+    catalog_preimage:'complete_catalog_except_root_catalog_cid',
+    catalog_member_preimages:'source_view_and_command_except_root_contract_cid_contract_envelope_except_root_cid',
+    catalog_member_order:'strict_ascending_self_cid_per_array_no_repair',
+    connector_manifest:'optional_actql_connectors_0_1_manifest_entries_closed_ascending_entry_cid_unique_connector_id_each_matching_one_catalog_connector_id_and_connector_version',
+    connector_manifest_entry_identity:'canonical_cid_of_the_entry_body_alone_not_the_manifest_or_its_catalog',
+    catalog_membership:'each_reference_resolves_inside_its_own_catalog_shared_envelopes_deduplicate_only_in_derived_registry',
+    policy:'validate_selected_profile_and_every_supplied_policy_component',
+    authority:'shape_hash_and_membership_are_not_authorization_or_runtime_evidence',
+    source_read_modes:'unique_names_declared_default_snapshot_bounded_watch_unbounded_changes_and_watch_require_checkpoint_preserve_array_order_no_selection_authority',
+    source_requests:'nonnull_checked_object_request_all_views_correlation_non_scan_record_carriers_ordered_equal_arity_KeyComparable_pairs_nonnull_comparable_identity_tuple_no_data_or_batch_transport_proof',
+    source_selectors:'exact_connector_policy_source_ref_connector_prefix_nonempty_literal_resource_view_suffix_not_resource_kind_validate_all_then_unique_full_selector_no_URI_repair_sole_view_over_all_candidates_UTF16_diagnostics',
+  },
+  value_contract_bodies:valueBodyContract(
+    JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8')) as Parameters<typeof valueBodyContract>[0],
+  ),
+  carrier_contract_bodies:carrierBodyContract(
+    JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8')) as Parameters<typeof carrierBodyContract>[0],
+    JSON.parse(readFileSync('spec/contracts/actql-aoa.json','utf8')) as Parameters<typeof carrierBodyContract>[1],
+  ),
+  pushdown_contract_bodies:pushdownBodyContract(),
+  mapping_contract_bodies:mappingContractBody(),
+  connector_source_evidence_members:connectorSourceEvidenceMembers(),
+  contract_bodies:{
+    carrier_facts:{
+      type:'object',additionalProperties:true,
+      properties:{
+        relation_keys:{
+          type:'object',additionalProperties:false,required:['candidate_keys'],
+          properties:{candidate_keys:{type:'array',minItems:1,uniqueItems:true,
+            items:{type:'array',minItems:1,uniqueItems:true,
+              items:{type:'string',minLength:1}}}},
+        },
+        relation_scores:{
+          type:'object',propertyNames:{minLength:1},
+          additionalProperties:{type:'object',additionalProperties:false,
+            required:['domain','normalization','range'],
+            properties:{domain:{type:'string',minLength:1},
+              normalization:{type:'string',minLength:1},
+              range:{type:'array',minItems:2,maxItems:2,items:{type:'number'}},
+              higher_is_better:{const:true}}},
+        },
+        file_listing:fileListingProfile(),
+        file_content:fileContentProfile(),
+        lookup_capacity:{
+          type:'object',additionalProperties:false,
+          required:['version','completeness','max_rows_per_key','max_pages_per_request','max_response_bytes_per_page'],
+          properties:{
+            version:{const:'actql-lookup-capacity/0.1'},
+            completeness:{enum:['complete_per_requested_key','hard_limit_only']},
+            ...Object.fromEntries(['max_rows_per_key','max_pages_per_request','max_response_bytes_per_page'].map(k=>[k,{type:'integer',minimum:1,maximum:9007199254740991}])),
+          },
+        },
+      },
+    },
+    data_policy:{
+      type:'object',additionalProperties:false,
+      required:['version','source_ref','classification'],
+      properties:{
+        version:{const:'actql-source-data-policy/0.1'},
+        source_ref:{type:'string',minLength:1},
+        classification:{enum:['public','internal','confidential','restricted','unknown']},
+      },
+    },
+  },
+  policy_components:{
+    calendar:{
+      pointer:'/host_policy_profile/calendar',
+      schema:{type:'object',additionalProperties:false,
+        required:['version','table_bytes_cid','tzdb_version','conversion_law'],
+        properties:{
+          version:{const:'actql-calendar-selection/0.1'},
+          table_bytes_cid:{type:'string',pattern:'^sha256:[0-9a-f]{64}$'},
+          tzdb_version:{type:'string',minLength:1},
+          conversion_law:{const:'actql-calendar-boundaries/0.1'},
+        },
+      },
+      identity:'full_canonical_component_body_no_exclusions',
+      absent:'unresolved_no_implicit_defaults',
+      present:'validate_even_when_unused_null_is_not_absence',
+      selection:'retain_exact_environment_membership_match_original_table_bytes_cid_external_release_and_fixed_conversion_law',
+      authority:'selected_byte_integrity_not_IANA_provenance_or_execution_permission',
+    },
+    text_rank:{
+      pointer:'/host_policy_profile/text_rank',
+      schema:{
+        type:'object',additionalProperties:false,
+        required:['version','profile_bytes_cid'],
+        properties:{
+          version:{const:'actql-text-rank-selection/0.1'},
+          profile_bytes_cid:{type:'string',pattern:'^sha256:[0-9a-f]{64}$'},
+        },
+      },
+      identity:'full_canonical_component_body_no_exclusions',
+      absent:'unresolved_no_implicit_defaults',
+      present:'validate_even_when_unused_null_is_not_absence',
+      selection:'retain_exact_environment_membership_match_profile_original_bytes_cid_and_verify_all_profile_dependency_pins',
+      authority:'selected_byte_integrity_not_evaluator_conformance_or_execution_permission',
+    },
+    lookup_execution:{
+      pointer:'/host_policy_profile/lookup_execution',
+      schema:{
+        type:'object',additionalProperties:false,
+        required:['version','max_network_attempts_per_request','max_request_bytes_per_attempt','max_total_request_bytes','max_total_response_bytes','max_total_decoded_response_bytes','max_total_duration_ms'],
+        properties:{
+          version:{const:'actql-lookup-execution-policy/0.1'},
+          ...Object.fromEntries(['max_network_attempts_per_request','max_request_bytes_per_attempt','max_total_request_bytes','max_total_response_bytes','max_total_decoded_response_bytes','max_total_duration_ms'].map(k=>[k,{type:'integer',minimum:1,maximum:9007199254740991}])),
+        },
+      },
+      identity:'full_canonical_component_body_no_exclusions',
+      absent:'unresolved_no_implicit_defaults',
+      present:'validate_even_when_unused_null_is_not_absence',
+      selection:'retain_exact_environment_membership_no_implicit_policy_substitution',
+    },
+    text_time_evaluation:{
+      pointer:'/host_policy_profile/text_time_evaluation',
+      schema:{path:'spec/contracts/actql-expressions.json',pointer:'/schemas/fragment/properties/request/properties/text_time_policy',cid:machineCid(JSON.parse(readFileSync('spec/contracts/actql-expressions.json','utf8')).schemas.fragment.properties.request.properties.text_time_policy)},
+      identity:'full_canonical_component_body_no_exclusions',
+      absent:'unresolved_no_implicit_defaults',
+      present:'validate_even_when_unused_null_is_not_absence',
+      selection:'retain_exact_environment_membership_use_component_cid_for_text_time_envelopes',
+    },
+    capacity:{
+      pointer:'/host_policy_profile/capacity',
+      contract:{path:'spec/contracts/actql-capacity-host-policy.json',pointer:'',cid:machineCid(JSON.parse(readFileSync('spec/contracts/actql-capacity-host-policy.json','utf8')))},
+      identity:'full_canonical_component_body_no_exclusions',
+      absent:'unresolved_no_implicit_defaults',
+      present:'validate_even_when_unused_null_is_not_absence',
+      selection:'retain_exact_environment_membership_and_match_selected_policy_cid',
+    },
+  },
+};
+export type CheckEnvironmentContract = typeof body;
+
+const path='spec/contracts/actql-check-environment.json';
+if(process.argv.includes('--write'))writeFileSync(path,JSON.stringify(body,null,2)+'\n');
+assert.deepEqual(JSON.parse(readFileSync(path,'utf8')),body);
+console.log('Check Environment envelope contract '+machineCid(body));
