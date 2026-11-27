@@ -1322,13 +1322,15 @@ async function observeInstalledSourceFree(input, observationPath, {requireModelT
       const installedModel = {
         binary, modelImage, environment,
         runtimeSha256: artifact.localRuntime.sha256, assets: numericAssets, records,
-        prepareProject: project => prepareNativeNumericOperator({project, assets: numericAssets,
-          libraries: numericLibraries, runtimeWire, maxRows: 16, includeSqlResult: true}),
+        prepareProject: (project, additionalResultNames = []) => prepareNativeNumericOperator({project, assets: numericAssets,
+          libraries: numericLibraries, runtimeWire, maxRows: 16, includeSqlResult: true, additionalResultNames}),
       };
       const standalone = await observeInstalledNativeModel({...installedModel, root: join(root, 'controlled-model'),
         referenceControl: requireModelTerminal});
       const joined = await observeInstalledNativeModel({...installedModel, root: join(root, 'controlled-model-joined'),
         joinedFile: true});
+      const named = await observeInstalledNativeModel({...installedModel, root: join(root, 'controlled-model-named-results'),
+        joinedFile: true, includeReview: true, prepareProject: project => installedModel.prepareProject(project, ['review'])});
       const fileEffect = await observeInstalledNativeModel({...installedModel,
         root: join(root, 'controlled-file-model-effect'), fileModelEffect: true,
         prepareProject: project => prepareNativeNumericOperator({project, assets: numericAssets,
@@ -1348,7 +1350,7 @@ async function observeInstalledSourceFree(input, observationPath, {requireModelT
             root: join(root, `controlled-dependency-${mode}`), dependent: mode}));
         }
       }
-      return {...standalone, joined, fileEffect, ...(requireModelTerminal ? {terminal} : {}),
+      return {...standalone, joined, named, fileEffect, ...(requireModelTerminal ? {terminal} : {}),
         ...(requireDependentModel ? {dependent} : {})};
     });
     const journalExhaustion = await phase('journal-exhaustion', async () => observeNativeJournalExhaustion({project: join(root, 'journal-exhaustion'),

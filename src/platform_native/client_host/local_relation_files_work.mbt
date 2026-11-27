@@ -129,7 +129,6 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     !entry.arena.matches_business_scope(false) ||
     !managed_relation_file_originals_match(access.source, prepared, request) ||
     result_count <= 0 ||
-    (model_graphs is Some(_) && result_count != 1) ||
     @strategy.graph_program_has_effects(graph) {
     return refuse(Configuration)
   }
