@@ -169,10 +169,18 @@ class OriginalSavedResultRead:
         return _public_run_current(self._host, target, operation)
 
     def _check_transfer_current(self) -> None:
-        root, reader, selection = self._root, self._reader, self._payload_selection
-        if root is None or reader is None or selection is None:
-            raise ValueError('Original saved Result transfer is unavailable')
-        self._current(lambda: root.observe_original(reader), selection)
+        host = self._host
+        with host._core._lock:
+            root, reader, selection = self._root, self._reader, self._payload_selection
+            target = self._return_target
+            if root is None or reader is None or selection is None or target is None:
+                raise ValueError('Original saved Result transfer is unavailable')
+            if host._original_physical_observed_at() >= target.expires_at:
+                raise ValueError('Original saved Result return context expired')
+            self._current(lambda: root.observe_original(reader), selection)
+            if (self._return_target is not target
+                    or host._original_physical_observed_at() >= target.expires_at):
+                raise ValueError('Original saved Result expired during its return observation')
 
     def _ensure_active(self) -> None:
         self._host._active()
